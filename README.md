@@ -647,6 +647,7 @@ swift test
 - [Pipeline Types & Patterns](PIPELINES.md) - Comprehensive guide to choosing and configuring pipelines
 - [Security Best Practices](SECURITY.md) - Essential security guidelines
 - [Contributing Guidelines](CONTRIBUTING.md) - Development and contribution standards
+- [AI Interface Documentation](AI_INTERFACE.txt) - LLM-optimized technical reference
 - [API Documentation](https://docs.pipelinekit.dev) - Complete API reference
 - [Examples](Examples/) - Real-world usage examples
 
