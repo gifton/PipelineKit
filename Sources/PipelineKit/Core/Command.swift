@@ -50,7 +50,7 @@ public protocol CommandMetadata: Sendable {
 ///     correlationId: "trace-456"
 /// )
 /// ```
-public struct DefaultCommandMetadata: CommandMetadata {
+public struct DefaultCommandMetadata: CommandMetadata, Equatable, Hashable {
     public let id: UUID
     public let timestamp: Date
     public let userId: String?

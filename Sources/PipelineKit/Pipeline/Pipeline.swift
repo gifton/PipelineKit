@@ -172,6 +172,21 @@ public actor PipelineExecutor: Pipeline {
         return try await chain(command, metadata)
     }
     
+    /// Removes a specific middleware from the pipeline.
+    ///
+    /// - Parameter middleware: The middleware instance to remove
+    /// - Returns: True if the middleware was found and removed, false otherwise
+    @discardableResult
+    public func removeMiddleware(_ middleware: any Middleware) -> Bool {
+        if let index = middlewares.firstIndex(where: { 
+            ObjectIdentifier(type(of: $0)) == ObjectIdentifier(type(of: middleware))
+        }) {
+            middlewares.remove(at: index)
+            return true
+        }
+        return false
+    }
+    
     /// Removes all middleware from the pipeline.
     ///
     /// After calling this method, commands will be executed directly by the handler
@@ -187,13 +202,28 @@ public actor PipelineExecutor: Pipeline {
     public var middlewareCount: Int {
         middlewares.count
     }
+    
+    /// Returns the types of all registered middleware in order.
+    ///
+    /// This is useful for debugging and verifying the middleware chain configuration.
+    public var middlewareTypes: [String] {
+        middlewares.map { String(describing: type(of: $0)) }
+    }
+    
+    /// Checks if a specific middleware type is registered in the pipeline.
+    ///
+    /// - Parameter middlewareType: The type of middleware to check for
+    /// - Returns: True if middleware of this type is registered
+    public func hasMiddleware<T: Middleware>(ofType middlewareType: T.Type) -> Bool {
+        middlewares.contains { type(of: $0) == middlewareType }
+    }
 }
 
 /// Errors that can occur during pipeline operations.
 ///
 /// These errors indicate various failure conditions that can occur when
 /// configuring or executing a pipeline.
-public enum PipelineError: Error, Sendable {
+public enum PipelineError: Error, Sendable, Equatable, Hashable, LocalizedError {
     /// Thrown when a command cannot be cast to the expected type.
     ///
     /// This typically indicates a type mismatch in the pipeline configuration.
@@ -213,4 +243,17 @@ public enum PipelineError: Error, Sendable {
     ///
     /// - Parameter String: A descriptive error message explaining the failure.
     case executionFailed(String)
+    
+    public var errorDescription: String? {
+        switch self {
+        case .invalidCommandType:
+            return "Command could not be cast to the expected type"
+        case .invalidResultType:
+            return "Handler result could not be cast to the expected result type"
+        case .maxDepthExceeded:
+            return "Maximum middleware depth exceeded. This may indicate a circular reference."
+        case .executionFailed(let message):
+            return "Pipeline execution failed: \(message)"
+        }
+    }
 }

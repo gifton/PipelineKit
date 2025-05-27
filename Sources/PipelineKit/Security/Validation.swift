@@ -31,7 +31,7 @@ public protocol ValidatableCommand: Command {
 }
 
 /// Represents validation errors that can occur during command validation.
-public enum ValidationError: Error, Sendable, LocalizedError {
+public enum ValidationError: Error, Sendable, LocalizedError, Equatable, Hashable {
     case invalidEmail
     case weakPassword
     case missingRequiredField(String)

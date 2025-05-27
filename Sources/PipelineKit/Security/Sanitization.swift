@@ -10,21 +10,23 @@ import Foundation
 /// ```swift
 /// struct CreatePostCommand: Command, SanitizableCommand {
 ///     typealias Result = Post
-///     var title: String
-///     var content: String
+///     let title: String
+///     let content: String
 ///     
-///     mutating func sanitize() {
-///         title = title.trimmingCharacters(in: .whitespacesAndNewlines)
-///         content = CommandSanitizer.sanitizeHTML(content)
+///     func sanitized() -> CreatePostCommand {
+///         CreatePostCommand(
+///             title: title.trimmingCharacters(in: .whitespacesAndNewlines),
+///             content: CommandSanitizer.sanitizeHTML(content)
+///         )
 ///     }
 /// }
 /// ```
 public protocol SanitizableCommand: Command {
-    /// Sanitizes the command's data.
+    /// Returns a sanitized copy of the command.
     /// 
-    /// This method should modify the command's properties to remove
-    /// or escape potentially dangerous content.
-    mutating func sanitize()
+    /// This method should return a new instance with sanitized data,
+    /// removing or escaping potentially dangerous content.
+    func sanitized() -> Self
 }
 
 /// Provides common sanitization utilities for command data.
@@ -91,7 +93,7 @@ public struct CommandSanitizer: Sendable {
     /// 
     /// - Parameter input: The string to clean
     /// - Returns: String with only printable characters
-    public static func removNonPrintable(_ input: String) -> String {
+    public static func removeNonPrintable(_ input: String) -> String {
         let printable = CharacterSet.alphanumerics
             .union(.punctuationCharacters)
             .union(.whitespaces)
@@ -147,16 +149,21 @@ public struct SanitizationMiddleware: Middleware {
         metadata: CommandMetadata,
         next: @Sendable (T, CommandMetadata) async throws -> T.Result
     ) async throws -> T.Result {
-        var sanitizedCommand = command
-        
-        // Check if command is sanitizable
-        if var sanitizableCommand = sanitizedCommand as? any SanitizableCommand {
-            sanitizableCommand.sanitize()
-            sanitizedCommand = sanitizableCommand as! T
+        // Check if command is sanitizable and create a sanitized copy
+        if let sanitizableCommand = command as? any SanitizableCommand {
+            let sanitized = sanitizableCommand.sanitized()
+            
+            // Safely cast back to T
+            guard let sanitizedCommand = sanitized as? T else {
+                // This should never happen in practice, but handle it gracefully
+                return try await next(command, metadata)
+            }
+            
+            return try await next(sanitizedCommand, metadata)
         }
         
-        // Continue to next middleware/handler
-        return try await next(sanitizedCommand, metadata)
+        // Continue with original command if not sanitizable
+        return try await next(command, metadata)
     }
     
     /// Recommended middleware order for this component

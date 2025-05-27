@@ -1,5 +1,9 @@
 import Foundation
 
+/// Type alias for Swift's Result type with Sendable constraints.
+/// Use this when you need explicit Sendable constraints on both success and failure types.
+public typealias SendableResult<Success: Sendable, Failure: Error> = Result<Success, Failure> where Failure: Sendable
+
 /// A type-safe result type for command execution.
 /// 
 /// `CommandResult` represents either a successful command execution with a value
@@ -18,6 +22,7 @@ import Foundation
 ///     }
 /// }
 /// ```
+@available(*, deprecated, renamed: "Result", message: "Use Swift's standard Result type instead")
 public enum CommandResult<Success: Sendable, Failure: Error>: Sendable where Failure: Sendable {
     /// A successful result containing a value
     case success(Success)
@@ -26,6 +31,7 @@ public enum CommandResult<Success: Sendable, Failure: Error>: Sendable where Fai
     case failure(Failure)
 }
 
+@available(*, deprecated, renamed: "Result")
 extension CommandResult {
     /// Returns true if this is a success result.
     public var isSuccess: Bool {

@@ -54,12 +54,26 @@ public actor CommandBus {
     /// middleware being closest to the handler in the execution chain.
     /// 
     /// - Parameter middleware: The middleware to add to the pipeline
-    /// - Note: Fatal error if maximum middleware depth is exceeded (default: 100)
-    public func addMiddleware(_ middleware: any Middleware) {
+    /// - Throws: `CommandBusError.maxMiddlewareDepthExceeded` if maximum middleware depth is exceeded (default: 100)
+    public func addMiddleware(_ middleware: any Middleware) throws {
         guard middlewares.count < maxMiddlewareDepth else {
-            fatalError("Maximum middleware depth exceeded. Possible circular reference.")
+            throw CommandBusError.maxMiddlewareDepthExceeded(maxDepth: maxMiddlewareDepth)
         }
         middlewares.append(middleware)
+    }
+    
+    /// Adds multiple middleware to the pipeline at once.
+    /// 
+    /// This is more efficient than adding middleware one at a time when you have
+    /// multiple middleware to add.
+    /// 
+    /// - Parameter newMiddlewares: An array of middleware to add to the pipeline
+    /// - Throws: `CommandBusError.maxMiddlewareDepthExceeded` if adding these middleware would exceed the maximum depth
+    public func addMiddlewares(_ newMiddlewares: [any Middleware]) throws {
+        guard middlewares.count + newMiddlewares.count <= maxMiddlewareDepth else {
+            throw CommandBusError.maxMiddlewareDepthExceeded(maxDepth: maxMiddlewareDepth)
+        }
+        middlewares.append(contentsOf: newMiddlewares)
     }
     
     /// Sends a command through the pipeline for execution.
@@ -103,6 +117,21 @@ public actor CommandBus {
         return handlers[key]
     }
     
+    /// Removes a specific middleware from the bus.
+    ///
+    /// - Parameter middleware: The middleware instance to remove
+    /// - Returns: True if the middleware was found and removed, false otherwise
+    @discardableResult
+    public func removeMiddleware(_ middleware: any Middleware) -> Bool {
+        if let index = middlewares.firstIndex(where: { 
+            ObjectIdentifier(type(of: $0)) == ObjectIdentifier(type(of: middleware))
+        }) {
+            middlewares.remove(at: index)
+            return true
+        }
+        return false
+    }
+    
     /// Removes all registered handlers and middleware.
     /// 
     /// This is useful for testing or resetting the bus state.
@@ -110,10 +139,49 @@ public actor CommandBus {
         handlers.removeAll()
         middlewares.removeAll()
     }
+    
+    /// Removes all middleware while keeping handlers registered.
+    public func clearMiddlewares() {
+        middlewares.removeAll()
+    }
+    
+    /// The current number of middleware in the bus.
+    public var middlewareCount: Int {
+        middlewares.count
+    }
+    
+    /// Returns the types of all registered middleware in order.
+    public var middlewareTypes: [String] {
+        middlewares.map { String(describing: type(of: $0)) }
+    }
+    
+    /// Checks if a specific middleware type is registered.
+    ///
+    /// - Parameter middlewareType: The type of middleware to check for
+    /// - Returns: True if middleware of this type is registered
+    public func hasMiddleware<T: Middleware>(ofType middlewareType: T.Type) -> Bool {
+        middlewares.contains { type(of: $0) == middlewareType }
+    }
+    
+    /// Returns the types of all registered command handlers.
+    public var registeredCommandTypes: [String] {
+        handlers.keys.map { key in
+            // Extract the type name from the ObjectIdentifier
+            String(describing: key)
+        }
+    }
+    
+    /// Checks if a handler is registered for the specified command type.
+    ///
+    /// - Parameter commandType: The command type to check
+    /// - Returns: True if a handler is registered
+    public func hasHandler<T: Command>(for commandType: T.Type) -> Bool {
+        findHandler(for: commandType) != nil
+    }
 }
 
 /// Errors that can occur during command bus operations.
-public enum CommandBusError: Error, Sendable {
+public enum CommandBusError: Error, Sendable, Equatable, Hashable, LocalizedError {
     /// No handler is registered for the command type
     case handlerNotFound(String)
     
@@ -122,4 +190,20 @@ public enum CommandBusError: Error, Sendable {
     
     /// Middleware execution failed
     case middlewareError(String)
+    
+    /// Maximum middleware depth exceeded
+    case maxMiddlewareDepthExceeded(maxDepth: Int)
+    
+    public var errorDescription: String? {
+        switch self {
+        case .handlerNotFound(let commandType):
+            return "No handler registered for command type: \(commandType)"
+        case .executionFailed(let message):
+            return "Command execution failed: \(message)"
+        case .middlewareError(let message):
+            return "Middleware error: \(message)"
+        case .maxMiddlewareDepthExceeded(let maxDepth):
+            return "Maximum middleware depth exceeded. Maximum allowed: \(maxDepth)"
+        }
+    }
 }
