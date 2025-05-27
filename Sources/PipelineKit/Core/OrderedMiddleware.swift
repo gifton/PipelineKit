@@ -26,8 +26,8 @@ extension PriorityPipeline {
     /// 
     /// - Parameter middleware: The ordered middleware to add
     /// - Throws: PipelineError.maxDepthExceeded if limit is reached
-    public func addOrderedMiddleware<M: OrderedMiddleware>(_ middleware: M) async throws {
-        try await addMiddleware(middleware, priority: M.recommendedOrder.rawValue)
+    public func addOrderedMiddleware<M: OrderedMiddleware>(_ middleware: M) throws {
+        try addMiddleware(middleware, priority: M.recommendedOrder.rawValue)
     }
 }
 

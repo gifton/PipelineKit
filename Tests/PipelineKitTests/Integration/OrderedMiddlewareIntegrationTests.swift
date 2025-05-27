@@ -132,8 +132,8 @@ final class OrderedMiddlewareIntegrationTests: XCTestCase {
         let pipeline = PriorityPipeline(handler: TestHandler())
         
         // Add using ordered middleware helper
-        try await pipeline.addOrderedMiddleware(OrderedLoggingMiddleware(tracker: tracker))
-        try await pipeline.addOrderedMiddleware(OrderedAuthMiddleware(tracker: tracker))
+        try pipeline.addOrderedMiddleware(OrderedLoggingMiddleware(tracker: tracker))
+        try pipeline.addOrderedMiddleware(OrderedAuthMiddleware(tracker: tracker))
         
         let command = TestCommand(input: "test", tracker: tracker)
         _ = try await pipeline.execute(command, metadata: DefaultCommandMetadata())

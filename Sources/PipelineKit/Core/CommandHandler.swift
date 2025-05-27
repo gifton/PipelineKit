@@ -61,7 +61,7 @@ public protocol CommandHandlerRegistration: Sendable {
 @MainActor
 public protocol CommandHandlerRegistry: Sendable {
     /// Registers a handler type for a specific command type.
-    /// 
+    ///
     /// - Parameters:
     ///   - commandType: The type of command to handle
     ///   - handler: The handler type that will process the command
@@ -71,7 +71,7 @@ public protocol CommandHandlerRegistry: Sendable {
     ) where H.CommandType == T
     
     /// Retrieves a handler for the specified command type.
-    /// 
+    ///
     /// - Parameter commandType: The type of command to find a handler for
     /// - Returns: The registered handler, or nil if none exists
     func handler<T: Command>(for commandType: T.Type) -> (any CommandHandler)?

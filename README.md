@@ -237,6 +237,284 @@ print("Failure rate: \(1.0 - stats.successRate)")
 Request → Validation → Authorization → Rate Limiting → Business Logic → Audit → Response
 ```
 
+## 🔧 Pipeline Types
+
+PipelineKit provides multiple pipeline implementations, each optimized for different use cases:
+
+### 1. **Basic Pipeline** - Sequential Processing
+
+The fundamental pipeline executes middleware sequentially in a single thread.
+
+**Best for:**
+- Simple command processing
+- Development and testing
+- Low-complexity operations
+- When order is critical
+
+```swift
+let pipeline = Pipeline()
+    .use(ValidationMiddleware())
+    .use(AuthorizationMiddleware())
+    .use(AuditLoggingMiddleware())
+
+// Sequential execution: Validation → Authorization → Audit → Handler
+let result = try await pipeline.execute(command, metadata: metadata)
+```
+
+**Characteristics:**
+- ✅ Predictable execution order
+- ✅ Simple debugging
+- ✅ Low memory overhead
+- ❌ No parallelization
+- ❌ Slower for I/O-heavy operations
+
+---
+
+### 2. **Concurrent Pipeline** - Parallel Processing
+
+Executes independent middleware concurrently for improved performance.
+
+**Best for:**
+- I/O-heavy operations
+- Independent middleware (validation, logging)
+- High-throughput scenarios
+- CPU-intensive tasks
+
+```swift
+let concurrentPipeline = ConcurrentPipeline(maxConcurrency: 4)
+    .use(ValidationMiddleware())      // Can run in parallel
+    .use(ExternalAPIMiddleware())     // Can run in parallel
+    .use(DatabaseMiddleware())        // Can run in parallel
+    .use(NotificationMiddleware())    // Must run after others
+
+// Parallel execution where possible
+let result = try await concurrentPipeline.execute(command, metadata: metadata)
+```
+
+**Characteristics:**
+- ✅ Faster execution for independent operations
+- ✅ Better resource utilization
+- ✅ Configurable concurrency limits
+- ❌ More complex error handling
+- ❌ Harder to debug race conditions
+
+---
+
+### 3. **Priority Pipeline** - Weighted Execution
+
+Routes commands based on priority levels with weighted processing.
+
+**Best for:**
+- SLA-based processing
+- VIP user prioritization
+- Emergency command handling
+- Resource-constrained environments
+
+```swift
+let priorityPipeline = PriorityPipeline()
+
+// High priority: Emergency operations, VIP users
+priorityPipeline.addQueue(priority: .high, weight: 70)
+
+// Medium priority: Standard operations
+priorityPipeline.addQueue(priority: .medium, weight: 20) 
+
+// Low priority: Background tasks, cleanup
+priorityPipeline.addQueue(priority: .low, weight: 10)
+
+// Commands are processed based on priority
+let highPriorityCommand = PaymentCommand(amount: 10000, priority: .high)
+let result = try await priorityPipeline.execute(highPriorityCommand, metadata: metadata)
+```
+
+**Characteristics:**
+- ✅ Fair resource allocation
+- ✅ SLA compliance
+- ✅ Starvation prevention
+- ❌ More complex configuration
+- ❌ Potential latency for low-priority items
+
+---
+
+### 4. **Context-Aware Pipeline** - State Sharing
+
+Enables middleware to share state through a command context.
+
+**Best for:**
+- Multi-step authentication flows
+- Request correlation tracking
+- Metrics collection across middleware
+- Complex business logic requiring state
+
+```swift
+let contextPipeline = ContextAwarePipeline()
+    .use(RequestIdMiddleware())       // Sets request ID in context
+    .use(AuthenticationMiddleware())  // Sets user in context
+    .use(AuthorizationMiddleware())   // Uses user from context
+    .use(MetricsMiddleware())         // Collects timing data
+
+// Context is shared between all middleware
+let result = try await contextPipeline.execute(command, initialContext: [:])
+```
+
+**Context Usage Example:**
+```swift
+struct UserKey: ContextKey {
+    typealias Value = User
+}
+
+struct AuthenticationMiddleware: ContextAwareMiddleware {
+    func execute<T: Command>(
+        _ command: T,
+        context: CommandContext,
+        next: @Sendable (T, CommandContext) async throws -> T.Result
+    ) async throws -> T.Result {
+        let user = try await authenticateUser(command)
+        await context.set(UserKey.self, value: user)  // Store for other middleware
+        return try await next(command, context)
+    }
+}
+
+struct AuthorizationMiddleware: ContextAwareMiddleware {
+    func execute<T: Command>(
+        _ command: T,
+        context: CommandContext,
+        next: @Sendable (T, CommandContext) async throws -> T.Result
+    ) async throws -> T.Result {
+        guard let user = await context.get(UserKey.self) else {
+            throw AuthorizationError.unauthenticated
+        }
+        // Use the user from context for authorization
+        try await authorizeUser(user, for: command)
+        return try await next(command, context)
+    }
+}
+```
+
+**Characteristics:**
+- ✅ Rich inter-middleware communication
+- ✅ Type-safe context access
+- ✅ Perfect for complex flows
+- ❌ Higher memory usage
+- ❌ More complex middleware implementation
+
+---
+
+### 5. **Secure Pipeline** - Security-First Design
+
+Pre-configured pipeline with security middleware in the correct order.
+
+**Best for:**
+- Production applications
+- Financial services
+- Healthcare systems
+- Any security-sensitive application
+
+```swift
+let securePipeline = SecurePipelineBuilder()
+    .add(ValidationMiddleware())           // Order: 300
+    .add(AuthenticationMiddleware())       // Order: 100
+    .add(AuthorizationMiddleware())        // Order: 200
+    .add(RateLimitingMiddleware())         // Order: 320
+    .add(SanitizationMiddleware())         // Order: 310
+    .add(AuditLoggingMiddleware())         // Order: 800
+    .build()  // Automatically sorts by security order
+
+// Middleware executes in security-compliant order regardless of add() sequence
+```
+
+**Characteristics:**
+- ✅ Automatic security ordering
+- ✅ Production-ready defaults
+- ✅ Comprehensive protection
+- ❌ Less flexibility in ordering
+- ❌ Higher overhead
+
+---
+
+## 🎯 Choosing the Right Pipeline
+
+### Decision Matrix
+
+| Use Case | Basic | Concurrent | Priority | Context-Aware | Secure |
+|----------|-------|------------|----------|---------------|--------|
+| **Simple CRUD** | ✅ | ❌ | ❌ | ❌ | ⚠️ |
+| **High Throughput** | ❌ | ✅ | ⚠️ | ❌ | ⚠️ |
+| **VIP Processing** | ❌ | ❌ | ✅ | ❌ | ⚠️ |
+| **Complex Flows** | ❌ | ❌ | ❌ | ✅ | ⚠️ |
+| **Production App** | ❌ | ⚠️ | ⚠️ | ⚠️ | ✅ |
+| **Financial Services** | ❌ | ❌ | ❌ | ❌ | ✅ |
+| **Microservices** | ❌ | ✅ | ⚠️ | ✅ | ✅ |
+
+**Legend:** ✅ Recommended | ⚠️ Consider | ❌ Not Recommended
+
+### Performance Characteristics
+
+```
+Latency (Lower is Better):
+Basic < Context-Aware < Priority < Secure < Concurrent
+
+Throughput (Higher is Better):
+Concurrent > Priority > Basic > Context-Aware > Secure
+
+Memory Usage (Lower is Better):
+Basic < Priority < Concurrent < Secure < Context-Aware
+
+Security (Higher is Better):
+Secure > Context-Aware > Priority > Basic > Concurrent
+```
+
+### Real-World Examples
+
+#### E-commerce Platform
+```swift
+// Product search (high volume, low security)
+let searchPipeline = ConcurrentPipeline()
+    .use(CacheMiddleware())
+    .use(SearchMiddleware())
+
+// Payment processing (high security, priority)
+let paymentPipeline = SecurePipelineBuilder()
+    .add(PriorityMiddleware())  // VIP customers first
+    .add(ValidationMiddleware())
+    .add(AuthorizationMiddleware())
+    .add(EncryptionMiddleware())
+    .add(PaymentMiddleware())
+    .build()
+```
+
+#### Healthcare System
+```swift
+// Patient record access (context-aware for audit trail)
+let patientPipeline = ContextAwarePipeline()
+    .use(PatientContextMiddleware())     // Sets patient context
+    .use(HIPAAComplianceMiddleware())    // Uses patient context
+    .use(AuditMiddleware())              // Logs with full context
+
+// Emergency alerts (priority-based)
+let emergencyPipeline = PriorityPipeline()
+// Critical: Life-threatening (90% resources)
+// High: Urgent care (8% resources)  
+// Normal: Routine (2% resources)
+```
+
+#### Financial Trading System
+```swift
+// Market data (concurrent processing)
+let marketDataPipeline = ConcurrentPipeline(maxConcurrency: 8)
+    .use(DataValidationMiddleware())
+    .use(MarketAnalysisMiddleware())
+    .use(DistributionMiddleware())
+
+// Trade execution (secure + priority)
+let tradePipeline = SecurePipelineBuilder()
+    .add(PriorityMiddleware())           // Large orders first
+    .add(RiskManagementMiddleware())
+    .add(ComplianceMiddleware())
+    .add(EncryptionMiddleware())
+    .build()
+```
+
 ### Middleware Stack
 
 ```swift
@@ -366,9 +644,10 @@ swift test
 
 ## 📚 Documentation
 
+- [Pipeline Types & Patterns](PIPELINES.md) - Comprehensive guide to choosing and configuring pipelines
 - [Security Best Practices](SECURITY.md) - Essential security guidelines
+- [Contributing Guidelines](CONTRIBUTING.md) - Development and contribution standards
 - [API Documentation](https://docs.pipelinekit.dev) - Complete API reference
-- [Migration Guide](MIGRATION.md) - Upgrading from previous versions
 - [Examples](Examples/) - Real-world usage examples
 
 ## 🤝 Contributing
