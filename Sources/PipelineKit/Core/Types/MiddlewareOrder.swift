@@ -4,6 +4,7 @@ import Foundation
 public struct MiddlewareOrder: RawRepresentable, Comparable, Sendable {
     public let rawValue: Int
     
+    @inlinable
     public init(rawValue: Int) {
         self.rawValue = rawValue
     }
@@ -12,6 +13,7 @@ public struct MiddlewareOrder: RawRepresentable, Comparable, Sendable {
         self.init(rawValue: rawValue)
     }
     
+    @inlinable
     public static func < (lhs: MiddlewareOrder, rhs: MiddlewareOrder) -> Bool {
         lhs.rawValue < rhs.rawValue
     }

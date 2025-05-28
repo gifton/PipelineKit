@@ -11,6 +11,7 @@ import Foundation
 /// pipeline.addMiddleware(authMiddleware, priority: ExecutionPriority.authentication.rawValue)
 /// pipeline.addMiddleware(validationMiddleware, priority: ExecutionPriority.validation.rawValue)
 /// ```
+@frozen
 public enum ExecutionPriority: Int, Sendable {
     // MARK: - Pre-Processing (0-99)
     
@@ -190,6 +191,7 @@ public enum ExecutionPriority: Int, Sendable {
 
 extension ExecutionPriority {
     /// Returns a descriptive category name for this execution priority.
+    @inlinable
     public var category: String {
         switch self.rawValue {
         case 0..<100:
@@ -216,7 +218,7 @@ extension ExecutionPriority {
     }
     
     /// Returns all execution priorities in a specific category.
-    public static func category(_ category: MiddlewareCategory) -> [ExecutionPriority] {
+    nonisolated(unsafe) public static func category(_ category: MiddlewareCategory) -> [ExecutionPriority] {
         return allCases.filter { order in
             switch category {
             case .preProcessing:
@@ -250,7 +252,8 @@ extension ExecutionPriority {
     /// let customPriority = ExecutionPriority.between(.authentication, and: .session)
     /// // Returns 110 (between 100 and 120)
     /// ```
-    public static func between(_ first: ExecutionPriority, and second: ExecutionPriority) -> Int {
+    @inlinable
+    nonisolated(unsafe) public static func between(_ first: ExecutionPriority, and second: ExecutionPriority) -> Int {
         let lower = min(first.rawValue, second.rawValue)
         let upper = max(first.rawValue, second.rawValue)
         return lower + (upper - lower) / 2
@@ -263,7 +266,8 @@ extension ExecutionPriority {
     /// let customPriority = ExecutionPriority.before(.authentication)
     /// // Returns 99
     /// ```
-    public static func before(_ order: ExecutionPriority) -> Int {
+    @inlinable
+    nonisolated(unsafe) public static func before(_ order: ExecutionPriority) -> Int {
         order.rawValue - 1
     }
     
@@ -274,12 +278,14 @@ extension ExecutionPriority {
     /// let customPriority = ExecutionPriority.after(.authentication)
     /// // Returns 101
     /// ```
-    public static func after(_ order: ExecutionPriority) -> Int {
+    @inlinable
+    nonisolated(unsafe) public static func after(_ order: ExecutionPriority) -> Int {
         order.rawValue + 1
     }
 }
 
 /// Categories for grouping middleware types.
+@frozen
 public enum MiddlewareCategory: String, CaseIterable, Sendable {
     case preProcessing = "Pre-Processing"
     case security = "Security"

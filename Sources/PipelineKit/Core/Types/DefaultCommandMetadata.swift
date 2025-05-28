@@ -24,6 +24,7 @@ public struct DefaultCommandMetadata: CommandMetadata, Equatable, Hashable {
     ///   - timestamp: Creation timestamp. Defaults to current date.
     ///   - userId: Optional user identifier for authorization.
     ///   - correlationId: Optional correlation ID for distributed tracing.
+    @inlinable
     public init(
         id: UUID = UUID(),
         timestamp: Date = Date(),
