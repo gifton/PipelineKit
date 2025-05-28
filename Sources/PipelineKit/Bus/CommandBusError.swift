@@ -14,6 +14,9 @@ public enum CommandBusError: Error, Sendable, Equatable, Hashable, LocalizedErro
     /// Maximum middleware depth exceeded
     case maxMiddlewareDepthExceeded(maxDepth: Int)
     
+    /// Unknown error occurred during processing
+    case unknownError
+    
     public var errorDescription: String? {
         switch self {
         case .handlerNotFound(let commandType):
@@ -24,6 +27,20 @@ public enum CommandBusError: Error, Sendable, Equatable, Hashable, LocalizedErro
             return "Middleware error: \(message)"
         case .maxMiddlewareDepthExceeded(let maxDepth):
             return "Maximum middleware depth exceeded. Maximum allowed: \(maxDepth)"
+        case .unknownError:
+            return "An unknown error occurred during command processing"
+        }
+    }
+}
+
+/// Errors related to circuit breaker functionality.
+public enum CircuitBreakerError: Error, Sendable, Equatable, LocalizedError {
+    case circuitOpen
+    
+    public var errorDescription: String? {
+        switch self {
+        case .circuitOpen:
+            return "Circuit breaker is open - failing fast to prevent cascading failures"
         }
     }
 }

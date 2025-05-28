@@ -4,6 +4,7 @@ import Foundation
 /// 
 /// The builder pattern provides a convenient way to configure a command bus
 /// with multiple handlers and middleware in a readable, chainable syntax.
+/// Actor isolation ensures thread-safe building even when accessed concurrently.
 /// 
 /// Example:
 /// ```swift
@@ -14,7 +15,7 @@ import Foundation
 ///     .withMiddleware(LoggingMiddleware())
 ///     .build()
 /// ```
-public final class CommandBusBuilder: Sendable {
+public actor CommandBusBuilder {
     private let bus: CommandBus
     
     /// Creates a new command bus builder.

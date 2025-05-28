@@ -57,7 +57,7 @@ final class EncryptionTests: XCTestCase {
     
     func testBasicEncryption() async throws {
         let keyStore = InMemoryKeyStore()
-        let encryptor = CommandEncryptor(keyStore: keyStore)
+        let encryptor = await CommandEncryptor(keyStore: keyStore)
         
         let command = PaymentCommand(
             cardNumber: "1234-5678-9012-3456",
@@ -79,7 +79,7 @@ final class EncryptionTests: XCTestCase {
     
     func testEncryptionDecryption() async throws {
         let keyStore = InMemoryKeyStore()
-        let encryptor = CommandEncryptor(keyStore: keyStore)
+        let encryptor = await CommandEncryptor(keyStore: keyStore)
         
         let originalCommand = PaymentCommand(
             cardNumber: "1234-5678-9012-3456",
@@ -97,7 +97,7 @@ final class EncryptionTests: XCTestCase {
     
     func testMultipleCommandTypes() async throws {
         let keyStore = InMemoryKeyStore()
-        let encryptor = CommandEncryptor(keyStore: keyStore)
+        let encryptor = await CommandEncryptor(keyStore: keyStore)
         
         // Test PaymentCommand
         let paymentCommand = PaymentCommand(
@@ -130,7 +130,7 @@ final class EncryptionTests: XCTestCase {
     
     func testKeyRotation() async throws {
         let keyStore = InMemoryKeyStore()
-        let encryptor = CommandEncryptor(
+        let encryptor = await CommandEncryptor(
             keyStore: keyStore,
             keyRotationInterval: 0.1 // Rotate after 0.1 seconds
         )
@@ -169,7 +169,7 @@ final class EncryptionTests: XCTestCase {
     
     func testManualKeyRotation() async throws {
         let keyStore = InMemoryKeyStore()
-        let encryptor = CommandEncryptor(keyStore: keyStore)
+        let encryptor = await CommandEncryptor(keyStore: keyStore)
         
         let command = PaymentCommand(
             cardNumber: "1234-5678-9012-3456",
@@ -197,56 +197,66 @@ final class EncryptionTests: XCTestCase {
     
     // MARK: - Key Store Tests
     
-    func testInMemoryKeyStore() {
+    func testInMemoryKeyStore() async {
         let store = InMemoryKeyStore()
         
         let key1 = SymmetricKey(size: .bits256)
         let key2 = SymmetricKey(size: .bits256)
         
-        store.store(key: key1, identifier: "key1")
-        XCTAssertEqual(store.currentKeyIdentifier, "key1")
-        XCTAssertNotNil(store.currentKey)
+        await store.store(key: key1, identifier: "key1")
+        let currentId1 = await store.currentKeyIdentifier
+        XCTAssertEqual(currentId1, "key1")
+        let currentKey1 = await store.currentKey
+        XCTAssertNotNil(currentKey1)
         
-        store.store(key: key2, identifier: "key2")
-        XCTAssertEqual(store.currentKeyIdentifier, "key2")
+        await store.store(key: key2, identifier: "key2")
+        let currentId2 = await store.currentKeyIdentifier
+        XCTAssertEqual(currentId2, "key2")
         
         // Both keys should be retrievable
-        XCTAssertNotNil(store.key(for: "key1"))
-        XCTAssertNotNil(store.key(for: "key2"))
+        let retrievedKey1 = await store.key(for: "key1")
+        XCTAssertNotNil(retrievedKey1)
+        let retrievedKey2 = await store.key(for: "key2")
+        XCTAssertNotNil(retrievedKey2)
         
         // Non-existent key
-        XCTAssertNil(store.key(for: "key3"))
+        let nonExistentKey = await store.key(for: "key3")
+        XCTAssertNil(nonExistentKey)
     }
     
-    func testKeyStoreExpiration() {
+    func testKeyStoreExpiration() async {
         let store = InMemoryKeyStore()
         
         let key1 = SymmetricKey(size: .bits256)
         let key2 = SymmetricKey(size: .bits256)
         let key3 = SymmetricKey(size: .bits256)
         
-        store.store(key: key1, identifier: "key1")
-        Thread.sleep(forTimeInterval: 0.1)
-        store.store(key: key2, identifier: "key2")
-        Thread.sleep(forTimeInterval: 0.1)
-        store.store(key: key3, identifier: "key3") // Current key
+        await store.store(key: key1, identifier: "key1")
+        try! await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
+        await store.store(key: key2, identifier: "key2")
+        try! await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
+        await store.store(key: key3, identifier: "key3") // Current key
         
         // Remove keys older than 0.05 seconds
         let cutoff = Date().addingTimeInterval(-0.05)
-        store.removeExpiredKeys(before: cutoff)
+        await store.removeExpiredKeys(before: cutoff)
         
         // key1 and key2 should be removed, key3 should remain
-        XCTAssertNil(store.key(for: "key1"))
-        XCTAssertNil(store.key(for: "key2"))
-        XCTAssertNotNil(store.key(for: "key3"))
-        XCTAssertEqual(store.currentKeyIdentifier, "key3")
+        let key1Retrieved = await store.key(for: "key1")
+        XCTAssertNil(key1Retrieved)
+        let key2Retrieved = await store.key(for: "key2")
+        XCTAssertNil(key2Retrieved)
+        let key3Retrieved = await store.key(for: "key3")
+        XCTAssertNotNil(key3Retrieved)
+        let currentId = await store.currentKeyIdentifier
+        XCTAssertEqual(currentId, "key3")
     }
     
     // MARK: - Middleware Tests
     
     func testEncryptionMiddleware() async throws {
         let keyStore = InMemoryKeyStore()
-        let encryptor = CommandEncryptor(keyStore: keyStore)
+        let encryptor = await CommandEncryptor(keyStore: keyStore)
         let middleware = EncryptionMiddleware(encryptor: encryptor)
         
         let command = PaymentCommand(
@@ -268,7 +278,7 @@ final class EncryptionTests: XCTestCase {
     
     func testEncryptionMiddlewareWithNonEncryptableCommand() async throws {
         let keyStore = InMemoryKeyStore()
-        let encryptor = CommandEncryptor(keyStore: keyStore)
+        let encryptor = await CommandEncryptor(keyStore: keyStore)
         let middleware = EncryptionMiddleware(encryptor: encryptor)
         
         struct RegularCommand: Command {
@@ -289,7 +299,7 @@ final class EncryptionTests: XCTestCase {
     
     func testEncryptionMiddlewareValidation() async throws {
         let keyStore = InMemoryKeyStore()
-        let encryptor = CommandEncryptor(keyStore: keyStore)
+        let encryptor = await CommandEncryptor(keyStore: keyStore)
         let middleware = EncryptionMiddleware(encryptor: encryptor)
         
         struct EmptyEncryptableCommand: Command, EncryptableCommand {
@@ -322,10 +332,10 @@ final class EncryptionTests: XCTestCase {
     
     func testDecryptionWithWrongKey() async throws {
         let keyStore1 = InMemoryKeyStore()
-        let encryptor1 = CommandEncryptor(keyStore: keyStore1)
+        let encryptor1 = await CommandEncryptor(keyStore: keyStore1)
         
         let keyStore2 = InMemoryKeyStore()
-        let encryptor2 = CommandEncryptor(keyStore: keyStore2)
+        let encryptor2 = await CommandEncryptor(keyStore: keyStore2)
         
         let command = PaymentCommand(
             cardNumber: "1234-5678-9012-3456",
@@ -363,7 +373,7 @@ final class EncryptionTests: XCTestCase {
     
     func testEncryptionStrength() async throws {
         let keyStore = InMemoryKeyStore()
-        let encryptor = CommandEncryptor(keyStore: keyStore)
+        let encryptor = await CommandEncryptor(keyStore: keyStore)
         
         let command = PaymentCommand(
             cardNumber: "1234-5678-9012-3456",

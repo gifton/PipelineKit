@@ -30,6 +30,9 @@ public actor CommandBus {
     private var middlewares: [any Middleware] = []
     private let maxMiddlewareDepth = 100
     
+    /// Circuit breaker for preventing cascading failures.
+    private let circuitBreaker = CircuitBreaker()
+    
     /// Creates a new command bus instance.
     public init() {}
     
@@ -110,6 +113,128 @@ public actor CommandBus {
         }
         
         return try await chain(command, commandMetadata)
+    }
+    
+    /// Sends a command with retry and error recovery capabilities.
+    ///
+    /// This enhanced version provides comprehensive error recovery including:
+    /// - Configurable retry policies with exponential backoff
+    /// - Circuit breaker pattern to prevent cascading failures
+    /// - Error classification for smart retry decisions
+    /// - Comprehensive failure tracking and reporting
+    ///
+    /// - Parameters:
+    ///   - command: The command to execute
+    ///   - metadata: Optional metadata for the command execution
+    ///   - retryPolicy: Retry policy to use (defaults to .default)
+    /// - Returns: The result of executing the command
+    /// - Throws: The last error encountered after all retry attempts, or circuit breaker errors
+    public func send<T: Command>(
+        _ command: T,
+        metadata: CommandMetadata? = nil,
+        retryPolicy: RetryPolicy = .default
+    ) async throws -> T.Result {
+        let startTime = Date()
+        var lastError: Error?
+        
+        for attempt in 1...retryPolicy.maxAttempts {
+            do {
+                // Check circuit breaker before attempting
+                guard await circuitBreaker.shouldAllow() else {
+                    throw CircuitBreakerError.circuitOpen
+                }
+                
+                let result = try await sendInternal(command, metadata: metadata)
+                await circuitBreaker.recordSuccess()
+                return result
+            } catch {
+                await circuitBreaker.recordFailure()
+                lastError = error
+                let elapsedTime = Date().timeIntervalSince(startTime)
+                let isFinalAttempt = attempt == retryPolicy.maxAttempts
+                
+                // Create error recovery context
+                let context = ErrorRecoveryContext(
+                    command: command,
+                    error: error,
+                    attempt: attempt,
+                    totalElapsedTime: elapsedTime,
+                    isFinalAttempt: isFinalAttempt
+                )
+                
+                // Check if we should retry this error
+                guard !isFinalAttempt && retryPolicy.shouldRetry(error) else {
+                    // Log final failure for observability
+                    logCommandFailure(command: command, context: context)
+                    throw error
+                }
+                
+                // Calculate and apply delay before retry
+                let delay = retryPolicy.delayStrategy.delay(for: attempt)
+                if delay > 0 {
+                    do {
+                        try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+                    } catch {
+                        // Task was cancelled during sleep
+                        throw CancellationError()
+                    }
+                }
+                
+                // Log retry attempt for observability
+                logCommandRetry(command: command, context: context, nextDelay: delay)
+            }
+        }
+        
+        // This shouldn't be reached, but safety fallback
+        throw lastError ?? CommandBusError.unknownError
+    }
+    
+    /// Internal send method without retry logic (used by the retry mechanism).
+    private func sendInternal<T: Command>(
+        _ command: T,
+        metadata: CommandMetadata? = nil
+    ) async throws -> T.Result {
+        let commandMetadata = metadata ?? DefaultCommandMetadata()
+        
+        guard let anyHandler = await handlerRegistry.handler(for: T.self),
+              let handler = anyHandler as? AnyCommandHandler<T> else {
+            throw CommandBusError.handlerNotFound(String(describing: T.self))
+        }
+        
+        let finalHandler: @Sendable (T, CommandMetadata) async throws -> T.Result = { cmd, meta in
+            try await handler.handle(cmd)
+        }
+        
+        let chain = middlewares.reversed().reduce(finalHandler) { next, middleware in
+            return { cmd, meta in
+                try await middleware.execute(cmd, metadata: meta, next: next)
+            }
+        }
+        
+        return try await chain(command, commandMetadata)
+    }
+    
+    /// Logs command failure for observability and debugging.
+    private func logCommandFailure<T: Command>(command: T, context: ErrorRecoveryContext) {
+        // This could integrate with structured logging, metrics, or observability systems
+        print("🔴 Command failed after \(context.attempt) attempts: \(String(describing: T.self))")
+        print("   Total time: \(String(format: "%.2f", context.totalElapsedTime))s")
+        print("   Final error: \(context.error)")
+    }
+    
+    /// Logs command retry for observability and debugging.
+    private func logCommandRetry<T: Command>(command: T, context: ErrorRecoveryContext, nextDelay: TimeInterval) {
+        // This could integrate with structured logging, metrics, or observability systems
+        print("🔄 Retrying command \(String(describing: T.self)) (attempt \(context.attempt))")
+        print("   Error: \(context.error)")
+        print("   Next retry in: \(String(format: "%.2f", nextDelay))s")
+    }
+    
+    /// Gets the current state of the circuit breaker.
+    public var circuitBreakerState: CircuitBreaker.State {
+        get async {
+            await circuitBreaker.getState()
+        }
     }
     
     

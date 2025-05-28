@@ -26,17 +26,17 @@ public actor CommandEncryptor {
     public init(
         keyStore: KeyStore,
         keyRotationInterval: TimeInterval = 86400 // 24 hours
-    ) {
+    ) async {
         self.keyStore = keyStore
         self.keyRotationInterval = keyRotationInterval
         self.lastKeyRotation = Date()
         
         // Initialize with a new key or load existing
-        if let existingKey = keyStore.currentKey {
+        if let existingKey = await keyStore.currentKey {
             self.currentKey = existingKey
         } else {
             self.currentKey = SymmetricKey(size: .bits256)
-            keyStore.store(key: currentKey, identifier: UUID().uuidString)
+            await keyStore.store(key: currentKey, identifier: UUID().uuidString)
         }
     }
     
@@ -58,7 +58,7 @@ public actor CommandEncryptor {
         return EncryptedCommand(
             originalCommand: command,
             encryptedData: sealed.combined!,
-            keyIdentifier: keyStore.currentKeyIdentifier ?? "default",
+            keyIdentifier: await keyStore.currentKeyIdentifier ?? "default",
             algorithm: "AES-GCM-256"
         )
     }
@@ -69,7 +69,7 @@ public actor CommandEncryptor {
     /// - Returns: Decrypted command
     /// - Throws: Decryption errors
     public func decrypt<T: EncryptableCommand>(_ encrypted: EncryptedCommand<T>) async throws -> T {
-        guard let key = keyStore.key(for: encrypted.keyIdentifier) else {
+        guard let key = await keyStore.key(for: encrypted.keyIdentifier) else {
             throw EncryptionError.keyNotFound(encrypted.keyIdentifier)
         }
         
@@ -92,7 +92,7 @@ public actor CommandEncryptor {
         let newKey = SymmetricKey(size: .bits256)
         let identifier = UUID().uuidString
         
-        keyStore.store(key: newKey, identifier: identifier)
+        await keyStore.store(key: newKey, identifier: identifier)
         currentKey = newKey
         lastKeyRotation = Date()
     }
@@ -123,30 +123,26 @@ public struct EncryptedCommand<T: EncryptableCommand>: Sendable {
 /// Protocol for key storage implementations.
 public protocol KeyStore: Sendable {
     /// Current encryption key
-    var currentKey: SymmetricKey? { get }
+    var currentKey: SymmetricKey? { get async }
     
     /// Current key identifier
-    var currentKeyIdentifier: String? { get }
+    var currentKeyIdentifier: String? { get async }
     
     /// Retrieve a key by identifier
-    func key(for identifier: String) -> SymmetricKey?
+    func key(for identifier: String) async -> SymmetricKey?
     
     /// Store a key with identifier
-    func store(key: SymmetricKey, identifier: String)
+    func store(key: SymmetricKey, identifier: String) async
     
     /// Remove expired keys
-    func removeExpiredKeys(before date: Date)
+    func removeExpiredKeys(before date: Date) async
 }
 
 /// Simple in-memory key store implementation.
 ///
-/// **Thread Safety**: This class is marked `@unchecked Sendable` because:
-/// - All mutable state access is protected by `NSLock`
-/// - The lock ensures exclusive access to `keys`, `keyDates`, and `_currentKeyIdentifier`
-/// - All public methods use `lock.withLock` to guarantee thread-safe operations
-/// - No data races are possible as all shared mutable state is properly synchronized
-internal final class InMemoryKeyStore: KeyStore, @unchecked Sendable {
-    private let lock = NSLock()
+/// **Thread Safety**: This actor provides guaranteed thread safety through Swift's actor isolation.
+/// All methods are actor-isolated, ensuring exclusive access to internal state without manual locking.
+internal actor InMemoryKeyStore: KeyStore {
     private var keys: [String: SymmetricKey] = [:]
     private var keyDates: [String: Date] = [:]
     private var _currentKeyIdentifier: String?
@@ -154,35 +150,29 @@ internal final class InMemoryKeyStore: KeyStore, @unchecked Sendable {
     internal init() {}
     
     public var currentKey: SymmetricKey? {
-        lock.withLock {
-            guard let identifier = _currentKeyIdentifier else { return nil }
-            return keys[identifier]
-        }
+        guard let identifier = _currentKeyIdentifier else { return nil }
+        return keys[identifier]
     }
     
     public var currentKeyIdentifier: String? {
-        lock.withLock { _currentKeyIdentifier }
+        _currentKeyIdentifier
     }
     
     public func store(key: SymmetricKey, identifier: String) {
-        lock.withLock {
-            keys[identifier] = key
-            keyDates[identifier] = Date()
-            _currentKeyIdentifier = identifier
-        }
+        keys[identifier] = key
+        keyDates[identifier] = Date()
+        _currentKeyIdentifier = identifier
     }
     
     public func key(for identifier: String) -> SymmetricKey? {
-        lock.withLock { keys[identifier] }
+        keys[identifier]
     }
     
     public func removeExpiredKeys(before date: Date) {
-        lock.withLock {
-            for (identifier, keyDate) in keyDates {
-                if keyDate < date && identifier != _currentKeyIdentifier {
-                    keys.removeValue(forKey: identifier)
-                    keyDates.removeValue(forKey: identifier)
-                }
+        for (identifier, keyDate) in keyDates {
+            if keyDate < date && identifier != _currentKeyIdentifier {
+                keys.removeValue(forKey: identifier)
+                keyDates.removeValue(forKey: identifier)
             }
         }
     }
