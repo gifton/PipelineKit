@@ -26,6 +26,9 @@ public enum LogLevel: Int, Comparable, Sendable {
 
 /// An observer that integrates with Apple's unified logging system (OSLog)
 /// Provides structured logging with categories and log levels for different pipeline events
+///
+/// This class is Sendable because all its properties are immutable (`let` declarations)
+/// and Logger instances are thread-safe.
 @available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
 public final class OSLogObserver: BaseObserver, @unchecked Sendable {
     

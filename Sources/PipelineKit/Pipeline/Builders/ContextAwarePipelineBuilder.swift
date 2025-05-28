@@ -1,20 +1,21 @@
 import Foundation
 
-/// Builder for constructing context-aware pipelines with a fluent API.
+/// Builder actor for constructing context-aware pipelines with thread-safe fluent API.
 /// 
 /// Provides a convenient way to configure pipelines with both regular
-/// and context-aware middleware.
+/// and context-aware middleware. Actor isolation ensures thread safety
+/// during concurrent builder configuration.
 /// 
 /// Example:
 /// ```swift
-/// let pipeline = try await ContextAwarePipelineBuilder(handler: UserHandler())
-///     .with(AuthenticationMiddleware())
-///     .with(AuthorizationMiddleware(requiredRoles: ["admin"]))
-///     .withRegular(LoggingMiddleware()) // Regular middleware
-///     .with(MetricsMiddleware())
-///     .build()
+/// let builder = ContextAwarePipelineBuilder(handler: UserHandler())
+/// _ = await builder.with(AuthenticationMiddleware())
+/// _ = await builder.with(AuthorizationMiddleware(requiredRoles: ["admin"]))
+/// _ = await builder.withRegular(LoggingMiddleware()) // Regular middleware
+/// _ = await builder.with(MetricsMiddleware())
+/// let pipeline = try await builder.build()
 /// ```
-public final class ContextAwarePipelineBuilder<T: Command, H: CommandHandler> where H.CommandType == T {
+public actor ContextAwarePipelineBuilder<T: Command, H: CommandHandler> where H.CommandType == T {
     private let handler: H
     private var contextMiddlewares: [any ContextAwareMiddleware] = []
     private var maxDepth: Int = 100

@@ -205,15 +205,15 @@ func demonstrateContextAwarePipeline() async throws {
     }
     
     // Build context-aware pipeline
-    let pipeline = try await ContextAwarePipelineBuilder(handler: CreateOrderHandler())
-        .withRegular(ValidationMiddleware()) // Regular middleware
-        .with(CustomerEnrichmentMiddleware(customerService: MockCustomerService()))
-        .with(LoyaltyDiscountMiddleware())
-        .with(InventoryCheckMiddleware(inventoryService: MockInventoryService()))
-        .with(ContextMetricsMiddleware { name, duration in
-            print("Command \(name) executed in \(duration)s")
-        })
-        .build()
+    let builder = ContextAwarePipelineBuilder(handler: CreateOrderHandler())
+    _ = await builder.withRegular(ValidationMiddleware()) // Regular middleware
+    _ = await builder.with(CustomerEnrichmentMiddleware(customerService: MockCustomerService()))
+    _ = await builder.with(LoyaltyDiscountMiddleware())
+    _ = await builder.with(InventoryCheckMiddleware(inventoryService: MockInventoryService()))
+    _ = await builder.with(ContextMetricsMiddleware { name, duration in
+        print("Command \(name) executed in \(duration)s")
+    })
+    let pipeline = try await builder.build()
     
     // Create order command
     let command = CreateOrderCommand(

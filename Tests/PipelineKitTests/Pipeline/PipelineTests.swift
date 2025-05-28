@@ -75,9 +75,9 @@ final class PipelineTests: XCTestCase {
     
     func testPipelineBuilder() async throws {
         let builder = PipelineBuilder(handler: TransformHandler())
-            .with(AppendMiddleware(suffix: " World"))
-            .with(AppendMiddleware(suffix: "!"))
-            .withMaxDepth(50)
+        _ = await builder.with(AppendMiddleware(suffix: " World"))
+        _ = await builder.with(AppendMiddleware(suffix: "!"))
+        _ = await builder.withMaxDepth(50)
         
         let pipeline = try await builder.build()
         

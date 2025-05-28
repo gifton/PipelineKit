@@ -143,12 +143,11 @@ final class ContextAwarePipelineTests: XCTestCase {
     
     func testContextAwarePipelineBuilder() async throws {
         let builder = ContextAwarePipelineBuilder(handler: CalculateHandler())
+        _ = await builder.with(AccumulatorMiddleware(name: "First"))
+        _ = await builder.with(MultiplierMiddleware(multiplier: 3))
+        _ = await builder.withMaxDepth(50)
         
-        let pipeline = try await builder
-            .with(AccumulatorMiddleware(name: "First"))
-            .with(MultiplierMiddleware(multiplier: 3))
-            .withMaxDepth(50)
-            .build()
+        let pipeline = try await builder.build()
         
         let result = try await pipeline.execute(
             CalculateCommand(value: 4),

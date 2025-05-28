@@ -1,10 +1,10 @@
 import Foundation
 
-/// A builder class for constructing pipelines with a fluent API.
+/// A builder actor for constructing pipelines with a fluent API and guaranteed thread safety.
 ///
 /// `PipelineBuilder` provides a convenient way to construct a `DefaultPipeline` with
-/// middleware and configuration options using method chaining. This builder pattern
-/// ensures type safety while providing a clean, readable API for pipeline configuration.
+/// middleware and configuration options using method chaining. Actor isolation ensures
+/// that builder state modifications are thread-safe even when accessed concurrently.
 ///
 /// ## Overview
 /// The builder allows you to:
@@ -18,26 +18,26 @@ import Foundation
 /// let handler = MyCommandHandler()
 ///
 /// // Build a pipeline with middleware
-/// let pipeline = try await PipelineBuilder(handler: handler)
-///     .with(LoggingMiddleware())
-///     .with(ValidationMiddleware())
-///     .with(AuthorizationMiddleware())
-///     .withMaxDepth(50)
-///     .build()
+/// let builder = PipelineBuilder(handler: handler)
+/// _ = await builder.with(LoggingMiddleware())
+/// _ = await builder.with(ValidationMiddleware()) 
+/// _ = await builder.with(AuthorizationMiddleware())
+/// _ = await builder.withMaxDepth(50)
+/// let pipeline = try await builder.build()
 ///
 /// // Or add multiple middleware at once
-/// let pipeline = try await PipelineBuilder(handler: handler)
-///     .with([
-///         LoggingMiddleware(),
-///         ValidationMiddleware(),
-///         AuthorizationMiddleware()
-///     ])
-///     .build()
+/// let builder = PipelineBuilder(handler: handler)
+/// _ = await builder.with([
+///     LoggingMiddleware(),
+///     ValidationMiddleware(),
+///     AuthorizationMiddleware()
+/// ])
+/// let pipeline = try await builder.build()
 /// ```
 ///
 /// - Note: The builder maintains type safety through generic constraints, ensuring
 ///   that the handler's command type matches the pipeline's expected command type.
-public final class PipelineBuilder<T: Command, H: CommandHandler> where H.CommandType == T {
+public actor PipelineBuilder<T: Command, H: CommandHandler> where H.CommandType == T {
     /// The command handler that will process commands after all middleware.
     private let handler: H
     

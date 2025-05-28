@@ -35,6 +35,23 @@ public protocol PipelineObserver: Sendable {
     func customEvent(_ eventName: String, properties: [String: Sendable], correlationId: String) async
 }
 
+// MARK: - Observer Errors
+
+/// Errors that can occur during observer operations.
+public enum ObserverError: Error, Sendable, LocalizedError {
+    case timeout(duration: TimeInterval)
+    case observerFailed(underlying: Error)
+    
+    public var errorDescription: String? {
+        switch self {
+        case .timeout(let duration):
+            return "Observer operation timed out after \(duration) seconds"
+        case .observerFailed(let error):
+            return "Observer failed: \(error.localizedDescription)"
+        }
+    }
+}
+
 // MARK: - Observable Event Types
 
 /// Represents different types of observable events in the pipeline
@@ -230,6 +247,9 @@ public struct CustomEvent: Sendable {
 // MARK: - Default Observer Implementation
 
 /// A no-op observer that can be extended for specific implementations
+///
+/// This class is marked `@unchecked Sendable` because it's designed to be subclassed
+/// and contains no mutable state. Subclasses must ensure thread safety.
 open class BaseObserver: PipelineObserver, @unchecked Sendable {
     public init() {}
     
@@ -276,112 +296,141 @@ open class BaseObserver: PipelineObserver, @unchecked Sendable {
 
 // MARK: - Observer Registry
 
-/// A registry for managing multiple pipeline observers
-public final class ObserverRegistry: Sendable {
-    private let observers: [PipelineObserver]
+/// A registry for managing multiple pipeline observers with guaranteed thread safety.
+///
+/// Actor isolation ensures that observer notifications are properly coordinated
+/// and prevents race conditions during observer management.
+public actor ObserverRegistry {
+    private var observers: [PipelineObserver]
+    private let observerTimeout: TimeInterval
     
-    public init(observers: [PipelineObserver] = []) {
+    public init(observers: [PipelineObserver] = [], observerTimeout: TimeInterval = 5.0) {
         self.observers = observers
+        self.observerTimeout = observerTimeout
     }
     
-    public func notifyPipelineWillExecute<T: Command>(_ command: T, metadata: CommandMetadata, pipelineType: String) async {
+    /// Adds an observer to the registry.
+    public func addObserver(_ observer: PipelineObserver) {
+        observers.append(observer)
+    }
+    
+    /// Removes observers of the specified type.
+    public func removeObserver<T: PipelineObserver>(ofType type: T.Type) {
+        observers.removeAll { observer in
+            Swift.type(of: observer) == type
+        }
+    }
+    
+    /// Gets the current number of registered observers.
+    public var observerCount: Int {
+        observers.count
+    }
+    
+    /// Safely executes an observer notification with timeout and error handling.
+    private func safelyNotify(_ operation: @escaping () async -> Void) async {
+        do {
+            try await withThrowingTaskGroup(of: Void.self) { [self] group in
+                group.addTask {
+                    try await self.withTimeout(self.observerTimeout) {
+                        await operation()
+                    }
+                }
+                try await group.next()
+            }
+        } catch {
+            // Log observer error but don't let it affect pipeline execution
+            print("⚠️ Observer notification failed: \(error)")
+        }
+    }
+    
+    /// Executes an operation with a timeout (specifically for Void operations).
+    private func withTimeout(_ timeout: TimeInterval, operation: @escaping () async -> Void) async throws {
+        try await withThrowingTaskGroup(of: Void.self) { group in
+            group.addTask {
+                await operation()
+            }
+            
+            group.addTask {
+                try await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
+                throw ObserverError.timeout(duration: timeout)
+            }
+            
+            _ = try await group.next()
+            group.cancelAll()
+        }
+    }
+    
+    /// Safely notifies all observers with timeout and error handling.
+    private func notifyObservers(_ operation: @escaping (PipelineObserver) async -> Void) async {
         await withTaskGroup(of: Void.self) { group in
             for observer in observers {
                 group.addTask {
-                    await observer.pipelineWillExecute(command, metadata: metadata, pipelineType: pipelineType)
+                    await self.safelyNotify {
+                        await operation(observer)
+                    }
                 }
             }
+        }
+    }
+    
+    public func notifyPipelineWillExecute<T: Command>(_ command: T, metadata: CommandMetadata, pipelineType: String) async {
+        await notifyObservers { observer in
+            await observer.pipelineWillExecute(command, metadata: metadata, pipelineType: pipelineType)
         }
     }
     
     public func notifyPipelineDidExecute<T: Command>(_ command: T, result: T.Result, metadata: CommandMetadata, pipelineType: String, duration: TimeInterval) async {
-        await withTaskGroup(of: Void.self) { group in
-            for observer in observers {
-                group.addTask {
-                    await observer.pipelineDidExecute(command, result: result, metadata: metadata, pipelineType: pipelineType, duration: duration)
-                }
-            }
+        await notifyObservers { observer in
+            await observer.pipelineDidExecute(command, result: result, metadata: metadata, pipelineType: pipelineType, duration: duration)
         }
     }
     
     public func notifyPipelineDidFail<T: Command>(_ command: T, error: Error, metadata: CommandMetadata, pipelineType: String, duration: TimeInterval) async {
-        await withTaskGroup(of: Void.self) { group in
-            for observer in observers {
-                group.addTask {
-                    await observer.pipelineDidFail(command, error: error, metadata: metadata, pipelineType: pipelineType, duration: duration)
-                }
-            }
+        await notifyObservers { observer in
+            await observer.pipelineDidFail(command, error: error, metadata: metadata, pipelineType: pipelineType, duration: duration)
         }
     }
     
     // Additional notification methods for other events...
     public func notifyMiddlewareWillExecute(_ middlewareName: String, order: Int, correlationId: String) async {
-        await withTaskGroup(of: Void.self) { group in
-            for observer in observers {
-                group.addTask {
-                    await observer.middlewareWillExecute(middlewareName, order: order, correlationId: correlationId)
-                }
-            }
+        await notifyObservers { observer in
+            await observer.middlewareWillExecute(middlewareName, order: order, correlationId: correlationId)
         }
     }
     
     public func notifyMiddlewareDidExecute(_ middlewareName: String, order: Int, correlationId: String, duration: TimeInterval) async {
-        await withTaskGroup(of: Void.self) { group in
-            for observer in observers {
-                group.addTask {
-                    await observer.middlewareDidExecute(middlewareName, order: order, correlationId: correlationId, duration: duration)
-                }
-            }
+        await notifyObservers { observer in
+            await observer.middlewareDidExecute(middlewareName, order: order, correlationId: correlationId, duration: duration)
         }
     }
     
     public func notifyMiddlewareDidFail(_ middlewareName: String, order: Int, correlationId: String, error: Error, duration: TimeInterval) async {
-        await withTaskGroup(of: Void.self) { group in
-            for observer in observers {
-                group.addTask {
-                    await observer.middlewareDidFail(middlewareName, order: order, correlationId: correlationId, error: error, duration: duration)
-                }
-            }
+        await notifyObservers { observer in
+            await observer.middlewareDidFail(middlewareName, order: order, correlationId: correlationId, error: error, duration: duration)
         }
     }
     
     public func notifyHandlerWillExecute<T: Command>(_ command: T, handlerType: String, correlationId: String) async {
-        await withTaskGroup(of: Void.self) { group in
-            for observer in observers {
-                group.addTask {
-                    await observer.handlerWillExecute(command, handlerType: handlerType, correlationId: correlationId)
-                }
-            }
+        await notifyObservers { observer in
+            await observer.handlerWillExecute(command, handlerType: handlerType, correlationId: correlationId)
         }
     }
     
     public func notifyHandlerDidExecute<T: Command>(_ command: T, result: T.Result, handlerType: String, correlationId: String, duration: TimeInterval) async {
-        await withTaskGroup(of: Void.self) { group in
-            for observer in observers {
-                group.addTask {
-                    await observer.handlerDidExecute(command, result: result, handlerType: handlerType, correlationId: correlationId, duration: duration)
-                }
-            }
+        await notifyObservers { observer in
+            await observer.handlerDidExecute(command, result: result, handlerType: handlerType, correlationId: correlationId, duration: duration)
         }
     }
     
     public func notifyHandlerDidFail<T: Command>(_ command: T, error: Error, handlerType: String, correlationId: String, duration: TimeInterval) async {
-        await withTaskGroup(of: Void.self) { group in
-            for observer in observers {
-                group.addTask {
-                    await observer.handlerDidFail(command, error: error, handlerType: handlerType, correlationId: correlationId, duration: duration)
-                }
-            }
+        await notifyObservers { observer in
+            await observer.handlerDidFail(command, error: error, handlerType: handlerType, correlationId: correlationId, duration: duration)
         }
     }
     
     public func notifyCustomEvent(_ eventName: String, properties: [String: Sendable], correlationId: String) async {
-        await withTaskGroup(of: Void.self) { group in
-            for observer in observers {
-                group.addTask {
-                    await observer.customEvent(eventName, properties: properties, correlationId: correlationId)
-                }
-            }
+        await notifyObservers { observer in
+            await observer.customEvent(eventName, properties: properties, correlationId: correlationId)
         }
     }
 }
