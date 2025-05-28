@@ -1,19 +1,20 @@
 # PipelineKit
 
-[![Swift 6.0+](https://img.shields.io/badge/Swift-6.0+-orange.svg)](https://swift.org)
-[![Platform](https://img.shields.io/badge/Platform-macOS%20|%20iOS%20|%20watchOS%20|%20tvOS%20|%20Linux-lightgrey.svg)](https://developer.apple.com/swift/)
+[![Swift 5.10+](https://img.shields.io/badge/Swift-5.10+-orange.svg)](https://swift.org)
+[![Platform](https://img.shields.io/badge/Platform-macOS%20|%20iOS%20|%20watchOS%20|%20tvOS-lightgrey.svg)](https://developer.apple.com/swift/)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-A comprehensive, security-first Command-Pipeline architecture framework for Swift 6, featuring full concurrency support, robust middleware chains, and enterprise-grade security features.
+A comprehensive, security-first Command-Pipeline architecture framework for Swift, featuring full concurrency support, robust middleware chains, enterprise-grade security features, and Swift macro support for simplified pipeline creation.
 
 ## 🌟 Features
 
 ### Core Architecture
 - **Command Pattern**: Type-safe command execution with result handling
 - **Pipeline/Filter Pattern**: Composable middleware chains for request processing
-- **Swift 6 Concurrency**: Full `async`/`await` support with `Sendable` conformance
+- **Swift Concurrency**: Full `async`/`await` support with `Sendable` conformance
 - **Thread Safety**: Actor-based isolation for concurrent operations
 - **Context-Aware Pipelines**: State sharing between middleware components
+- **Swift Macros**: `@Pipeline` macro for automatic implementation generation
 
 ### Security Features
 - **🔒 Input Validation**: Comprehensive validation rules with custom validators
@@ -58,20 +59,57 @@ struct CreateUserCommand: Command {
 
 // Create a handler
 struct CreateUserHandler: CommandHandler {
+    typealias CommandType = CreateUserCommand
+    
     func handle(_ command: CreateUserCommand) async throws -> User {
         // Validate and create user
         return User(email: command.email, username: command.username)
     }
 }
 
-// Set up the command bus
-let bus = CommandBus()
-await bus.register(CreateUserCommand.self, handler: CreateUserHandler())
-
-// Execute commands
-let user = try await bus.send(
-    CreateUserCommand(email: "user@example.com", username: "johndoe")
+// Option 1: Manual pipeline setup
+let pipeline = DefaultPipeline(handler: CreateUserHandler())
+let user = try await pipeline.execute(
+    CreateUserCommand(email: "user@example.com", username: "johndoe"),
+    metadata: DefaultCommandMetadata()
 )
+
+// Option 2: Using the @Pipeline macro (Swift 5.10+)
+@Pipeline
+actor UserService {
+    typealias CommandType = CreateUserCommand
+    let handler = CreateUserHandler()
+}
+
+let service = UserService()
+let user = try await service.execute(
+    CreateUserCommand(email: "user@example.com", username: "johndoe"),
+    metadata: DefaultCommandMetadata()
+)
+```
+
+### @Pipeline Macro
+
+The `@Pipeline` macro simplifies pipeline creation by automatically generating the required boilerplate:
+
+```swift
+@Pipeline(
+    concurrency: .limited(10),
+    middleware: [ValidationMiddleware, LoggingMiddleware],
+    maxDepth: 50,
+    context: .enabled
+)
+actor PaymentService {
+    typealias CommandType = PaymentCommand
+    let handler = PaymentHandler()
+}
+
+// The macro generates:
+// - var _executor: pipeline property
+// - func execute(_:metadata:) method
+// - func batchExecute(_:metadata:) method  
+// - setupMiddleware() for middleware configuration
+// - extension PaymentService: Pipeline conformance
 ```
 
 ### Secure Pipeline Example
@@ -241,7 +279,7 @@ Request → Validation → Authorization → Rate Limiting → Business Logic �
 
 PipelineKit provides multiple pipeline implementations, each optimized for different use cases:
 
-### 1. **Basic Pipeline** - Sequential Processing
+### 1. **Standard Pipeline (DefaultPipeline)** - Sequential Processing
 
 The fundamental pipeline executes middleware sequentially in a single thread.
 
@@ -252,10 +290,10 @@ The fundamental pipeline executes middleware sequentially in a single thread.
 - When order is critical
 
 ```swift
-let pipeline = Pipeline()
-    .use(ValidationMiddleware())
-    .use(AuthorizationMiddleware())
-    .use(AuditLoggingMiddleware())
+let pipeline = StandardPipeline(handler: myHandler)
+await pipeline.addMiddleware(ValidationMiddleware())
+await pipeline.addMiddleware(AuthorizationMiddleware())
+await pipeline.addMiddleware(AuditLoggingMiddleware())
 
 // Sequential execution: Validation → Authorization → Audit → Handler
 let result = try await pipeline.execute(command, metadata: metadata)
@@ -281,13 +319,13 @@ Executes independent middleware concurrently for improved performance.
 - CPU-intensive tasks
 
 ```swift
-let concurrentPipeline = ConcurrentPipeline(maxConcurrency: 4)
-    .use(ValidationMiddleware())      // Can run in parallel
-    .use(ExternalAPIMiddleware())     // Can run in parallel
-    .use(DatabaseMiddleware())        // Can run in parallel
-    .use(NotificationMiddleware())    // Must run after others
+let concurrentPipeline = ConcurrentPipeline(handler: myHandler, maxConcurrency: 4)
+await concurrentPipeline.addMiddleware(ValidationMiddleware())    
+await concurrentPipeline.addMiddleware(ExternalAPIMiddleware())  
+await concurrentPipeline.addMiddleware(DatabaseMiddleware())      
+await concurrentPipeline.addMiddleware(NotificationMiddleware())  
 
-// Parallel execution where possible
+// Middleware executes with controlled concurrency
 let result = try await concurrentPipeline.execute(command, metadata: metadata)
 ```
 
@@ -311,20 +349,13 @@ Routes commands based on priority levels with weighted processing.
 - Resource-constrained environments
 
 ```swift
-let priorityPipeline = PriorityPipeline()
+let priorityPipeline = PriorityPipeline(handler: myHandler)
+await priorityPipeline.addMiddleware(ValidationMiddleware(), priority: .postProcessing)
+await priorityPipeline.addMiddleware(SecurityMiddleware(), priority: .authentication)
+await priorityPipeline.addMiddleware(LoggingMiddleware(), priority: .observability)
 
-// High priority: Emergency operations, VIP users
-priorityPipeline.addQueue(priority: .high, weight: 70)
-
-// Medium priority: Standard operations
-priorityPipeline.addQueue(priority: .medium, weight: 20) 
-
-// Low priority: Background tasks, cleanup
-priorityPipeline.addQueue(priority: .low, weight: 10)
-
-// Commands are processed based on priority
-let highPriorityCommand = PaymentCommand(amount: 10000, priority: .high)
-let result = try await priorityPipeline.execute(highPriorityCommand, metadata: metadata)
+// Middleware executes in priority order (authentication → validation → handler → logging)
+let result = try await priorityPipeline.execute(command, metadata: metadata)
 ```
 
 **Characteristics:**
@@ -347,14 +378,14 @@ Enables middleware to share state through a command context.
 - Complex business logic requiring state
 
 ```swift
-let contextPipeline = ContextAwarePipeline()
-    .use(RequestIdMiddleware())       // Sets request ID in context
-    .use(AuthenticationMiddleware())  // Sets user in context
-    .use(AuthorizationMiddleware())   // Uses user from context
-    .use(MetricsMiddleware())         // Collects timing data
+let contextPipeline = ContextAwarePipeline(handler: myHandler)
+await contextPipeline.addMiddleware(RequestIdMiddleware())       // Sets request ID in context
+await contextPipeline.addMiddleware(AuthenticationMiddleware())  // Sets user in context
+await contextPipeline.addMiddleware(AuthorizationMiddleware())   // Uses user from context
+await contextPipeline.addMiddleware(MetricsMiddleware())         // Collects timing data
 
 // Context is shared between all middleware
-let result = try await contextPipeline.execute(command, initialContext: [:])
+let result = try await contextPipeline.execute(command, metadata: metadata)
 ```
 
 **Context Usage Example:**
@@ -628,7 +659,7 @@ Memory usage: <1MB for 10,000 commands
 
 ## 🧪 Testing
 
-Comprehensive test suite with 86 tests covering:
+Comprehensive test suite with 100+ tests covering:
 
 - ✅ Core functionality (Commands, Handlers, Pipelines)
 - ✅ Security features (Validation, Authorization, Encryption)
@@ -644,16 +675,15 @@ swift test
 
 ## 📚 Documentation
 
-- [Pipeline Types & Patterns](PIPELINES.md) - Comprehensive guide to choosing and configuring pipelines
-- [Security Best Practices](SECURITY.md) - Essential security guidelines
-- [Contributing Guidelines](CONTRIBUTING.md) - Development and contribution standards
-- [AI Interface Documentation](AI_INTERFACE.txt) - LLM-optimized technical reference
-- [API Documentation](https://docs.pipelinekit.dev) - Complete API reference
-- [Examples](Examples/) - Real-world usage examples
+- [Pipeline Types & Patterns](documentation/PIPELINES.md) - Comprehensive guide to choosing and configuring pipelines
+- [Security Best Practices](documentation/SECURITY.md) - Essential security guidelines
+- [Contributing Guidelines](documentation/CONTRIBUTING.md) - Development and contribution standards
+- [AI Interface Documentation](documentation/AI_INTERFACE.txt) - LLM-optimized technical reference
+- [Examples](Sources/PipelineKit/Examples/) - Real-world usage examples
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
+We welcome contributions! Please see our [Contributing Guidelines](documentation/CONTRIBUTING.md) for details.
 
 ### Development Setup
 
@@ -670,10 +700,10 @@ PipelineKit is released under the MIT License. See [LICENSE](LICENSE) for detail
 
 ## 🙏 Acknowledgments
 
-- Built with Swift 6 and powered by structured concurrency
+- Built with Swift 5.10+ and powered by structured concurrency
 - Inspired by enterprise security patterns and best practices
 - Designed for production-grade applications
 
 ---
 
-**Security Notice**: This framework includes security features but requires proper implementation. Please review the [Security Best Practices](SECURITY.md) before production use.
+**Security Notice**: This framework includes security features but requires proper implementation. Please review the [Security Best Practices](documentation/SECURITY.md) before production use.

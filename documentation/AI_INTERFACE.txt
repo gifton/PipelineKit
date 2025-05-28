@@ -406,15 +406,15 @@ struct CreateUserHandler: CommandHandler {
 }
 
 // 3. Configure Pipeline
-let pipeline = Pipeline()
-    .use(ValidationMiddleware())
-    .use(AuthorizationMiddleware(roles: ["admin"]))
-    .use(AuditLoggingMiddleware(logger: auditLogger))
+let pipeline = StandardPipeline()
+pipeline.addMiddleware(ValidationMiddleware())
+pipeline.addMiddleware(BasicAuthorizationMiddleware(requiredRoles: ["admin"]))
+pipeline.addMiddleware(AuditLoggingMiddleware(logger: auditLogger))
 
 // 4. Register with CommandBus
 let bus = CommandBus()
 await bus.register(CreateUserCommand.self, handler: CreateUserHandler())
-await bus.use(pipeline)
+// Bus uses pipeline internally
 
 // 5. Execute Command
 let metadata = DefaultCommandMetadata(userId: "admin123")

@@ -10,9 +10,6 @@ import Foundation
 @_exported import struct Foundation.UUID
 @_exported import struct Foundation.Date
 
-// Re-export macros
-// TODO: Fix macro import - @_exported import PipelineMacros
-
 // This file serves as the module's main interface
 // All types are defined in their respective files and automatically
 // available through the module namespace

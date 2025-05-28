@@ -43,6 +43,9 @@ final class PipelineMacroTests: XCTestCase {
                     return try await _executor.batchExecute(commands, metadata: metadata)
                 }
             }
+            
+            extension UserService: Pipeline {
+            }
             """,
             macros: testMacros
         )
@@ -77,6 +80,9 @@ final class PipelineMacroTests: XCTestCase {
                 public func batchExecute(_ commands: [CommandType], metadata: CommandMetadata) async throws -> [CommandType.Result] {
                     return try await _executor.batchExecute(commands, metadata: metadata)
                 }
+            }
+            
+            extension OrderService: Pipeline {
             }
             """,
             macros: testMacros

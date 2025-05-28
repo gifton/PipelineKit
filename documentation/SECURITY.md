@@ -22,17 +22,26 @@ PipelineKit implements multiple security layers. Never rely on a single security
 
 ```swift
 // ✅ GOOD: Multiple security layers
-let secureBuilder = SecurePipelineBuilder()
+let secureBuilder = try SecurePipelineBuilder()
+    .withPipeline(.contextAware)
     .add(ValidationMiddleware())           // Layer 1: Input validation
-    .add(AuthenticationMiddleware())       // Layer 2: Identity verification
-    .add(AuthorizationMiddleware())        // Layer 3: Permission checking
-    .add(RateLimitingMiddleware())         // Layer 4: Traffic control
+    .add(ContextAuthenticationMiddleware()) // Layer 2: Identity verification
+    .add(ContextAuthorizationMiddleware())  // Layer 3: Permission checking
+    .add(RateLimitingMiddleware(           // Layer 4: Traffic control
+        limiter: RateLimiter(strategy: .slidingWindow(windowSize: 60, limit: 100))
+    ))
     .add(SanitizationMiddleware())         // Layer 5: Data cleaning
-    .add(AuditLoggingMiddleware())         // Layer 6: Activity tracking
-    .add(EncryptionMiddleware())           // Layer 7: Data protection
+    .add(AuditLoggingMiddleware(           // Layer 6: Activity tracking
+        logger: AuditLogger()
+    ))
+    .add(EncryptionMiddleware(             // Layer 7: Data protection
+        service: EncryptionService()
+    ))
+    .build()
 
 // ❌ BAD: Single security layer
-let pipeline = Pipeline().use(ValidationMiddleware())
+let pipeline = StandardPipeline()
+pipeline.addMiddleware(ValidationMiddleware())
 ```
 
 ### Middleware Execution Order
@@ -67,69 +76,79 @@ struct CreateUserCommand: Command, ValidatableCommand {
     
     func validate() throws {
         // Email validation
-        try Validator.email(email)
+        guard email.contains("@") && email.contains(".") else {
+            throw ValidationError.invalidField("email", reason: "Invalid email format")
+        }
         
         // Username constraints
-        try Validator.length(username, min: 3, max: 50)
-        try Validator.alphanumeric(username)
+        guard username.count >= 3 && username.count <= 50 else {
+            throw ValidationError.invalidField("username", reason: "Must be between 3-50 characters")
+        }
+        guard username.allSatisfy({ $0.isLetter || $0.isNumber || $0 == "_" }) else {
+            throw ValidationError.invalidField("username", reason: "Must be alphanumeric")
+        }
         
         // Password strength
-        try Validator.length(password, min: 12, max: 128)
-        try Validator.custom(password, field: "password") { pwd in
-            guard pwd.rangeOfCharacter(from: .uppercaseLetters) != nil,
-                  pwd.rangeOfCharacter(from: .lowercaseLetters) != nil,
-                  pwd.rangeOfCharacter(from: .decimalDigits) != nil,
-                  pwd.rangeOfCharacter(from: .punctuationCharacters) != nil else {
-                throw ValidationError.custom("Password must contain uppercase, lowercase, digit, and special character")
-            }
+        guard password.count >= 12 && password.count <= 128 else {
+            throw ValidationError.invalidField("password", reason: "Must be between 12-128 characters")
+        }
+        guard password.rangeOfCharacter(from: .uppercaseLetters) != nil,
+              password.rangeOfCharacter(from: .lowercaseLetters) != nil,
+              password.rangeOfCharacter(from: .decimalDigits) != nil,
+              password.rangeOfCharacter(from: .punctuationCharacters) != nil else {
+            throw ValidationError.invalidField("password", reason: "Must contain uppercase, lowercase, digit, and special character")
         }
         
         // Age validation
-        try Validator.range(age, min: 13, max: 120, field: "age")
+        guard age >= 13 && age <= 120 else {
+            throw ValidationError.invalidField("age", reason: "Must be between 13-120")
+        }
     }
 }
 ```
 
-### Custom Validation Rules
+### Custom Validation Functions
 
-Create domain-specific validators:
+Create domain-specific validation functions:
 
 ```swift
-extension Validator {
-    static func creditCard(_ value: String, field: String = "creditCard") throws {
-        // Remove spaces and dashes
-        let cleaned = value.replacingOccurrences(of: "[\\s-]", with: "", options: .regularExpression)
-        
-        // Length check
-        guard cleaned.count >= 13 && cleaned.count <= 19 else {
-            throw ValidationError.invalidFormat(field, "Invalid credit card length")
-        }
-        
-        // Luhn algorithm check
-        guard isValidLuhn(cleaned) else {
-            throw ValidationError.invalidFormat(field, "Invalid credit card number")
-        }
+func validateCreditCard(_ value: String) throws {
+    // Remove spaces and dashes
+    let cleaned = value.replacingOccurrences(of: "[\\s-]", with: "", options: .regularExpression)
+    
+    // Length check
+    guard cleaned.count >= 13 && cleaned.count <= 19 else {
+        throw ValidationError.invalidField("creditCard", reason: "Invalid credit card length")
     }
     
-    static func phoneNumber(_ value: String, field: String = "phoneNumber") throws {
-        let pattern = #"^\+?[1-9]\d{1,14}$"#
-        try regex(value, pattern: pattern, field: field)
+    // Luhn algorithm check
+    guard isValidLuhn(cleaned) else {
+        throw ValidationError.invalidField("creditCard", reason: "Invalid credit card number")
+    }
+}
+
+func validatePhoneNumber(_ value: String) throws {
+    let pattern = #"^\+?[1-9]\d{1,14}$"#
+    guard value.range(of: pattern, options: .regularExpression) != nil else {
+        throw ValidationError.invalidField("phoneNumber", reason: "Invalid phone number format")
+    }
+}
+
+func validateStrongPassword(_ value: String) throws {
+    guard value.count >= 12 && value.count <= 128 else {
+        throw ValidationError.invalidField("password", reason: "Must be 12-128 characters")
     }
     
-    static func strongPassword(_ value: String, field: String = "password") throws {
-        try length(value, min: 12, max: 128, field: field)
-        
-        let requirements = [
-            ("uppercase letter", CharacterSet.uppercaseLetters),
-            ("lowercase letter", CharacterSet.lowercaseLetters),
-            ("digit", CharacterSet.decimalDigits),
-            ("special character", CharacterSet.punctuationCharacters)
-        ]
-        
-        for (name, charset) in requirements {
-            guard value.rangeOfCharacter(from: charset) != nil else {
-                throw ValidationError.custom("Password must contain at least one \(name)")
-            }
+    let requirements = [
+        ("uppercase letter", CharacterSet.uppercaseLetters),
+        ("lowercase letter", CharacterSet.lowercaseLetters),
+        ("digit", CharacterSet.decimalDigits),
+        ("special character", CharacterSet.punctuationCharacters)
+    ]
+    
+    for (name, charset) in requirements {
+        guard value.rangeOfCharacter(from: charset) != nil else {
+            throw ValidationError.invalidField("password", reason: "Must contain at least one \(name)")
         }
     }
 }
@@ -145,19 +164,27 @@ struct ProcessContentCommand: Command, SanitizableCommand {
     var title: String
     
     mutating func sanitize() {
-        // Prevent XSS attacks
-        content = Sanitizer.html(content)
-        title = Sanitizer.html(title)
+        // Remove dangerous HTML tags
+        content = content.replacingOccurrences(of: "<script", with: "&lt;script", options: [.caseInsensitive])
+        content = content.replacingOccurrences(of: "</script>", with: "&lt;/script&gt;", options: [.caseInsensitive])
+        content = content.replacingOccurrences(of: "<iframe", with: "&lt;iframe", options: [.caseInsensitive])
         
-        // Prevent SQL injection
-        content = Sanitizer.sql(content)
+        // Basic HTML entity encoding
+        title = title.replacingOccurrences(of: "<", with: "&lt;")
+        title = title.replacingOccurrences(of: ">", with: "&gt;")
+        title = title.replacingOccurrences(of: "\"", with: "&quot;")
         
-        // Remove potentially dangerous characters
-        content = Sanitizer.removeNonPrintable(content)
+        // Trim whitespace
+        content = content.trimmingCharacters(in: .whitespacesAndNewlines)
+        title = title.trimmingCharacters(in: .whitespacesAndNewlines)
         
         // Enforce length limits
-        content = Sanitizer.truncate(content, maxLength: 10000)
-        title = Sanitizer.truncate(title, maxLength: 200)
+        if content.count > 10000 {
+            content = String(content.prefix(10000))
+        }
+        if title.count > 200 {
+            title = String(title.prefix(200))
+        }
     }
 }
 ```
@@ -277,12 +304,9 @@ let commandLimiter = RateLimiter(
     scope: .perCommand
 )
 
-// Adaptive rate limiting based on system load
-let adaptiveLimiter = RateLimiter(
-    strategy: .adaptive(baseRate: 1000) {
-        let load = await systemMetrics.getCurrentLoad()
-        return min(1.0, max(0.1, load)) // Between 10% and 100% capacity
-    },
+// Different scopes for rate limiting
+let globalLimiter = RateLimiter(
+    strategy: .slidingWindow(windowSize: 60, limit: 10000),
     scope: .global
 )
 ```
@@ -297,7 +321,7 @@ let readLimiter = RateLimiter(
 
 // Medium-frequency operations (updates)
 let writeLimiter = RateLimiter(
-    strategy: .slidingWindow(windowSize: 60, maxRequests: 50)
+    strategy: .slidingWindow(windowSize: 60, limit: 50)
 )
 
 // Low-frequency sensitive operations (payments, admin actions)
@@ -412,42 +436,12 @@ struct PaymentCommand: Command, EncryptableCommand {
 Implement secure key storage and rotation:
 
 ```swift
-// Production key store (implement your own)
-class SecureKeyStore: KeyStore {
-    private let keyVault: KeyVaultService
-    
-    init(keyVault: KeyVaultService) {
-        self.keyVault = keyVault
-    }
-    
-    var currentKey: SymmetricKey? {
-        guard let keyData = keyVault.getCurrentKey() else { return nil }
-        return SymmetricKey(data: keyData)
-    }
-    
-    var currentKeyIdentifier: String? {
-        keyVault.getCurrentKeyIdentifier()
-    }
-    
-    func store(key: SymmetricKey, identifier: String) {
-        keyVault.storeKey(key.withUnsafeBytes { Data($0) }, identifier: identifier)
-    }
-    
-    func key(for identifier: String) -> SymmetricKey? {
-        guard let keyData = keyVault.getKey(identifier: identifier) else { return nil }
-        return SymmetricKey(data: keyData)
-    }
-    
-    func removeExpiredKeys(before date: Date) {
-        keyVault.removeKeysOlderThan(date)
-    }
-}
+// Configure encryption service
+let encryptionService = EncryptionService()
 
-// Configure encryption with secure key store
-let keyStore = SecureKeyStore(keyVault: keyVaultService)
-let encryptor = CommandEncryptor(
-    keyStore: keyStore,
-    keyRotationInterval: 86400 // 24 hours
+// Use encryption middleware in pipeline
+let encryptionMiddleware = EncryptionMiddleware(
+    service: encryptionService
 )
 ```
 
@@ -456,23 +450,16 @@ let encryptor = CommandEncryptor(
 Implement encryption at the field level for granular control:
 
 ```swift
-extension PaymentCommand {
-    func encryptSensitiveData() async throws -> PaymentCommand {
-        let encryptor = await EncryptionService.shared
-        
-        var encrypted = self
-        encrypted.cardNumber = try await encryptor.encrypt(cardNumber, context: "payment.card")
-        encrypted.cvv = try await encryptor.encrypt(cvv, context: "payment.cvv")
-        encrypted.ssn = try await encryptor.encrypt(ssn, context: "user.ssn")
-        
-        return encrypted
-    }
-    
-    func decryptSensitiveData() async throws -> PaymentCommand {
-        let encryptor = await EncryptionService.shared
-        
-        var decrypted = self
-        decrypted.cardNumber = try await encryptor.decrypt(cardNumber, context: "payment.card")
+// The EncryptionMiddleware automatically handles encryption/decryption
+// for commands that conform to EncryptableCommand protocol
+
+// Example usage in pipeline:
+let securePipeline = try SecurePipelineBuilder()
+    .withPipeline(.standard)
+    .add(ValidationMiddleware())
+    .add(EncryptionMiddleware(service: encryptionService))
+    .add(AuditLoggingMiddleware(logger: auditLogger))
+    .build()
         decrypted.cvv = try await encryptor.decrypt(cvv, context: "payment.cvv")
         decrypted.ssn = try await encryptor.decrypt(ssn, context: "user.ssn")
         
@@ -531,60 +518,32 @@ let auditMiddleware = AuditLoggingMiddleware(
 Monitor for suspicious patterns:
 
 ```swift
-// Real-time security monitoring
-class SecurityMonitor {
-    private let auditLogger: AuditLogger
-    private let alertService: AlertService
+// Security monitoring patterns
+// Monitor command execution through audit logs and metrics
+
+// Example: Track failed operations
+struct SecurityMetricsMiddleware: Middleware {
+    private let threshold: Int = 5
+    private var failureCounts = [String: Int]()
     
-    init(auditLogger: AuditLogger, alertService: AlertService) {
-        self.auditLogger = auditLogger
-        self.alertService = alertService
-    }
-    
-    func startMonitoring() {
-        Task {
-            while !Task.isCancelled {
-                await checkSecurityPatterns()
-                try await Task.sleep(nanoseconds: 60_000_000_000) // 1 minute
+    func execute<T: Command>(
+        _ command: T,
+        metadata: CommandMetadata,
+        next: @Sendable (T, CommandMetadata) async throws -> T.Result
+    ) async throws -> T.Result {
+        do {
+            return try await next(command, metadata)
+        } catch {
+            // Track failures by user
+            if let userMeta = metadata as? DefaultCommandMetadata {
+                failureCounts[userMeta.userId, default: 0] += 1
+                
+                if failureCounts[userMeta.userId, default: 0] >= threshold {
+                    // Log security event
+                    print("SECURITY: Multiple failures for user \(userMeta.userId)")
+                }
             }
-        }
-    }
-    
-    private func checkSecurityPatterns() async {
-        let lastHour = Date().addingTimeInterval(-3600)
-        
-        // Check for failed login attempts
-        let failedLogins = await auditLogger.query(
-            AuditQueryCriteria(
-                startDate: lastHour,
-                commandType: "LoginCommand",
-                success: false
-            )
-        )
-        
-        // Group by user and IP
-        let failuresByUser = Dictionary(grouping: failedLogins) { $0.userId }
-        let failuresByIP = Dictionary(grouping: failedLogins) { $0.metadata["clientIP"] ?? "unknown" }
-        
-        // Alert on suspicious activity
-        for (userId, failures) in failuresByUser {
-            if failures.count >= 5 {
-                await alertService.send(.suspiciousActivity(
-                    type: "Multiple failed logins",
-                    userId: userId,
-                    count: failures.count
-                ))
-            }
-        }
-        
-        for (ip, failures) in failuresByIP {
-            if failures.count >= 10 {
-                await alertService.send(.suspiciousActivity(
-                    type: "IP-based attack",
-                    ip: ip,
-                    count: failures.count
-                ))
-            }
+            throw error
         }
     }
 }
@@ -596,20 +555,17 @@ Ensure audit logs comply with privacy regulations:
 
 ```swift
 // Configure privacy levels based on data sensitivity
-extension AuditLogger {
-    static func createGDPRCompliant() -> AuditLogger {
-        return AuditLogger(
-            destination: .file(url: auditLogURL),
-            privacyLevel: .masked,
-            bufferSize: 500
-        )
-    }
-    
-    static func createHIPAACompliant() -> AuditLogger {
-        return AuditLogger(
-            destination: .custom { entries in
-                // Encrypt before storage
-                let encrypted = try await encryptAuditEntries(entries)
+let gdprCompliantLogger = AuditLogger(
+    destination: .console,  // Use appropriate destination
+    privacyLevel: .masked,
+    bufferSize: 500
+)
+
+// Use with middleware
+let auditMiddleware = AuditLoggingMiddleware(
+    logger: gdprCompliantLogger,
+    includeCommandData: false  // Don't log sensitive command data
+)
                 await secureAuditStore.save(encrypted)
             },
             privacyLevel: .minimal,
@@ -741,33 +697,11 @@ struct SecurityConfiguration {
 Implement security health checks:
 
 ```swift
-class SecurityHealthCheck {
-    func performHealthCheck() async -> HealthStatus {
-        var issues: [String] = []
-        
-        // Check rate limiter status
-        let rateLimiterStatus = await checkRateLimiterHealth()
-        if !rateLimiterStatus.healthy {
-            issues.append("Rate limiter unhealthy: \(rateLimiterStatus.message)")
-        }
-        
-        // Check encryption service
-        let encryptionStatus = await checkEncryptionHealth()
-        if !encryptionStatus.healthy {
-            issues.append("Encryption service unhealthy: \(encryptionStatus.message)")
-        }
-        
-        // Check audit logging
-        let auditStatus = await checkAuditHealth()
-        if !auditStatus.healthy {
-            issues.append("Audit logging unhealthy: \(auditStatus.message)")
-        }
-        
-        return HealthStatus(
-            healthy: issues.isEmpty,
-            issues: issues
-        )
-    }
+// Implement health checks for your security components
+func performSecurityHealthCheck() async -> Bool {
+    // Check if critical security middleware is functioning
+    // This should be part of your monitoring infrastructure
+    return true
 }
 ```
 
@@ -776,31 +710,20 @@ class SecurityHealthCheck {
 Set up comprehensive monitoring:
 
 ```swift
-// Metrics collection
-class SecurityMetrics {
-    static let shared = SecurityMetrics()
-    
-    private let validationFailures = Counter(name: "validation_failures_total")
-    private let authenticationFailures = Counter(name: "authentication_failures_total")
-    private let rateLimitHits = Counter(name: "rate_limit_hits_total")
-    private let encryptionOperations = Counter(name: "encryption_operations_total")
-    
-    func recordValidationFailure(command: String, field: String) {
-        validationFailures.increment(labels: ["command": command, "field": field])
-    }
-    
-    func recordAuthenticationFailure(reason: String) {
-        authenticationFailures.increment(labels: ["reason": reason])
-    }
-    
-    func recordRateLimitHit(identifier: String) {
-        rateLimitHits.increment(labels: ["identifier": identifier])
-    }
-    
-    func recordEncryptionOperation(operation: String) {
-        encryptionOperations.increment(labels: ["operation": operation])
-    }
-}
+// Use MetricsMiddleware to track security metrics
+let metricsMiddleware = MetricsMiddleware()
+
+// The middleware automatically tracks:
+// - Command execution counts
+// - Success/failure rates
+// - Execution times
+// - Error types
+
+// Add to your pipeline for automatic tracking
+let monitoredPipeline = StandardPipeline()
+monitoredPipeline.addMiddleware(metricsMiddleware)
+monitoredPipeline.addMiddleware(validationMiddleware)
+monitoredPipeline.addMiddleware(authMiddleware)
 ```
 
 ## ✅ Security Checklist
