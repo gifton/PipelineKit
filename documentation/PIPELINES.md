@@ -18,7 +18,7 @@ This guide provides in-depth coverage of PipelineKit's pipeline implementations,
 All pipelines in PipelineKit implement the same basic interface but differ in their execution strategies:
 
 ```swift
-public protocol PipelineExecutor {
+public protocol Pipeline: Sendable {
     func execute<T: Command>(
         _ command: T,
         metadata: CommandMetadata
@@ -36,7 +36,7 @@ public protocol PipelineExecutor {
 
 ## 🔧 Pipeline Types Deep Dive
 
-### 1. Basic Pipeline
+### 1. Standard Pipeline
 
 **Internal Architecture:**
 ```
@@ -46,15 +46,15 @@ Command → [Middleware 1] → [Middleware 2] → [Middleware N] → Handler →
 **Implementation Details:**
 ```swift
 // Simplified internal structure
-class Pipeline {
-    private var middleware: [Middleware] = []
+public final class StandardPipeline: Pipeline {
+    private var middleware: [any Middleware] = []
     
-    func execute<T: Command>(_ command: T, metadata: CommandMetadata) async throws -> T.Result {
+    public func execute<T: Command>(_ command: T, metadata: CommandMetadata) async throws -> T.Result {
         var index = 0
         
         func executeNext(_ cmd: T, _ meta: CommandMetadata) async throws -> T.Result {
             guard index < middleware.count else {
-                return try await handler.handle(cmd)
+                fatalError("No handler registered for command type \(String(describing: T.self))")
             }
             
             let currentMiddleware = middleware[index]
@@ -85,12 +85,12 @@ struct PublishArticleCommand: Command {
     typealias Result = Article
 }
 
-let contentPipeline = Pipeline()
-    .use(ValidationMiddleware())     // Validate title, content
-    .use(AuthorizationMiddleware())  // Check publish permissions
-    .use(SanitizationMiddleware())   // Clean HTML content
-    .use(SEOMiddleware())            // Add meta tags
-    .use(CacheInvalidationMiddleware()) // Clear relevant caches
+let contentPipeline = StandardPipeline()
+contentPipeline.addMiddleware(ValidationMiddleware())     // Validate title, content
+contentPipeline.addMiddleware(AuthorizationMiddleware())  // Check publish permissions
+contentPipeline.addMiddleware(SanitizationMiddleware())   // Clean HTML content
+contentPipeline.addMiddleware(SEOMiddleware())            // Add meta tags
+contentPipeline.addMiddleware(CacheInvalidationMiddleware()) // Clear relevant caches
 
 // Simple, predictable execution
 let article = try await contentPipeline.execute(publishCommand, metadata: userMetadata)
@@ -110,30 +110,24 @@ Command → [Parallel Group 1] → [Parallel Group 2] → Handler → Result
 
 **Implementation Details:**
 ```swift
-class ConcurrentPipeline {
-    private let maxConcurrency: Int
-    private let semaphore: AsyncSemaphore
+public final class ConcurrentPipeline: Pipeline {
+    private let strategy: ConcurrencyStrategy
+    private let semaphore: AsyncSemaphore?
+    private var middleware: [any Middleware] = []
     
-    func execute<T: Command>(_ command: T, metadata: CommandMetadata) async throws -> T.Result {
-        let groups = groupMiddlewareByDependencies()
-        
-        for group in groups {
-            // Execute independent middleware concurrently
-            try await withThrowingTaskGroup(of: Void.self) { taskGroup in
-                for middleware in group {
-                    taskGroup.addTask {
-                        try await self.semaphore.waitUnlessOnlyTasks {
-                            try await middleware.execute(command, metadata: metadata)
-                        }
-                    }
-                }
-                
-                // Wait for all in group to complete
-                try await taskGroup.waitForAll()
-            }
+    public init(strategy: ConcurrencyStrategy = .unlimited) {
+        self.strategy = strategy
+        switch strategy {
+        case .unlimited:
+            self.semaphore = nil
+        case .limited(let max):
+            self.semaphore = AsyncSemaphore(value: max)
         }
-        
-        return try await handler.handle(command)
+    }
+    
+    public func execute<T: Command>(_ command: T, metadata: CommandMetadata) async throws -> T.Result {
+        // Implementation uses TaskGroup for concurrent execution
+        // with optional semaphore-based concurrency limiting
     }
 }
 ```
@@ -179,20 +173,20 @@ struct ProcessOrderCommand: Command {
     typealias Result = OrderResult
 }
 
-let orderPipeline = ConcurrentPipeline(maxConcurrency: 6)
-    // Group 1: Independent validations (run in parallel)
-    .use(InventoryValidationMiddleware())  // Check stock levels
-    .use(PaymentValidationMiddleware())    // Validate payment method
-    .use(ShippingValidationMiddleware())   // Check shipping address
-    .use(FraudDetectionMiddleware())       // Analyze for fraud
-    
-    // Group 2: Processing (depends on validation)
-    .use(PaymentProcessingMiddleware())    // Charge payment
-    .use(InventoryReservationMiddleware()) // Reserve items
-    
-    // Group 3: Fulfillment (depends on processing)
-    .use(ShippingMiddleware())             // Create shipping label
-    .use(NotificationMiddleware())         // Send confirmation
+let orderPipeline = ConcurrentPipeline(strategy: .limited(6))
+// Independent validations (can run in parallel)
+orderPipeline.addMiddleware(InventoryValidationMiddleware())  // Check stock levels
+orderPipeline.addMiddleware(PaymentValidationMiddleware())    // Validate payment method
+orderPipeline.addMiddleware(ShippingValidationMiddleware())   // Check shipping address
+orderPipeline.addMiddleware(FraudDetectionMiddleware())       // Analyze for fraud
+
+// Processing middleware
+orderPipeline.addMiddleware(PaymentProcessingMiddleware())    // Charge payment
+orderPipeline.addMiddleware(InventoryReservationMiddleware()) // Reserve items
+
+// Fulfillment middleware
+orderPipeline.addMiddleware(ShippingMiddleware())             // Create shipping label
+orderPipeline.addMiddleware(NotificationMiddleware())         // Send confirmation
 
 // Validation steps run concurrently, then processing, then fulfillment
 let result = try await orderPipeline.execute(orderCommand, metadata: metadata)
@@ -212,9 +206,10 @@ Commands → Priority Queues → Weighted Scheduler → Pipeline → Results
 
 **Implementation Details:**
 ```swift
-class PriorityPipeline {
-    private var queues: [Priority: (queue: AsyncQueue<Command>, weight: Int)] = [:]
-    private let scheduler: WeightedScheduler
+public final class PriorityPipeline: Pipeline {
+    private var middleware: [any Middleware] = []
+    private let priorityQueue: PriorityQueue<PrioritizedCommand>
+    private let maxConcurrentTasks: Int
     
     func execute<T: Command>(_ command: T, metadata: CommandMetadata) async throws -> T.Result {
         let priority = extractPriority(from: command, metadata: metadata)
@@ -307,16 +302,16 @@ struct SupportTicketCommand: Command, PriorityCommand {
     typealias Result = TicketResult
 }
 
-let supportPipeline = PriorityPipeline()
+let supportPipeline = PriorityPipeline(maxConcurrentTasks: 4)
 
-// Configure weighted queues
-supportPipeline.addQueue(priority: .emergency, weight: 50)  // 50% when present
-supportPipeline.addQueue(priority: .high, weight: 30)      // 30% of remaining
-supportPipeline.addQueue(priority: .medium, weight: 15)    // 15% of remaining  
-supportPipeline.addQueue(priority: .low, weight: 5)        // 5% of remaining
+// Add middleware for ticket processing
+supportPipeline.addMiddleware(TicketValidationMiddleware())
+supportPipeline.addMiddleware(CustomerVerificationMiddleware())
+supportPipeline.addMiddleware(TicketRoutingMiddleware())
+supportPipeline.addMiddleware(NotificationMiddleware())
 
-// Emergency tickets get immediate attention
-// But low-priority tickets are never starved
+// Emergency tickets get immediate attention based on priority
+// Commands are automatically prioritized based on their ExecutionPriority
 let result = try await supportPipeline.execute(ticketCommand, metadata: metadata)
 ```
 
@@ -333,26 +328,20 @@ Command → Context → [Middleware 1 + Context] → [Middleware 2 + Context] �
 
 **Implementation Details:**
 ```swift
-class ContextAwarePipeline {
-    func execute<T: Command>(
-        _ command: T,
-        initialContext: [String: Any] = [:]
-    ) async throws -> T.Result {
-        let context = CommandContext(initialValues: initialContext)
+public final class ContextAwarePipeline: Pipeline {
+    private var middleware: [any ContextAwareMiddleware] = []
+    private var standardMiddleware: [any Middleware] = []
+    
+    public func execute<T: Command>(_ command: T, metadata: CommandMetadata) async throws -> T.Result {
+        let context = CommandContext()
         
-        var index = 0
-        func executeNext(_ cmd: T, _ ctx: CommandContext) async throws -> T.Result {
-            guard index < middleware.count else {
-                return try await handler.handle(cmd, context: ctx)
-            }
-            
-            let currentMiddleware = middleware[index] as! ContextAwareMiddleware
-            index += 1
-            
-            return try await currentMiddleware.execute(cmd, context: ctx, next: executeNext)
+        // Set initial context values from metadata
+        if let contextMetadata = metadata as? ContextProvidingMetadata {
+            await contextMetadata.populateContext(context)
         }
         
-        return try await executeNext(command, context)
+        // Execute context-aware middleware with shared context
+        return try await executeWithContext(command, metadata: metadata, context: context)
     }
 }
 
@@ -463,23 +452,33 @@ struct LoginCommand: Command {
 }
 
 let authPipeline = ContextAwarePipeline()
-    .use(RequestTrackingMiddleware())      // Generate request ID
-    .use(RateLimitingMiddleware())         // Check login attempts
-    .use(PasswordValidationMiddleware())   // Validate credentials, store partial auth
-    .use(MFAValidationMiddleware())        // Check MFA using partial auth context
-    .use(SessionCreationMiddleware())      // Create session using full auth context
-    .use(AuditLoggingMiddleware())         // Log with full context including request ID
+authPipeline.addMiddleware(RequestTrackingMiddleware())      // Generate request ID
+authPipeline.addMiddleware(RateLimitingMiddleware())         // Check login attempts
+authPipeline.addMiddleware(PasswordValidationMiddleware())   // Validate credentials, store partial auth
+authPipeline.addMiddleware(MFAValidationMiddleware())        // Check MFA using partial auth context
+authPipeline.addMiddleware(SessionCreationMiddleware())      // Create session using full auth context
+authPipeline.addMiddleware(AuditLoggingMiddleware())         // Log with full context including request ID
 
-// Each middleware contributes to and uses the shared context
-let authResult = try await authPipeline.execute(loginCommand, initialContext: [
-    "clientIP": request.clientIP,
-    "userAgent": request.userAgent
-])
+// Create metadata that provides initial context
+struct AuthMetadata: CommandMetadata, ContextProvidingMetadata {
+    let clientIP: String
+    let userAgent: String
+    
+    func populateContext(_ context: CommandContext) async {
+        await context.set(ClientIPKey.self, value: clientIP)
+        await context.set(UserAgentKey.self, value: userAgent)
+    }
+}
+
+let authResult = try await authPipeline.execute(loginCommand, metadata: AuthMetadata(
+    clientIP: request.clientIP,
+    userAgent: request.userAgent
+))
 ```
 
 ---
 
-### 5. Secure Pipeline
+### 5. Secure Pipeline (via Builder Pattern)
 
 **Internal Architecture:**
 ```
@@ -490,22 +489,35 @@ Middleware → Security Ordering → Execution Pipeline → Security Monitoring
 
 **Implementation Details:**
 ```swift
-class SecurePipelineBuilder {
-    private var middlewareWithOrder: [(middleware: Middleware, order: MiddlewareOrder)] = []
+public final class SecurePipelineBuilder {
+    private var middleware: [PrioritizedMiddleware] = []
+    private var pipelineType: PipelineType = .standard
     
-    func add<T: OrderedMiddleware>(_ middleware: T) -> Self {
-        middlewareWithOrder.append((middleware, T.recommendedOrder))
+    public func withPipeline(_ type: PipelineType) -> Self {
+        self.pipelineType = type
         return self
     }
     
-    func build() -> Pipeline {
+    public func add<T: Middleware>(
+        _ middleware: T,
+        order: MiddlewareOrder? = nil
+    ) -> Self {
+        let priority = order ?? determineDefaultOrder(for: middleware)
+        self.middleware.append(PrioritizedMiddleware(
+            middleware: middleware,
+            order: priority
+        ))
+        return self
+    }
+    
+    public func build() throws -> any Pipeline {
         // Sort by security order
-        let sortedMiddleware = middlewareWithOrder
+        let sortedMiddleware = middleware
             .sorted { $0.order.rawValue < $1.order.rawValue }
             .map { $0.middleware }
         
-        let pipeline = Pipeline()
-        sortedMiddleware.forEach { pipeline.use($0) }
+        let pipeline = createPipeline(type: pipelineType)
+        sortedMiddleware.forEach { pipeline.addMiddleware($0) }
         
         return pipeline
     }
@@ -580,7 +592,8 @@ struct TransferFundsCommand: Command {
     typealias Result = TransactionResult
 }
 
-let bankingPipeline = SecurePipelineBuilder()
+let bankingPipeline = try SecurePipelineBuilder()
+    .withPipeline(.contextAware)  // Use context-aware for state sharing
     // Security middleware (order enforced automatically)
     .add(AuthenticationMiddleware())       // 100: Verify user identity
     .add(AuthorizationMiddleware())        // 200: Check transfer permissions
@@ -655,20 +668,20 @@ Secure             | 5MB         | 2.8KB       | N/A
 
 ```swift
 // Fast, minimal security for development
-let devPipeline = Pipeline()
-    .use(ValidationMiddleware(strictMode: false))
-    .use(MockAuthenticationMiddleware())  // Always succeeds
-    .use(LoggingMiddleware(level: .debug))
+let devPipeline = StandardPipeline()
+devPipeline.addMiddleware(ValidationMiddleware(strictMode: false))
+devPipeline.addMiddleware(MockAuthenticationMiddleware())  // Always succeeds
+devPipeline.addMiddleware(LoggingMiddleware(level: .debug))
 ```
 
 ### Testing Environment
 
 ```swift
 // Comprehensive testing with mocked external dependencies
-let testPipeline = ConcurrentPipeline()
-    .use(ValidationMiddleware(strictMode: true))
-    .use(MockRateLimitingMiddleware())   // Predictable behavior
-    .use(InMemoryAuditMiddleware())      // Fast logging
+let testPipeline = ConcurrentPipeline(strategy: .unlimited)
+testPipeline.addMiddleware(ValidationMiddleware(strictMode: true))
+testPipeline.addMiddleware(MockRateLimitingMiddleware())   // Predictable behavior
+testPipeline.addMiddleware(InMemoryAuditMiddleware())      // Fast logging
 ```
 
 ### Staging Environment
@@ -692,13 +705,14 @@ let stagingPipeline = SecurePipelineBuilder()
 
 ```swift
 // Maximum security and monitoring
-let productionPipeline = SecurePipelineBuilder()
+let productionPipeline = try SecurePipelineBuilder()
+    .withPipeline(.concurrent(.limited(10)))  // Limited concurrency for control
     .add(ValidationMiddleware())
     .add(AuthenticationMiddleware())
     .add(AuthorizationMiddleware())
     .add(RateLimitingMiddleware(
         limiter: RateLimiter(
-            strategy: .adaptive(baseRate: 1000) { await systemLoad() }
+            strategy: .slidingWindow(windowSize: 60, limit: 1000)
         )
     ))
     .add(EncryptionMiddleware())
@@ -753,20 +767,20 @@ priorityPipeline.addQueue(priority: .low, weight: 10)
 
 ```swift
 // Step 1: Add security middleware incrementally
-let basicPipeline = Pipeline()
-    .use(ValidationMiddleware())        // Existing
-    .use(AuthenticationMiddleware())    // Add first
-    .use(YourBusinessMiddleware())      // Existing
+let basicPipeline = StandardPipeline()
+basicPipeline.addMiddleware(ValidationMiddleware())        // Existing
+basicPipeline.addMiddleware(AuthenticationMiddleware())    // Add first
+basicPipeline.addMiddleware(YourBusinessMiddleware())      // Existing
 
 // Step 2: Add authorization
-let enhancedPipeline = Pipeline()
-    .use(AuthenticationMiddleware())
-    .use(AuthorizationMiddleware())     // Add second
-    .use(ValidationMiddleware())
-    .use(YourBusinessMiddleware())
+let enhancedPipeline = StandardPipeline()
+enhancedPipeline.addMiddleware(AuthenticationMiddleware())
+enhancedPipeline.addMiddleware(AuthorizationMiddleware())     // Add second
+enhancedPipeline.addMiddleware(ValidationMiddleware())
+enhancedPipeline.addMiddleware(YourBusinessMiddleware())
 
 // Step 3: Convert to SecurePipelineBuilder
-let securePipeline = SecurePipelineBuilder()
+let securePipeline = try SecurePipelineBuilder()
     .add(AuthenticationMiddleware())
     .add(AuthorizationMiddleware())
     .add(ValidationMiddleware())
@@ -872,20 +886,15 @@ let optimizedPipeline = SecurePipelineBuilder()
 
 ```swift
 class PipelineMonitor {
-    func monitorPipeline<T: PipelineExecutor>(_ pipeline: T) {
+    func monitorPipeline<T: Pipeline>(_ pipeline: T) {
         Task {
             while !Task.isCancelled {
-                let metrics = await pipeline.getMetrics()
-                
-                // Alert on performance degradation
-                if metrics.averageLatency > 100 {
-                    await alertService.send(.highLatency(metrics.averageLatency))
-                }
-                
-                // Alert on error rate
-                if metrics.errorRate > 0.05 {
-                    await alertService.send(.highErrorRate(metrics.errorRate))
-                }
+                // Monitor execution through metrics middleware
+                // MetricsMiddleware automatically tracks:
+                // - Request count
+                // - Success/failure rates
+                // - Execution time
+                // - Concurrent executions
                 
                 try await Task.sleep(nanoseconds: 30_000_000_000) // 30 seconds
             }

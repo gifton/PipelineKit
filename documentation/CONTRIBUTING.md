@@ -36,8 +36,8 @@ For feature requests:
 
 ### Prerequisites
 
-- Swift 6.0 or later
-- Xcode 16.0 or later (for iOS/macOS development)
+- Swift 5.10 or later
+- Xcode 15.3 or later (for iOS/macOS development)
 - Swift Package Manager
 
 ### Getting Started
@@ -53,8 +53,8 @@ swift build
 # Run tests
 swift test
 
-# Generate documentation
-swift package generate-documentation
+# Build documentation (if using DocC)
+swift build --target PipelineKit
 ```
 
 ### Project Structure
@@ -67,9 +67,7 @@ PipelineKit/
 │   ├── Pipeline/             # Pipeline implementations
 │   ├── Security/             # Security features
 │   └── Examples/             # Usage examples
-├── Tests/PipelineKitTests/   # Test suite
-├── Documentation/            # Additional documentation
-└── Scripts/                  # Build and utility scripts
+└── Tests/PipelineKitTests/   # Test suite
 ```
 
 ## 📝 Coding Standards
@@ -348,7 +346,7 @@ We use [Semantic Versioning](https://semver.org/):
 
 ### Code of Conduct
 
-We are committed to providing a welcoming and inspiring community for all. Please read our [Code of Conduct](CODE_OF_CONDUCT.md).
+We are committed to providing a welcoming and inspiring community for all.
 
 ### Communication
 
@@ -359,9 +357,9 @@ We are committed to providing a welcoming and inspiring community for all. Pleas
 ### Recognition
 
 Contributors are recognized in:
-- CONTRIBUTORS.md file
 - Release notes
 - Project documentation
+- GitHub contributors list
 
 ## 📚 Resources
 
@@ -381,17 +379,14 @@ Contributors are recognized in:
 ### Useful Commands
 
 ```bash
-# Format code
-swift-format --in-place --recursive Sources/ Tests/
-
-# Lint code
-swiftlint lint
-
 # Run specific tests
 swift test --filter ValidationTests
 
-# Profile performance
-swift test --enable-test-discovery --parallel
+# Run tests with coverage
+swift test --enable-code-coverage
+
+# Run tests in parallel
+swift test --parallel
 ```
 
 ## ❓ Getting Help

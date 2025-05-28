@@ -48,7 +48,7 @@ final class PipelineTests: XCTestCase {
     
     func testBasicPipelineExecution() async throws {
         let handler = TransformHandler()
-        let pipeline = PipelineExecutor(handler: handler)
+        let pipeline = DefaultPipeline(handler: handler)
         
         let result = try await pipeline.execute(
             TransformCommand(input: "hello"),
@@ -60,7 +60,7 @@ final class PipelineTests: XCTestCase {
     
     func testPipelineWithMiddleware() async throws {
         let handler = TransformHandler()
-        let pipeline = PipelineExecutor(handler: handler)
+        let pipeline = DefaultPipeline(handler: handler)
         
         try await pipeline.addMiddleware(AppendMiddleware(suffix: "!"))
         try await pipeline.addMiddleware(AppendMiddleware(suffix: "?"))
@@ -91,7 +91,7 @@ final class PipelineTests: XCTestCase {
     
     func testMaxDepthProtection() async throws {
         let handler = TransformHandler()
-        let pipeline = PipelineExecutor(handler: handler, maxDepth: 2)
+        let pipeline = DefaultPipeline(handler: handler, maxDepth: 2)
         
         try await pipeline.addMiddleware(AppendMiddleware(suffix: "1"))
         try await pipeline.addMiddleware(AppendMiddleware(suffix: "2"))
@@ -110,7 +110,7 @@ final class PipelineTests: XCTestCase {
     
     func testConcurrentPipelineExecution() async throws {
         let pipeline = ConcurrentPipeline(maxConcurrency: 2)
-        let executor = PipelineExecutor(handler: TransformHandler())
+        let executor = DefaultPipeline(handler: TransformHandler())
         
         await pipeline.register(TransformCommand.self, pipeline: executor)
         

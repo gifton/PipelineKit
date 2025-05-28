@@ -46,7 +46,7 @@ final class PipelinePerformanceTests: XCTestCase {
     }
     
     func testPipelinePerformance() async throws {
-        let pipeline = PipelineExecutor(handler: BenchmarkHandler())
+        let pipeline = DefaultPipeline(handler: BenchmarkHandler())
         let counter = Actor(0)
         
         // Add 10 middlewares
@@ -76,7 +76,7 @@ final class PipelinePerformanceTests: XCTestCase {
     
     func testConcurrentPipelinePerformance() async throws {
         let concurrentPipeline = ConcurrentPipeline(maxConcurrency: 10)
-        let executor = PipelineExecutor(handler: BenchmarkHandler())
+        let executor = DefaultPipeline(handler: BenchmarkHandler())
         
         await concurrentPipeline.register(BenchmarkCommand.self, pipeline: executor)
         

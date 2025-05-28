@@ -101,7 +101,7 @@ final class SanitizationTests: XCTestCase {
     
     func testSanitizationMiddleware() async throws {
         let bus = CommandBus()
-        await bus.addMiddleware(SanitizationMiddleware())
+        try await bus.addMiddleware(SanitizationMiddleware())
         
         struct TestHandler: CommandHandler {
             typealias CommandType = CreatePostCommand
