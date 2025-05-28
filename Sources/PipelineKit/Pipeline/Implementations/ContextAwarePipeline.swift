@@ -27,6 +27,7 @@ public actor ContextAwarePipeline: Pipeline {
     private var middlewares: [any ContextAwareMiddleware] = []
     private let handler: AnyContextHandler
     private let maxDepth: Int
+    private let semaphore: BackPressureAsyncSemaphore?
     
     private struct AnyContextHandler: Sendable {
         let execute: @Sendable (Any, CommandContext) async throws -> Any
@@ -52,6 +53,52 @@ public actor ContextAwarePipeline: Pipeline {
     ) where H.CommandType == T {
         self.handler = AnyContextHandler(handler)
         self.maxDepth = maxDepth
+        self.semaphore = nil
+    }
+    
+    /// Creates a context-aware pipeline with concurrency control (supports macro .limited(Int) pattern).
+    /// 
+    /// - Parameters:
+    ///   - handler: The command handler
+    ///   - maxConcurrency: Maximum number of concurrent executions
+    ///   - maxDepth: Maximum middleware depth (default: 100)
+    public init<T: Command, H: CommandHandler>(
+        handler: H,
+        maxConcurrency: Int,
+        maxDepth: Int = 100
+    ) where H.CommandType == T {
+        self.handler = AnyContextHandler(handler)
+        self.maxDepth = maxDepth
+        self.semaphore = BackPressureAsyncSemaphore(
+            maxConcurrency: maxConcurrency,
+            maxOutstanding: nil,
+            strategy: .suspend
+        )
+    }
+    
+    /// Creates a context-aware pipeline with full back-pressure control.
+    /// 
+    /// - Parameters:
+    ///   - handler: The command handler
+    ///   - options: Pipeline configuration options
+    ///   - maxDepth: Maximum middleware depth (default: 100)
+    public init<T: Command, H: CommandHandler>(
+        handler: H,
+        options: PipelineOptions,
+        maxDepth: Int = 100
+    ) where H.CommandType == T {
+        self.handler = AnyContextHandler(handler)
+        self.maxDepth = maxDepth
+        
+        if let maxConcurrency = options.maxConcurrency {
+            self.semaphore = BackPressureAsyncSemaphore(
+                maxConcurrency: maxConcurrency,
+                maxOutstanding: options.maxOutstanding,
+                strategy: options.backPressureStrategy
+            )
+        } else {
+            self.semaphore = nil
+        }
     }
     
     /// Adds a context-aware middleware to the pipeline.
@@ -84,6 +131,12 @@ public actor ContextAwarePipeline: Pipeline {
         _ command: T,
         metadata: CommandMetadata
     ) async throws -> T.Result {
+        // Apply back-pressure control if configured
+        if let semaphore = semaphore {
+            try await semaphore.acquire()
+            defer { Task { await semaphore.release() } }
+        }
+        
         let context = CommandContext(metadata: metadata)
         
         // Set initial context values

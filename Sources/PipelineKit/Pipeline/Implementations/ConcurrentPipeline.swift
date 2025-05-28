@@ -1,54 +1,73 @@
 import Foundation
 
-/// A thread-safe pipeline manager that supports concurrent command execution with controlled concurrency.
+/// A thread-safe pipeline manager that supports concurrent command execution with back-pressure control.
 ///
 /// `ConcurrentPipeline` manages multiple pipelines for different command types and provides
-/// controlled concurrent execution using an async semaphore. It ensures that only a limited
-/// number of commands execute simultaneously, preventing resource exhaustion.
+/// controlled concurrent execution with configurable back-pressure strategies. It can suspend
+/// producers, drop commands, or throw errors when capacity limits are exceeded.
 ///
 /// ## Overview
 /// This actor provides:
 /// - Registration of pipelines for specific command types
-/// - Concurrent execution of multiple commands with concurrency limits
+/// - Concurrent execution with concurrency and queue limits
+/// - Configurable back-pressure strategies (suspend, drop, error)
 /// - Type-safe command routing to appropriate pipelines
 /// - Batch execution with individual error handling
+/// - Real-time capacity monitoring
 ///
 /// ## Example
 /// ```swift
-/// // Create a concurrent pipeline with max 5 concurrent operations
-/// let concurrentPipeline = ConcurrentPipeline(maxConcurrency: 5)
+/// // Create a pipeline with back-pressure control
+/// let options = PipelineOptions(
+///     maxConcurrency: 5,
+///     maxOutstanding: 20,
+///     backPressureStrategy: .suspend
+/// )
+/// let concurrentPipeline = ConcurrentPipeline(options: options)
 ///
 /// // Register pipelines for different command types
 /// await concurrentPipeline.register(CreateUserCommand.self, pipeline: userPipeline)
 /// await concurrentPipeline.register(SendEmailCommand.self, pipeline: emailPipeline)
 ///
-/// // Execute a single command
+/// // Execute commands - will suspend if capacity exceeded
 /// let user = try await concurrentPipeline.execute(
 ///     CreateUserCommand(name: "John"),
 ///     metadata: metadata
 /// )
-///
-/// // Execute multiple commands concurrently
-/// let commands = [
-///     SendEmailCommand(to: "user1@example.com"),
-///     SendEmailCommand(to: "user2@example.com"),
-///     SendEmailCommand(to: "user3@example.com")
-/// ]
-/// let results = try await concurrentPipeline.executeConcurrently(commands)
 /// ```
 public actor ConcurrentPipeline {
     /// Storage for registered pipelines, keyed by command type identifier.
     private var pipelines: [ObjectIdentifier: any Pipeline] = [:]
     
-    /// Semaphore to control the maximum number of concurrent operations.
-    private let semaphore: AsyncSemaphore
+    /// Back-pressure aware semaphore to control concurrency and queue limits.
+    private let semaphore: BackPressureAsyncSemaphore
     
-    /// Creates a new concurrent pipeline with the specified concurrency limit.
+    /// Configuration options for this pipeline.
+    public let options: PipelineOptions
+    
+    /// Creates a new concurrent pipeline with back-pressure control.
     ///
-    /// - Parameter maxConcurrency: The maximum number of commands that can execute
-    ///   concurrently. Defaults to 10.
+    /// - Parameter options: Configuration options including concurrency limits and back-pressure strategy.
+    public init(options: PipelineOptions = PipelineOptions()) {
+        self.options = options
+        self.semaphore = BackPressureAsyncSemaphore(
+            maxConcurrency: options.maxConcurrency ?? 10,
+            maxOutstanding: options.maxOutstanding,
+            strategy: options.backPressureStrategy
+        )
+    }
+    
+    /// Creates a new concurrent pipeline with the specified concurrency limit (legacy).
+    ///
+    /// - Parameter maxConcurrency: The maximum number of commands that can execute concurrently.
+    @available(*, deprecated, message: "Use init(options:) for full back-pressure control")
     public init(maxConcurrency: Int = 10) {
-        self.semaphore = AsyncSemaphore(value: maxConcurrency)
+        self.options = PipelineOptions(maxConcurrency: maxConcurrency)
+        self.semaphore = BackPressureAsyncSemaphore(
+            maxConcurrency: maxConcurrency,
+            maxOutstanding: nil,
+            strategy: .suspend
+        )
     }
     
     /// Registers a pipeline for a specific command type.
@@ -86,8 +105,8 @@ public actor ConcurrentPipeline {
             throw PipelineError.executionFailed("No pipeline registered for \(T.self)")
         }
         
-        await semaphore.wait()
-        defer { Task { await semaphore.signal() } }
+        try await semaphore.acquire()
+        defer { Task { await semaphore.release() } }
         
         let executionMetadata = metadata ?? DefaultCommandMetadata()
         return try await pipeline.execute(command, metadata: executionMetadata)
@@ -116,12 +135,12 @@ public actor ConcurrentPipeline {
             throw PipelineError.executionFailed("No pipeline registered for \(T.self)")
         }
         
-        let acquired = await semaphore.wait(timeout: timeout)
+        let acquired = try await semaphore.acquire(timeout: timeout)
         guard acquired else {
             throw PipelineError.executionFailed("Timeout waiting for available execution slot")
         }
         
-        defer { Task { await semaphore.signal() } }
+        defer { Task { await semaphore.release() } }
         
         let executionMetadata = metadata ?? DefaultCommandMetadata()
         return try await pipeline.execute(command, metadata: executionMetadata)
@@ -165,4 +184,55 @@ public actor ConcurrentPipeline {
             return results.map { $0.1 }
         }
     }
+    
+    /// Gets current pipeline capacity statistics for monitoring.
+    ///
+    /// - Returns: Statistics about current pipeline utilization and queue state.
+    public func getCapacityStats() async -> PipelineCapacityStats {
+        let semaphoreStats = await semaphore.getStats()
+        return PipelineCapacityStats(
+            maxConcurrency: semaphoreStats.maxConcurrency,
+            maxOutstanding: semaphoreStats.maxOutstanding,
+            activeOperations: semaphoreStats.activeOperations,
+            queuedOperations: semaphoreStats.queuedOperations,
+            totalOutstanding: semaphoreStats.totalOutstanding,
+            utilizationPercent: Double(semaphoreStats.activeOperations) / Double(semaphoreStats.maxConcurrency) * 100,
+            registeredPipelineCount: pipelines.count
+        )
+    }
+    
+    /// Checks if the pipeline is currently at capacity.
+    ///
+    /// - Returns: True if no more commands can be accepted without back-pressure.
+    public func isAtCapacity() async -> Bool {
+        let stats = await semaphore.getStats()
+        if let maxOutstanding = stats.maxOutstanding {
+            return stats.totalOutstanding >= maxOutstanding
+        }
+        return stats.availableResources == 0
+    }
+}
+
+/// Statistics about pipeline capacity and utilization.
+public struct PipelineCapacityStats: Sendable {
+    /// Maximum allowed concurrent operations.
+    public let maxConcurrency: Int
+    
+    /// Maximum allowed outstanding operations (nil = unlimited).
+    public let maxOutstanding: Int?
+    
+    /// Number of operations currently executing.
+    public let activeOperations: Int
+    
+    /// Number of operations waiting in queue.
+    public let queuedOperations: Int
+    
+    /// Total outstanding operations (active + queued).
+    public let totalOutstanding: Int
+    
+    /// Current utilization as a percentage (0-100).
+    public let utilizationPercent: Double
+    
+    /// Number of registered command type pipelines.
+    public let registeredPipelineCount: Int
 }
