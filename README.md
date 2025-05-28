@@ -31,6 +31,10 @@ A comprehensive, security-first Command-Pipeline architecture framework for Swif
 - **Concurrent Execution**: Parallel pipeline processing with load balancing
 - **Priority Queues**: Weighted command execution for performance optimization
 - **DoS Protection**: Multi-layer defense against denial-of-service attacks
+- **🔍 Observability**: Built-in tracing, metrics, and logging with PipelineObserver protocol
+- **📈 Performance Monitoring**: Automatic performance tracking and threshold alerts
+- **🌐 Distributed Tracing**: Span context propagation for microservices
+- **📊 Custom Metrics**: Extensible metrics collection and reporting
 
 ## 🚀 Quick Start
 
@@ -640,6 +644,164 @@ let strategy = RateLimitStrategy.adaptive(baseRate: 100) {
 }
 ```
 
+## 🔍 Observability
+
+PipelineKit provides comprehensive observability features for monitoring, debugging, and understanding your command execution:
+
+### Pipeline Observer Protocol
+
+Implement custom observers to track pipeline execution:
+
+```swift
+class MetricsObserver: PipelineObserver {
+    func pipelineWillExecute<T: Command>(_ command: T, metadata: CommandMetadata, pipelineType: String) async {
+        // Track command start
+    }
+    
+    func pipelineDidExecute<T: Command>(_ command: T, result: T.Result, metadata: CommandMetadata, pipelineType: String, duration: TimeInterval) async {
+        // Record success metrics
+        recordMetric("command.success", value: 1, tags: ["command": String(describing: T.self)])
+        recordMetric("command.duration", value: duration, tags: ["command": String(describing: T.self)])
+    }
+}
+
+// Attach observers to any pipeline
+let pipeline = StandardPipeline(handler: handler)
+    .withObservability(observers: [MetricsObserver(), OSLogObserver.production()])
+```
+
+### Built-in Observers
+
+#### OSLog Integration
+```swift
+// Development logging with detailed information
+let devObserver = OSLogObserver.development()
+
+// Production logging with privacy protection
+let prodObserver = OSLogObserver.production()
+
+// Performance-focused logging
+let perfObserver = OSLogObserver.performance()
+```
+
+### Observability Middleware
+
+Automatic instrumentation for all commands:
+
+```swift
+let pipeline = ContextAwarePipeline(handler: handler)
+
+// Add comprehensive observability
+try await pipeline.addMiddleware(
+    ObservabilityMiddleware(configuration: .init(
+        observers: [OSLogObserver.development()],
+        enablePerformanceMetrics: true
+    ))
+)
+
+// Every command now has:
+// - Automatic performance tracking
+// - Distributed tracing context
+// - Custom event emission
+// - Error tracking
+```
+
+### Distributed Tracing
+
+Track requests across service boundaries:
+
+```swift
+// Middleware automatically creates span contexts
+struct DistributedTracingMiddleware: ContextAwareMiddleware {
+    func execute<T: Command>(_ command: T, context: CommandContext, next: @Sendable (T, CommandContext) async throws -> T.Result) async throws -> T.Result {
+        // Create or continue trace
+        let span = await context.getOrCreateSpanContext(operation: String(describing: T.self))
+        
+        // Add service information
+        await context.set(SpanContext(
+            traceId: span.traceId,
+            spanId: UUID().uuidString,
+            parentSpanId: span.spanId,
+            operation: "service.process",
+            tags: ["service.name": "user-service", "service.version": "1.0.0"]
+        ), for: SpanContextKey.self)
+        
+        return try await next(command, context)
+    }
+}
+```
+
+### Performance Monitoring
+
+Track and alert on performance issues:
+
+```swift
+// Configure performance thresholds
+let performanceMiddleware = PerformanceTrackingMiddleware(
+    thresholds: .init(
+        slowCommandThreshold: 1.0,    // Alert if command takes > 1 second
+        slowMiddlewareThreshold: 0.1, // Alert if middleware takes > 100ms
+        memoryUsageThreshold: 100     // Alert if memory increases > 100MB
+    )
+)
+
+// Automatic performance tracking
+try await pipeline.addMiddleware(performanceMiddleware)
+```
+
+### Custom Metrics
+
+Emit custom events and metrics:
+
+```swift
+// Within any context-aware middleware or handler
+await context.emitCustomEvent("payment.processed", properties: [
+    "amount": 99.99,
+    "currency": "USD",
+    "payment_method": "credit_card"
+])
+
+// Track performance metrics
+await context.startTimer("database.query")
+let results = try await database.query(sql)
+await context.endTimer("database.query")
+
+// Record custom metrics
+await context.recordMetric("cache.hit_rate", value: 0.95, unit: "ratio")
+```
+
+### Observable Commands
+
+Commands can participate in observability:
+
+```swift
+struct ProcessOrderCommand: Command, ObservableCommand {
+    let orderId: String
+    typealias Result = Order
+    
+    func setupObservability(context: CommandContext) async {
+        // Set up command-specific observability
+        await context.setObservabilityData("order.id", value: orderId)
+        await context.startTimer("order.processing")
+    }
+    
+    func observabilityDidComplete<R>(context: CommandContext, result: R) async {
+        await context.endTimer("order.processing")
+        await context.emitCustomEvent("order.processed", properties: [
+            "order_id": orderId,
+            "status": "completed"
+        ])
+    }
+    
+    func observabilityDidFail(context: CommandContext, error: Error) async {
+        await context.emitCustomEvent("order.failed", properties: [
+            "order_id": orderId,
+            "error": error.localizedDescription
+        ])
+    }
+}
+```
+
 ## 📊 Performance
 
 PipelineKit is designed for high-performance scenarios:
@@ -672,6 +834,31 @@ Run tests:
 ```bash
 swift test
 ```
+
+## 🔒 Security & Dependencies
+
+### Dependency Management
+
+PipelineKit has minimal dependencies for security:
+
+```bash
+# Audit dependencies
+./Scripts/dependency-audit.sh
+
+# Generate SBOM (Software Bill of Materials)
+./Scripts/generate-sbom.sh
+```
+
+**Current Dependencies:**
+- `swift-syntax` (510.0.3) - Apple's official macro implementation
+
+All dependencies are:
+- ✅ Pinned to exact versions
+- ✅ Regularly audited for vulnerabilities
+- ✅ From trusted sources
+- ✅ License compatible (Apache-2.0)
+
+See [DEPENDENCIES.md](DEPENDENCIES.md) for full policy.
 
 ## 📚 Documentation
 

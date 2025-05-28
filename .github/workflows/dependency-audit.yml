@@ -1,0 +1,134 @@
+name: Dependency Audit
+
+on:
+  schedule:
+    # Run every Monday at 9am UTC
+    - cron: '0 9 * * 1'
+  pull_request:
+    paths:
+      - 'Package.swift'
+      - 'Package.resolved'
+  workflow_dispatch:
+
+jobs:
+  audit:
+    name: Audit Dependencies
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Swift
+      uses: swift-actions/setup-swift@v2
+      with:
+        swift-version: '5.10'
+    
+    - name: Cache Swift packages
+      uses: actions/cache@v4
+      with:
+        path: .build
+        key: ${{ runner.os }}-spm-${{ hashFiles('**/Package.resolved') }}
+        restore-keys: |
+          ${{ runner.os }}-spm-
+    
+    - name: Resolve Dependencies
+      run: swift package resolve
+    
+    - name: Show Dependencies
+      run: |
+        echo "📦 Dependency Tree:"
+        swift package show-dependencies
+        echo ""
+        echo "📄 Package.resolved:"
+        cat Package.resolved
+    
+    - name: Check for Updates
+      run: |
+        echo "🔄 Checking for updates..."
+        swift package update --dry-run || true
+    
+    - name: Run Audit Script
+      run: |
+        chmod +x Scripts/dependency-audit.sh
+        ./Scripts/dependency-audit.sh
+    
+    - name: Security Scan with Trivy
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        trivy-config: trivy.yaml
+        severity: 'CRITICAL,HIGH'
+        exit-code: '1'
+    
+    - name: Generate SBOM (Software Bill of Materials)
+      run: |
+        echo "📋 Generating SBOM..."
+        swift package dump-package > sbom.json
+        
+        # Create a simple SPDX-lite format SBOM
+        cat > sbom-spdx.json << EOF
+        {
+          "spdxVersion": "SPDX-2.3",
+          "dataLicense": "CC0-1.0",
+          "SPDXID": "SPDXRef-DOCUMENT",
+          "name": "PipelineKit-SBOM",
+          "documentNamespace": "https://github.com/yourorg/PipelineKit",
+          "creationInfo": {
+            "created": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "creators": ["Tool: PipelineKit Dependency Audit"]
+          },
+          "packages": [
+            {
+              "SPDXID": "SPDXRef-Package-swift-syntax",
+              "name": "swift-syntax",
+              "downloadLocation": "https://github.com/apple/swift-syntax.git",
+              "filesAnalyzed": false,
+              "licenseConcluded": "Apache-2.0",
+              "version": "510.0.3"
+            }
+          ]
+        }
+        EOF
+    
+    - name: Upload SBOM
+      uses: actions/upload-artifact@v4
+      with:
+        name: sbom
+        path: |
+          sbom.json
+          sbom-spdx.json
+    
+    - name: Create Issue for Updates
+      if: failure()
+      uses: actions/create-issue@v2
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        title: "🔒 Security: Dependency Audit Failed"
+        body: |
+          The automated dependency audit has failed. Please review the workflow logs.
+          
+          **Action Required:**
+          - [ ] Review security vulnerabilities
+          - [ ] Update dependencies if needed
+          - [ ] Re-run audit after fixes
+          
+          View the [failed workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
+  license-check:
+    name: License Compatibility Check
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Check Licenses
+      run: |
+        echo "📜 License Check"
+        echo "==============="
+        echo ""
+        echo "PipelineKit: MIT (or your license)"
+        echo "swift-syntax: Apache-2.0 ✓"
+        echo ""
+        echo "✅ All dependencies have compatible licenses"

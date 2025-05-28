@@ -798,6 +798,174 @@ struct WeeklySecurityReview {
 }
 ```
 
+## 🔍 Security Observability
+
+Comprehensive security monitoring and alerting is critical for detecting and responding to threats:
+
+### Security Event Tracking
+
+```swift
+// Configure security-focused observability
+let securityObserver = SecurityObserver(
+    alertThresholds: .init(
+        failedAuthAttempts: 5,
+        rateLimitHits: 10,
+        suspiciousPatterns: 3
+    )
+)
+
+let pipeline = SecurePipelineBuilder()
+    .add(AuthenticationMiddleware())
+    .add(AuthorizationMiddleware())
+    .add(RateLimitingMiddleware())
+    .build()
+    .withObservability(observers: [securityObserver])
+```
+
+### Real-time Security Monitoring
+
+```swift
+class SecurityObserver: PipelineObserver {
+    private let alertThresholds: AlertThresholds
+    private let alertService: AlertService
+    
+    func pipelineDidFail<T: Command>(_ command: T, error: Error, metadata: CommandMetadata, pipelineType: String, duration: TimeInterval) async {
+        // Track authentication failures
+        if let authError = error as? AuthenticationError {
+            await trackAuthFailure(metadata: metadata, error: authError)
+        }
+        
+        // Track authorization failures
+        if let authzError = error as? AuthorizationError {
+            await trackAuthorizationFailure(metadata: metadata, error: authzError)
+        }
+        
+        // Track rate limit violations
+        if let rateLimitError = error as? RateLimitError {
+            await trackRateLimitViolation(metadata: metadata, error: rateLimitError)
+        }
+    }
+    
+    private func trackAuthFailure(metadata: CommandMetadata, error: AuthenticationError) async {
+        let userId = metadata.userId ?? "unknown"
+        let ip = metadata.sourceIP ?? "unknown"
+        
+        // Increment failure counter
+        let failures = await failureTracker.increment(userId: userId, ip: ip)
+        
+        // Alert if threshold exceeded
+        if failures >= alertThresholds.failedAuthAttempts {
+            await alertService.sendSecurityAlert(.authenticationFailure(
+                userId: userId,
+                ip: ip,
+                attempts: failures,
+                severity: .high
+            ))
+        }
+        
+        // Log detailed security event
+        await securityLogger.log(.authenticationFailure, properties: [
+            "user_id": userId,
+            "source_ip": ip,
+            "failure_count": failures,
+            "error_type": error.type,
+            "timestamp": Date().timeIntervalSince1970
+        ])
+    }
+}
+```
+
+### Security Audit Trail
+
+```swift
+// Comprehensive security audit logging
+let auditObserver = AuditLogObserver(
+    configuration: .init(
+        logLevel: .detailed,
+        includeRequestBody: false,  // Don't log sensitive data
+        includeResponseBody: false,
+        maskSensitiveFields: true,
+        retentionDays: 365         // Keep for compliance
+    )
+)
+
+// Track all security-relevant events
+pipeline.withObservability(observers: [auditObserver])
+```
+
+### Threat Detection Patterns
+
+```swift
+struct ThreatDetectionMiddleware: ContextAwareMiddleware {
+    private let detector: ThreatDetector
+    
+    func execute<T: Command>(_ command: T, context: CommandContext, next: @Sendable (T, CommandContext) async throws -> T.Result) async throws -> T.Result {
+        // Analyze command for threats
+        let threatLevel = await detector.analyze(command: command, context: context)
+        
+        // Emit security events
+        await context.emitCustomEvent("security.threat_analysis", properties: [
+            "command_type": String(describing: T.self),
+            "threat_level": threatLevel.rawValue,
+            "indicators": threatLevel.indicators
+        ])
+        
+        // Block high-risk commands
+        if threatLevel >= .high {
+            await context.emitCustomEvent("security.threat_blocked", properties: [
+                "command_type": String(describing: T.self),
+                "threat_level": threatLevel.rawValue,
+                "reason": threatLevel.reason
+            ])
+            
+            throw SecurityError.threatDetected(level: threatLevel)
+        }
+        
+        return try await next(command, context)
+    }
+}
+```
+
+### Security Metrics Dashboard
+
+```swift
+// Real-time security metrics
+struct SecurityMetrics {
+    let authenticationSuccessRate: Double
+    let authorizationSuccessRate: Double
+    let rateLimitViolations: Int
+    let suspiciousPatterns: Int
+    let blockedThreats: Int
+    let averageResponseTime: TimeInterval
+}
+
+class SecurityMonitor {
+    private let observer: SecurityObserver
+    
+    func getMetrics() async -> SecurityMetrics {
+        return SecurityMetrics(
+            authenticationSuccessRate: await observer.getAuthSuccessRate(),
+            authorizationSuccessRate: await observer.getAuthzSuccessRate(),
+            rateLimitViolations: await observer.getRateLimitViolations(),
+            suspiciousPatterns: await observer.getSuspiciousPatterns(),
+            blockedThreats: await observer.getBlockedThreats(),
+            averageResponseTime: await observer.getAverageResponseTime()
+        )
+    }
+    
+    func generateSecurityReport() async -> SecurityReport {
+        let metrics = await getMetrics()
+        
+        return SecurityReport(
+            period: .last24Hours,
+            metrics: metrics,
+            topThreats: await observer.getTopThreats(),
+            recommendations: generateRecommendations(from: metrics)
+        )
+    }
+}
+```
+
 ### Incident Response
 
 Have a plan for security incidents:
@@ -844,6 +1012,46 @@ class SecurityIncidentHandler {
     }
 }
 ```
+
+## 📦 Dependency Security
+
+### Dependency Management
+
+PipelineKit follows strict dependency management practices:
+
+```bash
+# Run dependency audit
+./Scripts/dependency-audit.sh
+
+# Generate Software Bill of Materials (SBOM)
+./Scripts/generate-sbom.sh
+```
+
+### Version Pinning
+
+All dependencies use exact version pinning:
+
+```swift
+dependencies: [
+    // Exact version for security and reproducibility
+    .package(url: "https://github.com/apple/swift-syntax.git", exact: "510.0.3"),
+]
+```
+
+### Automated Auditing
+
+- **Weekly**: Automated dependency scans via GitHub Actions
+- **Monthly**: Full security audit with vulnerability scanning
+- **Per-PR**: Dependency change detection and review
+
+### Supply Chain Security
+
+1. **Minimal Dependencies**: Only essential, well-maintained packages
+2. **Trusted Sources**: Prefer first-party (Apple) packages
+3. **License Compliance**: Apache-2.0 and MIT compatible only
+4. **SBOM Generation**: Track all components for compliance
+
+See [DEPENDENCIES.md](../DEPENDENCIES.md) for full dependency policy.
 
 ## 🔗 Additional Resources
 

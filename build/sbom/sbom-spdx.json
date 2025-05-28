@@ -1,0 +1,60 @@
+{
+  "spdxVersion": "SPDX-2.3",
+  "dataLicense": "CC0-1.0",
+  "SPDXID": "SPDXRef-DOCUMENT",
+  "name": "PipelineKit-b4cfcd0-SBOM",
+  "documentNamespace": "https://github.com/yourorg/PipelineKit/sbom/b4cfcd0",
+  "creationInfo": {
+    "created": "2025-05-28T17:14:13Z",
+    "creators": [
+      "Tool: PipelineKit SBOM Generator",
+      "Organization: PipelineKit Project"
+    ],
+    "licenseListVersion": "3.20"
+  },
+  "packages": [
+    {
+      "SPDXID": "SPDXRef-Package-PipelineKit",
+      "name": "PipelineKit",
+      "downloadLocation": "https://github.com/yourorg/PipelineKit",
+      "filesAnalyzed": false,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "copyrightText": "Copyright (c) 2024 PipelineKit Contributors",
+      "version": "b4cfcd0",
+      "supplier": "Organization: PipelineKit Project",
+      "homepage": "https://github.com/yourorg/PipelineKit"
+    },
+    {
+      "SPDXID": "SPDXRef-Package-swift-syntax",
+      "name": "swift-syntax",
+      "downloadLocation": "https://github.com/apple/swift-syntax.git",
+      "filesAnalyzed": false,
+      "licenseConcluded": "Apache-2.0",
+      "licenseDeclared": "Apache-2.0",
+      "copyrightText": "Copyright (c) Apple Inc.",
+      "version": "510.0.3",
+      "supplier": "Organization: Apple Inc.",
+      "homepage": "https://github.com/apple/swift-syntax",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceType": "purl",
+          "referenceLocator": "pkg:swift/github.com/apple/swift-syntax@510.0.3"
+        }
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "spdxElementId": "SPDXRef-DOCUMENT",
+      "relatedSpdxElement": "SPDXRef-Package-PipelineKit",
+      "relationshipType": "DESCRIBES"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-PipelineKit",
+      "relatedSpdxElement": "SPDXRef-Package-swift-syntax",
+      "relationshipType": "DEPENDS_ON"
+    }
+  ]
+}

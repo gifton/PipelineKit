@@ -6,7 +6,7 @@ struct CreateOrderCommand: Command, ValidatableCommand {
     typealias Result = Order
     
     let customerId: String
-    let items: [OrderItem]
+    let items: [ContextOrderItem]
     let paymentMethod: String
     
     func validate() throws {
@@ -23,13 +23,13 @@ struct CreateOrderCommand: Command, ValidatableCommand {
 struct Order: Sendable {
     let id: String
     let customerId: String
-    let items: [OrderItem]
+    let items: [ContextOrderItem]
     let total: Double
     let discount: Double
     let status: String
 }
 
-struct OrderItem: Sendable {
+internal struct ContextOrderItem: Sendable {
     let productId: String
     let quantity: Int
     let price: Double
@@ -219,8 +219,8 @@ func demonstrateContextAwarePipeline() async throws {
     let command = CreateOrderCommand(
         customerId: "customer-123",
         items: [
-            OrderItem(productId: "prod-1", quantity: 2, price: 29.99),
-            OrderItem(productId: "prod-2", quantity: 1, price: 49.99)
+            ContextOrderItem(productId: "prod-1", quantity: 2, price: 29.99),
+            ContextOrderItem(productId: "prod-2", quantity: 1, price: 49.99)
         ],
         paymentMethod: "credit_card"
     )

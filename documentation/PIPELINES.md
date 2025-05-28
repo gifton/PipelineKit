@@ -662,6 +662,163 @@ Context-Aware      | 3MB         | 3.5KB       | 2KB
 Secure             | 5MB         | 2.8KB       | N/A
 ```
 
+## 🔍 Observability and Monitoring
+
+### Pipeline Observability
+
+All pipeline types support comprehensive observability through the PipelineObserver protocol:
+
+```swift
+// Create custom observer
+class MetricsObserver: PipelineObserver {
+    func pipelineWillExecute<T: Command>(_ command: T, metadata: CommandMetadata, pipelineType: String) async {
+        metrics.increment("pipeline.start", tags: ["type": pipelineType, "command": String(describing: T.self)])
+    }
+    
+    func pipelineDidExecute<T: Command>(_ command: T, result: T.Result, metadata: CommandMetadata, pipelineType: String, duration: TimeInterval) async {
+        metrics.histogram("pipeline.duration", value: duration, tags: ["type": pipelineType, "command": String(describing: T.self)])
+        metrics.increment("pipeline.success", tags: ["type": pipelineType, "command": String(describing: T.self)])
+    }
+}
+
+// Attach to any pipeline
+let observablePipeline = pipeline.withObservability(observers: [
+    MetricsObserver(),
+    OSLogObserver.production(),
+    DatadogObserver(apiKey: "...")
+])
+```
+
+### Built-in Observability Features
+
+#### 1. OSLog Integration
+```swift
+// Automatic structured logging with privacy protection
+let osLogObserver = OSLogObserver(configuration: .init(
+    subsystem: "com.myapp.pipeline",
+    logLevel: .info,
+    includeCommandDetails: true,
+    includeMetadata: true,
+    performanceThreshold: 0.5 // Log slow commands
+))
+```
+
+#### 2. Performance Tracking
+```swift
+// Automatic performance monitoring
+let performanceObserver = PerformanceTrackingMiddleware(
+    thresholds: .init(
+        slowCommandThreshold: 1.0,
+        slowMiddlewareThreshold: 0.1,
+        memoryUsageThreshold: 50
+    )
+)
+
+// Alerts when thresholds are exceeded
+pipeline.addMiddleware(performanceObserver)
+```
+
+#### 3. Distributed Tracing
+```swift
+// Trace requests across services
+struct TracingMiddleware: ContextAwareMiddleware {
+    func execute<T: Command>(_ command: T, context: CommandContext, next: @Sendable (T, CommandContext) async throws -> T.Result) async throws -> T.Result {
+        let span = await context.getOrCreateSpanContext(operation: String(describing: T.self))
+        
+        // Propagate trace headers
+        if let httpClient = await context.get(HTTPClientKey.self) {
+            httpClient.headers["X-Trace-ID"] = span.traceId
+            httpClient.headers["X-Span-ID"] = span.spanId
+        }
+        
+        return try await next(command, context)
+    }
+}
+```
+
+#### 4. Observability Middleware
+```swift
+// One-line comprehensive observability
+try await pipeline.addMiddleware(
+    ObservabilityMiddleware(configuration: .init(
+        observers: [OSLogObserver.development()],
+        enablePerformanceMetrics: true
+    ))
+)
+```
+
+### Monitoring Dashboard Example
+
+```swift
+// Real-time pipeline monitoring
+actor PipelineMonitor {
+    private var metrics: PipelineMetrics = .init()
+    
+    func trackExecution<T: Command>(_ command: T, duration: TimeInterval, success: Bool) {
+        metrics.totalCommands += 1
+        metrics.totalDuration += duration
+        
+        if success {
+            metrics.successCount += 1
+        } else {
+            metrics.failureCount += 1
+        }
+        
+        // Update moving averages
+        metrics.averageLatency = metrics.totalDuration / Double(metrics.totalCommands)
+        metrics.successRate = Double(metrics.successCount) / Double(metrics.totalCommands)
+    }
+    
+    func getMetrics() -> PipelineMetrics {
+        return metrics
+    }
+}
+
+struct PipelineMetrics {
+    var totalCommands: Int = 0
+    var successCount: Int = 0
+    var failureCount: Int = 0
+    var totalDuration: TimeInterval = 0
+    var averageLatency: TimeInterval = 0
+    var successRate: Double = 0
+}
+```
+
+### Custom Event Emission
+
+```swift
+// Emit business-specific events
+struct PaymentProcessingMiddleware: ContextAwareMiddleware {
+    func execute<T: Command>(_ command: T, context: CommandContext, next: @Sendable (T, CommandContext) async throws -> T.Result) async throws -> T.Result {
+        if let paymentCommand = command as? ProcessPaymentCommand {
+            await context.emitCustomEvent("payment.started", properties: [
+                "amount": paymentCommand.amount,
+                "currency": paymentCommand.currency,
+                "method": paymentCommand.method
+            ])
+        }
+        
+        do {
+            let result = try await next(command, context)
+            
+            if let paymentCommand = command as? ProcessPaymentCommand {
+                await context.emitCustomEvent("payment.completed", properties: [
+                    "transaction_id": result.transactionId,
+                    "amount": paymentCommand.amount
+                ])
+            }
+            
+            return result
+        } catch {
+            await context.emitCustomEvent("payment.failed", properties: [
+                "error": error.localizedDescription
+            ])
+            throw error
+        }
+    }
+}
+```
+
 ## ⚙️ Configuration Patterns
 
 ### Development Environment

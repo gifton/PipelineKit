@@ -28,6 +28,15 @@ This directory contains comprehensive documentation for PipelineKit, a Swift fra
 - Data encryption and privacy compliance
 - Security monitoring and incident response
 
+### [OBSERVABILITY.md](OBSERVABILITY.md)
+**Observability & Monitoring Guide**
+- Pipeline Observer protocol and implementation
+- Built-in observers (OSLog, metrics, tracing)
+- Performance monitoring and alerting
+- Distributed tracing across services
+- Custom metrics and event emission
+- Integration with monitoring platforms
+
 ### [CONTRIBUTING.md](CONTRIBUTING.md)
 **Development & Contribution Guidelines**
 - Development setup and workflow

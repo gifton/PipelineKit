@@ -243,6 +243,64 @@ Include:
 - Potential impact assessment
 - Suggested fix (if available)
 
+## 🔍 Observability Guidelines
+
+When adding observability features:
+
+### Observable Components
+
+1. **New Middleware**: Should emit relevant events
+2. **Security Features**: Must include security event tracking
+3. **Performance-Critical Code**: Add performance metrics
+
+### Event Naming Conventions
+
+```swift
+// Use dot notation for hierarchical events
+"pipeline.started"
+"middleware.authentication.success"
+"security.rate_limit.exceeded"
+"performance.slow_command"
+```
+
+### Required Observability
+
+All new features should:
+
+```swift
+// 1. Emit start/complete events
+await context.emitCustomEvent("feature.started", properties: ["id": requestId])
+await context.emitCustomEvent("feature.completed", properties: ["id": requestId, "duration": duration])
+
+// 2. Track errors with context
+await context.emitCustomEvent("feature.failed", properties: [
+    "id": requestId,
+    "error": error.localizedDescription,
+    "error_type": String(describing: type(of: error))
+])
+
+// 3. Include performance metrics
+await context.startTimer("feature.processing")
+// ... processing ...
+await context.endTimer("feature.processing")
+```
+
+### Testing Observability
+
+```swift
+func testFeatureEmitsObservabilityEvents() async throws {
+    let observer = TestObserver()
+    let pipeline = createPipeline().withObservability(observers: [observer])
+    
+    // Execute feature
+    _ = try await pipeline.execute(command, metadata: metadata)
+    
+    // Verify events
+    XCTAssertTrue(observer.events.contains { $0.name == "feature.started" })
+    XCTAssertTrue(observer.events.contains { $0.name == "feature.completed" })
+}
+```
+
 ## 📋 Pull Request Process
 
 ### Before Submitting

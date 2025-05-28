@@ -1,0 +1,9 @@
+digraph G {
+  rankdir=LR;
+  node [shape=box, style=filled];
+  
+  "PipelineKit" [fillcolor=lightblue];
+  "swift-syntax\n510.0.3" [fillcolor=lightgreen];
+  
+  "PipelineKit" -> "swift-syntax\n510.0.3";
+}

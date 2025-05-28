@@ -1,5 +1,4 @@
-// swift-tools-version: 5.10
-// The swift-tools-version declares the minimum version of Swift required to build this package.
+// Recommended Package.swift with exact version pinning:
 
 import PackageDescription
 import CompilerPluginSupport
@@ -13,14 +12,13 @@ let package = Package(
         .watchOS(.v9)
     ],
     products: [
-        // Products define the executables and libraries a package produces, making them visible to other packages.
         .library(
             name: "PipelineKit",
             targets: ["PipelineKit"]),
     ],
     dependencies: [
         // Pin to exact version for reproducible builds
-        // swift-syntax 510.0.3 - Last audited: 2025-05-28
+        // swift-syntax 510.0.3 - Last audited: $(date +%Y-%m-%d)
         // Security: No known vulnerabilities
         // License: Apache-2.0
         .package(url: "https://github.com/apple/swift-syntax.git", exact: "510.0.3"),
