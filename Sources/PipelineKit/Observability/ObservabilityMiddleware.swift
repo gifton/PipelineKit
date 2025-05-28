@@ -5,7 +5,7 @@ import Foundation
 /// Middleware that automatically instruments command execution with observability
 public struct ObservabilityMiddleware: ContextAwareMiddleware, PrioritizedMiddleware {
     
-    public static var recommendedOrder: ExecutionPriority { .tracing }
+    nonisolated(unsafe) public static var recommendedOrder: ExecutionPriority { .tracing }
     
     private let configuration: ObservabilityConfiguration
     
@@ -159,7 +159,7 @@ public struct ObservabilityMiddleware: ContextAwareMiddleware, PrioritizedMiddle
 /// Specialized middleware for detailed performance tracking
 public struct PerformanceTrackingMiddleware: ContextAwareMiddleware, PrioritizedMiddleware {
     
-    public static var recommendedOrder: ExecutionPriority { .monitoring }
+    nonisolated(unsafe) public static var recommendedOrder: ExecutionPriority { .monitoring }
     
     private let thresholds: PerformanceThresholds
     
@@ -290,7 +290,7 @@ public struct PerformanceTrackingMiddleware: ContextAwareMiddleware, Prioritized
 /// Middleware for distributed tracing integration
 public struct DistributedTracingMiddleware: ContextAwareMiddleware, PrioritizedMiddleware {
     
-    public static var recommendedOrder: ExecutionPriority { .tracing }
+    nonisolated(unsafe) public static var recommendedOrder: ExecutionPriority { .tracing }
     
     private let serviceName: String
     private let version: String
@@ -336,7 +336,7 @@ public struct DistributedTracingMiddleware: ContextAwareMiddleware, PrioritizedM
 /// Middleware that allows easy emission of custom business events
 public struct CustomEventEmitterMiddleware: ContextAwareMiddleware, PrioritizedMiddleware {
     
-    public static var recommendedOrder: ExecutionPriority { .eventPublishing }
+    nonisolated(unsafe) public static var recommendedOrder: ExecutionPriority { .eventPublishing }
     
     private let eventPrefix: String
     

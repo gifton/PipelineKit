@@ -295,7 +295,7 @@ public enum MiddlewareCategory: String, CaseIterable, Sendable {
 
 // Make ExecutionPriority conform to CaseIterable
 extension ExecutionPriority: CaseIterable {
-    public static var allCases: [ExecutionPriority] {
+    nonisolated(unsafe) public static var allCases: [ExecutionPriority] {
         return [
             // Pre-Processing
             .correlation, .decompression, .decryption, .deserialization,

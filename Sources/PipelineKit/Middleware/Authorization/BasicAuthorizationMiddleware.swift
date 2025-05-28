@@ -42,5 +42,5 @@ public struct AuthorizationMiddleware: Middleware {
     }
     
     /// Recommended middleware order for this component
-    public static var recommendedOrder: ExecutionPriority { .authorization }
+    nonisolated(unsafe) public static var recommendedOrder: ExecutionPriority { .authorization }
 }

@@ -240,10 +240,10 @@ func demonstrateContextAwarePipeline() async throws {
 
 func demonstrateRegularVsContextPipeline() async throws {
     // Regular pipeline - middleware cannot share state
-    let regularPipeline = DefaultPipeline(handler: CreateOrderHandler())
+    let _ = DefaultPipeline(handler: CreateOrderHandler())
     
     // Context-aware pipeline - middleware can share state
-    let contextPipeline = ContextAwarePipeline(handler: CreateOrderHandler())
+    let _ = ContextAwarePipeline(handler: CreateOrderHandler())
     
     // Regular middleware must pass all data through command/result
     // Context-aware middleware can store intermediate results in context

@@ -42,5 +42,5 @@ public struct ValidationMiddleware: Middleware {
 // Extension to make ValidationMiddleware an PrioritizedMiddleware
 extension ValidationMiddleware: PrioritizedMiddleware {
     /// Recommended middleware order for this component
-    public static var recommendedOrder: ExecutionPriority { .validation }
+    nonisolated(unsafe) public static var recommendedOrder: ExecutionPriority { .validation }
 }

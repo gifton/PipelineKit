@@ -341,7 +341,7 @@ public struct AuditLoggingMiddleware: Middleware, PrioritizedMiddleware {
     private let auditLogger: AuditLogger
     private let metadataExtractor: @Sendable (any Command, CommandMetadata) -> [String: String]
     
-    public static var recommendedOrder: ExecutionPriority { .auditLogging }
+    nonisolated(unsafe) public static var recommendedOrder: ExecutionPriority { .auditLogging }
     
     /// Creates audit logging middleware.
     ///

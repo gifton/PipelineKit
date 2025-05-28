@@ -13,7 +13,7 @@ public struct EncryptionMiddleware: Middleware, PrioritizedMiddleware {
     private let encryptor: CommandEncryptor
     private let shouldEncrypt: @Sendable (any Command) -> Bool
     
-    public static var recommendedOrder: ExecutionPriority { .encryption }
+    nonisolated(unsafe) public static var recommendedOrder: ExecutionPriority { .encryption }
     
     /// Creates encryption middleware.
     ///
