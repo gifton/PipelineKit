@@ -12,6 +12,7 @@ import Foundation
 /// - Optional context management
 /// - Thread-safe concurrent access
 /// - Middleware introspection and management
+/// - Configurable back-pressure control with `.limited(Int)` support
 ///
 /// ## Example
 /// ```swift
@@ -42,6 +43,9 @@ public actor DefaultPipeline<C: Command, H: CommandHandler>: PipelineKit.Pipelin
     /// Maximum allowed middleware depth to prevent infinite recursion.
     private let maxDepth: Int
     
+    /// Optional back-pressure semaphore for concurrency control.
+    private let semaphore: BackPressureAsyncSemaphore?
+    
     /// Creates a new pipeline with the specified handler.
     ///
     /// - Parameters:
@@ -56,6 +60,58 @@ public actor DefaultPipeline<C: Command, H: CommandHandler>: PipelineKit.Pipelin
         self.handler = handler
         self.useContext = useContext
         self.maxDepth = maxDepth
+        self.semaphore = nil
+    }
+    
+    /// Creates a new pipeline with concurrency control (supports macro .limited(Int) pattern).
+    ///
+    /// - Parameters:
+    ///   - handler: The command handler that will process commands after middleware
+    ///   - maxConcurrency: Maximum number of concurrent executions
+    ///   - useContext: Whether to use context for all middleware execution (default: true)
+    ///   - maxDepth: Maximum middleware depth (default: 100)
+    public init(
+        handler: H,
+        maxConcurrency: Int,
+        useContext: Bool = true,
+        maxDepth: Int = 100
+    ) {
+        self.handler = handler
+        self.useContext = useContext
+        self.maxDepth = maxDepth
+        self.semaphore = BackPressureAsyncSemaphore(
+            maxConcurrency: maxConcurrency,
+            maxOutstanding: nil,
+            strategy: .suspend
+        )
+    }
+    
+    /// Creates a new pipeline with full back-pressure control.
+    ///
+    /// - Parameters:
+    ///   - handler: The command handler that will process commands after middleware
+    ///   - options: Pipeline configuration options
+    ///   - useContext: Whether to use context for all middleware execution (default: true)
+    ///   - maxDepth: Maximum middleware depth (default: 100)
+    public init(
+        handler: H,
+        options: PipelineOptions,
+        useContext: Bool = true,
+        maxDepth: Int = 100
+    ) {
+        self.handler = handler
+        self.useContext = useContext
+        self.maxDepth = maxDepth
+        
+        if let maxConcurrency = options.maxConcurrency {
+            self.semaphore = BackPressureAsyncSemaphore(
+                maxConcurrency: maxConcurrency,
+                maxOutstanding: options.maxOutstanding,
+                strategy: options.backPressureStrategy
+            )
+        } else {
+            self.semaphore = nil
+        }
     }
     
     /// Adds middleware to the pipeline.
@@ -123,6 +179,12 @@ public actor DefaultPipeline<C: Command, H: CommandHandler>: PipelineKit.Pipelin
     
     /// Type-safe execution for the specific command type this pipeline handles.
     private func executeTyped(_ command: C, metadata: CommandMetadata) async throws -> C.Result {
+        // Apply back-pressure control if configured
+        if let semaphore = semaphore {
+            try await semaphore.acquire()
+            defer { Task { await semaphore.release() } }
+        }
+        
         if useContext || middlewares.contains(where: { $0 is any ContextAwareMiddleware }) {
             // Execute with context
             return try await executeWithContext(command, metadata: metadata)
