@@ -56,7 +56,8 @@ final class EncryptionTests: XCTestCase {
     // MARK: - Encryption Tests
     
     func testBasicEncryption() async throws {
-        let encryptor = CommandEncryptor()
+        let keyStore = InMemoryKeyStore()
+        let encryptor = CommandEncryptor(keyStore: keyStore)
         
         let command = PaymentCommand(
             cardNumber: "1234-5678-9012-3456",
@@ -77,7 +78,8 @@ final class EncryptionTests: XCTestCase {
     }
     
     func testEncryptionDecryption() async throws {
-        let encryptor = CommandEncryptor()
+        let keyStore = InMemoryKeyStore()
+        let encryptor = CommandEncryptor(keyStore: keyStore)
         
         let originalCommand = PaymentCommand(
             cardNumber: "1234-5678-9012-3456",
@@ -94,7 +96,8 @@ final class EncryptionTests: XCTestCase {
     }
     
     func testMultipleCommandTypes() async throws {
-        let encryptor = CommandEncryptor()
+        let keyStore = InMemoryKeyStore()
+        let encryptor = CommandEncryptor(keyStore: keyStore)
         
         // Test PaymentCommand
         let paymentCommand = PaymentCommand(
@@ -242,7 +245,8 @@ final class EncryptionTests: XCTestCase {
     // MARK: - Middleware Tests
     
     func testEncryptionMiddleware() async throws {
-        let encryptor = CommandEncryptor()
+        let keyStore = InMemoryKeyStore()
+        let encryptor = CommandEncryptor(keyStore: keyStore)
         let middleware = EncryptionMiddleware(encryptor: encryptor)
         
         let command = PaymentCommand(
@@ -263,7 +267,8 @@ final class EncryptionTests: XCTestCase {
     }
     
     func testEncryptionMiddlewareWithNonEncryptableCommand() async throws {
-        let encryptor = CommandEncryptor()
+        let keyStore = InMemoryKeyStore()
+        let encryptor = CommandEncryptor(keyStore: keyStore)
         let middleware = EncryptionMiddleware(encryptor: encryptor)
         
         struct RegularCommand: Command {
@@ -283,7 +288,8 @@ final class EncryptionTests: XCTestCase {
     }
     
     func testEncryptionMiddlewareValidation() async throws {
-        let encryptor = CommandEncryptor()
+        let keyStore = InMemoryKeyStore()
+        let encryptor = CommandEncryptor(keyStore: keyStore)
         let middleware = EncryptionMiddleware(encryptor: encryptor)
         
         struct EmptyEncryptableCommand: Command, EncryptableCommand {
@@ -356,7 +362,8 @@ final class EncryptionTests: XCTestCase {
     }
     
     func testEncryptionStrength() async throws {
-        let encryptor = CommandEncryptor()
+        let keyStore = InMemoryKeyStore()
+        let encryptor = CommandEncryptor(keyStore: keyStore)
         
         let command = PaymentCommand(
             cardNumber: "1234-5678-9012-3456",

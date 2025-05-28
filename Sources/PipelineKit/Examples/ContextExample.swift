@@ -240,7 +240,7 @@ func demonstrateContextAwarePipeline() async throws {
 
 func demonstrateRegularVsContextPipeline() async throws {
     // Regular pipeline - middleware cannot share state
-    let regularPipeline = PipelineExecutor(handler: CreateOrderHandler())
+    let regularPipeline = DefaultPipeline(handler: CreateOrderHandler())
     
     // Context-aware pipeline - middleware can share state
     let contextPipeline = ContextAwarePipeline(handler: CreateOrderHandler())

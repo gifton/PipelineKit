@@ -32,8 +32,8 @@ public final class CommandBusBuilder: Sendable {
     public func with<T: Command, H: CommandHandler>(
         _ commandType: T.Type,
         handler: H
-    ) async -> Self where H.CommandType == T {
-        await bus.register(commandType, handler: handler)
+    ) async throws -> Self where H.CommandType == T {
+        try await bus.register(commandType, handler: handler)
         return self
     }
     
@@ -42,8 +42,8 @@ public final class CommandBusBuilder: Sendable {
     /// - Parameter middleware: The middleware to add
     /// - Returns: The builder instance for method chaining
     @discardableResult
-    public func withMiddleware(_ middleware: any Middleware) async -> Self {
-        await bus.addMiddleware(middleware)
+    public func withMiddleware(_ middleware: any Middleware) async throws -> Self {
+        try await bus.addMiddleware(middleware)
         return self
     }
     

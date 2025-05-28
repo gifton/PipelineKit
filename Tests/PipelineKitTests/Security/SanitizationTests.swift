@@ -7,14 +7,16 @@ final class SanitizationTests: XCTestCase {
     struct CreatePostCommand: Command, SanitizableCommand {
         typealias Result = String
         
-        var title: String
-        var content: String
-        var tags: String
+        let title: String
+        let content: String
+        let tags: String
         
-        mutating func sanitize() {
-            title = title.trimmingCharacters(in: .whitespacesAndNewlines)
-            content = CommandSanitizer.sanitizeHTML(content)
-            tags = CommandSanitizer.truncate(tags, maxLength: 50)
+        func sanitized() -> Self {
+            CreatePostCommand(
+                title: title.trimmingCharacters(in: .whitespacesAndNewlines),
+                content: CommandSanitizer.sanitizeHTML(content),
+                tags: CommandSanitizer.truncate(tags, maxLength: 50)
+            )
         }
     }
     
@@ -74,7 +76,7 @@ final class SanitizationTests: XCTestCase {
     
     func testRemoveNonPrintable() {
         let input = "Hello\0World\u{0001}Test"
-        let result = CommandSanitizer.removNonPrintable(input)
+        let result = CommandSanitizer.removeNonPrintable(input)
         XCTAssertEqual(result, "HelloWorldTest")
     }
     
@@ -109,7 +111,7 @@ final class SanitizationTests: XCTestCase {
             }
         }
         
-        await bus.register(CreatePostCommand.self, handler: TestHandler())
+        try await bus.register(CreatePostCommand.self, handler: TestHandler())
         
         // Test command sanitization
         let command = CreatePostCommand(
@@ -124,31 +126,32 @@ final class SanitizationTests: XCTestCase {
         XCTAssertEqual(result, "Post created: My Post")
         
         // Create a new command to verify sanitization would work
-        var testCommand = command
-        testCommand.sanitize()
-        XCTAssertEqual(testCommand.title, "My Post")
-        XCTAssertEqual(testCommand.content, "Hello &lt;b&gt;World&lt;/b&gt;")
-        XCTAssertTrue(testCommand.tags.count <= 50)
+        let sanitizedCommand = command.sanitized()
+        XCTAssertEqual(sanitizedCommand.title, "My Post")
+        XCTAssertEqual(sanitizedCommand.content, "Hello &lt;b&gt;World&lt;/b&gt;")
+        XCTAssertTrue(sanitizedCommand.tags.count <= 50)
     }
     
     func testSecureCommand() throws {
         struct SecureCreateUserCommand: Command, SecureCommand {
             typealias Result = String
             
-            var email: String
-            var bio: String
+            let email: String
+            let bio: String
             
             func validate() throws {
                 try CommandValidator.validateEmail(email)
             }
             
-            mutating func sanitize() {
-                email = email.lowercased().trimmingCharacters(in: .whitespaces)
-                bio = CommandSanitizer.sanitizeHTML(bio)
+            func sanitized() -> Self {
+                SecureCreateUserCommand(
+                    email: email.lowercased().trimmingCharacters(in: .whitespaces),
+                    bio: CommandSanitizer.sanitizeHTML(bio)
+                )
             }
         }
         
-        var command = SecureCreateUserCommand(
+        let command = SecureCreateUserCommand(
             email: "  TEST@EXAMPLE.COM  ",
             bio: "<script>bad</script>My bio"
         )
@@ -157,9 +160,9 @@ final class SanitizationTests: XCTestCase {
         XCTAssertThrowsError(try command.validate()) // Should fail due to spaces
         
         // Sanitize and revalidate
-        command.sanitize()
-        XCTAssertNoThrow(try command.validate())
-        XCTAssertEqual(command.email, "test@example.com")
-        XCTAssertEqual(command.bio, "My bio")
+        let sanitizedCommand = command.sanitized()
+        XCTAssertNoThrow(try sanitizedCommand.validate())
+        XCTAssertEqual(sanitizedCommand.email, "test@example.com")
+        XCTAssertEqual(sanitizedCommand.bio, "My bio")
     }
 }

@@ -34,7 +34,7 @@ final class SecureCommandDispatcherTests: XCTestCase {
     
     func testSecureDispatch() async throws {
         let bus = CommandBus()
-        await bus.register(TestCommand.self, handler: TestHandler())
+        try await bus.register(TestCommand.self, handler: TestHandler())
         
         let dispatcher = SecureCommandDispatcher(bus: bus)
         
@@ -44,7 +44,7 @@ final class SecureCommandDispatcherTests: XCTestCase {
     
     func testRateLimiting() async throws {
         let bus = CommandBus()
-        await bus.register(TestCommand.self, handler: TestHandler())
+        try await bus.register(TestCommand.self, handler: TestHandler())
         
         // Create dispatcher with rate limiter
         let rateLimiter = RateLimiter(
@@ -93,8 +93,8 @@ final class SecureCommandDispatcherTests: XCTestCase {
     
     func testCircuitBreaker() async throws {
         let bus = CommandBus()
-        await bus.register(TestCommand.self, handler: TestHandler())
-        await bus.register(FailingCommand.self, handler: FailingHandler())
+        try await bus.register(TestCommand.self, handler: TestHandler())
+        try await bus.register(FailingCommand.self, handler: FailingHandler())
         
         // Create dispatcher with circuit breaker
         let circuitBreaker = CircuitBreaker(

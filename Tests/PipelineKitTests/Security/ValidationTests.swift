@@ -95,7 +95,7 @@ final class ValidationTests: XCTestCase {
     
     func testValidationMiddleware() async throws {
         let bus = CommandBus()
-        await bus.addMiddleware(ValidationMiddleware())
+        try await bus.addMiddleware(ValidationMiddleware())
         
         struct TestHandler: CommandHandler {
             typealias CommandType = CreateUserCommand
@@ -105,7 +105,7 @@ final class ValidationTests: XCTestCase {
             }
         }
         
-        await bus.register(CreateUserCommand.self, handler: TestHandler())
+        try await bus.register(CreateUserCommand.self, handler: TestHandler())
         
         // Test valid command
         let validCommand = CreateUserCommand(

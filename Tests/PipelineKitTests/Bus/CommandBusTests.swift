@@ -74,7 +74,7 @@ final class CommandBusTests: XCTestCase {
         let bus = CommandBus()
         let handler = AddNumbersHandler()
         
-        await bus.register(AddNumbersCommand.self, handler: handler)
+        try await bus.register(AddNumbersCommand.self, handler: handler)
         
         let result = try await bus.send(AddNumbersCommand(a: 5, b: 3))
         XCTAssertEqual(result, 8)
@@ -83,8 +83,8 @@ final class CommandBusTests: XCTestCase {
     func testMultipleHandlers() async throws {
         let bus = CommandBus()
         
-        await bus.register(AddNumbersCommand.self, handler: AddNumbersHandler())
-        await bus.register(MultiplyCommand.self, handler: MultiplyHandler())
+        try await bus.register(AddNumbersCommand.self, handler: AddNumbersHandler())
+        try await bus.register(MultiplyCommand.self, handler: MultiplyHandler())
         
         let addResult = try await bus.send(AddNumbersCommand(a: 10, b: 5))
         let multiplyResult = try await bus.send(MultiplyCommand(value: 4, multiplier: 3))
@@ -113,8 +113,8 @@ final class CommandBusTests: XCTestCase {
         let logs = Actor<[String]>([])
         let middleware = LoggingMiddleware(logs: logs)
         
-        await bus.addMiddleware(middleware)
-        await bus.register(AddNumbersCommand.self, handler: AddNumbersHandler())
+        try await bus.addMiddleware(middleware)
+        try await bus.register(AddNumbersCommand.self, handler: AddNumbersHandler())
         
         let result = try await bus.send(AddNumbersCommand(a: 2, b: 3))
         
@@ -130,7 +130,7 @@ final class CommandBusTests: XCTestCase {
         let builder = CommandBusBuilder()
         let handler = AddNumbersHandler()
         
-        let bus = await builder
+        let bus = try await builder
             .with(AddNumbersCommand.self, handler: handler)
             .build()
         

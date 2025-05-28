@@ -25,7 +25,8 @@ import Foundation
 /// let user = try await bus.send(CreateUserCommand(email: "user@example.com"))
 /// ```
 public actor CommandBus {
-    private var handlers: [ObjectIdentifier: Any] = [:]
+    /// Thread-safe registry for command handlers.
+    private let handlerRegistry = HandlerRegistry()
     private var middlewares: [any Middleware] = []
     private let maxMiddlewareDepth = 100
     
@@ -43,9 +44,8 @@ public actor CommandBus {
     public func register<T: Command, H: CommandHandler>(
         _ commandType: T.Type,
         handler: H
-    ) where H.CommandType == T {
-        let key = ObjectIdentifier(commandType)
-        handlers[key] = AnyCommandHandler(handler)
+    ) async throws where H.CommandType == T {
+        try await handlerRegistry.register(commandType, handler: handler)
     }
     
     /// Adds a middleware to the pipeline.
@@ -94,7 +94,7 @@ public actor CommandBus {
     ) async throws -> T.Result {
         let commandMetadata = metadata ?? DefaultCommandMetadata()
         
-        guard let anyHandler = findHandler(for: T.self),
+        guard let anyHandler = await handlerRegistry.handler(for: T.self),
               let handler = anyHandler as? AnyCommandHandler<T> else {
             throw CommandBusError.handlerNotFound(String(describing: T.self))
         }
@@ -112,10 +112,6 @@ public actor CommandBus {
         return try await chain(command, commandMetadata)
     }
     
-    private func findHandler<T: Command>(for commandType: T.Type) -> Any? {
-        let key = ObjectIdentifier(commandType)
-        return handlers[key]
-    }
     
     /// Removes a specific middleware from the bus.
     ///
@@ -135,8 +131,8 @@ public actor CommandBus {
     /// Removes all registered handlers and middleware.
     /// 
     /// This is useful for testing or resetting the bus state.
-    public func clear() {
-        handlers.removeAll()
+    public func clear() async {
+        await handlerRegistry.removeAllHandlers()
         middlewares.removeAll()
     }
     
@@ -165,9 +161,8 @@ public actor CommandBus {
     
     /// Returns the types of all registered command handlers.
     public var registeredCommandTypes: [String] {
-        handlers.keys.map { key in
-            // Extract the type name from the ObjectIdentifier
-            String(describing: key)
+        get async {
+            await handlerRegistry.registeredCommandTypes
         }
     }
     
@@ -175,35 +170,7 @@ public actor CommandBus {
     ///
     /// - Parameter commandType: The command type to check
     /// - Returns: True if a handler is registered
-    public func hasHandler<T: Command>(for commandType: T.Type) -> Bool {
-        findHandler(for: commandType) != nil
-    }
-}
-
-/// Errors that can occur during command bus operations.
-public enum CommandBusError: Error, Sendable, Equatable, Hashable, LocalizedError {
-    /// No handler is registered for the command type
-    case handlerNotFound(String)
-    
-    /// Command execution failed
-    case executionFailed(String)
-    
-    /// Middleware execution failed
-    case middlewareError(String)
-    
-    /// Maximum middleware depth exceeded
-    case maxMiddlewareDepthExceeded(maxDepth: Int)
-    
-    public var errorDescription: String? {
-        switch self {
-        case .handlerNotFound(let commandType):
-            return "No handler registered for command type: \(commandType)"
-        case .executionFailed(let message):
-            return "Command execution failed: \(message)"
-        case .middlewareError(let message):
-            return "Middleware error: \(message)"
-        case .maxMiddlewareDepthExceeded(let maxDepth):
-            return "Maximum middleware depth exceeded. Maximum allowed: \(maxDepth)"
-        }
+    public func hasHandler<T: Command>(for commandType: T.Type) async -> Bool {
+        await handlerRegistry.hasHandler(for: commandType)
     }
 }

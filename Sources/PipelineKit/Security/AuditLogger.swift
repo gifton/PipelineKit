@@ -323,11 +323,11 @@ public struct AuditQueryCriteria: Sendable {
 /// 
 /// pipeline.use(middleware)
 /// ```
-public struct AuditLoggingMiddleware: Middleware, OrderedMiddleware {
+public struct AuditLoggingMiddleware: Middleware, PrioritizedMiddleware {
     private let auditLogger: AuditLogger
     private let metadataExtractor: @Sendable (any Command, CommandMetadata) -> [String: String]
     
-    public static var recommendedOrder: MiddlewareOrder { .auditLogging }
+    public static var recommendedOrder: ExecutionPriority { .auditLogging }
     
     /// Creates audit logging middleware.
     ///

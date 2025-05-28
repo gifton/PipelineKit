@@ -6,10 +6,10 @@ func demonstrateSecurePipeline() async throws {
     struct CreatePaymentCommand: Command, ValidatableCommand, SanitizableCommand {
         typealias Result = PaymentResult
         
-        var cardNumber: String
-        var amount: Double
-        var currency: String
-        var description: String
+        let cardNumber: String
+        let amount: Double
+        let currency: String
+        let description: String
         
         func validate() throws {
             guard amount > 0 else {
@@ -23,13 +23,13 @@ func demonstrateSecurePipeline() async throws {
             }
         }
         
-        mutating func sanitize() {
-            // Remove spaces and non-digits from card number
-            cardNumber = cardNumber.filter { $0.isNumber }
-            // Sanitize description to prevent XSS
-            description = CommandSanitizer.sanitizeHTML(description)
-            // Normalize currency
-            currency = currency.uppercased()
+        func sanitized() -> Self {
+            CreatePaymentCommand(
+                cardNumber: cardNumber.filter { $0.isNumber },
+                amount: amount,
+                currency: currency.uppercased(),
+                description: CommandSanitizer.sanitizeHTML(description)
+            )
         }
     }
     
@@ -90,7 +90,7 @@ func demonstrateSecurePipeline() async throws {
     // Custom fraud detection (between authorization and validation)
     builder.with(
         FraudDetectionMiddleware(),
-        order: .custom // or use .between(.authorization, and: .validation)
+        order: ExecutionPriority.custom // or use ExecutionPriority.between(.authorization, and: .validation)
     )
     
     let pipeline = try await builder.build()
@@ -116,7 +116,7 @@ func demonstrateExecutionOrder() {
     print("Secure Pipeline Execution Order:")
     print("================================")
     
-    let securityMiddleware: [(String, MiddlewareOrder)] = [
+    let securityMiddleware: [(String, ExecutionPriority)] = [
         ("Token Authentication", .authentication),
         ("Session Validation", .session),
         ("Role Authorization", .authorization),
@@ -129,8 +129,8 @@ func demonstrateExecutionOrder() {
     
     let sorted = securityMiddleware.sorted { $0.1.rawValue < $1.1.rawValue }
     
-    for (index, (name, order)) in sorted.enumerated() {
-        print("\(index + 1). \(name) (priority: \(order.rawValue))")
+    for (index, (name, priority)) in sorted.enumerated() {
+        print("\(index + 1). \(name) (priority: \(priority.rawValue))")
     }
 }
 
