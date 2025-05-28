@@ -46,7 +46,7 @@ Command → [Middleware 1] → [Middleware 2] → [Middleware N] → Handler →
 **Implementation Details:**
 ```swift
 // Simplified internal structure
-public final class StandardPipeline: Pipeline {
+public final class DefaultPipeline: Pipeline {
     private var middleware: [any Middleware] = []
     
     public func execute<T: Command>(_ command: T, metadata: CommandMetadata) async throws -> T.Result {
@@ -85,7 +85,7 @@ struct PublishArticleCommand: Command {
     typealias Result = Article
 }
 
-let contentPipeline = StandardPipeline()
+let contentPipeline = DefaultPipeline()
 contentPipeline.addMiddleware(ValidationMiddleware())     // Validate title, content
 contentPipeline.addMiddleware(AuthorizationMiddleware())  // Check publish permissions
 contentPipeline.addMiddleware(SanitizationMiddleware())   // Clean HTML content
@@ -825,7 +825,7 @@ struct PaymentProcessingMiddleware: ContextAwareMiddleware {
 
 ```swift
 // Fast, minimal security for development
-let devPipeline = StandardPipeline()
+let devPipeline = DefaultPipeline()
 devPipeline.addMiddleware(ValidationMiddleware(strictMode: false))
 devPipeline.addMiddleware(MockAuthenticationMiddleware())  // Always succeeds
 devPipeline.addMiddleware(LoggingMiddleware(level: .debug))
@@ -924,13 +924,13 @@ priorityPipeline.addQueue(priority: .low, weight: 10)
 
 ```swift
 // Step 1: Add security middleware incrementally
-let basicPipeline = StandardPipeline()
+let basicPipeline = DefaultPipeline()
 basicPipeline.addMiddleware(ValidationMiddleware())        // Existing
 basicPipeline.addMiddleware(AuthenticationMiddleware())    // Add first
 basicPipeline.addMiddleware(YourBusinessMiddleware())      // Existing
 
 // Step 2: Add authorization
-let enhancedPipeline = StandardPipeline()
+let enhancedPipeline = DefaultPipeline()
 enhancedPipeline.addMiddleware(AuthenticationMiddleware())
 enhancedPipeline.addMiddleware(AuthorizationMiddleware())     // Add second
 enhancedPipeline.addMiddleware(ValidationMiddleware())

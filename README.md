@@ -294,7 +294,7 @@ The fundamental pipeline executes middleware sequentially in a single thread.
 - When order is critical
 
 ```swift
-let pipeline = StandardPipeline(handler: myHandler)
+let pipeline = DefaultPipeline(handler: myHandler)
 await pipeline.addMiddleware(ValidationMiddleware())
 await pipeline.addMiddleware(AuthorizationMiddleware())
 await pipeline.addMiddleware(AuditLoggingMiddleware())
@@ -666,7 +666,7 @@ class MetricsObserver: PipelineObserver {
 }
 
 // Attach observers to any pipeline
-let pipeline = StandardPipeline(handler: handler)
+let pipeline = DefaultPipeline(handler: handler)
     .withObservability(observers: [MetricsObserver(), OSLogObserver.production()])
 ```
 

@@ -24,6 +24,12 @@ let package = Package(
         // Security: No known vulnerabilities
         // License: Apache-2.0
         .package(url: "https://github.com/apple/swift-syntax.git", exact: "510.0.3"),
+        
+        // swift-atomics 1.2.0 - Last audited: 2025-05-28
+        // Security: No known vulnerabilities
+        // License: Apache-2.0
+        // Provides low-level atomic operations for lock-free programming
+        .package(url: "https://github.com/apple/swift-atomics.git", from: "1.2.0"),
     ],
     targets: [
         .macro(
@@ -36,7 +42,10 @@ let package = Package(
         ),
         .target(
             name: "PipelineKit",
-            dependencies: ["PipelineMacros"],
+            dependencies: [
+                "PipelineMacros",
+                .product(name: "Atomics", package: "swift-atomics")
+            ],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency")
             ]

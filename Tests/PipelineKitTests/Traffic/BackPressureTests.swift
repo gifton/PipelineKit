@@ -118,7 +118,7 @@ final class BackPressureTests: XCTestCase {
         
         let pipeline = ConcurrentPipeline(options: options)
         let handler = TestSlowHandler()
-        let standardPipeline = StandardPipeline(handler: handler)
+        let standardPipeline = DefaultPipeline(handler: handler)
         
         await pipeline.register(TestSlowCommand.self, pipeline: standardPipeline)
         
@@ -162,7 +162,7 @@ final class BackPressureTests: XCTestCase {
         
         let pipeline = ConcurrentPipeline(options: options)
         let handler = TestSlowHandler()
-        let standardPipeline = StandardPipeline(handler: handler)
+        let standardPipeline = DefaultPipeline(handler: handler)
         
         await pipeline.register(TestSlowCommand.self, pipeline: standardPipeline)
         
@@ -192,7 +192,7 @@ final class BackPressureTests: XCTestCase {
     
     func testBackPressureMiddleware() async throws {
         let handler = TestHandler()
-        let pipeline = StandardPipeline(handler: handler)
+        let pipeline = DefaultPipeline(handler: handler)
         
         let backPressureMiddleware = BackPressureMiddleware(
             maxConcurrency: 1,
@@ -215,7 +215,7 @@ final class BackPressureTests: XCTestCase {
         // Start a slow command to block the middleware
         let slowTask = Task {
             let slowHandler = TestSlowHandler()
-            let slowPipeline = StandardPipeline(handler: slowHandler)
+            let slowPipeline = DefaultPipeline(handler: slowHandler)
             
             try await slowPipeline.addMiddleware(
                 backPressureMiddleware,

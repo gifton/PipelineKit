@@ -36,6 +36,10 @@ public struct PipelineOptions: Sendable {
     /// If nil, no queue limit is applied.
     public let maxOutstanding: Int?
     
+    /// Maximum memory (in bytes) that can be used by queued operations.
+    /// If nil, no memory limit is applied.
+    public let maxQueueMemory: Int?
+    
     /// Strategy for handling back-pressure when limits are reached.
     public let backPressureStrategy: BackPressureStrategy
     
@@ -44,15 +48,18 @@ public struct PipelineOptions: Sendable {
     /// - Parameters:
     ///   - maxConcurrency: Maximum concurrent executions. Defaults to 10.
     ///   - maxOutstanding: Maximum total outstanding commands (executing + queued). Defaults to 50.
+    ///   - maxQueueMemory: Maximum memory for queued operations. Defaults to nil (unlimited).
     ///   - backPressureStrategy: How to handle capacity overflow. Defaults to .suspend.
     @inlinable
     public init(
         maxConcurrency: Int? = 10,
         maxOutstanding: Int? = 50,
+        maxQueueMemory: Int? = nil,
         backPressureStrategy: BackPressureStrategy = .suspend
     ) {
         self.maxConcurrency = maxConcurrency
         self.maxOutstanding = maxOutstanding
+        self.maxQueueMemory = maxQueueMemory
         self.backPressureStrategy = backPressureStrategy
     }
     
@@ -72,6 +79,7 @@ public struct PipelineOptions: Sendable {
         PipelineOptions(
             maxConcurrency: 50,
             maxOutstanding: 200,
+            maxQueueMemory: 104_857_600, // 100MB
             backPressureStrategy: .dropOldest
         )
     }
@@ -82,6 +90,7 @@ public struct PipelineOptions: Sendable {
         PipelineOptions(
             maxConcurrency: 5,
             maxOutstanding: 10,
+            maxQueueMemory: 10_485_760, // 10MB
             backPressureStrategy: .error(timeout: 0.1)
         )
     }

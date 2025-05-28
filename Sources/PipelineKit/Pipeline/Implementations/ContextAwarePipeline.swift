@@ -94,6 +94,7 @@ public actor ContextAwarePipeline: Pipeline {
             self.semaphore = BackPressureAsyncSemaphore(
                 maxConcurrency: maxConcurrency,
                 maxOutstanding: options.maxOutstanding,
+                maxQueueMemory: options.maxQueueMemory,
                 strategy: options.backPressureStrategy
             )
         } else {
@@ -132,10 +133,15 @@ public actor ContextAwarePipeline: Pipeline {
         metadata: CommandMetadata
     ) async throws -> T.Result {
         // Apply back-pressure control if configured
+        let token: SemaphoreToken?
         if let semaphore = semaphore {
-            try await semaphore.acquire()
-            defer { Task { await semaphore.release() } }
+            token = try await semaphore.acquire()
+        } else {
+            token = nil
         }
+        
+        // Token automatically releases when it goes out of scope
+        defer { _ = token } // Keep token alive until end of scope
         
         let context = CommandContext(metadata: metadata)
         
