@@ -218,7 +218,7 @@ extension ExecutionPriority {
     }
     
     /// Returns all execution priorities in a specific category.
-    nonisolated(unsafe) public static func category(_ category: MiddlewareCategory) -> [ExecutionPriority] {
+    public static func category(_ category: MiddlewareCategory) -> [ExecutionPriority] {
         return allCases.filter { order in
             switch category {
             case .preProcessing:
@@ -253,7 +253,7 @@ extension ExecutionPriority {
     /// // Returns 110 (between 100 and 120)
     /// ```
     @inlinable
-    nonisolated(unsafe) public static func between(_ first: ExecutionPriority, and second: ExecutionPriority) -> Int {
+    public static func between(_ first: ExecutionPriority, and second: ExecutionPriority) -> Int {
         let lower = min(first.rawValue, second.rawValue)
         let upper = max(first.rawValue, second.rawValue)
         return lower + (upper - lower) / 2
@@ -267,7 +267,7 @@ extension ExecutionPriority {
     /// // Returns 99
     /// ```
     @inlinable
-    nonisolated(unsafe) public static func before(_ order: ExecutionPriority) -> Int {
+    public static func before(_ order: ExecutionPriority) -> Int {
         order.rawValue - 1
     }
     
@@ -279,7 +279,7 @@ extension ExecutionPriority {
     /// // Returns 101
     /// ```
     @inlinable
-    nonisolated(unsafe) public static func after(_ order: ExecutionPriority) -> Int {
+    public static func after(_ order: ExecutionPriority) -> Int {
         order.rawValue + 1
     }
 }

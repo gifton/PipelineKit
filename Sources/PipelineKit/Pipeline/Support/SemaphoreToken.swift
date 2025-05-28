@@ -1,4 +1,5 @@
 import Foundation
+import Atomics
 
 /// A token representing an acquired semaphore resource that automatically releases on cleanup.
 ///
@@ -24,11 +25,11 @@ public final class SemaphoreToken: Sendable {
     private let semaphore: BackPressureAsyncSemaphore
     internal let id: UUID
     private let acquiredAt: Date
-    private let _isReleased: ManagedAtomic<Bool>
+    private let _isReleased = ManagedAtomic<Bool>(false)
     
     /// Whether this token has been released.
     public var isReleased: Bool {
-        _isReleased.load(ordering: .acquiring)
+        _isReleased.load(ordering: .relaxed)
     }
     
     /// How long this token has held the resource.
@@ -45,7 +46,6 @@ public final class SemaphoreToken: Sendable {
         self.semaphore = semaphore
         self.id = id
         self.acquiredAt = Date()
-        self._isReleased = ManagedAtomic(false)
     }
     
     /// Explicitly releases the semaphore resource.
@@ -53,7 +53,7 @@ public final class SemaphoreToken: Sendable {
     /// This method is idempotent - calling it multiple times is safe.
     /// The resource is also automatically released when the token is deinitialized.
     public func release() async {
-        let wasReleased = _isReleased.exchange(true, ordering: .acqRel)
+        let wasReleased = _isReleased.exchange(true, ordering: .relaxed)
         guard !wasReleased else { return }
         
         await semaphore.releaseToken(self)
@@ -61,7 +61,7 @@ public final class SemaphoreToken: Sendable {
     
     /// Ensures the resource is released when the token is deallocated.
     deinit {
-        let wasReleased = _isReleased.load(ordering: .acquiring)
+        let wasReleased = _isReleased.load(ordering: .relaxed)
         if !wasReleased {
             // We can't await in deinit, so we need to handle this carefully
             // This is the safety net for unexpected cleanup scenarios
@@ -94,38 +94,3 @@ extension SemaphoreToken: CustomStringConvertible {
     }
 }
 
-// MARK: - Atomic Boolean (Until we can import Atomics)
-
-/// A managed atomic boolean for thread-safe state tracking.
-///
-/// Note: In production, we should use Swift Atomics package.
-/// This is a simplified implementation for the token's needs.
-private final class ManagedAtomic<Value>: @unchecked Sendable {
-    private let lock = NSLock()
-    private var value: Value
-    
-    init(_ value: Value) {
-        self.value = value
-    }
-    
-    func load(ordering: AtomicLoadOrdering) -> Value {
-        lock.withLock { value }
-    }
-    
-    func exchange(_ newValue: Value, ordering: AtomicUpdateOrdering) -> Value {
-        lock.withLock {
-            let oldValue = value
-            value = newValue
-            return oldValue
-        }
-    }
-}
-
-// Placeholder ordering types (would come from Atomics package)
-private enum AtomicLoadOrdering {
-    case acquiring
-}
-
-private enum AtomicUpdateOrdering {
-    case acqRel
-}
