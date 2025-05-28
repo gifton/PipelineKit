@@ -139,6 +139,12 @@ public protocol KeyStore: Sendable {
 }
 
 /// Simple in-memory key store implementation.
+///
+/// **Thread Safety**: This class is marked `@unchecked Sendable` because:
+/// - All mutable state access is protected by `NSLock`
+/// - The lock ensures exclusive access to `keys`, `keyDates`, and `_currentKeyIdentifier`
+/// - All public methods use `lock.withLock` to guarantee thread-safe operations
+/// - No data races are possible as all shared mutable state is properly synchronized
 internal final class InMemoryKeyStore: KeyStore, @unchecked Sendable {
     private let lock = NSLock()
     private var keys: [String: SymmetricKey] = [:]

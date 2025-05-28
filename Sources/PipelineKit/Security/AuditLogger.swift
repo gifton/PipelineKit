@@ -52,6 +52,20 @@ public actor AuditLogger {
         encoder.dateEncodingStrategy = .iso8601
     }
     
+    // MARK: - Configuration Access
+    
+    /// The configured log destination.
+    nonisolated public var configuredDestination: LogDestination { destination }
+    
+    /// The configured privacy level for sensitive data handling.
+    nonisolated public var configuredPrivacyLevel: PrivacyLevel { privacyLevel }
+    
+    /// The configured buffer size before automatic flush.
+    nonisolated public var configuredBufferSize: Int { bufferSize }
+    
+    /// The configured time interval for automatic flush.
+    nonisolated public var configuredFlushInterval: TimeInterval { flushInterval }
+    
     /// Logs a command execution audit entry.
     ///
     /// - Parameter entry: The audit entry to log
