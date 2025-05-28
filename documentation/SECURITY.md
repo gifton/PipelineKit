@@ -40,7 +40,7 @@ let secureBuilder = try SecurePipelineBuilder()
     .build()
 
 // ❌ BAD: Single security layer
-let pipeline = StandardPipeline()
+let pipeline = DefaultPipeline()
 pipeline.addMiddleware(ValidationMiddleware())
 ```
 
@@ -720,7 +720,7 @@ let metricsMiddleware = MetricsMiddleware()
 // - Error types
 
 // Add to your pipeline for automatic tracking
-let monitoredPipeline = StandardPipeline()
+let monitoredPipeline = DefaultPipeline()
 monitoredPipeline.addMiddleware(metricsMiddleware)
 monitoredPipeline.addMiddleware(validationMiddleware)
 monitoredPipeline.addMiddleware(authMiddleware)

@@ -47,6 +47,7 @@ public struct BackPressureMiddleware: Middleware, PrioritizedMiddleware {
         self.semaphore = BackPressureAsyncSemaphore(
             maxConcurrency: options.maxConcurrency ?? Int.max,
             maxOutstanding: options.maxOutstanding,
+            maxQueueMemory: options.maxQueueMemory,
             strategy: options.backPressureStrategy
         )
     }
@@ -76,8 +77,8 @@ public struct BackPressureMiddleware: Middleware, PrioritizedMiddleware {
         next: @Sendable (T, CommandMetadata) async throws -> T.Result
     ) async throws -> T.Result {
         // Acquire semaphore with back-pressure control
-        try await semaphore.acquire()
-        defer { Task { await semaphore.release() } }
+        let token = try await semaphore.acquire()
+        defer { _ = token } // Keep token alive until end of scope
         
         // Execute the command through the rest of the pipeline
         return try await next(command, metadata)
@@ -108,10 +109,7 @@ extension BackPressureMiddleware {
     /// - Returns: True if new commands would be subject to back-pressure policies.
     public func isApplyingBackPressure() async -> Bool {
         let stats = await semaphore.getStats()
-        if let maxOutstanding = stats.maxOutstanding {
-            return stats.totalOutstanding >= maxOutstanding
-        }
-        return stats.availableResources == 0
+        return stats.totalOutstanding >= stats.maxOutstanding || stats.availableResources == 0
     }
 }
 

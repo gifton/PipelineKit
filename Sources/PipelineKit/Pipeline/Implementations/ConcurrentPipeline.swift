@@ -53,6 +53,7 @@ public actor ConcurrentPipeline {
         self.semaphore = BackPressureAsyncSemaphore(
             maxConcurrency: options.maxConcurrency ?? 10,
             maxOutstanding: options.maxOutstanding,
+            maxQueueMemory: options.maxQueueMemory,
             strategy: options.backPressureStrategy
         )
     }
@@ -105,8 +106,8 @@ public actor ConcurrentPipeline {
             throw PipelineError.executionFailed("No pipeline registered for \(T.self)")
         }
         
-        try await semaphore.acquire()
-        defer { Task { await semaphore.release() } }
+        let token = try await semaphore.acquire()
+        defer { _ = token } // Keep token alive until end of scope
         
         let executionMetadata = metadata ?? DefaultCommandMetadata()
         return try await pipeline.execute(command, metadata: executionMetadata)
@@ -135,12 +136,11 @@ public actor ConcurrentPipeline {
             throw PipelineError.executionFailed("No pipeline registered for \(T.self)")
         }
         
-        let acquired = try await semaphore.acquire(timeout: timeout)
-        guard acquired else {
+        guard let token = try await semaphore.acquire(timeout: timeout) else {
             throw PipelineError.executionFailed("Timeout waiting for available execution slot")
         }
         
-        defer { Task { await semaphore.release() } }
+        defer { _ = token } // Keep token alive until end of scope
         
         let executionMetadata = metadata ?? DefaultCommandMetadata()
         return try await pipeline.execute(command, metadata: executionMetadata)
@@ -206,10 +206,7 @@ public actor ConcurrentPipeline {
     /// - Returns: True if no more commands can be accepted without back-pressure.
     public func isAtCapacity() async -> Bool {
         let stats = await semaphore.getStats()
-        if let maxOutstanding = stats.maxOutstanding {
-            return stats.totalOutstanding >= maxOutstanding
-        }
-        return stats.availableResources == 0
+        return stats.totalOutstanding >= stats.maxOutstanding || stats.availableResources == 0
     }
 }
 

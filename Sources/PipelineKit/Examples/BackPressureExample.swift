@@ -20,7 +20,7 @@ public struct BackPressureExample {
         
         // Register a handler that simulates work
         let handler = SlowCommandHandler()
-        let standardPipeline = StandardPipeline(handler: handler)
+        let standardPipeline = DefaultPipeline(handler: handler)
         await pipeline.register(SlowCommand.self, pipeline: standardPipeline)
         
         print("🔄 Executing commands with suspend strategy...")
@@ -57,7 +57,7 @@ public struct BackPressureExample {
         
         let pipeline = ConcurrentPipeline(options: options)
         let handler = SlowCommandHandler()
-        let standardPipeline = StandardPipeline(handler: handler)
+        let standardPipeline = DefaultPipeline(handler: handler)
         await pipeline.register(SlowCommand.self, pipeline: standardPipeline)
         
         print("\n🗑️ Executing commands with drop-oldest strategy...")
@@ -92,7 +92,7 @@ public struct BackPressureExample {
         
         let pipeline = ConcurrentPipeline(options: options)
         let handler = SlowCommandHandler()
-        let standardPipeline = StandardPipeline(handler: handler)
+        let standardPipeline = DefaultPipeline(handler: handler)
         await pipeline.register(SlowCommand.self, pipeline: standardPipeline)
         
         print("\n⚠️ Executing commands with error strategy...")
@@ -118,7 +118,7 @@ public struct BackPressureExample {
     public static func middlewareExample() async throws {
         // Create a standard pipeline
         let handler = SlowCommandHandler()
-        let pipeline = StandardPipeline(handler: handler)
+        let pipeline = DefaultPipeline(handler: handler)
         
         // Add back-pressure middleware
         let backPressureMiddleware = BackPressureMiddleware(
@@ -127,10 +127,7 @@ public struct BackPressureExample {
             strategy: .suspend
         )
         
-        try await pipeline.addMiddleware(
-            backPressureMiddleware,
-            priority: ExecutionPriority.throttling.rawValue
-        )
+        try await pipeline.addMiddleware(backPressureMiddleware)
         
         print("\n🔧 Using BackPressureMiddleware...")
         print("📊 Middleware controls: Max concurrency: 2, Max outstanding: 4")
@@ -161,7 +158,7 @@ public struct BackPressureExample {
         
         let pipeline = ConcurrentPipeline(options: options)
         let handler = SlowCommandHandler()
-        let standardPipeline = StandardPipeline(handler: handler)
+        let standardPipeline = DefaultPipeline(handler: handler)
         await pipeline.register(SlowCommand.self, pipeline: standardPipeline)
         
         print("\n📈 Capacity monitoring example...")

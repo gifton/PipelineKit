@@ -107,6 +107,7 @@ public actor DefaultPipeline<C: Command, H: CommandHandler>: PipelineKit.Pipelin
             self.semaphore = BackPressureAsyncSemaphore(
                 maxConcurrency: maxConcurrency,
                 maxOutstanding: options.maxOutstanding,
+                maxQueueMemory: options.maxQueueMemory,
                 strategy: options.backPressureStrategy
             )
         } else {
@@ -180,10 +181,15 @@ public actor DefaultPipeline<C: Command, H: CommandHandler>: PipelineKit.Pipelin
     /// Type-safe execution for the specific command type this pipeline handles.
     private func executeTyped(_ command: C, metadata: CommandMetadata) async throws -> C.Result {
         // Apply back-pressure control if configured
+        let token: SemaphoreToken?
         if let semaphore = semaphore {
-            try await semaphore.acquire()
-            defer { Task { await semaphore.release() } }
+            token = try await semaphore.acquire()
+        } else {
+            token = nil
         }
+        
+        // Token automatically releases when it goes out of scope
+        defer { _ = token } // Keep token alive until end of scope
         
         if useContext || middlewares.contains(where: { $0 is any ContextAwareMiddleware }) {
             // Execute with context

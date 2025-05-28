@@ -406,7 +406,7 @@ struct CreateUserHandler: CommandHandler {
 }
 
 // 3. Configure Pipeline
-let pipeline = StandardPipeline()
+let pipeline = DefaultPipeline()
 pipeline.addMiddleware(ValidationMiddleware())
 pipeline.addMiddleware(BasicAuthorizationMiddleware(requiredRoles: ["admin"]))
 pipeline.addMiddleware(AuditLoggingMiddleware(logger: auditLogger))
