@@ -391,13 +391,12 @@ final class AuditLoggerTests: XCTestCase {
         let logger = AuditLogger(
             destination: .file(url: logFile),
             privacyLevel: .full,
-            bufferSize: 100 // Large buffer to test rotation
+            bufferSize: 1 // Small buffer to force immediate writes
         )
         
-        // Log many entries to trigger rotation (>10000)
-        // For testing, we'll simulate by manually writing a large file
+        // Create entries to write directly
         var entries: [AuditEntry] = []
-        for i in 0..<10001 {
+        for i in 0..<10000 {
             entries.append(AuditEntry(
                 commandType: "Command\(i % 10)",
                 userId: "user\(i % 100)",
@@ -406,8 +405,9 @@ final class AuditLoggerTests: XCTestCase {
             ))
         }
         
-        // Write directly to test rotation
+        // Write entries directly to file to simulate existing log
         let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
         let data = try encoder.encode(entries)
         try data.write(to: logFile)
         
@@ -426,7 +426,10 @@ final class AuditLoggerTests: XCTestCase {
             includingPropertiesForKeys: nil
         ).filter { $0.lastPathComponent.starts(with: "audit-") }
         
-        XCTAssertTrue(files.count >= 1) // At least one archive file
+        XCTAssertTrue(files.count >= 1, "Expected at least one rotated archive file")
+        
+        // Verify main log file still exists and has entries
+        XCTAssertTrue(FileManager.default.fileExists(atPath: logFile.path))
         
         // Clean up
         try? FileManager.default.removeItem(at: logFile)

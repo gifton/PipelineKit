@@ -37,13 +37,22 @@ final class CommandTests: XCTestCase {
     }
     
     func testCommandResult() {
-        let successResult: CommandResult<String, any Error> = .success("Success")
-        let failureResult: CommandResult<String, any Error> = .failure(TestError.failed)
+        let successResult: Result<String, any Error> = .success("Success")
+        let failureResult: Result<String, any Error> = .failure(TestError.failed)
         
-        XCTAssertTrue(successResult.isSuccess)
-        XCTAssertFalse(successResult.isFailure)
-        XCTAssertFalse(failureResult.isSuccess)
-        XCTAssertTrue(failureResult.isFailure)
+        switch successResult {
+        case .success:
+            XCTAssertTrue(true, "Success result should be success")
+        case .failure:
+            XCTFail("Success result should not be failure")
+        }
+        
+        switch failureResult {
+        case .success:
+            XCTFail("Failure result should not be success")
+        case .failure:
+            XCTAssertTrue(true, "Failure result should be failure")
+        }
     }
 }
 

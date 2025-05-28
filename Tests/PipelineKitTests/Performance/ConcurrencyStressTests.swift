@@ -170,7 +170,7 @@ final class ConcurrencyStressTests: XCTestCase {
         
         // Register multiple handlers concurrently
         await withTaskGroup(of: Void.self) { group in
-            for index in 0..<registrationCount {
+            for _ in 0..<registrationCount {
                 group.addTask {
                     do {
                         let handler = CountingHandler(counter: counter)

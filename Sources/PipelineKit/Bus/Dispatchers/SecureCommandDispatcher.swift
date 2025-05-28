@@ -138,8 +138,16 @@ public actor SecureCommandDispatcher {
     /// - Returns: A safe error message suitable for external consumption
     private func sanitizeError(_ error: Error) -> String {
         switch error {
-        case let busError as CommandBusError:
-            return busError.localizedDescription
+        case CommandBusError.handlerNotFound:
+            return "Command handler not found"
+        case CommandBusError.executionFailed:
+            return "Command execution failed"
+        case CommandBusError.middlewareError:
+            return "Middleware processing error"
+        case CommandBusError.maxMiddlewareDepthExceeded:
+            return "Maximum processing depth exceeded"
+        case is CommandBusError:
+            return "Command processing error"
         default:
             return "An error occurred during command execution"
         }
