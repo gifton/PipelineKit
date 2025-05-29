@@ -180,8 +180,10 @@ public actor ConcurrentPipeline {
             }
             
             // Sort by index to preserve order
-            results.sort { $0.0 < $1.0 }
-            return results.map { $0.1 }
+            return autoreleasepool {
+                results.sort { $0.0 < $1.0 }
+                return results.map { $0.1 }
+            }
         }
     }
     

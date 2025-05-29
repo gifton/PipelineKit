@@ -87,10 +87,12 @@ public actor AuditLogger {
         do {
             switch destination {
             case .console:
-                for entry in buffer {
-                    if let data = try? encoder.encode(entry),
-                       let string = String(data: data, encoding: .utf8) {
-                        print("AUDIT: \(string)")
+                autoreleasepool {
+                    for entry in buffer {
+                        if let data = try? encoder.encode(entry),
+                           let string = String(data: data, encoding: .utf8) {
+                            print("AUDIT: \(string)")
+                        }
                     }
                 }
                 
@@ -128,7 +130,9 @@ public actor AuditLogger {
                 let decoder = JSONDecoder()
                 decoder.dateDecodingStrategy = .iso8601
                 let entries = try decoder.decode([AuditEntry].self, from: data)
-                return filterEntries(entries, criteria: criteria)
+                return autoreleasepool {
+                    filterEntries(entries, criteria: criteria)
+                }
             } catch {
                 logger.error("Failed to query audit logs: \(error.localizedDescription, privacy: .public)")
                 return []
@@ -186,45 +190,51 @@ public actor AuditLogger {
     }
     
     private func writeToFile(entries: [AuditEntry], url: URL) async throws {
-        // Read existing entries
-        var allEntries: [AuditEntry] = []
-        if FileManager.default.fileExists(atPath: url.path) {
-            let data = try Data(contentsOf: url)
-            let decoder = JSONDecoder()
-            decoder.dateDecodingStrategy = .iso8601
-            allEntries = (try? decoder.decode([AuditEntry].self, from: data)) ?? []
-        }
-        
-        // Append new entries
-        allEntries.append(contentsOf: entries)
-        
-        // Write back
-        let data = try encoder.encode(allEntries)
-        try data.write(to: url, options: .atomic)
-        
-        // Rotate if needed
-        if allEntries.count > 10000 {
-            try await rotateLog(at: url, entries: allEntries)
+        try autoreleasepool {
+            // Read existing entries
+            var allEntries: [AuditEntry] = []
+            if FileManager.default.fileExists(atPath: url.path) {
+                let data = try Data(contentsOf: url)
+                let decoder = JSONDecoder()
+                decoder.dateDecodingStrategy = .iso8601
+                allEntries = (try? decoder.decode([AuditEntry].self, from: data)) ?? []
+            }
+            
+            // Append new entries
+            allEntries.append(contentsOf: entries)
+            
+            // Write back
+            let data = try encoder.encode(allEntries)
+            try data.write(to: url, options: .atomic)
+            
+            // Rotate if needed
+            if allEntries.count > 10000 {
+                Task {
+                    try await rotateLog(at: url, entries: allEntries)
+                }
+            }
         }
     }
     
     private func rotateLog(at url: URL, entries: [AuditEntry]) async throws {
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyy-MM-dd-HHmmss"
-        let timestamp = dateFormatter.string(from: Date())
-        
-        let archiveURL = url.deletingLastPathComponent()
-            .appendingPathComponent("audit-\(timestamp).json")
-        
-        // Move old entries to archive
-        let oldEntries = Array(entries.prefix(entries.count - 5000))
-        let data = try encoder.encode(oldEntries)
-        try data.write(to: archiveURL)
-        
-        // Keep recent entries
-        let recentEntries = Array(entries.suffix(5000))
-        let recentData = try encoder.encode(recentEntries)
-        try recentData.write(to: url, options: .atomic)
+        try autoreleasepool {
+            let dateFormatter = DateFormatter()
+            dateFormatter.dateFormat = "yyyy-MM-dd-HHmmss"
+            let timestamp = dateFormatter.string(from: Date())
+            
+            let archiveURL = url.deletingLastPathComponent()
+                .appendingPathComponent("audit-\(timestamp).json")
+            
+            // Move old entries to archive
+            let oldEntries = Array(entries.prefix(entries.count - 5000))
+            let data = try encoder.encode(oldEntries)
+            try data.write(to: archiveURL)
+            
+            // Keep recent entries
+            let recentEntries = Array(entries.suffix(5000))
+            let recentData = try encoder.encode(recentEntries)
+            try recentData.write(to: url, options: .atomic)
+        }
     }
     
     private func filterEntries(_ entries: [AuditEntry], criteria: AuditQueryCriteria) -> [AuditEntry] {
@@ -414,34 +424,36 @@ public struct AuditStatistics: Sendable {
     
     /// Calculates statistics from audit entries.
     public static func calculate(from entries: [AuditEntry]) -> AuditStatistics {
-        let totalCommands = entries.count
-        let successCount = entries.filter { $0.success }.count
-        let failureCount = totalCommands - successCount
-        
-        let totalDuration = entries.reduce(0.0) { $0 + $1.duration }
-        let averageDuration = totalCommands > 0 ? totalDuration / Double(totalCommands) : 0
-        
-        var commandCounts: [String: Int] = [:]
-        var errorCounts: [String: Int] = [:]
-        var userActivity: [String: Int] = [:]
-        
-        for entry in entries {
-            commandCounts[entry.commandType, default: 0] += 1
-            userActivity[entry.userId, default: 0] += 1
+        return autoreleasepool {
+            let totalCommands = entries.count
+            let successCount = entries.filter { $0.success }.count
+            let failureCount = totalCommands - successCount
             
-            if let errorType = entry.errorType {
-                errorCounts[errorType, default: 0] += 1
+            let totalDuration = entries.reduce(0.0) { $0 + $1.duration }
+            let averageDuration = totalCommands > 0 ? totalDuration / Double(totalCommands) : 0
+            
+            var commandCounts: [String: Int] = [:]
+            var errorCounts: [String: Int] = [:]
+            var userActivity: [String: Int] = [:]
+            
+            for entry in entries {
+                commandCounts[entry.commandType, default: 0] += 1
+                userActivity[entry.userId, default: 0] += 1
+                
+                if let errorType = entry.errorType {
+                    errorCounts[errorType, default: 0] += 1
+                }
             }
+            
+            return AuditStatistics(
+                totalCommands: totalCommands,
+                successCount: successCount,
+                failureCount: failureCount,
+                averageDuration: averageDuration,
+                commandCounts: commandCounts,
+                errorCounts: errorCounts,
+                userActivity: userActivity
+            )
         }
-        
-        return AuditStatistics(
-            totalCommands: totalCommands,
-            successCount: successCount,
-            failureCount: failureCount,
-            averageDuration: averageDuration,
-            commandCounts: commandCounts,
-            errorCounts: errorCounts,
-            userActivity: userActivity
-        )
     }
 }

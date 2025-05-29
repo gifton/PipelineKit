@@ -80,7 +80,9 @@ final class PipelinePerformanceTests: XCTestCase {
         
         await concurrentPipeline.register(BenchmarkCommand.self, pipeline: executor)
         
-        let commands = (0..<1000).map { BenchmarkCommand(value: $0) }
+        let commands = autoreleasepool {
+            (0..<1000).map { BenchmarkCommand(value: $0) }
+        }
         
         let startTime = CFAbsoluteTimeGetCurrent()
         

@@ -79,8 +79,10 @@ final class ConcurrencyStressTests: XCTestCase {
         let commandsPerGroup = commandCount / concurrencyLevel
         
         // Create commands
-        let commands = (0..<commandCount).map { index in
-            TestCommand(id: index, payload: "payload-\(index)")
+        let commands = autoreleasepool {
+            (0..<commandCount).map { index in
+                TestCommand(id: index, payload: "payload-\(index)")
+            }
         }
         
         let startTime = Date()

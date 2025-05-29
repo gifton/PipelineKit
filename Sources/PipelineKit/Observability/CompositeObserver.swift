@@ -37,7 +37,9 @@ public final class CompositeObserver: BaseObserver, @unchecked Sendable {
             do {
                 try await operation(observer)
             } catch {
-                errorHandler(error, String(describing: type(of: observer)))
+                autoreleasepool {
+                    errorHandler(error, String(describing: type(of: observer)))
+                }
             }
         }
     }

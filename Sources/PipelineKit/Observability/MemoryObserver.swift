@@ -78,12 +78,14 @@ public actor MemoryObserver: PipelineObserver {
     // MARK: - Event Recording
     
     private func record(_ event: RecordedEvent.Event) {
-        let recordedEvent = RecordedEvent(timestamp: Date(), event: event)
-        events.append(recordedEvent)
-        
-        // Trim if we exceed max events
-        if events.count > options.maxEvents {
-            events.removeFirst(events.count - options.maxEvents)
+        autoreleasepool {
+            let recordedEvent = RecordedEvent(timestamp: Date(), event: event)
+            events.append(recordedEvent)
+            
+            // Trim if we exceed max events
+            if events.count > options.maxEvents {
+                events.removeFirst(events.count - options.maxEvents)
+            }
         }
     }
     
@@ -253,19 +255,21 @@ public actor MemoryObserver: PipelineObserver {
         var totalDuration: TimeInterval = 0
         var commandCounts: [String: Int] = [:]
         
-        for event in events {
-            switch event.event {
-            case .pipelineStarted(let command, _, _):
-                pipelineCount += 1
-                commandCounts[command, default: 0] += 1
-            case .pipelineCompleted(_, _, let duration, _):
-                successCount += 1
-                totalDuration += duration
-            case .pipelineFailed(_, _, _, let duration, _):
-                failureCount += 1
-                totalDuration += duration
-            default:
-                break
+        autoreleasepool {
+            for event in events {
+                switch event.event {
+                case .pipelineStarted(let command, _, _):
+                    pipelineCount += 1
+                    commandCounts[command, default: 0] += 1
+                case .pipelineCompleted(_, _, let duration, _):
+                    successCount += 1
+                    totalDuration += duration
+                case .pipelineFailed(_, _, _, let duration, _):
+                    failureCount += 1
+                    totalDuration += duration
+                default:
+                    break
+                }
             }
         }
         
