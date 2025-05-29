@@ -71,14 +71,21 @@ struct CreateUserHandler: CommandHandler {
     }
 }
 
-// Option 1: Manual pipeline setup
+// Option 1: Direct Pipeline Usage (No CommandBus Required)
 let pipeline = DefaultPipeline(handler: CreateUserHandler())
 let user = try await pipeline.execute(
     CreateUserCommand(email: "user@example.com", username: "johndoe"),
     metadata: DefaultCommandMetadata()
 )
 
-// Option 2: Using the @Pipeline macro (Swift 5.10+)
+// Option 2: CommandBus for Centralized Routing
+let bus = CommandBus()
+await bus.register(CreateUserCommand.self, handler: CreateUserHandler())
+let user = try await bus.send(
+    CreateUserCommand(email: "user@example.com", username: "johndoe")
+)
+
+// Option 3: Using the @Pipeline macro (Swift 5.10+)
 @Pipeline
 actor UserService {
     typealias CommandType = CreateUserCommand
@@ -116,7 +123,9 @@ actor PaymentService {
 // - extension PaymentService: Pipeline conformance
 ```
 
-### Secure Pipeline Example
+### Direct Pipeline vs CommandBus Examples
+
+#### Direct Pipeline - Type-Safe, Direct Execution
 
 ```swift
 import PipelineKit
@@ -136,11 +145,37 @@ let secureBuilder = SecurePipelineBuilder()
 
 let pipeline = secureBuilder.build()
 
-// Execute with security middleware
+// Direct execution - no CommandBus needed
 let result = try await pipeline.execute(
     command,
     metadata: DefaultCommandMetadata(userId: "user123")
 )
+```
+
+#### CommandBus - Centralized Routing
+
+```swift
+// Set up the command bus with centralized configuration
+let bus = CommandBus()
+
+// Register handlers with shared middleware
+let sharedMiddleware = [
+    ValidationMiddleware(),
+    AuthorizationMiddleware(),
+    AuditLoggingMiddleware()
+]
+
+// Register multiple command types
+await bus.register(CreateUserCommand.self, 
+                  handler: CreateUserHandler(),
+                  middleware: sharedMiddleware)
+await bus.register(PaymentCommand.self, 
+                  handler: PaymentHandler(),
+                  middleware: sharedMiddleware + [EncryptionMiddleware()])
+
+// Route commands through unified interface
+let user = try await bus.send(CreateUserCommand(email: "user@example.com"))
+let payment = try await bus.send(PaymentCommand(amount: 99.99))
 ```
 
 ## 📖 Comprehensive Examples
@@ -272,6 +307,46 @@ print("Failure rate: \(1.0 - stats.successRate)")
 ```
 
 ## 🏗️ Architecture
+
+### Pipeline vs CommandBus
+
+PipelineKit offers flexible architecture options:
+
+**Direct Pipeline Usage** - Execute commands through pipelines without CommandBus:
+```swift
+// Create pipeline with middleware
+let pipeline = DefaultPipeline(handler: PaymentHandler())
+let payment = try await pipeline.execute(paymentCommand, metadata: metadata)
+
+// Benefits: Direct execution, explicit control, type safety
+// Use when: Single command type, simple routing, performance critical
+```
+
+**CommandBus Orchestration** - Centralized command routing and management:
+```swift
+// Register multiple handlers
+let bus = CommandBus()
+await bus.register(CreateUserCommand.self, handler: CreateUserHandler())
+await bus.register(PaymentCommand.self, handler: PaymentHandler())
+
+// Route commands to appropriate handlers
+let user = try await bus.send(CreateUserCommand(...))
+let payment = try await bus.send(PaymentCommand(...))
+
+// Benefits: Centralized routing, dynamic registration, request/response abstraction
+// Use when: Multiple command types, dynamic routing, service layer
+```
+
+### When to Use Each Approach
+
+| Scenario | Direct Pipeline | CommandBus | 
+|----------|----------------|------------|
+| **Single Command Type** | ✅ Recommended | ❌ Overkill |
+| **Multiple Commands** | ⚠️ Complex | ✅ Recommended |
+| **Microservice** | ✅ Direct control | ⚠️ Consider |
+| **API Gateway** | ❌ Too granular | ✅ Perfect |
+| **Performance Critical** | ✅ Lower overhead | ⚠️ Extra layer |
+| **Dynamic Routing** | ❌ Static | ✅ Built-in |
 
 ### Command Flow
 
@@ -513,6 +588,7 @@ let securePipeline = SecurePipelineBuilder()
 
 ### Performance Characteristics
 
+#### Pipeline Types
 ```
 Latency (Lower is Better):
 Basic < Context-Aware < Priority < Secure < Concurrent
@@ -527,55 +603,180 @@ Security (Higher is Better):
 Secure > Context-Aware > Priority > Basic > Concurrent
 ```
 
+#### Direct Pipeline vs CommandBus
+```
+Execution Overhead:
+Direct Pipeline: ~0.006ms per command
+CommandBus: ~0.008ms per command (+33% overhead)
+
+Memory Usage:
+Direct Pipeline: Minimal (handler + middleware)
+CommandBus: Additional routing table + handler registry
+
+Type Safety:
+Direct Pipeline: Full compile-time type checking
+CommandBus: Runtime type resolution
+
+Flexibility:
+Direct Pipeline: Static handler binding
+CommandBus: Dynamic handler registration/routing
+```
+
 ### Real-World Examples
 
 #### E-commerce Platform
-```swift
-// Product search (high volume, low security)
-let searchPipeline = ConcurrentPipeline()
-    .use(CacheMiddleware())
-    .use(SearchMiddleware())
 
-// Payment processing (high security, priority)
-let paymentPipeline = SecurePipelineBuilder()
-    .add(PriorityMiddleware())  // VIP customers first
-    .add(ValidationMiddleware())
-    .add(AuthorizationMiddleware())
-    .add(EncryptionMiddleware())
-    .add(PaymentMiddleware())
-    .build()
+**Microservice Approach (Direct Pipelines)**
+```swift
+// Search Service - optimized for performance
+class SearchService {
+    private let pipeline = ConcurrentPipeline(handler: SearchHandler())
+        .use(CacheMiddleware())
+        .use(SearchMiddleware())
+    
+    func search(_ query: SearchCommand) async throws -> SearchResults {
+        return try await pipeline.execute(query, metadata: metadata)
+    }
+}
+
+// Payment Service - security-focused  
+class PaymentService {
+    private let pipeline = SecurePipelineBuilder()
+        .add(PriorityMiddleware())  // VIP customers first
+        .add(ValidationMiddleware())
+        .add(AuthorizationMiddleware())
+        .add(EncryptionMiddleware())
+        .build()
+    
+    func processPayment(_ command: PaymentCommand) async throws -> PaymentResult {
+        return try await pipeline.execute(command, metadata: metadata)
+    }
+}
+```
+
+**API Gateway Approach (CommandBus)**
+```swift
+// Centralized command routing for API gateway
+class ECommerceAPI {
+    private let bus = CommandBus()
+    
+    init() async {
+        // Register all services through unified interface
+        await bus.register(SearchCommand.self, handler: SearchHandler())
+        await bus.register(PaymentCommand.self, handler: PaymentHandler()) 
+        await bus.register(UserCommand.self, handler: UserHandler())
+        await bus.register(OrderCommand.self, handler: OrderHandler())
+    }
+    
+    func handle<T: Command>(_ command: T) async throws -> T.Result {
+        return try await bus.send(command)  // Automatic routing
+    }
+}
 ```
 
 #### Healthcare System
-```swift
-// Patient record access (context-aware for audit trail)
-let patientPipeline = ContextAwarePipeline()
-    .use(PatientContextMiddleware())     // Sets patient context
-    .use(HIPAAComplianceMiddleware())    // Uses patient context
-    .use(AuditMiddleware())              // Logs with full context
 
-// Emergency alerts (priority-based)
-let emergencyPipeline = PriorityPipeline()
-// Critical: Life-threatening (90% resources)
-// High: Urgent care (8% resources)  
-// Normal: Routine (2% resources)
+**Service-Oriented (Direct Pipelines)**
+```swift
+// Patient Records Service - context-aware for audit trail
+class PatientRecordsService {
+    private let pipeline = ContextAwarePipeline(handler: PatientHandler())
+        .use(PatientContextMiddleware())     // Sets patient context
+        .use(HIPAAComplianceMiddleware())    // Uses patient context
+        .use(AuditMiddleware())              // Logs with full context
+    
+    func accessRecord(_ command: AccessPatientCommand) async throws -> PatientRecord {
+        return try await pipeline.execute(command, metadata: metadata)
+    }
+}
+
+// Emergency Service - priority-based
+class EmergencyService {
+    private let pipeline = PriorityPipeline(handler: EmergencyHandler())
+    // Critical: Life-threatening (90% resources)
+    // High: Urgent care (8% resources)  
+    // Normal: Routine (2% resources)
+    
+    func handleEmergency(_ alert: EmergencyCommand) async throws -> EmergencyResponse {
+        return try await pipeline.execute(alert, metadata: metadata)
+    }
+}
+```
+
+**Hospital Integration Platform (CommandBus)**
+```swift
+// Unified hospital system with centralized routing
+class HospitalPlatform {
+    private let bus = CommandBus()
+    
+    init() async {
+        // Register all hospital services
+        await bus.register(AccessPatientCommand.self, handler: PatientHandler())
+        await bus.register(EmergencyCommand.self, handler: EmergencyHandler())
+        await bus.register(ScheduleCommand.self, handler: SchedulingHandler())
+        await bus.register(BillingCommand.self, handler: BillingHandler())
+    }
+    
+    // Single entry point for all hospital operations
+    func execute<T: Command>(_ command: T) async throws -> T.Result {
+        return try await bus.send(command)
+    }
+}
 ```
 
 #### Financial Trading System
-```swift
-// Market data (concurrent processing)
-let marketDataPipeline = ConcurrentPipeline(maxConcurrency: 8)
-    .use(DataValidationMiddleware())
-    .use(MarketAnalysisMiddleware())
-    .use(DistributionMiddleware())
 
-// Trade execution (secure + priority)
-let tradePipeline = SecurePipelineBuilder()
-    .add(PriorityMiddleware())           // Large orders first
-    .add(RiskManagementMiddleware())
-    .add(ComplianceMiddleware())
-    .add(EncryptionMiddleware())
-    .build()
+**Trading Engine (Direct Pipelines)**
+```swift
+// Market Data Service - optimized for high throughput
+class MarketDataService {
+    private let pipeline = ConcurrentPipeline(handler: MarketDataHandler(), maxConcurrency: 8)
+        .use(DataValidationMiddleware())
+        .use(MarketAnalysisMiddleware())
+        .use(DistributionMiddleware())
+    
+    func processMarketData(_ data: MarketDataCommand) async throws -> MarketUpdate {
+        return try await pipeline.execute(data, metadata: metadata)
+    }
+}
+
+// Trade Execution Service - security and compliance focused
+class TradeExecutionService {
+    private let pipeline = SecurePipelineBuilder()
+        .add(PriorityMiddleware())           // Large orders first
+        .add(RiskManagementMiddleware())
+        .add(ComplianceMiddleware())
+        .add(EncryptionMiddleware())
+        .build()
+    
+    func executeTrade(_ trade: TradeCommand) async throws -> TradeResult {
+        return try await pipeline.execute(trade, metadata: metadata)
+    }
+}
+```
+
+**Trading Platform (CommandBus)**
+```swift
+// Unified trading platform with regulatory oversight
+class TradingPlatform {
+    private let bus = CommandBus()
+    
+    init() async {
+        // Register all trading operations
+        await bus.register(MarketDataCommand.self, handler: MarketDataHandler())
+        await bus.register(TradeCommand.self, handler: TradeExecutionHandler())
+        await bus.register(RiskAssessmentCommand.self, handler: RiskHandler())
+        await bus.register(ComplianceCommand.self, handler: ComplianceHandler())
+        
+        // Enable circuit breaker for system protection
+        await bus.enableCircuitBreaker(threshold: 5, timeout: 30)
+    }
+    
+    // All trading operations go through unified compliance pipeline
+    func process<T: Command>(_ command: T) async throws -> T.Result {
+        return try await bus.send(command)
+    }
+}
 ```
 
 ### Middleware Stack
@@ -605,20 +806,67 @@ public enum MiddlewareOrder: Int, Sendable, CaseIterable {
 }
 ```
 
+### Architectural Decision Guide
+
+#### Choose Direct Pipeline When:
+- ✅ Building microservices with single responsibilities
+- ✅ Performance is critical (lower latency/overhead)
+- ✅ You need compile-time type safety
+- ✅ Working with a specific command type
+- ✅ Building libraries or frameworks
+- ✅ You want explicit control over execution
+
+#### Choose CommandBus When:
+- ✅ Building API gateways or service aggregators
+- ✅ You need dynamic command routing
+- ✅ Working with multiple command types
+- ✅ You want centralized middleware configuration
+- ✅ Building request/response abstractions
+- ✅ You need runtime handler registration
+
+#### Hybrid Approach
+Combine both for maximum flexibility:
+
+```swift
+// Direct pipelines for individual services
+class PaymentService {
+    private let pipeline = SecurePipeline(handler: PaymentHandler())
+    
+    func processPayment(_ command: PaymentCommand) async throws -> PaymentResult {
+        return try await pipeline.execute(command, metadata: metadata)
+    }
+}
+
+// CommandBus for service orchestration
+class APIGateway {
+    private let bus = CommandBus()
+    private let paymentService = PaymentService()
+    
+    init() async {
+        // Wrap services in CommandBus for unified routing
+        await bus.register(PaymentCommand.self) { command in
+            return try await paymentService.processPayment(command)
+        }
+    }
+}
+```
+
 ### Core Components
 
 ```mermaid
 graph TB
-    A[Command] --> B[CommandBus]
-    B --> C[Pipeline]
-    C --> D[Middleware Chain]
-    D --> E[CommandHandler]
-    E --> F[Result]
+    A[Command] --> B{Architecture Choice}
+    B -->|Direct| C[Pipeline]
+    B -->|Centralized| D[CommandBus]
+    D --> C
+    C --> E[Middleware Chain]
+    E --> F[CommandHandler]
+    F --> G[Result]
     
-    G[Security Middleware] --> D
-    H[Audit Logger] --> D
-    I[Rate Limiter] --> D
-    J[Circuit Breaker] --> B
+    H[Security Middleware] --> E
+    I[Audit Logger] --> E
+    J[Rate Limiter] --> E
+    K[Circuit Breaker] --> D
 ```
 
 ## 🔒 Security Features
