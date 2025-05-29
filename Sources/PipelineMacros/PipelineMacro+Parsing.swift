@@ -3,6 +3,7 @@ import SwiftSyntaxMacros
 import SwiftDiagnostics
 
 // MARK: - Configuration Parsing
+// TODO: Add support for priority configuration parsing once PriorityPipeline supports it
 
 extension PipelineMacro {
     
@@ -19,6 +20,11 @@ extension PipelineMacro {
             for argument in arguments {
                 try parseArgument(argument, into: &config, context: context)
             }
+        }
+        
+        // Auto-infer pipeline type for backward compatibility
+        if config.pipelineType == .standard && config.useContext {
+            config.pipelineType = .contextAware
         }
         
         return config
@@ -42,6 +48,8 @@ extension PipelineMacro {
         }
         
         switch label {
+        case "type":
+            config.pipelineType = try parsePipelineType(from: argument.expression, context: context)
         case "concurrency":
             config.concurrency = try parseConcurrencyStrategy(from: argument.expression, context: context)
         case "middleware":
@@ -50,6 +58,8 @@ extension PipelineMacro {
             config.maxDepth = try parseMaxDepth(from: argument.expression, context: context)
         case "context":
             config.useContext = try parseContextEnabled(from: argument.expression, context: context)
+        case "backPressure":
+            config.backPressureOptions = try parseBackPressureOptions(from: argument.expression, context: context)
         default:
             context.diagnose(
                 Diagnostic(
@@ -237,6 +247,40 @@ extension PipelineMacro {
         return parsedValue
     }
     
+    /// Parses pipeline type from expression
+    private static func parsePipelineType(
+        from expr: ExprSyntax,
+        context: some MacroExpansionContext
+    ) throws -> Configuration.PipelineType {
+        
+        if let memberAccess = expr.as(MemberAccessExprSyntax.self) {
+            switch memberAccess.declName.baseName.text {
+            case "standard":
+                return .standard
+            case "contextAware":
+                return .contextAware
+            case "priority":
+                return .priority
+            default:
+                context.diagnose(
+                    Diagnostic(
+                        node: expr,
+                        message: MacroError.invalidPipelineType
+                    )
+                )
+                return .standard
+            }
+        }
+        
+        context.diagnose(
+            Diagnostic(
+                node: expr,
+                message: MacroError.invalidPipelineType
+            )
+        )
+        return .standard
+    }
+    
     /// Parses context enabled from expression
     private static func parseContextEnabled(
         from expr: ExprSyntax,
@@ -267,5 +311,59 @@ extension PipelineMacro {
             )
         )
         return false
+    }
+    
+    /// Parses back-pressure options from expression
+    private static func parseBackPressureOptions(
+        from expr: ExprSyntax,
+        context: some MacroExpansionContext
+    ) throws -> Configuration.BackPressureOptions? {
+        
+        // Handle .options(...) syntax
+        if let functionCall = expr.as(FunctionCallExprSyntax.self),
+           let memberAccess = functionCall.calledExpression.as(MemberAccessExprSyntax.self),
+           memberAccess.declName.baseName.text == "options" {
+            
+            var maxOutstanding: Int?
+            var maxQueueMemory: Int?
+            var strategy = "suspend" // default
+            
+            for argument in functionCall.arguments {
+                guard let label = argument.label?.text else { continue }
+                
+                switch label {
+                case "maxOutstanding":
+                    if let intLiteral = argument.expression.as(IntegerLiteralExprSyntax.self),
+                       let value = Int(intLiteral.literal.text) {
+                        maxOutstanding = value
+                    }
+                case "maxQueueMemory":
+                    if let intLiteral = argument.expression.as(IntegerLiteralExprSyntax.self),
+                       let value = Int(intLiteral.literal.text) {
+                        maxQueueMemory = value
+                    }
+                case "strategy":
+                    if let memberAccess = argument.expression.as(MemberAccessExprSyntax.self) {
+                        strategy = memberAccess.declName.baseName.text
+                    }
+                default:
+                    break
+                }
+            }
+            
+            return Configuration.BackPressureOptions(
+                maxOutstanding: maxOutstanding,
+                maxQueueMemory: maxQueueMemory,
+                strategy: strategy
+            )
+        }
+        
+        context.diagnose(
+            Diagnostic(
+                node: expr,
+                message: MacroError.invalidBackPressureOptions
+            )
+        )
+        return nil
     }
 }
