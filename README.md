@@ -101,27 +101,61 @@ let user = try await service.execute(
 
 ### @Pipeline Macro
 
-The `@Pipeline` macro simplifies pipeline creation by automatically generating the required boilerplate:
+The `@Pipeline` macro simplifies pipeline creation by automatically generating the required boilerplate. It supports multiple pipeline types and configurations:
+
+#### Basic Usage
 
 ```swift
-@Pipeline(
-    concurrency: .limited(10),
-    middleware: [ValidationMiddleware, LoggingMiddleware],
-    maxDepth: 50,
-    context: .enabled
-)
+// Standard pipeline (default)
+@Pipeline
+actor UserService {
+    typealias CommandType = CreateUserCommand
+    let handler = CreateUserHandler()
+}
+
+// Context-aware pipeline with shared state
+@Pipeline(context: .enabled)
 actor PaymentService {
     typealias CommandType = PaymentCommand
     let handler = PaymentHandler()
 }
 
-// The macro generates:
-// - var _executor: pipeline property
-// - func execute(_:metadata:) method
-// - func batchExecute(_:metadata:) method  
-// - setupMiddleware() for middleware configuration
-// - extension PaymentService: Pipeline conformance
+// Pipeline with concurrency limits
+@Pipeline(concurrency: .limited(10))
+actor NotificationService {
+    typealias CommandType = SendNotificationCommand
+    let handler = NotificationHandler()
+}
 ```
+
+#### Advanced Configuration
+
+```swift
+@Pipeline(
+    context: .enabled,
+    concurrency: .limited(10),
+    middleware: [ValidationMiddleware, LoggingMiddleware],
+    maxDepth: 50
+)
+actor SecurePaymentService {
+    typealias CommandType = PaymentCommand
+    let handler = PaymentHandler()
+}
+```
+
+#### Generated Implementation
+
+The macro automatically generates:
+- **Lazy executor property**: Appropriate pipeline type based on configuration
+- **Execute method**: Generic `execute<T: Command>(_:metadata:)` implementation
+- **Pipeline conformance**: Extension with Pipeline protocol conformance
+- **Middleware setup**: Automatic middleware registration when specified
+
+#### Supported Pipeline Types
+
+- **Standard Pipeline**: High-performance execution with optional context support
+- **Context-Aware Pipeline**: Automatic context passing between middleware layers  
+- **Concurrency-Limited Pipeline**: Built-in back-pressure management
 
 ### Direct Pipeline vs CommandBus Examples
 
