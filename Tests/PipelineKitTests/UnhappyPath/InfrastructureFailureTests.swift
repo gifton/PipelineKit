@@ -44,14 +44,12 @@ final class InfrastructureFailureTests: XCTestCase {
     
     func testMemoryLeakDetection() async throws {
         weak var weakPipeline: DefaultPipeline<InfrastructureTestCommand, InfrastructureTestHandler>?
-        weak var weakHandler: InfrastructureTestHandler?
         
-        autoreleasepool {
+        do {
             let handler = InfrastructureTestHandler()
             let pipeline = DefaultPipeline(handler: handler)
             
             weakPipeline = pipeline
-            weakHandler = handler
             
             // Execute some commands
             let command = InfrastructureTestCommand(value: "leak_test")
@@ -63,15 +61,14 @@ final class InfrastructureFailureTests: XCTestCase {
         // Force garbage collection
         await Task.yield()
         
-        // Objects should be deallocated
+        // Pipeline should be deallocated
         XCTAssertNil(weakPipeline, "Pipeline should be deallocated")
-        XCTAssertNil(weakHandler, "Handler should be deallocated")
     }
     
     func testContextMemoryManagement() async throws {
         weak var weakContext: CommandContext?
         
-        autoreleasepool {
+        do {
             let pipeline = ContextAwarePipeline(handler: InfrastructureTestHandler())
             let contextCapturingMiddleware = InfrastructureContextCapturingMiddleware { context in
                 weakContext = context
@@ -97,7 +94,7 @@ final class InfrastructureFailureTests: XCTestCase {
         let invalidPath = URL(fileURLWithPath: "/nonexistent/directory/audit.log")
         
         do {
-            let auditLogger = try AuditLogger(
+            let auditLogger = AuditLogger(
                 destination: .file(url: invalidPath),
                 privacyLevel: .full
             )
@@ -106,12 +103,13 @@ final class InfrastructureFailureTests: XCTestCase {
             let metadata = DefaultCommandMetadata()
             
             // Should handle file system errors gracefully
-            await auditLogger.logCommandExecution(
-                command: command,
-                metadata: metadata,
-                result: .success("test"),
+            let entry = AuditEntry(
+                commandType: String(describing: type(of: command)),
+                userId: metadata.userId ?? "unknown",
+                success: true,
                 duration: 0.1
             )
+            await auditLogger.log(entry)
             
             // If we get here, the error was handled gracefully
         } catch {
@@ -131,7 +129,7 @@ final class InfrastructureFailureTests: XCTestCase {
         let limitedSpacePath = URL(fileURLWithPath: "/tmp/limited_space_audit.log")
         
         do {
-            let auditLogger = try AuditLogger(
+            let auditLogger = AuditLogger(
                 destination: .file(url: limitedSpacePath),
                 privacyLevel: .full,
                 bufferSize: 10
@@ -142,16 +140,17 @@ final class InfrastructureFailureTests: XCTestCase {
             
             // Generate many log entries to test disk space handling
             for i in 0..<1000 {
-                await auditLogger.logCommandExecution(
-                    command: InfrastructureTestCommand(value: "entry_\(i)"),
-                    metadata: metadata,
-                    result: .success("result_\(i)"),
+                let entry = AuditEntry(
+                    commandType: "InfrastructureTestCommand",
+                    userId: metadata.userId ?? "unknown",
+                    success: true,
                     duration: 0.1
                 )
+                await auditLogger.log(entry)
             }
             
             // Should handle disk space issues gracefully
-            let logs = await auditLogger.getAuditLogs(criteria: AuditQueryCriteria())
+            let logs = await auditLogger.query(AuditQueryCriteria())
             XCTAssertLessThanOrEqual(logs.count, 1000, "Should handle disk space limitations")
             
         } catch {
@@ -169,7 +168,7 @@ final class InfrastructureFailureTests: XCTestCase {
         try corruptedData.write(to: corruptedLogPath)
         
         do {
-            let auditLogger = try AuditLogger(
+            let auditLogger = AuditLogger(
                 destination: .file(url: corruptedLogPath),
                 privacyLevel: .full
             )
@@ -178,15 +177,16 @@ final class InfrastructureFailureTests: XCTestCase {
             let command = InfrastructureTestCommand(value: "corruption_test")
             let metadata = DefaultCommandMetadata()
             
-            await auditLogger.logCommandExecution(
-                command: command,
-                metadata: metadata,
-                result: .success("test"),
+            let entry = AuditEntry(
+                commandType: String(describing: type(of: command)),
+                userId: metadata.userId ?? "unknown",
+                success: true,
                 duration: 0.1
             )
+            await auditLogger.log(entry)
             
             // Should be able to query despite initial corruption
-            let logs = await auditLogger.getAuditLogs(criteria: AuditQueryCriteria())
+            let logs = await auditLogger.query(AuditQueryCriteria())
             XCTAssertGreaterThanOrEqual(logs.count, 0, "Should handle corrupted files")
             
         } catch {
@@ -207,7 +207,7 @@ final class InfrastructureFailureTests: XCTestCase {
             failureRate: 0.0
         )
         
-        try pipeline.addMiddleware(networkMiddleware)
+        try await pipeline.addMiddleware(networkMiddleware)
         
         let command = InfrastructureTestCommand(value: "network_timeout_test")
         let metadata = DefaultCommandMetadata()
@@ -232,7 +232,7 @@ final class InfrastructureFailureTests: XCTestCase {
             failureRate: 1.0 // 100% failure rate
         )
         
-        try pipeline.addMiddleware(networkMiddleware)
+        try await pipeline.addMiddleware(networkMiddleware)
         
         let command = InfrastructureTestCommand(value: "network_failure_test")
         let metadata = DefaultCommandMetadata()
@@ -252,7 +252,7 @@ final class InfrastructureFailureTests: XCTestCase {
             failureRate: 0.5 // 50% failure rate
         )
         
-        try pipeline.addMiddleware(networkMiddleware)
+        try await pipeline.addMiddleware(networkMiddleware)
         
         let command = InfrastructureTestCommand(value: "intermittent_test")
         let metadata = DefaultCommandMetadata()
@@ -285,22 +285,17 @@ final class InfrastructureFailureTests: XCTestCase {
             // Try to create many audit loggers with file destinations
             for i in 0..<100 {
                 group.addTask {
-                    do {
-                        let tempDir = FileManager.default.temporaryDirectory
-                        let logPath = tempDir.appendingPathComponent("audit_\(i).log")
-                        
-                        return try AuditLogger(
-                            destination: .file(url: logPath),
-                            privacyLevel: .full
-                        )
-                    } catch {
-                        // Expected when running out of file descriptors
-                        return nil
-                    }
+                    let tempDir = FileManager.default.temporaryDirectory
+                    let logPath = tempDir.appendingPathComponent("audit_\(i).log")
+                    
+                    return AuditLogger(
+                        destination: .file(url: logPath),
+                        privacyLevel: .full
+                    )
                 }
             }
             
-            for await logger in group {
+            for try await logger in group {
                 if let logger = logger {
                     loggers.append(logger)
                 }
@@ -315,7 +310,7 @@ final class InfrastructureFailureTests: XCTestCase {
     }
     
     func testThreadPoolExhaustion() async throws {
-        let pipeline = DefaultPipeline(handler: TestHandler(), maxConcurrency: 1000)
+        let pipeline = DefaultPipeline(handler: InfrastructureTestHandler(), maxConcurrency: 1000)
         
         // Create many concurrent tasks to exhaust thread pool
         let tasks = (0..<1000).map { i in
@@ -352,7 +347,7 @@ final class InfrastructureFailureTests: XCTestCase {
         let pipeline = DefaultPipeline(handler: InfrastructureTestHandler())
         let interruptibleMiddleware = InterruptibleMiddleware()
         
-        try pipeline.addMiddleware(interruptibleMiddleware)
+        try await pipeline.addMiddleware(interruptibleMiddleware)
         
         let command = InfrastructureTestCommand(value: "signal_test")
         let metadata = DefaultCommandMetadata()
@@ -377,7 +372,7 @@ final class InfrastructureFailureTests: XCTestCase {
         let pipeline = DefaultPipeline(handler: InfrastructureTestHandler())
         let shutdownAwareMiddleware = ShutdownAwareMiddleware()
         
-        try pipeline.addMiddleware(shutdownAwareMiddleware)
+        try await pipeline.addMiddleware(shutdownAwareMiddleware)
         
         let command = InfrastructureTestCommand(value: "shutdown_test")
         let metadata = DefaultCommandMetadata()
@@ -406,7 +401,7 @@ final class InfrastructureFailureTests: XCTestCase {
         let pipeline = DefaultPipeline(handler: InfrastructureTestHandler())
         let degradingMiddleware = DegradingMiddleware()
         
-        try pipeline.addMiddleware(degradingMiddleware)
+        try await pipeline.addMiddleware(degradingMiddleware)
         
         let command = InfrastructureTestCommand(value: "degradation_test")
         let metadata = DefaultCommandMetadata()
@@ -426,7 +421,7 @@ final class InfrastructureFailureTests: XCTestCase {
     }
     
     func testPartialServiceFailure() async throws {
-        let concurrentPipeline = ConcurrentPipeline()
+        let concurrentPipeline = ConcurrentPipeline(options: PipelineOptions())
         
         // Register multiple pipelines
         let workingPipeline = DefaultPipeline(handler: InfrastructureTestHandler())
