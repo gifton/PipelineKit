@@ -3,15 +3,15 @@ import XCTest
 
 // MARK: - Test Support Types for InfrastructureFailureTests
 
-struct TestCommand: Command {
+struct InfrastructureTestCommand: Command {
     typealias Result = String
     let value: String
 }
 
-struct TestHandler: CommandHandler {
-    typealias CommandType = TestCommand
+struct InfrastructureTestHandler: CommandHandler {
+    typealias CommandType = InfrastructureTestCommand
     
-    func handle(_ command: TestCommand) async throws -> String {
+    func handle(_ command: InfrastructureTestCommand) async throws -> String {
         return "Handled: \(command.value)"
     }
 }
@@ -22,12 +22,12 @@ final class InfrastructureFailureTests: XCTestCase {
     // MARK: - Memory Pressure Scenarios
     
     func testLowMemoryConditions() async throws {
-        let pipeline = DefaultPipeline(handler: TestHandler())
+        let pipeline = DefaultPipeline(handler: InfrastructureTestHandler())
         let memoryPressureMiddleware = MemoryPressureMiddleware()
         
-        try pipeline.addMiddleware(memoryPressureMiddleware)
+        try await pipeline.addMiddleware(memoryPressureMiddleware)
         
-        let command = TestCommand(value: "memory_pressure_test")
+        let command = InfrastructureTestCommand(value: "memory_pressure_test")
         let metadata = DefaultCommandMetadata()
         
         // Execute under simulated memory pressure
@@ -43,18 +43,18 @@ final class InfrastructureFailureTests: XCTestCase {
     }
     
     func testMemoryLeakDetection() async throws {
-        weak var weakPipeline: DefaultPipeline<TestCommand, TestHandler>?
-        weak var weakHandler: TestHandler?
+        weak var weakPipeline: DefaultPipeline<InfrastructureTestCommand, InfrastructureTestHandler>?
+        weak var weakHandler: InfrastructureTestHandler?
         
         autoreleasepool {
-            let handler = TestHandler()
+            let handler = InfrastructureTestHandler()
             let pipeline = DefaultPipeline(handler: handler)
             
             weakPipeline = pipeline
             weakHandler = handler
             
             // Execute some commands
-            let command = TestCommand(value: "leak_test")
+            let command = InfrastructureTestCommand(value: "leak_test")
             let metadata = DefaultCommandMetadata()
             
             _ = try await pipeline.execute(command, metadata: metadata)
@@ -72,14 +72,14 @@ final class InfrastructureFailureTests: XCTestCase {
         weak var weakContext: CommandContext?
         
         autoreleasepool {
-            let pipeline = ContextAwarePipeline(handler: TestHandler())
-            let contextCapturingMiddleware = ContextCapturingMiddleware { context in
+            let pipeline = ContextAwarePipeline(handler: InfrastructureTestHandler())
+            let contextCapturingMiddleware = InfrastructureContextCapturingMiddleware { context in
                 weakContext = context
             }
             
             try await pipeline.addMiddleware(contextCapturingMiddleware)
             
-            let command = TestCommand(value: "context_memory_test")
+            let command = InfrastructureTestCommand(value: "context_memory_test")
             let metadata = DefaultCommandMetadata()
             
             _ = try await pipeline.execute(command, metadata: metadata)
@@ -102,7 +102,7 @@ final class InfrastructureFailureTests: XCTestCase {
                 privacyLevel: .full
             )
             
-            let command = TestCommand(value: "filesystem_test")
+            let command = InfrastructureTestCommand(value: "filesystem_test")
             let metadata = DefaultCommandMetadata()
             
             // Should handle file system errors gracefully
@@ -137,13 +137,13 @@ final class InfrastructureFailureTests: XCTestCase {
                 bufferSize: 10
             )
             
-            let command = TestCommand(value: "disk_space_test")
+            let command = InfrastructureTestCommand(value: "disk_space_test")
             let metadata = DefaultCommandMetadata()
             
             // Generate many log entries to test disk space handling
             for i in 0..<1000 {
                 await auditLogger.logCommandExecution(
-                    command: TestCommand(value: "entry_\(i)"),
+                    command: InfrastructureTestCommand(value: "entry_\(i)"),
                     metadata: metadata,
                     result: .success("result_\(i)"),
                     duration: 0.1
@@ -175,7 +175,7 @@ final class InfrastructureFailureTests: XCTestCase {
             )
             
             // Should handle corrupted file gracefully
-            let command = TestCommand(value: "corruption_test")
+            let command = InfrastructureTestCommand(value: "corruption_test")
             let metadata = DefaultCommandMetadata()
             
             await auditLogger.logCommandExecution(
@@ -201,7 +201,7 @@ final class InfrastructureFailureTests: XCTestCase {
     // MARK: - Network Simulation Failures
     
     func testNetworkTimeoutSimulation() async throws {
-        let pipeline = DefaultPipeline(handler: TestHandler())
+        let pipeline = DefaultPipeline(handler: InfrastructureTestHandler())
         let networkMiddleware = NetworkSimulatingMiddleware(
             latency: 2.0, // 2 second latency
             failureRate: 0.0
@@ -209,7 +209,7 @@ final class InfrastructureFailureTests: XCTestCase {
         
         try pipeline.addMiddleware(networkMiddleware)
         
-        let command = TestCommand(value: "network_timeout_test")
+        let command = InfrastructureTestCommand(value: "network_timeout_test")
         let metadata = DefaultCommandMetadata()
         
         // Execute with timeout shorter than network latency
@@ -226,7 +226,7 @@ final class InfrastructureFailureTests: XCTestCase {
     }
     
     func testNetworkFailureSimulation() async throws {
-        let pipeline = DefaultPipeline(handler: TestHandler())
+        let pipeline = DefaultPipeline(handler: InfrastructureTestHandler())
         let networkMiddleware = NetworkSimulatingMiddleware(
             latency: 0.1,
             failureRate: 1.0 // 100% failure rate
@@ -234,7 +234,7 @@ final class InfrastructureFailureTests: XCTestCase {
         
         try pipeline.addMiddleware(networkMiddleware)
         
-        let command = TestCommand(value: "network_failure_test")
+        let command = InfrastructureTestCommand(value: "network_failure_test")
         let metadata = DefaultCommandMetadata()
         
         do {
@@ -246,7 +246,7 @@ final class InfrastructureFailureTests: XCTestCase {
     }
     
     func testIntermittentNetworkFailures() async throws {
-        let pipeline = DefaultPipeline(handler: TestHandler())
+        let pipeline = DefaultPipeline(handler: InfrastructureTestHandler())
         let networkMiddleware = NetworkSimulatingMiddleware(
             latency: 0.1,
             failureRate: 0.5 // 50% failure rate
@@ -254,7 +254,7 @@ final class InfrastructureFailureTests: XCTestCase {
         
         try pipeline.addMiddleware(networkMiddleware)
         
-        let command = TestCommand(value: "intermittent_test")
+        let command = InfrastructureTestCommand(value: "intermittent_test")
         let metadata = DefaultCommandMetadata()
         
         var successCount = 0
@@ -320,7 +320,7 @@ final class InfrastructureFailureTests: XCTestCase {
         // Create many concurrent tasks to exhaust thread pool
         let tasks = (0..<1000).map { i in
             Task {
-                let command = TestCommand(value: "thread_test_\(i)")
+                let command = InfrastructureTestCommand(value: "thread_test_\(i)")
                 do {
                     return try await pipeline.execute(command, metadata: DefaultCommandMetadata())
                 } catch {
@@ -349,12 +349,12 @@ final class InfrastructureFailureTests: XCTestCase {
     // MARK: - Platform-Specific Failures
     
     func testSignalHandling() async throws {
-        let pipeline = DefaultPipeline(handler: TestHandler())
+        let pipeline = DefaultPipeline(handler: InfrastructureTestHandler())
         let interruptibleMiddleware = InterruptibleMiddleware()
         
         try pipeline.addMiddleware(interruptibleMiddleware)
         
-        let command = TestCommand(value: "signal_test")
+        let command = InfrastructureTestCommand(value: "signal_test")
         let metadata = DefaultCommandMetadata()
         
         let task = Task {
@@ -374,12 +374,12 @@ final class InfrastructureFailureTests: XCTestCase {
     }
     
     func testSystemShutdown() async throws {
-        let pipeline = DefaultPipeline(handler: TestHandler())
+        let pipeline = DefaultPipeline(handler: InfrastructureTestHandler())
         let shutdownAwareMiddleware = ShutdownAwareMiddleware()
         
         try pipeline.addMiddleware(shutdownAwareMiddleware)
         
-        let command = TestCommand(value: "shutdown_test")
+        let command = InfrastructureTestCommand(value: "shutdown_test")
         let metadata = DefaultCommandMetadata()
         
         // Simulate graceful shutdown during execution
@@ -403,12 +403,12 @@ final class InfrastructureFailureTests: XCTestCase {
     // MARK: - Error Recovery Testing
     
     func testGracefulDegradation() async throws {
-        let pipeline = DefaultPipeline(handler: TestHandler())
+        let pipeline = DefaultPipeline(handler: InfrastructureTestHandler())
         let degradingMiddleware = DegradingMiddleware()
         
         try pipeline.addMiddleware(degradingMiddleware)
         
-        let command = TestCommand(value: "degradation_test")
+        let command = InfrastructureTestCommand(value: "degradation_test")
         let metadata = DefaultCommandMetadata()
         
         // First few executions should work normally
@@ -429,19 +429,19 @@ final class InfrastructureFailureTests: XCTestCase {
         let concurrentPipeline = ConcurrentPipeline()
         
         // Register multiple pipelines
-        let workingPipeline = DefaultPipeline(handler: TestHandler())
-        let faultyPipeline = DefaultPipeline(handler: FaultyHandler())
+        let workingPipeline = DefaultPipeline(handler: InfrastructureTestHandler())
+        let faultyPipeline = DefaultPipeline(handler: InfrastructureFaultyHandler())
         
-        await concurrentPipeline.register(TestCommand.self, pipeline: workingPipeline)
-        await concurrentPipeline.register(FaultyCommand.self, pipeline: faultyPipeline)
+        await concurrentPipeline.register(InfrastructureTestCommand.self, pipeline: workingPipeline)
+        await concurrentPipeline.register(InfrastructureFaultyCommand.self, pipeline: faultyPipeline)
         
         // Working pipeline should continue to work
-        let workingCommand = TestCommand(value: "working_test")
+        let workingCommand = InfrastructureTestCommand(value: "working_test")
         let workingResult = try await concurrentPipeline.execute(workingCommand, metadata: DefaultCommandMetadata())
         XCTAssertEqual(workingResult, "Handled: working_test")
         
         // Faulty pipeline should fail predictably
-        let faultyCommand = FaultyCommand()
+        let faultyCommand = InfrastructureFaultyCommand()
         do {
             _ = try await concurrentPipeline.execute(faultyCommand, metadata: DefaultCommandMetadata())
             XCTFail("Faulty pipeline should fail")
@@ -476,8 +476,8 @@ struct MemoryPressureMiddleware: Middleware {
     }
 }
 
-struct ContextCapturingMiddleware: ContextAwareMiddleware {
-    let onCapture: (CommandContext) -> Void
+struct InfrastructureContextCapturingMiddleware: ContextAwareMiddleware {
+    let onCapture: @Sendable (CommandContext) -> Void
     
     func execute<T: Command>(
         _ command: T,
@@ -529,7 +529,7 @@ struct InterruptibleMiddleware: Middleware {
     }
 }
 
-class ShutdownAwareMiddleware: Middleware {
+final class ShutdownAwareMiddleware: Middleware, @unchecked Sendable {
     private var isShuttingDown = false
     
     func triggerShutdown() {
@@ -548,7 +548,7 @@ class ShutdownAwareMiddleware: Middleware {
     }
 }
 
-class DegradingMiddleware: Middleware {
+final class DegradingMiddleware: Middleware, @unchecked Sendable {
     private var isDegraded = false
     
     func triggerDegradation() {
@@ -571,15 +571,15 @@ class DegradingMiddleware: Middleware {
     }
 }
 
-struct FaultyHandler: CommandHandler {
-    typealias CommandType = FaultyCommand
+struct InfrastructureFaultyHandler: CommandHandler {
+    typealias CommandType = InfrastructureFaultyCommand
     
-    func handle(_ command: FaultyCommand) async throws -> String {
+    func handle(_ command: InfrastructureFaultyCommand) async throws -> String {
         throw SystemError.serviceUnavailable
     }
 }
 
-struct FaultyCommand: Command {
+struct InfrastructureFaultyCommand: Command {
     typealias Result = String
 }
 
@@ -591,7 +591,7 @@ enum SystemError: Error {
 
 struct InfrastructureTimeoutError: Error {}
 
-func withInfrastructureTimeout<T>(seconds: TimeInterval, operation: @escaping () async throws -> T) async throws -> T {
+func withInfrastructureTimeout<T: Sendable>(seconds: TimeInterval, operation: @escaping () async throws -> T) async throws -> T {
     try await withThrowingTaskGroup(of: T.self) { group in
         group.addTask {
             try await operation()
