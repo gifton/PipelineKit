@@ -15,6 +15,8 @@ enum MacroError: String, DiagnosticMessage {
     case invalidMiddlewareType = "Invalid middleware type - must be a type reference"
     case invalidMaxDepth = "Max depth must be a positive integer"
     case invalidContextValue = "Context must be .enabled or .disabled"
+    case invalidPipelineType = "Pipeline type must be .standard, .contextAware, or .priority"
+    case invalidBackPressureOptions = "Back-pressure must be .options(...) with valid parameters"
     
     var message: String { 
         switch self {
@@ -42,6 +44,8 @@ enum MacroFixIt: String, FixItMessage {
     case removeUnknownArgument = "Remove unknown argument"
     case fixConcurrencyLimit = "Set concurrency limit to 1"
     case fixMaxDepth = "Set max depth to 1"
+    case fixPipelineType = "Set pipeline type to .standard"
+    case fixBackPressureOptions = "Use .options(...) syntax"
     
     var message: String { rawValue }
     var fixItID: MessageID { MessageID(domain: "PipelineMacroFixIt", id: rawValue) }
