@@ -279,6 +279,34 @@ print("Failure rate: \(1.0 - stats.successRate)")
 Request → Validation → Authorization → Rate Limiting → Business Logic → Audit → Response
 ```
 
+### Thread Safety & Actor Isolation
+
+PipelineKit uses Swift's actor model for guaranteed thread safety in critical components:
+
+```swift
+// Pipeline builders are now actors for safe concurrent configuration
+let builder = PipelineBuilder(handler: myHandler)
+await builder.with(ValidationMiddleware())
+await builder.with(AuthorizationMiddleware())
+let pipeline = await builder.build()
+
+// CommandBus builder with actor isolation
+let busBuilder = CommandBusBuilder()
+await busBuilder.register(CreateUserHandler(), for: CreateUserCommand.self)
+await busBuilder.enableCircuitBreaker(threshold: 5, timeout: 30)
+let bus = await busBuilder.build()
+
+// Security components use actors for thread-safe operations
+let keyStore = InMemoryKeyStore()  // Actor-based key storage
+await keyStore.rotateKeys()         // Safe concurrent access
+```
+
+All actor-based components ensure:
+- ✅ No data races in concurrent environments
+- ✅ Safe sharing across async boundaries
+- ✅ Predictable state management
+- ✅ Compile-time safety guarantees
+
 ## 🔧 Pipeline Types
 
 PipelineKit provides multiple pipeline implementations, each optimized for different use cases:
@@ -672,15 +700,106 @@ let pipeline = DefaultPipeline(handler: handler)
 
 ### Built-in Observers
 
+PipelineKit includes several pre-built observers for common use cases:
+
+#### ConsoleObserver - Simple Console Logging
+```swift
+// Pretty formatted output for development
+let devObserver = ConsoleObserver.development()
+
+// Simple output for production
+let prodObserver = ConsoleObserver.production()
+
+// Detailed debugging output
+let debugObserver = ConsoleObserver.debugging()
+
+// Custom configuration
+let customObserver = ConsoleObserver(
+    style: .pretty,           // .simple, .detailed, .pretty
+    level: .info,            // .verbose, .info, .warning, .error
+    includeTimestamps: true
+)
+```
+
+#### MemoryObserver - In-Memory Event Storage
+```swift
+// Store events for testing and debugging
+let memoryObserver = MemoryObserver(options: .init(
+    maxEvents: 10000,
+    captureMiddlewareEvents: true,
+    captureHandlerEvents: true,
+    cleanupInterval: 3600  // Auto-cleanup old events
+))
+
+// Query captured events
+let allEvents = await memoryObserver.allEvents()
+let errorEvents = await memoryObserver.errorEvents()
+let stats = await memoryObserver.statistics()
+```
+
+#### MetricsObserver - Metrics Collection
+```swift
+// Integrate with your metrics backend
+let metricsObserver = MetricsObserver(
+    backend: PrometheusBackend(),  // Or DatadogBackend, StatsDBackend, etc.
+    configuration: .init(
+        metricPrefix: "myapp.pipeline",
+        includeCommandType: true,
+        trackMiddleware: true,
+        globalTags: ["environment": "production", "service": "api"]
+    )
+)
+
+// Built-in backends for development
+let consoleMetrics = MetricsObserver(backend: ConsoleMetricsBackend())
+let inMemoryMetrics = MetricsObserver(backend: InMemoryMetricsBackend())
+```
+
+#### CompositeObserver - Combine Multiple Observers
+```swift
+// Combine multiple observers into one
+let compositeObserver = CompositeObserver(
+    ConsoleObserver.production(),
+    MetricsObserver(backend: myBackend),
+    OSLogObserver.production()
+)
+```
+
+#### ConditionalObserver - Selective Observation
+```swift
+// Only observe specific commands
+let paymentObserver = ConditionalObserver.forCommands(
+    "PaymentCommand", "RefundCommand",
+    observer: detailedLogger
+)
+
+// Only observe failures
+let errorObserver = ConditionalObserver.onlyFailures(
+    observer: alertingObserver
+)
+
+// Custom conditions
+let customObserver = ConditionalObserver(
+    wrapping: metricsObserver,
+    when: { commandType, correlationId in
+        commandType.contains("Critical") || correlationId?.hasPrefix("vip-") ?? false
+    }
+)
+```
+
 #### OSLog Integration
 ```swift
-// Development logging with detailed information
+// Apple's unified logging system
+let osLogObserver = OSLogObserver(configuration: .init(
+    subsystem: "com.myapp.pipeline",
+    logLevel: .info,
+    includeCommandDetails: true,
+    performanceThreshold: 1.0
+))
+
+// Pre-configured for common scenarios
 let devObserver = OSLogObserver.development()
-
-// Production logging with privacy protection
 let prodObserver = OSLogObserver.production()
-
-// Performance-focused logging
 let perfObserver = OSLogObserver.performance()
 ```
 

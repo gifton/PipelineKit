@@ -21,27 +21,50 @@ This document outlines essential security practices when using PipelineKit in pr
 PipelineKit implements multiple security layers. Never rely on a single security mechanism:
 
 ```swift
-// ✅ GOOD: Multiple security layers
-let secureBuilder = try SecurePipelineBuilder()
-    .withPipeline(.contextAware)
-    .add(ValidationMiddleware())           // Layer 1: Input validation
-    .add(ContextAuthenticationMiddleware()) // Layer 2: Identity verification
-    .add(ContextAuthorizationMiddleware())  // Layer 3: Permission checking
-    .add(RateLimitingMiddleware(           // Layer 4: Traffic control
-        limiter: RateLimiter(strategy: .slidingWindow(windowSize: 60, limit: 100))
-    ))
-    .add(SanitizationMiddleware())         // Layer 5: Data cleaning
-    .add(AuditLoggingMiddleware(           // Layer 6: Activity tracking
-        logger: AuditLogger()
-    ))
-    .add(EncryptionMiddleware(             // Layer 7: Data protection
-        service: EncryptionService()
-    ))
-    .build()
+// ✅ GOOD: Multiple security layers with actor-based builders
+let secureBuilder = SecurePipelineBuilder()  // Actor-based for thread safety
+await secureBuilder.withPipeline(.contextAware)
+await secureBuilder.add(ValidationMiddleware())           // Layer 1: Input validation
+await secureBuilder.add(ContextAuthenticationMiddleware()) // Layer 2: Identity verification
+await secureBuilder.add(ContextAuthorizationMiddleware())  // Layer 3: Permission checking
+await secureBuilder.add(RateLimitingMiddleware(           // Layer 4: Traffic control
+    limiter: RateLimiter(strategy: .slidingWindow(windowSize: 60, limit: 100))
+))
+await secureBuilder.add(SanitizationMiddleware())         // Layer 5: Data cleaning
+await secureBuilder.add(AuditLoggingMiddleware(           // Layer 6: Activity tracking
+    logger: AuditLogger()
+))
+await secureBuilder.add(EncryptionMiddleware(             // Layer 7: Data protection
+    service: EncryptionService()
+))
+let pipeline = await secureBuilder.build()
 
-// ❌ BAD: Single security layer
+// ❌ BAD: Single security layer, no actor isolation
 let pipeline = DefaultPipeline()
 pipeline.addMiddleware(ValidationMiddleware())
+```
+
+### Thread-Safe Security Components
+
+All security-critical components use actor isolation:
+
+```swift
+// Actor-based CommandBus with built-in security
+let busBuilder = CommandBusBuilder()
+await busBuilder.enableRateLimiting(
+    strategy: .adaptive(baseRate: 1000) { await getSystemLoad() }
+)
+await busBuilder.enableCircuitBreaker(
+    threshold: 5,
+    timeout: 30.0,
+    resetTimeout: 300.0
+)
+await busBuilder.withErrorRecovery(
+    maxRetries: 3,
+    retryDelay: 1.0,
+    retryableErrors: [NetworkError.self, TimeoutError.self]
+)
+let secureBus = await busBuilder.build()
 ```
 
 ### Middleware Execution Order
@@ -436,8 +459,11 @@ struct PaymentCommand: Command, EncryptableCommand {
 Implement secure key storage and rotation:
 
 ```swift
-// Configure encryption service
-let encryptionService = EncryptionService()
+// Configure encryption service with actor-based key store
+let keyStore = InMemoryKeyStore()  // Thread-safe actor
+await keyStore.generateKey(for: "payment-encryption")
+
+let encryptionService = EncryptionService(keyStore: keyStore)
 
 // Use encryption middleware in pipeline
 let encryptionMiddleware = EncryptionMiddleware(

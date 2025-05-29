@@ -109,6 +109,158 @@ class DatadogObserver: PipelineObserver {
 
 ## 🛠️ Built-in Observers
 
+PipelineKit provides several pre-built observers for common observability needs:
+
+### ConsoleObserver
+
+Simple, configurable console logging for development and debugging:
+
+```swift
+// Pre-configured for common scenarios
+let devObserver = ConsoleObserver.development()    // Pretty format, verbose
+let prodObserver = ConsoleObserver.production()    // Simple format, warnings only
+let debugObserver = ConsoleObserver.debugging()    // Detailed format, all events
+
+// Custom configuration
+let customObserver = ConsoleObserver(
+    style: .pretty,              // .simple, .detailed, .pretty
+    level: .info,               // .verbose, .info, .warning, .error
+    includeTimestamps: true
+)
+```
+
+Output styles:
+- **Simple**: `[10:30:45.123] Pipeline completed: CreateUserCommand in 45ms`
+- **Pretty**: 
+  ```
+  [10:30:45.123] ✅ Pipeline Completed
+  ├─ Command: CreateUserCommand
+  ├─ Duration: 45ms
+  └─ ID: abc-123
+  ```
+
+### MemoryObserver
+
+Stores events in memory for testing, debugging, and analysis:
+
+```swift
+// Configure memory observer
+let memoryObserver = MemoryObserver(options: .init(
+    maxEvents: 10000,                    // Circular buffer size
+    captureMiddlewareEvents: true,       // Track middleware execution
+    captureHandlerEvents: true,          // Track handler execution
+    cleanupInterval: 3600                // Auto-cleanup after 1 hour
+))
+
+// Start automatic cleanup
+await memoryObserver.startCleanup()
+
+// Query captured events
+let allEvents = await memoryObserver.allEvents()
+let errorEvents = await memoryObserver.errorEvents()
+let pipelineEvents = await memoryObserver.pipelineEvents()
+let eventsForRequest = await memoryObserver.events(for: correlationId)
+
+// Get statistics
+let stats = await memoryObserver.statistics()
+print("Success rate: \(stats.successfulExecutions / stats.pipelineExecutions)")
+print("Average duration: \(stats.averageDuration)s")
+print("Top commands: \(stats.commandCounts)")
+
+// Wait for specific conditions (useful in tests)
+let completed = try await memoryObserver.waitForPipelineCompletions(5, timeout: 10.0)
+```
+
+### MetricsObserver
+
+Integrates with metrics collection systems:
+
+```swift
+// Create with your metrics backend
+let metricsObserver = MetricsObserver(
+    backend: DatadogBackend(),  // Implement MetricsBackend protocol
+    configuration: .init(
+        metricPrefix: "myapp.pipeline",
+        includeCommandType: true,
+        includePipelineType: true,
+        trackMiddleware: false,      // Reduce metric cardinality
+        trackHandlers: false,
+        globalTags: [
+            "environment": "production",
+            "service": "api",
+            "version": "1.2.0"
+        ]
+    )
+)
+
+// Built-in backends for development
+let consoleBackend = ConsoleMetricsBackend()     // Logs metrics to console
+let inMemoryBackend = InMemoryMetricsBackend()   // Stores metrics in memory
+
+// Example console output:
+// [10:30:45.123] METRIC counter pipeline.started command=CreateUser +1
+// [10:30:45.456] METRIC histogram pipeline.duration_ms command=CreateUser = 333
+// [10:30:45.457] METRIC gauge pipeline.active = 5
+```
+
+### CompositeObserver
+
+Combines multiple observers with error isolation:
+
+```swift
+// Combine observers for comprehensive monitoring
+let compositeObserver = CompositeObserver(
+    ConsoleObserver.production(),
+    MetricsObserver(backend: prometheusBackend),
+    OSLogObserver.production(),
+    errorHandler: { error, observerType in
+        // One observer's failure doesn't affect others
+        logger.error("Observer \(observerType) failed: \(error)")
+    }
+)
+
+// Or use variadic initializer
+let observer = CompositeObserver(
+    console,
+    metrics,
+    logging
+)
+```
+
+### ConditionalObserver
+
+Filters events based on conditions:
+
+```swift
+// Only observe specific command types
+let paymentObserver = ConditionalObserver.forCommands(
+    "PaymentCommand", "RefundCommand", "ChargebackCommand",
+    observer: detailedAuditLogger
+)
+
+// Only observe failures
+let errorObserver = ConditionalObserver.onlyFailures(
+    observer: alertingService
+)
+
+// Pattern matching
+let criticalObserver = ConditionalObserver.matching(
+    pattern: "Critical",
+    observer: pagerDutyObserver
+)
+
+// Custom conditions
+let vipObserver = ConditionalObserver(
+    wrapping: enhancedLogger,
+    when: { commandType, correlationId in
+        // Complex logic for VIP detection
+        return correlationId?.hasPrefix("vip-") ?? false
+            || commandType.contains("Premium")
+            || isVIPUser(correlationId)
+    }
+)
+```
+
 ### OSLogObserver
 
 Integrates with Apple's unified logging system:
@@ -123,22 +275,18 @@ let devObserver = OSLogObserver(configuration: .init(
     performanceThreshold: 0.5
 ))
 
-// Production configuration with privacy protection
-let prodObserver = OSLogObserver.production()
+// Pre-configured for common scenarios
+let prodObserver = OSLogObserver.production()      // Privacy-safe, info level
+let perfObserver = OSLogObserver.performance()     // Performance monitoring focus
 
-// Performance-focused configuration
-let perfObserver = OSLogObserver.performance()
-```
-
-#### Log Output Example
-
-```
+// Structured log output with privacy markers
+logger.info("""
 🚀 Pipeline execution started
-📋 Command: CreateUserCommand
-🔧 Pipeline: SecurePipeline
-🔗 Correlation: 123e4567-e89b-12d3-a456-426614174000
-👤 User: user-456
-⏱️ Timestamp: 2024-01-15T10:30:45Z
+📋 Command: \(commandType, privacy: .public)
+🔧 Pipeline: \(pipelineType, privacy: .public)
+🔗 Correlation: \(correlationId, privacy: .public)
+👤 User: \(userId, privacy: .private)
+""")
 ```
 
 ### BaseObserver
@@ -146,12 +294,47 @@ let perfObserver = OSLogObserver.performance()
 Abstract base class for creating custom observers:
 
 ```swift
-class MetricsObserver: BaseObserver {
+class CustomObserver: BaseObserver {
+    // Only implement the methods you need
     override func pipelineDidExecute<T: Command>(_ command: T, result: T.Result, metadata: CommandMetadata, pipelineType: String, duration: TimeInterval) async {
-        // Only implement methods you need
         await recordMetric(command: T.self, duration: duration)
     }
+    
+    override func pipelineDidFail<T: Command>(_ command: T, error: Error, metadata: CommandMetadata, pipelineType: String, duration: TimeInterval) async {
+        await alertOnFailure(command: T.self, error: error)
+    }
 }
+```
+
+### ObserverRegistry
+
+Thread-safe registry for managing multiple observers:
+
+```swift
+// Create registry with error handling
+let registry = ObserverRegistry(
+    observers: [console, metrics, logging],
+    errorHandler: { failure in
+        // Detailed error information
+        logger.error("""
+        Observer failed:
+        - Type: \(failure.observerType)
+        - Event: \(failure.eventName)
+        - Error: \(failure.error)
+        - Context: \(failure.additionalContext ?? "none")
+        """)
+    }
+)
+
+// Add/remove observers dynamically
+await registry.addObserver(newObserver)
+await registry.removeObserver(ofType: OldObserver.self)
+
+// Use with ObservablePipeline
+let pipeline = ObservablePipeline(
+    wrapping: DefaultPipeline(handler: handler),
+    observers: await registry.observers
+)
 ```
 
 ## 🔌 Observability Middleware
@@ -621,32 +804,85 @@ class CloudWatchObserver: PipelineObserver {
 
 ## 🚀 Getting Started
 
-1. **Choose Your Observers**
-   ```swift
-   let observers = [
-       OSLogObserver.development(),    // For local development
-       MetricsObserver(),              // For metrics collection
-       TracingObserver()               // For distributed tracing
-   ]
-   ```
+### Quick Start with Built-in Observers
 
-2. **Configure Your Pipeline**
+1. **Development Setup**
    ```swift
-   let pipeline = YourPipeline()
-       .withObservability(observers: observers)
-   ```
-
-3. **Add Observability Middleware**
-   ```swift
-   try await pipeline.addMiddleware(
-       ObservabilityMiddleware(configuration: .development())
+   // Comprehensive development observability
+   let pipeline = ObservablePipeline(
+       wrapping: DefaultPipeline(handler: handler),
+       observers: [
+           ConsoleObserver.development(),  // Pretty console output
+           MemoryObserver()                // Event storage for debugging
+       ]
    )
    ```
 
-4. **Start Monitoring**
+2. **Production Setup**
    ```swift
-   let result = try await pipeline.execute(command, metadata: metadata)
-   // All observability is automatic!
+   // Production-ready observability
+   let pipeline = ObservablePipeline(
+       wrapping: DefaultPipeline(handler: handler),
+       observers: [
+           OSLogObserver.production(),                    // System logging
+           MetricsObserver(backend: datadogBackend),      // Metrics
+           ConditionalObserver.onlyFailures(              // Alert on errors
+               observer: alertingObserver
+           )
+       ]
+   )
+   ```
+
+3. **Testing Setup**
+   ```swift
+   // Observability for tests
+   let memoryObserver = MemoryObserver()
+   let pipeline = ObservablePipeline(
+       wrapping: DefaultPipeline(handler: handler),
+       observers: [memoryObserver]
+   )
+   
+   // Execute and verify
+   _ = try await pipeline.execute(command, metadata: metadata)
+   
+   // Check results
+   let events = await memoryObserver.allEvents()
+   XCTAssertEqual(events.count, expectedEventCount)
+   
+   let stats = await memoryObserver.statistics()
+   XCTAssertEqual(stats.successfulExecutions, 1)
+   ```
+
+4. **Custom Observer Combinations**
+   ```swift
+   // Mix and match observers for your needs
+   let observers: [PipelineObserver] = [
+       // Console output for critical commands only
+       ConditionalObserver.forCommands(
+           "PaymentCommand", "RefundCommand",
+           observer: ConsoleObserver(style: .detailed, level: .info)
+       ),
+       
+       // Metrics for all commands
+       MetricsObserver(
+           backend: prometheusBackend,
+           configuration: .init(
+               metricPrefix: "myapp",
+               globalTags: ["env": "prod"]
+           )
+       ),
+       
+       // Memory storage for recent events
+       MemoryObserver(options: .init(
+           maxEvents: 1000,
+           cleanupInterval: 300  // 5 minutes
+       ))
+   ]
+   
+   let pipeline = ObservablePipeline(
+       wrapping: YourPipeline(handler: handler),
+       observers: observers
+   )
    ```
 
 ---

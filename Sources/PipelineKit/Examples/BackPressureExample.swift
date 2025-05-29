@@ -34,7 +34,7 @@ public struct BackPressureExample {
                         let command = SlowCommand(id: i, duration: 2.0)
                         let startTime = Date()
                         
-                        let result = try await pipeline.execute(command)
+                        let _ = try await pipeline.execute(command) // result
                         let endTime = Date()
                         let waitTime = endTime.timeIntervalSince(startTime) - command.duration
                         
@@ -69,7 +69,7 @@ public struct BackPressureExample {
                 group.addTask {
                     do {
                         let command = SlowCommand(id: i, duration: 3.0)
-                        let result = try await pipeline.execute(command)
+                        let _ = try await pipeline.execute(command) // result
                         print("✅ Command \(i) completed successfully")
                     } catch {
                         print("❌ Command \(i) dropped: \(error)")
@@ -104,7 +104,7 @@ public struct BackPressureExample {
                 group.addTask {
                     do {
                         let command = SlowCommand(id: i, duration: 2.0)
-                        let result = try await pipeline.execute(command)
+                        let _ = try await pipeline.execute(command) // result
                         print("✅ Command \(i) completed successfully")
                     } catch {
                         print("❌ Command \(i) rejected: \(error)")
@@ -138,7 +138,7 @@ public struct BackPressureExample {
                 group.addTask {
                     do {
                         let command = SlowCommand(id: i, duration: 1.5)
-                        let result = try await pipeline.execute(command, metadata: DefaultCommandMetadata())
+                        let _ = try await pipeline.execute(command, metadata: DefaultCommandMetadata()) // result
                         print("✅ Command \(i) completed through middleware")
                     } catch {
                         print("❌ Command \(i) failed in middleware: \(error)")
