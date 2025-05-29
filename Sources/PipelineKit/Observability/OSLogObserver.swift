@@ -274,7 +274,7 @@ public final class OSLogObserver: BaseObserver, @unchecked Sendable {
     }
     
     private func formatProperties(_ properties: [String: Sendable]) -> String {
-        return properties
+        properties
             .map { key, value in "\(key): \(value)" }
             .joined(separator: ", ")
     }
@@ -286,7 +286,7 @@ public final class OSLogObserver: BaseObserver, @unchecked Sendable {
 public extension OSLogObserver {
     /// Creates an observer optimized for development/debugging
     static func development() -> OSLogObserver {
-        return OSLogObserver(configuration: Configuration(
+        OSLogObserver(configuration: Configuration(
             subsystem: "com.pipelinekit.dev",
             logLevel: .debug,
             includeCommandDetails: true,
@@ -297,7 +297,7 @@ public extension OSLogObserver {
     
     /// Creates an observer optimized for production
     static func production() -> OSLogObserver {
-        return OSLogObserver(configuration: Configuration(
+        OSLogObserver(configuration: Configuration(
             subsystem: "com.pipelinekit.prod",
             logLevel: .info,
             includeCommandDetails: false,
@@ -308,7 +308,7 @@ public extension OSLogObserver {
     
     /// Creates an observer for performance monitoring
     static func performance() -> OSLogObserver {
-        return OSLogObserver(configuration: Configuration(
+        OSLogObserver(configuration: Configuration(
             subsystem: "com.pipelinekit.perf",
             logLevel: .info,
             includeCommandDetails: false,

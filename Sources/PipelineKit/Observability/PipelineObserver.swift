@@ -248,8 +248,12 @@ public struct CustomEvent: Sendable {
 
 /// A no-op observer that can be extended for specific implementations
 ///
-/// This class is marked `@unchecked Sendable` because it's designed to be subclassed
-/// and contains no mutable state. Subclasses must ensure thread safety.
+/// This class contains no mutable state and is safe to use across concurrent contexts.
+/// Subclasses must ensure they maintain thread safety.
+///
+/// Note: This class uses `@unchecked Sendable` because it's designed to be subclassed.
+/// Swift cannot verify that all possible subclasses will be thread-safe, so we must
+/// manually ensure that all subclasses maintain the Sendable contract.
 open class BaseObserver: PipelineObserver, @unchecked Sendable {
     public init() {}
     
@@ -294,6 +298,26 @@ open class BaseObserver: PipelineObserver, @unchecked Sendable {
     }
 }
 
+// MARK: - Observer Failure Tracking
+
+/// Detailed information about an observer notification failure.
+public struct ObserverFailure: Sendable {
+    /// The type name of the observer that failed.
+    public let observerType: String
+    
+    /// The event name that was being processed when the failure occurred.
+    public let eventName: String
+    
+    /// The error that caused the failure.
+    public let error: Error
+    
+    /// When the failure occurred.
+    public let timestamp: Date
+    
+    /// Additional context about the failure (e.g., command type, correlation ID).
+    public let additionalContext: String?
+}
+
 // MARK: - Observer Registry
 
 /// A registry for managing multiple pipeline observers with guaranteed thread safety.
@@ -302,11 +326,21 @@ open class BaseObserver: PipelineObserver, @unchecked Sendable {
 /// and prevents race conditions during observer management.
 public actor ObserverRegistry {
     private var observers: [PipelineObserver]
-    private let observerTimeout: TimeInterval
     
-    public init(observers: [PipelineObserver] = [], observerTimeout: TimeInterval = 5.0) {
+    /// Error handler for observer failures - can be customized for different logging systems.
+    private let errorHandler: (ObserverFailure) -> Void
+    
+    /// Creates a new observer registry with optional custom error handling.
+    ///
+    /// - Parameters:
+    ///   - observers: Initial observers to register
+    ///   - errorHandler: Custom error handler for observer failures (defaults to console logging)
+    public init(
+        observers: [PipelineObserver] = [],
+        errorHandler: ((ObserverFailure) -> Void)? = nil
+    ) {
         self.observers = observers
-        self.observerTimeout = observerTimeout
+        self.errorHandler = errorHandler ?? Self.defaultErrorHandler
     }
     
     /// Adds an observer to the registry.
@@ -326,110 +360,149 @@ public actor ObserverRegistry {
         observers.count
     }
     
-    /// Safely executes an observer notification with timeout and error handling.
-    private func safelyNotify(_ operation: @escaping () async -> Void) async {
+    /// Default error handler that logs to console with detailed context.
+    private static let defaultErrorHandler: (ObserverFailure) -> Void = { failure in
+        let timestamp = ISO8601DateFormatter().string(from: failure.timestamp)
+        
+        print("""
+        ⚠️ Observer Notification Failed
+        ├─ Time: \(timestamp)
+        ├─ Observer: \(failure.observerType)
+        ├─ Event: \(failure.eventName)
+        ├─ Error: \(failure.error.localizedDescription)
+        └─ Details: \(failure.additionalContext ?? "None")
+        """)
+        
+        #if DEBUG
+        // In debug builds, also print the full error for debugging
+        print("   Debug info: \(failure.error)")
+        #endif
+    }
+    
+    /// Safely executes an observer notification with detailed error handling.
+    private func safelyNotify(
+        observer: PipelineObserver,
+        eventName: String,
+        additionalContext: String? = nil,
+        operation: @escaping () async throws -> Void
+    ) async {
         do {
-            try await withThrowingTaskGroup(of: Void.self) { [self] group in
-                group.addTask {
-                    try await self.withTimeout(self.observerTimeout) {
-                        await operation()
-                    }
-                }
-                try await group.next()
-            }
+            try await operation()
         } catch {
-            // Log observer error but don't let it affect pipeline execution
-            print("⚠️ Observer notification failed: \(error)")
+            let failure = ObserverFailure(
+                observerType: String(describing: type(of: observer)),
+                eventName: eventName,
+                error: error,
+                timestamp: Date(),
+                additionalContext: additionalContext
+            )
+            errorHandler(failure)
         }
     }
     
-    /// Executes an operation with a timeout (specifically for Void operations).
-    private func withTimeout(_ timeout: TimeInterval, operation: @escaping () async -> Void) async throws {
-        try await withThrowingTaskGroup(of: Void.self) { group in
-            group.addTask {
-                await operation()
-            }
-            
-            group.addTask {
-                try await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
-                throw ObserverError.timeout(duration: timeout)
-            }
-            
-            _ = try await group.next()
-            group.cancelAll()
-        }
-    }
-    
-    /// Safely notifies all observers with timeout and error handling.
-    private func notifyObservers(_ operation: @escaping (PipelineObserver) async -> Void) async {
-        await withTaskGroup(of: Void.self) { group in
-            for observer in observers {
-                group.addTask {
-                    await self.safelyNotify {
-                        await operation(observer)
-                    }
-                }
-            }
+    /// Safely notifies all observers with detailed error tracking.
+    private func notifyObservers(
+        eventName: String,
+        additionalContext: String? = nil,
+        operation: @escaping (PipelineObserver) async throws -> Void
+    ) async {
+        for observer in observers {
+            await safelyNotify(
+                observer: observer,
+                eventName: eventName,
+                additionalContext: additionalContext,
+                operation: { try await operation(observer) }
+            )
         }
     }
     
     public func notifyPipelineWillExecute<T: Command>(_ command: T, metadata: CommandMetadata, pipelineType: String) async {
-        await notifyObservers { observer in
+        await notifyObservers(
+            eventName: "pipelineWillExecute",
+            additionalContext: "Command: \(String(describing: T.self)), Pipeline: \(pipelineType), CorrelationId: \(metadata.correlationId ?? "none")"
+        ) { observer in
             await observer.pipelineWillExecute(command, metadata: metadata, pipelineType: pipelineType)
         }
     }
     
     public func notifyPipelineDidExecute<T: Command>(_ command: T, result: T.Result, metadata: CommandMetadata, pipelineType: String, duration: TimeInterval) async {
-        await notifyObservers { observer in
+        await notifyObservers(
+            eventName: "pipelineDidExecute",
+            additionalContext: "Command: \(String(describing: T.self)), Pipeline: \(pipelineType), Duration: \(duration)s, CorrelationId: \(metadata.correlationId ?? "none")"
+        ) { observer in
             await observer.pipelineDidExecute(command, result: result, metadata: metadata, pipelineType: pipelineType, duration: duration)
         }
     }
     
     public func notifyPipelineDidFail<T: Command>(_ command: T, error: Error, metadata: CommandMetadata, pipelineType: String, duration: TimeInterval) async {
-        await notifyObservers { observer in
+        await notifyObservers(
+            eventName: "pipelineDidFail",
+            additionalContext: "Command: \(String(describing: T.self)), Pipeline: \(pipelineType), Duration: \(duration)s, Error: \(error.localizedDescription), CorrelationId: \(metadata.correlationId ?? "none")"
+        ) { observer in
             await observer.pipelineDidFail(command, error: error, metadata: metadata, pipelineType: pipelineType, duration: duration)
         }
     }
     
     // Additional notification methods for other events...
     public func notifyMiddlewareWillExecute(_ middlewareName: String, order: Int, correlationId: String) async {
-        await notifyObservers { observer in
+        await notifyObservers(
+            eventName: "middlewareWillExecute",
+            additionalContext: "Middleware: \(middlewareName), Order: \(order), CorrelationId: \(correlationId)"
+        ) { observer in
             await observer.middlewareWillExecute(middlewareName, order: order, correlationId: correlationId)
         }
     }
     
     public func notifyMiddlewareDidExecute(_ middlewareName: String, order: Int, correlationId: String, duration: TimeInterval) async {
-        await notifyObservers { observer in
+        await notifyObservers(
+            eventName: "middlewareDidExecute",
+            additionalContext: "Middleware: \(middlewareName), Order: \(order), Duration: \(duration)s, CorrelationId: \(correlationId)"
+        ) { observer in
             await observer.middlewareDidExecute(middlewareName, order: order, correlationId: correlationId, duration: duration)
         }
     }
     
     public func notifyMiddlewareDidFail(_ middlewareName: String, order: Int, correlationId: String, error: Error, duration: TimeInterval) async {
-        await notifyObservers { observer in
+        await notifyObservers(
+            eventName: "middlewareDidFail",
+            additionalContext: "Middleware: \(middlewareName), Order: \(order), Duration: \(duration)s, Error: \(error.localizedDescription), CorrelationId: \(correlationId)"
+        ) { observer in
             await observer.middlewareDidFail(middlewareName, order: order, correlationId: correlationId, error: error, duration: duration)
         }
     }
     
     public func notifyHandlerWillExecute<T: Command>(_ command: T, handlerType: String, correlationId: String) async {
-        await notifyObservers { observer in
+        await notifyObservers(
+            eventName: "handlerWillExecute",
+            additionalContext: "Command: \(String(describing: T.self)), Handler: \(handlerType), CorrelationId: \(correlationId)"
+        ) { observer in
             await observer.handlerWillExecute(command, handlerType: handlerType, correlationId: correlationId)
         }
     }
     
     public func notifyHandlerDidExecute<T: Command>(_ command: T, result: T.Result, handlerType: String, correlationId: String, duration: TimeInterval) async {
-        await notifyObservers { observer in
+        await notifyObservers(
+            eventName: "handlerDidExecute",
+            additionalContext: "Command: \(String(describing: T.self)), Handler: \(handlerType), Duration: \(duration)s, CorrelationId: \(correlationId)"
+        ) { observer in
             await observer.handlerDidExecute(command, result: result, handlerType: handlerType, correlationId: correlationId, duration: duration)
         }
     }
     
     public func notifyHandlerDidFail<T: Command>(_ command: T, error: Error, handlerType: String, correlationId: String, duration: TimeInterval) async {
-        await notifyObservers { observer in
+        await notifyObservers(
+            eventName: "handlerDidFail",
+            additionalContext: "Command: \(String(describing: T.self)), Handler: \(handlerType), Duration: \(duration)s, Error: \(error.localizedDescription), CorrelationId: \(correlationId)"
+        ) { observer in
             await observer.handlerDidFail(command, error: error, handlerType: handlerType, correlationId: correlationId, duration: duration)
         }
     }
     
     public func notifyCustomEvent(_ eventName: String, properties: [String: Sendable], correlationId: String) async {
-        await notifyObservers { observer in
+        await notifyObservers(
+            eventName: "customEvent: \(eventName)",
+            additionalContext: "Event: \(eventName), Properties: \(properties.count) items, CorrelationId: \(correlationId)"
+        ) { observer in
             await observer.customEvent(eventName, properties: properties, correlationId: correlationId)
         }
     }
