@@ -21,7 +21,7 @@ public struct PerformanceMeasurement: Sendable {
     public let errorMessage: String?
     
     /// Additional performance metrics
-    public let metrics: [String: Any]
+    public let metrics: [String: String]
     
     public init(
         commandName: String,
@@ -30,7 +30,7 @@ public struct PerformanceMeasurement: Sendable {
         endTime: Date,
         isSuccess: Bool,
         errorMessage: String? = nil,
-        metrics: [String: Any] = [:]
+        metrics: [String: String] = [:]
     ) {
         self.commandName = commandName
         self.executionTime = executionTime
@@ -95,11 +95,11 @@ public struct PerformanceMiddleware: ContextAwareMiddleware {
         let startTime = Date()
         let commandName = String(describing: T.self)
         
-        var additionalMetrics: [String: Any] = [:]
+        var additionalMetrics: [String: String] = [:]
         
         if includeDetailedMetrics {
-            additionalMetrics["memoryUsage"] = getMemoryUsage()
-            additionalMetrics["threadId"] = Thread.current.name ?? "unknown"
+            additionalMetrics["memoryUsage"] = String(getMemoryUsage())
+            additionalMetrics["processId"] = String(ProcessInfo.processInfo.processIdentifier)
         }
         
         do {

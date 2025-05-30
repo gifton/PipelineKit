@@ -20,6 +20,64 @@ public struct PerformanceExample {
         let shouldFail: Bool
     }
     
+    // MARK: - Custom Collectors
+    
+    /// In-memory performance collector for demonstration
+    actor InMemoryPerformanceCollector: PerformanceCollector {
+        private var measurements: [PerformanceMeasurement] = []
+        
+        func record(_ measurement: PerformanceMeasurement) async {
+            measurements.append(measurement)
+        }
+        
+        func getAllMeasurements() -> [PerformanceMeasurement] {
+            return measurements
+        }
+        
+        func clearMeasurements() {
+            measurements.removeAll()
+        }
+    }
+    
+    /// Context-aware performance collector that demonstrates context access
+    actor ContextAwarePerformanceCollector: PerformanceCollector {
+        private var lastMeasurement: PerformanceMeasurement?
+        
+        func record(_ measurement: PerformanceMeasurement) async {
+            lastMeasurement = measurement
+        }
+        
+        func printAnalysis() async {
+            guard let measurement = lastMeasurement else {
+                print("No measurements recorded yet.")
+                return
+            }
+            
+            print("Latest Performance Analysis:")
+            print("- Command: \(measurement.commandName)")
+            print("- Execution Time: \(String(format: "%.3f", measurement.executionTime))s")
+            print("- Status: \(measurement.isSuccess ? "Success" : "Failed")")
+            
+            if !measurement.metrics.isEmpty {
+                print("- Additional Metrics:")
+                for (key, value) in measurement.metrics {
+                    print("  • \(key): \(value)")
+                }
+            }
+            
+            // Performance assessment
+            if measurement.executionTime < 0.01 {
+                print("- Assessment: ⚡ Excellent performance")
+            } else if measurement.executionTime < 0.1 {
+                print("- Assessment: ✅ Good performance")
+            } else if measurement.executionTime < 1.0 {
+                print("- Assessment: ⚠️ Moderate performance")
+            } else {
+                print("- Assessment: 🐌 Slow performance - consider optimization")
+            }
+        }
+    }
+    
     // MARK: - Example Handlers
     
     struct FastCommandHandler: CommandHandler {
@@ -55,29 +113,32 @@ public struct PerformanceExample {
             includeDetailedMetrics: true
         )
         
-        // Build pipeline with performance middleware
-        let pipeline = try! PipelineBuilder()
-            .addMiddleware(performanceMiddleware)
-            .addHandler(FastCommandHandler())
-            .addHandler(SlowCommandHandler())
-            .addHandler(FailingCommandHandler())
+        // Build pipeline with performance middleware using new API
+        let pipeline = try! await PipelineBuilder(handler: FastCommandHandler())
+            .with(performanceMiddleware)
             .build()
         
         print("\n--- Executing Fast Command ---")
-        try! await pipeline.execute(FastCommand(value: "Hello World"))
+        _ = try! await pipeline.execute(FastCommand(value: "Hello World"), metadata: DefaultCommandMetadata())
         
-        print("\n--- Executing Slow Command ---")
-        try! await pipeline.execute(SlowCommand(processingTime: 0.1))
+        print("\n--- Executing Slow Command ---") 
+        let slowPipeline = try! await PipelineBuilder(handler: SlowCommandHandler())
+            .with(performanceMiddleware)
+            .build()
+        _ = try! await slowPipeline.execute(SlowCommand(processingTime: 0.1), metadata: DefaultCommandMetadata())
         
         print("\n--- Executing Failing Command ---")
+        let failingPipeline = try! await PipelineBuilder(handler: FailingCommandHandler())
+            .with(performanceMiddleware)
+            .build()
         do {
-            try await pipeline.execute(FailingCommand(shouldFail: true))
+            try await failingPipeline.execute(FailingCommand(shouldFail: true), metadata: DefaultCommandMetadata())
         } catch {
             print("Expected failure occurred")
         }
         
         print("\n--- Executing Successful Command ---")
-        try! await pipeline.execute(FailingCommand(shouldFail: false))
+        try! await failingPipeline.execute(FailingCommand(shouldFail: false), metadata: DefaultCommandMetadata())
     }
     
     public static func runAggregatingCollectorExample() async {
@@ -91,30 +152,35 @@ public struct PerformanceExample {
             includeDetailedMetrics: false
         )
         
-        // Build pipeline
-        let pipeline = try! PipelineBuilder()
-            .addMiddleware(performanceMiddleware)
-            .addHandler(FastCommandHandler())
-            .addHandler(SlowCommandHandler())
-            .addHandler(FailingCommandHandler())
+        // Build pipelines for different command types
+        let fastPipeline = try! await PipelineBuilder(handler: FastCommandHandler())
+            .with(performanceMiddleware)
+            .build()
+            
+        let slowPipeline = try! await PipelineBuilder(handler: SlowCommandHandler())
+            .with(performanceMiddleware)
+            .build()
+            
+        let failingPipeline = try! await PipelineBuilder(handler: FailingCommandHandler())
+            .with(performanceMiddleware)
             .build()
         
         print("\n--- Running Multiple Commands ---")
         
         // Execute multiple fast commands
         for i in 1...10 {
-            try! await pipeline.execute(FastCommand(value: "Test \(i)"))
+            _ = try! await fastPipeline.execute(FastCommand(value: "Test \(i)"), metadata: DefaultCommandMetadata())
         }
         
         // Execute slow commands with varying times
         for time in [0.05, 0.1, 0.15, 0.2, 0.25] {
-            try! await pipeline.execute(SlowCommand(processingTime: time))
+            _ = try! await slowPipeline.execute(SlowCommand(processingTime: time), metadata: DefaultCommandMetadata())
         }
         
         // Execute some failing commands
         for shouldFail in [true, false, true, false, false] {
             do {
-                try await pipeline.execute(FailingCommand(shouldFail: shouldFail))
+                try await failingPipeline.execute(FailingCommand(shouldFail: shouldFail), metadata: DefaultCommandMetadata())
             } catch {
                 // Expected for failing commands
             }
@@ -136,74 +202,68 @@ public struct PerformanceExample {
     public static func runCustomCollectorExample() async {
         print("\n=== Custom Performance Collector Example ===")
         
-        // Create custom collector using closure
-        let performanceMiddleware = PerformanceMiddleware { measurement in
-            let emoji = measurement.isSuccess ? "✅" : "❌"
-            let duration = String(format: "%.3f", measurement.executionTime)
-            
-            if measurement.executionTime > 0.1 {
-                print("🐌 SLOW: \(emoji) \(measurement.commandName) took \(duration)s")
-            } else {
-                print("⚡ FAST: \(emoji) \(measurement.commandName) took \(duration)s")
-            }
-            
-            // Could send to external monitoring service here
-            // await sendToMonitoringService(measurement)
-        }
+        // Create a custom collector that tracks metrics in memory
+        let customCollector = InMemoryPerformanceCollector()
         
-        // Build pipeline
-        let pipeline = try! PipelineBuilder()
-            .addMiddleware(performanceMiddleware)
-            .addHandler(FastCommandHandler())
-            .addHandler(SlowCommandHandler())
+        let performanceMiddleware = PerformanceMiddleware(
+            collector: customCollector,
+            includeDetailedMetrics: true
+        )
+        
+        // Build pipelines for different scenarios
+        let fastPipeline = try! await PipelineBuilder(handler: FastCommandHandler())
+            .with(performanceMiddleware)
+            .build()
+            
+        let slowPipeline = try! await PipelineBuilder(handler: SlowCommandHandler())
+            .with(performanceMiddleware)
             .build()
         
         print("\n--- Executing Commands with Custom Collector ---")
         
-        try! await pipeline.execute(FastCommand(value: "Quick task"))
-        try! await pipeline.execute(SlowCommand(processingTime: 0.05))
-        try! await pipeline.execute(SlowCommand(processingTime: 0.15))
-        try! await pipeline.execute(FastCommand(value: "Another quick task"))
+        // Execute various commands
+        _ = try! await fastPipeline.execute(FastCommand(value: "Custom Test 1"), metadata: DefaultCommandMetadata())
+        _ = try! await fastPipeline.execute(FastCommand(value: "Custom Test 2"), metadata: DefaultCommandMetadata())
+        _ = try! await slowPipeline.execute(SlowCommand(processingTime: 0.08), metadata: DefaultCommandMetadata())
+        _ = try! await slowPipeline.execute(SlowCommand(processingTime: 0.12), metadata: DefaultCommandMetadata())
+        
+        print("\n--- Custom Collector Results ---")
+        let measurements = await customCollector.getAllMeasurements()
+        
+        for measurement in measurements {
+            print("Command: \(measurement.commandName)")
+            print("  Duration: \(String(format: "%.3f", measurement.executionTime))s")
+            print("  Success: \(measurement.isSuccess ? "✅" : "❌")")
+            print("  Metrics: \(measurement.metrics)")
+            print("")
+        }
+        
+        print("Total measurements collected: \(measurements.count)")
     }
     
     public static func runContextAccessExample() async {
         print("\n=== Context Access Example ===")
         
-        // Custom middleware that accesses performance data
-        struct PerformanceAnalysisMiddleware: ContextAwareMiddleware {
-            func execute<T: Command>(
-                _ command: T,
-                context: CommandContext,
-                next: @Sendable (T, CommandContext) async throws -> T.Result
-            ) async throws -> T.Result {
-                let result = try await next(command, context)
-                
-                // Access performance measurement from context
-                if let measurement = await context[PerformanceMeasurementKey.self] {
-                    if measurement.executionTime > 0.1 {
-                        print("🔍 Analysis: \(measurement.commandName) execution exceeded threshold (>\(measurement.executionTime)s)")
-                    }
-                }
-                
-                return result
-            }
-        }
+        // Create a context-aware collector that can access performance data
+        let contextCollector = ContextAwarePerformanceCollector()
         
         let performanceMiddleware = PerformanceMiddleware(
-            collector: ConsolePerformanceCollector(logLevel: .verbose)
+            collector: contextCollector,
+            includeDetailedMetrics: true
         )
         
-        // Build pipeline with both performance and analysis middleware
-        let pipeline = try! PipelineBuilder()
-            .addMiddleware(performanceMiddleware)
-            .addMiddleware(PerformanceAnalysisMiddleware())
-            .addHandler(SlowCommandHandler())
+        let pipeline = try! await PipelineBuilder(handler: FastCommandHandler())
+            .with(performanceMiddleware)
             .build()
         
-        print("\n--- Executing Commands with Context Access ---")
+        print("\n--- Executing Command with Context Access ---")
         
-        try! await pipeline.execute(SlowCommand(processingTime: 0.05))
-        try! await pipeline.execute(SlowCommand(processingTime: 0.15))
+        // Execute command and access performance data through context
+        let result = try! await pipeline.execute(FastCommand(value: "Context Test"), metadata: DefaultCommandMetadata())
+        
+        print("Command executed successfully: \(result)")
+        print("\n--- Context Collector Analysis ---")
+        await contextCollector.printAnalysis()
     }
     
     /// Run all performance middleware examples.
