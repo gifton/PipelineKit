@@ -5,7 +5,7 @@ public struct ConsolePerformanceCollector: PerformanceCollector {
     private let formatter: PerformanceFormatter
     private let logLevel: LogLevel
     
-    public enum LogLevel: String, CaseIterable {
+    public enum LogLevel: String, CaseIterable, Sendable {
         case verbose = "VERBOSE"
         case info = "INFO"
         case warning = "WARNING"

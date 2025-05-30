@@ -125,15 +125,16 @@ public struct PerformanceStatistics: Sendable {
             self.medianTime = executionTimes[midIndex]
         }
         
-        // Calculate percentiles
-        self.p95Time = percentile(of: executionTimes, percentile: 0.95)
-        self.p99Time = percentile(of: executionTimes, percentile: 0.99)
-        
-        // Calculate standard deviation
+        // Calculate standard deviation first
+        let avgTime = averageTime // capture for closure
         let variance = executionTimes
-            .map { pow($0 - averageTime, 2) }
+            .map { pow($0 - avgTime, 2) }
             .reduce(0, +) / Double(executionTimes.count)
         self.standardDeviation = sqrt(variance)
+        
+        // Calculate percentiles  
+        self.p95Time = Self.percentile(of: executionTimes, percentile: 0.95)
+        self.p99Time = Self.percentile(of: executionTimes, percentile: 0.99)
         
         self.lastMeasurement = measurements.max(by: { $0.endTime < $1.endTime })!
         
@@ -144,7 +145,7 @@ public struct PerformanceStatistics: Sendable {
         )
     }
     
-    private func percentile(of sortedValues: [TimeInterval], percentile: Double) -> TimeInterval {
+    private static func percentile(of sortedValues: [TimeInterval], percentile: Double) -> TimeInterval {
         let index = percentile * Double(sortedValues.count - 1)
         let lower = Int(index)
         let upper = lower + 1
