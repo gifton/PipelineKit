@@ -119,13 +119,13 @@ public struct PerformanceExample {
             .build()
         
         print("\n--- Executing Fast Command ---")
-        try! await pipeline.execute(FastCommand(value: "Hello World"), metadata: DefaultCommandMetadata())
+        _ = try! await pipeline.execute(FastCommand(value: "Hello World"), metadata: DefaultCommandMetadata())
         
         print("\n--- Executing Slow Command ---") 
         let slowPipeline = try! await PipelineBuilder(handler: SlowCommandHandler())
             .with(performanceMiddleware)
             .build()
-        try! await slowPipeline.execute(SlowCommand(processingTime: 0.1), metadata: DefaultCommandMetadata())
+        _ = try! await slowPipeline.execute(SlowCommand(processingTime: 0.1), metadata: DefaultCommandMetadata())
         
         print("\n--- Executing Failing Command ---")
         let failingPipeline = try! await PipelineBuilder(handler: FailingCommandHandler())
@@ -169,12 +169,12 @@ public struct PerformanceExample {
         
         // Execute multiple fast commands
         for i in 1...10 {
-            try! await fastPipeline.execute(FastCommand(value: "Test \(i)"), metadata: DefaultCommandMetadata())
+            _ = try! await fastPipeline.execute(FastCommand(value: "Test \(i)"), metadata: DefaultCommandMetadata())
         }
         
         // Execute slow commands with varying times
         for time in [0.05, 0.1, 0.15, 0.2, 0.25] {
-            try! await slowPipeline.execute(SlowCommand(processingTime: time), metadata: DefaultCommandMetadata())
+            _ = try! await slowPipeline.execute(SlowCommand(processingTime: time), metadata: DefaultCommandMetadata())
         }
         
         // Execute some failing commands
@@ -222,10 +222,10 @@ public struct PerformanceExample {
         print("\n--- Executing Commands with Custom Collector ---")
         
         // Execute various commands
-        try! await fastPipeline.execute(FastCommand(value: "Custom Test 1"), metadata: DefaultCommandMetadata())
-        try! await fastPipeline.execute(FastCommand(value: "Custom Test 2"), metadata: DefaultCommandMetadata())
-        try! await slowPipeline.execute(SlowCommand(processingTime: 0.08), metadata: DefaultCommandMetadata())
-        try! await slowPipeline.execute(SlowCommand(processingTime: 0.12), metadata: DefaultCommandMetadata())
+        _ = try! await fastPipeline.execute(FastCommand(value: "Custom Test 1"), metadata: DefaultCommandMetadata())
+        _ = try! await fastPipeline.execute(FastCommand(value: "Custom Test 2"), metadata: DefaultCommandMetadata())
+        _ = try! await slowPipeline.execute(SlowCommand(processingTime: 0.08), metadata: DefaultCommandMetadata())
+        _ = try! await slowPipeline.execute(SlowCommand(processingTime: 0.12), metadata: DefaultCommandMetadata())
         
         print("\n--- Custom Collector Results ---")
         let measurements = await customCollector.getAllMeasurements()
