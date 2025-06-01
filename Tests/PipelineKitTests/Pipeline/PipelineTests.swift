@@ -109,7 +109,7 @@ final class PipelineTests: XCTestCase {
     }
     
     func testConcurrentPipelineExecution() async throws {
-        let pipeline = ConcurrentPipeline(maxConcurrency: 2)
+        let pipeline = ConcurrentPipeline(options: PipelineOptions(maxConcurrency: 2))
         let executor = DefaultPipeline(handler: TransformHandler())
         
         await pipeline.register(TransformCommand.self, pipeline: executor)

@@ -62,11 +62,11 @@ final class BackPressureTests: XCTestCase {
         )
         
         // First acquisition should succeed
-        try await semaphore.acquire()
+        _ = try await semaphore.acquire()
         
         // Second acquisition should fail immediately
         do {
-            try await semaphore.acquire()
+            _ = try await semaphore.acquire()
             XCTFail("Expected BackPressureError")
         } catch let error as BackPressureError {
             if case .queueFull = error {
@@ -85,7 +85,7 @@ final class BackPressureTests: XCTestCase {
         )
         
         // Acquire the only resource
-        try await semaphore.acquire()
+        _ = try await semaphore.acquire()
         
         // Try to acquire with timeout - should timeout
         let startTime = Date()
@@ -211,7 +211,7 @@ final class BackPressureTests: XCTestCase {
         XCTAssertEqual(result1, "Handled: test1")
         
         // Start a slow command to block the middleware
-        let slowTask = Task {
+        Task {
             let slowHandler = TestSlowHandler()
             let slowPipeline = PriorityPipeline(handler: slowHandler)
             
@@ -237,7 +237,7 @@ final class BackPressureTests: XCTestCase {
     func testBackPressureMiddlewarePresets() {
         let highThroughput = BackPressureMiddleware.highThroughput()
         let lowLatency = BackPressureMiddleware.lowLatency()
-        let flowControl = BackPressureMiddleware.flowControl(maxConcurrency: 5)
+        let _ = BackPressureMiddleware.flowControl(maxConcurrency: 5)
         
         XCTAssertEqual(highThroughput.options.maxConcurrency, 50)
         XCTAssertEqual(lowLatency.options.maxConcurrency, 5)

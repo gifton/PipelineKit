@@ -295,11 +295,10 @@ final class SecurityFailureTests: XCTestCase {
             bufferSize: 5 // Very small buffer
         )
         
-        let command = SecurityTestCommand(value: "test")
         let metadata = DefaultCommandMetadata()
         
         // Generate more entries than buffer size
-        for i in 0..<10 {
+        for _ in 0..<10 {
             let entry = AuditEntry(
                 commandType: "SecurityTestCommand",
                 userId: metadata.userId ?? "unknown",

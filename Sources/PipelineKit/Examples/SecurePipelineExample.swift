@@ -89,7 +89,7 @@ func demonstrateSecurePipeline() async throws {
     
     // Custom fraud detection (between authorization and validation)
     builder.with(
-        FraudDetectionMiddleware(),
+        SecureFraudDetectionMiddleware(),
         order: ExecutionPriority.custom // or use ExecutionPriority.between(.authorization, and: .validation)
     )
     
@@ -178,7 +178,7 @@ struct AuditLogMiddleware: Middleware {
     }
 }
 
-struct FraudDetectionMiddleware: Middleware {
+struct SecureFraudDetectionMiddleware: Middleware {
     func execute<T: Command>(
         _ command: T,
         metadata: CommandMetadata,

@@ -7,6 +7,9 @@ public enum EncryptionError: Error, Sendable, LocalizedError {
     case decryptionFailed(String)
     case noSensitiveFields
     case invalidKeyFormat
+    case unsupportedAlgorithm(String)
+    case invalidData(String)
+    case notConfigured(String)
     
     public var errorDescription: String? {
         switch self {
@@ -20,6 +23,12 @@ public enum EncryptionError: Error, Sendable, LocalizedError {
             return "No sensitive fields marked for encryption"
         case .invalidKeyFormat:
             return "Invalid encryption key format"
+        case let .unsupportedAlgorithm(algorithm):
+            return "Unsupported encryption algorithm: \(algorithm)"
+        case let .invalidData(reason):
+            return "Invalid encrypted data: \(reason)"
+        case let .notConfigured(reason):
+            return "Encryption service not properly configured: \(reason)"
         }
     }
 }

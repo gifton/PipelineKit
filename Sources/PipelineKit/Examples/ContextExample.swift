@@ -97,7 +97,7 @@ struct LoyaltyDiscountMiddleware: ContextAwareMiddleware {
     }
 }
 
-struct InventoryCheckMiddleware: ContextAwareMiddleware {
+struct ContextInventoryCheckMiddleware: ContextAwareMiddleware {
     let inventoryService: InventoryService
     
     func execute<T: Command>(
@@ -209,7 +209,7 @@ func demonstrateContextAwarePipeline() async throws {
     _ = await builder.withRegular(ValidationMiddleware()) // Regular middleware
     _ = await builder.with(CustomerEnrichmentMiddleware(customerService: MockCustomerService()))
     _ = await builder.with(LoyaltyDiscountMiddleware())
-    _ = await builder.with(InventoryCheckMiddleware(inventoryService: MockInventoryService()))
+    _ = await builder.with(ContextInventoryCheckMiddleware(inventoryService: MockInventoryService()))
     _ = await builder.with(ContextMetricsMiddleware { name, duration in
         print("Command \(name) executed in \(duration)s")
     })

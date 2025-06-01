@@ -261,12 +261,12 @@ final class RateLimiterTests: XCTestCase {
         
         // Should allow only 2 expensive commands (cost 5 each)
         for _ in 0..<2 {
-            _ = try await middleware.execute(expensiveCommand, metadata: DefaultCommandMetadata()) { _, _ in "ok" }
+            _ = try await middleware.execute(expensiveCommand, metadata: DefaultCommandMetadata()) { _, _ in print("ok") }
         }
         
         // Should deny next expensive command
         do {
-            _ = try await middleware.execute(expensiveCommand, metadata: DefaultCommandMetadata()) { _, _ in "fail" }
+            _ = try await middleware.execute(expensiveCommand, metadata: DefaultCommandMetadata()) { _, _ in print("fail") }
             XCTFail("Expected rate limit")
         } catch is RateLimitError {
             // Expected

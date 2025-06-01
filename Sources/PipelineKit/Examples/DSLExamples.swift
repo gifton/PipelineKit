@@ -56,7 +56,7 @@ public enum DSLExamples {
             case failed
         }
         
-        class OrderHandler: CommandHandler {
+        final class OrderHandler: CommandHandler {
             func handle(_ command: ProcessOrderCommand) async throws -> OrderResult {
                 // Simulate order processing
                 return OrderResult(
@@ -78,16 +78,16 @@ public enum DSLExamples {
             // Maintenance mode check
             if maintenanceMode {
                 MaintenanceModeMiddleware()
-                    .order(.critical)
+                    .order(.authentication)  // Using highest priority instead of critical
             }
             
             // Security and rate limiting
-            MiddlewareGroup(order: .critical) {
-                RateLimitingMiddleware()
+            MiddlewareGroup(order: .authentication) {  // Using authentication priority
+                DSLRateLimitingMiddleware()
                     .when { !isPrimeCustomer }
                 
                 SecurityHeadersMiddleware()
-                FraudDetectionMiddleware()
+                DSLFraudDetectionMiddleware()
                     .timeout(5.0)
             }
             
@@ -95,7 +95,7 @@ public enum DSLExamples {
             AuthenticationMiddleware()
                 .order(.authentication)
             
-            AuthorizationMiddleware()
+            DSLAuthorizationMiddleware()
                 .order(.authorization)
             
             // Input validation
@@ -111,9 +111,8 @@ public enum DSLExamples {
             }
             
             // Inventory and pricing checks with retry
-            InventoryCheckMiddleware()
+            DSLInventoryCheckMiddleware()
                 .retry(maxAttempts: 3, strategy: .exponentialBackoff(base: 0.5))
-                .order(.validation)
             
             PricingCalculationMiddleware()
                 .when { !isPrimeCustomer || isBlackFriday }
@@ -121,7 +120,6 @@ public enum DSLExamples {
             // Payment processing with timeout and retry
             PaymentProcessingMiddleware()
                 .retry(maxAttempts: 3, strategy: .exponentialBackoff())
-                .timeout(30.0)
             
             // Conditional shipping options
             if isPrimeCustomer {
@@ -142,7 +140,7 @@ public enum DSLExamples {
             // Monitoring and logging
             MiddlewareGroup(order: .monitoring) {
                 MetricsCollectionMiddleware()
-                AuditLoggingMiddleware()
+                DSLAuditLoggingMiddleware()
                 PerformanceTracingMiddleware()
                     .when { ProcessInfo.processInfo.environment["ENABLE_TRACING"] == "true" }
             }
@@ -194,7 +192,7 @@ public enum DSLExamples {
             case get, post, put, delete, patch
         }
         
-        class APIGatewayHandler: CommandHandler {
+        final class APIGatewayHandler: CommandHandler {
             func handle(_ command: APIRequest) async throws -> APIResponse {
                 // Route to appropriate backend service
                 return APIResponse(
@@ -211,25 +209,22 @@ public enum DSLExamples {
         let apiVersion = "v2"
         
         // Build API gateway pipeline
-        let pipeline = try await CreatePipeline(handler: APIGatewayHandler()) {
+        let _ = try await CreatePipeline(handler: APIGatewayHandler()) {
             // CORS handling
             CORSMiddleware()
-                .order(.critical)
+                .order(.authentication)  // Using highest priority
             
             // API versioning
-            switch apiVersion {
-            case "v1":
+            if apiVersion == "v1" {
                 APIv1CompatibilityMiddleware()
-            case "v2":
+            } else if apiVersion == "v2" {
                 APIv2ValidationMiddleware()
-            default:
-                break
             }
             
             // Security
-            MiddlewareGroup(order: .critical) {
+            MiddlewareGroup(order: .authentication) {  // Using authentication priority
                 IPWhitelistMiddleware()
-                    .when { await SecurityConfig.shared.ipWhitelistEnabled }
+                    .when { SecurityConfig.shared.ipWhitelistEnabled }
                 
                 APIKeyValidationMiddleware()
                 JWTAuthenticationMiddleware()
@@ -238,7 +233,7 @@ public enum DSLExamples {
             
             // Rate limiting with different strategies
             ConditionalMiddleware({ await !isInternalRequest() }) {
-                RateLimitingMiddleware()
+                DSLRateLimitingMiddleware()
                     .retry(maxAttempts: 2, strategy: .fixedDelay(1.0))
                 
                 QuotaEnforcementMiddleware()
@@ -253,7 +248,7 @@ public enum DSLExamples {
             // Caching layer
             if enableCaching {
                 CacheCheckMiddleware()
-                    .order(.normal)
+                    .order(.caching)
             }
             
             // Circuit breaker for backend services
@@ -282,7 +277,7 @@ public enum DSLExamples {
             // Cache update
             if enableCaching {
                 CacheUpdateMiddleware()
-                    .order(.postProcessing)
+                    .order(.responseTransformation)
             }
         }
     }
@@ -296,22 +291,22 @@ public enum DSLExamples {
             
             let serviceName: String
             let operation: String
-            let payload: [String: Any]
+            let payload: [String: String] // Changed from Any to String for Sendable conformance
             let timeout: TimeInterval
         }
         
-        struct ServiceResponse {
-            let data: [String: Any]
+        struct ServiceResponse: Sendable {
+            let data: [String: String] // Changed from Any to String for Sendable conformance
             let metadata: ResponseMetadata
         }
         
-        struct ResponseMetadata {
+        struct ResponseMetadata: Sendable {
             let serviceVersion: String
             let responseTime: TimeInterval
             let traceId: String
         }
         
-        class ServiceCallHandler: CommandHandler {
+        final class ServiceCallHandler: CommandHandler {
             func handle(_ command: ServiceCallCommand) async throws -> ServiceResponse {
                 // Simulate service call
                 return ServiceResponse(
@@ -331,17 +326,17 @@ public enum DSLExamples {
         let enableMutualTLS = true
         
         // Build microservice communication pipeline
-        let pipeline = try await CreatePipeline(handler: ServiceCallHandler()) {
+        let _ = try await CreatePipeline(handler: ServiceCallHandler()) {
             // Service mesh security
             if enableMutualTLS {
                 MutualTLSMiddleware()
-                    .order(.critical)
+                    .order(.authentication)  // Using authentication priority
             }
             
             // Distributed tracing
             if enableTracing {
                 TracingMiddleware()
-                    .order(.critical)
+                    .order(.tracing)  // Using appropriate tracing priority
             }
             
             // Service discovery and load balancing
@@ -448,7 +443,7 @@ public enum DSLExamples {
             let message: String
         }
         
-        class DataProcessingHandler: CommandHandler {
+        final class DataProcessingHandler: CommandHandler {
             func handle(_ command: DataProcessingCommand) async throws -> ProcessedData {
                 // Simulate data processing
                 return ProcessedData(
@@ -473,7 +468,7 @@ public enum DSLExamples {
         let enableMLEnrichment = false
         
         // Build data processing pipeline
-        let pipeline = try await CreatePipeline(handler: DataProcessingHandler()) {
+        let _ = try await CreatePipeline(handler: DataProcessingHandler()) {
             // Input validation
             MiddlewareGroup(order: .validation) {
                 FileSizeValidationMiddleware(maxSize: maxRecordSize)
@@ -484,7 +479,6 @@ public enum DSLExamples {
             // Data parsing based on format
             DataParsingMiddleware()
                 .retry(maxAttempts: 2, strategy: .immediate)
-                .timeout(30.0)
             
             // Schema validation if requested
             SchemaValidationMiddleware()
@@ -515,7 +509,6 @@ public enum DSLExamples {
             if enableMLEnrichment {
                 MLEnrichmentMiddleware()
                     .retry(maxAttempts: 3, strategy: .exponentialBackoff())
-                    .timeout(60.0)
             }
             
             // Data anonymization
@@ -564,7 +557,7 @@ public enum DSLExamples {
             case failed(reason: String)
         }
         
-        class FileUploadHandler: CommandHandler {
+        final class FileUploadHandler: CommandHandler {
             func handle(_ command: FileUploadCommand) async throws -> UploadResult {
                 let fileId = UUID().uuidString
                 return UploadResult(
@@ -583,10 +576,10 @@ public enum DSLExamples {
         let generateThumbnails = true
         
         // Build file upload pipeline
-        let pipeline = try await CreatePipeline(handler: FileUploadHandler()) {
+        let _ = try await CreatePipeline(handler: FileUploadHandler()) {
             // Rate limiting per user
-            UserRateLimitingMiddleware()
-                .order(.critical)
+            UserDSLRateLimitingMiddleware()
+                .order(.rateLimiting)  // Using appropriate rate limiting priority
             
             // Basic validation
             MiddlewareGroup(order: .validation) {
@@ -599,7 +592,6 @@ public enum DSLExamples {
             if enableVirusScan {
                 VirusScanningMiddleware()
                     .retry(maxAttempts: 2, strategy: .fixedDelay(2.0))
-                    .timeout(60.0)
             }
             
             // Content validation based on type
@@ -622,7 +614,6 @@ public enum DSLExamples {
                 // Upload to primary storage
                 StorageUploadMiddleware()
                     .retry(maxAttempts: 3, strategy: .exponentialBackoff())
-                    .timeout(120.0)
                 
                 // Backup to secondary storage
                 BackupStorageMiddleware()
@@ -661,140 +652,140 @@ public enum DSLExamples {
 // These are placeholder middleware implementations for the examples
 // In a real application, these would contain actual business logic
 
-class MaintenanceModeMiddleware: Middleware {
+final class MaintenanceModeMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class SecurityHeadersMiddleware: Middleware {
+final class SecurityHeadersMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class FraudDetectionMiddleware: Middleware {
+final class DSLFraudDetectionMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class AuthenticationMiddleware: Middleware {
+final class AuthenticationMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class AuthorizationMiddleware: Middleware {
+final class DSLAuthorizationMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class RateLimitingMiddleware: Middleware {
+final class DSLRateLimitingMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
 // Additional middleware placeholders...
-class OrderValidationMiddleware: Middleware {
+final class OrderValidationMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class AddressValidationMiddleware: Middleware {
+final class AddressValidationMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class PaymentValidationMiddleware: Middleware {
+final class PaymentValidationMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class BlackFridayLimitsMiddleware: Middleware {
+final class BlackFridayLimitsMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class InventoryCheckMiddleware: Middleware {
+final class DSLInventoryCheckMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class PricingCalculationMiddleware: Middleware {
+final class PricingCalculationMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class PaymentProcessingMiddleware: Middleware {
+final class PaymentProcessingMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class PrimeShippingMiddleware: Middleware {
+final class PrimeShippingMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class StandardShippingMiddleware: Middleware {
+final class StandardShippingMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class EmailNotificationMiddleware: Middleware {
+final class EmailNotificationMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class SMSNotificationMiddleware: Middleware {
+final class SMSNotificationMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class InventoryUpdateMiddleware: Middleware {
+final class InventoryUpdateMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class OrderAnalyticsMiddleware: Middleware {
+final class OrderAnalyticsMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class LoyaltyPointsMiddleware: Middleware {
+final class LoyaltyPointsMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class MetricsCollectionMiddleware: Middleware {
+final class MetricsCollectionMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class AuditLoggingMiddleware: Middleware {
+final class DSLAuditLoggingMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class PerformanceTracingMiddleware: Middleware {
+final class PerformanceTracingMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
@@ -817,121 +808,121 @@ func isImportantFile() async -> Bool { true }
 func uploadFailed() async -> Bool { false }
 
 // Additional middleware for API Gateway example
-class CORSMiddleware: Middleware {
+final class CORSMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class APIv1CompatibilityMiddleware: Middleware {
+final class APIv1CompatibilityMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class APIv2ValidationMiddleware: Middleware {
+final class APIv2ValidationMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class IPWhitelistMiddleware: Middleware {
+final class IPWhitelistMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class APIKeyValidationMiddleware: Middleware {
+final class APIKeyValidationMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class JWTAuthenticationMiddleware: Middleware {
+final class JWTAuthenticationMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class QuotaEnforcementMiddleware: Middleware {
+final class QuotaEnforcementMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class RequestValidationMiddleware: Middleware {
+final class RequestValidationMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class RequestTransformationMiddleware: Middleware {
+final class RequestTransformationMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class CacheCheckMiddleware: Middleware {
+final class CacheCheckMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class CircuitBreakerMiddleware: Middleware {
+final class CircuitBreakerMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class RequestLoggingMiddleware: Middleware {
+final class RequestLoggingMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class ResponseLoggingMiddleware: Middleware {
+final class ResponseLoggingMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class LatencyInjectionMiddleware: Middleware {
+final class LatencyInjectionMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class ResponseTransformationMiddleware: Middleware {
+final class ResponseTransformationMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class CompressionMiddleware: Middleware {
+final class CompressionMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class APIMetricsMiddleware: Middleware {
+final class APIMetricsMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class UsageAnalyticsMiddleware: Middleware {
+final class UsageAnalyticsMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class AnomalyDetectionMiddleware: Middleware {
+final class AnomalyDetectionMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class CacheUpdateMiddleware: Middleware {
+final class CacheUpdateMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
@@ -944,31 +935,31 @@ enum SecurityConfig {
 }
 
 // Additional middleware stubs for other examples...
-class MutualTLSMiddleware: Middleware {
+final class MutualTLSMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class TracingMiddleware: Middleware {
+final class TracingMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class ServiceDiscoveryMiddleware: Middleware {
+final class ServiceDiscoveryMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class LoadBalancerMiddleware: Middleware {
+final class LoadBalancerMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class ServiceCircuitBreakerMiddleware: Middleware {
+final class ServiceCircuitBreakerMiddleware: Middleware {
     let service: String
     
     init(service: String) {
@@ -980,7 +971,7 @@ class ServiceCircuitBreakerMiddleware: Middleware {
     }
 }
 
-class BulkheadMiddleware: Middleware {
+final class BulkheadMiddleware: Middleware {
     let maxConcurrent: Int
     
     init(maxConcurrent: Int) {
@@ -992,62 +983,62 @@ class BulkheadMiddleware: Middleware {
     }
 }
 
-class TimeoutMiddleware: Middleware {
+final class TimeoutMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class ProtocolTranslationMiddleware: Middleware {
+final class ProtocolTranslationMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class SchemaValidationMiddleware: Middleware {
+final class SchemaValidationMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class IdempotentOperationCacheMiddleware: Middleware {
+final class IdempotentOperationCacheMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class ServiceMetricsMiddleware: Middleware {
+final class ServiceMetricsMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class HealthCheckMiddleware: Middleware {
+final class HealthCheckMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class DependencyTracingMiddleware: Middleware {
+final class DependencyTracingMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class ErrorClassificationMiddleware: Middleware {
+final class ErrorClassificationMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class CompensationMiddleware: Middleware {
+final class CompensationMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
 // Data processing middleware
-class FileSizeValidationMiddleware: Middleware {
+final class FileSizeValidationMiddleware: Middleware {
     let maxSize: Int
     
     init(maxSize: Int) {
@@ -1059,104 +1050,104 @@ class FileSizeValidationMiddleware: Middleware {
     }
 }
 
-class FormatValidationMiddleware: Middleware {
+final class FormatValidationMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class CharacterEncodingValidationMiddleware: Middleware {
+final class CharacterEncodingValidationMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class DataParsingMiddleware: Middleware {
+final class DataParsingMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class DuplicateDetectionMiddleware: Middleware {
+final class DuplicateDetectionMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class MissingValueHandlingMiddleware: Middleware {
+final class MissingValueHandlingMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class OutlierDetectionMiddleware: Middleware {
+final class OutlierDetectionMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class NormalizationMiddleware: Middleware {
+final class NormalizationMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class AggregationMiddleware: Middleware {
+final class AggregationMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class FilteringMiddleware: Middleware {
+final class FilteringMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class MLEnrichmentMiddleware: Middleware {
+final class MLEnrichmentMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class DataAnonymizationMiddleware: Middleware {
+final class DataAnonymizationMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class OutputFormattingMiddleware: Middleware {
+final class OutputFormattingMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class DataLineageMiddleware: Middleware {
+final class DataLineageMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class ProcessingMetricsMiddleware: Middleware {
+final class ProcessingMetricsMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class AuditTrailMiddleware: Middleware {
+final class AuditTrailMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
 // File upload middleware
-class UserRateLimitingMiddleware: Middleware {
+final class UserDSLRateLimitingMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class MimeTypeValidationMiddleware: Middleware {
+final class MimeTypeValidationMiddleware: Middleware {
     let allowed: [String]
     
     init(allowed: [String]) {
@@ -1168,97 +1159,97 @@ class MimeTypeValidationMiddleware: Middleware {
     }
 }
 
-class FileNameValidationMiddleware: Middleware {
+final class FileNameValidationMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class VirusScanningMiddleware: Middleware {
+final class VirusScanningMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class ImageValidationMiddleware: Middleware {
+final class ImageValidationMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class NSFWDetectionMiddleware: Middleware {
+final class NSFWDetectionMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class PDFValidationMiddleware: Middleware {
+final class PDFValidationMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class PDFTextExtractionMiddleware: Middleware {
+final class PDFTextExtractionMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class ChecksumCalculationMiddleware: Middleware {
+final class ChecksumCalculationMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class StorageUploadMiddleware: Middleware {
+final class StorageUploadMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class BackupStorageMiddleware: Middleware {
+final class BackupStorageMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class ThumbnailGenerationMiddleware: Middleware {
+final class ThumbnailGenerationMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class MetadataExtractionMiddleware: Middleware {
+final class MetadataExtractionMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class CDNDistributionMiddleware: Middleware {
+final class CDNDistributionMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class DatabaseRecordMiddleware: Middleware {
+final class DatabaseRecordMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class WebhookNotificationMiddleware: Middleware {
+final class WebhookNotificationMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class RealtimeNotificationMiddleware: Middleware {
+final class RealtimeNotificationMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
 }
 
-class CleanupMiddleware: Middleware {
+final class CleanupMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }

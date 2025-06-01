@@ -1,4 +1,5 @@
 import XCTest
+import Foundation
 @testable import PipelineKit
 
 // MARK: - Test Support Types for PipelineExecutionFailureTests
@@ -57,20 +58,17 @@ final class PipelineExecutionFailureTests: XCTestCase {
     
     func testHandlerMemoryLeak() async throws {
         weak var weakHandler: PipelineLeakyHandler?
-        var pipeline: DefaultPipeline<PipelineTestCommand, PipelineLeakyHandler>?
         
         autoreleasepool {
             let handler = PipelineLeakyHandler()
             weakHandler = handler
-            pipeline = DefaultPipeline(handler: handler)
+            _ = DefaultPipeline(handler: handler)
         }
         
         // Handler should still exist because pipeline holds it
         XCTAssertNotNil(weakHandler)
         
-        // Simulate pipeline cleanup
-        pipeline = nil
-        
+        // Simulate pipeline cleanup by exiting autoreleasepool
         // Handler should be deallocated
         XCTAssertNil(weakHandler, "Handler should be deallocated when pipeline is released")
     }
@@ -165,12 +163,29 @@ final class PipelineExecutionFailureTests: XCTestCase {
     }
     
     func testContextMemoryLeak() async throws {
-        weak var weakContext: CommandContext?
+        final class WeakContextHolder: @unchecked Sendable {
+            private let lock = NSLock()
+            weak var context: CommandContext?
+            
+            func setContext(_ ctx: CommandContext) {
+                lock.lock()
+                defer { lock.unlock() }
+                self.context = ctx
+            }
+            
+            func getContext() -> CommandContext? {
+                lock.lock()
+                defer { lock.unlock() }
+                return context
+            }
+        }
+        
+        let contextHolder = WeakContextHolder()
         
         do {
             let pipeline = ContextAwarePipeline(handler: PipelineTestHandler())
             let contextCapturingMiddleware = ContextCapturingMiddleware { context in
-                weakContext = context
+                contextHolder.setContext(context)
             }
             
             try await pipeline.addMiddleware(contextCapturingMiddleware)
@@ -182,7 +197,7 @@ final class PipelineExecutionFailureTests: XCTestCase {
         }
         
         // Context should be deallocated after execution
-        XCTAssertNil(weakContext, "Context should not leak after execution")
+        XCTAssertNil(contextHolder.getContext(), "Context should not leak after execution")
     }
     
     func testContextRaceCondition() async throws {
@@ -541,7 +556,7 @@ struct StringKey: ContextKey {
 }
 
 // Helper function for timeout testing
-func withPipelineTimeout<T: Sendable>(seconds: TimeInterval, operation: @escaping () async throws -> T) async throws -> T {
+func withPipelineTimeout<T: Sendable>(seconds: TimeInterval, operation: @escaping @Sendable () async throws -> T) async throws -> T {
     try await withThrowingTaskGroup(of: T.self) { group in
         group.addTask {
             try await operation()

@@ -23,7 +23,7 @@ infix operator |>: PipelinePrecedence
 infix operator <|: PipelinePrecedence
 
 /// Parallel pipeline composition operator
-infix operator ||: PipelinePrecedence
+infix operator <>: PipelinePrecedence
 
 /// Conditional pipeline operator
 infix operator |?: PipelinePrecedence
@@ -61,7 +61,7 @@ public func <| (
 }
 
 /// Parallel pipeline composition
-public func || (
+public func <> (
     lhs: any Pipeline,
     rhs: any Pipeline
 ) -> CompositePipeline {
@@ -469,7 +469,7 @@ let pipeline3 = try handler <?+ when({ await isDevelopment() }, use: debugMiddle
 let compositePipeline = pipeline1 |> pipeline2
 
 // Parallel execution
-let parallelPipeline = pipeline1 || pipeline2
+let parallelPipeline = pipeline1 <> pipeline2
 
 // Conditional execution
 let conditionalPipeline = pipeline1 |? { await shouldExecute() }

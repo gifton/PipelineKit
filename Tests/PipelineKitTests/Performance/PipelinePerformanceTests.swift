@@ -75,7 +75,7 @@ final class PipelinePerformanceTests: XCTestCase {
     }
     
     func testConcurrentPipelinePerformance() async throws {
-        let concurrentPipeline = ConcurrentPipeline(maxConcurrency: 10)
+        let concurrentPipeline = ConcurrentPipeline(options: PipelineOptions(maxConcurrency: 10, maxOutstanding: 1000))
         let executor = DefaultPipeline(handler: BenchmarkHandler())
         
         await concurrentPipeline.register(BenchmarkCommand.self, pipeline: executor)

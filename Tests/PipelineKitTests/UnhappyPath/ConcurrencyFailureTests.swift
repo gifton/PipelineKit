@@ -1,4 +1,5 @@
 import XCTest
+import Foundation
 @testable import PipelineKit
 
 // MARK: - Test Support Types for ConcurrencyFailureTests
@@ -328,7 +329,7 @@ final class ConcurrencyFailureTests: XCTestCase {
         let tasks = (0..<50).map { i in
             Task {
                 do {
-                    let token = try await semaphore.acquire()
+                    let _ = try await semaphore.acquire()
                     // Hold the token for a short time
                     try await Task.sleep(nanoseconds: 10_000_000) // 10ms
                     return (i, true)
@@ -443,16 +444,33 @@ final class ConcurrencyFailureTests: XCTestCase {
     // MARK: - Priority Inversion
     
     func testPriorityInversion() async throws {
+        final class ExecutionOrderTracker: @unchecked Sendable {
+            private let lock = NSLock()
+            private var executionOrder: [String] = []
+            
+            func append(_ value: String) {
+                lock.lock()
+                defer { lock.unlock() }
+                executionOrder.append(value)
+            }
+            
+            func getOrder() -> [String] {
+                lock.lock()
+                defer { lock.unlock() }
+                return executionOrder
+            }
+        }
+        
         let pipeline = PriorityPipeline(handler: ConcurrencyTestHandler())
+        let orderTracker = ExecutionOrderTracker()
         
         // Add middleware with different priorities
         try await pipeline.addMiddleware(HighPriorityMiddleware(), priority: 100)
         try await pipeline.addMiddleware(LowPriorityMiddleware(), priority: 1000)
         try await pipeline.addMiddleware(MediumPriorityMiddleware(), priority: 500)
         
-        var executionOrder: [String] = []
         let orderTrackingMiddleware = OrderTrackingMiddleware { order in
-            executionOrder.append(order)
+            orderTracker.append(order)
         }
         
         // This middleware will capture execution order
@@ -465,7 +483,7 @@ final class ConcurrencyFailureTests: XCTestCase {
         
         // Verify correct priority order (lower numbers = higher priority)
         let expectedOrder = ["order_tracking", "high", "medium", "low"]
-        XCTAssertEqual(executionOrder, expectedOrder, "Middleware should execute in priority order")
+        XCTAssertEqual(orderTracker.getOrder(), expectedOrder, "Middleware should execute in priority order")
     }
     
     // MARK: - Task Cancellation Edge Cases
@@ -634,7 +652,7 @@ struct ConcurrencyStringKey: ContextKey {
 // Helper for timeout testing
 struct ConcurrencyTimeoutError: Error {}
 
-func withConcurrencyTimeout<T>(seconds: TimeInterval, operation: @escaping () async throws -> T) async throws -> T {
+func withConcurrencyTimeout<T: Sendable>(seconds: TimeInterval, operation: @escaping @Sendable () async throws -> T) async throws -> T {
     try await withThrowingTaskGroup(of: T.self) { group in
         group.addTask {
             try await operation()

@@ -1,4 +1,5 @@
 import XCTest
+import Foundation
 @testable import PipelineKit
 
 final class PipelineOperatorDSLTests: XCTestCase {
@@ -51,9 +52,9 @@ final class PipelineOperatorDSLTests: XCTestCase {
         let validation = TrackingMiddleware(name: "Validation")
         
         // When
-        let pipeline = try await pipeline(for: handler)
+        let pipeline = try await (pipeline(for: handler)
             <+ auth
-            <+ validation
+            <+ validation)
             .build()
         
         // Then
@@ -77,10 +78,10 @@ final class PipelineOperatorDSLTests: XCTestCase {
         let monitoring = TrackingMiddleware(name: "Monitoring")
         
         // When
-        let pipeline = try await pipeline(for: handler)
-            <++ middleware(critical, priority: .critical)
+        let pipeline = try await (pipeline(for: handler)
+            <++ middleware(critical, priority: .authentication)
             <+ normal  // Default priority (.normal)
-            <++ middleware(monitoring, priority: .monitoring)
+            <++ middleware(monitoring, priority: .monitoring))
             .build()
         
         // Then
@@ -88,9 +89,12 @@ final class PipelineOperatorDSLTests: XCTestCase {
         _ = try await pipeline.execute(command, metadata: DefaultCommandMetadata())
         
         // Verify all middleware executed
-        XCTAssertFalse(await critical.getExecutionLog().isEmpty)
-        XCTAssertFalse(await normal.getExecutionLog().isEmpty)
-        XCTAssertFalse(await monitoring.getExecutionLog().isEmpty)
+        let criticalLog = await critical.getExecutionLog()
+        let normalLog = await normal.getExecutionLog()
+        let monitoringLog = await monitoring.getExecutionLog()
+        XCTAssertFalse(criticalLog.isEmpty)
+        XCTAssertFalse(normalLog.isEmpty)
+        XCTAssertFalse(monitoringLog.isEmpty)
     }
     
     // MARK: - Pipeline Composition Tests
@@ -100,14 +104,14 @@ final class PipelineOperatorDSLTests: XCTestCase {
         let handler = TestHandler()
         
         // Create sub-pipelines
-        let authPipeline = try await pipeline(for: handler)
+        let authPipeline = try await (pipeline(for: handler)
             <+ TrackingMiddleware(name: "Auth1")
-            <+ TrackingMiddleware(name: "Auth2")
+            <+ TrackingMiddleware(name: "Auth2"))
             .build()
         
-        let validationPipeline = try await pipeline(for: handler)
+        let validationPipeline = try await (pipeline(for: handler)
             <+ TrackingMiddleware(name: "Validation1")
-            <+ TrackingMiddleware(name: "Validation2")
+            <+ TrackingMiddleware(name: "Validation2"))
             .build()
         
         // When - Compose pipelines
@@ -128,33 +132,53 @@ final class PipelineOperatorDSLTests: XCTestCase {
         let mainMiddleware = TrackingMiddleware(name: "Main")
         let conditionalMiddleware = TrackingMiddleware(name: "Conditional")
         
-        var shouldExecute = true
+        final class ExecutionState: @unchecked Sendable {
+            private let lock = NSLock()
+            private var shouldExecute = true
+            
+            func getShouldExecute() -> Bool {
+                lock.lock()
+                defer { lock.unlock() }
+                return shouldExecute
+            }
+            
+            func setShouldExecute(_ value: Bool) {
+                lock.lock()
+                defer { lock.unlock() }
+                shouldExecute = value
+            }
+        }
+        
+        let executionState = ExecutionState()
         
         // When
-        let basePipeline = try await pipeline(for: handler)
-            <+ mainMiddleware
+        let basePipeline = try await (pipeline(for: handler)
+            <+ mainMiddleware)
             .build()
         
-        let conditionalPipeline = try await pipeline(for: handler)
-            <+ conditionalMiddleware
+        let conditionalPipeline = try await (pipeline(for: handler)
+            <+ conditionalMiddleware)
             .build()
         
-        let finalPipeline = basePipeline |? { shouldExecute } |> conditionalPipeline
+        let finalPipeline = basePipeline |? { executionState.getShouldExecute() } |> conditionalPipeline
         
         // Then - With condition true
         let command = TestCommand(value: "test")
         _ = try await finalPipeline.execute(command, metadata: DefaultCommandMetadata())
         
-        XCTAssertFalse(await mainMiddleware.getExecutionLog().isEmpty)
-        XCTAssertFalse(await conditionalMiddleware.getExecutionLog().isEmpty)
+        let mainLog = await mainMiddleware.getExecutionLog()
+        let conditionalLog = await conditionalMiddleware.getExecutionLog()
+        XCTAssertFalse(mainLog.isEmpty)
+        XCTAssertFalse(conditionalLog.isEmpty)
         
         // Reset and test with condition false
-        shouldExecute = false
-        let pipeline2 = basePipeline |? { shouldExecute } |> conditionalPipeline
+        executionState.setShouldExecute(false)
+        let pipeline2 = basePipeline |? { executionState.getShouldExecute() } |> conditionalPipeline
         _ = try await pipeline2.execute(command, metadata: DefaultCommandMetadata())
         
         // Main should execute twice (once from each test), conditional only once
-        XCTAssertEqual(await mainMiddleware.getExecutionLog().count, 4) // 2 executions * 2 logs each
+        let finalMainLog = await mainMiddleware.getExecutionLog()
+        XCTAssertEqual(finalMainLog.count, 4) // 2 executions * 2 logs each
     }
     
     // MARK: - Error Handling Operator Tests
@@ -185,17 +209,34 @@ final class PipelineOperatorDSLTests: XCTestCase {
     
     func testErrorHandlingOperator() async throws {
         // Given
+        final class ErrorState: @unchecked Sendable {
+            private let lock = NSLock()
+            private var handled = false
+            
+            func setHandled() {
+                lock.lock()
+                defer { lock.unlock() }
+                handled = true
+            }
+            
+            func isHandled() -> Bool {
+                lock.lock()
+                defer { lock.unlock() }
+                return handled
+            }
+        }
+        
         let handler = TestHandler()
         let errorMiddleware = ErrorThrowingMiddleware(shouldThrow: true)
-        var errorHandled = false
+        let errorState = ErrorState()
         
         // When
-        let basePipeline = try await pipeline(for: handler)
-            <+ errorMiddleware
+        let basePipeline = try await (pipeline(for: handler)
+            <+ errorMiddleware)
             .build()
         
         let safePipeline = basePipeline |! { error in
-            errorHandled = true
+            errorState.setHandled()
         }
         
         // Then
@@ -205,7 +246,7 @@ final class PipelineOperatorDSLTests: XCTestCase {
             _ = try await safePipeline.execute(command, metadata: DefaultCommandMetadata())
             XCTFail("Expected error but succeeded")
         } catch {
-            XCTAssertTrue(errorHandled)
+            XCTAssertTrue(errorState.isHandled())
         }
     }
     
@@ -215,18 +256,18 @@ final class PipelineOperatorDSLTests: XCTestCase {
         // Given
         let handler = TestHandler()
         
-        let pipeline1 = try await pipeline(for: handler)
+        let pipeline1 = try await (pipeline(for: handler)
             <+ TrackingMiddleware(name: "Pipeline1-A")
-            <+ TrackingMiddleware(name: "Pipeline1-B")
+            <+ TrackingMiddleware(name: "Pipeline1-B"))
             .build()
         
-        let pipeline2 = try await pipeline(for: handler)
+        let pipeline2 = try await (pipeline(for: handler)
             <+ TrackingMiddleware(name: "Pipeline2-A")
-            <+ TrackingMiddleware(name: "Pipeline2-B")
+            <+ TrackingMiddleware(name: "Pipeline2-B"))
             .build()
         
         // When - Create parallel pipeline
-        let parallelPipeline = pipeline1 || pipeline2
+        let parallelPipeline = pipeline1 <> pipeline2
         
         // Then
         let command = TestCommand(value: "test")
@@ -248,31 +289,48 @@ final class PipelineOperatorDSLTests: XCTestCase {
         let metrics = TrackingMiddleware(name: "Metrics")
         let audit = TrackingMiddleware(name: "Audit")
         
-        var featureEnabled = true
+        final class FeatureState: @unchecked Sendable {
+            private let lock = NSLock()
+            private var featureEnabled = true
+            
+            func isEnabled() -> Bool {
+                lock.lock()
+                defer { lock.unlock() }
+                return featureEnabled
+            }
+            
+            func setEnabled(_ value: Bool) {
+                lock.lock()
+                defer { lock.unlock() }
+                featureEnabled = value
+            }
+        }
+        
+        let featureState = FeatureState()
         
         // When - Build complex pipeline with multiple operators
-        let authPipeline = try await pipeline(for: handler)
-            <++ middleware(auth, priority: .authentication)
+        let authPipeline = try await (pipeline(for: handler)
+            <++ middleware(auth, priority: .authentication))
             .build()
         
-        let validationPipeline = try await pipeline(for: handler)
-            <++ middleware(validation, priority: .validation)
+        let validationPipeline = try await (pipeline(for: handler)
+            <++ middleware(validation, priority: .validation))
             .build()
         
-        let processingPipeline = try await pipeline(for: handler)
-            <+ processing
+        let processingPipeline = try await (pipeline(for: handler)
+            <+ processing)
             .build()
         
-        let monitoringPipeline = try await pipeline(for: handler)
+        let monitoringPipeline = try await (pipeline(for: handler)
             <+ metrics
-            <+ audit
+            <+ audit)
             .build()
         
         // Compose with operators
         let finalPipeline = authPipeline 
             |> validationPipeline 
-            |> (processingPipeline |? { featureEnabled })
-            || monitoringPipeline
+            |> (processingPipeline |? { featureState.isEnabled() })
+            |> monitoringPipeline
         
         // Then
         let command = TestCommand(value: "test")
@@ -281,9 +339,12 @@ final class PipelineOperatorDSLTests: XCTestCase {
         XCTAssertEqual(result, "Handled: test")
         
         // Verify execution
-        XCTAssertFalse(await auth.getExecutionLog().isEmpty)
-        XCTAssertFalse(await validation.getExecutionLog().isEmpty)
-        XCTAssertFalse(await processing.getExecutionLog().isEmpty)
+        let authLog = await auth.getExecutionLog()
+        let validationLog = await validation.getExecutionLog()
+        let processingLog = await processing.getExecutionLog()
+        XCTAssertFalse(authLog.isEmpty)
+        XCTAssertFalse(validationLog.isEmpty)
+        XCTAssertFalse(processingLog.isEmpty)
     }
     
     // MARK: - Helper Function Tests
@@ -293,7 +354,7 @@ final class PipelineOperatorDSLTests: XCTestCase {
         let testMiddleware = TrackingMiddleware(name: "Test")
         
         // When
-        let wrappedMiddleware = middleware(testMiddleware, priority: .critical)
+        let wrappedMiddleware = middleware(testMiddleware, priority: .authentication)
         
         // Then
         XCTAssertNotNil(wrappedMiddleware)
@@ -324,10 +385,10 @@ final class PipelineOperatorDSLTests: XCTestCase {
         let m3 = TrackingMiddleware(name: "M3")
         
         // When - Test that operators work in expected order
-        let pipeline1 = try await pipeline(for: handler)
+        let pipeline1 = try await (pipeline(for: handler)
             <+ m1
             <+ m2
-            <+ m3
+            <+ m3)
             .build()
         
         // Then
@@ -360,8 +421,8 @@ extension PipelineOperatorDSLTests {
             dslMiddleware
         }
         
-        let finalPipeline = try await pipeline(for: handler)
-            <+ operatorMiddleware
+        let finalPipeline = try await (pipeline(for: handler)
+            <+ operatorMiddleware)
             .build()
             |> dslPipeline
         
@@ -369,7 +430,9 @@ extension PipelineOperatorDSLTests {
         let command = TestCommand(value: "test")
         _ = try await finalPipeline.execute(command, metadata: DefaultCommandMetadata())
         
-        XCTAssertFalse(await dslMiddleware.getExecutionLog().isEmpty)
-        XCTAssertFalse(await operatorMiddleware.getExecutionLog().isEmpty)
+        let dslLog = await dslMiddleware.getExecutionLog()
+        let operatorLog = await operatorMiddleware.getExecutionLog()
+        XCTAssertFalse(dslLog.isEmpty)
+        XCTAssertFalse(operatorLog.isEmpty)
     }
 }

@@ -1,4 +1,5 @@
 import XCTest
+import Foundation
 @testable import PipelineKit
 
 // MARK: - Test Support Types for InfrastructureFailureTests
@@ -66,12 +67,29 @@ final class InfrastructureFailureTests: XCTestCase {
     }
     
     func testContextMemoryManagement() async throws {
-        weak var weakContext: CommandContext?
+        final class WeakContextHolder: @unchecked Sendable {
+            private let lock = NSLock()
+            weak var context: CommandContext?
+            
+            func setContext(_ ctx: CommandContext) {
+                lock.lock()
+                defer { lock.unlock() }
+                self.context = ctx
+            }
+            
+            func getContext() -> CommandContext? {
+                lock.lock()
+                defer { lock.unlock() }
+                return context
+            }
+        }
+        
+        let contextHolder = WeakContextHolder()
         
         do {
             let pipeline = ContextAwarePipeline(handler: InfrastructureTestHandler())
             let contextCapturingMiddleware = InfrastructureContextCapturingMiddleware { context in
-                weakContext = context
+                contextHolder.setContext(context)
             }
             
             try await pipeline.addMiddleware(contextCapturingMiddleware)
@@ -84,7 +102,7 @@ final class InfrastructureFailureTests: XCTestCase {
         
         // Context should be cleaned up after execution
         await Task.yield()
-        XCTAssertNil(weakContext, "Context should be deallocated after execution")
+        XCTAssertNil(contextHolder.getContext(), "Context should be deallocated after execution")
     }
     
     // MARK: - File System Failures
@@ -112,15 +130,6 @@ final class InfrastructureFailureTests: XCTestCase {
             await auditLogger.log(entry)
             
             // If we get here, the error was handled gracefully
-        } catch {
-            // If initialization fails, verify it's due to file system issues
-            let errorMessage = error.localizedDescription.lowercased()
-            XCTAssertTrue(
-                errorMessage.contains("no such file") ||
-                errorMessage.contains("permission denied") ||
-                errorMessage.contains("directory") ||
-                errorMessage.contains("invalid")
-            )
         }
     }
     
@@ -135,11 +144,10 @@ final class InfrastructureFailureTests: XCTestCase {
                 bufferSize: 10
             )
             
-            let command = InfrastructureTestCommand(value: "disk_space_test")
             let metadata = DefaultCommandMetadata()
             
             // Generate many log entries to test disk space handling
-            for i in 0..<1000 {
+            for _ in 0..<1000 {
                 let entry = AuditEntry(
                     commandType: "InfrastructureTestCommand",
                     userId: metadata.userId ?? "unknown",
@@ -153,9 +161,6 @@ final class InfrastructureFailureTests: XCTestCase {
             let logs = await auditLogger.query(AuditQueryCriteria())
             XCTAssertLessThanOrEqual(logs.count, 1000, "Should handle disk space limitations")
             
-        } catch {
-            // File system errors during initialization are acceptable
-            print("Expected file system error: \(error)")
         }
     }
     
@@ -189,9 +194,6 @@ final class InfrastructureFailureTests: XCTestCase {
             let logs = await auditLogger.query(AuditQueryCriteria())
             XCTAssertGreaterThanOrEqual(logs.count, 0, "Should handle corrupted files")
             
-        } catch {
-            // Corruption handling errors are acceptable
-            print("Expected corruption handling error: \(error)")
         }
         
         // Clean up
@@ -586,7 +588,7 @@ enum SystemError: Error {
 
 struct InfrastructureTimeoutError: Error {}
 
-func withInfrastructureTimeout<T: Sendable>(seconds: TimeInterval, operation: @escaping () async throws -> T) async throws -> T {
+func withInfrastructureTimeout<T: Sendable>(seconds: TimeInterval, operation: @escaping @Sendable () async throws -> T) async throws -> T {
     try await withThrowingTaskGroup(of: T.self) { group in
         group.addTask {
             try await operation()

@@ -58,18 +58,6 @@ public actor ConcurrentPipeline {
         )
     }
     
-    /// Creates a new concurrent pipeline with the specified concurrency limit (legacy).
-    ///
-    /// - Parameter maxConcurrency: The maximum number of commands that can execute concurrently.
-    @available(*, deprecated, message: "Use init(options:) for full back-pressure control")
-    public init(maxConcurrency: Int = 10) {
-        self.options = PipelineOptions(maxConcurrency: maxConcurrency)
-        self.semaphore = BackPressureAsyncSemaphore(
-            maxConcurrency: maxConcurrency,
-            maxOutstanding: nil,
-            strategy: .suspend
-        )
-    }
     
     /// Registers a pipeline for a specific command type.
     ///

@@ -5,7 +5,7 @@ final class ObservabilityTests: XCTestCase {
     
     // MARK: - Test Observer Implementation
     
-    class TestObserver: BaseObserver, @unchecked Sendable {
+    final class TestObserver: BaseObserver, @unchecked Sendable {
         var events: [ObservableEvent] = []
         var pipelineEvents: [(String, String)] = [] // (event, pipelineType)
         var middlewareEvents: [(String, String, Int)] = [] // (event, name, order)
@@ -233,7 +233,7 @@ final class ObservabilityTests: XCTestCase {
     
     func DISABLED_testObservableMiddlewareDecorator() async throws {
         let testObserver = TestObserver()
-        let registry = ObserverRegistry(observers: [testObserver])
+        let _ = ObserverRegistry(observers: [testObserver])
         
         let baseMiddleware = TestMiddleware(name: "TestMiddleware")
         let observableMiddleware = ObservableMiddlewareDecorator(
@@ -259,7 +259,7 @@ final class ObservabilityTests: XCTestCase {
     
     func DISABLED_testObservableMiddlewareDecoratorFailure() async throws {
         let testObserver = TestObserver()
-        let registry = ObserverRegistry(observers: [testObserver])
+        let _ = ObserverRegistry(observers: [testObserver])
         
         let baseMiddleware = TestMiddleware(name: "TestMiddleware", shouldFail: true)
         let observableMiddleware = ObservableMiddlewareDecorator(

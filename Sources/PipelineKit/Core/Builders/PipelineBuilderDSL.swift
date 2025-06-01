@@ -63,10 +63,10 @@ public struct PipelineBuilderDSL {
     /// Combines multiple pipeline components into an array.
     /// This is the fundamental building block that allows listing multiple middleware in sequence.
     ///
-    /// - Parameter components: Variable number of pipeline components to combine
+    /// - Parameter components: Variable number of pipeline component arrays to combine
     /// - Returns: Array of pipeline components in the order they were specified
-    public static func buildBlock(_ components: PipelineComponent...) -> [PipelineComponent] {
-        components
+    public static func buildBlock(_ components: [PipelineComponent]...) -> [PipelineComponent] {
+        components.flatMap { $0 }
     }
     
     /// Handles optional pipeline components, typically from `if` statements without `else`.
@@ -853,9 +853,6 @@ struct RetryContextMiddlewareWrapper: ContextAwareMiddleware {
 // Note: Timeout wrappers temporarily removed due to closure capture issues
 // TODO: Implement proper timeout middleware that doesn't capture non-escaping parameters
 
-struct TimeoutError: Error {
-    let message = "Middleware execution timed out"
-}
 
 // MARK: - Command Extensions for Empty Results
 // TODO: Implement proper empty result handling for parallel middleware execution

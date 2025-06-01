@@ -107,8 +107,10 @@ final class PipelineBuilderDSLTests: XCTestCase {
         let result = try await pipeline.execute(command, metadata: DefaultCommandMetadata())
         
         XCTAssertEqual(result, "Handled: test")
-        XCTAssertEqual(await middleware1.getExecutionCount(), 1)
-        XCTAssertEqual(await middleware2.getExecutionCount(), 1)
+        let middleware1Count = await middleware1.getExecutionCount()
+        XCTAssertEqual(middleware1Count, 1)
+        let middleware2Count = await middleware2.getExecutionCount()
+        XCTAssertEqual(middleware2Count, 1)
     }
     
     func testEmptyDSLPipeline() async throws {
@@ -147,8 +149,10 @@ final class PipelineBuilderDSLTests: XCTestCase {
         let command = TestCommand(value: "test")
         _ = try await pipeline.execute(command, metadata: DefaultCommandMetadata())
         
-        XCTAssertEqual(await alwaysMiddleware.getExecutionCount(), 1)
-        XCTAssertTrue(await conditionalMiddleware.getWasExecuted())
+        let alwaysMiddlewareCount = await alwaysMiddleware.getExecutionCount()
+        XCTAssertEqual(alwaysMiddlewareCount, 1)
+        let conditionalWasExecuted = await conditionalMiddleware.getWasExecuted()
+        XCTAssertTrue(conditionalWasExecuted)
     }
     
     func testConditionalMiddlewareWithIfElse() async throws {
@@ -171,8 +175,10 @@ final class PipelineBuilderDSLTests: XCTestCase {
         let command = TestCommand(value: "test")
         _ = try await pipeline.execute(command, metadata: DefaultCommandMetadata())
         
-        XCTAssertFalse(await firstMiddleware.getWasExecuted())
-        XCTAssertTrue(await secondMiddleware.getWasExecuted())
+        let firstWasExecuted = await firstMiddleware.getWasExecuted()
+        XCTAssertFalse(firstWasExecuted)
+        let secondWasExecuted = await secondMiddleware.getWasExecuted()
+        XCTAssertTrue(secondWasExecuted)
     }
     
     func testWhenModifier() async throws {
@@ -191,7 +197,8 @@ final class PipelineBuilderDSLTests: XCTestCase {
         let command = TestCommand(value: "test")
         _ = try await pipeline.execute(command, metadata: DefaultCommandMetadata())
         
-        XCTAssertTrue(await conditionalMiddleware.getWasExecuted())
+        let wasExecuted = await conditionalMiddleware.getWasExecuted()
+        XCTAssertTrue(wasExecuted)
     }
     
     func testWhenModifierWithFalseCondition() async throws {
@@ -212,7 +219,8 @@ final class PipelineBuilderDSLTests: XCTestCase {
         let command = TestCommand(value: "test")
         _ = try await pipeline.execute(command, metadata: DefaultCommandMetadata())
         
-        XCTAssertEqual(await alwaysMiddleware.getExecutionCount(), 1)
+        let alwaysCount = await alwaysMiddleware.getExecutionCount()
+        XCTAssertEqual(alwaysCount, 1)
         // Note: Due to the wrapper, the middleware itself might be created but not executed
         // The actual execution should be prevented by the condition
     }
@@ -270,9 +278,12 @@ final class PipelineBuilderDSLTests: XCTestCase {
         let command = TestCommand(value: "test")
         _ = try await pipeline.execute(command, metadata: DefaultCommandMetadata())
         
-        XCTAssertEqual(await middleware1.getExecutionCount(), 1)
-        XCTAssertEqual(await middleware2.getExecutionCount(), 1)
-        XCTAssertEqual(await middleware3.getExecutionCount(), 1)
+        let count1 = await middleware1.getExecutionCount()
+        XCTAssertEqual(count1, 1)
+        let count2 = await middleware2.getExecutionCount()
+        XCTAssertEqual(count2, 1)
+        let count3 = await middleware3.getExecutionCount()
+        XCTAssertEqual(count3, 1)
     }
     
     // MARK: - Array/Loop Tests
@@ -294,7 +305,8 @@ final class PipelineBuilderDSLTests: XCTestCase {
         _ = try await pipeline.execute(command, metadata: DefaultCommandMetadata())
         
         for middleware in middlewares {
-            XCTAssertEqual(await middleware.getExecutionCount(), 1)
+            let count = await middleware.getExecutionCount()
+            XCTAssertEqual(count, 1)
         }
     }
     
@@ -345,7 +357,8 @@ final class PipelineBuilderDSLTests: XCTestCase {
         let result = try await pipeline.execute(command, metadata: DefaultCommandMetadata())
         
         XCTAssertEqual(result, "Handled: test")
-        XCTAssertEqual(await failingMiddleware.getAttemptCount(), 3) // 2 failures + 1 success
+        let attemptCount = await failingMiddleware.getAttemptCount()
+        XCTAssertEqual(attemptCount, 3) // 2 failures + 1 success
     }
     
     func testRetryExhaustion() async throws {
@@ -367,7 +380,8 @@ final class PipelineBuilderDSLTests: XCTestCase {
             XCTFail("Expected error but succeeded")
         } catch {
             // Expected to fail after exhausting retries
-            XCTAssertEqual(await failingMiddleware.getAttemptCount(), 3)
+            let attemptCount = await failingMiddleware.getAttemptCount()
+            XCTAssertEqual(attemptCount, 3)
         }
     }
     
@@ -415,11 +429,16 @@ final class PipelineBuilderDSLTests: XCTestCase {
         let result = try await pipeline.execute(command, metadata: DefaultCommandMetadata())
         
         XCTAssertEqual(result, "Handled: test")
-        XCTAssertEqual(await authMiddleware.getExecutionCount(), 1)
-        XCTAssertEqual(await validationMiddleware.getExecutionCount(), 1)
-        XCTAssertEqual(await cacheMiddleware.getExecutionCount(), 1)
-        XCTAssertEqual(await loggingMiddleware.getExecutionCount(), 1)
-        XCTAssertTrue(await conditionalDebug.getWasExecuted())
+        let authCount = await authMiddleware.getExecutionCount()
+        XCTAssertEqual(authCount, 1)
+        let validationCount = await validationMiddleware.getExecutionCount()
+        XCTAssertEqual(validationCount, 1)
+        let cacheCount = await cacheMiddleware.getExecutionCount()
+        XCTAssertEqual(cacheCount, 1)
+        let loggingCount = await loggingMiddleware.getExecutionCount()
+        XCTAssertEqual(loggingCount, 1)
+        let debugWasExecuted = await conditionalDebug.getWasExecuted()
+        XCTAssertTrue(debugWasExecuted)
     }
     
     // MARK: - Availability Tests
@@ -440,7 +459,8 @@ final class PipelineBuilderDSLTests: XCTestCase {
         let command = TestCommand(value: "test")
         _ = try await pipeline.execute(command, metadata: DefaultCommandMetadata())
         
-        XCTAssertEqual(await middleware.getExecutionCount(), 1)
+        let executionCount = await middleware.getExecutionCount()
+        XCTAssertEqual(executionCount, 1)
     }
 }
 
@@ -533,9 +553,12 @@ extension PipelineBuilderDSLTests {
         let command = TestCommand(value: "test")
         _ = try await pipeline.execute(command, metadata: DefaultCommandMetadata())
         
-        XCTAssertEqual(await alwaysMiddleware.getExecutionCount(), 1)
-        XCTAssertEqual(await middleware1.getExecutionCount(), 1)
-        XCTAssertEqual(await middleware2.getExecutionCount(), 1)
+        let alwaysCount = await alwaysMiddleware.getExecutionCount()
+        XCTAssertEqual(alwaysCount, 1)
+        let middleware1Count = await middleware1.getExecutionCount()
+        XCTAssertEqual(middleware1Count, 1)
+        let middleware2Count = await middleware2.getExecutionCount()
+        XCTAssertEqual(middleware2Count, 1)
     }
 }
 
