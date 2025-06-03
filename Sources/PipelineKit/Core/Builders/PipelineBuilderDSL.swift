@@ -850,8 +850,40 @@ struct RetryContextMiddlewareWrapper: ContextAwareMiddleware {
     }
 }
 
-// Note: Timeout wrappers temporarily removed due to closure capture issues
-// TODO: Implement proper timeout middleware that doesn't capture non-escaping parameters
+// MARK: - Timeout Middleware Wrapper
+
+/// Wrapper for middleware that should execute with a timeout
+/// 
+/// Note: Due to Swift's limitations with non-escaping closure parameters,
+/// the timeout functionality cannot be implemented in a task group.
+/// This wrapper currently passes through to the underlying middleware.
+/// TODO: Implement proper timeout handling when Swift supports it.
+struct TimeoutMiddlewareWrapper: Middleware {
+    let middleware: any Middleware
+    let timeout: TimeInterval
+    
+    func execute<T: Command>(
+        _ command: T,
+        metadata: CommandMetadata,
+        next: @Sendable (T, CommandMetadata) async throws -> T.Result
+    ) async throws -> T.Result {
+        // Due to Swift's non-escaping parameter limitations, we cannot
+        // capture 'next' in a Task. For now, we pass through to the
+        // underlying middleware without timeout.
+        // 
+        // Future implementations could use:
+        // - A custom executor that supports timeouts
+        // - Structured concurrency improvements in future Swift versions
+        // - Alternative approaches like deadline-based execution
+        
+        // Log warning in debug builds
+        #if DEBUG
+        print("⚠️ TimeoutMiddlewareWrapper: Timeout of \(timeout)s requested but not enforced due to Swift limitations")
+        #endif
+        
+        return try await middleware.execute(command, metadata: metadata, next: next)
+    }
+}
 
 
 // MARK: - Command Extensions for Empty Results

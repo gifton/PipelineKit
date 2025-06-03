@@ -1,5 +1,19 @@
 import Foundation
 
+// MARK: - Protocol for Chainable Commands
+
+/// Protocol for commands that can be chained with results from previous pipeline executions
+public protocol ChainableCommand: Command {
+    /// Creates a new command instance that incorporates the result from a previous execution
+    func chain(with previousResult: Any) -> any Command
+}
+
+/// Protocol for commands that can provide a default result when pipeline conditions aren't met
+public protocol DefaultResultProvider: Command {
+    /// Provides a default result when the pipeline cannot execute
+    func defaultResult() -> Result
+}
+
 // MARK: - Operator Precedence Groups
 
 precedencegroup PipelinePrecedence {
@@ -65,7 +79,7 @@ public func <> (
     lhs: any Pipeline,
     rhs: any Pipeline
 ) -> CompositePipeline {
-    CompositePipeline(first: lhs, second: rhs, mode: .parallel)
+    CompositePipeline(first: lhs, second: rhs, mode: .parallel(strategy: .firstCompleted))
 }
 
 /// Conditional pipeline composition
@@ -74,6 +88,18 @@ public func |? (
     condition: @escaping @Sendable () async -> Bool
 ) -> ConditionalPipelineWrapper {
     ConditionalPipelineWrapper(pipeline: lhs, condition: condition)
+}
+
+/// Conditional pipeline composition with default result
+public func |? (
+    lhs: any Pipeline,
+    conditionWithDefault: (condition: @Sendable () async -> Bool, defaultResult: @Sendable () async throws -> Any)
+) -> ConditionalPipelineWrapper {
+    ConditionalPipelineWrapper(
+        pipeline: lhs, 
+        condition: conditionWithDefault.condition,
+        defaultResult: conditionWithDefault.defaultResult
+    )
 }
 
 /// Error handling pipeline composition
@@ -130,7 +156,13 @@ public struct CompositePipeline: Pipeline {
     
     public enum CompositionMode: Sendable {
         case sequential
-        case parallel
+        case parallel(strategy: ParallelStrategy = .firstCompleted)
+    }
+    
+    public enum ParallelStrategy: Sendable {
+        case firstCompleted
+        case allCompleted
+        case race // Returns first success or all failures
     }
     
     init(first: any Pipeline, second: any Pipeline, mode: CompositionMode) {
@@ -142,27 +174,89 @@ public struct CompositePipeline: Pipeline {
     public func execute<T: Command>(_ command: T, metadata: CommandMetadata) async throws -> T.Result {
         switch mode {
         case .sequential:
-            // Execute first pipeline, then second with the result
-            _ = try await first.execute(command, metadata: metadata)
-            // Note: This is simplified - real implementation would need proper result chaining
-            return try await second.execute(command, metadata: metadata)
+            // For sequential composition, we need a way to transform commands between pipelines
+            // Since we can't change the command type, we'll use the result as context
+            let firstResult = try await first.execute(command, metadata: metadata)
             
-        case .parallel:
-            // Execute both pipelines in parallel and return the first result
-            return try await withThrowingTaskGroup(of: T.Result.self) { group in
-                group.addTask {
-                    try await self.first.execute(command, metadata: metadata)
-                }
-                group.addTask {
-                    try await self.second.execute(command, metadata: metadata)
+            // Create a new command that wraps the original command and the first result
+            if let chainableCommand = command as? any ChainableCommand {
+                let chainedCommand = chainableCommand.chain(with: firstResult) as! T
+                return try await second.execute(chainedCommand, metadata: metadata)
+            } else {
+                // Fallback: execute with original command if not chainable
+                return try await second.execute(command, metadata: metadata)
+            }
+            
+        case .parallel(let strategy):
+            switch strategy {
+            case .firstCompleted:
+                return try await withThrowingTaskGroup(of: T.Result.self) { group in
+                    group.addTask {
+                        try await self.first.execute(command, metadata: metadata)
+                    }
+                    group.addTask {
+                        try await self.second.execute(command, metadata: metadata)
+                    }
+                    
+                    guard let result = try await group.next() else {
+                        throw PipelineError.executionFailed("No pipeline completed successfully")
+                    }
+                    
+                    group.cancelAll()
+                    return result
                 }
                 
-                guard let result = try await group.next() else {
-                    throw PipelineError.executionFailed("No pipeline completed successfully")
+            case .allCompleted:
+                return try await withThrowingTaskGroup(of: T.Result.self) { group in
+                    group.addTask {
+                        try await self.first.execute(command, metadata: metadata)
+                    }
+                    group.addTask {
+                        try await self.second.execute(command, metadata: metadata)
+                    }
+                    
+                    var results: [T.Result] = []
+                    for try await result in group {
+                        results.append(result)
+                    }
+                    
+                    // Return the last result (or could be configured to merge results)
+                    guard let finalResult = results.last else {
+                        throw PipelineError.executionFailed("No pipeline completed successfully")
+                    }
+                    return finalResult
                 }
                 
-                group.cancelAll()
-                return result
+            case .race:
+                return try await withThrowingTaskGroup(of: Result<T.Result, Error>.self) { group in
+                    group.addTask {
+                        do {
+                            return .success(try await self.first.execute(command, metadata: metadata))
+                        } catch {
+                            return .failure(error)
+                        }
+                    }
+                    group.addTask {
+                        do {
+                            return .success(try await self.second.execute(command, metadata: metadata))
+                        } catch {
+                            return .failure(error)
+                        }
+                    }
+                    
+                    var errors: [Error] = []
+                    for try await result in group {
+                        switch result {
+                        case .success(let value):
+                            group.cancelAll()
+                            return value
+                        case .failure(let error):
+                            errors.append(error)
+                        }
+                    }
+                    
+                    throw PipelineError.allPipelinesFailed(errors)
+                }
             }
         }
     }
@@ -172,18 +266,35 @@ public struct CompositePipeline: Pipeline {
 public struct ConditionalPipelineWrapper: Pipeline {
     private let pipeline: any Pipeline
     private let condition: @Sendable () async -> Bool
+    private let defaultResult: (@Sendable () async throws -> Any)?
     
-    init(pipeline: any Pipeline, condition: @escaping @Sendable () async -> Bool) {
+    init(pipeline: any Pipeline, 
+         condition: @escaping @Sendable () async -> Bool,
+         defaultResult: (@Sendable () async throws -> Any)? = nil) {
         self.pipeline = pipeline
         self.condition = condition
+        self.defaultResult = defaultResult
     }
     
     public func execute<T: Command>(_ command: T, metadata: CommandMetadata) async throws -> T.Result {
         if await condition() {
             return try await pipeline.execute(command, metadata: metadata)
+        } else if let defaultResult = defaultResult {
+            // Attempt to provide a default result
+            let result = try await defaultResult()
+            if let typedResult = result as? T.Result {
+                return typedResult
+            } else {
+                throw PipelineError.executionFailed(
+                    "Default result type \(type(of: result)) does not match expected type \(T.Result.self)"
+                )
+            }
         } else {
-            // Need a way to create empty result - this is simplified
-            throw PipelineError.conditionNotMet("Pipeline condition not satisfied")
+            // Check if the command type provides a default result
+            if let defaultProvider = command as? any DefaultResultProvider {
+                return defaultProvider.defaultResult() as! T.Result
+            }
+            throw PipelineError.conditionNotMet("Pipeline condition not satisfied and no default result provided")
         }
     }
 }
@@ -356,19 +467,125 @@ public struct FluentPipelineBuilder<T: Command, H: CommandHandler> where H.Comma
     public func build() async throws -> any Pipeline {
         let builder = PipelineBuilder(handler: handler)
         
-        // Add components in order
-        for component in components {
+        // First, sort components by priority if specified
+        let sortedComponents = sortComponentsByPriority(components)
+        
+        // Process each component
+        for component in sortedComponents {
             switch component {
             case .middleware(let middleware, _):
-                // Note: Priority handling not implemented in simplified version
                 await builder.with(middleware)
-            default:
-                // Handle other component types
-                break
+                
+            case .conditional(let condition, let middleware):
+                let wrapper = ConditionalMiddlewareWrapper(
+                    middleware: middleware,
+                    condition: condition
+                )
+                await builder.with(wrapper)
+                
+            case .group(let groupComponents, _):
+                // Recursively process group components
+                let sortedGroup = sortComponentsByPriority(groupComponents)
+                for groupComponent in sortedGroup {
+                    await processComponent(groupComponent, builder: builder)
+                }
+                
+            case .parallel(let middlewares):
+                // Create a parallel middleware wrapper
+                let parallelWrapper = ParallelMiddlewareWrapper(middlewares: middlewares)
+                await builder.with(parallelWrapper)
+                
+            case .retry(let middleware, let maxAttempts, let backoff):
+                // Create retry wrapper with the specified strategy
+                let retryWrapper = RetryMiddlewareWrapper(
+                    middleware: middleware,
+                    maxAttempts: maxAttempts,
+                    strategy: backoff
+                )
+                await builder.with(retryWrapper)
+                
+            case .timeout(let middleware, let duration):
+                // Create timeout wrapper
+                let timeoutWrapper = TimeoutMiddlewareWrapper(
+                    middleware: middleware,
+                    timeout: duration
+                )
+                await builder.with(timeoutWrapper)
             }
         }
         
         return try await builder.build()
+    }
+    
+    /// Sorts components by their execution priority
+    private func sortComponentsByPriority(_ components: [PipelineComponent]) -> [PipelineComponent] {
+        return components.sorted { first, second in
+            let firstPriority = extractPriority(from: first)
+            let secondPriority = extractPriority(from: second)
+            
+            // If both have priorities, sort by priority value (lower values execute first)
+            if let p1 = firstPriority, let p2 = secondPriority {
+                return p1.rawValue < p2.rawValue
+            }
+            
+            // Components with priority come before those without
+            if firstPriority != nil && secondPriority == nil {
+                return true
+            }
+            if firstPriority == nil && secondPriority != nil {
+                return false
+            }
+            
+            // Both nil priorities - maintain original order
+            return false
+        }
+    }
+    
+    /// Extracts the priority from a pipeline component
+    private func extractPriority(from component: PipelineComponent) -> ExecutionPriority? {
+        switch component {
+        case .middleware(_, let order):
+            return order
+        case .group(_, let order):
+            return order
+        default:
+            return nil
+        }
+    }
+    
+    /// Processes a single component and adds it to the builder
+    private func processComponent(_ component: PipelineComponent, builder: PipelineBuilder<T, H>) async {
+        switch component {
+        case .middleware(let middleware, _):
+            await builder.with(middleware)
+        case .conditional(let condition, let middleware):
+            let wrapper = ConditionalMiddlewareWrapper(
+                middleware: middleware,
+                condition: condition
+            )
+            await builder.with(wrapper)
+        case .group(let groupComponents, _):
+            let sortedGroup = sortComponentsByPriority(groupComponents)
+            for groupComponent in sortedGroup {
+                await processComponent(groupComponent, builder: builder)
+            }
+        case .parallel(let middlewares):
+            let parallelWrapper = ParallelMiddlewareWrapper(middlewares: middlewares)
+            await builder.with(parallelWrapper)
+        case .retry(let middleware, let maxAttempts, let backoff):
+            let retryWrapper = RetryMiddlewareWrapper(
+                middleware: middleware,
+                maxAttempts: maxAttempts,
+                strategy: backoff
+            )
+            await builder.with(retryWrapper)
+        case .timeout(let middleware, let duration):
+            let timeoutWrapper = TimeoutMiddlewareWrapper(
+                middleware: middleware,
+                timeout: duration
+            )
+            await builder.with(timeoutWrapper)
+        }
     }
 }
 
@@ -447,6 +664,26 @@ extension PipelineError {
     static func conditionNotMet(_ message: String) -> PipelineError {
         .executionFailed("Condition not met: \(message)")
     }
+    
+    static func allPipelinesFailed(_ errors: [Error]) -> PipelineError {
+        let errorDescriptions = errors.map { $0.localizedDescription }.joined(separator: "; ")
+        return .executionFailed("All pipelines failed: \(errorDescriptions)")
+    }
+}
+
+// MARK: - Additional Convenience Functions
+
+/// Creates a parallel execution strategy configuration
+public func parallel(strategy: CompositePipeline.ParallelStrategy) -> CompositePipeline.ParallelStrategy {
+    strategy
+}
+
+/// Creates a conditional configuration with default result
+public func whenElse<T>(
+    _ condition: @escaping @Sendable () async -> Bool,
+    defaultResult: @escaping @Sendable () async throws -> T
+) -> (condition: @Sendable () async -> Bool, defaultResult: @Sendable () async throws -> Any) {
+    (condition, { try await defaultResult() as Any })
 }
 
 // MARK: - Operator Usage Examples
@@ -465,21 +702,31 @@ let pipeline2 = try handler <++ middleware(authMiddleware, priority: .authentica
 // Conditional middleware  
 let pipeline3 = try handler <?+ when({ await isDevelopment() }, use: debugMiddleware)
 
-// Pipeline composition
+// Pipeline composition with result chaining (for ChainableCommand)
 let compositePipeline = pipeline1 |> pipeline2
 
-// Parallel execution
-let parallelPipeline = pipeline1 <> pipeline2
+// Parallel execution with different strategies
+let parallelPipeline = pipeline1 <> pipeline2  // Default: firstCompleted
 
-// Conditional execution
-let conditionalPipeline = pipeline1 |? { await shouldExecute() }
+// Create custom parallel pipeline with strategy
+let racePipeline = CompositePipeline(
+    first: pipeline1, 
+    second: pipeline2, 
+    mode: .parallel(strategy: .race)
+)
+
+// Conditional execution with default result
+let conditionalPipeline = pipeline1 |? whenElse(
+    { await shouldExecute() },
+    defaultResult: { MyDefaultResult() }
+)
 
 // Error handling
 let safePipeline = pipeline1 |! { error in
     await logError(error)
 }
 
-// Fluent builder style
+// Fluent builder style with all component types
 let fluentPipeline = try pipeline(for: handler)
     <+ authMiddleware
     <++ middleware(validationMiddleware, priority: .validation)
