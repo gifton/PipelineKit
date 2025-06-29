@@ -7,9 +7,9 @@ public protocol MetricsCollector: Sendable {
     func recordGauge(_ value: Double, for name: String, tags: [String: String]) async
 }
 
-/// Default in-memory metrics collector
-public actor DefaultMetricsCollector: MetricsCollector {
-    public static let shared = DefaultMetricsCollector()
+/// Standard in-memory metrics collector
+public actor StandardMetricsCollector: MetricsCollector {
+    public static let shared = StandardMetricsCollector()
     
     private var latencies: [String: [TimeInterval]] = [:]
     private var counters: [String: Int] = [:]

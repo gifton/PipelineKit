@@ -27,7 +27,7 @@ import Foundation
 /// // Execute a command
 /// let result = try await pipeline.execute(
 ///     CreateUserCommand(email: "user@example.com"),
-///     metadata: DefaultCommandMetadata(userId: "admin")
+///     metadata: StandardCommandMetadata(userId: "admin")
 /// )
 /// ```
 public actor StandardPipeline<C: Command, H: CommandHandler>: PipelineKit.Pipeline where H.CommandType == C {

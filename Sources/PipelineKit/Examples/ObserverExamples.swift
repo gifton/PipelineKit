@@ -18,7 +18,7 @@ public struct ObserverExamples {
         
         // Execute commands - output will be printed to console
         let command = ExampleCommand(value: "Hello")
-        let result = try await pipeline.execute(command, metadata: DefaultCommandMetadata())
+        let result = try await pipeline.execute(command, metadata: StandardCommandMetadata())
         print("Result: \(result)")
     }
     
@@ -41,7 +41,7 @@ public struct ObserverExamples {
         // Execute some commands
         for i in 0..<5 {
             let command = ExampleCommand(value: "Test \(i)")
-            _ = try await pipeline.execute(command, metadata: DefaultCommandMetadata())
+            _ = try await pipeline.execute(command, metadata: StandardCommandMetadata())
         }
         
         // Query the captured events
@@ -73,7 +73,7 @@ public struct ObserverExamples {
         
         // Execute commands - metrics will be printed to console
         let command = ExampleCommand(value: "Metrics Test")
-        _ = try await pipeline.execute(command, metadata: DefaultCommandMetadata())
+        _ = try await pipeline.execute(command, metadata: StandardCommandMetadata())
     }
     
     /// Example: Using CompositeObserver to combine multiple observers
@@ -99,7 +99,7 @@ public struct ObserverExamples {
         
         // All observers will receive events
         let command = ExampleCommand(value: "Composite Test")
-        _ = try await pipeline.execute(command, metadata: DefaultCommandMetadata())
+        _ = try await pipeline.execute(command, metadata: StandardCommandMetadata())
     }
     
     /// Example: Using ConditionalObserver for selective observation
@@ -128,11 +128,11 @@ public struct ObserverExamples {
         
         // This will be observed by importantObserver
         let importantCommand = ImportantCommand(value: "Critical")
-        _ = try await importantPipeline.execute(importantCommand, metadata: DefaultCommandMetadata())
+        _ = try await importantPipeline.execute(importantCommand, metadata: StandardCommandMetadata())
         
         // This won't be observed by importantObserver (unless it fails and errorObserver sees it)
         let regularCommand = ExampleCommand(value: "Regular")
-        _ = try await examplePipeline.execute(regularCommand, metadata: DefaultCommandMetadata())
+        _ = try await examplePipeline.execute(regularCommand, metadata: StandardCommandMetadata())
     }
     
     /// Example: Production setup with multiple observers
@@ -175,7 +175,7 @@ public struct ObserverExamples {
         
         // Use the pipeline
         let command = ProductionCommand()
-        _ = try await pipeline.execute(command, metadata: DefaultCommandMetadata())
+        _ = try await pipeline.execute(command, metadata: StandardCommandMetadata())
     }
 }
 

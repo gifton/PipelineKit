@@ -31,8 +31,8 @@ public struct EncryptedData: Sendable, Codable {
     }
 }
 
-/// Default AES-GCM encryption service
-public struct DefaultEncryptionService: EncryptionService {
+/// Standard AES-GCM encryption service
+public struct StandardEncryptionService: EncryptionService {
     private let key: SymmetricKey
     
     public init(key: SymmetricKey? = nil) {

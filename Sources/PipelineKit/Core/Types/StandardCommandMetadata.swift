@@ -1,17 +1,17 @@
 import Foundation
 
-/// Default implementation of `CommandMetadata`.
+/// Standard implementation of `CommandMetadata`.
 /// 
 /// Provides a standard metadata structure with automatic ID and timestamp generation.
 /// 
 /// Example:
 /// ```swift
-/// let metadata = DefaultCommandMetadata(
+/// let metadata = StandardCommandMetadata(
 ///     userId: "user123",
 ///     correlationId: "trace-456"
 /// )
 /// ```
-public struct DefaultCommandMetadata: CommandMetadata, Equatable, Hashable {
+public struct StandardCommandMetadata: CommandMetadata, Equatable, Hashable {
     public let id: UUID
     public let timestamp: Date
     public let userId: String?

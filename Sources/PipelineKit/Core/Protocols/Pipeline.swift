@@ -10,6 +10,6 @@ public protocol Pipeline: Sendable {
 
 public extension Pipeline {
     func execute<T: Command>(_ command: T) async throws -> T.Result {
-        try await execute(command, metadata: DefaultCommandMetadata())
+        try await execute(command, metadata: StandardCommandMetadata())
     }
 }

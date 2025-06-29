@@ -164,7 +164,7 @@ public enum DSLExamples {
             )
         )
         
-        let result = try await pipeline.execute(command, metadata: DefaultCommandMetadata())
+        let result = try await pipeline.execute(command, metadata: StandardCommandMetadata())
         print("Order processed: \(result.orderId) - Status: \(result.status)")
     }
     

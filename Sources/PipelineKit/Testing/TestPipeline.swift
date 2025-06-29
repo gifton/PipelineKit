@@ -252,7 +252,7 @@ public extension XCTestCase {
     func XCTAssertPipelineSucceeds<T: Command>(
         _ pipeline: any Pipeline,
         command: T,
-        metadata: CommandMetadata = DefaultCommandMetadata(),
+        metadata: CommandMetadata = StandardCommandMetadata(),
         file: StaticString = #file,
         line: UInt = #line
     ) async {
@@ -267,7 +267,7 @@ public extension XCTestCase {
     func XCTAssertPipelineFails<T: Command>(
         _ pipeline: any Pipeline,
         command: T,
-        metadata: CommandMetadata = DefaultCommandMetadata(),
+        metadata: CommandMetadata = StandardCommandMetadata(),
         withError expectedError: Error? = nil,
         file: StaticString = #file,
         line: UInt = #line
@@ -291,7 +291,7 @@ public extension XCTestCase {
     func XCTAssertPipelinePerformance<T: Command>(
         _ pipeline: any Pipeline,
         command: T,
-        metadata: CommandMetadata = DefaultCommandMetadata(),
+        metadata: CommandMetadata = StandardCommandMetadata(),
         within duration: TimeInterval,
         file: StaticString = #file,
         line: UInt = #line

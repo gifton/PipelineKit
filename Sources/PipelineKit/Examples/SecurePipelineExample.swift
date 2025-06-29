@@ -105,7 +105,7 @@ func demonstrateSecurePipeline() async throws {
     
     let result = try await pipeline.execute(
         command,
-        metadata: DefaultCommandMetadata(userId: "user-123")
+        metadata: StandardCommandMetadata(userId: "user-123")
     )
     
     print("Payment processed: \(result.transactionId)")

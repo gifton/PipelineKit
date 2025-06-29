@@ -24,7 +24,7 @@ import os.log
 /// // Dispatch commands with automatic rate limiting
 /// let result = try await dispatcher.dispatch(
 ///     CreateUserCommand(email: "user@example.com"),
-///     metadata: DefaultCommandMetadata(userId: "admin123")
+///     metadata: StandardCommandMetadata(userId: "admin123")
 /// )
 /// ```
 public actor SecureCommandDispatcher {
@@ -65,7 +65,7 @@ public actor SecureCommandDispatcher {
         metadata: CommandMetadata? = nil
     ) async throws -> T.Result {
         let commandType = String(describing: T.self)
-        let executionMetadata = metadata ?? DefaultCommandMetadata()
+        let executionMetadata = metadata ?? StandardCommandMetadata()
         
         // Check circuit breaker first
         if let breaker = circuitBreaker {
@@ -77,7 +77,7 @@ public actor SecureCommandDispatcher {
         
         // Apply rate limiting
         if let limiter = rateLimiter {
-            let identifier = (executionMetadata as? DefaultCommandMetadata)?.userId ?? "anonymous"
+            let identifier = (executionMetadata as? StandardCommandMetadata)?.userId ?? "anonymous"
             let allowed = try await limiter.allowRequest(
                 identifier: "\(identifier):\(commandType)",
                 cost: calculateCommandCost(command)

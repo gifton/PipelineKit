@@ -97,7 +97,7 @@ public actor ConcurrentPipeline {
         let token = try await semaphore.acquire()
         defer { _ = token } // Keep token alive until end of scope
         
-        let executionMetadata = metadata ?? DefaultCommandMetadata()
+        let executionMetadata = metadata ?? StandardCommandMetadata()
         return try await pipeline.execute(command, metadata: executionMetadata)
     }
     
@@ -130,7 +130,7 @@ public actor ConcurrentPipeline {
         
         defer { _ = token } // Keep token alive until end of scope
         
-        let executionMetadata = metadata ?? DefaultCommandMetadata()
+        let executionMetadata = metadata ?? StandardCommandMetadata()
         return try await pipeline.execute(command, metadata: executionMetadata)
     }
     

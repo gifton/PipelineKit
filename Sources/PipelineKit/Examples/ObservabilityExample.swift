@@ -331,7 +331,7 @@ public class ObservabilityExampleSetup {
         
         // Execute with observability
         do {
-            let result = try await pipeline.execute(order, metadata: DefaultCommandMetadata(
+            let result = try await pipeline.execute(order, metadata: StandardCommandMetadata(
                 userId: "CUSTOMER-123",
                 correlationId: "TRACE-" + UUID().uuidString
             ))

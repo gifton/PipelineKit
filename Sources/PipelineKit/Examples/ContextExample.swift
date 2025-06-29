@@ -228,7 +228,7 @@ func demonstrateContextAwarePipeline() async throws {
     // Execute through pipeline
     let order = try await pipeline.execute(
         command,
-        metadata: DefaultCommandMetadata(userId: "customer-123")
+        metadata: StandardCommandMetadata(userId: "customer-123")
     )
     
     print("Order created: \(order.id)")

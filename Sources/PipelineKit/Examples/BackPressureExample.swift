@@ -138,7 +138,7 @@ public struct BackPressureExample {
                 group.addTask {
                     do {
                         let command = SlowCommand(id: i, duration: 1.5)
-                        let _ = try await pipeline.execute(command, metadata: DefaultCommandMetadata()) // result
+                        let _ = try await pipeline.execute(command, metadata: StandardCommandMetadata()) // result
                         print("✅ Command \(i) completed through middleware")
                     } catch {
                         print("❌ Command \(i) failed in middleware: \(error)")

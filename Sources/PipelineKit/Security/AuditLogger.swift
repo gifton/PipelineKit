@@ -373,7 +373,7 @@ public struct AuditLoggingMiddleware: Middleware, PrioritizedMiddleware {
     ) async throws -> T.Result {
         let startTime = Date()
         let commandType = String(describing: T.self)
-        let userId = (metadata as? DefaultCommandMetadata)?.userId ?? "anonymous"
+        let userId = (metadata as? StandardCommandMetadata)?.userId ?? "anonymous"
         let extraMetadata = metadataExtractor(command, metadata)
         
         do {

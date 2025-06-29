@@ -108,7 +108,7 @@ public struct WebAPIPipelineTemplate: PipelineTemplate {
             /*
             try await pipeline.addMiddleware(
                 MetricsMiddleware(
-                    collector: DefaultMetricsCollector.shared
+                    collector: StandardMetricsCollector.shared
                 )
             )
             */
@@ -384,7 +384,7 @@ public struct MicroservicePipelineTemplate: PipelineTemplate {
         /*
         try await pipeline.addMiddleware(
             MetricsMiddleware(
-                collector: DefaultMetricsCollector.shared,
+                collector: StandardMetricsCollector.shared,
                 namespace: configuration.serviceName
             )
         )

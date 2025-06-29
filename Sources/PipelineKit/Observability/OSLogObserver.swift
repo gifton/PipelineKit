@@ -263,7 +263,7 @@ public final class OSLogObserver: BaseObserver, @unchecked Sendable {
     private func formatMetadata(_ metadata: CommandMetadata) -> String {
         guard configuration.includeMetadata else { return "" }
         
-        if let defaultMetadata = metadata as? DefaultCommandMetadata {
+        if let defaultMetadata = metadata as? StandardCommandMetadata {
             return """
                 👤 User: \(defaultMetadata.userId ?? "anonymous")
                 📅 Timestamp: \(ISO8601DateFormatter().string(from: defaultMetadata.timestamp))

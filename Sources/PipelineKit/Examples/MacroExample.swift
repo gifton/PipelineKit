@@ -52,7 +52,7 @@ public actor ConcurrentStandardService {
 /// Example usage function
 public func runUnifiedMacroExamples() async throws {
     let command = UnifiedMacroCommand(value: "test")
-    let metadata = DefaultCommandMetadata()
+    let metadata = StandardCommandMetadata()
     
     // Test standard pipeline
     let standardService = StandardPipelineService()

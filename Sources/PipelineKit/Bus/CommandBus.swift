@@ -37,10 +37,10 @@ public actor CommandBus {
         metadata: CommandMetadata? = nil,
         retryPolicy: RetryPolicy = .default
     ) async throws -> T.Result {
-        let commandMetadata = metadata ?? DefaultCommandMetadata()
+        let commandMetadata = metadata ?? StandardCommandMetadata()
 
         return try await withRetry(retryPolicy: retryPolicy, command: command) {
-            try await executePipeline(command: command, metadata: commandMetadata)
+            try await self.executePipeline(command: command, metadata: commandMetadata)
         }
     }
 
@@ -130,10 +130,9 @@ public actor CommandBus {
 
     @discardableResult
     public func removeMiddleware(_ middleware: any Middleware) -> Bool {
-        if let index = middlewares.firstIndex(where: { $0 === middleware }) {
-            middlewares.remove(at: index)
-            return true
-        }
+        // Since Middleware is no longer constrained to AnyObject, we can't use ===
+        // This method is deprecated and will be removed in future versions
+        // Consider using removeAllMiddleware() or managing middleware through configuration
         return false
     }
 
