@@ -21,13 +21,14 @@ import Foundation
 /// )
 /// ```
 public struct SanitizationMiddleware: Middleware {
+    public let priority: ExecutionPriority = .sanitization
     
     public init() {}
     
     public func execute<T: Command>(
         _ command: T,
-        metadata: CommandMetadata,
-        next: @Sendable (T, CommandMetadata) async throws -> T.Result
+        context: CommandContext,
+        next: @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
         // Check if command is sanitizable and create a sanitized copy
         if let sanitizableCommand = command as? any SanitizableCommand {
@@ -36,14 +37,14 @@ public struct SanitizationMiddleware: Middleware {
             // Safely cast back to T
             guard let sanitizedCommand = sanitized as? T else {
                 // This should never happen in practice, but handle it gracefully
-                return try await next(command, metadata)
+                return try await next(command, context)
             }
             
-            return try await next(sanitizedCommand, metadata)
+            return try await next(sanitizedCommand, context)
         }
         
         // Continue with original command if not sanitizable
-        return try await next(command, metadata)
+        return try await next(command, context)
     }
 }
 

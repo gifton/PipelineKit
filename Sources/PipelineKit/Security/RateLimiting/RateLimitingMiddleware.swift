@@ -11,8 +11,9 @@ import Foundation
 /// let middleware = RateLimitingMiddleware(limiter: limiter)
 /// ```
 public struct RateLimitingMiddleware: Middleware {
+    public let priority: ExecutionPriority = .rateLimiting
     private let limiter: RateLimiter
-    private let identifierExtractor: @Sendable (any Command, CommandMetadata) -> String
+    private let identifierExtractor: @Sendable (any Command, CommandContext) async -> String
     private let costCalculator: @Sendable (any Command) -> Double
     
     /// Creates rate limiting middleware.
@@ -23,8 +24,9 @@ public struct RateLimitingMiddleware: Middleware {
     ///   - costCalculator: Function to calculate request cost
     public init(
         limiter: RateLimiter,
-        identifierExtractor: @escaping @Sendable (any Command, CommandMetadata) -> String = { _, metadata in
-            metadata.userId ?? "anonymous"
+        identifierExtractor: @escaping @Sendable (any Command, CommandContext) async -> String = { _, context in
+            let metadata = await context.commandMetadata
+            return metadata.userId ?? "anonymous"
         },
         costCalculator: @escaping @Sendable (any Command) -> Double = { _ in 1.0 }
     ) {
@@ -35,10 +37,10 @@ public struct RateLimitingMiddleware: Middleware {
     
     public func execute<T: Command>(
         _ command: T,
-        metadata: CommandMetadata,
-        next: @Sendable (T, CommandMetadata) async throws -> T.Result
+        context: CommandContext,
+        next: @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
-        let identifier = identifierExtractor(command, metadata)
+        let identifier = await identifierExtractor(command, context)
         let cost = costCalculator(command)
         
         guard try await limiter.allowRequest(identifier: identifier, cost: cost) else {
@@ -49,7 +51,7 @@ public struct RateLimitingMiddleware: Middleware {
             )
         }
         
-        return try await next(command, metadata)
+        return try await next(command, context)
     }
 }
 
