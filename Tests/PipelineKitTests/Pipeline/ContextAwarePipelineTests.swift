@@ -29,7 +29,8 @@ final class ContextAwarePipelineTests: XCTestCase {
     }
     
     // Context-aware middleware that modifies result
-    struct MultiplierMiddleware: ContextAwareMiddleware {
+    struct MultiplierMiddleware: Middleware {
+        let priority: ExecutionPriority = .normal
         let multiplier: Int
         
         func execute<T: Command>(
@@ -37,12 +38,10 @@ final class ContextAwarePipelineTests: XCTestCase {
             context: CommandContext,
             next: @Sendable (T, CommandContext) async throws -> T.Result
         ) async throws -> T.Result {
-            // Store multiplier in context
             await context.set(multiplier, for: MultiplierKey.self)
             
             let result = try await next(command, context)
             
-            // If result is Int, multiply it
             if let intResult = result as? Int {
                 return (intResult * multiplier) as! T.Result
             }
@@ -52,8 +51,9 @@ final class ContextAwarePipelineTests: XCTestCase {
     }
     
     // Middleware that accumulates execution info
-    struct AccumulatorMiddleware: ContextAwareMiddleware {
+    struct AccumulatorMiddleware: Middleware {
         let name: String
+        let priority: ExecutionPriority = .normal
         
         func execute<T: Command>(
             _ command: T,
@@ -77,10 +77,7 @@ final class ContextAwarePipelineTests: XCTestCase {
     func testBasicContextAwarePipeline() async throws {
         let pipeline = ContextAwarePipeline(handler: CalculateHandler())
         
-        let result = try await pipeline.execute(
-            CalculateCommand(value: 5),
-            metadata: DefaultCommandMetadata()
-        )
+        let result = try await pipeline.execute(CalculateCommand(value: 5))
         
         XCTAssertEqual(result, 10) // 5 * 2
     }
@@ -89,10 +86,7 @@ final class ContextAwarePipelineTests: XCTestCase {
         let pipeline = ContextAwarePipeline(handler: CalculateHandler())
         try await pipeline.addMiddleware(MultiplierMiddleware(multiplier: 3))
         
-        let result = try await pipeline.execute(
-            CalculateCommand(value: 5),
-            metadata: DefaultCommandMetadata()
-        )
+        let result = try await pipeline.execute(CalculateCommand(value: 5))
         
         XCTAssertEqual(result, 30) // (5 * 2) * 3
     }
@@ -103,10 +97,7 @@ final class ContextAwarePipelineTests: XCTestCase {
         try await pipeline.addMiddleware(AccumulatorMiddleware(name: "Second"))
         try await pipeline.addMiddleware(MultiplierMiddleware(multiplier: 2))
         
-        let result = try await pipeline.execute(
-            CalculateCommand(value: 5),
-            metadata: DefaultCommandMetadata()
-        )
+        let result = try await pipeline.execute(CalculateCommand(value: 5))
         
         XCTAssertEqual(result, 20) // (5 * 2) * 2
     }
@@ -117,24 +108,22 @@ final class ContextAwarePipelineTests: XCTestCase {
         // Regular middleware
         struct LoggingMiddleware: Middleware {
             let logs: Actor<[String]>
+            let priority: ExecutionPriority = .logging
             
             func execute<T: Command>(
                 _ command: T,
-                metadata: CommandMetadata,
-                next: @Sendable (T, CommandMetadata) async throws -> T.Result
+                context: CommandContext,
+                next: @Sendable (T, CommandContext) async throws -> T.Result
             ) async throws -> T.Result {
                 await logs.append("Executing: \(T.self)")
-                return try await next(command, metadata)
+                return try await next(command, context)
             }
         }
         
         let logs = Actor<[String]>([])
-        try await pipeline.addRegularMiddleware(LoggingMiddleware(logs: logs))
+        try await pipeline.addMiddleware(LoggingMiddleware(logs: logs))
         
-        _ = try await pipeline.execute(
-            CalculateCommand(value: 5),
-            metadata: DefaultCommandMetadata()
-        )
+        _ = try await pipeline.execute(CalculateCommand(value: 5))
         
         let logEntries = await logs.get()
         XCTAssertEqual(logEntries.count, 1)
@@ -149,10 +138,7 @@ final class ContextAwarePipelineTests: XCTestCase {
         
         let pipeline = try await builder.build()
         
-        let result = try await pipeline.execute(
-            CalculateCommand(value: 4),
-            metadata: DefaultCommandMetadata()
-        )
+        let result = try await pipeline.execute(CalculateCommand(value: 4))
         
         XCTAssertEqual(result, 24) // (4 * 2) * 3
     }
@@ -162,7 +148,7 @@ final class ContextAwarePipelineTests: XCTestCase {
         let authenticatedUsers = ["user123": "John Doe"]
         let userRoles = ["user123": Set(["admin", "user"])]
         
-        let authMiddleware = ContextAuthenticationMiddleware { userId in
+        let authMiddleware = AuthenticationMiddleware { userId in
             guard let userId = userId,
                   authenticatedUsers[userId] != nil else {
                 throw AuthorizationError.notAuthenticated
@@ -170,7 +156,7 @@ final class ContextAwarePipelineTests: XCTestCase {
             return userId
         }
         
-        let authzMiddleware = ContextAuthorizationMiddleware(
+        let authzMiddleware = AuthorizationMiddleware(
             requiredRoles: ["admin"]
         ) { userId in
             userRoles[userId] ?? []
@@ -202,17 +188,14 @@ final class ContextAwarePipelineTests: XCTestCase {
     func testMetricsCollection() async throws {
         let metrics = Actor<[(String, TimeInterval)]>([])
         
-        let metricsMiddleware = ContextMetricsMiddleware { name, duration in
+        let metricsMiddleware = MetricsMiddleware { name, duration in
             await metrics.append((name, duration))
         }
         
         let pipeline = ContextAwarePipeline(handler: CalculateHandler())
         try await pipeline.addMiddleware(metricsMiddleware)
         
-        _ = try await pipeline.execute(
-            CalculateCommand(value: 5),
-            metadata: DefaultCommandMetadata()
-        )
+        _ = try await pipeline.execute(CalculateCommand(value: 5))
         
         let collectedMetrics = await metrics.get()
         XCTAssertEqual(collectedMetrics.count, 1)
@@ -221,7 +204,8 @@ final class ContextAwarePipelineTests: XCTestCase {
     }
     
     func testContextInitialValues() async throws {
-        struct ContextInspectorMiddleware: ContextAwareMiddleware {
+        struct ContextInspectorMiddleware: Middleware {
+            let priority: ExecutionPriority = .normal
             let onExecute: @Sendable (CommandContext) async -> Void
             
             func execute<T: Command>(
@@ -247,10 +231,7 @@ final class ContextAwarePipelineTests: XCTestCase {
         let pipeline = ContextAwarePipeline(handler: CalculateHandler())
         try await pipeline.addMiddleware(inspector)
         
-        _ = try await pipeline.execute(
-            CalculateCommand(value: 5),
-            metadata: DefaultCommandMetadata()
-        )
+        _ = try await pipeline.execute(CalculateCommand(value: 5))
         
         await fulfillment(of: [expectation], timeout: 1.0)
         

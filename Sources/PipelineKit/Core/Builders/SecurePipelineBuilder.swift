@@ -21,28 +21,28 @@ public struct SecurePipelineBuilder<T: Command, H: CommandHandler> where H.Comma
     /// Adds authentication middleware
     @discardableResult
     public mutating func withAuthentication(_ middleware: any Middleware) -> Self {
-        builder.add(middleware, order: .authentication)
+        builder.add(middleware, order: middleware.priority)
         return self
     }
     
     /// Adds authorization middleware
     @discardableResult
     public mutating func withAuthorization(_ middleware: any Middleware) -> Self {
-        builder.add(middleware, order: .authorization)
+        builder.add(middleware, order: middleware.priority)
         return self
     }
     
     /// Adds rate limiting middleware
     @discardableResult
     public mutating func withRateLimiting(_ middleware: any Middleware) -> Self {
-        builder.add(middleware, order: .rateLimiting)
+        builder.add(middleware, order: middleware.priority)
         return self
     }
     
     /// Adds logging middleware
     @discardableResult
     public mutating func withLogging(_ middleware: any Middleware) -> Self {
-        builder.add(middleware, order: .logging)
+        builder.add(middleware, order: middleware.priority)
         return self
     }
     
@@ -58,8 +58,8 @@ public struct SecurePipelineBuilder<T: Command, H: CommandHandler> where H.Comma
         let pipeline = PriorityPipeline(handler: handler)
         let orderedMiddleware = builder.build()
         
-        for (middleware, priority) in orderedMiddleware {
-            try await pipeline.addMiddleware(middleware, priority: priority)
+        for (middleware, _) in orderedMiddleware {
+            try await pipeline.addMiddleware(middleware)
         }
         
         return pipeline

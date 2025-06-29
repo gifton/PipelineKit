@@ -21,13 +21,14 @@ import Foundation
 /// )
 /// ```
 public struct ValidationMiddleware: Middleware {
+    public let priority: ExecutionPriority = .validation
     
     public init() {}
     
     public func execute<T: Command>(
         _ command: T,
-        metadata: CommandMetadata,
-        next: @Sendable (T, CommandMetadata) async throws -> T.Result
+        context: CommandContext,
+        next: @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
         // Check if command is validatable
         if let validatableCommand = command as? any ValidatableCommand {
@@ -35,12 +36,7 @@ public struct ValidationMiddleware: Middleware {
         }
         
         // Continue to next middleware/handler
-        return try await next(command, metadata)
+        return try await next(command, context)
     }
 }
 
-// Extension to make ValidationMiddleware an PrioritizedMiddleware
-extension ValidationMiddleware: PrioritizedMiddleware {
-    /// Recommended middleware order for this component
-    nonisolated(unsafe) public static var recommendedOrder: ExecutionPriority { .validation }
-}

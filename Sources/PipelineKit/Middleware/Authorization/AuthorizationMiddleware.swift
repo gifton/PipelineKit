@@ -1,10 +1,11 @@
 import Foundation
 
-/// Example authorization middleware using context.
-public struct ContextAuthorizationMiddleware: ContextAwareMiddleware {
+/// Authorization middleware with role-based access control.
+public struct AuthorizationMiddleware: Middleware {
+    public let priority: ExecutionPriority = .authorization
     private let requiredRoles: Set<String>
     private let getUserRoles: @Sendable (String) async throws -> Set<String>
-    
+
     public init(
         requiredRoles: Set<String>,
         getUserRoles: @escaping @Sendable (String) async throws -> Set<String>
@@ -12,7 +13,7 @@ public struct ContextAuthorizationMiddleware: ContextAwareMiddleware {
         self.requiredRoles = requiredRoles
         self.getUserRoles = getUserRoles
     }
-    
+
     public func execute<T: Command>(
         _ command: T,
         context: CommandContext,
@@ -22,15 +23,15 @@ public struct ContextAuthorizationMiddleware: ContextAwareMiddleware {
         guard let userId = await context[AuthenticatedUserKey.self] else {
             throw AuthorizationError.notAuthenticated
         }
-        
+
         let userRoles = try await getUserRoles(userId)
         await context.set(userRoles, for: AuthorizationRolesKey.self)
-        
+
         // Check if user has required roles
         guard !requiredRoles.isDisjoint(with: userRoles) else {
             throw AuthorizationError.insufficientPermissions
         }
-        
+
         return try await next(command, context)
     }
 }

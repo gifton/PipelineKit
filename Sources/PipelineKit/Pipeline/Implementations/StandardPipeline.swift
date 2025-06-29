@@ -2,7 +2,7 @@ import Foundation
 
 /// The primary pipeline implementation for executing commands through middleware.
 ///
-/// `DefaultPipeline` provides a type-safe, flexible command processing pipeline that supports
+/// `StandardPipeline` provides a type-safe, flexible command processing pipeline that supports
 /// both regular and context-aware middleware. It maintains the execution order of
 /// middleware and ensures thread-safe operations through actor isolation.
 ///
@@ -17,7 +17,7 @@ import Foundation
 /// ## Example
 /// ```swift
 /// // Create a pipeline with a handler
-/// let pipeline = DefaultPipeline(handler: CreateUserHandler())
+/// let pipeline = StandardPipeline(handler: CreateUserHandler())
 ///
 /// // Add middleware
 /// try await pipeline.addMiddleware(ValidationMiddleware())
@@ -30,7 +30,7 @@ import Foundation
 ///     metadata: DefaultCommandMetadata(userId: "admin")
 /// )
 /// ```
-public actor DefaultPipeline<C: Command, H: CommandHandler>: PipelineKit.Pipeline where H.CommandType == C {
+public actor StandardPipeline<C: Command, H: CommandHandler>: PipelineKit.Pipeline where H.CommandType == C {
     /// The collection of middleware to execute in order.
     private var middlewares: [any Middleware] = []
     
@@ -277,3 +277,6 @@ public actor DefaultPipeline<C: Command, H: CommandHandler>: PipelineKit.Pipelin
         middlewares.contains { $0 is M }
     }
 }
+
+/// Backward compatibility type alias
+public typealias DefaultPipeline = StandardPipeline

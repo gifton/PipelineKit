@@ -22,6 +22,7 @@ final class PipelineBuilderDSLTests: XCTestCase {
     
     actor TestMiddleware: Middleware {
         let name: String
+        let priority: ExecutionPriority = .normal
         private(set) var executionCount = 0
         private(set) var lastCommand: (any Command)?
         
@@ -31,12 +32,12 @@ final class PipelineBuilderDSLTests: XCTestCase {
         
         func execute<T: Command>(
             _ command: T,
-            metadata: CommandMetadata,
-            next: @Sendable (T, CommandMetadata) async throws -> T.Result
+            context: CommandContext,
+            next: @Sendable (T, CommandContext) async throws -> T.Result
         ) async throws -> T.Result {
             executionCount += 1
             lastCommand = command
-            return try await next(command, metadata)
+            return try await next(command, context)
         }
         
         func getExecutionCount() async -> Int {
@@ -47,6 +48,7 @@ final class PipelineBuilderDSLTests: XCTestCase {
     actor OrderTrackingMiddleware: Middleware {
         private var executionOrder: [String] = []
         let name: String
+        let priority: ExecutionPriority = .normal
         
         init(name: String) {
             self.name = name
@@ -54,11 +56,11 @@ final class PipelineBuilderDSLTests: XCTestCase {
         
         func execute<T: Command>(
             _ command: T,
-            metadata: CommandMetadata,
-            next: @Sendable (T, CommandMetadata) async throws -> T.Result
+            context: CommandContext,
+            next: @Sendable (T, CommandContext) async throws -> T.Result
         ) async throws -> T.Result {
             executionOrder.append(name)
-            return try await next(command, metadata)
+            return try await next(command, context)
         }
         
         func getExecutionOrder() async -> [String] {
@@ -68,6 +70,7 @@ final class PipelineBuilderDSLTests: XCTestCase {
     
     actor ConditionalTestMiddleware: Middleware {
         let shouldExecute: Bool
+        let priority: ExecutionPriority = .normal
         private(set) var wasExecuted = false
         
         init(shouldExecute: Bool) {
@@ -76,11 +79,11 @@ final class PipelineBuilderDSLTests: XCTestCase {
         
         func execute<T: Command>(
             _ command: T,
-            metadata: CommandMetadata,
-            next: @Sendable (T, CommandMetadata) async throws -> T.Result
+            context: CommandContext,
+            next: @Sendable (T, CommandContext) async throws -> T.Result
         ) async throws -> T.Result {
             wasExecuted = true
-            return try await next(command, metadata)
+            return try await next(command, context)
         }
         
         func getWasExecuted() async -> Bool {
@@ -104,7 +107,7 @@ final class PipelineBuilderDSLTests: XCTestCase {
         
         // Then
         let command = TestCommand(value: "test")
-        let result = try await pipeline.execute(command, metadata: DefaultCommandMetadata())
+        let result = try await pipeline.execute(command)
         
         XCTAssertEqual(result, "Handled: test")
         let middleware1Count = await middleware1.getExecutionCount()
@@ -124,7 +127,7 @@ final class PipelineBuilderDSLTests: XCTestCase {
         
         // Then
         let command = TestCommand(value: "test")
-        let result = try await pipeline.execute(command, metadata: DefaultCommandMetadata())
+        let result = try await pipeline.execute(command)
         XCTAssertEqual(result, "Handled: test")
     }
     
@@ -147,7 +150,7 @@ final class PipelineBuilderDSLTests: XCTestCase {
         
         // Then
         let command = TestCommand(value: "test")
-        _ = try await pipeline.execute(command, metadata: DefaultCommandMetadata())
+        _ = try await pipeline.execute(command)
         
         let alwaysMiddlewareCount = await alwaysMiddleware.getExecutionCount()
         XCTAssertEqual(alwaysMiddlewareCount, 1)
@@ -173,7 +176,7 @@ final class PipelineBuilderDSLTests: XCTestCase {
         
         // Then
         let command = TestCommand(value: "test")
-        _ = try await pipeline.execute(command, metadata: DefaultCommandMetadata())
+        _ = try await pipeline.execute(command)
         
         let firstWasExecuted = await firstMiddleware.getWasExecuted()
         XCTAssertFalse(firstWasExecuted)
@@ -195,7 +198,7 @@ final class PipelineBuilderDSLTests: XCTestCase {
         
         // Then
         let command = TestCommand(value: "test")
-        _ = try await pipeline.execute(command, metadata: DefaultCommandMetadata())
+        _ = try await pipeline.execute(command)
         
         let wasExecuted = await conditionalMiddleware.getWasExecuted()
         XCTAssertTrue(wasExecuted)
@@ -217,7 +220,7 @@ final class PipelineBuilderDSLTests: XCTestCase {
         
         // Then
         let command = TestCommand(value: "test")
-        _ = try await pipeline.execute(command, metadata: DefaultCommandMetadata())
+        _ = try await pipeline.execute(command)
         
         let alwaysCount = await alwaysMiddleware.getExecutionCount()
         XCTAssertEqual(alwaysCount, 1)
@@ -243,7 +246,7 @@ final class PipelineBuilderDSLTests: XCTestCase {
         
         // Then
         let command = TestCommand(value: "test")
-        _ = try await pipeline.execute(command, metadata: DefaultCommandMetadata())
+        _ = try await pipeline.execute(command)
         
         // Middleware execute in the order they're added
         let order1 = await tracker1.getExecutionOrder()
@@ -276,7 +279,7 @@ final class PipelineBuilderDSLTests: XCTestCase {
         
         // Then
         let command = TestCommand(value: "test")
-        _ = try await pipeline.execute(command, metadata: DefaultCommandMetadata())
+        _ = try await pipeline.execute(command)
         
         let count1 = await middleware1.getExecutionCount()
         XCTAssertEqual(count1, 1)
@@ -302,7 +305,7 @@ final class PipelineBuilderDSLTests: XCTestCase {
         
         // Then
         let command = TestCommand(value: "test")
-        _ = try await pipeline.execute(command, metadata: DefaultCommandMetadata())
+        _ = try await pipeline.execute(command)
         
         for middleware in middlewares {
             let count = await middleware.getExecutionCount()
@@ -314,6 +317,7 @@ final class PipelineBuilderDSLTests: XCTestCase {
     
     actor FailingMiddleware: Middleware {
         let failuresBeforeSuccess: Int
+        let priority: ExecutionPriority = .normal
         private var attemptCount = 0
         
         init(failuresBeforeSuccess: Int) {
@@ -322,14 +326,14 @@ final class PipelineBuilderDSLTests: XCTestCase {
         
         func execute<T: Command>(
             _ command: T,
-            metadata: CommandMetadata,
-            next: @Sendable (T, CommandMetadata) async throws -> T.Result
+            context: CommandContext,
+            next: @Sendable (T, CommandContext) async throws -> T.Result
         ) async throws -> T.Result {
             attemptCount += 1
             if attemptCount <= failuresBeforeSuccess {
                 throw TestError.simulatedFailure
             }
-            return try await next(command, metadata)
+            return try await next(command, context)
         }
         
         func getAttemptCount() async -> Int {
@@ -354,7 +358,7 @@ final class PipelineBuilderDSLTests: XCTestCase {
         
         // Then
         let command = TestCommand(value: "test")
-        let result = try await pipeline.execute(command, metadata: DefaultCommandMetadata())
+        let result = try await pipeline.execute(command)
         
         XCTAssertEqual(result, "Handled: test")
         let attemptCount = await failingMiddleware.getAttemptCount()
@@ -376,7 +380,7 @@ final class PipelineBuilderDSLTests: XCTestCase {
         let command = TestCommand(value: "test")
         
         do {
-            _ = try await pipeline.execute(command, metadata: DefaultCommandMetadata())
+            _ = try await pipeline.execute(command)
             XCTFail("Expected error but succeeded")
         } catch {
             // Expected to fail after exhausting retries
@@ -426,7 +430,7 @@ final class PipelineBuilderDSLTests: XCTestCase {
         
         // Then
         let command = TestCommand(value: "test")
-        let result = try await pipeline.execute(command, metadata: DefaultCommandMetadata())
+        let result = try await pipeline.execute(command)
         
         XCTAssertEqual(result, "Handled: test")
         let authCount = await authMiddleware.getExecutionCount()
@@ -457,7 +461,7 @@ final class PipelineBuilderDSLTests: XCTestCase {
         
         // Then
         let command = TestCommand(value: "test")
-        _ = try await pipeline.execute(command, metadata: DefaultCommandMetadata())
+        _ = try await pipeline.execute(command)
         
         let executionCount = await middleware.getExecutionCount()
         XCTAssertEqual(executionCount, 1)
@@ -471,6 +475,7 @@ extension PipelineBuilderDSLTests {
     actor ParallelTrackingMiddleware: Middleware {
         let name: String
         let delay: TimeInterval
+        let priority: ExecutionPriority = .normal
         private var startTime: Date?
         private var endTime: Date?
         
@@ -481,8 +486,8 @@ extension PipelineBuilderDSLTests {
         
         func execute<T: Command>(
             _ command: T,
-            metadata: CommandMetadata,
-            next: @Sendable (T, CommandMetadata) async throws -> T.Result
+            context: CommandContext,
+            next: @Sendable (T, CommandContext) async throws -> T.Result
         ) async throws -> T.Result {
             startTime = Date()
             
@@ -490,7 +495,7 @@ extension PipelineBuilderDSLTests {
                 try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
             }
             
-            let result = try await next(command, metadata)
+            let result = try await next(command, context)
             endTime = Date()
             return result
         }
@@ -519,7 +524,7 @@ extension PipelineBuilderDSLTests {
         // Then
         let startTime = Date()
         let command = TestCommand(value: "test")
-        _ = try await pipeline.execute(command, metadata: DefaultCommandMetadata())
+        _ = try await pipeline.execute(command)
         let endTime = Date()
         
         // If executed in parallel, total time should be close to the longest individual delay
@@ -551,7 +556,7 @@ extension PipelineBuilderDSLTests {
         
         // Then
         let command = TestCommand(value: "test")
-        _ = try await pipeline.execute(command, metadata: DefaultCommandMetadata())
+        _ = try await pipeline.execute(command)
         
         let alwaysCount = await alwaysMiddleware.getExecutionCount()
         XCTAssertEqual(alwaysCount, 1)

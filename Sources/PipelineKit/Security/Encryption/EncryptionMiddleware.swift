@@ -9,11 +9,10 @@ import Foundation
 /// 
 /// pipeline.use(middleware)
 /// ```
-public struct EncryptionMiddleware: Middleware, PrioritizedMiddleware {
+public struct EncryptionMiddleware: Middleware {
+    public let priority: ExecutionPriority = .encryption
     private let encryptor: CommandEncryptor
     private let shouldEncrypt: @Sendable (any Command) -> Bool
-    
-    nonisolated(unsafe) public static var recommendedOrder: ExecutionPriority { .encryption }
     
     /// Creates encryption middleware.
     ///
@@ -30,12 +29,12 @@ public struct EncryptionMiddleware: Middleware, PrioritizedMiddleware {
     
     public func execute<T: Command>(
         _ command: T,
-        metadata: CommandMetadata,
-        next: @Sendable (T, CommandMetadata) async throws -> T.Result
+        context: CommandContext,
+        next: @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
         // Only process encryptable commands
         guard let encryptableCommand = command as? any EncryptableCommand else {
-            return try await next(command, metadata)
+            return try await next(command, context)
         }
         
         // Note: Due to type system limitations, we can't directly encrypt/decrypt
@@ -47,6 +46,6 @@ public struct EncryptionMiddleware: Middleware, PrioritizedMiddleware {
             throw EncryptionError.noSensitiveFields
         }
         
-        return try await next(command, metadata)
+        return try await next(command, context)
     }
 }

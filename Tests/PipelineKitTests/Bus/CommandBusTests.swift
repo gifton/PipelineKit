@@ -33,6 +33,7 @@ final class CommandBusTests: XCTestCase {
     
     struct LoggingMiddleware: Middleware {
         let logs: Actor<[String]>
+        let priority: ExecutionPriority = .logging
         
         init(logs: Actor<[String]>) {
             self.logs = logs
@@ -40,12 +41,13 @@ final class CommandBusTests: XCTestCase {
         
         func execute<T: Command>(
             _ command: T,
-            metadata: CommandMetadata,
-            next: @Sendable (T, CommandMetadata) async throws -> T.Result
+            context: CommandContext,
+            next: @Sendable (T, CommandContext) async throws -> T.Result
         ) async throws -> T.Result {
-            await logs.append("Before: \(String(describing: T.self))")
-            let result = try await next(command, metadata)
-            await logs.append("After: \(String(describing: T.self))")
+            let metadata = await context.commandMetadata
+            await logs.append("Before: \(String(describing: T.self)) - \(metadata.correlationId ?? "")")
+            let result = try await next(command, context)
+            await logs.append("After: \(String(describing: T.self)) - \(metadata.correlationId ?? "")")
             return result
         }
     }
@@ -122,8 +124,8 @@ final class CommandBusTests: XCTestCase {
         
         let logEntries = await logs.get()
         XCTAssertEqual(logEntries.count, 2)
-        XCTAssertTrue(logEntries[0].contains("Before"))
-        XCTAssertTrue(logEntries[1].contains("After"))
+        XCTAssertTrue(logEntries[0].contains("Before: AddNumbersCommand"))
+        XCTAssertTrue(logEntries[1].contains("After: AddNumbersCommand"))
     }
     
     func testCommandBusBuilder() async throws {

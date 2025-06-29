@@ -38,15 +38,17 @@ final class PrioritizedMiddlewareIntegrationTests: XCTestCase {
     struct TrackingMiddleware: Middleware {
         let name: String
         let tracker: OrderTestActor<[String]>
+        let priority: ExecutionPriority = .normal // Default priority
         
         func execute<T: Command>(
             _ command: T,
-            metadata: CommandMetadata,
-            next: @Sendable (T, CommandMetadata) async throws -> T.Result
+            context: CommandContext,
+            next: @Sendable (T, CommandContext) async throws -> T.Result
         ) async throws -> T.Result {
-            await tracker.append("\(name):before")
-            let result = try await next(command, metadata)
-            await tracker.append("\(name):after")
+            let metadata = await context.commandMetadata
+            await tracker.append("\(name):before - \(metadata.correlationId ?? "")")
+            let result = try await next(command, context)
+            await tracker.append("\(name):after - \(metadata.correlationId ?? "")")
             return result
         }
     }
@@ -65,7 +67,7 @@ final class PrioritizedMiddlewareIntegrationTests: XCTestCase {
         
         // Execute command
         let command = TestCommand(input: "  test  ", tracker: tracker)
-        _ = try await pipeline.execute(command, metadata: DefaultCommandMetadata())
+        _ = try await pipeline.execute(command)
         
         // Verify execution order
         let executionOrder = await tracker.get()
@@ -101,33 +103,33 @@ final class PrioritizedMiddlewareIntegrationTests: XCTestCase {
     
     func testPrioritizedMiddlewareProtocol() async throws {
         // Define ordered middleware
-        struct OrderedAuthMiddleware: Middleware, PrioritizedMiddleware {
-            static var recommendedOrder: ExecutionPriority { .authentication }
+        struct OrderedAuthMiddleware: Middleware {
+            let priority: ExecutionPriority = .authentication
             
             let tracker: OrderTestActor<[String]>
             
             func execute<T: Command>(
                 _ command: T,
-                metadata: CommandMetadata,
-                next: @Sendable (T, CommandMetadata) async throws -> T.Result
+                context: CommandContext,
+                next: @Sendable (T, CommandContext) async throws -> T.Result
             ) async throws -> T.Result {
                 await tracker.append("ordered-auth")
-                return try await next(command, metadata)
+                return try await next(command, context)
             }
         }
         
-        struct OrderedLoggingMiddleware: Middleware, PrioritizedMiddleware {
-            static var recommendedOrder: ExecutionPriority { .logging }
+        struct OrderedLoggingMiddleware: Middleware {
+            let priority: ExecutionPriority = .logging
             
             let tracker: OrderTestActor<[String]>
             
             func execute<T: Command>(
                 _ command: T,
-                metadata: CommandMetadata,
-                next: @Sendable (T, CommandMetadata) async throws -> T.Result
+                context: CommandContext,
+                next: @Sendable (T, CommandContext) async throws -> T.Result
             ) async throws -> T.Result {
                 await tracker.append("ordered-log")
-                return try await next(command, metadata)
+                return try await next(command, context)
             }
         }
         
@@ -135,11 +137,10 @@ final class PrioritizedMiddlewareIntegrationTests: XCTestCase {
         let pipeline = PriorityPipeline(handler: TestHandler())
         
         // Add using ordered middleware helper
-//        try pipeline.addPrioritizedMiddleware(OrderedLoggingMiddleware(tracker: tracker))
-//        try pipeline.addPrioritizedMiddleware(OrderedAuthMiddleware(tracker: tracker))
+
         
         let command = TestCommand(input: "test", tracker: tracker)
-        _ = try await pipeline.execute(command, metadata: DefaultCommandMetadata())
+        _ = try await pipeline.execute(command)
         
         let executionOrder = await tracker.get()
         
@@ -150,17 +151,7 @@ final class PrioritizedMiddlewareIntegrationTests: XCTestCase {
         }
     }
     
-    func testRecommendedOrderProperty() {
-        // Verify our security middleware have recommended orders
-        XCTAssertEqual(ValidationMiddleware.recommendedOrder, .validation)
-        XCTAssertEqual(SanitizationMiddleware.recommendedOrder, .sanitization)
-        
-        // Verify proper ordering
-        XCTAssertLessThan(
-            ValidationMiddleware.recommendedOrder.rawValue,
-            SanitizationMiddleware.recommendedOrder.rawValue
-        )
-    }
+    
 }
 
 // Helper actor

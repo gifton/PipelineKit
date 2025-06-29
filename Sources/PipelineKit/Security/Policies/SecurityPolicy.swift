@@ -60,6 +60,7 @@ public struct SecurityPolicy: Sendable {
 /// This middleware applies configured security policies to all commands,
 /// providing an additional layer of protection beyond basic validation.
 public struct SecurityPolicyMiddleware: Middleware {
+    public let priority: ExecutionPriority = .custom
     private let policy: SecurityPolicy
     
     /// Creates a security policy middleware with the specified policy.
@@ -71,8 +72,8 @@ public struct SecurityPolicyMiddleware: Middleware {
     
     public func execute<T: Command>(
         _ command: T,
-        metadata: CommandMetadata,
-        next: @Sendable (T, CommandMetadata) async throws -> T.Result
+        context: CommandContext,
+        next: @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
         // Apply security checks based on policy
         if policy.strictValidation {
@@ -80,6 +81,6 @@ public struct SecurityPolicyMiddleware: Middleware {
             // Note: Size validation would require Encodable constraint
         }
         
-        return try await next(command, metadata)
+        return try await next(command, context)
     }
 }

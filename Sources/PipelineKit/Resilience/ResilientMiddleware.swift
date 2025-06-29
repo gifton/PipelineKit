@@ -2,6 +2,7 @@ import Foundation
 
 /// Middleware that provides resilience patterns including retry and circuit breaker
 public final class ResilientMiddleware: Middleware {
+    public let priority: ExecutionPriority = .errorHandling
     private let retryPolicy: RetryPolicy
     private let circuitBreaker: CircuitBreaker?
     private let name: String
@@ -18,9 +19,12 @@ public final class ResilientMiddleware: Middleware {
     
     public func execute<T: Command>(
         _ command: T,
-        metadata: CommandMetadata,
-        next: @Sendable (T, CommandMetadata) async throws -> T.Result
+        context: CommandContext,
+        next: @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
+        // Get metadata from context if needed
+        let metadata = await context.commandMetadata
+        
         // Check circuit breaker first
         if let breaker = circuitBreaker {
             guard await breaker.shouldAllow() else {
@@ -29,7 +33,7 @@ public final class ResilientMiddleware: Middleware {
         }
         
         do {
-            let result = try await executeWithRetry(command, metadata: metadata, next: next)
+            let result = try await executeWithRetry(command, context: context, next: next)
             
             // Record success
             if let breaker = circuitBreaker {
@@ -48,15 +52,16 @@ public final class ResilientMiddleware: Middleware {
     
     private func executeWithRetry<T: Command>(
         _ command: T,
-        metadata: CommandMetadata,
-        next: @Sendable (T, CommandMetadata) async throws -> T.Result
+        context: CommandContext,
+        next: @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
         var lastError: Error?
         let startTime = Date()
+        let metadata = await context.commandMetadata
         
         for attempt in 1...retryPolicy.maxAttempts {
             do {
-                return try await next(command, metadata)
+                return try await next(command, context)
             } catch {
                 lastError = error
                 
@@ -111,7 +116,7 @@ public actor Bulkhead {
     private let name: String
     private let maxConcurrency: Int
     private var activeCalls = 0
-    private var waitingCalls = 0
+    private var waitQueue: [CheckedContinuation<Void, Error>] = []
     private let maxWaitingCalls: Int
     
     public init(
@@ -127,66 +132,49 @@ public actor Bulkhead {
     public func execute<T>(
         operation: @escaping @Sendable () async throws -> T
     ) async throws -> T {
-        // Check if we can execute immediately
+        try await acquireSlot()
+        defer {
+            Task { await self.releaseSlot() }
+        }
+        return try await operation()
+    }
+    
+    private func acquireSlot() async throws {
         if activeCalls < maxConcurrency {
             activeCalls += 1
-            defer { 
-                Task { await self.decrementActive() }
-            }
-            return try await operation()
+            return
         }
         
-        // Check if we can queue
-        guard waitingCalls < maxWaitingCalls else {
-            throw BulkheadError.queueFull(name: name)
+        guard waitQueue.count < maxWaitingCalls else {
+            throw ResilienceError.bulkheadFull(name: name)
         }
         
-        waitingCalls += 1
-        defer {
-            Task { await self.decrementWaiting() }
-        }
-        
-        // Wait for capacity
-        while activeCalls >= maxConcurrency {
-            try await Task.sleep(nanoseconds: 10_000_000) // 10ms
+        try await withCheckedThrowingContinuation { continuation in
+            waitQueue.append(continuation)
         }
         
         activeCalls += 1
-        defer {
-            Task { await self.decrementActive() }
-        }
+    }
+    
+    private func releaseSlot() {
+        activeCalls -= 1
         
-        return try await operation()
+        if !waitQueue.isEmpty {
+            let continuation = waitQueue.removeFirst()
+            continuation.resume()
+        }
     }
     
     public func getStats() -> BulkheadStats {
         BulkheadStats(
             name: name,
             activeCalls: activeCalls,
-            waitingCalls: waitingCalls,
+            waitingCalls: waitQueue.count,
             maxConcurrency: maxConcurrency
         )
     }
-    
-    private func decrementActive() {
-        activeCalls = max(0, activeCalls - 1)
-    }
-    
-    private func decrementWaiting() {
-        waitingCalls = max(0, waitingCalls - 1)
-    }
 }
 
-public enum BulkheadError: LocalizedError {
-    case queueFull(name: String)
-    
-    public var errorDescription: String? {
-        switch self {
-        case .queueFull(let name):
-            return "Bulkhead '\(name)' queue is full"
-        }
-    }
-}
 
 public struct BulkheadStats: Sendable {
     public let name: String
