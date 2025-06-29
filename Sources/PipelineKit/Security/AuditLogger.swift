@@ -348,8 +348,9 @@ public struct AuditQueryCriteria: Sendable {
 /// pipeline.use(middleware)
 /// ```
 public struct AuditLoggingMiddleware: Middleware, PrioritizedMiddleware {
+    public let priority: ExecutionPriority = .auditLogging
     private let auditLogger: AuditLogger
-    private let metadataExtractor: @Sendable (any Command, CommandMetadata) -> [String: String]
+    private let metadataExtractor: @Sendable (any Command, CommandMetadata) async -> [String: String]
     
     nonisolated(unsafe) public static var recommendedOrder: ExecutionPriority { .auditLogging }
     
@@ -360,7 +361,7 @@ public struct AuditLoggingMiddleware: Middleware, PrioritizedMiddleware {
     ///   - metadataExtractor: Function to extract additional metadata
     public init(
         logger: AuditLogger,
-        metadataExtractor: @escaping @Sendable (any Command, CommandMetadata) -> [String: String] = { _, _ in [:] }
+        metadataExtractor: @escaping @Sendable (any Command, CommandMetadata) async -> [String: String] = { _, _ in [:] }
     ) {
         self.auditLogger = logger
         self.metadataExtractor = metadataExtractor
@@ -368,16 +369,17 @@ public struct AuditLoggingMiddleware: Middleware, PrioritizedMiddleware {
     
     public func execute<T: Command>(
         _ command: T,
-        metadata: CommandMetadata,
-        next: @Sendable (T, CommandMetadata) async throws -> T.Result
+        context: CommandContext,
+        next: @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
         let startTime = Date()
+        let metadata = await context.commandMetadata
         let commandType = String(describing: T.self)
         let userId = (metadata as? StandardCommandMetadata)?.userId ?? "anonymous"
-        let extraMetadata = metadataExtractor(command, metadata)
+        let extraMetadata = await metadataExtractor(command, metadata)
         
         do {
-            let result = try await next(command, metadata)
+            let result = try await next(command, context)
             
             let entry = AuditEntry(
                 commandType: commandType,
