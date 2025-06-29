@@ -92,7 +92,7 @@ public enum DSLExamples {
             }
             
             // Authentication and authorization
-            AuthenticationMiddleware()
+            ExampleAuthenticationMiddleware()
                 .order(.authentication)
             
             DSLAuthorizationMiddleware()
@@ -355,7 +355,7 @@ public enum DSLExamples {
                 BulkheadMiddleware(maxConcurrent: 10)
                 
                 // Timeout with fallback
-                TimeoutMiddleware()
+                ExampleTimeoutMiddleware()
                     .retry(maxAttempts: 2, strategy: .immediate)
             }
             
@@ -670,7 +670,7 @@ final class DSLFraudDetectionMiddleware: Middleware {
     }
 }
 
-final class AuthenticationMiddleware: Middleware {
+final class ExampleAuthenticationMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }
@@ -983,7 +983,7 @@ final class BulkheadMiddleware: Middleware {
     }
 }
 
-final class TimeoutMiddleware: Middleware {
+final class ExampleTimeoutMiddleware: Middleware {
     func execute<T: Command>(_ command: T, metadata: CommandMetadata, next: @Sendable (T, CommandMetadata) async throws -> T.Result) async throws -> T.Result {
         try await next(command, metadata)
     }

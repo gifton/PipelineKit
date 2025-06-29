@@ -26,3 +26,13 @@ public struct FeatureFlagsKey: ContextKey {
 public struct AuthorizationRolesKey: ContextKey {
     public typealias Value = Set<String>
 }
+
+/// Context key for storing trace ID for distributed tracing.
+public struct TraceIdKey: ContextKey {
+    public typealias Value = String
+}
+
+/// Context key for storing service name for observability.
+public struct ServiceNameKey: ContextKey {
+    public typealias Value = String
+}

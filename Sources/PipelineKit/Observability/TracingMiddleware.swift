@@ -44,15 +44,6 @@ public final class TracingMiddleware: Middleware {
     }
 }
 
-// MARK: - Context Keys
-public struct TraceIdKey: ContextKey {
-    public typealias Value = String
-}
-
-public struct ServiceNameKey: ContextKey {
-    public typealias Value = String
-}
-
 // MARK: - Tracer Protocol
 /// Basic tracer protocol
 public protocol Tracer: Sendable {

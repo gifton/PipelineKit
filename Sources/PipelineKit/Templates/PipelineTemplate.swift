@@ -573,10 +573,4 @@ struct TimeoutError: LocalizedError {
     }
 }
 
-struct TraceIdKey: ContextKey {
-    typealias Value = String
-}
-
-struct ServiceNameKey: ContextKey {
-    typealias Value = String
-}
+// Context keys moved to CommonContextKeys.swift

@@ -1,6 +1,8 @@
 import Foundation
 
 /// Builder actor for constructing context-aware pipelines with thread-safe fluent API.
+@available(*, deprecated, renamed: "PipelineBuilder",
+           message: "Use PipelineBuilder instead.")
 public actor ContextAwarePipelineBuilder<T: Command, H: CommandHandler> where H.CommandType == T {
     private let handler: H
     private var middlewares: [any Middleware] = []

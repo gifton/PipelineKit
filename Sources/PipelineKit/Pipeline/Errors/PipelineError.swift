@@ -33,4 +33,27 @@ public struct PipelineError: Error, Sendable, LocalizedError {
             self.middlewareType = nil
         }
     }
+    
+    /// Creates an execution failed error.
+    /// - Parameter message: The error message.
+    /// - Returns: A PipelineError instance.
+    @available(*, deprecated, message: "Use PipelineError(underlyingError:command:middleware:) instead")
+    public static func executionFailed(_ message: String) -> PipelineError {
+        struct ExecutionError: LocalizedError {
+            let message: String
+            var errorDescription: String? { message }
+        }
+        
+        // Create a placeholder command for the error
+        struct PlaceholderCommand: Command {
+            typealias Result = Void
+            func execute() async throws -> Void {}
+        }
+        
+        return PipelineError(
+            underlyingError: ExecutionError(message: message),
+            command: PlaceholderCommand(),
+            middleware: nil
+        )
+    }
 }

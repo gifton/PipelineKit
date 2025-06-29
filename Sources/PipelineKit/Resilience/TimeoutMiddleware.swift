@@ -21,8 +21,8 @@ public final class TimeoutMiddleware: Middleware {
     ) async throws -> T.Result {
         let effectiveTimeout: TimeInterval
         
-        if let budgetKey = timeoutBudgetKey,
-           let budget = await context[budgetKey] {
+        if timeoutBudgetKey != nil,
+           let budget = await context[TimeoutBudgetKey.self] {
             effectiveTimeout = budget.remaining
             guard effectiveTimeout > 0 else {
                 throw ResilienceError.timeout(seconds: 0)
@@ -48,11 +48,11 @@ public final class TimeoutMiddleware: Middleware {
                 group.cancelAll()
                 
                 // Update timeout budget if cascading
-                if let budgetKey = timeoutBudgetKey {
+                if timeoutBudgetKey != nil {
                     let elapsed = Date().timeIntervalSince(startTime)
-                    if let budget = await context[budgetKey] {
+                    if let budget = await context[TimeoutBudgetKey.self] {
                         let newBudget = budget.consume(elapsed)
-                        await context.set(newBudget, for: budgetKey)
+                        await context.set(newBudget, for: TimeoutBudgetKey.self)
                     }
                 }
                 
@@ -66,24 +66,4 @@ public final class TimeoutMiddleware: Middleware {
 
 private struct TimeoutBudgetKey: ContextKey {
     typealias Value = TimeoutBudget
-}
-
-/// Represents a timeout budget that can be consumed across operations
-public struct TimeoutBudget: Sendable {
-    public let total: TimeInterval
-    public let remaining: TimeInterval
-    
-    public init(total: TimeInterval) {
-        self.total = total
-        self.remaining = total
-    }
-    
-    private init(total: TimeInterval, remaining: TimeInterval) {
-        self.total = total
-        self.remaining = max(0, remaining)
-    }
-    
-    public func consume(_ elapsed: TimeInterval) -> TimeoutBudget {
-        TimeoutBudget(total: total, remaining: remaining - elapsed)
-    }
 }

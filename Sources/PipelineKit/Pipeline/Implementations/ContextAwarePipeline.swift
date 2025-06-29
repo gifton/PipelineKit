@@ -1,6 +1,8 @@
 import Foundation
 
 /// A pipeline that provides context throughout command execution.
+@available(*, deprecated, renamed: "StandardPipeline", 
+           message: "All pipelines now support context. Use StandardPipeline instead.")
 public actor ContextAwarePipeline: Pipeline {
     private var middlewares: [any Middleware] = []
     private let handler: AnyContextHandler
