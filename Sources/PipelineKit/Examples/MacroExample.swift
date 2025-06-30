@@ -1,6 +1,7 @@
 import Foundation
 
 // Example demonstrating the unified Pipeline macro supporting all pipeline types
+// The @Pipeline macro now generates context-based API code
 
 // Test command and handler
 public struct UnifiedMacroCommand: Command {
@@ -31,7 +32,7 @@ public actor StandardPipelineService {
     public init() {}
 }
 
-// Example 2: Context-aware pipeline
+// Example 2: Context-aware pipeline (now maps to StandardPipeline)
 @Pipeline(context: .enabled)
 public actor ContextAwarePipelineService {
     public typealias CommandType = UnifiedMacroCommand
@@ -49,25 +50,31 @@ public actor ConcurrentStandardService {
     public init() {}
 }
 
-/// Example usage function
+/// Example usage function showing both macro-generated and manual pipeline creation
 public func runUnifiedMacroExamples() async throws {
     let command = UnifiedMacroCommand(value: "test")
-    let metadata = StandardCommandMetadata()
+    let context = CommandContext(metadata: StandardCommandMetadata())
     
-    // Test standard pipeline
+    // Example 1: Using macro-generated standard pipeline
     let standardService = StandardPipelineService()
-    let result1 = try await standardService.execute(command, metadata: metadata)
-    print("Standard: \(result1)")
+    let result1 = try await standardService.execute(command, context: context)
+    print("Standard pipeline (macro): \(result1)")
     
-    // Test context-aware pipeline
-    let contextService = ContextAwarePipelineService()
-    let result2 = try await contextService.execute(command, metadata: metadata)
-    print("Context-aware: \(result2)")
+    // Example 2: Using macro-generated context-aware pipeline (now StandardPipeline)
+    let contextAwareService = ContextAwarePipelineService()
+    let result2 = try await contextAwareService.execute(command, context: context)
+    print("Context-aware pipeline (macro): \(result2)")
     
-    // Test concurrent standard
+    // Example 3: Using macro-generated concurrent pipeline
     let concurrentService = ConcurrentStandardService()
-    let result3 = try await concurrentService.execute(command, metadata: metadata)
-    print("Concurrent: \(result3)")
+    let result3 = try await concurrentService.execute(command, context: context)
+    print("Concurrent pipeline (macro): \(result3)")
     
-    print("Basic unified macro examples completed successfully!")
+    // Manual pipeline creation for comparison
+    let handler = UnifiedMacroHandler()
+    let manualPipeline = StandardPipeline(handler: handler)
+    let manualResult = try await manualPipeline.execute(command, context: context)
+    print("Manual pipeline: \(manualResult)")
+    
+    print("\nAll pipeline macro examples completed successfully!")
 }

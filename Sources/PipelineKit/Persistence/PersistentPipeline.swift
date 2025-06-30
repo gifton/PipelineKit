@@ -35,13 +35,14 @@ public actor PersistentPipeline<T: PersistableCommand, H: CommandHandler>: Pipel
         )
     }
     
-    public func execute<C: Command>(_ command: C, metadata: CommandMetadata) async throws -> C.Result {
+    public func execute<C: Command>(_ command: C, context: CommandContext) async throws -> C.Result {
         guard let persistableCommand = command as? T else {
             // If not persistable, execute directly
-            return try await basePipeline.execute(command, metadata: metadata)
+            return try await basePipeline.execute(command, context: context)
         }
         
         // Journal the command
+        let metadata = await context.commandMetadata
         let entryId = try await journal.append(persistableCommand, metadata: metadata)
         
         do {
@@ -49,7 +50,7 @@ public actor PersistentPipeline<T: PersistableCommand, H: CommandHandler>: Pipel
             try await journal.updateStatus(entryId, status: .executing)
             
             // Execute through base pipeline
-            let result = try await basePipeline.execute(command, metadata: metadata)
+            let result = try await basePipeline.execute(command, context: context)
             
             // Mark as complete
             try await journal.complete(entryId)
@@ -238,9 +239,11 @@ public actor InMemoryCheckpointStorage: CheckpointStorage {
 }
 
 /// Pipeline with checkpointing support
-public final class CheckpointingMiddleware: Middleware {
+public final class CheckpointingMiddleware: Middleware, Sendable {
     private let checkpointManager: CheckpointManager
     private let shouldCheckpoint: @Sendable (Any) -> Bool
+    
+    public var priority: ExecutionPriority { .custom }
     
     public init(
         checkpointManager: CheckpointManager,
@@ -252,11 +255,11 @@ public final class CheckpointingMiddleware: Middleware {
     
     public func execute<T: Command>(
         _ command: T,
-        metadata: CommandMetadata,
-        next: @Sendable (T, CommandMetadata) async throws -> T.Result
+        context: CommandContext,
+        next: @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
         guard shouldCheckpoint(command) else {
-            return try await next(command, metadata)
+            return try await next(command, context)
         }
         
         let checkpointId = UUID()
@@ -271,7 +274,7 @@ public final class CheckpointingMiddleware: Middleware {
         }
         
         do {
-            let result = try await next(command, metadata)
+            let result = try await next(command, context)
             
             // Clean up checkpoint on success
             try await checkpointManager.remove(id: checkpointId)

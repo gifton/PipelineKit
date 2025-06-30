@@ -44,7 +44,7 @@ public actor TestPipeline: Pipeline {
     /// Execute with recording
     public func execute<T: Command>(
         _ command: T,
-        metadata: CommandMetadata
+        context: CommandContext
     ) async throws -> T.Result {
         let startTime = Date()
         let executionId = UUID()
@@ -52,14 +52,14 @@ public actor TestPipeline: Pipeline {
         await executionRecorder.recordStart(
             executionId: executionId,
             command: command,
-            metadata: metadata
+            metadata: await context.commandMetadata
         )
         
         do {
             let result: T.Result
             
             if let base = basePipeline {
-                result = try await base.execute(command, metadata: metadata)
+                result = try await base.execute(command, context: context)
             } else {
                 // Simple mock execution
                 if T.Result.self == String.self {
@@ -257,7 +257,8 @@ public extension XCTestCase {
         line: UInt = #line
     ) async {
         do {
-            _ = try await pipeline.execute(command, metadata: metadata)
+            let context = CommandContext(metadata: metadata)
+            _ = try await pipeline.execute(command, context: context)
         } catch {
             XCTFail("Pipeline execution failed: \(error)", file: file, line: line)
         }
@@ -273,7 +274,8 @@ public extension XCTestCase {
         line: UInt = #line
     ) async {
         do {
-            _ = try await pipeline.execute(command, metadata: metadata)
+            let context = CommandContext(metadata: metadata)
+            _ = try await pipeline.execute(command, context: context)
             XCTFail("Pipeline execution should have failed", file: file, line: line)
         } catch {
             if let expected = expectedError {
@@ -299,7 +301,8 @@ public extension XCTestCase {
         let startTime = Date()
         
         do {
-            _ = try await pipeline.execute(command, metadata: metadata)
+            let context = CommandContext(metadata: metadata)
+            _ = try await pipeline.execute(command, context: context)
         } catch {
             XCTFail("Pipeline execution failed: \(error)", file: file, line: line)
             return

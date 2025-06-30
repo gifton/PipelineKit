@@ -1,5 +1,29 @@
 import Foundation
 
+// MARK: - Error Types
+
+struct NoResultError: LocalizedError {
+    var errorDescription: String? { "No pipeline completed successfully" }
+}
+
+struct TypeMismatchError: LocalizedError {
+    let message: String
+    var errorDescription: String? { message }
+}
+
+struct ConditionNotMetError: LocalizedError {
+    let message: String
+    var errorDescription: String? { "Condition not met: \(message)" }
+}
+
+struct AllPipelinesFailedError: LocalizedError {
+    let errors: [Error]
+    var errorDescription: String? {
+        let errorDescriptions = errors.map { $0.localizedDescription }.joined(separator: "; ")
+        return "All pipelines failed: \(errorDescriptions)"
+    }
+}
+
 // MARK: - Protocol for Chainable Commands
 
 /// Protocol for commands that can be chained with results from previous pipeline executions
@@ -171,20 +195,20 @@ public struct CompositePipeline: Pipeline {
         self.mode = mode
     }
     
-    public func execute<T: Command>(_ command: T, metadata: CommandMetadata) async throws -> T.Result {
+    public func execute<T: Command>(_ command: T, context: CommandContext) async throws -> T.Result {
         switch mode {
         case .sequential:
             // For sequential composition, we need a way to transform commands between pipelines
             // Since we can't change the command type, we'll use the result as context
-            let firstResult = try await first.execute(command, metadata: metadata)
+            let firstResult = try await first.execute(command, context: context)
             
             // Create a new command that wraps the original command and the first result
             if let chainableCommand = command as? any ChainableCommand {
                 let chainedCommand = chainableCommand.chain(with: firstResult) as! T
-                return try await second.execute(chainedCommand, metadata: metadata)
+                return try await second.execute(chainedCommand, context: context)
             } else {
                 // Fallback: execute with original command if not chainable
-                return try await second.execute(command, metadata: metadata)
+                return try await second.execute(command, context: context)
             }
             
         case .parallel(let strategy):
@@ -192,14 +216,18 @@ public struct CompositePipeline: Pipeline {
             case .firstCompleted:
                 return try await withThrowingTaskGroup(of: T.Result.self) { group in
                     group.addTask {
-                        try await self.first.execute(command, metadata: metadata)
+                        try await self.first.execute(command, context: context)
                     }
                     group.addTask {
-                        try await self.second.execute(command, metadata: metadata)
+                        try await self.second.execute(command, context: context)
                     }
                     
                     guard let result = try await group.next() else {
-                        throw PipelineError.executionFailed("No pipeline completed successfully")
+                        throw PipelineError(
+                            underlyingError: NoResultError(),
+                            command: command,
+                            middleware: nil
+                        )
                     }
                     
                     group.cancelAll()
@@ -209,10 +237,10 @@ public struct CompositePipeline: Pipeline {
             case .allCompleted:
                 return try await withThrowingTaskGroup(of: T.Result.self) { group in
                     group.addTask {
-                        try await self.first.execute(command, metadata: metadata)
+                        try await self.first.execute(command, context: context)
                     }
                     group.addTask {
-                        try await self.second.execute(command, metadata: metadata)
+                        try await self.second.execute(command, context: context)
                     }
                     
                     var results: [T.Result] = []
@@ -222,7 +250,11 @@ public struct CompositePipeline: Pipeline {
                     
                     // Return the last result (or could be configured to merge results)
                     guard let finalResult = results.last else {
-                        throw PipelineError.executionFailed("No pipeline completed successfully")
+                        throw PipelineError(
+                            underlyingError: NoResultError(),
+                            command: command,
+                            middleware: nil
+                        )
                     }
                     return finalResult
                 }
@@ -231,14 +263,14 @@ public struct CompositePipeline: Pipeline {
                 return try await withThrowingTaskGroup(of: Result<T.Result, Error>.self) { group in
                     group.addTask {
                         do {
-                            return .success(try await self.first.execute(command, metadata: metadata))
+                            return .success(try await self.first.execute(command, context: context))
                         } catch {
                             return .failure(error)
                         }
                     }
                     group.addTask {
                         do {
-                            return .success(try await self.second.execute(command, metadata: metadata))
+                            return .success(try await self.second.execute(command, context: context))
                         } catch {
                             return .failure(error)
                         }
@@ -255,7 +287,11 @@ public struct CompositePipeline: Pipeline {
                         }
                     }
                     
-                    throw PipelineError.allPipelinesFailed(errors)
+                    throw PipelineError(
+                        underlyingError: AllPipelinesFailedError(errors: errors),
+                        command: command,
+                        middleware: nil
+                    )
                 }
             }
         }
@@ -276,17 +312,21 @@ public struct ConditionalPipelineWrapper: Pipeline {
         self.defaultResult = defaultResult
     }
     
-    public func execute<T: Command>(_ command: T, metadata: CommandMetadata) async throws -> T.Result {
+    public func execute<T: Command>(_ command: T, context: CommandContext) async throws -> T.Result {
         if await condition() {
-            return try await pipeline.execute(command, metadata: metadata)
+            return try await pipeline.execute(command, context: context)
         } else if let defaultResult = defaultResult {
             // Attempt to provide a default result
             let result = try await defaultResult()
             if let typedResult = result as? T.Result {
                 return typedResult
             } else {
-                throw PipelineError.executionFailed(
-                    "Default result type \(type(of: result)) does not match expected type \(T.Result.self)"
+                throw PipelineError(
+                    underlyingError: TypeMismatchError(
+                        message: "Default result type \(type(of: result)) does not match expected type \(T.Result.self)"
+                    ),
+                    command: command,
+                    middleware: nil
                 )
             }
         } else {
@@ -294,7 +334,13 @@ public struct ConditionalPipelineWrapper: Pipeline {
             if let defaultProvider = command as? any DefaultResultProvider {
                 return defaultProvider.defaultResult() as! T.Result
             }
-            throw PipelineError.conditionNotMet("Pipeline condition not satisfied and no default result provided")
+            throw PipelineError(
+                underlyingError: ConditionNotMetError(
+                    message: "Pipeline condition not satisfied and no default result provided"
+                ),
+                command: command,
+                middleware: nil
+            )
         }
     }
 }
@@ -309,9 +355,9 @@ public struct ErrorHandlingPipelineWrapper: Pipeline {
         self.errorHandler = errorHandler
     }
     
-    public func execute<T: Command>(_ command: T, metadata: CommandMetadata) async throws -> T.Result {
+    public func execute<T: Command>(_ command: T, context: CommandContext) async throws -> T.Result {
         do {
-            return try await pipeline.execute(command, metadata: metadata)
+            return try await pipeline.execute(command, context: context)
         } catch {
             try await errorHandler(error)
             throw error
@@ -658,18 +704,6 @@ public func when(_ condition: @escaping @Sendable () async -> Bool, use middlewa
     (middleware, condition)
 }
 
-// MARK: - Extended Pipeline Error Types
-
-extension PipelineError {
-    static func conditionNotMet(_ message: String) -> PipelineError {
-        .executionFailed("Condition not met: \(message)")
-    }
-    
-    static func allPipelinesFailed(_ errors: [Error]) -> PipelineError {
-        let errorDescriptions = errors.map { $0.localizedDescription }.joined(separator: "; ")
-        return .executionFailed("All pipelines failed: \(errorDescriptions)")
-    }
-}
 
 // MARK: - Additional Convenience Functions
 

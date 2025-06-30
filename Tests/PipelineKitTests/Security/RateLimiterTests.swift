@@ -197,11 +197,11 @@ final class RateLimiterTests: XCTestCase {
         let middleware = RateLimitingMiddleware(limiter: limiter)
         
         let command = TestCommand(value: "test")
-        let metadata = DefaultCommandMetadata(userId: "user1")
+        let context = await CommandContext.test(userId: "user1")
         
         // Should allow up to capacity
         for i in 0..<5 {
-            let result = try await middleware.execute(command, metadata: metadata) { cmd, _ in
+            let result = try await middleware.execute(command, context: context) { cmd, _ in
                 "\(cmd.value)-\(i)"
             }
             XCTAssertEqual(result, "test-\(i)")
@@ -209,7 +209,7 @@ final class RateLimiterTests: XCTestCase {
         
         // Should throw rate limit error
         do {
-            _ = try await middleware.execute(command, metadata: metadata) { _, _ in
+            _ = try await middleware.execute(command, context: context) { _, _ in
                 "should not reach"
             }
             XCTFail("Expected rate limit error")
@@ -244,13 +244,14 @@ final class RateLimiterTests: XCTestCase {
         let expensiveCommand = ExpensiveCommand()
         
         // Should allow 10 cheap commands
+        let context = await CommandContext.test()
         for _ in 0..<10 {
-            _ = try await middleware.execute(cheapCommand, metadata: DefaultCommandMetadata()) { _, _ in "ok" }
+            _ = try await middleware.execute(cheapCommand, context: context) { _, _ in "ok" }
         }
         
         // Should deny next cheap command
         do {
-            _ = try await middleware.execute(cheapCommand, metadata: DefaultCommandMetadata()) { _, _ in "fail" }
+            _ = try await middleware.execute(cheapCommand, context: context) { _, _ in "fail" }
             XCTFail("Expected rate limit")
         } catch is RateLimitError {
             // Expected
@@ -261,12 +262,12 @@ final class RateLimiterTests: XCTestCase {
         
         // Should allow only 2 expensive commands (cost 5 each)
         for _ in 0..<2 {
-            _ = try await middleware.execute(expensiveCommand, metadata: DefaultCommandMetadata()) { _, _ in print("ok") }
+            _ = try await middleware.execute(expensiveCommand, context: context) { _, _ in print("ok") }
         }
         
         // Should deny next expensive command
         do {
-            _ = try await middleware.execute(expensiveCommand, metadata: DefaultCommandMetadata()) { _, _ in print("fail") }
+            _ = try await middleware.execute(expensiveCommand, context: context) { _, _ in print("fail") }
             XCTFail("Expected rate limit")
         } catch is RateLimitError {
             // Expected
@@ -361,10 +362,18 @@ final class RateLimiterTests: XCTestCase {
     struct TestCommand: Command {
         let value: String
         typealias Result = String
+        
+        func execute() async throws -> String {
+            return value
+        }
     }
     
     struct ExpensiveCommand: Command {
         typealias Result = Void
+        
+        func execute() async throws -> Void {
+            return ()
+        }
     }
     
     actor LoadActor {

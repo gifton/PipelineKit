@@ -34,23 +34,21 @@ public actor CommandBus {
 
     public func send<T: Command>(
         _ command: T,
-        metadata: CommandMetadata? = nil,
+        context: CommandContext? = nil,
         retryPolicy: RetryPolicy = .default
     ) async throws -> T.Result {
-        let commandMetadata = metadata ?? StandardCommandMetadata()
+        let commandContext = context ?? CommandContext()
 
         return try await withRetry(retryPolicy: retryPolicy, command: command) {
-            try await self.executePipeline(command: command, metadata: commandMetadata)
+            try await self.executePipeline(command: command, context: commandContext)
         }
     }
 
-    private func executePipeline<T: Command>(command: T, metadata: CommandMetadata) async throws -> T.Result {
+    private func executePipeline<T: Command>(command: T, context: CommandContext) async throws -> T.Result {
         guard let anyHandler = await handlerRegistry.handler(for: T.self),
               let handler = anyHandler as? AnyCommandHandler<T> else {
             throw CommandBusError.handlerNotFound(String(describing: T.self))
         }
-
-        let context = CommandContext(metadata: metadata)
 
         let finalHandler: @Sendable (T, CommandContext) async throws -> T.Result = { cmd, _ in
             try await handler.handle(cmd)

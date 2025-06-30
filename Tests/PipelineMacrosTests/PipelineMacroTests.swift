@@ -31,16 +31,10 @@ final class PipelineMacroTests: XCTestCase {
                 typealias CommandType = CreateUserCommand
                 let handler = CreateUserHandler()
             
-                var _executor {
-                    DefaultPipeline(handler: handler)
-                }
+                lazy var _executor = StandardPipeline(handler: handler)
             
-                public func execute(_ command: CommandType, metadata: CommandMetadata) async throws -> CommandType.Result {
-                    return try await _executor.execute(command, metadata: metadata)
-                }
-            
-                public func batchExecute(_ commands: [CommandType], metadata: CommandMetadata) async throws -> [CommandType.Result] {
-                    return try await _executor.batchExecute(commands, metadata: metadata)
+                public func execute<T: Command>(_ command: T, context: CommandContext) async throws -> T.Result {
+                    return try await _executor.execute(command, context: context)
                 }
             }
             
@@ -69,16 +63,10 @@ final class PipelineMacroTests: XCTestCase {
                 typealias CommandType = ProcessOrderCommand
                 let handler = ProcessOrderHandler()
             
-                private var _executor {
-                    DefaultPipeline(handler: handler)
-                }
+                private lazy var _executor = StandardPipeline(handler: handler)
             
-                public func execute(_ command: CommandType, metadata: CommandMetadata) async throws -> CommandType.Result {
-                    return try await _executor.execute(command, metadata: metadata)
-                }
-            
-                public func batchExecute(_ commands: [CommandType], metadata: CommandMetadata) async throws -> [CommandType.Result] {
-                    return try await _executor.batchExecute(commands, metadata: metadata)
+                public func execute<T: Command>(_ command: T, context: CommandContext) async throws -> T.Result {
+                    return try await _executor.execute(command, context: context)
                 }
             }
             
@@ -107,16 +95,10 @@ final class PipelineMacroTests: XCTestCase {
                 typealias CommandType = ProcessPaymentCommand
                 let handler = ProcessPaymentHandler()
             
-                private var _executor {
-                    DefaultPipeline(handler: handler)
-                }
+                private lazy var _executor = StandardPipeline(handler: handler)
             
-                public func execute(_ command: CommandType, metadata: CommandMetadata) async throws -> CommandType.Result {
-                    return try await _executor.execute(command, metadata: metadata)
-                }
-            
-                public func batchExecute(_ commands: [CommandType], metadata: CommandMetadata) async throws -> [CommandType.Result] {
-                    return try await _executor.batchExecute(commands, metadata: metadata)
+                public func execute<T: Command>(_ command: T, context: CommandContext) async throws -> T.Result {
+                    return try await _executor.execute(command, context: context)
                 }
             }
             """,
@@ -144,16 +126,10 @@ final class PipelineMacroTests: XCTestCase {
                 typealias CommandType = CreateUserCommand
                 let handler = CreateUserHandler()
             
-                var _executor {
-                    ContextAwarePipeline(handler: handler)
-                }
+                lazy var _executor = StandardPipeline(handler: handler)
             
-                public func execute(_ command: CommandType, metadata: CommandMetadata) async throws -> CommandType.Result {
-                    return try await _executor.execute(command, metadata: metadata)
-                }
-            
-                public func batchExecute(_ commands: [CommandType], metadata: CommandMetadata) async throws -> [CommandType.Result] {
-                    return try await _executor.batchExecute(commands, metadata: metadata)
+                public func execute<T: Command>(_ command: T, context: CommandContext) async throws -> T.Result {
+                    return try await _executor.execute(command, context: context)
                 }
             }
             """,
@@ -179,16 +155,10 @@ final class PipelineMacroTests: XCTestCase {
                 typealias CommandType = CreateUserCommand
                 let handler = CreateUserHandler()
             
-                var _executor {
-                    DefaultPipeline(handler: handler, maxConcurrency: 10)
-                }
+                lazy var _executor = StandardPipeline(handler: handler, maxConcurrency: 10)
             
-                public func execute(_ command: CommandType, metadata: CommandMetadata) async throws -> CommandType.Result {
-                    return try await _executor.execute(command, metadata: metadata)
-                }
-            
-                public func batchExecute(_ commands: [CommandType], metadata: CommandMetadata) async throws -> [CommandType.Result] {
-                    return try await _executor.batchExecute(commands, metadata: metadata)
+                public func execute<T: Command>(_ command: T, context: CommandContext) async throws -> T.Result {
+                    return try await _executor.execute(command, context: context)
                 }
             }
             """,
@@ -214,9 +184,7 @@ final class PipelineMacroTests: XCTestCase {
                 typealias CommandType = CreateUserCommand
                 let handler = CreateUserHandler()
             
-                var _executor {
-                    DefaultPipeline(handler: handler, maxDepth: 50)
-                }
+                lazy var _executor = StandardPipeline(handler: handler, maxDepth: 50)
             
                 public func execute(_ command: CommandType, metadata: CommandMetadata) async throws -> CommandType.Result {
                     return try await _executor.execute(command, metadata: metadata)
@@ -249,16 +217,10 @@ final class PipelineMacroTests: XCTestCase {
                 typealias CommandType = CreateUserCommand
                 let handler = CreateUserHandler()
             
-                var _executor {
-                    DefaultPipeline(handler: handler)
-                }
+                lazy var _executor = StandardPipeline(handler: handler)
             
-                public func execute(_ command: CommandType, metadata: CommandMetadata) async throws -> CommandType.Result {
-                    return try await _executor.execute(command, metadata: metadata)
-                }
-            
-                public func batchExecute(_ commands: [CommandType], metadata: CommandMetadata) async throws -> [CommandType.Result] {
-                    return try await _executor.batchExecute(commands, metadata: metadata)
+                public func execute<T: Command>(_ command: T, context: CommandContext) async throws -> T.Result {
+                    return try await _executor.execute(command, context: context)
                 }
             
                 private func setupMiddleware() throws {
@@ -294,16 +256,10 @@ final class PipelineMacroTests: XCTestCase {
                 typealias CommandType = CreateUserCommand
                 let handler = CreateUserHandler()
             
-                var _executor {
-                    ContextAwarePipeline(handler: handler, maxDepth: 25, maxConcurrency: 5)
-                }
+                lazy var _executor = StandardPipeline(handler: handler, maxDepth: 25, maxConcurrency: 5)
             
-                public func execute(_ command: CommandType, metadata: CommandMetadata) async throws -> CommandType.Result {
-                    return try await _executor.execute(command, metadata: metadata)
-                }
-            
-                public func batchExecute(_ commands: [CommandType], metadata: CommandMetadata) async throws -> [CommandType.Result] {
-                    return try await _executor.batchExecute(commands, metadata: metadata)
+                public func execute<T: Command>(_ command: T, context: CommandContext) async throws -> T.Result {
+                    return try await _executor.execute(command, context: context)
                 }
             
                 private func setupMiddleware() throws {
@@ -423,16 +379,10 @@ final class PipelineMacroTests: XCTestCase {
                 typealias CommandType = CreateUserCommand
                 let handler = CreateUserHandler()
             
-                var _executor {
-                    DefaultPipeline(handler: handler, maxConcurrency: 1)
-                }
+                lazy var _executor = StandardPipeline(handler: handler, maxConcurrency: 1)
             
-                public func execute(_ command: CommandType, metadata: CommandMetadata) async throws -> CommandType.Result {
-                    return try await _executor.execute(command, metadata: metadata)
-                }
-            
-                public func batchExecute(_ commands: [CommandType], metadata: CommandMetadata) async throws -> [CommandType.Result] {
-                    return try await _executor.batchExecute(commands, metadata: metadata)
+                public func execute<T: Command>(_ command: T, context: CommandContext) async throws -> T.Result {
+                    return try await _executor.execute(command, context: context)
                 }
             }
             """,
@@ -468,16 +418,10 @@ final class PipelineMacroTests: XCTestCase {
                 typealias CommandType = CreateUserCommand
                 let handler = CreateUserHandler()
             
-                var _executor {
-                    DefaultPipeline(handler: handler, maxDepth: 1)
-                }
+                lazy var _executor = StandardPipeline(handler: handler, maxDepth: 1)
             
-                public func execute(_ command: CommandType, metadata: CommandMetadata) async throws -> CommandType.Result {
-                    return try await _executor.execute(command, metadata: metadata)
-                }
-            
-                public func batchExecute(_ commands: [CommandType], metadata: CommandMetadata) async throws -> [CommandType.Result] {
-                    return try await _executor.batchExecute(commands, metadata: metadata)
+                public func execute<T: Command>(_ command: T, context: CommandContext) async throws -> T.Result {
+                    return try await _executor.execute(command, context: context)
                 }
             }
             """,

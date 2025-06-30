@@ -11,6 +11,10 @@ final class ValidationTests: XCTestCase {
         let password: String
         let username: String
         
+        func execute() async throws -> String {
+            return "User created: \(username)"
+        }
+        
         func validate() throws {
             try CommandValidator.validateEmail(email)
             try CommandValidator.validateLength(password, field: "password", minLength: 8)

@@ -116,7 +116,7 @@ final class BackPressureTests: XCTestCase {
         
         let pipeline = ConcurrentPipeline(options: options)
         let handler = TestSlowHandler()
-        let standardPipeline = DefaultPipeline(handler: handler)
+        let standardPipeline = StandardPipeline(handler: handler)
         
         await pipeline.register(TestSlowCommand.self, pipeline: standardPipeline)
         
@@ -160,7 +160,7 @@ final class BackPressureTests: XCTestCase {
         
         let pipeline = ConcurrentPipeline(options: options)
         let handler = TestSlowHandler()
-        let standardPipeline = DefaultPipeline(handler: handler)
+        let standardPipeline = StandardPipeline(handler: handler)
         
         await pipeline.register(TestSlowCommand.self, pipeline: standardPipeline)
         
@@ -198,15 +198,12 @@ final class BackPressureTests: XCTestCase {
             strategy: .error(timeout: nil)
         )
         
-        try await pipeline.addMiddleware(
-            backPressureMiddleware,
-            priority: ExecutionPriority.throttling.rawValue
-        )
+        try await pipeline.addMiddleware(backPressureMiddleware)
         
         // First command should succeed
         let result1 = try await pipeline.execute(
-            TestCommand(value: "test1"),
-            metadata: DefaultCommandMetadata()
+            BackPressureTestCommand(value: "test1"),
+            context: CommandContext(metadata: StandardCommandMetadata())
         )
         XCTAssertEqual(result1, "Handled: test1")
         
@@ -216,13 +213,12 @@ final class BackPressureTests: XCTestCase {
             let slowPipeline = PriorityPipeline(handler: slowHandler)
             
             try await slowPipeline.addMiddleware(
-                backPressureMiddleware,
-                priority: ExecutionPriority.throttling.rawValue
+                backPressureMiddleware
             )
             
             return try await slowPipeline.execute(
                 TestSlowCommand(duration: 0.5),
-                metadata: DefaultCommandMetadata()
+                context: CommandContext()
             )
         }
         
@@ -247,7 +243,7 @@ final class BackPressureTests: XCTestCase {
 
 // MARK: - Test Support Types
 
-private struct TestCommand: Command {
+private struct BackPressureTestCommand: Command {
     typealias Result = String
     let value: String
 }
@@ -258,12 +254,16 @@ private struct TestSlowCommand: Command {
 }
 
 private struct TestHandler: CommandHandler {
-    func handle(_ command: TestCommand) async throws -> String {
+    typealias CommandType = BackPressureTestCommand
+    
+    func handle(_ command: BackPressureTestCommand) async throws -> String {
         return "Handled: \(command.value)"
     }
 }
 
 private struct TestSlowHandler: CommandHandler {
+    typealias CommandType = TestSlowCommand
+    
     func handle(_ command: TestSlowCommand) async throws -> String {
         try await Task.sleep(nanoseconds: UInt64(command.duration * 1_000_000_000))
         return "Processed slow command"

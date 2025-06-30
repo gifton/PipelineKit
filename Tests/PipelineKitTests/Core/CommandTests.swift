@@ -3,29 +3,39 @@ import XCTest
 
 final class CommandTests: XCTestCase {
     
-    struct TestCommand: Command {
+    struct LocalTestCommand: Command {
         typealias Result = String
         let value: Int
+        
+        func execute() async throws -> String {
+            return "Executed: \(value)"
+        }
     }
     
     struct TestHandler: CommandHandler {
-        typealias CommandType = TestCommand
+        typealias CommandType = LocalTestCommand
         
-        func handle(_ command: TestCommand) async throws -> String {
+        func handle(_ command: LocalTestCommand) async throws -> String {
             return "Processed: \(command.value)"
         }
     }
     
     func testCommandSendableConformance() async throws {
-        let command = TestCommand(value: 42)
+        let command = LocalTestCommand(value: 42)
         let handler = TestHandler()
         
         let result = try await handler.handle(command)
         XCTAssertEqual(result, "Processed: 42")
     }
     
-    func testCommandMetadata() {
-        let metadata = DefaultCommandMetadata(
+    func testCommandExecution() async throws {
+        let command = LocalTestCommand(value: 10)
+        let result = try await command.execute()
+        XCTAssertEqual(result, "Executed: 10")
+    }
+    
+    func testCommandMetadata() async throws {
+        let metadata = StandardCommandMetadata(
             userId: "test-user",
             correlationId: "test-correlation"
         )
@@ -36,9 +46,36 @@ final class CommandTests: XCTestCase {
         XCTAssertNotNil(metadata.timestamp)
     }
     
+    func testCommandContext() async throws {
+        let context = await CommandContext.test(
+            userId: "user-123",
+            correlationId: "corr-123",
+            additionalData: ["key": "value"]
+        )
+        
+        let metadata = await context.commandMetadata
+        XCTAssertNotNil(metadata)
+        XCTAssertEqual(metadata.userId, "user-123")
+        XCTAssertEqual(metadata.correlationId, "corr-123")
+    }
+    
+    func testCommandContextWithCustomKeys() async throws {
+        let context = await CommandContext.test()
+        
+        // Set values using proper context keys
+        await context.set("customValue", for: TestCustomValueKey.self)
+        await context.set(42, for: TestNumberKey.self)
+        
+        let customValue = await context.get(TestCustomValueKey.self)
+        let numberValue = await context.get(TestNumberKey.self)
+        
+        XCTAssertEqual(customValue, "customValue")
+        XCTAssertEqual(numberValue, 42)
+    }
+    
     func testCommandResult() {
         let successResult: Result<String, any Error> = .success("Success")
-        let failureResult: Result<String, any Error> = .failure(TestError.failed)
+        let failureResult: Result<String, any Error> = .failure(TestError.commandFailed)
         
         switch successResult {
         case .success:
@@ -56,6 +93,3 @@ final class CommandTests: XCTestCase {
     }
 }
 
-enum TestError: Error, Sendable {
-    case failed
-}

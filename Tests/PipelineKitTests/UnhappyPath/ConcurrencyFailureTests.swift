@@ -174,19 +174,19 @@ final class ConcurrencyFailureTests: XCTestCase {
     // MARK: - Race Conditions
     
     func testConcurrentContextModification() async throws {
-        let pipeline = ContextAwarePipeline(handler: ConcurrencyTestHandler())
+        let pipeline = StandardPipeline(handler: ConcurrencyTestHandler())
         let racingMiddleware = ConcurrentContextMiddleware()
         
         try await pipeline.addMiddleware(racingMiddleware)
         
         let command = ConcurrencyTestCommand(value: "race_test")
-        let metadata = DefaultCommandMetadata()
+        let context = CommandContext()
         
         // Execute multiple commands concurrently to trigger race conditions
         let tasks = (0..<20).map { i in
             Task {
                 do {
-                    return try await pipeline.execute(command, metadata: metadata)
+                    return try await pipeline.execute(command, context: context)
                 } catch {
                     return "error: \(error.localizedDescription)"
                 }
@@ -216,7 +216,7 @@ final class ConcurrencyFailureTests: XCTestCase {
         // Register pipelines concurrently
         let registrationTasks = (0..<10).map { i in
             Task {
-                let pipeline = DefaultPipeline(handler: ConcurrencyTestHandler())
+                let pipeline = StandardPipeline(handler: ConcurrencyTestHandler())
                 await concurrentPipeline.register(ConcurrencyTestCommand.self, pipeline: pipeline)
                 return i
             }
@@ -229,12 +229,12 @@ final class ConcurrencyFailureTests: XCTestCase {
         
         // Verify pipeline is registered and functional
         let command = ConcurrencyTestCommand(value: "test")
-        let result = try await concurrentPipeline.execute(command, metadata: DefaultCommandMetadata())
+        let result = try await concurrentPipeline.execute(command, context: CommandContext())
         XCTAssertEqual(result, "Handled: test")
     }
     
     func testConcurrentMiddlewareRegistration() async throws {
-        let pipeline = DefaultPipeline(handler: ConcurrencyTestHandler())
+        let pipeline = StandardPipeline(handler: ConcurrencyTestHandler())
         
         // Add middleware concurrently
         let middlewareTasks = (0..<5).map { i in
@@ -263,8 +263,8 @@ final class ConcurrencyFailureTests: XCTestCase {
     // MARK: - Deadlock Detection
     
     func testPotentialDeadlock() async throws {
-        let pipeline1 = DefaultPipeline(handler: ConcurrencyTestHandler())
-        let pipeline2 = DefaultPipeline(handler: ConcurrencyTestHandler())
+        let pipeline1 = StandardPipeline(handler: ConcurrencyTestHandler())
+        let pipeline2 = StandardPipeline(handler: ConcurrencyTestHandler())
         
         let crossReferencingMiddleware1 = CrossReferencingMiddleware(otherPipeline: pipeline2)
         let crossReferencingMiddleware2 = CrossReferencingMiddleware(otherPipeline: pipeline1)
@@ -273,11 +273,11 @@ final class ConcurrencyFailureTests: XCTestCase {
         try await pipeline2.addMiddleware(crossReferencingMiddleware2)
         
         let command = ConcurrencyTestCommand(value: "deadlock_test")
-        let metadata = DefaultCommandMetadata()
+        let context = CommandContext()
         
         // Execute with timeout to detect potential deadlocks
         let task = Task {
-            try await pipeline1.execute(command, metadata: metadata)
+            try await pipeline1.execute(command, context: context)
         }
         
         do {
@@ -291,13 +291,13 @@ final class ConcurrencyFailureTests: XCTestCase {
     }
     
     func testActorIsolationViolation() async throws {
-        let isolatedPipeline = DefaultPipeline(handler: ConcurrencyTestHandler())
+        let isolatedPipeline = StandardPipeline(handler: ConcurrencyTestHandler())
         
         // Try to access pipeline from multiple actors simultaneously
         actor PipelineUser {
-            func usePipeline(_ pipeline: DefaultPipeline<ConcurrencyTestCommand, ConcurrencyTestHandler>) async throws -> String {
+            func usePipeline(_ pipeline: StandardPipeline<ConcurrencyTestCommand, ConcurrencyTestHandler>) async throws -> String {
                 let command = ConcurrencyTestCommand(value: "isolation_test")
-                return try await pipeline.execute(command, metadata: DefaultCommandMetadata())
+                return try await pipeline.execute(command, context: CommandContext())
             }
         }
         
@@ -355,7 +355,7 @@ final class ConcurrencyFailureTests: XCTestCase {
     }
     
     func testMemoryPressureUnderContention() async throws {
-        let pipeline = DefaultPipeline(
+        let pipeline = StandardPipeline(
             handler: ConcurrencyTestHandler(),
             maxConcurrency: 5
         )
@@ -368,7 +368,7 @@ final class ConcurrencyFailureTests: XCTestCase {
             Task {
                 do {
                     let command = ConcurrencyTestCommand(value: "memory_test_\(i)")
-                    return try await pipeline.execute(command, metadata: DefaultCommandMetadata())
+                    return try await pipeline.execute(command, context: CommandContext())
                 } catch {
                     return "error: \(error.localizedDescription)"
                 }
@@ -390,7 +390,7 @@ final class ConcurrencyFailureTests: XCTestCase {
     // MARK: - Pipeline State Corruption
     
     func testConcurrentPipelineModification() async throws {
-        let pipeline = DefaultPipeline(handler: ConcurrencyTestHandler())
+        let pipeline = StandardPipeline(handler: ConcurrencyTestHandler())
         
         // Concurrently add and remove middleware while executing
         let modificationTask = Task {
@@ -404,7 +404,7 @@ final class ConcurrencyFailureTests: XCTestCase {
         let executionTasks = (0..<20).map { i in
             Task {
                 let command = ConcurrencyTestCommand(value: "concurrent_test_\(i)")
-                return try await pipeline.execute(command, metadata: DefaultCommandMetadata())
+                return try await pipeline.execute(command, context: CommandContext())
             }
         }
         
@@ -419,18 +419,18 @@ final class ConcurrencyFailureTests: XCTestCase {
     }
     
     func testContextStateCorruption() async throws {
-        let pipeline = ContextAwarePipeline(handler: ConcurrencyTestHandler())
+        let pipeline = StandardPipeline(handler: ConcurrencyTestHandler())
         let stateCorruptingMiddleware = StateCorruptingMiddleware()
         
         try await pipeline.addMiddleware(stateCorruptingMiddleware)
         
         let command = ConcurrencyTestCommand(value: "corruption_test")
-        let metadata = DefaultCommandMetadata()
+        let context = CommandContext()
         
         // Execute multiple commands that might corrupt shared state
         let tasks = (0..<10).map { _ in
             Task {
-                try await pipeline.execute(command, metadata: metadata)
+                try await pipeline.execute(command, context: context)
             }
         }
         
@@ -465,21 +465,21 @@ final class ConcurrencyFailureTests: XCTestCase {
         let orderTracker = ExecutionOrderTracker()
         
         // Add middleware with different priorities
-        try await pipeline.addMiddleware(HighPriorityMiddleware(), priority: 100)
-        try await pipeline.addMiddleware(LowPriorityMiddleware(), priority: 1000)
-        try await pipeline.addMiddleware(MediumPriorityMiddleware(), priority: 500)
+        try await pipeline.addMiddleware(HighPriorityMiddleware())
+        try await pipeline.addMiddleware(LowPriorityMiddleware())
+        try await pipeline.addMiddleware(MediumPriorityMiddleware())
         
         let orderTrackingMiddleware = OrderTrackingMiddleware { order in
             orderTracker.append(order)
         }
         
         // This middleware will capture execution order
-        try await pipeline.addMiddleware(orderTrackingMiddleware, priority: 1)
+        try await pipeline.addMiddleware(orderTrackingMiddleware)
         
         let command = ConcurrencyTestCommand(value: "priority_test")
-        let metadata = DefaultCommandMetadata()
+        let context = CommandContext()
         
-        _ = try await pipeline.execute(command, metadata: metadata)
+        _ = try await pipeline.execute(command, context: context)
         
         // Verify correct priority order (lower numbers = higher priority)
         let expectedOrder = ["order_tracking", "high", "medium", "low"]
@@ -489,16 +489,16 @@ final class ConcurrencyFailureTests: XCTestCase {
     // MARK: - Task Cancellation Edge Cases
     
     func testCancellationRace() async throws {
-        let pipeline = DefaultPipeline(handler: ConcurrencySlowHandler())
+        let pipeline = StandardPipeline(handler: ConcurrencySlowHandler())
         let command = ConcurrencyTestCommand(value: "cancellation_race")
-        let metadata = DefaultCommandMetadata()
+        let context = CommandContext()
         
         // Start multiple tasks and cancel them at different times
         let tasks = (0..<5).map { i in
             Task {
                 do {
                     try await Task.sleep(nanoseconds: UInt64(i * 10_000_000)) // Stagger starts
-                    return try await pipeline.execute(command, metadata: metadata)
+                    return try await pipeline.execute(command, context: context)
                 } catch is CancellationError {
                     return "cancelled"
                 } catch {
@@ -529,7 +529,7 @@ final class ConcurrencyFailureTests: XCTestCase {
 
 // MARK: - Test Support Types
 
-struct ConcurrentContextMiddleware: ContextAwareMiddleware {
+struct ConcurrentContextMiddleware: Middleware {
     func execute<T: Command>(
         _ command: T,
         context: CommandContext,
@@ -548,34 +548,34 @@ struct ConcurrentContextMiddleware: ContextAwareMiddleware {
 }
 
 struct CrossReferencingMiddleware: Middleware {
-    let otherPipeline: DefaultPipeline<ConcurrencyTestCommand, ConcurrencyTestHandler>
+    let otherPipeline: StandardPipeline<ConcurrencyTestCommand, ConcurrencyTestHandler>
     
     func execute<T: Command>(
         _ command: T,
-        metadata: CommandMetadata,
-        next: @Sendable (T, CommandMetadata) async throws -> T.Result
+        context: CommandContext,
+        next: @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
         // Don't actually call other pipeline to avoid real deadlock in tests
         // Just simulate the potential for deadlock
-        return try await next(command, metadata)
+        return try await next(command, context)
     }
 }
 
 struct MemoryIntensiveMiddleware: Middleware {
     func execute<T: Command>(
         _ command: T,
-        metadata: CommandMetadata,
-        next: @Sendable (T, CommandMetadata) async throws -> T.Result
+        context: CommandContext,
+        next: @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
         // Allocate and immediately release memory
         autoreleasepool {
             let _ = Array(repeating: Array(repeating: 0, count: 100), count: 100)
         }
-        return try await next(command, metadata)
+        return try await next(command, context)
     }
 }
 
-final class StateCorruptingMiddleware: ContextAwareMiddleware, @unchecked Sendable {
+final class StateCorruptingMiddleware: Middleware, @unchecked Sendable {
     private var sharedState = 0
     
     func execute<T: Command>(
@@ -594,45 +594,52 @@ final class StateCorruptingMiddleware: ContextAwareMiddleware, @unchecked Sendab
 }
 
 struct HighPriorityMiddleware: Middleware {
+    var priority: ExecutionPriority { .authentication }
+    
     func execute<T: Command>(
         _ command: T,
-        metadata: CommandMetadata,
-        next: @Sendable (T, CommandMetadata) async throws -> T.Result
+        context: CommandContext,
+        next: @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
-        return try await next(command, metadata)
+        return try await next(command, context)
     }
 }
 
 struct MediumPriorityMiddleware: Middleware {
+    var priority: ExecutionPriority { .validation }
+    
     func execute<T: Command>(
         _ command: T,
-        metadata: CommandMetadata,
-        next: @Sendable (T, CommandMetadata) async throws -> T.Result
+        context: CommandContext,
+        next: @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
-        return try await next(command, metadata)
+        return try await next(command, context)
     }
 }
 
 struct LowPriorityMiddleware: Middleware {
+    var priority: ExecutionPriority { .logging }
+    
     func execute<T: Command>(
         _ command: T,
-        metadata: CommandMetadata,
-        next: @Sendable (T, CommandMetadata) async throws -> T.Result
+        context: CommandContext,
+        next: @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
-        return try await next(command, metadata)
+        return try await next(command, context)
     }
 }
 
 struct OrderTrackingMiddleware: Middleware {
     let onExecute: @Sendable (String) -> Void
+    var priority: ExecutionPriority { .correlation }
     
     func execute<T: Command>(
         _ command: T,
-        metadata: CommandMetadata,
-        next: @Sendable (T, CommandMetadata) async throws -> T.Result
+        context: CommandContext,
+        next: @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
         onExecute("order_tracking")
-        return try await next(command, metadata)
+        return try await next(command, context)
     }
 }
 

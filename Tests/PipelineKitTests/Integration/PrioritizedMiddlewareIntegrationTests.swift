@@ -38,7 +38,7 @@ final class PrioritizedMiddlewareIntegrationTests: XCTestCase {
     struct TrackingMiddleware: Middleware {
         let name: String
         let tracker: OrderTestActor<[String]>
-        let priority: ExecutionPriority = .normal // Default priority
+        let priority: ExecutionPriority = .custom // Default priority
         
         func execute<T: Command>(
             _ command: T,

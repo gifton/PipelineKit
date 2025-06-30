@@ -54,11 +54,11 @@ extension PipelineMacro {
     private static func determinePipelineType(config: Configuration) -> String {
         switch config.pipelineType {
         case .standard:
-            return "DefaultPipeline"
+            return "StandardPipeline"
         case .contextAware:
-            return "ContextAwarePipeline"
+            return "StandardPipeline"  // ContextAwarePipeline is deprecated, use StandardPipeline
         case .priority:
-            return "PriorityPipeline"
+            return "ConcurrentPipeline"
         }
     }
     
@@ -79,10 +79,7 @@ extension PipelineMacro {
             args.append("maxConcurrency: \(limit)")
         }
         
-        // Add useContext for DefaultPipeline when explicitly enabled
-        if config.pipelineType == .standard && config.useContext {
-            args.append("useContext: true")
-        }
+        // Context is now always enabled in the new API, no need for useContext parameter
         
         // Add back-pressure options if specified
         if let backPressure = config.backPressureOptions {
@@ -112,17 +109,12 @@ extension PipelineMacro {
     
     /// Generates the execute method implementation
     private static func generateExecuteMethod(isActor: Bool) throws -> FunctionDeclSyntax {
-        return try FunctionDeclSyntax("public func execute<T: Command>(_ command: T, metadata: CommandMetadata) async throws -> T.Result") {
-            "return try await _executor.execute(command, metadata: metadata)"
+        return try FunctionDeclSyntax("public func execute<T: Command>(_ command: T, context: CommandContext) async throws -> T.Result") {
+            "return try await _executor.execute(command, context: context)"
         }
     }
     
-    /// Generates the batch execute method implementation
-    private static func generateBatchExecuteMethod(isActor: Bool) throws -> FunctionDeclSyntax {
-        return try FunctionDeclSyntax("public func batchExecute<T: Command>(_ commands: [T], metadata: CommandMetadata) async throws -> [T.Result]") {
-            "return try await _executor.batchExecute(commands, metadata: metadata)"
-        }
-    }
+    // Batch execute method is removed in the new Pipeline protocol
     
     /// Generates middleware setup method
     private static func generateMiddlewareSetup(

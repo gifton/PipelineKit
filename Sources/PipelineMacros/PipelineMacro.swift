@@ -73,7 +73,7 @@ public struct PipelineMacro {
         var concurrency: ConcurrencyStrategy
         var middleware: [String] // Middleware type names
         var maxDepth: Int
-        var useContext: Bool
+        // useContext removed - context is now always available
         var backPressureOptions: BackPressureOptions?
         
         enum PipelineType {
@@ -98,7 +98,7 @@ public struct PipelineMacro {
             concurrency: .unlimited,
             middleware: [],
             maxDepth: 100,
-            useContext: false,
+            // useContext removed
             backPressureOptions: nil
         )
     }

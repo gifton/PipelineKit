@@ -21,11 +21,11 @@ final class PipelinePerformanceTests: XCTestCase {
         
         func execute<T: Command>(
             _ command: T,
-            metadata: CommandMetadata,
-            next: @Sendable (T, CommandMetadata) async throws -> T.Result
+            context: CommandContext,
+            next: @Sendable (T, CommandContext) async throws -> T.Result
         ) async throws -> T.Result {
             await counter.increment()
-            return try await next(command, metadata)
+            return try await next(command, context)
         }
     }
     
@@ -46,7 +46,7 @@ final class PipelinePerformanceTests: XCTestCase {
     }
     
     func testPipelinePerformance() async throws {
-        let pipeline = DefaultPipeline(handler: BenchmarkHandler())
+        let pipeline = StandardPipeline(handler: BenchmarkHandler())
         let counter = Actor(0)
         
         // Add 10 middlewares
@@ -60,7 +60,7 @@ final class PipelinePerformanceTests: XCTestCase {
         for i in 0..<1000 {
             _ = try await pipeline.execute(
                 BenchmarkCommand(value: i),
-                metadata: DefaultCommandMetadata()
+                context: CommandContext(metadata: StandardCommandMetadata())
             )
         }
         
@@ -76,7 +76,7 @@ final class PipelinePerformanceTests: XCTestCase {
     
     func testConcurrentPipelinePerformance() async throws {
         let concurrentPipeline = ConcurrentPipeline(options: PipelineOptions(maxConcurrency: 10, maxOutstanding: 1000))
-        let executor = DefaultPipeline(handler: BenchmarkHandler())
+        let executor = StandardPipeline(handler: BenchmarkHandler())
         
         await concurrentPipeline.register(BenchmarkCommand.self, pipeline: executor)
         

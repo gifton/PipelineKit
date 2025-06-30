@@ -24,12 +24,8 @@ final class SecureCommandDispatcherTests: XCTestCase {
         typealias CommandType = FailingCommand
         
         func handle(_ command: FailingCommand) async throws {
-            throw TestError.intentionalFailure
+            throw TestError.commandFailed
         }
-    }
-    
-    enum TestError: Error {
-        case intentionalFailure
     }
     
     func testSecureDispatch() async throws {
@@ -61,7 +57,7 @@ final class SecureCommandDispatcherTests: XCTestCase {
             let command = TestCommand(value: "test-\(i)")
             let result = try await dispatcher.dispatch(
                 command,
-                metadata: DefaultCommandMetadata(userId: "user1")
+                metadata: StandardCommandMetadata(userId: "user1")
             )
             XCTAssertEqual(result, "Handled: test-\(i)")
         }
@@ -71,7 +67,7 @@ final class SecureCommandDispatcherTests: XCTestCase {
             let command = TestCommand(value: "test-6")
             _ = try await dispatcher.dispatch(
                 command,
-                metadata: DefaultCommandMetadata(userId: "user1")
+                metadata: StandardCommandMetadata(userId: "user1")
             )
             XCTFail("Expected rate limit error")
         } catch let error as SecureDispatcherError {
@@ -86,7 +82,7 @@ final class SecureCommandDispatcherTests: XCTestCase {
         let command = TestCommand(value: "test-user2")
         let result = try await dispatcher.dispatch(
             command,
-            metadata: DefaultCommandMetadata(userId: "user2")
+            metadata: StandardCommandMetadata(userId: "user2")
         )
         XCTAssertEqual(result, "Handled: test-user2")
     }

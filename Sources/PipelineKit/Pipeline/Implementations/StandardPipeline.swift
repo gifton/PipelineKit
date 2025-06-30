@@ -1,5 +1,11 @@
 import Foundation
 
+// Helper command for error cases
+fileprivate struct DummyCommand: Command {
+    typealias Result = Void
+    func execute() async throws {}
+}
+
 /// The primary pipeline implementation for executing commands through middleware.
 ///
 /// `StandardPipeline` provides a type-safe, flexible command processing pipeline that supports
@@ -124,7 +130,7 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: PipelineKit.Pipeli
     /// - Throws: `PipelineError.maxDepthExceeded` if the maximum depth is reached
     public func addMiddleware(_ middleware: any Middleware) throws {
         guard middlewares.count < maxDepth else {
-            throw PipelineError.maxDepthExceeded
+            throw PipelineError.maxDepthExceeded(depth: maxDepth, command: DummyCommand())
         }
         middlewares.append(middleware)
     }
@@ -135,7 +141,7 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: PipelineKit.Pipeli
     /// - Throws: `PipelineError.maxDepthExceeded` if adding would exceed maximum depth
     public func addMiddlewares(_ newMiddlewares: [any Middleware]) throws {
         guard middlewares.count + newMiddlewares.count <= maxDepth else {
-            throw PipelineError.maxDepthExceeded
+            throw PipelineError.maxDepthExceeded(depth: maxDepth, command: DummyCommand())
         }
         middlewares.append(contentsOf: newMiddlewares)
     }
@@ -167,19 +173,19 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: PipelineKit.Pipeli
     ///   - metadata: Metadata about the command execution
     /// - Returns: The result from the command handler
     /// - Throws: Any error from middleware or the handler
-    public func execute<T: Command>(_ command: T, metadata: CommandMetadata) async throws -> T.Result {
+    public func execute<T: Command>(_ command: T, context: CommandContext) async throws -> T.Result {
         guard let typedCommand = command as? C else {
-            throw PipelineError.invalidCommandType
+            throw PipelineError.invalidCommandType(command: command)
         }
-        let result = try await executeTyped(typedCommand, metadata: metadata)
+        let result = try await executeTyped(typedCommand, context: context)
         guard let typedResult = result as? T.Result else {
-            throw PipelineError.invalidCommandType
+            throw PipelineError.invalidCommandType(command: command)
         }
         return typedResult
     }
     
     /// Type-safe execution for the specific command type this pipeline handles.
-    private func executeTyped(_ command: C, metadata: CommandMetadata) async throws -> C.Result {
+    private func executeTyped(_ command: C, context: CommandContext) async throws -> C.Result {
         // Apply back-pressure control if configured
         let token: SemaphoreToken?
         if let semaphore = semaphore {
@@ -191,24 +197,21 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: PipelineKit.Pipeli
         // Token automatically releases when it goes out of scope
         defer { _ = token } // Keep token alive until end of scope
         
-        if useContext || middlewares.contains(where: { $0 is any ContextAwareMiddleware }) {
-            // Execute with context
-            return try await executeWithContext(command, metadata: metadata)
-        } else {
-            // Execute without context
-            return try await executeWithoutContext(command, metadata: metadata)
-        }
+        // Always use context since all middleware now uses context
+        return try await executeWithContext(command, context: context)
     }
     
     // MARK: - Private Execution Methods
     
     /// Executes the command with context support.
-    private func executeWithContext(_ command: C, metadata: CommandMetadata) async throws -> C.Result {
-        let context = CommandContext(metadata: metadata)
-        
-        // Initialize context with standard values
-        await context.set(UUID().uuidString, for: RequestIDKey.self)
-        await context.set(Date(), for: RequestStartTimeKey.self)
+    private func executeWithContext(_ command: C, context: CommandContext) async throws -> C.Result {
+        // Initialize context with standard values if not already set
+        if await context.get(RequestIDKey.self) == nil {
+            await context.set(UUID().uuidString, for: RequestIDKey.self)
+        }
+        if await context.get(RequestStartTimeKey.self) == nil {
+            await context.set(Date(), for: RequestStartTimeKey.self)
+        }
         
         // Create the middleware chain with context
         var next: @Sendable (C, CommandContext) async throws -> C.Result = { cmd, ctx in
@@ -219,42 +222,13 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: PipelineKit.Pipeli
         for middleware in middlewares.reversed() {
             let currentNext = next
             
-            if let contextMiddleware = middleware as? any ContextAwareMiddleware {
-                next = { cmd, ctx in
-                    try await contextMiddleware.execute(cmd, context: ctx, next: { c, context in
-                        try await currentNext(c, context)
-                    })
-                }
-            } else {
-                // Wrap regular middleware
-                next = { cmd, ctx in
-                    try await middleware.execute(cmd, metadata: await ctx.commandMetadata, next: { c, m in
-                        // Metadata is immutable, so we just pass it through
-                        return try await currentNext(c, ctx)
-                    })
-                }
+            // All middleware now uses context
+            next = { cmd, ctx in
+                try await middleware.execute(cmd, context: ctx, next: currentNext)
             }
         }
         
         return try await next(command, context)
-    }
-    
-    /// Executes the command without context.
-    private func executeWithoutContext(_ command: C, metadata: CommandMetadata) async throws -> C.Result {
-        // Create the middleware chain
-        var next: @Sendable (C, CommandMetadata) async throws -> C.Result = { cmd, meta in
-            try await self.handler.handle(cmd)
-        }
-        
-        // Build the chain in reverse order (last middleware wraps first)
-        for middleware in middlewares.reversed() {
-            let currentNext = next
-            next = { cmd, meta in
-                try await middleware.execute(cmd, metadata: meta, next: currentNext)
-            }
-        }
-        
-        return try await next(command, metadata)
     }
     
     // MARK: - Introspection

@@ -347,7 +347,7 @@ public struct AuditQueryCriteria: Sendable {
 /// 
 /// pipeline.use(middleware)
 /// ```
-public struct AuditLoggingMiddleware: Middleware, PrioritizedMiddleware {
+public struct AuditLoggingMiddleware: Middleware {
     public let priority: ExecutionPriority = .auditLogging
     private let auditLogger: AuditLogger
     private let metadataExtractor: @Sendable (any Command, CommandMetadata) async -> [String: String]

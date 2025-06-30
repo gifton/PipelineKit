@@ -119,26 +119,30 @@ public struct PerformanceExample {
             .build()
         
         print("\n--- Executing Fast Command ---")
-        _ = try! await pipeline.execute(FastCommand(value: "Hello World"), metadata: StandardCommandMetadata())
+        let context = CommandContext(metadata: StandardCommandMetadata())
+        _ = try! await pipeline.execute(FastCommand(value: "Hello World"), context: context)
         
         print("\n--- Executing Slow Command ---") 
         let slowPipeline = try! await PipelineBuilder(handler: SlowCommandHandler())
             .with(performanceMiddleware)
             .build()
-        _ = try! await slowPipeline.execute(SlowCommand(processingTime: 0.1), metadata: StandardCommandMetadata())
+        let slowContext = CommandContext(metadata: StandardCommandMetadata())
+        _ = try! await slowPipeline.execute(SlowCommand(processingTime: 0.1), context: slowContext)
         
         print("\n--- Executing Failing Command ---")
         let failingPipeline = try! await PipelineBuilder(handler: FailingCommandHandler())
             .with(performanceMiddleware)
             .build()
         do {
-            try await failingPipeline.execute(FailingCommand(shouldFail: true), metadata: StandardCommandMetadata())
+            let failContext = CommandContext(metadata: StandardCommandMetadata())
+            try await failingPipeline.execute(FailingCommand(shouldFail: true), context: failContext)
         } catch {
             print("Expected failure occurred")
         }
         
         print("\n--- Executing Successful Command ---")
-        try! await failingPipeline.execute(FailingCommand(shouldFail: false), metadata: StandardCommandMetadata())
+        let successContext = CommandContext(metadata: StandardCommandMetadata())
+        try! await failingPipeline.execute(FailingCommand(shouldFail: false), context: successContext)
     }
     
     public static func runAggregatingCollectorExample() async {
@@ -169,18 +173,21 @@ public struct PerformanceExample {
         
         // Execute multiple fast commands
         for i in 1...10 {
-            _ = try! await fastPipeline.execute(FastCommand(value: "Test \(i)"), metadata: StandardCommandMetadata())
+            let ctx = CommandContext(metadata: StandardCommandMetadata())
+            _ = try! await fastPipeline.execute(FastCommand(value: "Test \(i)"), context: ctx)
         }
         
         // Execute slow commands with varying times
         for time in [0.05, 0.1, 0.15, 0.2, 0.25] {
-            _ = try! await slowPipeline.execute(SlowCommand(processingTime: time), metadata: StandardCommandMetadata())
+            let ctx = CommandContext(metadata: StandardCommandMetadata())
+            _ = try! await slowPipeline.execute(SlowCommand(processingTime: time), context: ctx)
         }
         
         // Execute some failing commands
         for shouldFail in [true, false, true, false, false] {
             do {
-                try await failingPipeline.execute(FailingCommand(shouldFail: shouldFail), metadata: StandardCommandMetadata())
+                let ctx = CommandContext(metadata: StandardCommandMetadata())
+                try await failingPipeline.execute(FailingCommand(shouldFail: shouldFail), context: ctx)
             } catch {
                 // Expected for failing commands
             }
@@ -222,10 +229,14 @@ public struct PerformanceExample {
         print("\n--- Executing Commands with Custom Collector ---")
         
         // Execute various commands
-        _ = try! await fastPipeline.execute(FastCommand(value: "Custom Test 1"), metadata: StandardCommandMetadata())
-        _ = try! await fastPipeline.execute(FastCommand(value: "Custom Test 2"), metadata: StandardCommandMetadata())
-        _ = try! await slowPipeline.execute(SlowCommand(processingTime: 0.08), metadata: StandardCommandMetadata())
-        _ = try! await slowPipeline.execute(SlowCommand(processingTime: 0.12), metadata: StandardCommandMetadata())
+        let ctx1 = CommandContext(metadata: StandardCommandMetadata())
+        _ = try! await fastPipeline.execute(FastCommand(value: "Custom Test 1"), context: ctx1)
+        let ctx2 = CommandContext(metadata: StandardCommandMetadata())
+        _ = try! await fastPipeline.execute(FastCommand(value: "Custom Test 2"), context: ctx2)
+        let ctx3 = CommandContext(metadata: StandardCommandMetadata())
+        _ = try! await slowPipeline.execute(SlowCommand(processingTime: 0.08), context: ctx3)
+        let ctx4 = CommandContext(metadata: StandardCommandMetadata())
+        _ = try! await slowPipeline.execute(SlowCommand(processingTime: 0.12), context: ctx4)
         
         print("\n--- Custom Collector Results ---")
         let measurements = await customCollector.getAllMeasurements()
@@ -259,7 +270,8 @@ public struct PerformanceExample {
         print("\n--- Executing Command with Context Access ---")
         
         // Execute command and access performance data through context
-        let result = try! await pipeline.execute(FastCommand(value: "Context Test"), metadata: StandardCommandMetadata())
+        let ctx = CommandContext(metadata: StandardCommandMetadata())
+        let result = try! await pipeline.execute(FastCommand(value: "Context Test"), context: ctx)
         
         print("Command executed successfully: \(result)")
         print("\n--- Context Collector Analysis ---")

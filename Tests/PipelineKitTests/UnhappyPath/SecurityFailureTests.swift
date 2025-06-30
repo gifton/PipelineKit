@@ -21,15 +21,16 @@ final class SecurityFailureTests: XCTestCase {
         
         let middleware = RateLimitingMiddleware(limiter: rateLimiter)
         let command = SecurityTestCommand(value: "test")
-        let metadata = DefaultCommandMetadata()
+        let metadata = StandardCommandMetadata()
         
         // First two requests should succeed
-        _ = try await middleware.execute(command, metadata: metadata) { _, _ in "success" }
-        _ = try await middleware.execute(command, metadata: metadata) { _, _ in "success" }
+        let context = CommandContext(metadata: metadata)
+        _ = try await middleware.execute(command, context: context) { _, _ in "success" }
+        _ = try await middleware.execute(command, context: context) { _, _ in "success" }
         
         // Third request should fail
         do {
-            _ = try await middleware.execute(command, metadata: metadata) { _, _ in "fail" }
+            _ = try await middleware.execute(command, context: context) { _, _ in "fail" }
             XCTFail("Expected rate limit error")
         } catch let error as RateLimitError {
             if case let .limitExceeded(remaining, resetAt) = error {
@@ -51,15 +52,16 @@ final class SecurityFailureTests: XCTestCase {
         
         // Simulate rapid requests from same user
         let command = SecurityTestCommand(value: "test")
-        let metadata = DefaultCommandMetadata(userId: "user123")
+        let metadata = StandardCommandMetadata(userId: "user123")
+        let context = CommandContext(metadata: metadata)
         
         // First request consumes the token
-        _ = try await middleware.execute(command, metadata: metadata) { _, _ in "success" }
+        _ = try await middleware.execute(command, context: context) { _, _ in "success" }
         
         // Rapid subsequent requests should fail
         for _ in 0..<5 {
             do {
-                _ = try await middleware.execute(command, metadata: metadata) { _, _ in "bypass attempt" }
+                _ = try await middleware.execute(command, context: context) { _, _ in "bypass attempt" }
                 XCTFail("Rate limit bypass should not succeed")
             } catch is RateLimitError {
                 // Expected - rate limit should block
@@ -101,7 +103,8 @@ final class SecurityFailureTests: XCTestCase {
         let xssCommand = ValidatableMaliciousCommand(input: "<script>alert('xss')</script>")
         
         do {
-            _ = try await middleware.execute(xssCommand, metadata: DefaultCommandMetadata()) { _, _ in "success" }
+            let context = CommandContext(metadata: StandardCommandMetadata())
+            _ = try await middleware.execute(xssCommand, context: context) { _, _ in "success" }
             XCTFail("XSS validation should fail")
         } catch let error as ValidationError {
             // Expected validation error
@@ -114,7 +117,8 @@ final class SecurityFailureTests: XCTestCase {
         let sqlInjectionCommand = ValidatableMaliciousCommand(input: "'; DROP TABLE users; --")
         
         do {
-            _ = try await middleware.execute(sqlInjectionCommand, metadata: DefaultCommandMetadata()) { _, _ in "success" }
+            let context = CommandContext(metadata: StandardCommandMetadata())
+            _ = try await middleware.execute(sqlInjectionCommand, context: context) { _, _ in "success" }
             XCTFail("SQL injection validation should fail")
         } catch let error as ValidationError {
             // Expected validation error for SQL injection
@@ -127,7 +131,8 @@ final class SecurityFailureTests: XCTestCase {
         let largeDataCommand = ValidatableMaliciousCommand(input: String(repeating: "A", count: 10000))
         
         do {
-            _ = try await middleware.execute(largeDataCommand, metadata: DefaultCommandMetadata()) { _, _ in "success" }
+            let context = CommandContext(metadata: StandardCommandMetadata())
+            _ = try await middleware.execute(largeDataCommand, context: context) { _, _ in "success" }
             XCTFail("Large data validation should fail")
         } catch let error as ValidationError {
             // Expected validation error for excessive data
@@ -140,9 +145,9 @@ final class SecurityFailureTests: XCTestCase {
     func testUnauthorizedAccess() async throws {
         let authMiddleware = AuthorizationMiddleware(
             requiredRoles: ["authorized"],
-            roleExtractor: { metadata in
+            getUserRoles: { userId in
                 // Extract roles based on userId
-                if let userId = metadata.userId, userId == "authorized_user" {
+                if userId == "authorized_user" {
                     return ["authorized"]
                 }
                 return []
@@ -150,10 +155,14 @@ final class SecurityFailureTests: XCTestCase {
         )
         
         let command = SecurityTestCommand(value: "sensitive_action")
-        let unauthorizedMetadata = DefaultCommandMetadata(userId: "unauthorized_user")
+        let unauthorizedMetadata = StandardCommandMetadata(userId: "unauthorized_user")
+        let unauthorizedContext = CommandContext(metadata: unauthorizedMetadata)
+        
+        // Need to set authenticated user in context for authorization middleware
+        await unauthorizedContext.set("unauthorized_user", for: AuthenticatedUserKey.self)
         
         do {
-            _ = try await authMiddleware.execute(command, metadata: unauthorizedMetadata) { _, _ in "success" }
+            _ = try await authMiddleware.execute(command, context: unauthorizedContext) { _, _ in "success" }
             XCTFail("Authorization should deny access")
         } catch AuthorizationError.insufficientPermissions {
             // Expected
@@ -163,10 +172,10 @@ final class SecurityFailureTests: XCTestCase {
     func testPrivilegeEscalationAttempt() async throws {
         let authMiddleware = AuthorizationMiddleware(
             requiredRoles: ["admin"],
-            roleExtractor: { metadata in
+            getUserRoles: { userId in
                 // Only admin users have admin role
                 let adminUsers = ["admin1", "admin2"]
-                if let userId = metadata.userId, adminUsers.contains(userId) {
+                if adminUsers.contains(userId) {
                     return ["admin"]
                 }
                 return ["user"]
@@ -174,10 +183,14 @@ final class SecurityFailureTests: XCTestCase {
         )
         
         let adminCommand = AdminCommand(action: "delete_all_users")
-        let regularUserMetadata = DefaultCommandMetadata(userId: "regular_user")
+        let regularUserMetadata = StandardCommandMetadata(userId: "regular_user")
+        let regularUserContext = CommandContext(metadata: regularUserMetadata)
+        
+        // Need to set authenticated user in context for authorization middleware
+        await regularUserContext.set("regular_user", for: AuthenticatedUserKey.self)
         
         do {
-            _ = try await authMiddleware.execute(adminCommand, metadata: regularUserMetadata) { _, _ in "success" }
+            _ = try await authMiddleware.execute(adminCommand, context: regularUserContext) { _, _ in "success" }
             XCTFail("Privilege escalation should be blocked")
         } catch AuthorizationError.insufficientPermissions {
             // Expected
@@ -245,7 +258,8 @@ final class SecurityFailureTests: XCTestCase {
         
         for attempt in bypassAttempts {
             let command = SanitizableMaliciousCommand(input: attempt)
-            _ = try await middleware.execute(command, metadata: DefaultCommandMetadata()) { sanitizedCmd, _ in
+            let context = CommandContext(metadata: StandardCommandMetadata())
+            _ = try await middleware.execute(command, context: context) { sanitizedCmd, _ in
                 // The middleware should have called sanitized() on the command
                 let sanitized = sanitizedCmd.input
                 XCTAssertFalse(sanitized.contains("<script"), "Script tag not removed")
@@ -269,7 +283,7 @@ final class SecurityFailureTests: XCTestCase {
         )
         
         let command = SecurityTestCommand(value: "test")
-        let metadata = DefaultCommandMetadata()
+        let metadata = StandardCommandMetadata()
         
         // This should handle the file system error gracefully
         let entry = AuditEntry(
@@ -295,7 +309,7 @@ final class SecurityFailureTests: XCTestCase {
             bufferSize: 5 // Very small buffer
         )
         
-        let metadata = DefaultCommandMetadata()
+        let metadata = StandardCommandMetadata()
         
         // Generate more entries than buffer size
         for _ in 0..<10 {
@@ -327,7 +341,8 @@ final class SecurityFailureTests: XCTestCase {
         let attackTasks = (0..<100).map { i in
             Task {
                 do {
-                    _ = try await middleware.execute(command, metadata: DefaultCommandMetadata()) { _, _ in "success" }
+                    let context = CommandContext(metadata: StandardCommandMetadata())
+                    _ = try await middleware.execute(command, context: context) { _, _ in "success" }
                     return true
                 } catch {
                     return false

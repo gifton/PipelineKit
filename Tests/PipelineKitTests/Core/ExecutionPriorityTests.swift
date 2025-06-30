@@ -108,13 +108,17 @@ final class ExecutionPriorityTests: XCTestCase {
             let order: ExecutionPriority
             let tracker: TestActor<[ExecutionPriority]>
             
+            var priority: ExecutionPriority {
+                return order
+            }
+            
             func execute<T: Command>(
                 _ command: T,
-                metadata: CommandMetadata,
-                next: @Sendable (T, CommandMetadata) async throws -> T.Result
+                context: CommandContext,
+                next: @Sendable (T, CommandContext) async throws -> T.Result
             ) async throws -> T.Result {
                 await tracker.append(order)
-                return try await next(command, metadata)
+                return try await next(command, context)
             }
         }
         
@@ -123,25 +127,24 @@ final class ExecutionPriorityTests: XCTestCase {
         
         // Add middleware in non-sequential order
         try await pipeline.addMiddleware(
-            OrderTrackingMiddleware(order: ExecutionPriority.logging, tracker: tracker),
-            priority: ExecutionPriority.logging.rawValue
+            OrderTrackingMiddleware(order: ExecutionPriority.logging, tracker: tracker)
         )
         
         try await pipeline.addMiddleware(
-            OrderTrackingMiddleware(order: ExecutionPriority.authentication, tracker: tracker),
-            priority: ExecutionPriority.authentication.rawValue
+            OrderTrackingMiddleware(order: ExecutionPriority.authentication, tracker: tracker)
         )
         
         try await pipeline.addMiddleware(
-            OrderTrackingMiddleware(order: ExecutionPriority.validation, tracker: tracker),
-            priority: ExecutionPriority.validation.rawValue
+            OrderTrackingMiddleware(order: ExecutionPriority.validation, tracker: tracker)
         )
         
-        _ = try await pipeline.execute(TestCommand(), metadata: DefaultCommandMetadata())
+        let context = await CommandContext.test()
+        _ = try await pipeline.execute(TestCommand(), context: context)
         
         let executionOrder = await tracker.get()
         
         // Verify execution order matches priority order
+        // Lower priority values execute first (higher priority)
         XCTAssertEqual(executionOrder, [.authentication, .validation, .logging])
     }
 }

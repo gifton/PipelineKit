@@ -13,6 +13,10 @@ final class EncryptionTests: XCTestCase {
         
         typealias Result = PaymentResult
         
+        func execute() async throws -> PaymentResult {
+            return PaymentResult(transactionId: "TX123", success: true)
+        }
+        
         var sensitiveFields: [String: Any] {
             ["cardNumber": cardNumber, "cvv": cvv]
         }
@@ -38,6 +42,10 @@ final class EncryptionTests: XCTestCase {
         let username: String
         
         typealias Result = String
+        
+        func execute() async throws -> String {
+            return "User: \(username)"
+        }
         
         var sensitiveFields: [String: Any] {
             ["ssn": ssn, "password": password]
@@ -265,10 +273,10 @@ final class EncryptionTests: XCTestCase {
             amount: 99.99
         )
         
-        let metadata = DefaultCommandMetadata()
+        let context = await CommandContext.test()
         
         // Middleware validates encryptable commands
-        let result = try await middleware.execute(command, metadata: metadata) { cmd, _ in
+        let result = try await middleware.execute(command, context: context) { cmd, _ in
             PaymentResult(transactionId: "TX123", success: true)
         }
         
@@ -284,13 +292,17 @@ final class EncryptionTests: XCTestCase {
         struct RegularCommand: Command {
             let value: String
             typealias Result = String
+            
+            func execute() async throws -> String {
+                return "Result: \(value)"
+            }
         }
         
         let command = RegularCommand(value: "test")
-        let metadata = DefaultCommandMetadata()
+        let context = await CommandContext.test()
         
         // Non-encryptable commands pass through
-        let result = try await middleware.execute(command, metadata: metadata) { cmd, _ in
+        let result = try await middleware.execute(command, context: context) { cmd, _ in
             "Result: \(cmd.value)"
         }
         
@@ -305,17 +317,21 @@ final class EncryptionTests: XCTestCase {
         struct EmptyEncryptableCommand: Command, EncryptableCommand {
             typealias Result = String
             
+            func execute() async throws -> String {
+                return "Empty"
+            }
+            
             var sensitiveFields: [String: Any] { [:] }
             
             mutating func updateSensitiveFields(_ fields: [String: Any]) {}
         }
         
         let command = EmptyEncryptableCommand()
-        let metadata = DefaultCommandMetadata()
+        let context = await CommandContext.test()
         
         // Should throw error for empty sensitive fields
         do {
-            _ = try await middleware.execute(command, metadata: metadata) { _, _ in
+            _ = try await middleware.execute(command, context: context) { _, _ in
                 "Should not reach"
             }
             XCTFail("Expected error")

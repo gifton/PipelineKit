@@ -25,7 +25,7 @@ public struct RateLimitingMiddleware: Middleware {
     public init(
         limiter: RateLimiter,
         identifierExtractor: @escaping @Sendable (any Command, CommandContext) async -> String = { _, context in
-            let metadata = await context.commandMetadata
+            let metadata = context.commandMetadata
             return metadata.userId ?? "anonymous"
         },
         costCalculator: @escaping @Sendable (any Command) -> Double = { _ in 1.0 }
@@ -55,8 +55,3 @@ public struct RateLimitingMiddleware: Middleware {
     }
 }
 
-// Extension to make RateLimitingMiddleware an PrioritizedMiddleware
-extension RateLimitingMiddleware: PrioritizedMiddleware {
-    /// Recommended middleware order for this component
-    public static var recommendedOrder: ExecutionPriority { .rateLimiting }
-}

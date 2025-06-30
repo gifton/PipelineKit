@@ -20,7 +20,7 @@ public struct BackPressureExample {
         
         // Register a handler that simulates work
         let handler = SlowCommandHandler()
-        let standardPipeline = DefaultPipeline(handler: handler)
+        let standardPipeline = StandardPipeline(handler: handler)
         await pipeline.register(SlowCommand.self, pipeline: standardPipeline)
         
         print("🔄 Executing commands with suspend strategy...")
@@ -57,7 +57,7 @@ public struct BackPressureExample {
         
         let pipeline = ConcurrentPipeline(options: options)
         let handler = SlowCommandHandler()
-        let standardPipeline = DefaultPipeline(handler: handler)
+        let standardPipeline = StandardPipeline(handler: handler)
         await pipeline.register(SlowCommand.self, pipeline: standardPipeline)
         
         print("\n🗑️ Executing commands with drop-oldest strategy...")
@@ -92,7 +92,7 @@ public struct BackPressureExample {
         
         let pipeline = ConcurrentPipeline(options: options)
         let handler = SlowCommandHandler()
-        let standardPipeline = DefaultPipeline(handler: handler)
+        let standardPipeline = StandardPipeline(handler: handler)
         await pipeline.register(SlowCommand.self, pipeline: standardPipeline)
         
         print("\n⚠️ Executing commands with error strategy...")
@@ -118,7 +118,7 @@ public struct BackPressureExample {
     public static func middlewareExample() async throws {
         // Create a standard pipeline
         let handler = SlowCommandHandler()
-        let pipeline = DefaultPipeline(handler: handler)
+        let pipeline = StandardPipeline(handler: handler)
         
         // Add back-pressure middleware
         let backPressureMiddleware = BackPressureMiddleware(
@@ -138,7 +138,8 @@ public struct BackPressureExample {
                 group.addTask {
                     do {
                         let command = SlowCommand(id: i, duration: 1.5)
-                        let _ = try await pipeline.execute(command, metadata: StandardCommandMetadata()) // result
+                        let context = CommandContext(metadata: StandardCommandMetadata())
+                        let _ = try await pipeline.execute(command, context: context) // result
                         print("✅ Command \(i) completed through middleware")
                     } catch {
                         print("❌ Command \(i) failed in middleware: \(error)")
@@ -158,7 +159,7 @@ public struct BackPressureExample {
         
         let pipeline = ConcurrentPipeline(options: options)
         let handler = SlowCommandHandler()
-        let standardPipeline = DefaultPipeline(handler: handler)
+        let standardPipeline = StandardPipeline(handler: handler)
         await pipeline.register(SlowCommand.self, pipeline: standardPipeline)
         
         print("\n📈 Capacity monitoring example...")

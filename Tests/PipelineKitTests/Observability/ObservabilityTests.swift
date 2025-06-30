@@ -99,7 +99,7 @@ final class ObservabilityTests: XCTestCase {
         
         func handle(_ command: TestCommand) async throws -> String {
             if shouldFail {
-                throw TestError.handlerFailed
+                throw TestError.commandFailed
             }
             return "processed: \(command.value)"
         }
@@ -115,20 +115,16 @@ final class ObservabilityTests: XCTestCase {
         
         func handle(_ command: TestObservableCommand) async throws -> String {
             if shouldFail {
-                throw TestError.handlerFailed
+                throw TestError.commandFailed
             }
             return "processed: \(command.value)"
         }
     }
     
-    enum TestError: Error {
-        case handlerFailed
-        case middlewareFailed
-    }
-    
     struct TestMiddleware: Middleware {
         let name: String
         let shouldFail: Bool
+        let priority: ExecutionPriority = .custom
         
         init(name: String = "TestMiddleware", shouldFail: Bool = false) {
             self.name = name
@@ -137,13 +133,13 @@ final class ObservabilityTests: XCTestCase {
         
         func execute<T: Command>(
             _ command: T,
-            metadata: CommandMetadata,
-            next: @Sendable (T, CommandMetadata) async throws -> T.Result
+            context: CommandContext,
+            next: @Sendable (T, CommandContext) async throws -> T.Result
         ) async throws -> T.Result {
             if shouldFail {
                 throw TestError.middlewareFailed
             }
-            return try await next(command, metadata)
+            return try await next(command, context)
         }
     }
     
@@ -155,8 +151,9 @@ final class ObservabilityTests: XCTestCase {
         let registry = ObserverRegistry(observers: [observer1, observer2])
         
         let command = TestCommand(value: "test")
-        let metadata = DefaultCommandMetadata()
+        let metadata = StandardCommandMetadata()
         
+        let context = CommandContext(metadata: metadata)
         await registry.notifyPipelineWillExecute(command, metadata: metadata, pipelineType: "TestPipeline")
         
         XCTAssertEqual(observer1.pipelineEvents.count, 1)
@@ -186,7 +183,7 @@ final class ObservabilityTests: XCTestCase {
     func testObservablePipelineSuccess() async throws {
         let testObserver = TestObserver()
         let handler = TestHandler()
-        let basePipeline = ContextAwarePipeline(handler: handler)
+        let basePipeline = StandardPipeline(handler: handler)
         
         let observablePipeline = ObservablePipeline(
             wrapping: basePipeline,
@@ -195,9 +192,10 @@ final class ObservabilityTests: XCTestCase {
         )
         
         let command = TestCommand(value: "test")
-        let metadata = DefaultCommandMetadata()
+        let metadata = StandardCommandMetadata()
         
-        let result = try await observablePipeline.execute(command, metadata: metadata)
+        let context = CommandContext(metadata: metadata)
+        let result = try await observablePipeline.execute(command, context: context)
         
         XCTAssertEqual(result, "processed: test")
         XCTAssertEqual(testObserver.pipelineEvents.count, 2)
@@ -208,7 +206,7 @@ final class ObservabilityTests: XCTestCase {
     func testObservablePipelineFailure() async throws {
         let testObserver = TestObserver()
         let handler = TestHandler(shouldFail: true)
-        let basePipeline = ContextAwarePipeline(handler: handler)
+        let basePipeline = StandardPipeline(handler: handler)
         
         let observablePipeline = ObservablePipeline(
             wrapping: basePipeline,
@@ -217,10 +215,11 @@ final class ObservabilityTests: XCTestCase {
         )
         
         let command = TestCommand(value: "test")
-        let metadata = DefaultCommandMetadata()
+        let metadata = StandardCommandMetadata()
         
         do {
-            _ = try await observablePipeline.execute(command, metadata: metadata)
+            let context = CommandContext(metadata: metadata)
+            _ = try await observablePipeline.execute(command, context: context)
             XCTFail("Expected error to be thrown")
         } catch {
             XCTAssertEqual(testObserver.pipelineEvents.count, 2)
@@ -243,9 +242,10 @@ final class ObservabilityTests: XCTestCase {
         )
         
         let command = TestCommand(value: "test")
-        let metadata = DefaultCommandMetadata(correlationId: "test-123")
+        let metadata = StandardCommandMetadata(correlationId: "test-123")
         
-        let result = try await observableMiddleware.execute(command, metadata: metadata) { cmd, meta in
+        let context = CommandContext(metadata: metadata)
+        let result = try await observableMiddleware.execute(command, context: context) { cmd, ctx in
             return "processed: \(cmd.value)"
         }
         
@@ -269,10 +269,11 @@ final class ObservabilityTests: XCTestCase {
         )
         
         let command = TestCommand(value: "test")
-        let metadata = DefaultCommandMetadata(correlationId: "test-123")
+        let metadata = StandardCommandMetadata(correlationId: "test-123")
         
         do {
-            _ = try await observableMiddleware.execute(command, metadata: metadata) { cmd, meta in
+            let context = CommandContext(metadata: metadata)
+            _ = try await observableMiddleware.execute(command, context: context) { cmd, ctx in
                 return "processed: \(cmd.value)"
             }
             XCTFail("Expected error to be thrown")
@@ -286,7 +287,7 @@ final class ObservabilityTests: XCTestCase {
     // MARK: - Context Tests
     
     func testSpanContext() async {
-        let context = CommandContext(metadata: DefaultCommandMetadata())
+        let context = CommandContext(metadata: StandardCommandMetadata())
         
         let span = await context.getOrCreateSpanContext(operation: "test_operation")
         XCTAssertEqual(span.operation, "test_operation")
@@ -301,7 +302,7 @@ final class ObservabilityTests: XCTestCase {
     }
     
     func testPerformanceContext() async {
-        let context = CommandContext(metadata: DefaultCommandMetadata())
+        let context = CommandContext(metadata: StandardCommandMetadata())
         
         await context.startTimer("test_timer")
         try? await Task.sleep(nanoseconds: 10_000_000) // 10ms
@@ -316,7 +317,7 @@ final class ObservabilityTests: XCTestCase {
     }
     
     func testObservabilityData() async {
-        let context = CommandContext(metadata: DefaultCommandMetadata())
+        let context = CommandContext(metadata: StandardCommandMetadata())
         
         await context.setObservabilityData("test_key", value: "test_value")
         let value = await context.getObservabilityData("test_key") as? String
@@ -336,13 +337,14 @@ final class ObservabilityTests: XCTestCase {
         )
         
         let handler = TestObservableHandler()
-        let pipeline = ContextAwarePipeline(handler: handler)
+        let pipeline = StandardPipeline(handler: handler)
         try await pipeline.addMiddleware(ObservabilityMiddleware(configuration: configuration))
         
         let command = TestObservableCommand(value: "test")
-        let metadata = DefaultCommandMetadata()
+        let metadata = StandardCommandMetadata()
         
-        let result = try await pipeline.execute(command, metadata: metadata)
+        let context = CommandContext(metadata: metadata)
+        let result = try await pipeline.execute(command, context: context)
         
         XCTAssertEqual(result, "processed: test")
         
@@ -359,7 +361,7 @@ final class ObservabilityTests: XCTestCase {
     
     func testPerformanceTrackingMiddleware() async throws {
         let handler = TestHandler()
-        let pipeline = ContextAwarePipeline(handler: handler)
+        let pipeline = StandardPipeline(handler: handler)
         try await pipeline.addMiddleware(PerformanceTrackingMiddleware(
             thresholds: PerformanceTrackingMiddleware.PerformanceThresholds(
                 slowCommandThreshold: 0.001, // Very low threshold to trigger alerts
@@ -369,9 +371,10 @@ final class ObservabilityTests: XCTestCase {
         ))
         
         let command = TestCommand(value: "test")
-        let metadata = DefaultCommandMetadata()
+        let metadata = StandardCommandMetadata()
         
-        let result = try await pipeline.execute(command, metadata: metadata)
+        let context = CommandContext(metadata: metadata)
+        let result = try await pipeline.execute(command, context: context)
         XCTAssertEqual(result, "processed: test")
         
         // The test mainly ensures no crashes occur during performance tracking
@@ -381,7 +384,7 @@ final class ObservabilityTests: XCTestCase {
     // MARK: - Utils Tests
     
     func testObservabilityUtils() {
-        let metadata = DefaultCommandMetadata(userId: "test-user", correlationId: "test-correlation")
+        let metadata = StandardCommandMetadata(userId: "test-user", correlationId: "test-correlation")
         
         let correlationId = ObservabilityUtils.extractCorrelationId(from: metadata)
         XCTAssertEqual(correlationId, "test-correlation")
@@ -440,9 +443,10 @@ final class OSLogObserverTests: XCTestCase {
         let observer = OSLogObserver.development()
         
         let command = ObservabilityTests.TestCommand(value: "test")
-        let metadata = DefaultCommandMetadata()
+        let metadata = StandardCommandMetadata()
         
         // These tests mainly ensure no crashes occur during logging
+        let context = CommandContext(metadata: metadata)
         await observer.pipelineWillExecute(command, metadata: metadata, pipelineType: "TestPipeline")
         await observer.pipelineDidExecute(command, result: "success", metadata: metadata, pipelineType: "TestPipeline", duration: 0.1)
         await observer.middlewareWillExecute("TestMiddleware", order: 1, correlationId: "test-123")

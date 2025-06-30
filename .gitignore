@@ -7,3 +7,38 @@ DerivedData/
 .swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
 .netrc
 venv
+
+# Claude/Zen/AI assistant related files
+CLAUDE.md
+.claude/
+**/CLAUDE.md
+**/.claude/
+
+# Development documentation and implementation notes
+devdocs/
+**/devdocs/
+implementation-notes.md
+refactoring-plan.md
+phase-*.md
+*-plan.md
+*-notes.md
+*-implementation.md
+*-refactor.md
+*-migration.md
+
+# Build and test output logs
+build_output.log
+test_output.log
+*.log
+
+# Temporary and backup files
+*.tmp
+*.bak
+*.swp
+*~
+
+# AI assistant configuration
+.zen/
+.mcp/
+.assistant/
+.ai-config/

@@ -62,11 +62,16 @@ public struct WebAPIPipelineTemplate: PipelineTemplate {
         with handler: H
     ) async throws -> any Pipeline where H.CommandType == T {
         let pipeline = DefaultPipeline(handler: handler)
+        let registry = MiddlewareRegistry.shared
         
         // Add middleware in order
         if configuration.requireAuthentication {
-            // In production, replace with actual authentication middleware
-            // try await pipeline.addMiddleware(AuthenticationMiddleware())
+            // Use registry for safe authentication middleware creation
+            if let authMiddleware = try await registry.create("authentication") {
+                try await pipeline.addMiddleware(authMiddleware)
+            } else {
+                print("⚠️ Warning: AuthenticationMiddleware not registered in MiddlewareRegistry")
+            }
         }
         
         try await pipeline.addMiddleware(
@@ -86,32 +91,25 @@ public struct WebAPIPipelineTemplate: PipelineTemplate {
         )
         
         if configuration.enableCaching {
-            // TODO: Implement CachingMiddleware
-            // This middleware should:
-            // - Cache command results based on configurable cache keys
-            // - Support TTL (time-to-live) for cached entries
-            // - Provide cache invalidation strategies
-            // - Support different cache backends (in-memory, Redis, etc.)
-            /*
-            try await pipeline.addMiddleware(
-                CachingMiddleware(
-                    cache: InMemoryCache(maxSize: 1000)
-                )
-            )
-            */
+            // Use registry for safe caching middleware creation
+            if let cachingMiddleware = try await registry.create("caching") {
+                try await pipeline.addMiddleware(cachingMiddleware)
+            } else {
+                print("⚠️ Warning: CachingMiddleware not registered. Skipping caching functionality.")
+                print("   To enable caching, register a CachingMiddleware implementation:")
+                print("   await MiddlewareRegistry.shared.register(\"caching\") { CachingMiddleware(...) }")
+            }
         }
         
         if configuration.enableMetrics {
-            // TODO: Create a non-context MetricsMiddleware or use ContextMetricsMiddleware
-            // The current implementation only has ContextMetricsMiddleware
-            // which requires context-aware execution
-            /*
-            try await pipeline.addMiddleware(
-                MetricsMiddleware(
-                    collector: StandardMetricsCollector.shared
-                )
-            )
-            */
+            // Use registry for safe metrics middleware creation
+            if let metricsMiddleware = try await registry.create("metrics") {
+                try await pipeline.addMiddleware(metricsMiddleware)
+            } else {
+                print("⚠️ Warning: MetricsMiddleware not registered. Skipping metrics collection.")
+                print("   To enable metrics, register a MetricsMiddleware implementation:")
+                print("   await MiddlewareRegistry.shared.register(\"metrics\") { MetricsMiddleware(...) }")
+            }
         }
         
         return pipeline
@@ -168,33 +166,23 @@ public struct BackgroundJobPipelineTemplate: PipelineTemplate {
         
         // Add deduplication if enabled
         if configuration.enableDeduplication {
-            // TODO: Implement DeduplicationMiddleware
-            // This middleware should:
-            // - Detect and prevent duplicate command executions
-            // - Use command fingerprinting or correlation IDs
-            // - Support configurable deduplication windows
-            // - Handle concurrent duplicate requests gracefully
-            /*
-            try await pipeline.addMiddleware(
-                DeduplicationMiddleware(
-                    cache: InMemoryDeduplicationCache()
-                )
-            )
-            */
+            // Use registry for safe deduplication middleware creation
+            if let deduplicationMiddleware = try await MiddlewareRegistry.shared.create("deduplication") {
+                try await pipeline.addMiddleware(deduplicationMiddleware)
+            } else {
+                print("⚠️ Warning: DeduplicationMiddleware not registered. Skipping deduplication.")
+                print("   To enable deduplication, register a DeduplicationMiddleware implementation:")
+                print("   await MiddlewareRegistry.shared.register(\"deduplication\") { DeduplicationMiddleware(...) }")
+            }
         }
         
         // Add timeout
-        // TODO: Implement TimeoutMiddleware
-        // This middleware should:
-        // - Enforce time limits on command execution
-        // - Support configurable timeout durations
-        // - Properly cancel long-running operations
-        // - Provide timeout context to downstream middleware
-        /*
-        try await pipeline.addMiddleware(
-            TimeoutMiddleware(timeout: configuration.jobTimeout)
-        )
-        */
+        if let timeoutMiddleware = try await MiddlewareRegistry.shared.create("timeout") {
+            try await pipeline.addMiddleware(timeoutMiddleware)
+        } else {
+            print("⚠️ Warning: TimeoutMiddleware not registered. Skipping timeout protection.")
+            print("   Job timeout of \(configuration.jobTimeout)s was requested but cannot be enforced.")
+        }
         
         // Add observability
         try await pipeline.addMiddleware(
@@ -245,7 +233,8 @@ public struct EventProcessingPipelineTemplate: PipelineTemplate {
             pipeline = PriorityPipeline(handler: handler)
         } else {
             // Use standard pipeline for throughput
-            // TODO: Consider using ConcurrentPipeline manager for batch processing
+            // For high-throughput scenarios, consider using a concurrent pipeline
+            // with multiple worker instances processing messages in parallel
             // ConcurrentPipeline is a pipeline manager, not a single pipeline
             pipeline = DefaultPipeline(
                 handler: handler,
@@ -255,22 +244,14 @@ public struct EventProcessingPipelineTemplate: PipelineTemplate {
         
         // Add exactly-once processing
         if configuration.enableExactlyOnce {
-            if let priorityPipeline = pipeline as? PriorityPipeline {
-                // TODO: Implement IdempotencyMiddleware
-                // This middleware should:
-                // - Ensure exactly-once command execution
-                // - Store and retrieve command execution results
-                // - Use correlation IDs or command hashes as keys
-                // - Support distributed idempotency stores
-                /*
-                try await priorityPipeline.addMiddleware(
-                    IdempotencyMiddleware(
-                        store: InMemoryIdempotencyStore()
-                    ),
-                    priority: 100 // High priority
-                )
-                */
-            }
+            // Note: Due to Swift's type system limitations with protocols and generics,
+            // we cannot add middleware to the pipeline protocol directly.
+            // Users should add idempotency middleware when creating the concrete pipeline.
+            print("⚠️ Note: Exactly-once processing requested but cannot be added to generic pipeline.")
+            print("   Add IdempotencyMiddleware manually after creating the pipeline:")
+            print("   if let middleware = await MiddlewareRegistry.shared.create(\"idempotency\") {")
+            print("       await pipeline.addMiddleware(middleware)")
+            print("   }")
         }
         
         return pipeline
@@ -318,23 +299,20 @@ public struct MicroservicePipelineTemplate: PipelineTemplate {
         
         // Add tracing
         if configuration.enableTracing {
-            // TODO: Implement TracingMiddleware
-            // This middleware should:
-            // - Create and propagate trace context
-            // - Support distributed tracing standards (OpenTelemetry, Jaeger)
-            // - Record span data for each command execution
-            // - Integrate with the observability system
-            /*
-            try await pipeline.addMiddleware(
-                TracingMiddleware(serviceName: configuration.serviceName)
-            )
-            */
+            // Use registry for safe tracing middleware creation
+            if let tracingMiddleware = try await MiddlewareRegistry.shared.create("tracing") {
+                try await pipeline.addMiddleware(tracingMiddleware)
+            } else {
+                print("⚠️ Warning: TracingMiddleware not registered. Distributed tracing disabled.")
+                print("   To enable tracing, register a TracingMiddleware implementation:")
+                print("   await MiddlewareRegistry.shared.register(\"tracing\") { TracingMiddleware(serviceName: \"\(configuration.serviceName)\") }")
+            }
         }
         
         // Add authentication
         if configuration.enableAuthentication {
             try await pipeline.addMiddleware(
-                ContextAuthenticationMiddleware { token in
+                AuthenticationMiddleware { token in
                     // In production, implement actual authentication logic
                     // This is just a placeholder
                     guard token != nil else {
@@ -347,18 +325,15 @@ public struct MicroservicePipelineTemplate: PipelineTemplate {
         
         // Add encryption if needed
         if configuration.enableEncryption {
-            // TODO: Implement proper encryption with CommandEncryptor
-            // The EncryptionMiddleware requires a CommandEncryptor instance
-            // which manages key rotation and secure storage
-            /*
-            let encryptor = await CommandEncryptor(
-                keyStore: InMemoryKeyStore(),
-                keyRotationInterval: 86400 // 24 hours
-            )
-            try await pipeline.addMiddleware(
-                EncryptionMiddleware(encryptor: encryptor)
-            )
-            */
+            if let encryptionMiddleware = try await registry.create("encryption") {
+                try await pipeline.addMiddleware(encryptionMiddleware)
+            } else {
+                print("⚠️ Warning: EncryptionMiddleware not registered. Skipping encryption.")
+                print("   To enable encryption, register a custom encryptor:")
+                print("   await MiddlewareRegistry.shared.register(\"encryption\") {")
+                print("       EncryptionMiddleware(encryptor: YourCustomEncryptor())")
+                print("   }")
+            }
         }
         
         // Add resilience
@@ -379,16 +354,12 @@ public struct MicroservicePipelineTemplate: PipelineTemplate {
         }
         
         // Add metrics
-        // TODO: Create a non-context MetricsMiddleware with namespace support
-        // The current implementation only has ContextMetricsMiddleware
-        /*
-        try await pipeline.addMiddleware(
-            MetricsMiddleware(
-                collector: StandardMetricsCollector.shared,
-                namespace: configuration.serviceName
-            )
-        )
-        */
+        if let metricsMiddleware = try await MiddlewareRegistry.shared.create("metrics") {
+            try await pipeline.addMiddleware(metricsMiddleware)
+        } else {
+            print("⚠️ Warning: MetricsMiddleware not registered. Metrics collection disabled.")
+            print("   Service '\(configuration.serviceName)' will not report metrics.")
+        }
         
         return pipeline
     }
@@ -429,147 +400,32 @@ public actor PipelineTemplateRegistry {
     }
 }
 
-// MARK: - Supporting Middleware
+// MARK: - Protocol Definitions
 
-// NOTE: The middleware implementations below are placeholders and should be
-// properly implemented in their respective modules for production use.
-
-/// Simple caching middleware - PLACEHOLDER IMPLEMENTATION
-/// TODO: Move to proper module and implement fully
-final class CachingMiddleware: Middleware {
-    private let cache: any Cache
-    
-    init(cache: any Cache) {
-        self.cache = cache
-    }
-    
-    func execute<T: Command>(
-        _ command: T,
-        metadata: CommandMetadata,
-        next: @Sendable (T, CommandMetadata) async throws -> T.Result
-    ) async throws -> T.Result {
-        // Simple implementation - real one would need cache keys
-        try await next(command, metadata)
-    }
+/// Protocol for command encryption
+public protocol CommandEncryptor: Sendable {
+    func encrypt<T: Command>(_ command: T) async throws -> Data
 }
 
-/// Simple deduplication middleware - PLACEHOLDER IMPLEMENTATION
-/// TODO: Move to proper module and implement fully
-final class DeduplicationMiddleware: Middleware {
-    private let cache: DeduplicationCache
-    
-    init(cache: DeduplicationCache) {
-        self.cache = cache
-    }
-    
-    func execute<T: Command>(
-        _ command: T,
-        metadata: CommandMetadata,
-        next: @Sendable (T, CommandMetadata) async throws -> T.Result
-    ) async throws -> T.Result {
-        // Check for duplicate
-        let key = String(describing: command)
-        if await cache.isDuplicate(key: key) {
-            throw DeduplicationError.duplicateCommand
+/// Protocol for command decryption  
+public protocol CommandDecryptor: Sendable {
+    func decrypt<T: Command>(_ data: Data, as type: T.Type) async throws -> T
+}
+
+// MARK: - Context Extensions
+
+extension CommandContext {
+    /// Checks if the current context is secure (e.g., HTTPS, encrypted connection)
+    public var isSecure: Bool {
+        get async {
+            // Check for security indicators in metadata
+            if let metadata = await self.commandMetadata {
+                // Look for common security indicators
+                // This is a simplified check - real implementation would be more comprehensive
+                return metadata.source.contains("https") || metadata.source.contains("secure")
+            }
+            return false
         }
-        
-        await cache.markProcessed(key: key)
-        return try await next(command, metadata)
-    }
-}
-
-/// Simple idempotency middleware - PLACEHOLDER IMPLEMENTATION
-/// TODO: Move to proper module and implement fully
-final class IdempotencyMiddleware: Middleware {
-    private let store: IdempotencyStore
-    
-    init(store: IdempotencyStore) {
-        self.store = store
-    }
-    
-    func execute<T: Command>(
-        _ command: T,
-        metadata: CommandMetadata,
-        next: @Sendable (T, CommandMetadata) async throws -> T.Result
-    ) async throws -> T.Result {
-        // Check for existing result
-        let key = metadata.correlationId ?? UUID().uuidString
-        if let cachedResult = await store.getResult(for: key) as? T.Result {
-            return cachedResult
-        }
-        
-        let result = try await next(command, metadata)
-        await store.storeResult(result, for: key)
-        return result
-    }
-}
-
-
-// MARK: - Supporting Types
-
-protocol Cache: Sendable {
-    func get(key: String) async -> Any?
-    func set(key: String, value: Any) async
-}
-
-actor InMemoryCache: Cache {
-    private var storage: [String: Any] = [:]
-    private let maxSize: Int
-    
-    init(maxSize: Int) {
-        self.maxSize = maxSize
-    }
-    
-    func get(key: String) async -> Any? {
-        storage[key]
-    }
-    
-    func set(key: String, value: Any) async {
-        if storage.count >= maxSize {
-            // Simple eviction - remove first
-            storage.removeValue(forKey: storage.keys.first!)
-        }
-        storage[key] = value
-    }
-}
-
-actor DeduplicationCache {
-    private var processed: Set<String> = []
-    
-    func isDuplicate(key: String) -> Bool {
-        processed.contains(key)
-    }
-    
-    func markProcessed(key: String) {
-        processed.insert(key)
-    }
-}
-
-actor IdempotencyStore {
-    private var results: [String: Any] = [:]
-    
-    func getResult(for key: String) -> Any? {
-        results[key]
-    }
-    
-    func storeResult(_ result: Any, for key: String) {
-        results[key] = result
-    }
-}
-
-
-enum DeduplicationError: LocalizedError {
-    case duplicateCommand
-    
-    var errorDescription: String? {
-        "Duplicate command detected"
-    }
-}
-
-
-struct TimeoutError: LocalizedError {
-    var errorDescription: String? {
-        "Operation timed out"
     }
 }
 

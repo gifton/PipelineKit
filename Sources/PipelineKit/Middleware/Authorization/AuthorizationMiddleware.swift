@@ -19,6 +19,11 @@ public struct AuthorizationMiddleware: Middleware {
         context: CommandContext,
         next: @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
+        // If no roles are required, allow access (public endpoint)
+        if requiredRoles.isEmpty {
+            return try await next(command, context)
+        }
+        
         // Get authenticated user from context
         guard let userId = await context[AuthenticatedUserKey.self] else {
             throw AuthorizationError.notAuthenticated
@@ -27,8 +32,8 @@ public struct AuthorizationMiddleware: Middleware {
         let userRoles = try await getUserRoles(userId)
         await context.set(userRoles, for: AuthorizationRolesKey.self)
 
-        // Check if user has required roles
-        guard !requiredRoles.isDisjoint(with: userRoles) else {
+        // Check if user has all required roles
+        guard requiredRoles.isSubset(of: userRoles) else {
             throw AuthorizationError.insufficientPermissions
         }
 

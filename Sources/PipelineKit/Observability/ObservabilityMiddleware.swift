@@ -3,9 +3,9 @@ import Foundation
 // MARK: - Core Observability Middleware
 
 /// Middleware that automatically instruments command execution with observability
-public struct ObservabilityMiddleware: ContextAwareMiddleware, PrioritizedMiddleware {
+public struct ObservabilityMiddleware: Middleware {
     
-    nonisolated(unsafe) public static var recommendedOrder: ExecutionPriority { .tracing }
+    public var priority: ExecutionPriority { .tracing }
     
     private let configuration: ObservabilityConfiguration
     
@@ -157,9 +157,9 @@ public struct ObservabilityMiddleware: ContextAwareMiddleware, PrioritizedMiddle
 // MARK: - Performance Tracking Middleware
 
 /// Specialized middleware for detailed performance tracking
-public struct PerformanceTrackingMiddleware: ContextAwareMiddleware, PrioritizedMiddleware {
+public struct PerformanceTrackingMiddleware: Middleware {
     
-    nonisolated(unsafe) public static var recommendedOrder: ExecutionPriority { .monitoring }
+    public var priority: ExecutionPriority { .monitoring }
     
     private let thresholds: PerformanceThresholds
     
@@ -288,9 +288,9 @@ public struct PerformanceTrackingMiddleware: ContextAwareMiddleware, Prioritized
 // MARK: - Distributed Tracing Middleware
 
 /// Middleware for distributed tracing integration
-public struct DistributedTracingMiddleware: ContextAwareMiddleware, PrioritizedMiddleware {
+public struct DistributedTracingMiddleware: Middleware {
     
-    nonisolated(unsafe) public static var recommendedOrder: ExecutionPriority { .tracing }
+    public var priority: ExecutionPriority { .tracing }
     
     private let serviceName: String
     private let version: String
@@ -334,9 +334,9 @@ public struct DistributedTracingMiddleware: ContextAwareMiddleware, PrioritizedM
 // MARK: - Custom Event Emitter Middleware
 
 /// Middleware that allows easy emission of custom business events
-public struct CustomEventEmitterMiddleware: ContextAwareMiddleware, PrioritizedMiddleware {
+public struct CustomEventEmitterMiddleware: Middleware {
     
-    nonisolated(unsafe) public static var recommendedOrder: ExecutionPriority { .eventPublishing }
+    public var priority: ExecutionPriority { .eventPublishing }
     
     private let eventPrefix: String
     

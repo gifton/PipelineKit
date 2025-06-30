@@ -1,7 +1,7 @@
 import Foundation
 
 /// Middleware that provides resilience patterns including retry and circuit breaker
-public final class ResilientMiddleware: Middleware {
+public final class ResilientMiddleware: Middleware, @unchecked Sendable {
     public let priority: ExecutionPriority = .errorHandling
     private let retryPolicy: RetryPolicy
     private let circuitBreaker: CircuitBreaker?
@@ -22,12 +22,17 @@ public final class ResilientMiddleware: Middleware {
         context: CommandContext,
         next: @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
-        // Get metadata from context if needed
-        let metadata = await context.commandMetadata
-        
         // Check circuit breaker first
         if let breaker = circuitBreaker {
             guard await breaker.shouldAllow() else {
+                // Emit custom event for circuit breaker rejection
+                await context.emitCustomEvent(
+                    "resilience.circuit_breaker.rejected",
+                    properties: [
+                        "middleware": name,
+                        "reason": "circuit_open"
+                    ]
+                )
                 throw ResilienceError.circuitOpen(name: name)
             }
         }
@@ -38,6 +43,12 @@ public final class ResilientMiddleware: Middleware {
             // Record success
             if let breaker = circuitBreaker {
                 await breaker.recordSuccess()
+                
+                // Emit success event
+                await context.emitCustomEvent(
+                    "resilience.circuit_breaker.success",
+                    properties: ["middleware": name]
+                )
             }
             
             return result
@@ -45,6 +56,15 @@ public final class ResilientMiddleware: Middleware {
             // Record failure
             if let breaker = circuitBreaker {
                 await breaker.recordFailure()
+                
+                // Emit failure event
+                await context.emitCustomEvent(
+                    "resilience.circuit_breaker.failure",
+                    properties: [
+                        "middleware": name,
+                        "error": error.localizedDescription
+                    ]
+                )
             }
             throw error
         }
@@ -58,15 +78,41 @@ public final class ResilientMiddleware: Middleware {
         var lastError: Error?
         let startTime = Date()
         let metadata = await context.commandMetadata
+        let userId = (metadata as? StandardCommandMetadata)?.userId ?? "unknown"
         
         for attempt in 1...retryPolicy.maxAttempts {
             do {
+                // Emit retry attempt event for attempts > 1
+                if attempt > 1 {
+                    await context.emitCustomEvent(
+                        "resilience.retry.attempt",
+                        properties: [
+                            "middleware": name,
+                            "attempt": attempt,
+                            "userId": userId,
+                            "command": String(describing: type(of: command))
+                        ]
+                    )
+                }
+                
                 return try await next(command, context)
             } catch {
                 lastError = error
                 
+                // Emit retry failure event
+                await context.emitCustomEvent(
+                    "resilience.retry.failed",
+                    properties: [
+                        "middleware": name,
+                        "attempt": attempt,
+                        "userId": userId,
+                        "error": error.localizedDescription,
+                        "elapsed": Date().timeIntervalSince(startTime)
+                    ]
+                )
+                
                 // Check if we should retry
-                let context = ErrorRecoveryContext(
+                let recoveryContext = ErrorRecoveryContext(
                     command: command,
                     error: error,
                     attempt: attempt,
@@ -74,7 +120,19 @@ public final class ResilientMiddleware: Middleware {
                     isFinalAttempt: attempt == retryPolicy.maxAttempts
                 )
                 
-                guard !context.isFinalAttempt && retryPolicy.shouldRetry(error) else {
+                guard !recoveryContext.isFinalAttempt && retryPolicy.shouldRetry(error) else {
+                    // Emit exhausted event if we're done retrying
+                    if recoveryContext.isFinalAttempt {
+                        await context.emitCustomEvent(
+                            "resilience.retry.exhausted",
+                            properties: [
+                                "middleware": name,
+                                "totalAttempts": attempt,
+                                "userId": userId,
+                                "totalElapsed": Date().timeIntervalSince(startTime)
+                            ]
+                        )
+                    }
                     throw error
                 }
                 
@@ -129,12 +187,14 @@ public actor Bulkhead {
         self.maxWaitingCalls = maxWaitingCalls
     }
     
-    public func execute<T>(
+    public func execute<T: Sendable>(
         operation: @escaping @Sendable () async throws -> T
     ) async throws -> T {
         try await acquireSlot()
         defer {
-            Task { await self.releaseSlot() }
+            Task { [weak self] in
+                await self?.releaseSlot()
+            }
         }
         return try await operation()
     }

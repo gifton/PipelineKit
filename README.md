@@ -6,6 +6,8 @@
 
 A comprehensive, security-first Command-Pipeline architecture framework for Swift, featuring full concurrency support, robust middleware chains, enterprise-grade security features, and Swift macro support for simplified pipeline creation.
 
+> **📢 Important:** PipelineKit now uses a unified context-based API. If you're upgrading from v1.x, please see the [Migration Guide](MIGRATION_GUIDE.md).
+
 ## 🌟 Features
 
 ### Core Architecture
@@ -72,10 +74,11 @@ struct CreateUserHandler: CommandHandler {
 }
 
 // Option 1: Direct Pipeline Usage (No CommandBus Required)
-let pipeline = DefaultPipeline(handler: CreateUserHandler())
+let pipeline = StandardPipeline(handler: CreateUserHandler())
+let context = CommandContext(metadata: StandardCommandMetadata())
 let user = try await pipeline.execute(
     CreateUserCommand(email: "user@example.com", username: "johndoe"),
-    metadata: DefaultCommandMetadata()
+    context: context
 )
 
 // Option 2: CommandBus for Centralized Routing
@@ -93,9 +96,10 @@ actor UserService {
 }
 
 let service = UserService()
+let context = CommandContext(metadata: StandardCommandMetadata())
 let user = try await service.execute(
     CreateUserCommand(email: "user@example.com", username: "johndoe"),
-    metadata: DefaultCommandMetadata()
+    context: context
 )
 ```
 
@@ -146,9 +150,10 @@ let secureBuilder = SecurePipelineBuilder()
 let pipeline = secureBuilder.build()
 
 // Direct execution - no CommandBus needed
+let context = CommandContext(metadata: StandardCommandMetadata(userId: "user123"))
 let result = try await pipeline.execute(
     command,
-    metadata: DefaultCommandMetadata(userId: "user123")
+    context: context
 )
 ```
 
@@ -241,7 +246,7 @@ struct MetricsKey: ContextKey {
 }
 
 // Create context-aware middleware
-struct AuthenticationMiddleware: ContextAwareMiddleware {
+struct AuthenticationMiddleware: Middleware {
     func execute<T: Command>(
         _ command: T,
         context: CommandContext,
@@ -315,8 +320,9 @@ PipelineKit offers flexible architecture options:
 **Direct Pipeline Usage** - Execute commands through pipelines without CommandBus:
 ```swift
 // Create pipeline with middleware
-let pipeline = DefaultPipeline(handler: PaymentHandler())
-let payment = try await pipeline.execute(paymentCommand, metadata: metadata)
+let pipeline = StandardPipeline(handler: PaymentHandler())
+let context = CommandContext(metadata: StandardCommandMetadata())
+let payment = try await pipeline.execute(paymentCommand, context: context)
 
 // Benefits: Direct execution, explicit control, type safety
 // Use when: Single command type, simple routing, performance critical

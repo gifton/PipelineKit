@@ -22,7 +22,7 @@ final class PipelineBuilderDSLTests: XCTestCase {
     
     actor TestMiddleware: Middleware {
         let name: String
-        let priority: ExecutionPriority = .normal
+        let priority: ExecutionPriority = .custom
         private(set) var executionCount = 0
         private(set) var lastCommand: (any Command)?
         
@@ -48,7 +48,7 @@ final class PipelineBuilderDSLTests: XCTestCase {
     actor OrderTrackingMiddleware: Middleware {
         private var executionOrder: [String] = []
         let name: String
-        let priority: ExecutionPriority = .normal
+        let priority: ExecutionPriority = .custom
         
         init(name: String) {
             self.name = name
@@ -70,7 +70,7 @@ final class PipelineBuilderDSLTests: XCTestCase {
     
     actor ConditionalTestMiddleware: Middleware {
         let shouldExecute: Bool
-        let priority: ExecutionPriority = .normal
+        let priority: ExecutionPriority = .custom
         private(set) var wasExecuted = false
         
         init(shouldExecute: Bool) {
@@ -317,7 +317,7 @@ final class PipelineBuilderDSLTests: XCTestCase {
     
     actor FailingMiddleware: Middleware {
         let failuresBeforeSuccess: Int
-        let priority: ExecutionPriority = .normal
+        let priority: ExecutionPriority = .custom
         private var attemptCount = 0
         
         init(failuresBeforeSuccess: Int) {
@@ -331,7 +331,7 @@ final class PipelineBuilderDSLTests: XCTestCase {
         ) async throws -> T.Result {
             attemptCount += 1
             if attemptCount <= failuresBeforeSuccess {
-                throw TestError.simulatedFailure
+                throw TestError.middlewareFailed
             }
             return try await next(command, context)
         }
@@ -339,10 +339,6 @@ final class PipelineBuilderDSLTests: XCTestCase {
         func getAttemptCount() async -> Int {
             attemptCount
         }
-    }
-    
-    enum TestError: Error {
-        case simulatedFailure
     }
     
     func testRetryWithImmediateStrategy() async throws {
@@ -475,7 +471,7 @@ extension PipelineBuilderDSLTests {
     actor ParallelTrackingMiddleware: Middleware {
         let name: String
         let delay: TimeInterval
-        let priority: ExecutionPriority = .normal
+        let priority: ExecutionPriority = .custom
         private var startTime: Date?
         private var endTime: Date?
         

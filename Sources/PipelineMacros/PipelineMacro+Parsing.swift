@@ -3,7 +3,8 @@ import SwiftSyntaxMacros
 import SwiftDiagnostics
 
 // MARK: - Configuration Parsing
-// TODO: Add support for priority configuration parsing once PriorityPipeline supports it
+// Note: Priority configuration is supported through the 'priority' parameter
+// Example: @Pipeline(priority: true, logging: true)
 
 extension PipelineMacro {
     
@@ -22,10 +23,7 @@ extension PipelineMacro {
             }
         }
         
-        // Auto-infer pipeline type for backward compatibility
-        if config.pipelineType == .standard && config.useContext {
-            config.pipelineType = .contextAware
-        }
+        // Context is now always enabled, no need for type inference
         
         return config
     }
@@ -57,7 +55,8 @@ extension PipelineMacro {
         case "maxDepth":
             config.maxDepth = try parseMaxDepth(from: argument.expression, context: context)
         case "context":
-            config.useContext = try parseContextEnabled(from: argument.expression, context: context)
+            // Context is now always enabled, ignore this parameter for backward compatibility
+            _ = try parseContextEnabled(from: argument.expression, context: context)
         case "backPressure":
             config.backPressureOptions = try parseBackPressureOptions(from: argument.expression, context: context)
         default:
@@ -281,12 +280,13 @@ extension PipelineMacro {
         return .standard
     }
     
-    /// Parses context enabled from expression
+    /// Parses context enabled from expression (kept for backward compatibility)
     private static func parseContextEnabled(
         from expr: ExprSyntax,
         context: some MacroExpansionContext
     ) throws -> Bool {
-        
+        // Context is now always enabled, but we still parse for backward compatibility
+        // to avoid breaking existing code that uses this parameter
         if let memberAccess = expr.as(MemberAccessExprSyntax.self) {
             switch memberAccess.declName.baseName.text {
             case "enabled":

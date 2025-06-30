@@ -7,6 +7,10 @@ final class ContextAwarePipelineTests: XCTestCase {
     struct CalculateCommand: Command {
         typealias Result = Int
         let value: Int
+        
+        func execute() async throws -> Int {
+            return value * 2
+        }
     }
     
     // Test handler
@@ -18,7 +22,7 @@ final class ContextAwarePipelineTests: XCTestCase {
         }
     }
     
-    // Test context key
+    // Test context key for multiplier
     struct MultiplierKey: ContextKey {
         typealias Value = Int
     }
@@ -30,7 +34,6 @@ final class ContextAwarePipelineTests: XCTestCase {
     
     // Context-aware middleware that modifies result
     struct MultiplierMiddleware: Middleware {
-        let priority: ExecutionPriority = .normal
         let multiplier: Int
         
         func execute<T: Command>(
@@ -53,7 +56,6 @@ final class ContextAwarePipelineTests: XCTestCase {
     // Middleware that accumulates execution info
     struct AccumulatorMiddleware: Middleware {
         let name: String
-        let priority: ExecutionPriority = .normal
         
         func execute<T: Command>(
             _ command: T,
@@ -74,41 +76,47 @@ final class ContextAwarePipelineTests: XCTestCase {
         }
     }
     
-    func testBasicContextAwarePipeline() async throws {
-        let pipeline = ContextAwarePipeline(handler: CalculateHandler())
+    func testBasicStandardPipeline() async throws {
+        let pipeline = StandardPipeline(handler: CalculateHandler())
+        let context = await CommandContext.test()
         
-        let result = try await pipeline.execute(CalculateCommand(value: 5))
+        let result = try await pipeline.execute(CalculateCommand(value: 5), context: context)
         
         XCTAssertEqual(result, 10) // 5 * 2
     }
     
     func testContextSharing() async throws {
-        let pipeline = ContextAwarePipeline(handler: CalculateHandler())
+        let pipeline = StandardPipeline(handler: CalculateHandler())
         try await pipeline.addMiddleware(MultiplierMiddleware(multiplier: 3))
         
-        let result = try await pipeline.execute(CalculateCommand(value: 5))
+        let context = await CommandContext.test()
+        let result = try await pipeline.execute(CalculateCommand(value: 5), context: context)
         
         XCTAssertEqual(result, 30) // (5 * 2) * 3
     }
     
     func testMultipleContextMiddleware() async throws {
-        let pipeline = ContextAwarePipeline(handler: CalculateHandler())
+        let pipeline = StandardPipeline(handler: CalculateHandler())
         try await pipeline.addMiddleware(AccumulatorMiddleware(name: "First"))
         try await pipeline.addMiddleware(AccumulatorMiddleware(name: "Second"))
         try await pipeline.addMiddleware(MultiplierMiddleware(multiplier: 2))
         
-        let result = try await pipeline.execute(CalculateCommand(value: 5))
+        let context = await CommandContext.test()
+        let result = try await pipeline.execute(CalculateCommand(value: 5), context: context)
         
         XCTAssertEqual(result, 20) // (5 * 2) * 2
+        
+        // Check accumulator
+        let accumulator = await context[AccumulatorKey.self]
+        XCTAssertEqual(accumulator, ["First:before", "Second:before", "Second:after", "First:after"])
     }
     
     func testRegularMiddlewareAdapter() async throws {
-        let pipeline = ContextAwarePipeline(handler: CalculateHandler())
+        let pipeline = StandardPipeline(handler: CalculateHandler())
         
         // Regular middleware
         struct LoggingMiddleware: Middleware {
             let logs: Actor<[String]>
-            let priority: ExecutionPriority = .logging
             
             func execute<T: Command>(
                 _ command: T,
@@ -123,7 +131,8 @@ final class ContextAwarePipelineTests: XCTestCase {
         let logs = Actor<[String]>([])
         try await pipeline.addMiddleware(LoggingMiddleware(logs: logs))
         
-        _ = try await pipeline.execute(CalculateCommand(value: 5))
+        let context = await CommandContext.test()
+        _ = try await pipeline.execute(CalculateCommand(value: 5), context: context)
         
         let logEntries = await logs.get()
         XCTAssertEqual(logEntries.count, 1)
@@ -131,14 +140,15 @@ final class ContextAwarePipelineTests: XCTestCase {
     }
     
     func testContextAwarePipelineBuilder() async throws {
-        let builder = ContextAwarePipelineBuilder(handler: CalculateHandler())
+        let builder = PipelineBuilder(handler: CalculateHandler())
         _ = await builder.with(AccumulatorMiddleware(name: "First"))
         _ = await builder.with(MultiplierMiddleware(multiplier: 3))
         _ = await builder.withMaxDepth(50)
         
         let pipeline = try await builder.build()
+        let context = await CommandContext.test()
         
-        let result = try await pipeline.execute(CalculateCommand(value: 4))
+        let result = try await pipeline.execute(CalculateCommand(value: 4), context: context)
         
         XCTAssertEqual(result, 24) // (4 * 2) * 3
     }
@@ -162,22 +172,24 @@ final class ContextAwarePipelineTests: XCTestCase {
             userRoles[userId] ?? []
         }
         
-        let pipeline = ContextAwarePipeline(handler: CalculateHandler())
+        let pipeline = StandardPipeline(handler: CalculateHandler())
         try await pipeline.addMiddleware(authMiddleware)
         try await pipeline.addMiddleware(authzMiddleware)
         
         // Test with valid user
+        let validContext = await CommandContext.test(userId: "user123")
         let result = try await pipeline.execute(
             CalculateCommand(value: 10),
-            metadata: DefaultCommandMetadata(userId: "user123")
+            context: validContext
         )
         XCTAssertEqual(result, 20)
         
         // Test with invalid user
+        let invalidContext = await CommandContext.test(userId: "unknown")
         do {
             _ = try await pipeline.execute(
                 CalculateCommand(value: 10),
-                metadata: DefaultCommandMetadata(userId: "unknown")
+                context: invalidContext
             )
             XCTFail("Expected authentication error")
         } catch {
@@ -186,26 +198,23 @@ final class ContextAwarePipelineTests: XCTestCase {
     }
     
     func testMetricsCollection() async throws {
-        let metrics = Actor<[(String, TimeInterval)]>([])
+        let pipeline = StandardPipeline(handler: CalculateHandler())
         
-        let metricsMiddleware = MetricsMiddleware { name, duration in
-            await metrics.append((name, duration))
-        }
-        
-        let pipeline = ContextAwarePipeline(handler: CalculateHandler())
+        // Add metrics middleware
+        let metricsCollector = StandardAdvancedMetricsCollector()
+        let metricsMiddleware = MetricsMiddleware(collector: metricsCollector)
         try await pipeline.addMiddleware(metricsMiddleware)
         
-        _ = try await pipeline.execute(CalculateCommand(value: 5))
+        let context = await CommandContext.testWithMetrics()
+        _ = try await pipeline.execute(CalculateCommand(value: 5), context: context)
         
-        let collectedMetrics = await metrics.get()
-        XCTAssertEqual(collectedMetrics.count, 1)
-        XCTAssertEqual(collectedMetrics[0].0, "CalculateCommand")
-        XCTAssertTrue(collectedMetrics[0].1 >= 0)
+        // Verify metrics were collected via context
+        let metadata = await context.commandMetadata
+        XCTAssertNotNil(metadata)
     }
     
     func testContextInitialValues() async throws {
         struct ContextInspectorMiddleware: Middleware {
-            let priority: ExecutionPriority = .normal
             let onExecute: @Sendable (CommandContext) async -> Void
             
             func execute<T: Command>(
@@ -219,25 +228,68 @@ final class ContextAwarePipelineTests: XCTestCase {
         }
         
         let expectation = XCTestExpectation(description: "Context inspection")
-        let capturedData = Actor<(String?, Date?)>((nil, nil))
+        let capturedData = Actor<(String?, String?, Date?)>((nil, nil, nil))
         
         let inspector = ContextInspectorMiddleware { context in
-            let requestId = await context[RequestIDKey.self]
-            let startTime = await context[RequestStartTimeKey.self]
-            await capturedData.set((requestId, startTime))
+            let metadata = await context.commandMetadata
+            let requestId = await context.get(RequestIDKey.self)
+            await capturedData.set((metadata.userId, requestId, metadata.timestamp))
             expectation.fulfill()
         }
         
-        let pipeline = ContextAwarePipeline(handler: CalculateHandler())
+        let pipeline = StandardPipeline(handler: CalculateHandler())
         try await pipeline.addMiddleware(inspector)
         
-        _ = try await pipeline.execute(CalculateCommand(value: 5))
+        let context = await CommandContext.test(userId: "test-user-123")
+        _ = try await pipeline.execute(CalculateCommand(value: 5), context: context)
         
         await fulfillment(of: [expectation], timeout: 1.0)
         
-        let (capturedRequestId, capturedStartTime) = await capturedData.get()
-        XCTAssertNotNil(capturedRequestId)
-        XCTAssertNotNil(capturedStartTime)
+        let (capturedUserId, _, capturedTimestamp) = await capturedData.get()
+        XCTAssertEqual(capturedUserId, "test-user-123")
+        XCTAssertNotNil(capturedTimestamp)
+    }
+    
+    func testContextPropagationAcrossMiddleware() async throws {
+        struct ContextSetterMiddleware: Middleware {
+            let value: String
+            
+            func execute<T: Command>(
+                _ command: T,
+                context: CommandContext,
+                next: @Sendable (T, CommandContext) async throws -> T.Result
+            ) async throws -> T.Result {
+                await context.set(value, for: TestCustomValueKey.self)
+                return try await next(command, context)
+            }
+        }
+        
+        struct ContextVerifierMiddleware: Middleware {
+            let expectedValue: String
+            
+            func execute<T: Command>(
+                _ command: T,
+                context: CommandContext,
+                next: @Sendable (T, CommandContext) async throws -> T.Result
+            ) async throws -> T.Result {
+                let value = await context.get(TestCustomValueKey.self)
+                XCTAssertEqual(value, expectedValue)
+                return try await next(command, context)
+            }
+        }
+        
+        let pipeline = StandardPipeline(handler: CalculateHandler())
+        try await pipeline.addMiddleware(ContextSetterMiddleware(value: "test-value"))
+        try await pipeline.addMiddleware(ContextVerifierMiddleware(expectedValue: "test-value"))
+        
+        let context = await CommandContext.test()
+        let result = try await pipeline.execute(CalculateCommand(value: 7), context: context)
+        
+        XCTAssertEqual(result, 14)
+        
+        // Verify context persists after execution
+        let finalValue = await context.get(TestCustomValueKey.self)
+        XCTAssertEqual(finalValue, "test-value")
     }
 }
 

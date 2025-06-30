@@ -4,12 +4,12 @@ import Foundation
 public protocol Pipeline: Sendable {
     func execute<T: Command>(
         _ command: T,
-        metadata: CommandMetadata
+        context: CommandContext
     ) async throws -> T.Result
 }
 
 public extension Pipeline {
     func execute<T: Command>(_ command: T) async throws -> T.Result {
-        try await execute(command, metadata: StandardCommandMetadata())
+        try await execute(command, context: CommandContext())
     }
 }

@@ -268,9 +268,9 @@ final class AuditLoggerTests: XCTestCase {
         )
         
         let command = TestCommand(value: "test123")
-        let metadata = DefaultCommandMetadata(userId: "testuser")
+        let context = await CommandContext.test(userId: "testuser")
         
-        let result = try await middleware.execute(command, metadata: metadata) { _, _ in
+        let result = try await middleware.execute(command, context: context) { _, _ in
             "Success"
         }
         
@@ -303,11 +303,11 @@ final class AuditLoggerTests: XCTestCase {
         let middleware = AuditLoggingMiddleware(logger: auditLogger)
         
         let command = TestCommand(value: "fail")
-        let metadata = DefaultCommandMetadata(userId: "testuser")
+        let context = await CommandContext.test(userId: "testuser")
         
         do {
-            _ = try await middleware.execute(command, metadata: metadata) { _, _ in
-                throw TestError.intentionalError
+            _ = try await middleware.execute(command, context: context) { _, _ in
+                throw TestError.middlewareFailed
             }
             XCTFail("Expected error")
         } catch {
@@ -443,10 +443,10 @@ final class AuditLoggerTests: XCTestCase {
     struct TestCommand: Command {
         let value: String
         typealias Result = String
-    }
-    
-    enum TestError: Error {
-        case intentionalError
+        
+        func execute() async throws -> String {
+            return "Executed: \(value)"
+        }
     }
     
     actor EntriesCollector {

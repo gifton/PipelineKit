@@ -22,6 +22,7 @@ final class PipelineOperatorDSLTests: XCTestCase {
     actor TrackingMiddleware: Middleware {
         let name: String
         private var executionLog: [String] = []
+        let priority: ExecutionPriority = .custom
         
         init(name: String) {
             self.name = name
@@ -29,11 +30,11 @@ final class PipelineOperatorDSLTests: XCTestCase {
         
         func execute<T: Command>(
             _ command: T,
-            metadata: CommandMetadata,
-            next: @Sendable (T, CommandMetadata) async throws -> T.Result
+            context: CommandContext,
+            next: @Sendable (T, CommandContext) async throws -> T.Result
         ) async throws -> T.Result {
             executionLog.append("[\(name)] Before")
-            let result = try await next(command, metadata)
+            let result = try await next(command, context)
             executionLog.append("[\(name)] After")
             return result
         }
@@ -59,7 +60,8 @@ final class PipelineOperatorDSLTests: XCTestCase {
         
         // Then
         let command = TestCommand(value: "test")
-        let result = try await pipeline.execute(command, metadata: DefaultCommandMetadata())
+        let context = CommandContext(metadata: StandardCommandMetadata())
+        let result = try await pipeline.execute(command, context: context)
         
         XCTAssertEqual(result, "Handled: test")
         
@@ -86,7 +88,8 @@ final class PipelineOperatorDSLTests: XCTestCase {
         
         // Then
         let command = TestCommand(value: "test")
-        _ = try await pipeline.execute(command, metadata: DefaultCommandMetadata())
+        let context = CommandContext(metadata: StandardCommandMetadata())
+        _ = try await pipeline.execute(command, context: context)
         
         // Verify all middleware executed
         let criticalLog = await critical.getExecutionLog()
@@ -119,7 +122,7 @@ final class PipelineOperatorDSLTests: XCTestCase {
         
         // Then
         let command = TestCommand(value: "test")
-        let result = try await composedPipeline.execute(command, metadata: DefaultCommandMetadata())
+        let result = try await composedPipeline.execute(command, context: CommandContext(metadata: StandardCommandMetadata()))
         
         XCTAssertEqual(result, "Handled: test")
     }
@@ -164,7 +167,8 @@ final class PipelineOperatorDSLTests: XCTestCase {
         
         // Then - With condition true
         let command = TestCommand(value: "test")
-        _ = try await finalPipeline.execute(command, metadata: DefaultCommandMetadata())
+        let context = CommandContext(metadata: StandardCommandMetadata())
+        _ = try await finalPipeline.execute(command, context: context)
         
         let mainLog = await mainMiddleware.getExecutionLog()
         let conditionalLog = await conditionalMiddleware.getExecutionLog()
@@ -174,7 +178,7 @@ final class PipelineOperatorDSLTests: XCTestCase {
         // Reset and test with condition false
         executionState.setShouldExecute(false)
         let pipeline2 = basePipeline |? { executionState.getShouldExecute() } |> conditionalPipeline
-        _ = try await pipeline2.execute(command, metadata: DefaultCommandMetadata())
+        _ = try await pipeline2.execute(command, context: CommandContext(metadata: StandardCommandMetadata()))
         
         // Main should execute twice (once from each test), conditional only once
         let finalMainLog = await mainMiddleware.getExecutionLog()
@@ -192,19 +196,14 @@ final class PipelineOperatorDSLTests: XCTestCase {
         
         func execute<T: Command>(
             _ command: T,
-            metadata: CommandMetadata,
-            next: @Sendable (T, CommandMetadata) async throws -> T.Result
+            context: CommandContext,
+            next: @Sendable (T, CommandContext) async throws -> T.Result
         ) async throws -> T.Result {
             if shouldThrow {
-                throw TestError.simulatedError
+                throw TestError.middlewareFailed
             }
-            return try await next(command, metadata)
+            return try await next(command, context)
         }
-    }
-    
-    enum TestError: Error {
-        case simulatedError
-        case handledError
     }
     
     func testErrorHandlingOperator() async throws {
@@ -243,7 +242,8 @@ final class PipelineOperatorDSLTests: XCTestCase {
         let command = TestCommand(value: "test")
         
         do {
-            _ = try await safePipeline.execute(command, metadata: DefaultCommandMetadata())
+            let context = CommandContext(metadata: StandardCommandMetadata())
+            _ = try await safePipeline.execute(command, context: context)
             XCTFail("Expected error but succeeded")
         } catch {
             XCTAssertTrue(errorState.isHandled())
@@ -274,7 +274,8 @@ final class PipelineOperatorDSLTests: XCTestCase {
         
         // The parallel operator should execute both pipelines
         // Note: The actual implementation might need adjustment based on how parallel execution is defined
-        let result = try await parallelPipeline.execute(command, metadata: DefaultCommandMetadata())
+        let context = CommandContext(metadata: StandardCommandMetadata())
+        let result = try await parallelPipeline.execute(command, context: context)
         XCTAssertEqual(result, "Handled: test")
     }
     
@@ -334,7 +335,8 @@ final class PipelineOperatorDSLTests: XCTestCase {
         
         // Then
         let command = TestCommand(value: "test")
-        let result = try await finalPipeline.execute(command, metadata: DefaultCommandMetadata())
+        let context = CommandContext(metadata: StandardCommandMetadata())
+        let result = try await finalPipeline.execute(command, context: context)
         
         XCTAssertEqual(result, "Handled: test")
         
@@ -371,7 +373,7 @@ final class PipelineOperatorDSLTests: XCTestCase {
         
         // Then
         let command = TestCommand(value: "test")
-        let result = try await builtPipeline.execute(command, metadata: DefaultCommandMetadata())
+        let result = try await builtPipeline.execute(command, context: CommandContext(metadata: StandardCommandMetadata()))
         XCTAssertEqual(result, "Handled: test")
     }
     
@@ -393,7 +395,7 @@ final class PipelineOperatorDSLTests: XCTestCase {
         
         // Then
         let command = TestCommand(value: "test")
-        _ = try await pipeline1.execute(command, metadata: DefaultCommandMetadata())
+        _ = try await pipeline1.execute(command, context: CommandContext(metadata: StandardCommandMetadata()))
         
         // Verify execution order
         let log1 = await m1.getExecutionLog()
@@ -428,7 +430,7 @@ extension PipelineOperatorDSLTests {
         
         // Then
         let command = TestCommand(value: "test")
-        _ = try await finalPipeline.execute(command, metadata: DefaultCommandMetadata())
+        _ = try await finalPipeline.execute(command, context: CommandContext(metadata: StandardCommandMetadata()))
         
         let dslLog = await dslMiddleware.getExecutionLog()
         let operatorLog = await operatorMiddleware.getExecutionLog()

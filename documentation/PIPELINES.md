@@ -21,7 +21,7 @@ All pipelines in PipelineKit implement the same basic interface but differ in th
 public protocol Pipeline: Sendable {
     func execute<T: Command>(
         _ command: T,
-        metadata: CommandMetadata
+        context: CommandContext
     ) async throws -> T.Result
 }
 ```
@@ -46,13 +46,13 @@ Command → [Middleware 1] → [Middleware 2] → [Middleware N] → Handler →
 **Implementation Details:**
 ```swift
 // Simplified internal structure
-public final class DefaultPipeline: Pipeline {
+public final class StandardPipeline: Pipeline {
     private var middleware: [any Middleware] = []
     
-    public func execute<T: Command>(_ command: T, metadata: CommandMetadata) async throws -> T.Result {
+    public func execute<T: Command>(_ command: T, context: CommandContext) async throws -> T.Result {
         var index = 0
         
-        func executeNext(_ cmd: T, _ meta: CommandMetadata) async throws -> T.Result {
+        func executeNext(_ cmd: T, _ ctx: CommandContext) async throws -> T.Result {
             guard index < middleware.count else {
                 fatalError("No handler registered for command type \(String(describing: T.self))")
             }
@@ -60,10 +60,10 @@ public final class DefaultPipeline: Pipeline {
             let currentMiddleware = middleware[index]
             index += 1
             
-            return try await currentMiddleware.execute(cmd, metadata: meta, next: executeNext)
+            return try await currentMiddleware.execute(cmd, context: ctx, next: executeNext)
         }
         
-        return try await executeNext(command, metadata)
+        return try await executeNext(command, context)
     }
 }
 ```
@@ -85,7 +85,7 @@ struct PublishArticleCommand: Command {
     typealias Result = Article
 }
 
-let contentPipeline = DefaultPipeline()
+let contentPipeline = StandardPipeline(handler: PublishArticleHandler())
 contentPipeline.addMiddleware(ValidationMiddleware())     // Validate title, content
 contentPipeline.addMiddleware(AuthorizationMiddleware())  // Check publish permissions
 contentPipeline.addMiddleware(SanitizationMiddleware())   // Clean HTML content
@@ -93,7 +93,8 @@ contentPipeline.addMiddleware(SEOMiddleware())            // Add meta tags
 contentPipeline.addMiddleware(CacheInvalidationMiddleware()) // Clear relevant caches
 
 // Simple, predictable execution
-let article = try await contentPipeline.execute(publishCommand, metadata: userMetadata)
+let context = CommandContext(metadata: StandardCommandMetadata(userId: authorId))
+let article = try await contentPipeline.execute(publishCommand, context: context)
 ```
 
 ---

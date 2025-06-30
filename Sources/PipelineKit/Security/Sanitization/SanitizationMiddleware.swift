@@ -48,8 +48,3 @@ public struct SanitizationMiddleware: Middleware {
     }
 }
 
-// Extension to make SanitizationMiddleware an PrioritizedMiddleware
-extension SanitizationMiddleware: PrioritizedMiddleware {
-    /// Recommended middleware order for this component
-    nonisolated(unsafe) public static var recommendedOrder: ExecutionPriority { .sanitization }
-}

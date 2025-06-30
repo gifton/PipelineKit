@@ -571,18 +571,36 @@ public func CreatePipeline<T: Command, H: CommandHandler>(
     return try await builder.build()
 }
 
-// TODO: Implement ContextAwarePipeline DSL function
-// Commented out temporarily to fix compilation issues
-/*
+/// Creates a context-aware pipeline using the DSL syntax.
+///
+/// ⚠️ **Note**: This function is not yet implemented. Use `CreatePipeline` instead,
+/// which supports both regular and context-aware middleware.
+///
+/// ## Future Implementation
+/// When implemented, this will create a pipeline optimized for context-aware operations:
+/// ```swift
+/// let pipeline = try await ContextAwarePipeline(handler: handler) {
+///     TracingMiddleware()
+///     MetricsMiddleware()
+///     CachingMiddleware()
+/// }
+/// ```
+///
+/// For now, use the standard pipeline creation:
+/// ```swift
+/// let pipeline = try await CreatePipeline(handler: handler) {
+///     // Your middleware here
+/// }
+/// ```
 public func ContextAwarePipeline<T: Command, H: CommandHandler>(
     handler: H,
     context: CommandContext? = nil,
     @PipelineBuilderDSL middleware: () -> [PipelineComponent]
-) throws -> ContextAwarePipeline where H.CommandType == T {
-    // Implementation needs proper context pipeline builder
-    fatalError("Not yet implemented")
+) async throws -> any Pipeline where H.CommandType == T {
+    print("⚠️ Warning: ContextAwarePipeline is not yet implemented. Using CreatePipeline instead.")
+    print("   All modern pipelines support context-aware middleware, so this is functionally equivalent.")
+    return try await CreatePipeline(handler: handler, middleware: middleware)
 }
-*/
 
 // MARK: - Component Processing
 
@@ -591,9 +609,6 @@ private func processComponents<T: Command, H: CommandHandler>(_ components: [Pip
         try await processComponent(component, into: builder)
     }
 }
-
-// TODO: Implement context-aware pipeline component processing
-// Commented out temporarily to fix compilation issues
 
 private func processComponent<T: Command, H: CommandHandler>(_ component: PipelineComponent, into builder: PipelineBuilder<T, H>) async throws where H.CommandType == T {
     switch component {
@@ -626,9 +641,16 @@ private func processComponent<T: Command, H: CommandHandler>(_ component: Pipeli
         )
         await builder.with(retryWrapper)
         
-    case .timeout(_, _):
-        // TODO: Implement timeout wrapper without closure capture issues
-        break
+    case .timeout(let middleware, let duration):
+        // Create a custom timeout middleware for this specific duration
+        let timeoutMiddleware = TimeoutMiddleware(timeout: duration)
+        
+        // Wrap the original middleware with timeout protection
+        let timeoutWrapper = TimeoutWrappedMiddleware(
+            timeoutMiddleware: timeoutMiddleware,
+            wrappedMiddleware: middleware
+        )
+        await builder.with(timeoutWrapper)
     }
 }
 
@@ -643,16 +665,16 @@ private func processComponent<T: Command>(_ component: PipelineComponent, into b
                 builder.addMiddleware(contextAware)
             }
         } else {
-            let adapter = ContextMiddlewareAdapter(middleware: middleware)
+            // All middleware now supports context
             if let order = order {
-                builder.addMiddleware(adapter, order: order)
+                builder.addMiddleware(middleware, order: order)
             } else {
-                builder.addMiddleware(adapter)
+                builder.addMiddleware(middleware)
             }
         }
         
     case .conditional(let condition, let middleware):
-        let conditionalWrapper = ConditionalContextMiddlewareWrapper(
+        let conditionalWrapper = ConditionalMiddlewareWrapper(
             middleware: middleware,
             condition: condition
         )
@@ -664,19 +686,12 @@ private func processComponent<T: Command>(_ component: PipelineComponent, into b
         }
         
     case .parallel(let middlewares):
-        // Convert to context-aware parallel wrapper
-        let contextAwareMiddlewares = middlewares.map { middleware in
-            if let contextAware = middleware as? any ContextAwareMiddleware {
-                return contextAware
-            } else {
-                return ContextMiddlewareAdapter(middleware: middleware)
-            }
-        }
-        let parallelWrapper = ParallelContextMiddlewareWrapper(middlewares: contextAwareMiddlewares)
+        // All middleware now supports context
+        let parallelWrapper = ParallelMiddlewareWrapper(middlewares: middlewares)
         builder.addMiddleware(parallelWrapper)
         
     case .retry(let middleware, let maxAttempts, let backoff):
-        let retryWrapper = RetryContextMiddlewareWrapper(
+        let retryWrapper = RetryMiddlewareWrapper(
             middleware: middleware,
             maxAttempts: maxAttempts,
             strategy: backoff
@@ -693,28 +708,91 @@ private func processComponent<T: Command>(_ component: PipelineComponent, into b
 }
 */
 
+// MARK: - Supporting Types for Parallel Execution
+
+/// Execution policy for parallel middleware
+public enum ParallelExecutionPolicy {
+    case failFast    // Stop and throw error if any middleware fails
+    case bestEffort  // Continue even if some middleware fail
+}
+
+/// Thread-safe state tracker for parallel middleware execution
+private actor ParallelExecutionState {
+    private var successes: [String] = []
+    private var failures: [(middleware: String, error: Error)] = []
+    
+    func recordSuccess(middleware: String) {
+        successes.append(middleware)
+    }
+    
+    func recordFailure(middleware: String, error: Error) {
+        failures.append((middleware: middleware, error: error))
+    }
+    
+    func getFirstError() -> (middleware: String, error: Error)? {
+        failures.first
+    }
+    
+    func getFailures() -> [(middleware: String, error: Error)] {
+        failures
+    }
+    
+    func getFailureCount() -> Int {
+        failures.count
+    }
+    
+    func getSuccessCount() -> Int {
+        successes.count
+    }
+}
+
+/// Error type for parallel execution failures
+public enum ParallelExecutionError: LocalizedError {
+    case middlewareFailed(middleware: String, error: Error, totalFailures: Int)
+    case allMiddlewareFailed(count: Int)
+    
+    public var errorDescription: String? {
+        switch self {
+        case .middlewareFailed(let middleware, let error, let totalFailures):
+            if totalFailures > 1 {
+                return "Parallel execution failed: \(middleware) error: \(error.localizedDescription) (and \(totalFailures - 1) other failure(s))"
+            } else {
+                return "Parallel execution failed: \(middleware) error: \(error.localizedDescription)"
+            }
+        case .allMiddlewareFailed(let count):
+            return "All \(count) parallel middleware failed"
+        }
+    }
+}
+
+// MARK: - Context Extension for Forking
+
+extension CommandContext {
+    /// Creates a fork of this context for parallel execution
+    /// Each parallel middleware gets its own context to avoid conflicts
+    func fork() async -> CommandContext {
+        // Create a new context with the same metadata
+        let forkedContext = CommandContext()
+        
+        // Copy metadata
+        await forkedContext.set(await self.commandMetadata, for: CommandMetadataKey.self)
+        
+        // Note: This is a simplified fork. A full implementation would
+        // deep copy all context values, but for now we just copy metadata
+        
+        return forkedContext
+    }
+}
+
 // MARK: - Wrapper Middleware Implementations
 
 struct ConditionalMiddlewareWrapper: Middleware {
     let middleware: any Middleware
     let condition: @Sendable () async -> Bool
     
-    func execute<T: Command>(
-        _ command: T,
-        metadata: CommandMetadata,
-        next: @Sendable (T, CommandMetadata) async throws -> T.Result
-    ) async throws -> T.Result {
-        if await condition() {
-            return try await middleware.execute(command, metadata: metadata, next: next)
-        } else {
-            return try await next(command, metadata)
-        }
+    var priority: ExecutionPriority {
+        middleware.priority
     }
-}
-
-struct ConditionalContextMiddlewareWrapper: ContextAwareMiddleware {
-    let middleware: any Middleware
-    let condition: @Sendable () async -> Bool
     
     func execute<T: Command>(
         _ command: T,
@@ -722,99 +800,103 @@ struct ConditionalContextMiddlewareWrapper: ContextAwareMiddleware {
         next: @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
         if await condition() {
-            if let contextAware = middleware as? any ContextAwareMiddleware {
-                return try await contextAware.execute(command, context: context, next: next)
-            } else {
-                let metadata = await context.commandMetadata
-                let nextAdapter: @Sendable (T, CommandMetadata) async throws -> T.Result = { cmd, meta in
-                    try await next(cmd, context)
-                }
-                return try await middleware.execute(command, metadata: metadata, next: nextAdapter)
-            }
+            return try await middleware.execute(command, context: context, next: next)
         } else {
             return try await next(command, context)
         }
     }
 }
 
+
 struct ParallelMiddlewareWrapper: Middleware {
     let middlewares: [any Middleware]
     
-    func execute<T: Command>(
-        _ command: T,
-        metadata: CommandMetadata,
-        next: @Sendable (T, CommandMetadata) async throws -> T.Result
-    ) async throws -> T.Result {
-        // Execute middlewares in parallel, then proceed to next
-        await withTaskGroup(of: Void.self) { group in
-            for _ in middlewares {
-                group.addTask {
-                    // Parallel middleware execution - simplified for now
-                    // TODO: Implement proper parallel execution pattern
-                }
-            }
-        }
-        
-        return try await next(command, metadata)
+    var priority: ExecutionPriority {
+        // Use the highest priority (lowest value) among all middlewares
+        middlewares.map { $0.priority.rawValue }.min().map { ExecutionPriority(rawValue: $0)! } ?? .custom
     }
-}
-
-struct ParallelContextMiddlewareWrapper: ContextAwareMiddleware {
-    let middlewares: [any ContextAwareMiddleware]
     
     func execute<T: Command>(
         _ command: T,
         context: CommandContext,
         next: @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
+        // Store state for parallel execution
+        let executionState = ParallelExecutionState()
+        
+        // Execute all middleware in parallel
+        // Note: Parallel middleware are typically used for side effects (logging, metrics, etc.)
+        // They don't modify the command or result, just observe and record
         await withTaskGroup(of: Void.self) { group in
-            for _ in middlewares {
+            for middleware in middlewares {
                 group.addTask {
-                    // Parallel context middleware execution - simplified for now
-                    // TODO: Implement proper parallel execution pattern
+                    do {
+                        // Create a separate context copy for each parallel middleware
+                        let parallelContext = await context.fork()
+                        
+                        // Execute middleware with a pass-through next function
+                        // This allows the middleware to perform its side effects
+                        _ = try await middleware.execute(command, context: parallelContext) { cmd, ctx in
+                            // Pass through to the actual next after all parallel execution
+                            // For now, we just return a placeholder since parallel middleware
+                            // typically don't care about the result
+                            try await next(cmd, ctx)
+                        }
+                        
+                        await executionState.recordSuccess(middleware: String(describing: type(of: middleware)))
+                    } catch {
+                        await executionState.recordFailure(
+                            middleware: String(describing: type(of: middleware)),
+                            error: error
+                        )
+                    }
                 }
             }
         }
         
+        // Check execution policy
+        let policy = ParallelExecutionPolicy.failFast // Could be made configurable
+        
+        switch policy {
+        case .failFast:
+            // If any middleware failed, throw error
+            if let firstError = await executionState.getFirstError() {
+                throw ParallelExecutionError.middlewareFailed(
+                    middleware: firstError.middleware,
+                    error: firstError.error,
+                    totalFailures: await executionState.getFailureCount()
+                )
+            }
+            
+        case .bestEffort:
+            // Log failures but continue
+            let failures = await executionState.getFailures()
+            if !failures.isEmpty {
+                await context.emitCustomEvent(
+                    "parallel.execution.partial_failure",
+                    properties: [
+                        "failed_count": failures.count,
+                        "total_count": middlewares.count,
+                        "failures": failures.map { ["middleware": $0.middleware, "error": String(describing: $0.error)] }
+                    ]
+                )
+            }
+        }
+        
+        // All middleware executed (with configured policy), proceed to next
         return try await next(command, context)
     }
 }
+
 
 struct RetryMiddlewareWrapper: Middleware {
     let middleware: any Middleware
     let maxAttempts: Int
     let strategy: RetryStrategy
     
-    func execute<T: Command>(
-        _ command: T,
-        metadata: CommandMetadata,
-        next: @Sendable (T, CommandMetadata) async throws -> T.Result
-    ) async throws -> T.Result {
-        var lastError: Error?
-        
-        for attempt in 0..<maxAttempts {
-            do {
-                return try await middleware.execute(command, metadata: metadata, next: next)
-            } catch {
-                lastError = error
-                
-                if attempt < maxAttempts - 1 {
-                    let delay = await strategy.delay(for: attempt)
-                    if delay > 0 {
-                        try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
-                    }
-                }
-            }
-        }
-        
-        throw lastError ?? NSError(domain: "RetryExhausted", code: 1)
+    var priority: ExecutionPriority {
+        middleware.priority
     }
-}
-
-struct RetryContextMiddlewareWrapper: ContextAwareMiddleware {
-    let middleware: any Middleware
-    let maxAttempts: Int
-    let strategy: RetryStrategy
     
     func execute<T: Command>(
         _ command: T,
@@ -825,15 +907,7 @@ struct RetryContextMiddlewareWrapper: ContextAwareMiddleware {
         
         for attempt in 0..<maxAttempts {
             do {
-                if let contextAware = middleware as? any ContextAwareMiddleware {
-                    return try await contextAware.execute(command, context: context, next: next)
-                } else {
-                    let metadata = await context.commandMetadata
-                    let nextAdapter: @Sendable (T, CommandMetadata) async throws -> T.Result = { cmd, meta in
-                        try await next(cmd, context)
-                    }
-                    return try await middleware.execute(command, metadata: metadata, next: nextAdapter)
-                }
+                return try await middleware.execute(command, context: context, next: next)
             } catch {
                 lastError = error
                 
@@ -850,41 +924,65 @@ struct RetryContextMiddlewareWrapper: ContextAwareMiddleware {
     }
 }
 
-// MARK: - Timeout Middleware Wrapper
 
-/// Wrapper for middleware that should execute with a timeout
-/// 
-/// Note: Due to Swift's limitations with non-escaping closure parameters,
-/// the timeout functionality cannot be implemented in a task group.
-/// This wrapper currently passes through to the underlying middleware.
-/// TODO: Implement proper timeout handling when Swift supports it.
-struct TimeoutMiddlewareWrapper: Middleware {
-    let middleware: any Middleware
-    let timeout: TimeInterval
+// MARK: - Timeout Wrapped Middleware
+
+/// Middleware that wraps another middleware with timeout protection.
+/// This combines TimeoutMiddleware with any other middleware to enforce time limits.
+struct TimeoutWrappedMiddleware: Middleware {
+    let timeoutMiddleware: TimeoutMiddleware
+    let wrappedMiddleware: any Middleware
+    
+    var priority: ExecutionPriority {
+        wrappedMiddleware.priority
+    }
     
     func execute<T: Command>(
         _ command: T,
-        metadata: CommandMetadata,
-        next: @Sendable (T, CommandMetadata) async throws -> T.Result
+        context: CommandContext,
+        next: @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
-        // Due to Swift's non-escaping parameter limitations, we cannot
-        // capture 'next' in a Task. For now, we pass through to the
-        // underlying middleware without timeout.
-        // 
-        // Future implementations could use:
-        // - A custom executor that supports timeouts
-        // - Structured concurrency improvements in future Swift versions
-        // - Alternative approaches like deadline-based execution
-        
-        // Log warning in debug builds
-        #if DEBUG
-        print("⚠️ TimeoutMiddlewareWrapper: Timeout of \(timeout)s requested but not enforced due to Swift limitations")
-        #endif
-        
-        return try await middleware.execute(command, metadata: metadata, next: next)
+        // Use the timeout middleware to wrap the execution of our wrapped middleware
+        return try await timeoutMiddleware.execute(command, context: context) { cmd, ctx in
+            // Execute the wrapped middleware, then continue to next
+            return try await wrappedMiddleware.execute(cmd, context: ctx, next: next)
+        }
     }
 }
 
 
-// MARK: - Command Extensions for Empty Results
-// TODO: Implement proper empty result handling for parallel middleware execution
+// MARK: - Parallel Middleware Configuration
+
+/// Configurable options for parallel middleware execution
+public struct ParallelMiddlewareOptions {
+    /// Execution policy when middleware fail
+    public let policy: ParallelExecutionPolicy
+    
+    /// Maximum time to wait for all middleware to complete
+    public let timeout: TimeInterval?
+    
+    /// Whether to merge context changes from parallel middleware
+    public let mergeContextChanges: Bool
+    
+    public init(
+        policy: ParallelExecutionPolicy = .failFast,
+        timeout: TimeInterval? = nil,
+        mergeContextChanges: Bool = false
+    ) {
+        self.policy = policy
+        self.timeout = timeout
+        self.mergeContextChanges = mergeContextChanges
+    }
+    
+    public static let `default` = ParallelMiddlewareOptions()
+}
+
+/// Creates a parallel execution group with custom options
+public func ParallelMiddleware(
+    options: ParallelMiddlewareOptions = .default,
+    _ middlewares: any Middleware...
+) -> PipelineComponent {
+    // For now, we use the default fail-fast policy
+    // Future enhancement: pass options to the wrapper
+    .parallel(middlewares)
+}

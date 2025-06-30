@@ -1,5 +1,14 @@
 import Foundation
 
+// MARK: - Helper Types
+
+fileprivate struct NoHandlerError: Error, LocalizedError {
+    let commandType: String
+    var errorDescription: String? {
+        "No pipeline registered for \(commandType)"
+    }
+}
+
 /// A thread-safe pipeline manager that supports concurrent command execution with back-pressure control.
 ///
 /// `ConcurrentPipeline` manages multiple pipelines for different command types and provides
@@ -35,7 +44,7 @@ import Foundation
 ///     metadata: metadata
 /// )
 /// ```
-public actor ConcurrentPipeline {
+public actor ConcurrentPipeline: Pipeline {
     /// Storage for registered pipelines, keyed by command type identifier.
     private var pipelines: [ObjectIdentifier: any Pipeline] = [:]
     
@@ -87,18 +96,24 @@ public actor ConcurrentPipeline {
     ///           or any error thrown by the pipeline execution.
     public func execute<T: Command>(
         _ command: T,
-        metadata: CommandMetadata? = nil
+        context: CommandContext
     ) async throws -> T.Result {
         let key = ObjectIdentifier(T.self)
         guard let pipeline = pipelines[key] else {
-            throw PipelineError.executionFailed("No pipeline registered for \(T.self)")
+            throw PipelineError(underlyingError: NoHandlerError(commandType: String(describing: T.self)), command: command)
         }
         
         let token = try await semaphore.acquire()
         defer { _ = token } // Keep token alive until end of scope
         
-        let executionMetadata = metadata ?? StandardCommandMetadata()
-        return try await pipeline.execute(command, metadata: executionMetadata)
+        return try await pipeline.execute(command, context: context)
+    }
+    
+    /// Convenience method to execute with default context
+    public func execute<T: Command>(
+        _ command: T
+    ) async throws -> T.Result {
+        try await execute(command, context: CommandContext())
     }
     
     /// Executes a single command with concurrency control and timeout.
@@ -116,22 +131,22 @@ public actor ConcurrentPipeline {
     ///           or any error thrown by the pipeline execution.
     public func execute<T: Command>(
         _ command: T,
-        metadata: CommandMetadata? = nil,
+        context: CommandContext? = nil,
         timeout: TimeInterval
     ) async throws -> T.Result {
         let key = ObjectIdentifier(T.self)
         guard let pipeline = pipelines[key] else {
-            throw PipelineError.executionFailed("No pipeline registered for \(T.self)")
+            throw PipelineError(underlyingError: NoHandlerError(commandType: String(describing: T.self)), command: command)
         }
         
         guard let token = try await semaphore.acquire(timeout: timeout) else {
-            throw PipelineError.executionFailed("Timeout waiting for available execution slot")
+            throw PipelineError.timeout(duration: timeout, command: command)
         }
         
         defer { _ = token } // Keep token alive until end of scope
         
-        let executionMetadata = metadata ?? StandardCommandMetadata()
-        return try await pipeline.execute(command, metadata: executionMetadata)
+        let executionContext = context ?? CommandContext()
+        return try await pipeline.execute(command, context: executionContext)
     }
     
     /// Executes multiple commands concurrently with individual error handling.
@@ -148,13 +163,14 @@ public actor ConcurrentPipeline {
     /// - Note: The order of results matches the order of input commands.
     public func executeConcurrently<T: Command>(
         _ commands: [T],
-        metadata: CommandMetadata? = nil
+        context: CommandContext? = nil
     ) async throws -> [Result<T.Result, Error>] {
         return await withTaskGroup(of: (Int, Result<T.Result, Error>).self) { group in
             for (index, command) in commands.enumerated() {
                 group.addTask {
                     do {
-                        let result = try await self.execute(command, metadata: metadata)
+                        let ctx = context ?? CommandContext()
+                        let result = try await self.execute(command, context: ctx)
                         return (index, .success(result))
                     } catch {
                         return (index, .failure(error))

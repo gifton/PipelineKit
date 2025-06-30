@@ -24,6 +24,11 @@ public actor CommandContext {
         self.metadata = metadata
     }
     
+    /// Creates a new command context with standard metadata.
+    public init() {
+        self.metadata = StandardCommandMetadata()
+    }
+    
     /// Gets the command metadata.
     public var commandMetadata: CommandMetadata {
         metadata
@@ -37,6 +42,14 @@ public actor CommandContext {
         get {
             storage[ObjectIdentifier(key)] as? Key.Value
         }
+    }
+    
+    /// Gets a value from the context using a type-safe key.
+    /// 
+    /// - Parameter key: The context key type
+    /// - Returns: The stored value, or nil if not present
+    public func get<Key: ContextKey>(_ key: Key.Type) -> Key.Value? {
+        storage[ObjectIdentifier(key)] as? Key.Value
     }
     
     /// Sets a value in the context using a type-safe key.

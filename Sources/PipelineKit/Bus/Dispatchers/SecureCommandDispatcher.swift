@@ -96,7 +96,7 @@ public actor SecureCommandDispatcher {
         logger.debug("Dispatching command: \(commandType, privacy: .public)")
         
         do {
-            let result = try await bus.send(command, metadata: executionMetadata)
+            let result = try await bus.send(command, context: CommandContext(metadata: executionMetadata))
             logger.debug("Command executed successfully: \(commandType, privacy: .public)")
             
             // Record success for circuit breaker

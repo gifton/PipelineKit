@@ -28,33 +28,33 @@ final class MacroFailureTests: XCTestCase {
         // Test that a basic macro-generated pipeline works correctly
         // Note: Since @Pipeline macro cannot be used inside functions,
         // we'll test the behavior with regular pipeline creation
-        let pipeline = DefaultPipeline(handler: MacroTestHandler())
+        let pipeline = StandardPipeline(handler: MacroTestHandler())
         let command = MacroTestCommand(value: "macro_test")
-        let metadata = DefaultCommandMetadata()
+        let context = CommandContext()
         
-        let result = try await pipeline.execute(command, metadata: metadata)
+        let result = try await pipeline.execute(command, context: context)
         XCTAssertEqual(result, "Handled: macro_test")
     }
     
     func testMacroGeneratedPipelineWithContext() async throws {
         // Test that a context-aware macro-generated pipeline works
-        // Using ContextAwarePipeline directly since macros can't be in functions
-        let pipeline = ContextAwarePipeline(handler: MacroTestHandler())
+        // Using StandardPipeline directly since macros can't be in functions
+        let pipeline = StandardPipeline(handler: MacroTestHandler())
         let command = MacroTestCommand(value: "context_test")
-        let metadata = DefaultCommandMetadata()
+        let context = CommandContext()
         
-        let result = try await pipeline.execute(command, metadata: metadata)
+        let result = try await pipeline.execute(command, context: context)
         XCTAssertEqual(result, "Handled: context_test")
     }
     
     func testMacroGeneratedPipelineWithConcurrency() async throws {
         // Test that a concurrency-limited pipeline works
-        // Using DefaultPipeline with concurrency limit
-        let pipeline = DefaultPipeline(handler: MacroTestHandler(), maxConcurrency: 2)
+        // Using StandardPipeline with concurrency limit
+        let pipeline = StandardPipeline(handler: MacroTestHandler(), maxConcurrency: 2)
         let command = MacroTestCommand(value: "concurrent_test")
-        let metadata = DefaultCommandMetadata()
+        let context = CommandContext()
         
-        let result = try await pipeline.execute(command, metadata: metadata)
+        let result = try await pipeline.execute(command, context: context)
         XCTAssertEqual(result, "Handled: concurrent_test")
     }
 }

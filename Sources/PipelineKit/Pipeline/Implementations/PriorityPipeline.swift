@@ -12,7 +12,7 @@ public actor PriorityPipeline: Pipeline {
         init<T: Command, H: CommandHandler>(_ handler: H) where H.CommandType == T {
             self.execute = { command, context in
                 guard let typedCommand = command as? T else {
-                    throw PipelineError(underlyingError: CommandBusError.executionFailed("Invalid command type"), command: command)
+                    throw CommandBusError.executionFailed("Invalid command type")
                 }
                 return try await handler.handle(typedCommand)
             }
@@ -37,14 +37,13 @@ public actor PriorityPipeline: Pipeline {
     
     public func execute<T: Command>(
         _ command: T,
-        metadata: CommandMetadata
+        context: CommandContext
     ) async throws -> T.Result {
-        let context = CommandContext(metadata: metadata)
         
         let finalHandler: @Sendable (T, CommandContext) async throws -> T.Result = { cmd, ctx in
             let result = try await self.handler.execute(cmd, ctx)
             guard let typedResult = result as? T.Result else {
-                throw PipelineError(underlyingError: CommandBusError.executionFailed("Invalid result type"), command: cmd)
+                throw CommandBusError.executionFailed("Invalid result type")
             }
             return typedResult
         }
