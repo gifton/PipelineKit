@@ -1,0 +1,377 @@
+import XCTest
+@testable import PipelineKit
+
+/// Integration tests validating memory optimizations work correctly with concurrent execution.
+///
+/// These tests ensure that object pools remain thread-safe under high concurrent load
+/// and properly respond to memory pressure while maintaining performance gains.
+final class MemoryConcurrencyIntegrationTests: XCTestCase {
+    
+    override func setUp() async throws {
+        try await super.setUp()
+        // Start memory pressure monitoring
+        await MemoryPressureMonitor.shared.startMonitoring()
+    }
+    
+    override func tearDown() async throws {
+        // Stop monitoring and clear pools
+        await MemoryPressureMonitor.shared.stopMonitoring()
+        await PoolManager.shared.contextPool.pool.clear()
+        try await super.tearDown()
+    }
+    
+    // MARK: - Concurrent Pool Access Tests
+    
+    func testConcurrentPoolAccessUnderLoad() async throws {
+        // **ultrathink**: Test that pools maintain thread safety with many concurrent actors
+        // This validates the integration between memory pools and concurrent pipeline execution
+        
+        let pool = ObjectPool<TestObject>(
+            maxSize: 100,
+            factory: { TestObject() },
+            reset: { $0.reset() }
+        )
+        
+        let iterations = 10_000
+        let concurrency = 100
+        
+        // Track allocations before test
+        let initialStats = await pool.statistics
+        
+        // Run concurrent operations
+        try await withThrowingTaskGroup(of: Void.self) { group in
+            for _ in 0..<concurrency {
+                group.addTask {
+                    for _ in 0..<(iterations / concurrency) {
+                        let obj = await pool.acquire()
+                        // Simulate work
+                        obj.value = Int.random(in: 0..<1000)
+                        try await Task.sleep(nanoseconds: 100_000) // 0.1ms
+                        await pool.release(obj)
+                    }
+                }
+            }
+            
+            try await group.waitForAll()
+        }
+        
+        // Verify pool statistics
+        let finalStats = await pool.statistics
+        
+        XCTAssertEqual(finalStats.acquisitions, iterations)
+        XCTAssertEqual(finalStats.releases, iterations)
+        XCTAssertGreaterThan(finalStats.hitRate, 75.0, "Pool hit rate should be high under concurrent load")
+        XCTAssertLessThan(finalStats.allocations, iterations / 10, "Should reuse objects efficiently")
+    }
+    
+    func testMemoryPressureResponseDuringConcurrentExecution() async throws {
+        // Test that pools properly shrink during memory pressure without breaking concurrent operations
+        
+        let pool = ObjectPool<TestObject>(
+            maxSize: 200,
+            highWaterMark: 160,
+            lowWaterMark: 40,
+            factory: { TestObject() },
+            reset: { $0.reset() }
+        )
+        
+        // Pre-warm the pool
+        await pool.prewarm(count: 150)
+        
+        let initialCount = await pool.availableCount
+        XCTAssertGreaterThanOrEqual(initialCount, 100)
+        
+        // Start concurrent operations
+        let operationTask = Task {
+            try await withThrowingTaskGroup(of: Void.self) { group in
+                for _ in 0..<50 {
+                    group.addTask {
+                        for _ in 0..<100 {
+                            let obj = await pool.acquire()
+                            obj.value = Int.random(in: 0..<1000)
+                            try await Task.sleep(nanoseconds: 1_000_000) // 1ms
+                            await pool.release(obj)
+                        }
+                    }
+                }
+                try await group.waitForAll()
+            }
+        }
+        
+        // Simulate memory pressure during execution
+        try await Task.sleep(nanoseconds: 100_000_000) // 100ms
+        await pool.simulateMemoryPressure(level: .warning)
+        
+        // Check pool size reduced
+        let warningCount = await pool.availableCount
+        XCTAssertLessThan(warningCount, initialCount)
+        XCTAssertLessThanOrEqual(warningCount, 100) // Should be around (160+40)/2 = 100
+        
+        // Simulate critical pressure
+        await pool.simulateMemoryPressure(level: .critical)
+        let criticalCount = await pool.availableCount
+        XCTAssertLessThanOrEqual(criticalCount, 40) // Should shrink to low water mark
+        
+        // Wait for operations to complete
+        try await operationTask.value
+        
+        // Verify operations completed successfully despite pressure
+        let stats = await pool.statistics
+        XCTAssertEqual(stats.acquisitions, 5000)
+        XCTAssertEqual(stats.releases, 5000)
+        XCTAssertGreaterThan(stats.memoryPressureEvents, 0)
+    }
+    
+    // MARK: - Pipeline Integration Tests
+    
+    func testConcurrentPipelineWithObjectPools() async throws {
+        // Test full pipeline execution using object pools under concurrent load
+        
+        // Create a concurrent pipeline manager
+        let concurrentPipeline = ConcurrentPipeline()
+        
+        // Create a standard pipeline with handler and middleware
+        let handler = TestCommandHandler()
+        let pipeline = StandardPipeline(handler: handler)
+        
+        // Add middleware that uses contexts
+        let metricsMiddleware = MetricsMiddleware()
+        try await pipeline.addMiddleware(metricsMiddleware)
+        
+        // Register the pipeline for TestCommand
+        await concurrentPipeline.register(TestCommand.self, pipeline: pipeline)
+        
+        // Create test commands
+        var commands: [TestCommand] = []
+        for i in 0..<1000 {
+            commands.append(TestCommand(id: i, value: "test-\(i)"))
+        }
+        
+        // Track memory before execution
+        let initialMemory = getMemoryUsage()
+        
+        // Execute commands concurrently
+        try await withThrowingTaskGroup(of: Void.self) { group in
+            for command in commands {
+                group.addTask {
+                    // Use pooled context
+                    let context = await PoolManager.shared.contextPool.acquire()
+                    defer {
+                        Task {
+                            await PoolManager.shared.contextPool.release(context)
+                        }
+                    }
+                    
+                    _ = try await concurrentPipeline.execute(command, context: context)
+                }
+            }
+            
+            try await group.waitForAll()
+        }
+        
+        // Verify pool efficiency
+        let poolStats = await PoolManager.shared.contextPool.statistics()
+        XCTAssertGreaterThan(poolStats.hitRate, 90.0, "Context pool should have high hit rate")
+        XCTAssertLessThan(poolStats.allocations, 100, "Should reuse contexts efficiently")
+        
+        // Check memory usage didn't grow excessively
+        let finalMemory = getMemoryUsage()
+        let memoryGrowth = finalMemory - initialMemory
+        XCTAssertLessThan(memoryGrowth, 50 * 1024 * 1024, "Memory growth should be limited")
+    }
+    
+    func testSustainedHighLoadWithMemoryPressure() async throws {
+        // Test sustained high load with periodic memory pressure
+        
+        let concurrentPipeline = OptimizedConcurrentPipeline()
+        
+        // Register handler for test commands
+        let handler = TestCommandHandler()
+        let pipeline = StandardPipeline(handler: handler)
+        await concurrentPipeline.register(TestCommand.self, pipeline: pipeline)
+        
+        let duration: TimeInterval = 5.0 // 5 seconds
+        let startTime = Date()
+        
+        var executionCount = 0
+        var errors = 0
+        
+        // Start metrics collection
+        let metricsCollector = PoolMetricsCollector(collectionInterval: 0.5)
+        await metricsCollector.startCollecting()
+        
+        // Memory pressure task
+        let pressureTask = Task {
+            while !Task.isCancelled {
+                try await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
+                await PoolManager.shared.contextPool.pool.simulateMemoryPressure(level: .warning)
+            }
+        }
+        
+        // Execution task
+        let executionTask = Task {
+            while Date().timeIntervalSince(startTime) < duration {
+                await withTaskGroup(of: Result<Void, Error>.self) { group in
+                    // Launch 100 concurrent operations
+                    for i in 0..<100 {
+                        group.addTask {
+                            do {
+                                let context = await PoolManager.shared.contextPool.acquire()
+                                defer {
+                                    Task {
+                                        await PoolManager.shared.contextPool.release(context)
+                                    }
+                                }
+                                
+                                let command = TestCommand(id: i, value: "sustained-\(i)")
+                                _ = try await concurrentPipeline.execute(command, context: context)
+                                return .success(())
+                            } catch {
+                                return .failure(error)
+                            }
+                        }
+                    }
+                    
+                    // Collect results
+                    for await result in group {
+                        executionCount += 1
+                        if case .failure = result {
+                            errors += 1
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Wait for execution to complete
+        await executionTask.value
+        pressureTask.cancel()
+        
+        // Stop metrics collection
+        await metricsCollector.stopCollecting()
+        
+        // Analyze results
+        XCTAssertGreaterThan(executionCount, 1000, "Should execute many operations")
+        XCTAssertEqual(errors, 0, "Should have no errors despite memory pressure")
+        
+        // Check pool statistics
+        let poolStats = await PoolManager.shared.contextPool.statistics()
+        XCTAssertGreaterThan(poolStats.memoryPressureEvents, 3, "Should handle multiple pressure events")
+        XCTAssertGreaterThan(poolStats.hitRate, 85.0, "Should maintain good hit rate under pressure")
+        
+        // Check for regressions
+        let regression = await metricsCollector.analyzeRegressions()
+        XCTAssertFalse(regression.hasRegression, "Should not have performance regression: \(regression.details)")
+    }
+    
+    // MARK: - Memory Leak Tests
+    
+    func testNoMemoryLeaksWithConcurrentPoolAccess() async throws {
+        // Ensure no memory leaks when using pools concurrently
+        
+        weak var weakObject: TestObject?
+        
+        // Create a scope for pool operations
+        do {
+            let pool = ObjectPool<TestObject>(
+                maxSize: 10,
+                factory: { TestObject() },
+                reset: { $0.reset() }
+            )
+            
+            // Acquire and track an object
+            let obj = await pool.acquire()
+            weakObject = obj
+            await pool.release(obj)
+            
+            // Run concurrent operations
+            try await withThrowingTaskGroup(of: Void.self) { group in
+                for _ in 0..<100 {
+                    group.addTask {
+                        let tempObj = await pool.acquire()
+                        tempObj.value = 42
+                        await pool.release(tempObj)
+                    }
+                }
+                try await group.waitForAll()
+            }
+            
+            // Clear the pool
+            await pool.clear()
+        }
+        
+        // Force cleanup
+        for _ in 0..<10 {
+            _ = autoreleasepool { }
+        }
+        
+        // Verify object was deallocated
+        XCTAssertNil(weakObject, "Pool objects should be deallocated after pool is cleared")
+    }
+    
+    // MARK: - Helper Types
+    
+    class TestObject {
+        var value: Int = 0
+        
+        func reset() {
+            value = 0
+        }
+    }
+    
+    struct TestCommand: Command {
+        typealias Result = String
+        
+        let id: Int
+        let value: String
+    }
+    
+    struct TestCommandHandler: CommandHandler {
+        typealias CommandType = TestCommand
+        
+        func handle(_ command: TestCommand) async throws -> String {
+            return "Executed: \(command.value)"
+        }
+    }
+    
+    class MetricsMiddleware: Middleware {
+        var priority: ExecutionPriority { .custom }
+        
+        func execute<T: Command>(
+            _ command: T,
+            context: CommandContext,
+            next: @Sendable (T, CommandContext) async throws -> T.Result
+        ) async throws -> T.Result {
+            let startTime = Date()
+            
+            let result = try await next(command, context)
+            
+            let duration = Date().timeIntervalSince(startTime)
+            await context.set(duration, for: ExecutionTimeKey.self)
+            
+            return result
+        }
+    }
+    
+    struct ExecutionTimeKey: ContextKey {
+        typealias Value = TimeInterval
+    }
+    
+    private func getMemoryUsage() -> Int {
+        var info = mach_task_basic_info()
+        var count = mach_msg_type_number_t(MemoryLayout<mach_task_basic_info>.size / MemoryLayout<natural_t>.size)
+        
+        let result = withUnsafeMutablePointer(to: &info) {
+            $0.withMemoryRebound(to: integer_t.self, capacity: 1) {
+                task_info(
+                    mach_task_self_,
+                    task_flavor_t(MACH_TASK_BASIC_INFO),
+                    $0,
+                    &count
+                )
+            }
+        }
+        
+        return result == KERN_SUCCESS ? Int(info.resident_size) : 0
+    }
+}
