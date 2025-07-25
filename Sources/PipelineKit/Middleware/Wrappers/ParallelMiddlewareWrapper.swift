@@ -118,13 +118,13 @@ public struct ParallelMiddlewareWrapper: Middleware, Sendable {
         try await withThrowingTaskGroup(of: Void.self) { group in
             for middleware in middlewares {
                 group.addTask {
-                    // Create a forked context for this middleware to ensure isolation
-                    let forkedContext = context.fork()
+                    // TODO: Context forking not implemented yet
+                    // For now, use the same context (not thread-safe for parallel execution)
                     
                     // Middleware should perform its side effects and not call next
                     // If it does call next, it will get an error
                     do {
-                        _ = try await middleware.execute(command, context: forkedContext, next: noOpNext)
+                        _ = try await middleware.execute(command, context: context, next: noOpNext)
                     } catch ParallelExecutionError.middlewareShouldNotCallNext {
                         // This is expected - middleware performed its side effects without calling next
                         return

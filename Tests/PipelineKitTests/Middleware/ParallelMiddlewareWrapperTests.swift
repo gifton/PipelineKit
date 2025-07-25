@@ -93,8 +93,7 @@ final class ParallelMiddlewareWrapperTests: XCTestCase {
             await tracker.recordEnd(middleware: name)
             
             // Parallel middleware shouldn't modify results
-            _ = try await next(command, context)
-            return command as! T.Result
+            return try await next(command, context)
         }
     }
     
@@ -153,7 +152,7 @@ final class ParallelMiddlewareWrapperTests: XCTestCase {
         _ = try await parallelWrapper.execute(
             TestCommand(id: "single"),
             context: CommandContext(),
-            next: { command, _ in command.id }
+            next: { (command: TestCommand, _) in command.id }
         )
         
         // Then

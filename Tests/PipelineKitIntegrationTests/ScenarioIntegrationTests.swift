@@ -70,6 +70,8 @@ struct APIResponse {
     let body: Data?
 }
 
+// Commented out - these types are already defined in EndToEndIntegrationTests.swift
+/*
 struct CreateOrderCommand: Command {
     typealias Result = Order
     let userId: String
@@ -94,6 +96,7 @@ enum OrderStatus {
     case completed
     case failed
 }
+*/
 
 struct AuditEntry {
     let action: String
