@@ -83,7 +83,7 @@ final class PipelineOperatorDSLTests: XCTestCase {
         let pipeline = try await (pipeline(for: handler)
             <++ middleware(critical, priority: .authentication)
             <+ normal  // Default priority (.normal)
-            <++ middleware(monitoring, priority: .monitoring))
+            <++ middleware(monitoring, priority: .postProcessing))
             .build()
         
         // Then

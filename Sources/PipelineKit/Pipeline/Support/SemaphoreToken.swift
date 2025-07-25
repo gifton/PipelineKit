@@ -1,5 +1,4 @@
 import Foundation
-import Atomics
 
 /// A token representing an acquired semaphore resource that automatically releases on cleanup.
 ///
@@ -25,11 +24,13 @@ public final class SemaphoreToken: Sendable {
     private let semaphore: BackPressureAsyncSemaphore
     internal let id: UUID
     private let acquiredAt: Date
-    private let _isReleased = ManagedAtomic<Bool>(false)
+    private let releaseState = ReleaseState()
     
     /// Whether this token has been released.
     public var isReleased: Bool {
-        _isReleased.load(ordering: .relaxed)
+        get async {
+            await releaseState.isReleased
+        }
     }
     
     /// How long this token has held the resource.
@@ -53,7 +54,7 @@ public final class SemaphoreToken: Sendable {
     /// This method is idempotent - calling it multiple times is safe.
     /// The resource is also automatically released when the token is deinitialized.
     public func release() async {
-        let wasReleased = _isReleased.exchange(true, ordering: .relaxed)
+        let wasReleased = await releaseState.setReleased()
         guard !wasReleased else { return }
         
         await semaphore.releaseToken(self)
@@ -61,11 +62,11 @@ public final class SemaphoreToken: Sendable {
     
     /// Ensures the resource is released when the token is deallocated.
     deinit {
-        let wasReleased = _isReleased.load(ordering: .relaxed)
-        if !wasReleased {
-            // We can't await in deinit, so we need to handle this carefully
-            // This is the safety net for unexpected cleanup scenarios
-            Task { [semaphore, id] in
+        // We can't await in deinit, so we need to handle this carefully
+        // This is the safety net for unexpected cleanup scenarios
+        Task { [semaphore, id, releaseState] in
+            let wasReleased = await releaseState.isReleased
+            if !wasReleased {
                 await semaphore.emergencyRelease(tokenId: id)
             }
         }
@@ -90,7 +91,25 @@ extension SemaphoreToken: Hashable {
 
 extension SemaphoreToken: CustomStringConvertible {
     public var description: String {
-        "SemaphoreToken(id: \(id), held: \(String(format: "%.2f", holdDuration))s, released: \(isReleased))"
+        "SemaphoreToken(id: \(id), held: \(String(format: "%.2f", holdDuration))s)"
+    }
+}
+
+// MARK: - Release State Actor
+
+/// Actor to manage release state without atomics
+private actor ReleaseState {
+    private var released = false
+    
+    var isReleased: Bool {
+        released
+    }
+    
+    /// Sets the released state and returns the previous value
+    func setReleased() -> Bool {
+        let wasReleased = released
+        released = true
+        return wasReleased
     }
 }
 

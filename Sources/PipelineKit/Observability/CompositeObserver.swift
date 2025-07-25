@@ -2,10 +2,31 @@ import Foundation
 
 /// An observer that delegates to multiple child observers
 /// Useful for combining different observer behaviors without using ObserverRegistry
+///
+/// ## Design Decision: @unchecked Sendable for Array of Protocol Types
+///
+/// This class uses `@unchecked Sendable` for the following reasons:
+///
+/// 1. **Protocol Array Storage**: The stored property `observers: [PipelineObserver]`
+///    contains an array of protocol types. While PipelineObserver requires Sendable,
+///    Swift's type system has limitations verifying this through arrays of protocols.
+///
+/// 2. **All Properties Are Safe**:
+///    - `observers`: Array of PipelineObserver (protocol requires Sendable)
+///    - `errorHandler`: @Sendable closure (explicitly thread-safe)
+///
+/// 3. **Immutable After Init**: Both properties are `let` constants, preventing mutation
+///    after initialization.
+///
+/// 4. **Type Safety**: The errorHandler is marked as @Sendable, ensuring it cannot capture
+///    non-Sendable state, making it safe to call from any thread.
+///
+/// This is purely a Swift limitation with arrays of protocol types. The implementation
+/// is fully thread-safe.
 public final class CompositeObserver: BaseObserver, @unchecked Sendable {
     
     private let observers: [PipelineObserver]
-    private let errorHandler: (Error, String) -> Void
+    private let errorHandler: @Sendable (Error, String) -> Void
     
     /// Creates a composite observer with multiple child observers
     /// - Parameters:
@@ -13,7 +34,7 @@ public final class CompositeObserver: BaseObserver, @unchecked Sendable {
     ///   - errorHandler: Optional error handler for when child observers fail
     public init(
         observers: [PipelineObserver],
-        errorHandler: ((Error, String) -> Void)? = nil
+        errorHandler: (@Sendable (Error, String) -> Void)? = nil
     ) {
         self.observers = observers
         self.errorHandler = errorHandler ?? { error, observer in
@@ -25,7 +46,7 @@ public final class CompositeObserver: BaseObserver, @unchecked Sendable {
     /// Convenience initializer with variadic parameters
     public convenience init(
         _ observers: PipelineObserver...,
-        errorHandler: ((Error, String) -> Void)? = nil
+        errorHandler: (@Sendable (Error, String) -> Void)? = nil
     ) {
         self.init(observers: observers, errorHandler: errorHandler)
     }
@@ -110,6 +131,26 @@ public final class CompositeObserver: BaseObserver, @unchecked Sendable {
 // MARK: - Conditional Observer
 
 /// An observer that conditionally forwards events based on a predicate
+///
+/// ## Design Decision: @unchecked Sendable for Wrapped Protocol Type
+///
+/// This class uses `@unchecked Sendable` for the following reasons:
+///
+/// 1. **Wrapped Protocol Type**: The stored property `wrapped: PipelineObserver` is a
+///    protocol type. While PipelineObserver requires Sendable, Swift cannot currently
+///    verify this through existential types.
+///
+/// 2. **All Properties Are Safe**:
+///    - `wrapped`: PipelineObserver protocol requires Sendable
+///    - `predicate`: Explicitly marked as @Sendable, ensuring thread safety
+///
+/// 3. **Type Safety Guarantee**: Since PipelineObserver protocol requires Sendable,
+///    any observer passed to this wrapper must be thread-safe by definition.
+///
+/// 4. **Immutable Design**: Both properties are `let` constants, preventing any
+///    modifications after initialization.
+///
+/// This is a Swift compiler limitation with existential types rather than a design flaw.
 public final class ConditionalObserver: BaseObserver, @unchecked Sendable {
     
     public typealias Predicate = @Sendable (String, String?) -> Bool // (commandType, correlationId) -> shouldObserve
@@ -212,6 +253,26 @@ public final class ConditionalObserver: BaseObserver, @unchecked Sendable {
 // MARK: - Specialized Observers
 
 /// An observer that only observes failure events
+///
+/// ## Design Decision: @unchecked Sendable for Wrapped Protocol Type
+///
+/// This class uses `@unchecked Sendable` for the following reasons:
+///
+/// 1. **Wrapped Protocol Type**: The stored property `wrapped: PipelineObserver` holds a
+///    protocol type. While PipelineObserver requires Sendable, Swift cannot verify this
+///    through existential types.
+///
+/// 2. **Thread Safety Guarantee**: Since PipelineObserver protocol explicitly requires
+///    Sendable, any wrapped observer is guaranteed to be thread-safe at compile time.
+///
+/// 3. **Immutable Reference**: The `wrapped` property is a `let` constant, preventing
+///    reassignment after initialization.
+///
+/// 4. **Private Scope**: As a private class, its usage is controlled and verified within
+///    this file, reducing the risk of misuse.
+///
+/// This is the same Swift limitation seen in other wrapper types - the code is thread-safe
+/// but the compiler cannot verify it through the type system.
 private final class FailureOnlyObserver: BaseObserver, @unchecked Sendable {
     private let wrapped: PipelineObserver
     

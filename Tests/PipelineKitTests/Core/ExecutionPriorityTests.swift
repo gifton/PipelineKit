@@ -4,20 +4,17 @@ import XCTest
 final class ExecutionPriorityTests: XCTestCase {
     
     func testExecutionPriorityValues() {
-        // Verify that orders are properly spaced
-        XCTAssertEqual(ExecutionPriority.correlation.rawValue, 10)
+        // Verify the simplified priorities are properly ordered
         XCTAssertEqual(ExecutionPriority.authentication.rawValue, 100)
-        XCTAssertEqual(ExecutionPriority.authorization.rawValue, 200)
-        XCTAssertEqual(ExecutionPriority.validation.rawValue, 300)
-        XCTAssertEqual(ExecutionPriority.rateLimiting.rawValue, 400)
-        XCTAssertEqual(ExecutionPriority.logging.rawValue, 500)
-        XCTAssertEqual(ExecutionPriority.caching.rawValue, 600)
-        XCTAssertEqual(ExecutionPriority.errorHandling.rawValue, 700)
-        XCTAssertEqual(ExecutionPriority.responseTransformation.rawValue, 800)
-        XCTAssertEqual(ExecutionPriority.transaction.rawValue, 900)
+        XCTAssertEqual(ExecutionPriority.validation.rawValue, 200)
+        XCTAssertEqual(ExecutionPriority.preProcessing.rawValue, 300)
+        XCTAssertEqual(ExecutionPriority.processing.rawValue, 400)
+        XCTAssertEqual(ExecutionPriority.postProcessing.rawValue, 500)
+        XCTAssertEqual(ExecutionPriority.errorHandling.rawValue, 600)
         XCTAssertEqual(ExecutionPriority.custom.rawValue, 1000)
     }
     
+    /* TODO: Categories were removed in the simplified priority system
     func testMiddlewareCategories() {
         // Test category assignment
         XCTAssertEqual(ExecutionPriority.correlation.category, "Pre-Processing")
@@ -42,7 +39,7 @@ final class ExecutionPriorityTests: XCTestCase {
         
         let observabilityMiddleware = ExecutionPriority.category(.observability)
         XCTAssertTrue(observabilityMiddleware.contains(.logging))
-        XCTAssertTrue(observabilityMiddleware.contains(.monitoring))
+        XCTAssertTrue(observabilityMiddleware.contains(.postProcessing))
         XCTAssertTrue(observabilityMiddleware.contains(.metrics))
         XCTAssertFalse(observabilityMiddleware.contains(.caching))
     }
@@ -89,6 +86,7 @@ final class ExecutionPriorityTests: XCTestCase {
         // The PriorityPipelineWithOrdering test below already covers this functionality
         // by verifying that middleware executes in priority order
     }
+    */
     
     func testPriorityPipelineWithOrdering() async throws {
         // Test command and handler
@@ -123,11 +121,11 @@ final class ExecutionPriorityTests: XCTestCase {
         }
         
         let tracker = TestActor<[ExecutionPriority]>([])
-        let pipeline = PriorityPipeline(handler: TestHandler())
+        let pipeline = AnyStandardPipeline(handler: TestHandler())
         
         // Add middleware in non-sequential order
         try await pipeline.addMiddleware(
-            OrderTrackingMiddleware(order: ExecutionPriority.logging, tracker: tracker)
+            OrderTrackingMiddleware(order: ExecutionPriority.postProcessing, tracker: tracker)
         )
         
         try await pipeline.addMiddleware(
@@ -138,17 +136,18 @@ final class ExecutionPriorityTests: XCTestCase {
             OrderTrackingMiddleware(order: ExecutionPriority.validation, tracker: tracker)
         )
         
-        let context = await CommandContext.test()
+        let context = CommandContext.test()
         _ = try await pipeline.execute(TestCommand(), context: context)
         
         let executionOrder = await tracker.get()
         
         // Verify execution order matches priority order
         // Lower priority values execute first (higher priority)
-        XCTAssertEqual(executionOrder, [.authentication, .validation, .logging])
+        XCTAssertEqual(executionOrder, [.authentication, .validation, .postProcessing])
     }
 }
 
+/* Duplicate TestActor - using the one from TestHelpers
 // Helper actor for tests
 actor TestActor<T: Sendable>: Sendable {
     private var value: T
@@ -165,3 +164,4 @@ actor TestActor<T: Sendable>: Sendable {
         value.append(element)
     }
 }
+*/

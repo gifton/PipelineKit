@@ -159,7 +159,7 @@ final class SecurityFailureTests: XCTestCase {
         let unauthorizedContext = CommandContext(metadata: unauthorizedMetadata)
         
         // Need to set authenticated user in context for authorization middleware
-        await unauthorizedContext.set("unauthorized_user", for: AuthenticatedUserKey.self)
+        unauthorizedContext.set("unauthorized_user", for: AuthenticatedUserKey.self)
         
         do {
             _ = try await authMiddleware.execute(command, context: unauthorizedContext) { _, _ in "success" }
@@ -187,7 +187,7 @@ final class SecurityFailureTests: XCTestCase {
         let regularUserContext = CommandContext(metadata: regularUserMetadata)
         
         // Need to set authenticated user in context for authorization middleware
-        await regularUserContext.set("regular_user", for: AuthenticatedUserKey.self)
+        regularUserContext.set("regular_user", for: AuthenticatedUserKey.self)
         
         do {
             _ = try await authMiddleware.execute(adminCommand, context: regularUserContext) { _, _ in "success" }

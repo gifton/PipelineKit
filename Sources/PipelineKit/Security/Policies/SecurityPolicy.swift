@@ -1,5 +1,37 @@
 import Foundation
 
+/// Protocol for commands that support security validation
+public protocol SecurityValidatable {
+    /// Validates the command against the security policy
+    /// - Parameter policy: The security policy to validate against
+    /// - Throws: SecurityPolicyError if validation fails
+    func validate(against policy: SecurityPolicy) throws
+}
+
+/// Errors that can occur during security policy validation
+public enum SecurityPolicyError: LocalizedError {
+    case commandTooLarge(size: Int, maxSize: Int)
+    case stringTooLong(field: String, length: Int, maxLength: Int)
+    case invalidCharacters(field: String, invalidChars: String)
+    case htmlContentNotAllowed(field: String)
+    case validationFailed(reason: String)
+    
+    public var errorDescription: String? {
+        switch self {
+        case .commandTooLarge(let size, let maxSize):
+            return "Command size \(size) bytes exceeds maximum allowed size of \(maxSize) bytes"
+        case .stringTooLong(let field, let length, let maxLength):
+            return "Field '\(field)' length \(length) exceeds maximum allowed length of \(maxLength)"
+        case .invalidCharacters(let field, let invalidChars):
+            return "Field '\(field)' contains invalid characters: \(invalidChars)"
+        case .htmlContentNotAllowed(let field):
+            return "Field '\(field)' contains HTML content which is not allowed"
+        case .validationFailed(let reason):
+            return "Security validation failed: \(reason)"
+        }
+    }
+}
+
 /// Configuration for security policies applied to commands.
 public struct SecurityPolicy: Sendable {
     /// Maximum allowed command size in bytes
@@ -75,12 +107,145 @@ public struct SecurityPolicyMiddleware: Middleware {
         context: CommandContext,
         next: @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
-        // Apply security checks based on policy
-        if policy.strictValidation {
-            // Perform strict validation checks
-            // Note: Size validation would require Encodable constraint
+        // If command implements SecurityValidatable, use its validation
+        if let validatable = command as? SecurityValidatable {
+            try validatable.validate(against: policy)
+        } else if policy.strictValidation {
+            // For non-validatable commands, use reflection-based validation
+            try validateUsingReflection(command)
         }
         
         return try await next(command, context)
+    }
+    
+    /// Validates a command using reflection to inspect its properties
+    private func validateUsingReflection<T>(_ command: T) throws {
+        let mirror = Mirror(reflecting: command)
+        
+        // Estimate command size (this is approximate)
+        let estimatedSize = estimateSize(of: command)
+        if estimatedSize > policy.maxCommandSize {
+            throw SecurityPolicyError.commandTooLarge(
+                size: estimatedSize,
+                maxSize: policy.maxCommandSize
+            )
+        }
+        
+        // Validate each property
+        try validateMirror(mirror, path: "")
+    }
+    
+    /// Recursively validates properties using reflection
+    private func validateMirror(_ mirror: Mirror, path: String) throws {
+        for child in mirror.children {
+            let fieldName = child.label ?? "unknown"
+            let fieldPath = path.isEmpty ? fieldName : "\(path).\(fieldName)"
+            
+            // Validate strings
+            if let stringValue = child.value as? String {
+                try validateString(stringValue, field: fieldPath)
+            }
+            // Validate optional strings
+            else if let optionalString = child.value as? String? {
+                if let stringValue = optionalString {
+                    try validateString(stringValue, field: fieldPath)
+                }
+            }
+            // Validate arrays of strings
+            else if let stringArray = child.value as? [String] {
+                for (index, stringValue) in stringArray.enumerated() {
+                    try validateString(stringValue, field: "\(fieldPath)[\(index)]")
+                }
+            }
+            // Recursively validate nested objects
+            else if !isSimpleType(child.value) {
+                let childMirror = Mirror(reflecting: child.value)
+                if childMirror.children.count > 0 {
+                    try validateMirror(childMirror, path: fieldPath)
+                }
+            }
+        }
+    }
+    
+    /// Validates a string value against the security policy
+    private func validateString(_ value: String, field: String) throws {
+        // Check length
+        if value.count > policy.maxStringLength {
+            throw SecurityPolicyError.stringTooLong(
+                field: field,
+                length: value.count,
+                maxLength: policy.maxStringLength
+            )
+        }
+        
+        // Check for HTML content
+        if !policy.allowHTML && containsHTML(value) {
+            throw SecurityPolicyError.htmlContentNotAllowed(field: field)
+        }
+        
+        // Check allowed characters
+        let invalidChars = value.unicodeScalars.filter { scalar in
+            !policy.allowedCharacters.contains(scalar)
+        }
+        
+        if !invalidChars.isEmpty {
+            let invalidString = String(String.UnicodeScalarView(invalidChars))
+            throw SecurityPolicyError.invalidCharacters(
+                field: field,
+                invalidChars: invalidString
+            )
+        }
+    }
+    
+    /// Checks if a string contains HTML content
+    private func containsHTML(_ string: String) -> Bool {
+        // Basic HTML tag detection
+        let htmlPattern = "<[^>]+>"
+        let regex = try? NSRegularExpression(pattern: htmlPattern, options: .caseInsensitive)
+        let range = NSRange(location: 0, length: string.utf16.count)
+        return regex?.firstMatch(in: string, options: [], range: range) != nil
+    }
+    
+    /// Estimates the size of a value in bytes
+    private func estimateSize(of value: Any) -> Int {
+        var size = 0
+        let mirror = Mirror(reflecting: value)
+        
+        size += estimateMirrorSize(mirror)
+        
+        return size
+    }
+    
+    /// Recursively estimates the size of mirrored properties
+    private func estimateMirrorSize(_ mirror: Mirror) -> Int {
+        var size = 0
+        
+        for child in mirror.children {
+            if let string = child.value as? String {
+                size += string.utf8.count
+            } else if let data = child.value as? Data {
+                size += data.count
+            } else if let array = child.value as? [Any] {
+                size += array.reduce(0) { $0 + estimateSize(of: $1) }
+            } else if isSimpleType(child.value) {
+                size += MemoryLayout<Any>.size
+            } else {
+                let childMirror = Mirror(reflecting: child.value)
+                if childMirror.children.count > 0 {
+                    size += estimateMirrorSize(childMirror)
+                }
+            }
+        }
+        
+        return size
+    }
+    
+    /// Determines if a value is a simple type (doesn't need deep inspection)
+    private func isSimpleType(_ value: Any) -> Bool {
+        return value is Int || value is Double || value is Float ||
+               value is Bool || value is Int8 || value is Int16 ||
+               value is Int32 || value is Int64 || value is UInt ||
+               value is UInt8 || value is UInt16 || value is UInt32 ||
+               value is UInt64 || value is UUID || value is Date
     }
 }

@@ -5,7 +5,7 @@ import Foundation
 /// Middleware that automatically instruments command execution with observability
 public struct ObservabilityMiddleware: Middleware {
     
-    public var priority: ExecutionPriority { .tracing }
+    public var priority: ExecutionPriority { .postProcessing }
     
     private let configuration: ObservabilityConfiguration
     
@@ -29,14 +29,14 @@ public struct ObservabilityMiddleware: Middleware {
     private func setupObservabilityContext<T: Command>(for command: T, context: CommandContext) async {
         // Set up observer registry
         let registry = ObserverRegistry(observers: configuration.observers)
-        await context.setObserverRegistry(registry)
+        context.setObserverRegistry(registry)
         
         // Create root span for this command execution
         let commandName = String(describing: type(of: command))
-        let span = await context.getOrCreateSpanContext(operation: commandName)
+        let span = context.getOrCreateSpanContext(operation: commandName)
         
         // Add command-specific tags
-        var tags = await ObservabilityUtils.createTagsFromMetadata(context.commandMetadata)
+        var tags = ObservabilityUtils.createTagsFromMetadata(context.commandMetadata)
         tags["command.type"] = commandName
         tags["command.id"] = UUID().uuidString
         
@@ -49,19 +49,19 @@ public struct ObservabilityMiddleware: Middleware {
             startTime: span.startTime,
             tags: tags
         )
-        await context.set(updatedSpan, for: SpanContextKey.self)
+        context.set(updatedSpan, for: SpanContextKey.self)
         
         // Initialize performance context
         if configuration.enablePerformanceMetrics {
             let perfContext = PerformanceContext()
-            await context.set(perfContext, for: PerformanceContextKey.self)
-            await context.startTimer("command.total_duration")
+            context.set(perfContext, for: PerformanceContextKey.self)
+            context.startTimer("command.total_duration")
         }
         
         // Set up observability data
-        await context.setObservabilityData("command.start_time", value: Date())
-        await context.setObservabilityData("command.type", value: commandName)
-        await context.setObservabilityData("observability.enabled", value: true)
+        context.setObservabilityData("command.start_time", value: Date())
+        context.setObservabilityData("command.type", value: commandName)
+        context.setObservabilityData("observability.enabled", value: true)
     }
     
     private func executeWithObservability<T: Command>(
@@ -71,7 +71,7 @@ public struct ObservabilityMiddleware: Middleware {
     ) async throws -> T.Result {
         
         let startTime = Date()
-        let _ = await context.getOrCreateSpanContext(operation: "command_execution")
+        let _ = context.getOrCreateSpanContext(operation: "command_execution")
         
         // Handle observable commands
         if let observableCommand = command as? any ObservableCommand {
@@ -114,9 +114,9 @@ public struct ObservabilityMiddleware: Middleware {
         let duration = Date().timeIntervalSince(startTime)
         
         if configuration.enablePerformanceMetrics {
-            await context.endTimer("command.total_duration")
-            await context.recordMetric("command.duration", value: duration, unit: "seconds")
-            await context.recordMetric("command.success", value: 1, unit: "count")
+            context.endTimer("command.total_duration")
+            context.recordMetric("command.duration", value: duration, unit: "seconds")
+            context.recordMetric("command.success", value: 1, unit: "count")
         }
         
         // Emit custom event
@@ -137,9 +137,9 @@ public struct ObservabilityMiddleware: Middleware {
         let duration = Date().timeIntervalSince(startTime)
         
         if configuration.enablePerformanceMetrics {
-            await context.endTimer("command.total_duration")
-            await context.recordMetric("command.duration", value: duration, unit: "seconds")
-            await context.recordMetric("command.failure", value: 1, unit: "count")
+            context.endTimer("command.total_duration")
+            context.recordMetric("command.duration", value: duration, unit: "seconds")
+            context.recordMetric("command.failure", value: 1, unit: "count")
         }
         
         // Emit custom event
@@ -159,7 +159,7 @@ public struct ObservabilityMiddleware: Middleware {
 /// Specialized middleware for detailed performance tracking
 public struct PerformanceTrackingMiddleware: Middleware {
     
-    public var priority: ExecutionPriority { .monitoring }
+    public var priority: ExecutionPriority { .postProcessing }
     
     private let thresholds: PerformanceThresholds
     
@@ -193,8 +193,8 @@ public struct PerformanceTrackingMiddleware: Middleware {
         let initialMemory = getCurrentMemoryUsage()
         
         // Start detailed performance tracking
-        await context.startTimer("performance.command_execution")
-        await context.recordMetric("performance.memory_start", value: Double(initialMemory), unit: "MB")
+        context.startTimer("performance.command_execution")
+        context.recordMetric("performance.memory_start", value: Double(initialMemory), unit: "MB")
         
         do {
             let result = try await next(command, context)
@@ -204,9 +204,9 @@ public struct PerformanceTrackingMiddleware: Middleware {
             let finalMemory = getCurrentMemoryUsage()
             let memoryDelta = finalMemory - initialMemory
             
-            await context.endTimer("performance.command_execution")
-            await context.recordMetric("performance.memory_end", value: Double(finalMemory), unit: "MB")
-            await context.recordMetric("performance.memory_delta", value: Double(memoryDelta), unit: "MB")
+            context.endTimer("performance.command_execution")
+            context.recordMetric("performance.memory_end", value: Double(finalMemory), unit: "MB")
+            context.recordMetric("performance.memory_delta", value: Double(memoryDelta), unit: "MB")
             
             // Check for performance issues
             await checkPerformanceThresholds(
@@ -223,8 +223,8 @@ public struct PerformanceTrackingMiddleware: Middleware {
             let duration = Date().timeIntervalSince(startTime)
             let finalMemory = getCurrentMemoryUsage()
             
-            await context.endTimer("performance.command_execution")
-            await context.recordMetric("performance.memory_end", value: Double(finalMemory), unit: "MB")
+            context.endTimer("performance.command_execution")
+            context.recordMetric("performance.memory_end", value: Double(finalMemory), unit: "MB")
             
             await context.emitCustomEvent("performance.command_failed", properties: [
                 "duration": duration,
@@ -290,7 +290,7 @@ public struct PerformanceTrackingMiddleware: Middleware {
 /// Middleware for distributed tracing integration
 public struct DistributedTracingMiddleware: Middleware {
     
-    public var priority: ExecutionPriority { .tracing }
+    public var priority: ExecutionPriority { .postProcessing }
     
     private let serviceName: String
     private let version: String
@@ -307,7 +307,7 @@ public struct DistributedTracingMiddleware: Middleware {
     ) async throws -> T.Result {
         
         // Create or update span context for distributed tracing
-        let span = await context.getOrCreateSpanContext(operation: String(describing: type(of: command)))
+        let span = context.getOrCreateSpanContext(operation: String(describing: type(of: command)))
         
         // Add service and version tags
         let updatedSpan = SpanContext(
@@ -324,7 +324,7 @@ public struct DistributedTracingMiddleware: Middleware {
             ]) { _, new in new }
         )
         
-        await context.set(updatedSpan, for: SpanContextKey.self)
+        context.set(updatedSpan, for: SpanContextKey.self)
         
         // Execute with distributed tracing context
         return try await next(command, context)
@@ -336,7 +336,7 @@ public struct DistributedTracingMiddleware: Middleware {
 /// Middleware that allows easy emission of custom business events
 public struct CustomEventEmitterMiddleware: Middleware {
     
-    public var priority: ExecutionPriority { .eventPublishing }
+    public var priority: ExecutionPriority { .postProcessing }
     
     private let eventPrefix: String
     

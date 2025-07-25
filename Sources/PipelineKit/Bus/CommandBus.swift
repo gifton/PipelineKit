@@ -63,7 +63,7 @@ public actor CommandBus {
         return try await chain(command, context)
     }
 
-    private func withRetry<T: Command>(retryPolicy: RetryPolicy, command: T, operation: @escaping () async throws -> T.Result) async throws -> T.Result {
+    private func withRetry<T: Command>(retryPolicy: RetryPolicy, command: T, operation: @escaping @Sendable () async throws -> T.Result) async throws -> T.Result {
         let startTime = Date()
         var lastError: Error?
 
@@ -126,13 +126,6 @@ public actor CommandBus {
         }
     }
 
-    @discardableResult
-    public func removeMiddleware(_ middleware: any Middleware) -> Bool {
-        // Since Middleware is no longer constrained to AnyObject, we can't use ===
-        // This method is deprecated and will be removed in future versions
-        // Consider using removeAllMiddleware() or managing middleware through configuration
-        return false
-    }
 
     public func clear() async {
         await handlerRegistry.removeAllHandlers()

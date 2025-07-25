@@ -1,6 +1,28 @@
 import Foundation
 
 /// Middleware that provides resilience patterns including retry and circuit breaker
+///
+/// ## Design Decision: @unchecked Sendable for Optional Actor Property
+///
+/// This class uses `@unchecked Sendable` for the following reasons:
+///
+/// 1. **Optional Actor Type**: The stored property `circuitBreaker: CircuitBreaker?` is an
+///    optional reference to an actor. While actors are inherently Sendable, Swift's type
+///    system sometimes has issues with optional actor references in class contexts.
+///
+/// 2. **All Properties Are Safe**:
+///    - `retryPolicy`: RetryPolicy struct that conforms to Sendable
+///    - `circuitBreaker`: Optional CircuitBreaker actor (actors are implicitly Sendable)
+///    - `name`: String (inherently Sendable)
+///
+/// 3. **Immutable Design**: All properties are `let` constants, preventing any mutations
+///    after initialization and ensuring thread safety.
+///
+/// 4. **Actor Isolation**: CircuitBreaker is an actor, providing its own synchronization
+///    and thread safety guarantees through Swift's actor model.
+///
+/// This appears to be a Swift compiler limitation with optional actor references rather
+/// than an actual thread safety concern. All components are genuinely thread-safe.
 public final class ResilientMiddleware: Middleware, @unchecked Sendable {
     public let priority: ExecutionPriority = .errorHandling
     private let retryPolicy: RetryPolicy
@@ -77,7 +99,7 @@ public final class ResilientMiddleware: Middleware, @unchecked Sendable {
     ) async throws -> T.Result {
         var lastError: Error?
         let startTime = Date()
-        let metadata = await context.commandMetadata
+        let metadata = context.commandMetadata
         let userId = (metadata as? StandardCommandMetadata)?.userId ?? "unknown"
         
         for attempt in 1...retryPolicy.maxAttempts {

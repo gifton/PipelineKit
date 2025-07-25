@@ -99,7 +99,7 @@ final class ValidationTests: XCTestCase {
     
     func testValidationMiddleware() async throws {
         let bus = CommandBus()
-        try await bus.addMiddleware(ValidationMiddleware())
+        try await bus.addMiddleware(PipelineKit.ValidationMiddleware())
         
         struct TestHandler: CommandHandler {
             typealias CommandType = CreateUserCommand

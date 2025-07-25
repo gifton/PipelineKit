@@ -3,7 +3,7 @@ import Foundation
 /// Simple metrics middleware using a closure-based approach.
 /// For more advanced metrics collection, use AdvancedMetricsMiddleware.
 public struct SimpleMetricsMiddleware: Middleware {
-    public let priority: ExecutionPriority = .metrics
+    public let priority: ExecutionPriority = .postProcessing // Metrics collection happens after processing
     private let recordMetric: @Sendable (String, TimeInterval) async -> Void
 
     public init(recordMetric: @escaping @Sendable (String, TimeInterval) async -> Void) {
@@ -15,7 +15,7 @@ public struct SimpleMetricsMiddleware: Middleware {
         context: CommandContext,
         next: @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
-        let startTime = await context[RequestStartTimeKey.self] ?? Date()
+        let startTime = context[RequestStartTimeKey.self] ?? Date()
 
         do {
             let result = try await next(command, context)
@@ -47,8 +47,32 @@ public struct SimpleMetricsMiddleware: Middleware {
 ///     includeCommandType: true
 /// )
 /// ```
+///
+/// ## Design Decision: @unchecked Sendable for Existential Types
+///
+/// This class uses `@unchecked Sendable` for the following reasons:
+///
+/// 1. **Existential Type Limitation**: The stored property `collector: any AdvancedMetricsCollector`
+///    uses an existential type. Swift currently cannot verify Sendable conformance through
+///    existential types, even though the protocol requires Sendable.
+///
+/// 2. **All Properties Are Safe**:
+///    - `collector`: Protocol requires Sendable conformance
+///    - `namespace`: String? (inherently Sendable)
+///    - `includeCommandType`: Bool (inherently Sendable)
+///    - `customTags`: [String: String] (inherently Sendable)
+///    - All closures are marked @Sendable
+///
+/// 3. **Guaranteed Thread Safety**: Since AdvancedMetricsCollector protocol explicitly
+///    requires Sendable, any conforming type must be thread-safe, making this usage safe.
+///
+/// 4. **No Mutable State**: All properties are `let` constants, preventing any mutations
+///    after initialization.
+///
+/// This is a Swift language limitation rather than a design choice. Once Swift improves
+/// existential type handling, the @unchecked annotation can be removed.
 public final class MetricsMiddleware: Middleware, @unchecked Sendable {
-    public let priority: ExecutionPriority = .monitoring
+    public let priority: ExecutionPriority = .postProcessing
     
     private let collector: any AdvancedMetricsCollector
     private let namespace: String?

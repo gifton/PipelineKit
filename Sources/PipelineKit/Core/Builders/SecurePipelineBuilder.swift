@@ -14,7 +14,7 @@ public struct SecurePipelineBuilder<T: Command, H: CommandHandler> where H.Comma
     public mutating func withStandardSecurity() -> Self {
         // Add in security-first order
         builder.add(ValidationMiddleware(), order: .validation)
-        builder.add(SanitizationMiddleware(), order: .sanitization)
+        builder.add(SanitizationMiddleware(), order: .preProcessing)
         return self
     }
     
@@ -53,9 +53,9 @@ public struct SecurePipelineBuilder<T: Command, H: CommandHandler> where H.Comma
         return self
     }
     
-    /// Builds a priority pipeline with all middleware in the correct order
-    public func build() async throws -> PriorityPipeline {
-        let pipeline = PriorityPipeline(handler: handler)
+    /// Builds a pipeline with all middleware in the correct order
+    public func build() async throws -> AnyStandardPipeline {
+        let pipeline = AnyStandardPipeline(handler: handler)
         let orderedMiddleware = builder.build()
         
         for (middleware, _) in orderedMiddleware {

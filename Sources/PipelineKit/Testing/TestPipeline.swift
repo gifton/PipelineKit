@@ -52,7 +52,7 @@ public actor TestPipeline: Pipeline {
         await executionRecorder.recordStart(
             executionId: executionId,
             command: command,
-            metadata: await context.commandMetadata
+            metadata: context.commandMetadata
         )
         
         do {
@@ -231,7 +231,7 @@ public struct PipelineTestUtils {
         handler: H,
         middleware: [any Middleware] = []
     ) async throws -> TestPipeline where H.CommandType == T {
-        let basePipeline = DefaultPipeline(handler: handler)
+        let basePipeline = StandardPipeline(handler: handler)
         
         for mw in middleware {
             try await basePipeline.addMiddleware(mw)

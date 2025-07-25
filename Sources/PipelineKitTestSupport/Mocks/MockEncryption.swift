@@ -2,19 +2,16 @@ import Foundation
 import PipelineKit
 
 /// Mock encryptor for testing encryption middleware
-public final class MockEncryptor: CommandEncryptor, @unchecked Sendable {
+public actor MockEncryptor: CommandEncryptor {
     private let encryptionKey: String
     private var encryptedCommands: [String] = []
-    private let lock = NSLock()
     
     public init(key: String = "test-key") {
         self.encryptionKey = key
     }
     
     public func encrypt<T: Command>(_ command: T) async throws -> Data {
-        lock.withLock {
-            encryptedCommands.append(String(describing: type(of: command)))
-        }
+        encryptedCommands.append(String(describing: type(of: command)))
         
         // Simple mock encryption - just encode to JSON and prefix with key
         let encoder = JSONEncoder()
@@ -24,24 +21,21 @@ public final class MockEncryptor: CommandEncryptor, @unchecked Sendable {
     }
     
     public func getEncryptedCommands() -> [String] {
-        lock.withLock { encryptedCommands }
+        encryptedCommands
     }
 }
 
 /// Mock decryptor for testing decryption operations
-public final class MockDecryptor: CommandDecryptor, @unchecked Sendable {
+public actor MockDecryptor: CommandDecryptor {
     private let encryptionKey: String
     private var decryptedCount = 0
-    private let lock = NSLock()
     
     public init(key: String = "test-key") {
         self.encryptionKey = key
     }
     
     public func decrypt<T: Command>(_ data: Data, as type: T.Type) async throws -> T {
-        lock.withLock {
-            decryptedCount += 1
-        }
+        decryptedCount += 1
         
         // Simple mock decryption
         guard let encrypted = String(data: data, encoding: .utf8),
@@ -59,7 +53,7 @@ public final class MockDecryptor: CommandDecryptor, @unchecked Sendable {
     }
     
     public func getDecryptedCount() -> Int {
-        lock.withLock { decryptedCount }
+        decryptedCount
     }
 }
 

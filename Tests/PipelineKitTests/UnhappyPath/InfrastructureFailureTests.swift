@@ -19,6 +19,8 @@ struct InfrastructureTestHandler: CommandHandler {
 
 /// Tests for infrastructure failure scenarios and system-level issues
 final class InfrastructureFailureTests: XCTestCase {
+    private let synchronizer = TestSynchronizer()
+    private let timeoutTester = TimeoutTester()
     
     // MARK: - Memory Pressure Scenarios
     
@@ -29,7 +31,7 @@ final class InfrastructureFailureTests: XCTestCase {
         try await pipeline.addMiddleware(memoryPressureMiddleware)
         
         let command = InfrastructureTestCommand(value: "memory_pressure_test")
-        let context = await CommandContext.test()
+        let context = CommandContext.test()
         
         // Execute under simulated memory pressure
         do {
@@ -54,7 +56,7 @@ final class InfrastructureFailureTests: XCTestCase {
             
             // Execute some commands
             let command = InfrastructureTestCommand(value: "leak_test")
-            let context = await CommandContext.test()
+            let context = CommandContext.test()
             
             _ = try await pipeline.execute(command, context: context)
         }
@@ -95,7 +97,7 @@ final class InfrastructureFailureTests: XCTestCase {
             try await pipeline.addMiddleware(contextCapturingMiddleware)
             
             let command = InfrastructureTestCommand(value: "context_memory_test")
-            let context = await CommandContext.test()
+            let context = CommandContext.test()
             
             _ = try await pipeline.execute(command, context: context)
         }
@@ -118,12 +120,12 @@ final class InfrastructureFailureTests: XCTestCase {
             )
             
             let command = InfrastructureTestCommand(value: "filesystem_test")
-            let context = await CommandContext.test()
+            let context = CommandContext.test()
             
             // Should handle file system errors gracefully
             let entry = AuditEntry(
                 commandType: String(describing: type(of: command)),
-                userId: await context.commandMetadata.userId ?? "unknown",
+                userId: context.commandMetadata.userId ?? "unknown",
                 success: true,
                 duration: 0.1
             )
@@ -144,13 +146,13 @@ final class InfrastructureFailureTests: XCTestCase {
                 bufferSize: 10
             )
             
-            let context = await CommandContext.test()
+            let context = CommandContext.test()
             
             // Generate many log entries to test disk space handling
             for _ in 0..<1000 {
                 let entry = AuditEntry(
                     commandType: "InfrastructureTestCommand",
-                    userId: await context.commandMetadata.userId ?? "unknown",
+                    userId: context.commandMetadata.userId ?? "unknown",
                     success: true,
                     duration: 0.1
                 )
@@ -180,11 +182,11 @@ final class InfrastructureFailureTests: XCTestCase {
             
             // Should handle corrupted file gracefully
             let command = InfrastructureTestCommand(value: "corruption_test")
-            let context = await CommandContext.test()
+            let context = CommandContext.test()
             
             let entry = AuditEntry(
                 commandType: String(describing: type(of: command)),
-                userId: await context.commandMetadata.userId ?? "unknown",
+                userId: context.commandMetadata.userId ?? "unknown",
                 success: true,
                 duration: 0.1
             )
@@ -212,7 +214,7 @@ final class InfrastructureFailureTests: XCTestCase {
         try await pipeline.addMiddleware(networkMiddleware)
         
         let command = InfrastructureTestCommand(value: "network_timeout_test")
-        let context = await CommandContext.test()
+        let context = CommandContext.test()
         
         // Execute with timeout shorter than network latency
         do {
@@ -237,7 +239,7 @@ final class InfrastructureFailureTests: XCTestCase {
         try await pipeline.addMiddleware(networkMiddleware)
         
         let command = InfrastructureTestCommand(value: "network_failure_test")
-        let context = await CommandContext.test()
+        let context = CommandContext.test()
         
         do {
             _ = try await pipeline.execute(command, context: context)
@@ -257,7 +259,7 @@ final class InfrastructureFailureTests: XCTestCase {
         try await pipeline.addMiddleware(networkMiddleware)
         
         let command = InfrastructureTestCommand(value: "intermittent_test")
-        let context = await CommandContext.test()
+        let context = CommandContext.test()
         
         var successCount = 0
         var failureCount = 0
@@ -352,14 +354,14 @@ final class InfrastructureFailureTests: XCTestCase {
         try await pipeline.addMiddleware(interruptibleMiddleware)
         
         let command = InfrastructureTestCommand(value: "signal_test")
-        let context = await CommandContext.test()
+        let context = CommandContext.test()
         
         let task = Task {
             try await pipeline.execute(command, context: context)
         }
         
         // Simulate signal interruption
-        try await Task.sleep(nanoseconds: 10_000_000) // 10ms
+        await synchronizer.shortDelay()
         task.cancel()
         
         do {
@@ -377,7 +379,7 @@ final class InfrastructureFailureTests: XCTestCase {
         try await pipeline.addMiddleware(shutdownAwareMiddleware)
         
         let command = InfrastructureTestCommand(value: "shutdown_test")
-        let context = await CommandContext.test()
+        let context = CommandContext.test()
         
         // Simulate graceful shutdown during execution
         let task = Task {
@@ -407,7 +409,7 @@ final class InfrastructureFailureTests: XCTestCase {
         
         let command = InfrastructureTestCommand(value: "degradation_test")
                 
-        let context = await CommandContext.test()
+        let context = CommandContext.test()
         
         // First few executions should work normally
         for _ in 0..<3 {
@@ -435,14 +437,14 @@ final class InfrastructureFailureTests: XCTestCase {
         
         // Working pipeline should continue to work
         let workingCommand = InfrastructureTestCommand(value: "working_test")
-        let context = await CommandContext.test()
+        let context = CommandContext.test()
         let workingResult = try await concurrentPipeline.execute(workingCommand, context: context)
         XCTAssertEqual(workingResult, "Handled: working_test")
         
         // Faulty pipeline should fail predictably
         let faultyCommand = InfrastructureFaultyCommand()
         do {
-            let context = await CommandContext.test()
+            let context = CommandContext.test()
             _ = try await concurrentPipeline.execute(faultyCommand, context: context)
             XCTFail("Faulty pipeline should fail")
         } catch {
@@ -450,7 +452,7 @@ final class InfrastructureFailureTests: XCTestCase {
         }
         
         // Working pipeline should still work after other pipeline fails
-        let context2 = await CommandContext.test()
+        let context2 = CommandContext.test()
         let stillWorkingResult = try await concurrentPipeline.execute(workingCommand, context: context2)
         XCTAssertEqual(stillWorkingResult, "Handled: working_test")
     }
@@ -502,7 +504,10 @@ struct NetworkSimulatingMiddleware: Middleware {
         next: @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
         // Simulate network latency
-        try await Task.sleep(nanoseconds: UInt64(latency * 1_000_000_000))
+        let delayTester = TimeoutTester()
+        try await delayTester.runWithTimeout(latency) {
+            // Simulated network delay
+        }
         
         // Simulate network failures
         if Double.random(in: 0...1) < failureRate {
@@ -525,7 +530,10 @@ struct InterruptibleMiddleware: Middleware {
         try Task.checkCancellation()
         
         // Simulate some work
-        try await Task.sleep(nanoseconds: 50_000_000) // 50ms
+        let workTester = TimeoutTester()
+        try await workTester.runWithTimeout(0.05) {
+            // Simulated work
+        }
         
         // Check for cancellation again
         try Task.checkCancellation()
@@ -573,7 +581,10 @@ final class DegradingMiddleware: Middleware, @unchecked Sendable {
         }
         
         // Normal mode - do full processing
-        try await Task.sleep(nanoseconds: 1_000_000) // 1ms of "processing"
+        let processingTester = TimeoutTester()
+        try await processingTester.runWithTimeout(0.001) {
+            // Simulated processing
+        }
         return try await next(command, context)
     }
 }
@@ -605,7 +616,10 @@ func withInfrastructureTimeout<T: Sendable>(seconds: TimeInterval, operation: @e
         }
         
         group.addTask {
-            try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+            let tester = TimeoutTester()
+            try await tester.runWithTimeout(seconds) {
+                // Timeout task
+            }
             throw InfrastructureTimeoutError()
         }
         

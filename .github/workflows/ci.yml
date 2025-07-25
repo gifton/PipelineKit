@@ -1,0 +1,147 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  SWIFT_VERSION: '5.10'
+
+jobs:
+  lint:
+    name: SwiftLint
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: SwiftLint
+      uses: norio-nomura/action-swiftlint@3.2.1
+      with:
+        args: --strict --config .swiftlint.yml
+
+  build-and-test:
+    name: Build and Test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-14, macos-13]
+        swift: ['5.10', '5.9']
+        exclude:
+          - os: ubuntu-latest
+            swift: '5.9'
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Swift
+      uses: swift-actions/setup-swift@v1
+      with:
+        swift-version: ${{ matrix.swift }}
+    
+    - name: Get swift version
+      run: swift --version
+      
+    - name: Build
+      run: swift build -v
+      
+    - name: Run tests
+      run: swift test -v --enable-code-coverage
+      
+    - name: Generate coverage report
+      if: matrix.os == 'ubuntu-latest' && matrix.swift == '5.10'
+      run: |
+        swift test --enable-code-coverage
+        xcrun llvm-cov export -format="lcov" .build/debug/PipelineKitPackageTests.xctest/Contents/MacOS/PipelineKitPackageTests -instr-profile .build/debug/codecov/default.profdata > coverage.lcov
+      
+    - name: Upload coverage to Codecov
+      if: matrix.os == 'ubuntu-latest' && matrix.swift == '5.10'
+      uses: codecov/codecov-action@v3
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        file: ./coverage.lcov
+        fail_ci_if_error: false
+
+  test-examples:
+    name: Test Examples
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Swift
+      uses: swift-actions/setup-swift@v1
+      with:
+        swift-version: ${{ env.SWIFT_VERSION }}
+    
+    - name: Build examples
+      run: |
+        cd Examples
+        swift build -v
+        
+    - name: Run basic example
+      run: |
+        cd Examples
+        swift run BasicExample
+        
+    - name: Run advanced example
+      run: |
+        cd Examples
+        swift run AdvancedExample
+
+  linux-compatibility:
+    name: Linux Compatibility
+    runs-on: ubuntu-latest
+    container:
+      image: swift:5.10
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Build
+      run: swift build -v
+      
+    - name: Test
+      run: swift test -v
+
+  benchmarks:
+    name: Performance Benchmarks
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Swift
+      uses: swift-actions/setup-swift@v1
+      with:
+        swift-version: ${{ env.SWIFT_VERSION }}
+    
+    - name: Build benchmarks
+      run: swift build -c release --target PipelineKitBenchmarks
+      
+    - name: Run benchmarks
+      run: swift run -c release PipelineKitBenchmarks --iterations 1000
+      
+    - name: Upload benchmark results
+      uses: actions/upload-artifact@v3
+      with:
+        name: benchmark-results
+        path: benchmark-results/
+
+  documentation:
+    name: Documentation
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Swift
+      uses: swift-actions/setup-swift@v1
+      with:
+        swift-version: ${{ env.SWIFT_VERSION }}
+        
+    - name: Build documentation
+      run: |
+        swift package generate-documentation
+        
+    - name: Validate documentation
+      run: |
+        swift package diagnose-api-breaking-changes

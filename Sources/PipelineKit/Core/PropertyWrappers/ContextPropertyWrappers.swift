@@ -16,13 +16,13 @@ public struct ContextAccessor<Key: ContextKey> {
     }
     
     /// Get value from context
-    public func get() async -> Key.Value? {
-        await context[key]
+    public func get() -> Key.Value? {
+        context[key]
     }
     
     /// Set a new value in the context
-    public func set(_ value: Key.Value?) async {
-        await context.set(value, for: key)
+    public func set(_ value: Key.Value?) {
+        context.set(value, for: key)
     }
     
     /// Projected value provides additional context operations
@@ -41,15 +41,15 @@ public struct RequiredContextAccessor<Key: ContextKey> {
         self.context = context
     }
     
-    public func get() async throws -> Key.Value {
-        guard let value = await context[key] else {
+    public func get() throws -> Key.Value {
+        guard let value = context[key] else {
             throw ContextError.missingRequiredValue(String(describing: key))
         }
         return value
     }
     
-    public func set(_ value: Key.Value) async {
-        await context.set(value, for: key)
+    public func set(_ value: Key.Value) {
+        context.set(value, for: key)
     }
 }
 
@@ -65,12 +65,12 @@ public struct DefaultContextAccessor<Key: ContextKey> {
         self.context = context
     }
     
-    public func get() async -> Key.Value {
-        await context[key] ?? defaultValue
+    public func get() -> Key.Value {
+        context[key] ?? defaultValue
     }
     
-    public func set(_ value: Key.Value) async {
-        await context.set(value, for: key)
+    public func set(_ value: Key.Value) {
+        context.set(value, for: key)
     }
 }
 
@@ -87,27 +87,28 @@ public struct ContextProjection<Key: ContextKey> {
     }
     
     /// Check if the value exists in context.
-    public func exists() async -> Bool {
-        await context[key] != nil
+    public func exists() -> Bool {
+        context[key] != nil
     }
     
     /// Remove the value from context.
-    public func remove() async {
-        await context.remove(key)
+    public func remove() {
+        context.remove(key)
     }
     
     /// Update the value if it exists.
-    public func update(_ transform: @Sendable (Key.Value) async -> Key.Value) async {
-        if let currentValue = await context[key] {
-            let newValue = await transform(currentValue)
-            await context.set(newValue, for: key)
+    public func update(_ transform: @Sendable (Key.Value) -> Key.Value) {
+        if let currentValue = context[key] {
+            let newValue = transform(currentValue)
+            context.set(newValue, for: key)
         }
     }
     
     /// Set value with expiration.
-    public func set(_ value: Key.Value, expiringIn ttl: TimeInterval) async {
-        await context.set(value, for: key)
-        // Note: Expiration handling would need additional infrastructure
+    /// Note: Expiration is not implemented in this version.
+    /// For time-based expiration, consider using a caching middleware.
+    public func set(_ value: Key.Value, expiringIn ttl: TimeInterval) {
+        context.set(value, for: key)
     }
 }
 

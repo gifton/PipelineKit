@@ -55,7 +55,7 @@ final class PipelineTests: XCTestCase {
     func testBasicPipelineExecution() async throws {
         let handler = TransformHandler()
         let pipeline = StandardPipeline(handler: handler)
-        let context = await CommandContext.test()
+        let context = CommandContext.test()
         
         let result = try await pipeline.execute(
             TransformCommand(input: "hello"),
@@ -68,7 +68,7 @@ final class PipelineTests: XCTestCase {
     func testPipelineWithMiddleware() async throws {
         let handler = TransformHandler()
         let pipeline = StandardPipeline(handler: handler)
-        let context = await CommandContext.test()
+        let context = CommandContext.test()
         
         try await pipeline.addMiddleware(AppendMiddleware(suffix: "!", priority: .custom))
         try await pipeline.addMiddleware(AppendMiddleware(suffix: "?", priority: .custom))
@@ -88,7 +88,7 @@ final class PipelineTests: XCTestCase {
         _ = await builder.withMaxDepth(50)
         
         let pipeline = try await builder.build()
-        let context = await CommandContext.test()
+        let context = CommandContext.test()
         
         let result = try await pipeline.execute(
             TransformCommand(input: "hello"),
@@ -140,11 +140,11 @@ final class PipelineTests: XCTestCase {
     
     func testPriorityPipeline() async throws {
         let handler = TransformHandler()
-        let pipeline = PriorityPipeline(handler: handler)
-        let context = await CommandContext.test()
+        let pipeline = AnyStandardPipeline(handler: handler)
+        let context = CommandContext.test()
         
         // Add middlewares with different priorities (lower number = higher priority)
-        try await pipeline.addMiddleware(AppendMiddleware(suffix: "3", priority: .logging))          // 500
+        try await pipeline.addMiddleware(AppendMiddleware(suffix: "3", priority: .postProcessing))  // 500
         try await pipeline.addMiddleware(AppendMiddleware(suffix: "1", priority: .authentication))  // 100  
         try await pipeline.addMiddleware(AppendMiddleware(suffix: "2", priority: .validation))      // 300
         
@@ -171,7 +171,7 @@ final class PipelineTests: XCTestCase {
                 context: CommandContext,
                 next: @Sendable (T, CommandContext) async throws -> T.Result
             ) async throws -> T.Result {
-                await context.set(value, for: TestContextKey.self)
+                context.set(value, for: TestContextKey.self)
                 return try await next(command, context)
             }
         }
@@ -185,7 +185,7 @@ final class PipelineTests: XCTestCase {
                 context: CommandContext,
                 next: @Sendable (T, CommandContext) async throws -> T.Result
             ) async throws -> T.Result {
-                let value = await context.get(TestContextKey.self)
+                let value = context.get(TestContextKey.self)
                 if value != expectedValue {
                     throw TestError.validationFailed
                 }
@@ -195,7 +195,7 @@ final class PipelineTests: XCTestCase {
         
         let handler = TransformHandler()
         let pipeline = StandardPipeline(handler: handler)
-        let context = await CommandContext.test()
+        let context = CommandContext.test()
         
         try await pipeline.addMiddleware(ContextTrackingMiddleware(value: "test-value"))
         try await pipeline.addMiddleware(ContextVerifyingMiddleware(expectedValue: "test-value"))
@@ -208,7 +208,7 @@ final class PipelineTests: XCTestCase {
         XCTAssertEqual(result, "CONTEXT-TEST")
         
         // Verify context still has the value after execution
-        let finalValue = await context.get(TestContextKey.self)
+        let finalValue = context.get(TestContextKey.self)
         XCTAssertEqual(finalValue, "test-value")
     }
 }

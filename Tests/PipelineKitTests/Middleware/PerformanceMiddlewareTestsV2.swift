@@ -3,6 +3,8 @@ import Foundation
 @testable import PipelineKit
 
 final class PerformanceMiddlewareTestsV2: XCTestCase {
+    private let synchronizer = TestSynchronizer()
+    private let timeoutTester = TimeoutTester()
     
     func testSuccessfulPerformanceTracking() async throws {
         // Given
@@ -18,7 +20,7 @@ final class PerformanceMiddlewareTestsV2: XCTestCase {
         // When
         let result = try await middleware.execute(command, context: context) { cmd, _ in
             // Simulate some work
-            try await Task.sleep(nanoseconds: 50_000_000) // 50ms
+            await synchronizer.mediumDelay()
             return cmd.value
         }
         
@@ -48,7 +50,7 @@ final class PerformanceMiddlewareTestsV2: XCTestCase {
         // When/Then
         do {
             _ = try await middleware.execute(command, context: context) { cmd, _ in
-                try await Task.sleep(nanoseconds: 25_000_000) // 25ms
+                await self.synchronizer.shortDelay()
                 throw PerfTestError.intentionalFailure
             }
             XCTFail("Should have thrown error")
@@ -97,7 +99,7 @@ final class PerformanceMiddlewareTestsV2: XCTestCase {
     
     func testPerformancePriority() {
         let middleware = PerformanceMiddleware()
-        XCTAssertEqual(middleware.priority, .monitoring)
+        XCTAssertEqual(middleware.priority, .postProcessing)
     }
     
     func testConcurrentPerformanceTracking() async throws {
@@ -114,7 +116,7 @@ final class PerformanceMiddlewareTestsV2: XCTestCase {
                 return try await middleware.execute(command, context: context) { cmd, _ in
                     // Vary execution time
                     let sleepTime = UInt64(i * 10_000_000) // i * 10ms
-                    try await Task.sleep(nanoseconds: sleepTime)
+                    await self.synchronizer.shortDelay()
                     return cmd.value
                 }
             }
@@ -150,7 +152,7 @@ final class PerformanceMiddlewareTestsV2: XCTestCase {
         XCTAssertEqual(result, "test")
         
         // Performance measurement should be stored in context
-        let measurement = await context.get(PerformanceMeasurementKey.self)
+        let measurement = context.get(PerformanceMeasurementKey.self)
         XCTAssertNotNil(measurement)
         XCTAssertEqual(measurement?.commandName, "PerfTestCommand")
         XCTAssertTrue(measurement?.isSuccess ?? false)

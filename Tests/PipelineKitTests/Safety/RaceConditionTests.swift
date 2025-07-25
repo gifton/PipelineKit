@@ -1,9 +1,10 @@
 import XCTest
-import Atomics
+// import Atomics // Removed - was used by removed components
 @testable import PipelineKit
 
 final class RaceConditionTests: XCTestCase {
     
+    /* TODO: ShardedConcurrentQueue was removed
     func testNoLostUpdates() async throws {
         let queue = ShardedConcurrentQueue<Int>()
         let producerCount = 10
@@ -37,7 +38,9 @@ final class RaceConditionTests: XCTestCase {
         XCTAssertEqual(consumed, producerCount * itemsPerProducer)
         XCTAssertTrue(queue.isEmpty)
     }
+    */
     
+    /* TODO: SafeBatchProcessor was removed
     func testNoDuplicateProcessing() async throws {
         let processor = SafeBatchProcessor<TestCommand>(
             pipeline: StandardPipeline(handler: TestHandler()),
@@ -118,4 +121,5 @@ final class RaceConditionTests: XCTestCase {
         let remaining = queue.dequeue()
         XCTAssertTrue(remaining == "A" || remaining == nil)
     }
+    */
 }

@@ -251,9 +251,27 @@ public struct CustomEvent: Sendable {
 /// This class contains no mutable state and is safe to use across concurrent contexts.
 /// Subclasses must ensure they maintain thread safety.
 ///
-/// Note: This class uses `@unchecked Sendable` because it's designed to be subclassed.
-/// Swift cannot verify that all possible subclasses will be thread-safe, so we must
-/// manually ensure that all subclasses maintain the Sendable contract.
+/// ## Design Decision: @unchecked Sendable for Base Class
+///
+/// This class uses `@unchecked Sendable` for the following reasons:
+///
+/// 1. **Subclass Flexibility**: As an open class designed for subclassing, Swift cannot
+///    verify that all possible subclasses will be thread-safe at compile time.
+///
+/// 2. **No Stored Properties**: BaseObserver itself has no stored properties, making it
+///    inherently thread-safe. The empty implementation ensures no shared mutable state.
+///
+/// 3. **Protocol Conformance**: PipelineObserver protocol requires Sendable, and this
+///    base class provides a safe foundation that delegates thread-safety responsibility
+///    to concrete implementations.
+///
+/// 4. **Safe by Design**: All methods have empty default implementations that do nothing,
+///    eliminating any possibility of data races at the base class level.
+///
+/// Subclasses must maintain their own thread safety by:
+/// - Using only Sendable stored properties
+/// - Synchronizing access to any mutable state
+/// - Avoiding shared mutable references
 open class BaseObserver: PipelineObserver, @unchecked Sendable {
     public init() {}
     
@@ -384,7 +402,7 @@ public actor ObserverRegistry {
         observer: PipelineObserver,
         eventName: String,
         additionalContext: String? = nil,
-        operation: @escaping () async throws -> Void
+        operation: @escaping @Sendable () async throws -> Void
     ) async {
         do {
             try await operation()
@@ -404,7 +422,7 @@ public actor ObserverRegistry {
     private func notifyObservers(
         eventName: String,
         additionalContext: String? = nil,
-        operation: @escaping (PipelineObserver) async throws -> Void
+        operation: @escaping @Sendable (PipelineObserver) async throws -> Void
     ) async {
         for observer in observers {
             await safelyNotify(

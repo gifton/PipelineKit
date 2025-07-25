@@ -3,6 +3,8 @@ import CryptoKit
 @testable import PipelineKit
 
 final class EncryptionTests: XCTestCase {
+    private let synchronizer = TestSynchronizer()
+    private let timeoutTester = TimeoutTester()
     
     // MARK: - Test Commands
     
@@ -153,7 +155,7 @@ final class EncryptionTests: XCTestCase {
         let keyId1 = encrypted1.keyIdentifier
         
         // Wait for rotation
-        try await Task.sleep(nanoseconds: 200_000_000) // 0.2 seconds
+        await synchronizer.mediumDelay()
         
         let command2 = PaymentCommand(
             cardNumber: "5555-6666-7777-8888",
@@ -240,9 +242,9 @@ final class EncryptionTests: XCTestCase {
         let key3 = SymmetricKey(size: .bits256)
         
         await store.store(key: key1, identifier: "key1")
-        try! await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
+        await synchronizer.shortDelay()
         await store.store(key: key2, identifier: "key2")
-        try! await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
+        await synchronizer.shortDelay()
         await store.store(key: key3, identifier: "key3") // Current key
         
         // Remove keys older than 0.05 seconds
@@ -262,6 +264,7 @@ final class EncryptionTests: XCTestCase {
     
     // MARK: - Middleware Tests
     
+    /* TODO: EncryptionMiddleware was removed - consider if it should be reimplemented
     func testEncryptionMiddleware() async throws {
         let keyStore = InMemoryKeyStore()
         let encryptor = await CommandEncryptor(keyStore: keyStore)
@@ -273,7 +276,7 @@ final class EncryptionTests: XCTestCase {
             amount: 99.99
         )
         
-        let context = await CommandContext.test()
+        let context = CommandContext.test()
         
         // Middleware validates encryptable commands
         let result = try await middleware.execute(command, context: context) { cmd, _ in
@@ -283,7 +286,9 @@ final class EncryptionTests: XCTestCase {
         XCTAssertEqual(result.transactionId, "TX123")
         XCTAssertTrue(result.success)
     }
+    */
     
+    /* TODO: EncryptionMiddleware was removed
     func testEncryptionMiddlewareWithNonEncryptableCommand() async throws {
         let keyStore = InMemoryKeyStore()
         let encryptor = await CommandEncryptor(keyStore: keyStore)
@@ -299,7 +304,7 @@ final class EncryptionTests: XCTestCase {
         }
         
         let command = RegularCommand(value: "test")
-        let context = await CommandContext.test()
+        let context = CommandContext.test()
         
         // Non-encryptable commands pass through
         let result = try await middleware.execute(command, context: context) { cmd, _ in
@@ -308,7 +313,9 @@ final class EncryptionTests: XCTestCase {
         
         XCTAssertEqual(result, "Result: test")
     }
+    */
     
+    /* TODO: EncryptionMiddleware was removed
     func testEncryptionMiddlewareValidation() async throws {
         let keyStore = InMemoryKeyStore()
         let encryptor = await CommandEncryptor(keyStore: keyStore)
@@ -327,7 +334,7 @@ final class EncryptionTests: XCTestCase {
         }
         
         let command = EmptyEncryptableCommand()
-        let context = await CommandContext.test()
+        let context = CommandContext.test()
         
         // Should throw error for empty sensitive fields
         do {
@@ -343,6 +350,7 @@ final class EncryptionTests: XCTestCase {
             }
         }
     }
+    */
     
     // MARK: - Error Handling Tests
     

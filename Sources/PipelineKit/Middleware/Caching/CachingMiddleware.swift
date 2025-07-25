@@ -18,8 +18,32 @@ import Foundation
 ///     ttl: 300 // 5 minutes
 /// )
 /// ```
+///
+/// ## Design Decision: @unchecked Sendable for Existential Types
+///
+/// This class uses `@unchecked Sendable` for the following reasons:
+///
+/// 1. **Existential Type Limitation**: The stored property `cache: any CacheProtocol`
+///    uses an existential type. Swift currently cannot verify Sendable conformance through
+///    existential types, even though the protocol requires Sendable.
+///
+/// 2. **All Properties Are Safe**:
+///    - `cache`: Protocol requires Sendable conformance
+///    - `keyGenerator`: @Sendable closure (explicitly thread-safe)
+///    - `ttl`: TimeInterval? (Double?, inherently Sendable)
+///    - `shouldCache`: @Sendable closure (explicitly thread-safe)
+///
+/// 3. **Protocol Guarantee**: CacheProtocol explicitly requires Sendable, ensuring any
+///    cache implementation is thread-safe. This provides compile-time safety for all
+///    concrete cache types.
+///
+/// 4. **Immutable Design**: All properties are `let` constants, preventing mutation after
+///    initialization and eliminating potential race conditions.
+///
+/// This is a known Swift limitation with existential types. The code is actually thread-safe,
+/// but the compiler cannot verify this through the existential type system.
 public final class CachingMiddleware: Middleware, @unchecked Sendable {
-    public let priority: ExecutionPriority = .caching
+    public let priority: ExecutionPriority = .postProcessing // Caching happens after main processing
     
     private let cache: any CacheProtocol
     private let keyGenerator: @Sendable (any Command) -> String

@@ -20,7 +20,7 @@ final class AuthorizationMiddlewareTests: XCTestCase {
         let context = CommandContext()
         
         // Set authenticated user
-        await context.set("admin-user", for: AuthenticatedUserKey.self)
+        context.set("admin-user", for: AuthenticatedUserKey.self)
         
         let handlerExecutedBox = Box(value: false)
         
@@ -46,7 +46,7 @@ final class AuthorizationMiddlewareTests: XCTestCase {
         
         let command = AuthzTestCommand(value: "test")
         let context = CommandContext()
-        await context.set("regular-user", for: AuthenticatedUserKey.self)
+        context.set("regular-user", for: AuthenticatedUserKey.self)
         
         // When/Then
         do {
@@ -143,7 +143,7 @@ final class AuthorizationMiddlewareTests: XCTestCase {
         
         let command = AuthzTestCommand(value: "test")
         let context = CommandContext()
-        await context.set("user123-premium", for: AuthenticatedUserKey.self)
+        context.set("user123-premium", for: AuthenticatedUserKey.self)
         
         // When
         let result = try await middleware.execute(command, context: context) { cmd, _ in
@@ -160,7 +160,7 @@ final class AuthorizationMiddlewareTests: XCTestCase {
             requiredRoles: ["user"],
             getUserRoles: { _ in [] }
         )
-        XCTAssertEqual(middleware.priority, .authorization)
+        XCTAssertEqual(middleware.priority, .validation)
     }
     
     func testConcurrentAuthorization() async throws {
@@ -180,7 +180,7 @@ final class AuthorizationMiddlewareTests: XCTestCase {
                 let command = AuthzTestCommand(value: "test-\(i)")
                 let context = CommandContext()
                 let userId = i % 2 == 0 ? "valid-user-\(i)" : "invalid-user-\(i)"
-                await context.set(userId, for: AuthenticatedUserKey.self)
+                context.set(userId, for: AuthenticatedUserKey.self)
                 
                 do {
                     return try await middleware.execute(command, context: context) { cmd, _ in

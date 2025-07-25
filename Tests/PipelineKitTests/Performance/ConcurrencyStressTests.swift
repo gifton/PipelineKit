@@ -269,7 +269,7 @@ final class ConcurrencyStressTests: XCTestCase {
                         return try await bus.send(command)
                     } catch {
                         XCTFail("Pipeline command \(command.id) failed: \(error)")
-                        fatalError("Test failed")
+                        return TestCommand.Result(commandId: command.id, processedPayload: "error", processingTime: 0.0)
                     }
                 }
             }

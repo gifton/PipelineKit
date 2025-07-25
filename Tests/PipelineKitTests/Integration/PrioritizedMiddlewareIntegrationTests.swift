@@ -45,7 +45,7 @@ final class PrioritizedMiddlewareIntegrationTests: XCTestCase {
             context: CommandContext,
             next: @Sendable (T, CommandContext) async throws -> T.Result
         ) async throws -> T.Result {
-            let metadata = await context.commandMetadata
+            let metadata = context.commandMetadata
             await tracker.append("\(name):before - \(metadata.correlationId ?? "")")
             let result = try await next(command, context)
             await tracker.append("\(name):after - \(metadata.correlationId ?? "")")
@@ -119,7 +119,7 @@ final class PrioritizedMiddlewareIntegrationTests: XCTestCase {
         }
         
         struct OrderedLoggingMiddleware: Middleware {
-            let priority: ExecutionPriority = .logging
+            let priority: ExecutionPriority = .postProcessing
             
             let tracker: OrderTestActor<[String]>
             
@@ -134,7 +134,7 @@ final class PrioritizedMiddlewareIntegrationTests: XCTestCase {
         }
         
         let tracker = OrderTestActor<[String]>([])
-        let pipeline = PriorityPipeline(handler: TestHandler())
+        let pipeline = StandardPipeline(handler: TestHandler())
         
         // Add using ordered middleware helper
 

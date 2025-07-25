@@ -45,7 +45,7 @@ public struct RetryPolicy: Sendable {
         delayStrategy: .fixed(1.0),
         shouldRetry: { error in
             // Only retry for specific error types
-            return error is TemporaryError || error is NetworkError
+            error is TemporaryError || error is NetworkError
         }
     )
 }

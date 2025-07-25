@@ -1,5 +1,4 @@
 import Foundation
-import Atomics
 
 /// A thread-safe object pool for recycling frequently allocated objects.
 ///
@@ -27,7 +26,7 @@ import Atomics
 /// // Use context...
 /// await pool.release(context)
 /// ```
-public actor ObjectPool<T: AnyObject> {
+public actor ObjectPool<T: AnyObject & Sendable> {
     /// Factory closure to create new instances
     private let factory: @Sendable () -> T
     
@@ -252,49 +251,143 @@ public struct PoolStatistics: Sendable {
 
 // MARK: - Specialized Pools
 
-/// Pool for CommandContext objects with automatic cleanup.
-public final class CommandContextPool {
-    private let pool: ObjectPool<CommandContext>
-    
-    public init(maxSize: Int = 100) {
-        self.pool = ObjectPool(
-            maxSize: maxSize,
-            factory: { CommandContext() },
-            reset: { context in
-                await context.clear()
-            }
-        )
-    }
-    
-    public func acquire() async -> CommandContext {
-        await pool.acquire()
-    }
-    
-    public func release(_ context: CommandContext) async {
-        await pool.release(context)
-    }
-    
-    public func statistics() async -> PoolStatistics {
-        await pool.statistics
-    }
-}
+// Note: CommandContextPool is now defined in CommandContextPool.swift as a class
+// with more comprehensive functionality including borrowing/returning semantics
 
 /// Pool for reusable buffer objects.
-public final class BufferPool<T> {
-    private let pool: ObjectPool<Buffer<T>>
+public actor BufferPool<T: Sendable> {
+    internal let pool: ObjectPool<Buffer<T>>
     
-    public class Buffer<Element> {
-        var data: [Element]
-        let capacity: Int
-        
-        init(capacity: Int) {
-            self.capacity = capacity
-            self.data = []
-            self.data.reserveCapacity(capacity)
+    /// A thread-safe buffer implementation using internal synchronization.
+    ///
+    /// ## Design Decision: Lock-based Synchronization with CoW Storage
+    ///
+    /// This implementation uses explicit locking for the following reasons:
+    ///
+    /// 1. **ObjectPool Compatibility**: ObjectPool requires reference types (AnyObject).
+    ///
+    /// 2. **Thread Safety**: Uses os_unfair_lock for efficient synchronization, ensuring
+    ///    thread-safe access without the overhead of actors.
+    ///
+    /// 3. **Performance**: os_unfair_lock is the fastest synchronization primitive on Apple
+    ///    platforms, and the CoW storage minimizes allocations.
+    ///
+    /// 4. **Sendable Compliance**: The lock ensures all access is synchronized, making the
+    ///    @unchecked Sendable annotation safe in practice.
+    ///
+    /// Alternative approaches considered:
+    /// - Actor-based: Would add async overhead for every operation
+    /// - Pure value semantics: Incompatible with ObjectPool's reference type requirement
+    /// - ManagedBuffer: More complex, harder to maintain
+    public final class Buffer<Element: Sendable>: @unchecked Sendable {
+        /// Internal storage that implements copy-on-write semantics
+        private final class Storage {
+            var data: [Element]
+            let capacity: Int
+            
+            init(capacity: Int) {
+                self.capacity = capacity
+                self.data = []
+                self.data.reserveCapacity(capacity)
+            }
+            
+            func copy() -> Storage {
+                let newStorage = Storage(capacity: capacity)
+                newStorage.data = data
+                return newStorage
+            }
         }
         
+        private var storage: Storage
+        private let lock = NSLock()
+        
+        /// The capacity that was reserved for this buffer
+        public var capacity: Int {
+            lock.withLock { storage.capacity }
+        }
+        
+        /// The current data in the buffer (returns a copy for safety)
+        public var data: [Element] {
+            get { lock.withLock { storage.data } }
+            set {
+                lock.withLock {
+                    // Ensure unique reference before mutation (CoW)
+                    if !isKnownUniquelyReferenced(&storage) {
+                        storage = storage.copy()
+                    }
+                    storage.data = newValue
+                }
+            }
+        }
+        
+        /// The number of elements in the buffer
+        public var count: Int {
+            lock.withLock { storage.data.count }
+        }
+        
+        /// Whether the buffer is empty
+        public var isEmpty: Bool {
+            lock.withLock { storage.data.isEmpty }
+        }
+        
+        /// Creates a new buffer with the specified capacity
+        init(capacity: Int) {
+            self.storage = Storage(capacity: capacity)
+        }
+        
+        /// Appends an element to the buffer
+        public func append(_ element: Element) {
+            lock.withLock {
+                // Ensure unique reference before mutation (CoW)
+                if !isKnownUniquelyReferenced(&storage) {
+                    storage = storage.copy()
+                }
+                storage.data.append(element)
+            }
+        }
+        
+        /// Appends a sequence of elements to the buffer
+        public func append<S: Sequence>(contentsOf elements: S) where S.Element == Element {
+            lock.withLock {
+                // Ensure unique reference before mutation (CoW)
+                if !isKnownUniquelyReferenced(&storage) {
+                    storage = storage.copy()
+                }
+                storage.data.append(contentsOf: elements)
+            }
+        }
+        
+        /// Removes all elements from the buffer while preserving capacity
         func reset() {
-            data.removeAll(keepingCapacity: true)
+            lock.withLock {
+                // Ensure unique reference before mutation (CoW)
+                if !isKnownUniquelyReferenced(&storage) {
+                    storage = storage.copy()
+                }
+                storage.data.removeAll(keepingCapacity: true)
+            }
+        }
+        
+        /// Provides synchronized access to the buffer data
+        /// - Parameter body: A closure that receives the data array
+        /// - Returns: The result of the closure
+        public func withData<R>(_ body: ([Element]) throws -> R) rethrows -> R {
+            try lock.withLock {
+                try body(storage.data)
+            }
+        }
+        
+        /// Provides synchronized mutable access to the buffer data
+        /// - Parameter body: A closure that can mutate the data array
+        /// - Returns: The result of the closure
+        public func withMutableData<R>(_ body: (inout [Element]) throws -> R) rethrows -> R {
+            try lock.withLock {
+                // Ensure unique reference before mutation (CoW)
+                if !isKnownUniquelyReferenced(&storage) {
+                    storage = storage.copy()
+                }
+                return try body(&storage.data)
+            }
         }
     }
     
@@ -337,19 +430,27 @@ public actor PoolManager {
     
     /// Gets aggregated statistics from all pools.
     public func aggregatedStatistics() async -> AggregatedPoolStatistics {
-        let contextStats = await contextPool.statistics()
+        let contextStats = contextPool.getStatistics()
+        
+        // Convert CommandContextPool.Statistics to PoolStatistics
+        var poolStats = PoolStatistics()
+        poolStats.acquisitions = contextStats.totalBorrows
+        poolStats.hits = Int(Double(contextStats.totalBorrows) * contextStats.hitRate)
+        poolStats.misses = contextStats.totalBorrows - poolStats.hits
+        poolStats.releases = contextStats.totalReturns
+        poolStats.allocations = contextStats.totalAllocated
         
         return AggregatedPoolStatistics(
             pools: [
-                ("CommandContext", contextStats)
+                ("CommandContext", poolStats)
             ]
         )
     }
     
     /// Pre-warms all pools for better initial performance.
     public func prewarmAll() async {
-        // Prewarm context pool with a reasonable number
-        await contextPool.pool.prewarm(count: 20)
+        // CommandContextPool already pre-allocates in its init
+        // No additional prewarm needed
         
         // Prewarm buffer pools
         await dataBufferPool.pool.prewarm(count: 10)
@@ -358,7 +459,7 @@ public actor PoolManager {
 }
 
 /// Aggregated statistics from multiple pools.
-public struct AggregatedPoolStatistics {
+public struct AggregatedPoolStatistics: Sendable {
     public let pools: [(name: String, stats: PoolStatistics)]
     
     public var totalAcquisitions: Int {

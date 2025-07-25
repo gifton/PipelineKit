@@ -537,8 +537,11 @@ public struct FluentPipelineBuilder<T: Command, H: CommandHandler> where H.Comma
                 }
                 
             case .parallel(let middlewares):
-                // Create a parallel middleware wrapper
-                let parallelWrapper = ParallelMiddlewareWrapper(middlewares: middlewares)
+                // Create a parallel execution wrapper for the middleware
+                let parallelWrapper = ParallelMiddlewareWrapper(
+                    middlewares: middlewares,
+                    priority: .custom
+                )
                 await builder.with(parallelWrapper)
                 
             case .retry(let middleware, let maxAttempts, let backoff):
@@ -551,9 +554,9 @@ public struct FluentPipelineBuilder<T: Command, H: CommandHandler> where H.Comma
                 await builder.with(retryWrapper)
                 
             case .timeout(let middleware, let duration):
-                // Create timeout wrapper
+                // Create a timeout wrapper for the middleware
                 let timeoutWrapper = TimeoutMiddlewareWrapper(
-                    middleware: middleware,
+                    wrapped: middleware,
                     timeout: duration
                 )
                 await builder.with(timeoutWrapper)
@@ -616,7 +619,11 @@ public struct FluentPipelineBuilder<T: Command, H: CommandHandler> where H.Comma
                 await processComponent(groupComponent, builder: builder)
             }
         case .parallel(let middlewares):
-            let parallelWrapper = ParallelMiddlewareWrapper(middlewares: middlewares)
+            // Create a parallel execution wrapper for the middleware
+            let parallelWrapper = ParallelMiddlewareWrapper(
+                middlewares: middlewares,
+                priority: .custom
+            )
             await builder.with(parallelWrapper)
         case .retry(let middleware, let maxAttempts, let backoff):
             let retryWrapper = RetryMiddlewareWrapper(
@@ -626,8 +633,9 @@ public struct FluentPipelineBuilder<T: Command, H: CommandHandler> where H.Comma
             )
             await builder.with(retryWrapper)
         case .timeout(let middleware, let duration):
+            // Create a timeout wrapper for the middleware
             let timeoutWrapper = TimeoutMiddlewareWrapper(
-                middleware: middleware,
+                wrapped: middleware,
                 timeout: duration
             )
             await builder.with(timeoutWrapper)

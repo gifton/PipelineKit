@@ -1,0 +1,68 @@
+name: SwiftLint
+
+on:
+  pull_request:
+    paths:
+      - '**/*.swift'
+      - '.swiftlint.yml'
+
+jobs:
+  lint:
+    name: SwiftLint
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        
+    - name: Get changed files
+      id: changed-files
+      uses: tj-actions/changed-files@v40
+      with:
+        files: |
+          **/*.swift
+          
+    - name: List changed files
+      run: |
+        echo "Changed Swift files:"
+        for file in ${{ steps.changed-files.outputs.all_changed_files }}; do
+          echo "$file"
+        done
+        
+    - name: SwiftLint
+      uses: norio-nomura/action-swiftlint@3.2.1
+      env:
+        DIFF_BASE: ${{ github.base_ref }}
+      with:
+        args: --strict --config .swiftlint.yml
+        
+    - name: SwiftLint Report
+      if: failure()
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const fs = require('fs');
+          const report = fs.readFileSync('swiftlint.result.json', 'utf8');
+          const violations = JSON.parse(report);
+          
+          let comment = '## SwiftLint Report\n\n';
+          
+          if (violations.length === 0) {
+            comment += ' No violations found!';
+          } else {
+            comment += `Found ${violations.length} violation(s):\n\n`;
+            
+            violations.forEach(v => {
+              const level = v.severity === 'error' ? 'L' : ' ';
+              comment += `${level} **${v.file}:${v.line}:${v.character}**\n`;
+              comment += `Rule: \`${v.rule_id}\`\n`;
+              comment += `${v.reason}\n\n`;
+            });
+          }
+          
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: comment
+          });

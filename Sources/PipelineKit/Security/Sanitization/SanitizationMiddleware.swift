@@ -14,14 +14,14 @@ import Foundation
 /// 
 /// For proper security, use with priority ordering:
 /// ```swift
-/// let pipeline = PriorityPipeline(handler: handler)
+/// let pipeline = AnyStandardPipeline(handler: handler)
 /// try await pipeline.addMiddleware(
 ///     SanitizationMiddleware(),
-///     priority: ExecutionPriority.sanitization.rawValue
+///     priority: ExecutionPriority.preProcessing.rawValue
 /// )
 /// ```
 public struct SanitizationMiddleware: Middleware {
-    public let priority: ExecutionPriority = .sanitization
+    public let priority: ExecutionPriority = .preProcessing
     
     public init() {}
     

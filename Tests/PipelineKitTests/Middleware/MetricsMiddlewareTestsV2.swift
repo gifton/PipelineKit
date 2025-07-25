@@ -3,6 +3,8 @@ import Foundation
 @testable import PipelineKit
 
 final class MetricsMiddlewareTestsV2: XCTestCase {
+    private let synchronizer = TestSynchronizer()
+    private let timeoutTester = TimeoutTester()
     
     func testSuccessfulMetricsCollection() async throws {
         // Given
@@ -13,12 +15,12 @@ final class MetricsMiddlewareTestsV2: XCTestCase {
         
         let command = MetricsTestCommandV2(value: "test")
         let context = CommandContext()
-        await context.set(Date(), for: RequestStartTimeKey.self)
+        context.set(Date(), for: RequestStartTimeKey.self)
         
         // When
         let result = try await middleware.execute(command, context: context) { cmd, _ in
             // Simulate some work
-            try await Task.sleep(nanoseconds: 10_000_000) // 10ms
+            await synchronizer.shortDelay()
             return cmd.value
         }
         
@@ -38,12 +40,12 @@ final class MetricsMiddlewareTestsV2: XCTestCase {
         
         let command = MetricsTestCommandV2(value: "fail")
         let context = CommandContext()
-        await context.set(Date(), for: RequestStartTimeKey.self)
+        context.set(Date(), for: RequestStartTimeKey.self)
         
         // When/Then
         do {
             _ = try await middleware.execute(command, context: context) { cmd, _ in
-                try await Task.sleep(nanoseconds: 5_000_000) // 5ms
+                await self.synchronizer.shortDelay()
                 throw MetricsTestErrorV2.intentionalFailure
             }
             XCTFail("Should have thrown error")
@@ -83,7 +85,7 @@ final class MetricsMiddlewareTestsV2: XCTestCase {
     
     func testMetricsPriority() {
         let middleware = SimpleMetricsMiddleware { _, _ in }
-        XCTAssertEqual(middleware.priority, .metrics)
+        XCTAssertEqual(middleware.priority, .postProcessing)
     }
     
     func testConcurrentMetricsCollection() async throws {
@@ -110,12 +112,11 @@ final class MetricsMiddlewareTestsV2: XCTestCase {
             Task {
                 let command = MetricsTestCommandV2(value: "test-\(i)")
                 let context = CommandContext()
-                await context.set(Date(), for: RequestStartTimeKey.self)
+                context.set(Date(), for: RequestStartTimeKey.self)
                 
                 return try await middleware.execute(command, context: context) { cmd, _ in
                     // Vary execution time
-                    let sleepTime = UInt64(i * 1_000_000) // i ms
-                    try await Task.sleep(nanoseconds: sleepTime)
+                    await self.synchronizer.shortDelay()
                     return cmd.value
                 }
             }

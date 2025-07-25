@@ -158,7 +158,7 @@ public actor MemoryProfiler {
     // MARK: - Memory Monitoring
     
     /// Monitors memory usage during a block execution
-    public func monitor<T>(
+    public func monitor<T: Sendable>(
         label: String,
         sampleInterval: TimeInterval = 0.1,
         _ block: () async throws -> T

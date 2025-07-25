@@ -33,12 +33,13 @@ fileprivate struct DummyCommand: Command {
 /// // Execute a command
 /// let result = try await pipeline.execute(
 ///     CreateUserCommand(email: "user@example.com"),
-///     metadata: StandardCommandMetadata(userId: "admin")
+///     context: CommandContext()
 /// )
 /// ```
 public actor StandardPipeline<C: Command, H: CommandHandler>: PipelineKit.Pipeline where H.CommandType == C {
     /// The collection of middleware to execute in order.
-    private var middlewares: [any Middleware] = []
+    /// Using ContiguousArray for better cache locality and performance.
+    private var middlewares: ContiguousArray<any Middleware> = []
     
     /// The handler that processes commands after all middleware.
     private let handler: H
@@ -52,21 +53,34 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: PipelineKit.Pipeli
     /// Optional back-pressure semaphore for concurrency control.
     private let semaphore: BackPressureAsyncSemaphore?
     
+    /// Optional optimization metadata from MiddlewareChainOptimizer.
+    internal var optimizationMetadata: MiddlewareChainOptimizer.OptimizedChain?
+    
+    /// Optional context pool for reducing allocations.
+    private let contextPool: CommandContextPool?
+    
+    /// Pre-compiled middleware chain for performance optimization.
+    /// This is invalidated and rebuilt when middleware changes.
+    private var compiledChain: (@Sendable (C, CommandContext) async throws -> C.Result)?
+    
     /// Creates a new pipeline with the specified handler.
     ///
     /// - Parameters:
     ///   - handler: The command handler that will process commands after middleware
     ///   - useContext: Whether to use context for all middleware execution (default: true)
     ///   - maxDepth: Maximum middleware depth (default: 100)
+    ///   - useContextPool: Whether to use the global context pool (default: true)
     public init(
         handler: H,
         useContext: Bool = true,
-        maxDepth: Int = 100
+        maxDepth: Int = 100,
+        useContextPool: Bool = true
     ) {
         self.handler = handler
         self.useContext = useContext
         self.maxDepth = maxDepth
         self.semaphore = nil
+        self.contextPool = useContextPool ? CommandContextPool.shared : nil
     }
     
     /// Creates a new pipeline with concurrency control (supports macro .limited(Int) pattern).
@@ -76,11 +90,13 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: PipelineKit.Pipeli
     ///   - maxConcurrency: Maximum number of concurrent executions
     ///   - useContext: Whether to use context for all middleware execution (default: true)
     ///   - maxDepth: Maximum middleware depth (default: 100)
+    ///   - useContextPool: Whether to use the global context pool (default: true)
     public init(
         handler: H,
         maxConcurrency: Int,
         useContext: Bool = true,
-        maxDepth: Int = 100
+        maxDepth: Int = 100,
+        useContextPool: Bool = true
     ) {
         self.handler = handler
         self.useContext = useContext
@@ -90,6 +106,7 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: PipelineKit.Pipeli
             maxOutstanding: nil,
             strategy: .suspend
         )
+        self.contextPool = useContextPool ? CommandContextPool.shared : nil
     }
     
     /// Creates a new pipeline with full back-pressure control.
@@ -99,11 +116,13 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: PipelineKit.Pipeli
     ///   - options: Pipeline configuration options
     ///   - useContext: Whether to use context for all middleware execution (default: true)
     ///   - maxDepth: Maximum middleware depth (default: 100)
+    ///   - useContextPool: Whether to use the global context pool (default: true)
     public init(
         handler: H,
         options: PipelineOptions,
         useContext: Bool = true,
-        maxDepth: Int = 100
+        maxDepth: Int = 100,
+        useContextPool: Bool = true
     ) {
         self.handler = handler
         self.useContext = useContext
@@ -119,12 +138,14 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: PipelineKit.Pipeli
         } else {
             self.semaphore = nil
         }
+        
+        self.contextPool = useContextPool ? CommandContextPool.shared : nil
     }
     
     /// Adds middleware to the pipeline.
     ///
-    /// Middleware is executed in the order it was added. Both regular and
-    /// context-aware middleware are supported.
+    /// Middleware is automatically sorted by priority after being added.
+    /// Both regular and context-aware middleware are supported.
     ///
     /// - Parameter middleware: The middleware to add
     /// - Throws: `PipelineError.maxDepthExceeded` if the maximum depth is reached
@@ -133,9 +154,14 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: PipelineKit.Pipeli
             throw PipelineError.maxDepthExceeded(depth: maxDepth, command: DummyCommand())
         }
         middlewares.append(middleware)
+        sortMiddlewareByPriority()
+        // Invalidate compiled chain
+        compiledChain = nil
     }
     
     /// Adds multiple middleware to the pipeline at once.
+    ///
+    /// Middleware are automatically sorted by priority after being added.
     ///
     /// - Parameter newMiddlewares: Array of middleware to add
     /// - Throws: `PipelineError.maxDepthExceeded` if adding would exceed maximum depth
@@ -144,6 +170,9 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: PipelineKit.Pipeli
             throw PipelineError.maxDepthExceeded(depth: maxDepth, command: DummyCommand())
         }
         middlewares.append(contentsOf: newMiddlewares)
+        sortMiddlewareByPriority()
+        // Invalidate compiled chain
+        compiledChain = nil
     }
     
     /// Removes all instances of a specific middleware type.
@@ -154,12 +183,16 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: PipelineKit.Pipeli
     public func removeMiddleware<M: Middleware>(ofType type: M.Type) -> Int {
         let initialCount = middlewares.count
         middlewares.removeAll { $0 is M }
+        // Invalidate compiled chain
+        compiledChain = nil
         return initialCount - middlewares.count
     }
     
     /// Removes all middleware from the pipeline.
     public func clearMiddlewares() {
         middlewares.removeAll()
+        // Invalidate compiled chain
+        compiledChain = nil
     }
     
     /// Executes a command through the middleware pipeline.
@@ -170,7 +203,7 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: PipelineKit.Pipeli
     ///
     /// - Parameters:
     ///   - command: The command to execute
-    ///   - metadata: Metadata about the command execution
+    ///   - context: The command context to use for execution
     /// - Returns: The result from the command handler
     /// - Throws: Any error from middleware or the handler
     public func execute<T: Command>(_ command: T, context: CommandContext) async throws -> T.Result {
@@ -182,6 +215,32 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: PipelineKit.Pipeli
             throw PipelineError.invalidCommandType(command: command)
         }
         return typedResult
+    }
+    
+    /// Executes a command through the middleware pipeline using a pooled context.
+    ///
+    /// This method automatically borrows a context from the pool if available,
+    /// or creates a new one if pooling is disabled. The context is automatically
+    /// returned to the pool after execution.
+    ///
+    /// - Parameters:
+    ///   - command: The command to execute
+    ///   - metadata: Optional metadata for the command execution
+    /// - Returns: The result from the command handler
+    /// - Throws: Any error from middleware or the handler
+    public func execute<T: Command>(_ command: T, metadata: CommandMetadata? = nil) async throws -> T.Result {
+        let actualMetadata = metadata ?? StandardCommandMetadata()
+        
+        if let pool = contextPool {
+            // Use pooled context
+            let pooledContext = pool.borrow(metadata: actualMetadata)
+            defer { pooledContext.returnToPool() }
+            return try await execute(command, context: pooledContext.value)
+        } else {
+            // Create new context
+            let context = CommandContext(metadata: actualMetadata)
+            return try await execute(command, context: context)
+        }
     }
     
     /// Type-safe execution for the specific command type this pipeline handles.
@@ -205,30 +264,43 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: PipelineKit.Pipeli
     
     /// Executes the command with context support.
     private func executeWithContext(_ command: C, context: CommandContext) async throws -> C.Result {
-        // Initialize context with standard values if not already set
-        if await context.get(RequestIDKey.self) == nil {
-            await context.set(UUID().uuidString, for: RequestIDKey.self)
-        }
-        if await context.get(RequestStartTimeKey.self) == nil {
-            await context.set(Date(), for: RequestStartTimeKey.self)
+        // Always initialize context first
+        initializeContextIfNeeded(context)
+        
+        // Fast path: No middleware
+        if middlewares.isEmpty {
+            return try await handler.handle(command)
         }
         
-        // Create the middleware chain with context
-        var next: @Sendable (C, CommandContext) async throws -> C.Result = { cmd, ctx in
-            try await self.handler.handle(cmd)
-        }
-        
-        // Build the chain in reverse order
-        for middleware in middlewares.reversed() {
-            let currentNext = next
-            
-            // All middleware now uses context
-            next = { cmd, ctx in
-                try await middleware.execute(cmd, context: ctx, next: currentNext)
+        // Fast path: Single middleware
+        if middlewares.count == 1 {
+            let middleware = middlewares[0]
+            return try await middleware.execute(command, context: context) { cmd, _ in
+                try await self.handler.handle(cmd)
             }
         }
         
-        return try await next(command, context)
+        // Multiple middleware: Use pre-compiled chain
+        if compiledChain == nil {
+            compileMiddlewareChain()
+        }
+        
+        guard let chain = compiledChain else {
+            // Fallback to direct handler execution if no chain could be compiled
+            return try await handler.handle(command)
+        }
+        
+        return try await chain(command, context)
+    }
+    
+    /// Initializes standard context values if not already set.
+    private func initializeContextIfNeeded(_ context: CommandContext) {
+        if context.get(RequestIDKey.self) == nil {
+            context.set(UUID().uuidString, for: RequestIDKey.self)
+        }
+        if context.get(RequestStartTimeKey.self) == nil {
+            context.set(Date(), for: RequestStartTimeKey.self)
+        }
     }
     
     // MARK: - Introspection
@@ -250,7 +322,137 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: PipelineKit.Pipeli
     public func hasMiddleware<M: Middleware>(ofType type: M.Type) -> Bool {
         middlewares.contains { $0 is M }
     }
+    
+    // MARK: - Private Methods
+    
+    /// Sorts middleware by priority (lower values execute first)
+    private func sortMiddlewareByPriority() {
+        middlewares.sort { $0.priority.rawValue < $1.priority.rawValue }
+        // Invalidate compiled chain when order changes
+        compiledChain = nil
+    }
+    
+    /// Pre-compiles the middleware chain for optimal performance.
+    /// This method builds the nested closure structure once and caches it.
+    private func compileMiddlewareChain() {
+        // Start with the handler as the final step
+        var chain: @Sendable (C, CommandContext) async throws -> C.Result = { [handler] cmd, _ in
+            try await handler.handle(cmd)
+        }
+        
+        // Build the chain in reverse order
+        for i in stride(from: middlewares.count - 1, through: 0, by: -1) {
+            let middleware = middlewares[i]
+            let nextChain = chain
+            
+            chain = { cmd, ctx in
+                try await middleware.execute(cmd, context: ctx, next: nextChain)
+            }
+        }
+        
+        // Store the compiled chain
+        compiledChain = chain
+    }
+    
+    // MARK: - Internal Methods
+    
+    /// Sets optimization metadata from the MiddlewareChainOptimizer.
+    /// This is called by PipelineBuilder when optimization is enabled.
+    internal func setOptimizationMetadata(_ metadata: MiddlewareChainOptimizer.OptimizedChain) {
+        self.optimizationMetadata = metadata
+    }
 }
 
-/// Backward compatibility type alias
-public typealias DefaultPipeline = StandardPipeline
+// MARK: - Type-Erased Pipeline Support
+
+/// A type-erased version of StandardPipeline that can work with any command type.
+/// This replaces the functionality of PriorityPipeline.
+public actor AnyStandardPipeline: Pipeline {
+    private var middlewares: [any Middleware] = []
+    private let executeHandler: @Sendable (Any, CommandContext) async throws -> Any
+    private let maxDepth: Int
+    private let semaphore: BackPressureAsyncSemaphore?
+    
+    /// Creates a type-erased pipeline from a specific handler.
+    public init<T: Command, H: CommandHandler>(
+        handler: H,
+        options: PipelineOptions = .default,
+        maxDepth: Int = 100
+    ) where H.CommandType == T {
+        self.executeHandler = { command, context in
+            guard let typedCommand = command as? T else {
+                throw PipelineErrorType.invalidCommandType
+            }
+            return try await handler.handle(typedCommand)
+        }
+        self.maxDepth = maxDepth
+        
+        if let maxConcurrency = options.maxConcurrency {
+            self.semaphore = BackPressureAsyncSemaphore(
+                maxConcurrency: maxConcurrency,
+                maxOutstanding: options.maxOutstanding,
+                maxQueueMemory: options.maxQueueMemory,
+                strategy: options.backPressureStrategy
+            )
+        } else {
+            self.semaphore = nil
+        }
+    }
+    
+    /// Adds middleware to the pipeline with automatic priority sorting.
+    public func addMiddleware(_ middleware: any Middleware) throws {
+        guard middlewares.count < maxDepth else {
+            throw PipelineError.maxDepthExceeded(depth: maxDepth, command: DummyCommand())
+        }
+        middlewares.append(middleware)
+        middlewares.sort { $0.priority.rawValue < $1.priority.rawValue }
+    }
+    
+    /// Executes a command through the pipeline.
+    public func execute<T: Command>(_ command: T, context: CommandContext) async throws -> T.Result {
+        // Apply back-pressure if configured
+        let token = if let semaphore = semaphore {
+            try await semaphore.acquire()
+        } else {
+            nil as SemaphoreToken?
+        }
+        
+        defer {
+            if let token = token {
+                Task {
+                    await token.release()
+                }
+            }
+        }
+        
+        let finalHandler: @Sendable (T, CommandContext) async throws -> T.Result = { cmd, ctx in
+            let result = try await self.executeHandler(cmd, ctx)
+            guard let typedResult = result as? T.Result else {
+                throw PipelineErrorType.invalidCommandType
+            }
+            return typedResult
+        }
+        
+        // Build chain without creating reversed array
+        var chain = finalHandler
+        for i in stride(from: middlewares.count - 1, through: 0, by: -1) {
+            let middleware = middlewares[i]
+            let next = chain
+            chain = { cmd, ctx in
+                try await middleware.execute(cmd, context: ctx, next: next)
+            }
+        }
+        
+        return try await chain(command, context)
+    }
+    
+    /// Removes all middleware from the pipeline.
+    public func clearMiddlewares() {
+        middlewares.removeAll()
+    }
+    
+    /// Returns the current number of middleware in the pipeline.
+    public var middlewareCount: Int {
+        middlewares.count
+    }
+}

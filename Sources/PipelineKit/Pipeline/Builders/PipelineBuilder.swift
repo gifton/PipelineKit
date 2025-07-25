@@ -2,7 +2,7 @@ import Foundation
 
 /// A builder actor for constructing pipelines with a fluent API and guaranteed thread safety.
 ///
-/// `PipelineBuilder` provides a convenient way to construct a `DefaultPipeline` with
+/// `PipelineBuilder` provides a convenient way to construct a `StandardPipeline` with
 /// middleware and configuration options using method chaining. Actor isolation ensures
 /// that builder state modifications are thread-safe even when accessed concurrently.
 ///
@@ -46,6 +46,12 @@ public actor PipelineBuilder<T: Command, H: CommandHandler> where H.CommandType 
     
     /// The maximum depth of middleware allowed in the pipeline.
     private var maxDepth: Int = 100
+    
+    /// Whether to apply middleware chain optimization.
+    private var enableOptimization: Bool = false
+    
+    /// Whether to use context pooling.
+    private var useContextPool: Bool = true
     
     /// Creates a new pipeline builder with the specified handler.
     ///
@@ -92,19 +98,73 @@ public actor PipelineBuilder<T: Command, H: CommandHandler> where H.CommandType 
         return self
     }
     
+    /// Enables middleware chain optimization for improved performance.
+    ///
+    /// When enabled, the pipeline will analyze the middleware chain at build time
+    /// and apply optimizations such as:
+    /// - Identifying parallel execution opportunities
+    /// - Detecting fail-fast validation patterns
+    /// - Pre-computing execution strategies
+    ///
+    /// - Returns: The builder instance for method chaining.
+    @discardableResult
+    public func withOptimization() -> Self {
+        self.enableOptimization = true
+        return self
+    }
+    
+    /// Configures whether to use context pooling for reduced allocations.
+    ///
+    /// When enabled (default), the pipeline will use a shared pool of
+    /// CommandContext instances to reduce memory allocations. This can
+    /// significantly improve performance in high-throughput scenarios.
+    ///
+    /// - Parameter enabled: Whether to use context pooling
+    /// - Returns: The builder instance for method chaining.
+    @discardableResult
+    public func withContextPool(_ enabled: Bool) -> Self {
+        self.useContextPool = enabled
+        return self
+    }
+    
     /// Builds and returns a configured `Pipeline`.
     ///
     /// This method creates a new `Pipeline` with the configured handler,
     /// middleware, and maximum depth. All middleware are added to the pipeline
     /// before it is returned.
     ///
-    /// - Returns: A fully configured `DefaultPipeline` ready for use.
+    /// - Returns: A fully configured `StandardPipeline` ready for use.
     /// - Throws: `PipelineError.maxDepthExceeded` if the total number of middleware exceeds the maximum depth.
     ///
     /// - Note: This method is async because adding middleware to the pipeline requires async operations.
-    public func build() async throws -> DefaultPipeline<T, H> {
-        let pipeline = DefaultPipeline(handler: handler, maxDepth: maxDepth)
+    public func build() async throws -> StandardPipeline<T, H> {
+        let pipeline = StandardPipeline(
+            handler: handler,
+            maxDepth: maxDepth,
+            useContextPool: useContextPool
+        )
         try await pipeline.addMiddlewares(middlewares)
+        
+        // Apply optimization if enabled
+        if enableOptimization {
+            await applyOptimization(to: pipeline)
+        }
+        
         return pipeline
+    }
+    
+    // Note: buildOptimized() has been temporarily removed due to generic type constraints
+    // The PreCompiledPipeline requires significant refactoring to work with the current
+    // generic constraints. This can be re-added once the type system issues are resolved.
+    
+    /// Applies middleware chain optimization to the pipeline.
+    private func applyOptimization(to pipeline: StandardPipeline<T, H>) async {
+        let optimizer = MiddlewareChainOptimizer()
+        let optimizedChain = await optimizer.optimize(
+            middleware: middlewares,
+            handler: handler
+        )
+        
+        await pipeline.setOptimizationMetadata(optimizedChain)
     }
 }

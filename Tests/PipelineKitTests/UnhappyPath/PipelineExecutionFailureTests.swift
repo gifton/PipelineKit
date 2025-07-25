@@ -31,7 +31,7 @@ final class PipelineExecutionFailureTests: XCTestCase {
         let pipeline = StandardPipeline(handler: faultyHandler)
         
         let command = PipelineTestCommand(value: "trigger_error")
-        let context = await CommandContext.test()
+        let context = CommandContext.test()
         
         do {
             _ = try await pipeline.execute(command, context: context)
@@ -46,7 +46,7 @@ final class PipelineExecutionFailureTests: XCTestCase {
         let pipeline = StandardPipeline(handler: slowHandler)
         
         let command = PipelineTestCommand(value: "slow_operation")
-        let context = await CommandContext.test()
+        let context = CommandContext.test()
         
         // Use timeout to simulate real-world timeout scenarios
         do {
@@ -86,7 +86,7 @@ final class PipelineExecutionFailureTests: XCTestCase {
         try await pipeline.addMiddleware(faultyMiddleware)
         
         let command = PipelineTestCommand(value: "test")
-        let context = await CommandContext.test()
+        let context = CommandContext.test()
         
         do {
             _ = try await pipeline.execute(command, context: context)
@@ -106,7 +106,7 @@ final class PipelineExecutionFailureTests: XCTestCase {
         try await pipeline.addMiddleware(ValidationMiddleware())
         
         let command = PipelineTestCommand(value: "test")
-        let context = await CommandContext.test()
+        let context = CommandContext.test()
         
         do {
             _ = try await pipeline.execute(command, context: context)
@@ -123,7 +123,7 @@ final class PipelineExecutionFailureTests: XCTestCase {
         try await pipeline.addMiddleware(shortCircuitMiddleware)
         
         let command = PipelineTestCommand(value: "test")
-        let context = await CommandContext.test()
+        let context = CommandContext.test()
         
         // This should work but return short-circuited result
         let result = try await pipeline.execute(command, context: context)
@@ -156,7 +156,7 @@ final class PipelineExecutionFailureTests: XCTestCase {
         try await pipeline.addMiddleware(corruptingMiddleware)
         
         let command = PipelineTestCommand(value: "test")
-        let context = await CommandContext.test()
+        let context = CommandContext.test()
         
         do {
             _ = try await pipeline.execute(command, context: context)
@@ -196,7 +196,7 @@ final class PipelineExecutionFailureTests: XCTestCase {
             try await pipeline.addMiddleware(contextCapturingMiddleware)
             
             let command = PipelineTestCommand(value: "test")
-            let context = await CommandContext.test()
+            let context = CommandContext.test()
             
             _ = try await pipeline.execute(command, context: context)
         }
@@ -216,7 +216,7 @@ final class PipelineExecutionFailureTests: XCTestCase {
         // Execute multiple commands concurrently to trigger race condition
         let tasks = (0..<10).map { _ in
             Task {
-                let context = await CommandContext.test()
+                let context = CommandContext.test()
                 return try await pipeline.execute(command, context: context)
             }
         }
@@ -237,7 +237,7 @@ final class PipelineExecutionFailureTests: XCTestCase {
         try await pipeline.addMiddleware(memoryHogMiddleware)
         
         let command = PipelineTestCommand(value: "test")
-        let context = await CommandContext.test()
+        let context = CommandContext.test()
         
         // This test verifies graceful handling under memory pressure
         do {
@@ -261,7 +261,7 @@ final class PipelineExecutionFailureTests: XCTestCase {
         // Execute more tasks than the concurrency limit
         let tasks = (0..<5).map { _ in
             Task {
-                let context = await CommandContext.test()
+                let context = CommandContext.test()
                 return try await pipeline.execute(command, context: context)
             }
         }
@@ -283,7 +283,7 @@ final class PipelineExecutionFailureTests: XCTestCase {
         try await pipeline.addMiddleware(faultyMiddleware)
         
         let command = PipelineTestCommand(value: "test")
-        let context = await CommandContext.test()
+        let context = CommandContext.test()
         
         // Error recovery should handle the fault
         let result = try await pipeline.execute(command, context: context)
@@ -297,7 +297,7 @@ final class PipelineExecutionFailureTests: XCTestCase {
         try await pipeline.addMiddleware(partialFailureMiddleware)
         
         let command = PipelineTestCommand(value: "partial_fail")
-        let context = await CommandContext.test()
+        let context = CommandContext.test()
         
         do {
             _ = try await pipeline.execute(command, context: context)
@@ -342,7 +342,7 @@ struct ShortCircuitMiddleware: Middleware {
     }
 }
 
-struct ValidationMiddleware: Middleware {
+struct PipelineValidationMiddleware: Middleware {
     func execute<T: Command>(
         _ command: T,
         context: CommandContext,
@@ -360,7 +360,7 @@ struct ContextCorruptingMiddleware: Middleware {
         next: @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
         // Simulate context corruption by setting an unexpected value
-        await context.set("corrupted", for: TestCustomValueKey.self)
+        context.set("corrupted", for: TestCustomValueKey.self)
         throw TestError.middlewareFailed
     }
 }
@@ -415,7 +415,7 @@ struct MemoryHogMiddleware: Middleware {
     ) async throws -> T.Result {
         // Allocate large amount of memory
         let largeData = Array(repeating: "memory", count: 1_000_000)
-        await context.set(largeData, for: LargeDataKey.self)
+        context.set(largeData, for: LargeDataKey.self)
         return try await next(command, context)
     }
 }

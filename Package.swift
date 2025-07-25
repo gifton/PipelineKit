@@ -13,23 +13,24 @@ let package = Package(
         .watchOS(.v9)
     ],
     products: [
-        // Products define the executables and libraries a package produces, making them visible to other packages.
+        // Main library containing all functionality
         .library(
             name: "PipelineKit",
-            targets: ["PipelineKit"]),
+            targets: ["PipelineKit"]
+        ),
+        
+        // Future modular products (planned for v2.0):
+        // - PipelineKitCore: Essential pipeline functionality
+        // - PipelineKitSecurity: Authentication, authorization, encryption
+        // - PipelineKitObservability: Logging, metrics, monitoring  
+        // - PipelineKitExtensions: Optional features and utilities
     ],
     dependencies: [
         // Pin to exact version for reproducible builds
         // swift-syntax 510.0.3 - Last audited: 2025-05-28
         // Security: No known vulnerabilities
         // License: Apache-2.0
-        .package(url: "https://github.com/apple/swift-syntax.git", exact: "510.0.3"),
-        
-        // swift-atomics 1.2.0 - Last audited: 2025-05-28
-        // Security: No known vulnerabilities
-        // License: Apache-2.0
-        // Provides low-level atomic operations for lock-free programming
-        .package(url: "https://github.com/apple/swift-atomics.git", from: "1.2.0"),
+        .package(url: "https://github.com/apple/swift-syntax.git", exact: "510.0.3")
     ],
     targets: [
         .macro(
@@ -43,15 +44,35 @@ let package = Package(
         .target(
             name: "PipelineKit",
             dependencies: [
-                "PipelineMacros",
-                .product(name: "Atomics", package: "swift-atomics")
+                "PipelineMacros"
             ],
+            exclude: [
+                "Core/Optimization/PreCompiledPipeline.swift.disabled"
+            ],
+            swiftSettings: [
+                .enableExperimentalFeature("StrictConcurrency"),
+                // Enable System Programming Interface for internal module boundaries
+                .enableExperimentalFeature("AccessLevelOnImport")
+            ]
+        ),
+        .executableTarget(
+            name: "VerifyChanges",
+            dependencies: ["PipelineKit"]
+        ),
+        .executableTarget(
+            name: "PipelineKitBenchmarks",
+            dependencies: ["PipelineKit"],
+            path: "Sources/PipelineKitBenchmarks"
+        ),
+        .testTarget(
+            name: "PipelineKitTests",
+            dependencies: ["PipelineKit"],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency")
             ]
         ),
         .testTarget(
-            name: "PipelineKitTests",
+            name: "PipelineKitIntegrationTests",
             dependencies: ["PipelineKit"],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency")
@@ -67,12 +88,35 @@ let package = Package(
                 .enableExperimentalFeature("StrictConcurrency")
             ]
         ),
-        .testTarget(
-            name: "PipelineKitBenchmarks",
-            dependencies: ["PipelineKit"],
-            swiftSettings: [
-                .enableExperimentalFeature("StrictConcurrency")
-            ]
-        ),
     ]
 )
+
+// MARK: - Module Structure Documentation
+//
+// PipelineKit is logically organized into four modules:
+//
+// 1. **Core** (Sources/PipelineKit/Core/, Pipeline/, Bus/)
+//    - Essential protocols and types
+//    - Pipeline implementations
+//    - Command bus functionality
+//    - Basic middleware
+//
+// 2. **Security** (Sources/PipelineKit/Security/, Middleware/Authentication/, Middleware/Authorization/)
+//    - Authentication and authorization
+//    - Encryption services
+//    - Audit logging
+//    - Security policies
+//
+// 3. **Observability** (Sources/PipelineKit/Observability/, Middleware/Metrics/)
+//    - Pipeline observers
+//    - Metrics collection
+//    - Logging and monitoring
+//    - Visualization tools
+//
+// 4. **Extensions** (Sources/PipelineKit/Resilience/, Testing/, Middleware/*)
+//    - Caching middleware
+//    - Rate limiting
+//    - Resilience patterns
+//    - Testing utilities
+//
+// Future versions will split these into separate Swift packages for better modularity.

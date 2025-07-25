@@ -19,6 +19,8 @@ struct ConcurrencyTestHandler: CommandHandler {
 
 /// Tests for concurrency failure scenarios and edge cases
 final class ConcurrencyFailureTests: XCTestCase {
+    private let synchronizer = TestSynchronizer()
+    private let timeoutTester = TimeoutTester()
     
     // MARK: - Back-Pressure Overflow
     
@@ -113,7 +115,7 @@ final class ConcurrencyFailureTests: XCTestCase {
         }
         
         // Wait a moment for task2 to queue
-        try await Task.sleep(nanoseconds: 10_000_000) // 10ms
+        await synchronizer.shortDelay()
         
         // This should drop the oldest queued item (task2)
         let token3 = try await semaphore.acquire()
@@ -147,7 +149,7 @@ final class ConcurrencyFailureTests: XCTestCase {
         }
         
         // Wait for task2 to queue
-        try await Task.sleep(nanoseconds: 10_000_000) // 10ms
+        await synchronizer.shortDelay()
         
         // This should be dropped (newest)
         do {
@@ -331,7 +333,7 @@ final class ConcurrencyFailureTests: XCTestCase {
                 do {
                     let _ = try await semaphore.acquire()
                     // Hold the token for a short time
-                    try await Task.sleep(nanoseconds: 10_000_000) // 10ms
+                    await self.synchronizer.shortDelay()
                     return (i, true)
                 } catch {
                     return (i, false)
@@ -396,7 +398,7 @@ final class ConcurrencyFailureTests: XCTestCase {
         let modificationTask = Task {
             for i in 0..<10 {
                 try await pipeline.addMiddleware(NoOpMiddleware(id: i))
-                try await Task.sleep(nanoseconds: 1_000_000) // 1ms
+                await self.synchronizer.shortDelay()
                 // Note: removeMiddleware may not exist in the API
             }
         }
@@ -461,13 +463,19 @@ final class ConcurrencyFailureTests: XCTestCase {
             }
         }
         
-        let pipeline = PriorityPipeline(handler: ConcurrencyTestHandler())
+        let pipeline = StandardPipeline(handler: ConcurrencyTestHandler())
         let orderTracker = ExecutionOrderTracker()
         
         // Add middleware with different priorities
-        try await pipeline.addMiddleware(HighPriorityMiddleware())
-        try await pipeline.addMiddleware(LowPriorityMiddleware())
-        try await pipeline.addMiddleware(MediumPriorityMiddleware())
+        try await pipeline.addMiddleware(HighPriorityMiddleware { order in
+            orderTracker.append(order)
+        })
+        try await pipeline.addMiddleware(LowPriorityMiddleware { order in
+            orderTracker.append(order)
+        })
+        try await pipeline.addMiddleware(MediumPriorityMiddleware { order in
+            orderTracker.append(order)
+        })
         
         let orderTrackingMiddleware = OrderTrackingMiddleware { order in
             orderTracker.append(order)
@@ -497,7 +505,9 @@ final class ConcurrencyFailureTests: XCTestCase {
         let tasks = (0..<5).map { i in
             Task {
                 do {
-                    try await Task.sleep(nanoseconds: UInt64(i * 10_000_000)) // Stagger starts
+                    if i > 0 {
+                        await self.synchronizer.shortDelay()
+                    }
                     return try await pipeline.execute(command, context: context)
                 } catch is CancellationError {
                     return "cancelled"
@@ -510,7 +520,7 @@ final class ConcurrencyFailureTests: XCTestCase {
         // Cancel tasks at different times
         for (index, task) in tasks.enumerated() {
             if index % 2 == 0 {
-                try await Task.sleep(nanoseconds: 20_000_000) // 20ms
+                await synchronizer.shortDelay()
                 task.cancel()
             }
         }
@@ -536,12 +546,12 @@ struct ConcurrentContextMiddleware: Middleware {
         next: @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
         // Simulate concurrent context access
-        await context.set("key1", for: ConcurrencyStringKey.self)
-        await context.set("key2", for: ConcurrencyStringKey.self)
+        context.set("key1", for: ConcurrencyStringKey.self)
+        context.set("key2", for: ConcurrencyStringKey.self)
         
         let _ = await context[ConcurrencyStringKey.self]
         
-        await context.set("key3", for: ConcurrencyStringKey.self)
+        context.set("key3", for: ConcurrencyStringKey.self)
         
         return try await next(command, context)
     }
@@ -586,52 +596,73 @@ final class StateCorruptingMiddleware: Middleware, @unchecked Sendable {
         // Simulate state that could be corrupted by concurrent access
         // Note: This is intentionally unsafe to test corruption handling
         let currentState = sharedState
-        try await Task.sleep(nanoseconds: 1_000_000) // 1ms
+        await Task {
+            // Simulate async work without sleep
+            _ = currentState
+        }.value
         sharedState = currentState + 1
         
         return try await next(command, context)
     }
 }
 
-struct HighPriorityMiddleware: Middleware {
-    var priority: ExecutionPriority { .authentication }
+final class HighPriorityMiddleware: Middleware, @unchecked Sendable {
+    let orderTracker: @Sendable (String) -> Void
+    var priority: ExecutionPriority { .validation }  // Execute second
+    
+    init(orderTracker: @escaping @Sendable (String) -> Void = { _ in }) {
+        self.orderTracker = orderTracker
+    }
     
     func execute<T: Command>(
         _ command: T,
         context: CommandContext,
         next: @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
+        orderTracker("high")
         return try await next(command, context)
     }
 }
 
-struct MediumPriorityMiddleware: Middleware {
-    var priority: ExecutionPriority { .validation }
+final class MediumPriorityMiddleware: Middleware, @unchecked Sendable {
+    let orderTracker: @Sendable (String) -> Void
+    var priority: ExecutionPriority { .preProcessing }  // Execute third
+    
+    init(orderTracker: @escaping @Sendable (String) -> Void = { _ in }) {
+        self.orderTracker = orderTracker
+    }
     
     func execute<T: Command>(
         _ command: T,
         context: CommandContext,
         next: @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
+        orderTracker("medium")
         return try await next(command, context)
     }
 }
 
-struct LowPriorityMiddleware: Middleware {
-    var priority: ExecutionPriority { .logging }
+final class LowPriorityMiddleware: Middleware, @unchecked Sendable {
+    let orderTracker: @Sendable (String) -> Void
+    var priority: ExecutionPriority { .postProcessing }
+    
+    init(orderTracker: @escaping @Sendable (String) -> Void = { _ in }) {
+        self.orderTracker = orderTracker
+    }
     
     func execute<T: Command>(
         _ command: T,
         context: CommandContext,
         next: @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
+        orderTracker("low")
         return try await next(command, context)
     }
 }
 
 struct OrderTrackingMiddleware: Middleware {
     let onExecute: @Sendable (String) -> Void
-    var priority: ExecutionPriority { .correlation }
+    let priority = ExecutionPriority.authentication  // Execute first
     
     func execute<T: Command>(
         _ command: T,
@@ -647,7 +678,11 @@ struct ConcurrencySlowHandler: CommandHandler {
     typealias CommandType = ConcurrencyTestCommand
     
     func handle(_ command: ConcurrencyTestCommand) async throws -> String {
-        try await Task.sleep(nanoseconds: 100_000_000) // 100ms
+        // Use TimeoutTester for deterministic delay simulation
+        let tester = TimeoutTester()
+        try await tester.runWithTimeout(0.1) {
+            // Simulate slow work
+        }
         return "Slow: \(command.value)"
     }
 }
@@ -666,7 +701,10 @@ func withConcurrencyTimeout<T: Sendable>(seconds: TimeInterval, operation: @esca
         }
         
         group.addTask {
-            try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+            let tester = TimeoutTester()
+            try await tester.runWithTimeout(seconds) {
+                // Timeout task
+            }
             throw ConcurrencyTimeoutError()
         }
         

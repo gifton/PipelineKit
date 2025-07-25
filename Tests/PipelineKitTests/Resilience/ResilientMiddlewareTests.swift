@@ -1,7 +1,39 @@
 import XCTest
 @testable import PipelineKit
 
+// Test counter actor
+actor ResilientTestCounter {
+    private var value: Int
+    
+    init(_ value: Int = 0) {
+        self.value = value
+    }
+    
+    func increment() {
+        value += 1
+    }
+    
+    func get() -> Int {
+        value
+    }
+}
+
+// Test times tracking actor
+actor TestTimesActor {
+    private var times: [Date] = []
+    
+    func recordAttempt() {
+        times.append(Date())
+    }
+    
+    func getTimes() -> [Date] {
+        times
+    }
+}
+
 final class ResilientMiddlewareTests: XCTestCase {
+    private let synchronizer = TestSynchronizer()
+    private let timeoutTester = TimeoutTester()
     
     func testSuccessfulExecutionWithoutRetry() async throws {
         // Given
@@ -44,22 +76,24 @@ final class ResilientMiddlewareTests: XCTestCase {
         let command = ResilientTestCommand(value: "test")
         let context = CommandContext()
         
-        var attemptCount = 0
+        let attemptTracker = ResilientTestCounter(0)
         
         // When
         let result = try await middleware.execute(command, context: context) { cmd, _ in
-            attemptCount += 1
+            await attemptTracker.increment()
+            let count = await attemptTracker.get()
             
-            if attemptCount < 3 {
+            if count < 3 {
                 throw TransientError.temporaryFailure
             }
             
-            return "success-\(attemptCount)"
+            return "success-\(count)"
         }
         
         // Then
         XCTAssertEqual(result, "success-3")
-        XCTAssertEqual(attemptCount, 3) // Should retry twice before succeeding
+        let finalCount = await attemptTracker.get()
+        XCTAssertEqual(finalCount, 3) // Should retry twice before succeeding
     }
     
     func testRetryExhaustion() async throws {
@@ -77,18 +111,19 @@ final class ResilientMiddlewareTests: XCTestCase {
         let command = ResilientTestCommand(value: "test")
         let context = CommandContext()
         
-        var attemptCount = 0
+        let attemptTracker = ResilientTestCounter(0)
         
         // When/Then
         do {
             _ = try await middleware.execute(command, context: context) { cmd, _ in
-                attemptCount += 1
+                await attemptTracker.increment()
                 throw TransientError.temporaryFailure
             }
             XCTFail("Should throw after retry exhaustion")
         } catch {
             XCTAssertTrue(error is TransientError)
-            XCTAssertEqual(attemptCount, 2) // Should attempt maxAttempts times
+            let finalCount = await attemptTracker.get()
+            XCTAssertEqual(finalCount, 2) // Should attempt maxAttempts times
         }
     }
     
@@ -109,18 +144,19 @@ final class ResilientMiddlewareTests: XCTestCase {
         let command = ResilientTestCommand(value: "test")
         let context = CommandContext()
         
-        var attemptCount = 0
+        let attemptTracker = ResilientTestCounter(0)
         
         // When/Then
         do {
             _ = try await middleware.execute(command, context: context) { cmd, _ in
-                attemptCount += 1
+                await attemptTracker.increment()
                 throw PermanentError.unrecoverable
             }
             XCTFail("Should throw permanent error")
         } catch {
             XCTAssertTrue(error is PermanentError)
-            XCTAssertEqual(attemptCount, 1) // Should not retry
+            let finalCount = await attemptTracker.get()
+            XCTAssertEqual(finalCount, 1) // Should not retry
         }
     }
     
@@ -203,7 +239,7 @@ final class ResilientMiddlewareTests: XCTestCase {
         }
         
         // Wait for reset timeout (with some buffer)
-        try await Task.sleep(nanoseconds: 200_000_000) // 200ms (100ms reset + 100ms buffer)
+        await synchronizer.mediumDelay()
         
         // Circuit should be half-open, allowing one attempt
         let result = try await middleware.execute(command, context: context) { cmd, _ in
@@ -228,14 +264,14 @@ final class ResilientMiddlewareTests: XCTestCase {
         let command = ResilientTestCommand(value: "test")
         let context = CommandContext()
         
-        var attemptTimes: [Date] = []
-        var attemptCount = 0
+        let attemptTimesActor = TestTimesActor()
+        let attemptTracker = ResilientTestCounter(0)
         
         // When
         do {
             _ = try await middleware.execute(command, context: context) { cmd, _ in
-                attemptCount += 1
-                attemptTimes.append(Date())
+                await attemptTracker.increment()
+                await attemptTimesActor.recordAttempt()
                 throw TransientError.temporaryFailure
             }
         } catch {
@@ -243,7 +279,9 @@ final class ResilientMiddlewareTests: XCTestCase {
         }
         
         // Then
-        XCTAssertEqual(attemptCount, 3)
+        let finalCount = await attemptTracker.get()
+        XCTAssertEqual(finalCount, 3)
+        let attemptTimes = await attemptTimesActor.getTimes()
         XCTAssertEqual(attemptTimes.count, 3)
         
         // Verify exponential delays (with some tolerance)
@@ -276,13 +314,14 @@ final class ResilientMiddlewareTests: XCTestCase {
         let context = CommandContext(metadata: metadata)
         await context.setObserverRegistry(observerRegistry)
         
-        var attemptCount = 0
+        let attemptTracker = ResilientTestCounter(0)
         
         // When - Fail once then succeed
         let result = try await middleware.execute(command, context: context) { cmd, _ in
-            attemptCount += 1
+            await attemptTracker.increment()
+            let count = await attemptTracker.get()
             
-            if attemptCount == 1 {
+            if count == 1 {
                 throw TransientError.temporaryFailure
             }
             

@@ -63,6 +63,9 @@ public struct PipelineOptions: Sendable {
         self.backPressureStrategy = backPressureStrategy
     }
     
+    /// Creates default options with sensible limits.
+    public static let `default` = PipelineOptions()
+    
     /// Creates options with unlimited capacity and suspend strategy.
     @inlinable
     public static func unlimited() -> PipelineOptions {
@@ -126,6 +129,9 @@ public enum BackPressureError: Error, Sendable {
     
     /// A command was dropped due to back-pressure policy.
     case commandDropped(reason: String)
+    
+    /// Memory pressure exceeded configured limits
+    case memoryPressure
 }
 
 extension BackPressureError: LocalizedError {
@@ -137,6 +143,8 @@ extension BackPressureError: LocalizedError {
             return "Timeout waiting for pipeline capacity after \(duration)s"
         case let .commandDropped(reason):
             return "Command dropped: \(reason)"
+        case .memoryPressure:
+            return "Memory pressure exceeded configured limits"
         }
     }
 }

@@ -1,22 +1,179 @@
+# macOS
 .DS_Store
-/.build
-/Packages
+.AppleDouble
+.LSOverride
+Icon
+._*
+.Spotlight-V100
+.Trashes
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Xcode
+## User settings
 xcuserdata/
+*.xcuserstate
+
+## Build generated
+build/
 DerivedData/
-.swiftpm/configuration/registries.json
-.swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+*.xccheckout
+*.moved-aside
+*.xcscmblueprint
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+## Playgrounds
+timeline.xctimeline
+playground.xcworkspace
+
+## Obj-C/Swift specific
+*.hmap
+
+## App packaging
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Swift Package Manager
+.build/
+.swiftpm/
+# Package.resolved is tracked for reproducible builds
+/*.xcodeproj
 .netrc
-venv
+.swiftpm/config/registries.json
+.swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
+.swiftpm/xcode/xcuserdata/
+.swiftpm/xcode/xcshareddata/
+Index/
 
-# Claude/Zen/AI assistant related files
-CLAUDE.md
+# CocoaPods
+Pods/
+
+# Carthage
+Carthage/Build/
+Carthage/Checkouts
+
+# Accio dependency management
+Dependencies/
+.accio/
+
+# fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output
+
+# Code Injection
+iOSInjectionProject/
+
+# Development Tools
+## IDEs and Editors
+.idea/
+.vscode/
+.nova/
+*.swp
+*.swo
+*~
+*.sublime-project
+*.sublime-workspace
+
+## AI Assistants
 .claude/
+.cursor/
+.zen/
+.mcp/
+.assistant/
+.ai-config/
+.github/copilot/
+CLAUDE.md
 **/CLAUDE.md
-**/.claude/
 
-# Development documentation and implementation notes
-devdocs/
-**/devdocs/
+# Python (for any scripts)
+venv/
+.venv/
+env/
+.env/
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Testing and Coverage
+.coverage
+*.lcov
+coverage/
+.tox/
+.pytest_cache/
+.phpunit.result.cache
+htmlcov/
+*.cover
+.hypothesis/
+
+# Documentation
+docs/_build/
+docs/.doctrees/
+site/
+.mkdocs/
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+*.bak
+*.cache
+*.orig
+.cache/
+tmp/
+temp/
+
+# Build outputs
+build_output.txt
+test_output.txt
+*.o
+*.so
+*.dylib
+*.exe
+*.dll
+*.out
+
+# Benchmarking
+benchmark-results/
+*.bench
+benchmark-baseline.json
+.benchmarks/
+
+# Security
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.cert
+*.p12
+secrets/
+credentials/
+
+# Development artifacts
+## Planning documents
+*_IMPLEMENTATION_PLAN.md
+*_PERFORMANCE_RESULTS.md
+PHASE*_*.md
 implementation-notes.md
 refactoring-plan.md
 phase-*.md
@@ -25,20 +182,42 @@ phase-*.md
 *-implementation.md
 *-refactor.md
 *-migration.md
+TODO.txt
+NOTES.md
 
-# Build and test output logs
-build_output.log
-test_output.log
+## Personal/Development files
+devdocs/
+personal-notes/
+scratch/
+experiments/
+
+# OS generated files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Archives
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.rar
+*.7z
+
+# Logs
+logs/
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
-# Temporary and backup files
-*.tmp
-*.bak
-*.swp
-*~
+# Package manager directories (other than Swift)
+node_modules/
+jspm_packages/
+bower_components/
 
-# AI assistant configuration
-.zen/
-.mcp/
-.assistant/
-.ai-config/
+# Optional: Comment out if you want to track these
+*.xcworkspace
+!default.xcworkspace
+xcshareddata/

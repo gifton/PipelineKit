@@ -33,7 +33,7 @@ final class CommandBusTests: XCTestCase {
     
     struct LoggingMiddleware: Middleware {
         let logs: Actor<[String]>
-        let priority: ExecutionPriority = .logging
+        let priority: ExecutionPriority = .postProcessing
         
         init(logs: Actor<[String]>) {
             self.logs = logs
@@ -44,7 +44,7 @@ final class CommandBusTests: XCTestCase {
             context: CommandContext,
             next: @Sendable (T, CommandContext) async throws -> T.Result
         ) async throws -> T.Result {
-            let metadata = await context.commandMetadata
+            let metadata = context.commandMetadata
             await logs.append("Before: \(String(describing: T.self)) - \(metadata.correlationId ?? "")")
             let result = try await next(command, context)
             await logs.append("After: \(String(describing: T.self)) - \(metadata.correlationId ?? "")")

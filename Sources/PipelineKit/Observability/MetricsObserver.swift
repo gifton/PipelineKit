@@ -377,13 +377,41 @@ public actor InMemoryMetricsBackend: MetricsBackend {
 }
 
 /// A console logging metrics backend for development
+///
+/// ## Design Decision: @unchecked Sendable with Thread-Local DateFormatter
+///
+/// This class uses `@unchecked Sendable` for the following reasons:
+///
+/// 1. **DateFormatter Thread Safety**: DateFormatter is not thread-safe, but we solve this
+///    using thread-local storage. Each thread maintains its own formatter instance.
+///
+/// 2. **No Other Stored Properties**: Besides the computed dateFormatter property, this class
+///    has no stored state, making it inherently thread-safe.
+///
+/// 3. **Thread-Local Storage Pattern**: Using Thread.current.threadDictionary ensures that
+///    each thread has exclusive access to its own DateFormatter, eliminating race conditions.
+///
+/// 4. **Performance Consideration**: DateFormatter creation is expensive. Thread-local storage
+///    amortizes this cost across all uses within the same thread.
+///
+/// The implementation is thread-safe despite the @unchecked annotation, which is only needed
+/// because Swift cannot statically verify the thread-local storage pattern.
 public final class ConsoleMetricsBackend: MetricsBackend, @unchecked Sendable {
-    private let dateFormatter: DateFormatter
+    /// Thread-local storage key for date formatters
+    private static let dateFormatterKey = "ConsoleMetricsBackend.dateFormatter"
     
-    public init() {
-        self.dateFormatter = DateFormatter()
-        self.dateFormatter.dateFormat = "HH:mm:ss.SSS"
+    /// Thread-safe access to DateFormatter using thread-local storage
+    private var dateFormatter: DateFormatter {
+        if let formatter = Thread.current.threadDictionary[Self.dateFormatterKey] as? DateFormatter {
+            return formatter
+        }
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm:ss.SSS"
+        Thread.current.threadDictionary[Self.dateFormatterKey] = formatter
+        return formatter
     }
+    
+    public init() {}
     
     public func recordCounter(name: String, tags: [String: String]) async {
         let tagsString = tags.isEmpty ? "" : " " + formatTags(tags)

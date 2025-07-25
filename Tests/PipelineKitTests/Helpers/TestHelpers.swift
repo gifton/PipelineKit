@@ -33,6 +33,10 @@ actor TestActor<T: Sendable>: Sendable {
     func incrementCount(for key: String) where T == [String: Int] {
         value[key, default: 0] += 1
     }
+    
+    func append<Element>(_ element: Element) where T == [Element] {
+        value.append(element)
+    }
 }
 
 // MARK: - Test Command Metadata
@@ -85,7 +89,7 @@ extension CommandContext {
         correlationId: String = UUID().uuidString,
         additionalData: [String: Any] = [:],
         customKeys: [String: Any] = [:]
-    ) async -> CommandContext {
+    ) -> CommandContext {
         let metadata = TestCommandMetadata(
             userId: userId,
             correlationId: correlationId,
@@ -99,15 +103,15 @@ extension CommandContext {
         return context
     }
     
-    static func testWithMetrics() async -> CommandContext {
-        let context = await test()
-        await context.set(MockMetricsCollector(), for: TestMetricsKey.self)
+    static func testWithMetrics() -> CommandContext {
+        let context = test()
+        context.set(MockMetricsCollector(), for: TestMetricsKey.self)
         return context
     }
     
-    static func testWithEncryption() async -> CommandContext {
-        let context = await test()
-        await context.set(MockEncryptionService(), for: TestEncryptionServiceKey.self)
+    static func testWithEncryption() -> CommandContext {
+        let context = test()
+        context.set(MockEncryptionService(), for: TestEncryptionServiceKey.self)
         return context
     }
 }
@@ -171,7 +175,7 @@ final class TestMiddleware: Middleware, @unchecked Sendable {
     }
 }
 
-final class FailingMiddleware: Middleware, @unchecked Sendable {
+final class TestFailingMiddleware: Middleware, @unchecked Sendable {
     let error: Error
     let priority: ExecutionPriority = .custom
     
@@ -203,7 +207,7 @@ final class ModifyingMiddleware<Key: ContextKey>: Middleware, @unchecked Sendabl
         context: CommandContext,
         next: @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
-        await context.set(value, for: keyType)
+        context.set(value, for: keyType)
         return try await next(command, context)
     }
 }
@@ -228,11 +232,22 @@ struct TestConstants {
 }
 
 extension CommandContext {
-    func assertHasMetadata() async throws -> CommandMetadata {
-        return await self.commandMetadata
+    func assertHasMetadata() throws -> CommandMetadata {
+        return self.commandMetadata
     }
     
     // Metrics assertion would need proper ContextKey
+}
+
+// MARK: - Performance Types
+
+/// Performance profiling information for middleware execution
+public struct ProfileInfo: Sendable {
+    let executionCount: Int
+    let totalDuration: TimeInterval
+    let averageDuration: TimeInterval
+    let minDuration: TimeInterval
+    let maxDuration: TimeInterval
 }
 
 // MARK: - Mock Services

@@ -2,6 +2,8 @@ import XCTest
 @testable import PipelineKit
 
 final class RateLimiterTests: XCTestCase {
+    private let synchronizer = TestSynchronizer()
+    private let timeoutTester = TimeoutTester()
     
     // MARK: - Token Bucket Tests
     
@@ -42,7 +44,7 @@ final class RateLimiterTests: XCTestCase {
         XCTAssertFalse(denied)
         
         // Wait for refill
-        try await Task.sleep(nanoseconds: 200_000_000) // 0.2 seconds = 2 tokens
+        await synchronizer.mediumDelay() // Simulate time for token replenishment
         
         // Should allow 2 requests after refill
         let allowed1 = try await limiter.allowRequest(identifier: "user1")
@@ -106,7 +108,7 @@ final class RateLimiterTests: XCTestCase {
         XCTAssertFalse(denied)
         
         // Wait for window to pass
-        try await Task.sleep(nanoseconds: 600_000_000) // 0.6 seconds
+        await synchronizer.longDelay() // Simulate longer wait for reset
         
         // Should allow new requests
         let allowed = try await limiter.allowRequest(identifier: "user1")
@@ -244,7 +246,7 @@ final class RateLimiterTests: XCTestCase {
         let expensiveCommand = ExpensiveCommand()
         
         // Should allow 10 cheap commands
-        let context = await CommandContext.test()
+        let context = CommandContext.test()
         for _ in 0..<10 {
             _ = try await middleware.execute(cheapCommand, context: context) { _, _ in "ok" }
         }
@@ -308,7 +310,7 @@ final class RateLimiterTests: XCTestCase {
         XCTAssertFalse(shouldAllow3)
         
         // Wait for timeout
-        try await Task.sleep(nanoseconds: 600_000_000) // 0.6 seconds
+        await synchronizer.longDelay() // Simulate longer wait for reset
         
         // Should be half-open
         let shouldAllow4 = await breaker.shouldAllow()
@@ -342,7 +344,7 @@ final class RateLimiterTests: XCTestCase {
         XCTAssertFalse(shouldAllow5)
         
         // Wait for half-open
-        try await Task.sleep(nanoseconds: 400_000_000) // 0.4 seconds
+        await synchronizer.mediumDelay() // Simulate token regeneration
         let shouldAllow6 = await breaker.shouldAllow()
         XCTAssertTrue(shouldAllow6)
         

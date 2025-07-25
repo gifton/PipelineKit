@@ -52,14 +52,8 @@ extension PipelineMacro {
     
     /// Determines the pipeline type to use based on configuration
     private static func determinePipelineType(config: Configuration) -> String {
-        switch config.pipelineType {
-        case .standard:
-            return "StandardPipeline"
-        case .contextAware:
-            return "StandardPipeline"  // ContextAwarePipeline is deprecated, use StandardPipeline
-        case .priority:
-            return "ConcurrentPipeline"
-        }
+        // All pipeline types now use StandardPipeline
+        return "StandardPipeline"
     }
     
     /// Generates constructor arguments for the pipeline
@@ -79,7 +73,7 @@ extension PipelineMacro {
             args.append("maxConcurrency: \(limit)")
         }
         
-        // Context is now always enabled in the new API, no need for useContext parameter
+        // Context is always enabled in StandardPipeline
         
         // Add back-pressure options if specified
         if let backPressure = config.backPressureOptions {
@@ -114,7 +108,7 @@ extension PipelineMacro {
         }
     }
     
-    // Batch execute method is removed in the new Pipeline protocol
+    // Note: Batch execution is handled through standard execute with command batching
     
     /// Generates middleware setup method
     private static func generateMiddlewareSetup(
@@ -126,12 +120,8 @@ extension PipelineMacro {
         
         return try FunctionDeclSyntax("private func setupMiddleware() \(raw: asyncKeyword)throws") {
             for middleware in config.middleware {
-                if config.pipelineType == .priority {
-                    // PriorityPipeline requires a priority parameter
-                    "try await _executor.addMiddleware(\(raw: middleware)(), priority: 1000)"
-                } else {
-                    "try await _executor.addMiddleware(\(raw: middleware)())"
-                }
+                // All pipelines now use the same addMiddleware method
+                "try await _executor.addMiddleware(\(raw: middleware)())"
             }
         }
     }

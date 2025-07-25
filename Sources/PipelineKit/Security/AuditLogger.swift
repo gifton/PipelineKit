@@ -348,11 +348,11 @@ public struct AuditQueryCriteria: Sendable {
 /// pipeline.use(middleware)
 /// ```
 public struct AuditLoggingMiddleware: Middleware {
-    public let priority: ExecutionPriority = .auditLogging
+    public let priority: ExecutionPriority = .postProcessing
     private let auditLogger: AuditLogger
     private let metadataExtractor: @Sendable (any Command, CommandMetadata) async -> [String: String]
     
-    nonisolated(unsafe) public static var recommendedOrder: ExecutionPriority { .auditLogging }
+    nonisolated(unsafe) public static var recommendedOrder: ExecutionPriority { .postProcessing }
     
     /// Creates audit logging middleware.
     ///
@@ -373,7 +373,7 @@ public struct AuditLoggingMiddleware: Middleware {
         next: @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
         let startTime = Date()
-        let metadata = await context.commandMetadata
+        let metadata = context.commandMetadata
         let commandType = String(describing: T.self)
         let userId = (metadata as? StandardCommandMetadata)?.userId ?? "anonymous"
         let extraMetadata = await metadataExtractor(command, metadata)

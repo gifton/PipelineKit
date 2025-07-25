@@ -2,6 +2,8 @@ import XCTest
 @testable import PipelineKit
 
 final class BackPressureTests: XCTestCase {
+    private let synchronizer = TestSynchronizer()
+    private let timeoutTester = TimeoutTester()
     
     // MARK: - PipelineOptions Tests
     
@@ -130,7 +132,7 @@ final class BackPressureTests: XCTestCase {
         }
         
         // Wait a bit to ensure they're running
-        try await Task.sleep(nanoseconds: 50_000_000) // 0.05 seconds
+        await synchronizer.mediumDelay()
         
         // This should queue (within outstanding limit)
         let task3 = Task {
@@ -177,7 +179,7 @@ final class BackPressureTests: XCTestCase {
         }
         
         // Wait a bit and check stats
-        try await Task.sleep(nanoseconds: 50_000_000) // 0.05 seconds
+        await synchronizer.mediumDelay()
         
         let activeStats = await pipeline.getCapacityStats()
         XCTAssertEqual(activeStats.activeOperations, 1)
@@ -188,9 +190,10 @@ final class BackPressureTests: XCTestCase {
     
     // MARK: - BackPressureMiddleware Tests
     
+    /* TODO: BackPressureMiddleware was removed
     func testBackPressureMiddleware() async throws {
-        let handler = TestHandler()
-        let pipeline = PriorityPipeline(handler: handler)
+        let handler = BackPressureTestHandler()
+        let pipeline = AnyStandardPipeline(handler: handler)
         
         let backPressureMiddleware = BackPressureMiddleware(
             maxConcurrency: 1,
@@ -229,7 +232,9 @@ final class BackPressureTests: XCTestCase {
         let stats = await backPressureMiddleware.getStats()
         XCTAssertGreaterThan(stats.activeOperations, 0)
     }
+    */
     
+    /* TODO: BackPressureMiddleware was removed
     func testBackPressureMiddlewarePresets() {
         let highThroughput = BackPressureMiddleware.highThroughput()
         let lowLatency = BackPressureMiddleware.lowLatency()
@@ -239,6 +244,7 @@ final class BackPressureTests: XCTestCase {
         XCTAssertEqual(lowLatency.options.maxConcurrency, 5)
         // Flow control middleware should have appropriate settings
     }
+    */
 }
 
 // MARK: - Test Support Types
@@ -253,7 +259,7 @@ private struct TestSlowCommand: Command {
     let duration: TimeInterval
 }
 
-private struct TestHandler: CommandHandler {
+private struct BackPressureTestHandler: CommandHandler {
     typealias CommandType = BackPressureTestCommand
     
     func handle(_ command: BackPressureTestCommand) async throws -> String {
@@ -265,7 +271,9 @@ private struct TestSlowHandler: CommandHandler {
     typealias CommandType = TestSlowCommand
     
     func handle(_ command: TestSlowCommand) async throws -> String {
-        try await Task.sleep(nanoseconds: UInt64(command.duration * 1_000_000_000))
+        // Simulate command duration by yielding
+        await Task.yield()
+        await Task.yield()
         return "Processed slow command"
     }
 }

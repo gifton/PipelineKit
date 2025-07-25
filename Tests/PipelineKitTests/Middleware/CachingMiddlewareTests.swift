@@ -46,7 +46,16 @@ final class CachingMiddlewareTests: XCTestCase {
     func testCacheMiss() async throws {
         // Given
         let cache = InMemoryCache(maxSize: 100)
-        let middleware = CachingMiddleware(cache: cache, ttl: 60)
+        let middleware = CachingMiddleware(
+            cache: cache,
+            keyGenerator: { command in
+                if let cmd = command as? CacheTestCommand {
+                    return cmd.id
+                }
+                return String(describing: type(of: command))
+            },
+            ttl: 60
+        )
         
         let command1 = CacheTestCommand(id: "1", value: "first")
         let command2 = CacheTestCommand(id: "2", value: "second")
@@ -111,6 +120,12 @@ final class CachingMiddlewareTests: XCTestCase {
         let cache = InMemoryCache(maxSize: 100)
         let middleware = CachingMiddleware(
             cache: cache,
+            keyGenerator: { command in
+                if let cmd = command as? CacheTestCommand {
+                    return cmd.id
+                }
+                return String(describing: type(of: command))
+            },
             shouldCache: { command in
                 // Only cache commands with specific IDs
                 if let cmd = command as? CacheTestCommand {
@@ -158,7 +173,15 @@ final class CachingMiddlewareTests: XCTestCase {
     func testCacheEventsEmitted() async throws {
         // Given
         let cache = InMemoryCache(maxSize: 100)
-        let middleware = CachingMiddleware(cache: cache)
+        let middleware = CachingMiddleware(
+            cache: cache,
+            keyGenerator: { command in
+                if let cmd = command as? CacheTestCommand {
+                    return cmd.id
+                }
+                return String(describing: type(of: command))
+            }
+        )
         
         let eventCollector = TestCacheEventCollector()
         let observerRegistry = ObserverRegistry(observers: [eventCollector])
@@ -195,7 +218,15 @@ final class CachingMiddlewareTests: XCTestCase {
     func testCacheLRUEviction() async throws {
         // Given
         let cache = InMemoryCache(maxSize: 2) // Small cache
-        let middleware = CachingMiddleware(cache: cache)
+        let middleware = CachingMiddleware(
+            cache: cache,
+            keyGenerator: { command in
+                if let cmd = command as? CacheTestCommand {
+                    return cmd.id
+                }
+                return String(describing: type(of: command))
+            }
+        )
         
         let command1 = CacheTestCommand(id: "1", value: "first")
         let command2 = CacheTestCommand(id: "2", value: "second")

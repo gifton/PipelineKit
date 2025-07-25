@@ -1,31 +1,36 @@
 import Foundation
 
-/// A decorator that adds observability to any pipeline implementation
-public final class ObservablePipeline: Pipeline {
-    private let wrappedPipeline: any Pipeline
+/// Middleware that adds observability to pipeline execution
+public struct PipelineObservabilityMiddleware: Middleware {
+    public let priority: ExecutionPriority = .postProcessing
     private let observerRegistry: ObserverRegistry
     private let pipelineTypeName: String
     
     public init(
-        wrapping pipeline: any Pipeline,
-        observers: [PipelineObserver] = [],
-        pipelineTypeName: String? = nil
+        observers: [PipelineObserver],
+        pipelineTypeName: String = "Pipeline"
     ) {
-        self.wrappedPipeline = pipeline
         self.observerRegistry = ObserverRegistry(observers: observers)
-        self.pipelineTypeName = pipelineTypeName ?? String(describing: type(of: pipeline))
+        self.pipelineTypeName = pipelineTypeName
     }
     
-    public func execute<T: Command>(_ command: T, context: CommandContext) async throws -> T.Result {
+    public func execute<T: Command>(
+        _ command: T,
+        context: CommandContext,
+        next: @Sendable (T, CommandContext) async throws -> T.Result
+    ) async throws -> T.Result {
         let startTime = Date()
-        let metadata = await context.commandMetadata
+        let metadata = context.commandMetadata
+        
+        // Store observer registry in context for nested middleware
+        context.set(observerRegistry, for: ObserverRegistryKey.self)
         
         // Notify observers that pipeline execution is starting
         await observerRegistry.notifyPipelineWillExecute(command, metadata: metadata, pipelineType: pipelineTypeName)
         
         do {
-            // Execute the wrapped pipeline
-            let result = try await wrappedPipeline.execute(command, context: context)
+            // Execute the next middleware/handler
+            let result = try await next(command, context)
             
             // Calculate duration and notify success
             let duration = Date().timeIntervalSince(startTime)
@@ -55,13 +60,15 @@ public final class ObservablePipeline: Pipeline {
     }
 }
 
-// MARK: - Observable Context-Aware Pipeline
-
-/// A specialized observable pipeline for context-aware execution
-public final class ObservableContextAwarePipeline: Pipeline {
+/// A decorator that adds observability to any pipeline implementation
+///
+/// Thread-safe because:
+/// - Wrapped pipeline is required to be Sendable (Pipeline protocol requires it)
+/// - Middleware is immutable and Sendable
+/// - No mutable state is maintained
+public final class ObservablePipeline: Pipeline, @unchecked Sendable {
     private let wrappedPipeline: any Pipeline
-    private let observerRegistry: ObserverRegistry
-    private let pipelineTypeName: String
+    private let middleware: PipelineObservabilityMiddleware
     
     public init(
         wrapping pipeline: any Pipeline,
@@ -69,87 +76,20 @@ public final class ObservableContextAwarePipeline: Pipeline {
         pipelineTypeName: String? = nil
     ) {
         self.wrappedPipeline = pipeline
-        self.observerRegistry = ObserverRegistry(observers: observers)
-        self.pipelineTypeName = pipelineTypeName ?? "ContextAwarePipeline"
+        self.middleware = PipelineObservabilityMiddleware(
+            observers: observers,
+            pipelineTypeName: pipelineTypeName ?? String(describing: type(of: pipeline))
+        )
     }
     
     public func execute<T: Command>(_ command: T, context: CommandContext) async throws -> T.Result {
-        let startTime = Date()
-        let metadata = await context.commandMetadata
-        let correlationId = ObservabilityUtils.extractCorrelationId(from: metadata)
-        
-        // Create enhanced metadata that includes observability context
-        let observableMetadata = ObservableCommandMetadata(
-            baseMetadata: metadata,
-            observerRegistry: observerRegistry,
-            traceId: correlationId
-        )
-        
-        // Notify observers that pipeline execution is starting
-        await observerRegistry.notifyPipelineWillExecute(command, metadata: observableMetadata, pipelineType: pipelineTypeName)
-        
-        do {
-            // Create a new context with the observable metadata
-            let observableContext = CommandContext(metadata: observableMetadata)
-            
-            // Execute the wrapped pipeline with observable context
-            let result = try await wrappedPipeline.execute(command, context: observableContext)
-            
-            // Calculate duration and notify success
-            let duration = Date().timeIntervalSince(startTime)
-            await observerRegistry.notifyPipelineDidExecute(
-                command,
-                result: result,
-                metadata: observableMetadata,
-                pipelineType: pipelineTypeName,
-                duration: duration
-            )
-            
-            return result
-            
-        } catch {
-            // Calculate duration and notify failure
-            let duration = Date().timeIntervalSince(startTime)
-            await observerRegistry.notifyPipelineDidFail(
-                command,
-                error: error,
-                metadata: observableMetadata,
-                pipelineType: pipelineTypeName,
-                duration: duration
-            )
-            
-            throw error
+        // Use the middleware to wrap the pipeline execution
+        return try await middleware.execute(command, context: context) { cmd, ctx in
+            try await self.wrappedPipeline.execute(cmd, context: ctx)
         }
     }
 }
 
-// MARK: - Observable Command Metadata
-
-/// Enhanced metadata that carries observability context
-public struct ObservableCommandMetadata: CommandMetadata {
-    public let baseMetadata: CommandMetadata
-    public let observerRegistry: ObserverRegistry
-    public let spanContext: SpanContext
-    
-    // CommandMetadata conformance
-    public var id: UUID { baseMetadata.id }
-    public var timestamp: Date { baseMetadata.timestamp }
-    public var userId: String? { baseMetadata.userId }
-    public var correlationId: String? { baseMetadata.correlationId }
-    
-    public init(
-        baseMetadata: CommandMetadata,
-        observerRegistry: ObserverRegistry,
-        traceId: String
-    ) {
-        self.baseMetadata = baseMetadata
-        self.observerRegistry = observerRegistry
-        self.spanContext = SpanContext(
-            traceId: traceId,
-            operation: "pipeline_execution"
-        )
-    }
-}
 
 // MARK: - Observable Middleware Decorator
 
@@ -174,17 +114,12 @@ public struct ObservableMiddlewareDecorator<M: Middleware>: Middleware {
         context: CommandContext,
         next: @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
-        let metadata = await context.commandMetadata
+        let metadata = context.commandMetadata
         let correlationId = ObservabilityUtils.extractCorrelationId(from: metadata)
         let startTime = Date()
         
-        // Get observer registry from metadata if available
-        let observerRegistry: ObserverRegistry? = {
-            if let observableMetadata = metadata as? ObservableCommandMetadata {
-                return observableMetadata.observerRegistry
-            }
-            return nil
-        }()
+        // Get observer registry from context if available
+        let observerRegistry = context.get(ObserverRegistryKey.self)
         
         // Notify that middleware is starting
         await observerRegistry?.notifyMiddlewareWillExecute(middlewareName, order: order, correlationId: correlationId)
@@ -247,20 +182,20 @@ public struct ObservableContextAwareMiddlewareDecorator<M: Middleware>: Middlewa
         let startTime = Date()
         
         // Get span context from the command context
-        let spanContext = await context.getOrCreateSpanContext(operation: "middleware_execution")
+        let spanContext = context.getOrCreateSpanContext(operation: "middleware_execution")
         let correlationId = spanContext.traceId
         
         // Get observer registry from context
-        let observerRegistry = await context.getObserverRegistry()
+        let observerRegistry = context.getObserverRegistry()
         
         // Create child span for this middleware
-        let _ = await context.createChildSpan(
+        let _ = context.createChildSpan(
             operation: middlewareName,
             tags: ["middleware.name": middlewareName, "middleware.order": String(order)]
         )
         
         // Start performance timer
-        await context.startTimer("middleware.\(middlewareName)")
+        context.startTimer("middleware.\(middlewareName)")
         
         // Notify that middleware is starting
         await observerRegistry?.notifyMiddlewareWillExecute(middlewareName, order: order, correlationId: correlationId)
@@ -270,7 +205,7 @@ public struct ObservableContextAwareMiddlewareDecorator<M: Middleware>: Middlewa
             let result = try await wrappedMiddleware.execute(command, context: context, next: next)
             
             // End performance timer
-            await context.endTimer("middleware.\(middlewareName)")
+            context.endTimer("middleware.\(middlewareName)")
             
             // Calculate duration and notify success
             let duration = Date().timeIntervalSince(startTime)
@@ -285,7 +220,7 @@ public struct ObservableContextAwareMiddlewareDecorator<M: Middleware>: Middlewa
             
         } catch {
             // End performance timer
-            await context.endTimer("middleware.\(middlewareName)")
+            context.endTimer("middleware.\(middlewareName)")
             
             // Calculate duration and notify failure
             let duration = Date().timeIntervalSince(startTime)
@@ -308,13 +243,6 @@ public extension Pipeline {
     /// Wraps this pipeline with observability
     func withObservability(observers: [PipelineObserver] = []) -> ObservablePipeline {
         return ObservablePipeline(wrapping: self, observers: observers)
-    }
-}
-
-public extension Pipeline {
-    /// Wraps this pipeline with observability (context-aware version)
-    func withContextAwareObservability(observers: [PipelineObserver] = []) -> ObservableContextAwarePipeline {
-        return ObservableContextAwarePipeline(wrapping: self, observers: observers)
     }
 }
 

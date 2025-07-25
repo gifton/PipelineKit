@@ -3,6 +3,8 @@ import Foundation
 @testable import PipelineKit
 
 final class BackPressureMiddlewareTestsV2: XCTestCase {
+    private let synchronizer = TestSynchronizer()
+    private let timeoutTester = TimeoutTester()
     
     func testSuccessfulExecutionUnderLimit() async throws {
         // Given
@@ -12,12 +14,15 @@ final class BackPressureMiddlewareTestsV2: XCTestCase {
         
         let command = BPTestCommand(value: "test")
         let context = CommandContext()
+        let workSimulator = TestSynchronizer()
         
         // When
         let result = try await middleware.execute(command, context: context) { cmd, _ in
-            // Simulate some work
-            try await Task.sleep(nanoseconds: 10_000_000) // 10ms
-            return cmd.value
+            // Simulate work without actual delay
+            await workSimulator.signal("work-started")
+            let result = cmd.value
+            await workSimulator.wait(for: "work-completed")
+            return result
         }
         
         // Then
@@ -47,215 +52,386 @@ final class BackPressureMiddlewareTestsV2: XCTestCase {
                     await executionOrder.append(i)
                     
                     // Hold the semaphore for a bit
-                    try await Task.sleep(nanoseconds: 50_000_000) // 50ms
+                    await self.synchronizer.mediumDelay()
+                    
+                    await executionOrder.append(i + 100) // Mark completion
                     return cmd.value
                 }
             }
         }
         
-        // Then - All should complete
-        for (i, task) in tasks.enumerated() {
-            let result = try await task.value
-            XCTAssertEqual(result, "test-\(i)")
+        // Wait for all
+        let results = try await withThrowingTaskGroup(of: String.self) { group in
+            for task in tasks {
+                group.addTask {
+                    try await task.value
+                }
+            }
+            
+            var collected: [String] = []
+            for try await result in group {
+                collected.append(result)
+            }
+            return collected
         }
         
-        // Verify that all commands executed
-        let count = await executionOrder.getCount()
-        XCTAssertEqual(count, 5)
+        // Then
+        XCTAssertEqual(results.count, 5)
+        
+        // Verify concurrent execution was limited
+        let order = await executionOrder.getOrder()
+        
+        // Check that at most 2 were executing at any time
+        var concurrent = 0
+        var maxConcurrent = 0
+        
+        for event in order {
+            if event < 100 {
+                // Started
+                concurrent += 1
+                maxConcurrent = max(maxConcurrent, concurrent)
+            } else {
+                // Completed
+                concurrent -= 1
+            }
+        }
+        
+        XCTAssertLessThanOrEqual(maxConcurrent, 2, "Should limit concurrency to 2")
     }
     
-    func testBackPressureRejection() async throws {
-        // Given - Low maxOutstanding to trigger rejection
+    func testDropStrategyUnderPressure() async throws {
+        // Given
         let middleware = BackPressureMiddleware(
             maxConcurrency: 1,
             maxOutstanding: 2,
             strategy: .dropNewest
         )
         
-        // Block the semaphore with a long-running task
-        let blockingTask = Task {
-            let command = BPTestCommand(value: "blocking")
-            let context = CommandContext()
+        var results: [Result<String, Error>] = []
+        
+        // When - Try to execute 5 commands with outstanding limit of 2
+        await withTaskGroup(of: Result<String, Error>.self) { group in
+            for i in 0..<5 {
+                group.addTask {
+                    let command = BPTestCommand(value: "test-\(i)")
+                    let context = CommandContext()
+                    
+                    do {
+                        let result = try await middleware.execute(command, context: context) { cmd, _ in
+                            // First one will take time
+                            if i == 0 {
+                                await self.synchronizer.mediumDelay()
+                            }
+                            return cmd.value
+                        }
+                        return .success(result)
+                    } catch {
+                        return .failure(error)
+                    }
+                }
+            }
             
-            return try await middleware.execute(command, context: context) { cmd, _ in
-                try await Task.sleep(nanoseconds: 500_000_000) // 500ms
-                return cmd.value
+            for await result in group {
+                results.append(result)
             }
         }
         
-        // Try to queue more than maxOutstanding
-        let rejectedTracker = ExecutionTracker()
-        let tasks = (0..<3).map { i in
+        // Then
+        let successes = results.compactMap { try? $0.get() }
+        let failures = results.compactMap { result in
+            if case .failure(let error) = result {
+                return error
+            }
+            return nil
+        }
+        
+        XCTAssertGreaterThan(failures.count, 0, "Some commands should be dropped")
+        XCTAssertLessThanOrEqual(successes.count, 3, "At most 3 should succeed (1 executing + 2 queued)")
+        
+        // Verify drops are BackPressureError
+        for error in failures {
+            XCTAssertTrue(error is BackPressureError)
+        }
+    }
+    
+    func testSuspendStrategyUnderPressure() async throws {
+        // Given
+        let middleware = BackPressureMiddleware(
+            maxConcurrency: 1,
+            maxOutstanding: 3,
+            strategy: .suspend
+        )
+        
+        let startTimes = ExecutionTracker()
+        
+        // When - All should eventually execute
+        let tasks = (0..<5).map { i in
             Task {
+                await startTimes.append(i)
+                
                 let command = BPTestCommand(value: "test-\(i)")
                 let context = CommandContext()
                 
-                do {
-                    return try await middleware.execute(command, context: context) { cmd, _ in
-                        cmd.value
-                    }
-                } catch {
-                    await rejectedTracker.append(i)
-                    return "rejected"
+                return try await middleware.execute(command, context: context) { cmd, _ in
+                    // Simulate varying work
+                    await self.synchronizer.shortDelay()
+                    return cmd.value
                 }
             }
         }
         
-        // Give tasks time to attempt execution
-        try await Task.sleep(nanoseconds: 50_000_000) // 50ms
-        
-        // Cancel blocking task
-        blockingTask.cancel()
-        
-        // Wait for all tasks
-        for task in tasks {
-            _ = await task.value
-        }
-        
-        // At least one should have been rejected
-        let rejectedCount = await rejectedTracker.getCount()
-        XCTAssertGreaterThan(rejectedCount, 0)
-    }
-    
-    func testBackPressurePriority() {
-        let middleware = BackPressureMiddleware(maxConcurrency: 1)
-        XCTAssertEqual(middleware.priority, .throttling)
-    }
-    
-    func testBackPressureWithFailure() async throws {
-        // Given
-        let middleware = BackPressureMiddleware(maxConcurrency: 2)
-        
-        let command = BPTestCommand(value: "fail")
-        let context = CommandContext()
-        
-        // When/Then
-        do {
-            _ = try await middleware.execute(command, context: context) { cmd, _ in
-                throw BPTestError.intentionalFailure
+        // Wait for all with timeout
+        let results = try await withTimeout(seconds: 2.0) {
+            try await withThrowingTaskGroup(of: String.self) { group in
+                for task in tasks {
+                    group.addTask {
+                        try await task.value
+                    }
+                }
+                
+                var collected: [String] = []
+                for try await result in group {
+                    collected.append(result)
+                }
+                return collected
             }
-            XCTFail("Should have thrown error")
-        } catch {
-            // Expected
         }
         
-        // Verify stats - semaphore should be released after failure
-        let stats = await middleware.getStats()
-        XCTAssertLessThanOrEqual(stats.activeOperations, stats.maxConcurrency)
+        // Then - All should complete
+        XCTAssertEqual(results.count, 5)
+        
+        // Verify suspension worked
+        let order = await startTimes.getOrder()
+        XCTAssertEqual(order.count, 5, "All tasks should have started")
     }
     
-    func testBackPressureStats() async throws {
+    func testMemoryPressureStrategy() async throws {
+        // Given
+        let middleware = BackPressureMiddleware(
+            maxConcurrency: 2,
+            maxOutstanding: 10,
+            maxQueueMemory: 1024, // 1KB limit
+            strategy: .dropOldest
+        )
+        
+        // When - Submit commands with memory estimates
+        var results: [Result<String, Error>] = []
+        
+        await withTaskGroup(of: Result<String, Error>.self) { group in
+            for i in 0..<10 {
+                group.addTask {
+                    let command = BPTestCommand(value: String(repeating: "x", count: 200)) // ~200 bytes
+                    let context = CommandContext()
+                    
+                    do {
+                        let result = try await middleware.execute(
+                            command,
+                            context: context,
+                            estimatedSize: 200
+                        ) { cmd, _ in
+                            // Slow processing to build queue
+                            await self.synchronizer.mediumDelay()
+                            return cmd.value
+                        }
+                        return .success(result)
+                    } catch {
+                        return .failure(error)
+                    }
+                }
+            }
+            
+            for await result in group {
+                results.append(result)
+            }
+        }
+        
+        // Then
+        let failures = results.compactMap { result in
+            if case .failure(let error) = result {
+                return error
+            }
+            return nil
+        }
+        XCTAssertGreaterThan(failures.count, 0, "Some commands should be dropped due to memory pressure")
+        
+        // Check memory errors
+        let memoryErrors = failures.compactMap { $0 as? BackPressureError }
+        let hasMemoryPressure = memoryErrors.contains { error in
+            if case .memoryPressure = error {
+                return true
+            }
+            return false
+        }
+        XCTAssertTrue(hasMemoryPressure, "Should have memory pressure errors")
+    }
+    
+    func testHealthCheck() async throws {
+        // Given
+        let middleware = BackPressureMiddleware(
+            maxConcurrency: 2,
+            maxOutstanding: 5
+        )
+        
+        // When - Fill up queue
+        let blockingTasks = (0..<6).map { i in
+            Task {
+                let command = BPTestCommand(value: "blocking-\(i)")
+                let context = CommandContext()
+                
+                _ = try? await middleware.execute(command, context: context) { cmd, _ in
+                    // Block indefinitely (or very long)
+                    await self.synchronizer.longDelay()
+                    return cmd.value
+                }
+            }
+        }
+        
+        // Give time for queue to fill
+        await synchronizer.mediumDelay()
+        
+        // Check health
+        let health = await middleware.healthCheck()
+        
+        // Then
+        XCTAssertFalse(health.isHealthy, "Should be unhealthy when queue is > 80% full")
+        XCTAssertGreaterThanOrEqual(health.queueUtilization, 0.8)
+        
+        // Cleanup
+        blockingTasks.forEach { $0.cancel() }
+    }
+    
+    func testRateLimitIntegration() async throws {
+        // Given
+        let middleware = BackPressureMiddleware(
+            maxConcurrency: 10
+            // Rate limiting is not available in this version
+        )
+        
+        let executionTimes = ExecutionTracker()
+        
+        // When - Try to execute 10 commands rapidly
+        let startTime = Date()
+        
+        await withTaskGroup(of: Void.self) { group in
+            for i in 0..<10 {
+                group.addTask {
+                    let command = BPTestCommand(value: "rate-\(i)")
+                    let context = CommandContext()
+                    
+                    _ = try? await middleware.execute(command, context: context) { cmd, _ in
+                        await executionTimes.append(Int(Date().timeIntervalSince(startTime) * 1000)) // ms
+                        return cmd.value
+                    }
+                }
+            }
+        }
+        
+        // Then
+        let times = await executionTimes.getOrder()
+        
+        // First 5 should execute immediately (< 100ms)
+        let firstBatch = times.prefix(5)
+        for time in firstBatch {
+            XCTAssertLessThan(time, 100, "First batch should execute quickly")
+        }
+        
+        // Next 5 should be delayed (~1 second)
+        if times.count > 5 {
+            let secondBatch = times.dropFirst(5)
+            for time in secondBatch {
+                XCTAssertGreaterThan(time, 900, "Second batch should be rate limited")
+            }
+        }
+    }
+    
+    func testStatsAccuracy() async throws {
         // Given
         let middleware = BackPressureMiddleware(
             maxConcurrency: 3,
             maxOutstanding: 10
         )
         
-        // Initial stats
-        let initialStats = await middleware.getStats()
-        XCTAssertEqual(initialStats.maxConcurrency, 3)
-        XCTAssertEqual(initialStats.maxOutstanding, 10)
-        XCTAssertEqual(initialStats.activeOperations, 0)
-        XCTAssertEqual(initialStats.queuedOperations, 0)
-        
-        // When - Start multiple executions
-        let task1 = Task {
-            let command = BPTestCommand(value: "1")
+        // When - Create specific scenario
+        let blocker = Task {
+            let command = BPTestCommand(value: "blocker")
             let context = CommandContext()
-            return try await middleware.execute(command, context: context) { cmd, _ in
-                try await Task.sleep(nanoseconds: 100_000_000) // 100ms
+            
+            _ = try? await middleware.execute(command, context: context) { cmd, _ in
+                await self.synchronizer.longDelay()
                 return cmd.value
             }
         }
         
-        let task2 = Task {
-            let command = BPTestCommand(value: "2")
-            let context = CommandContext()
-            return try await middleware.execute(command, context: context) { cmd, _ in
-                try await Task.sleep(nanoseconds: 100_000_000) // 100ms
-                return cmd.value
-            }
-        }
-        
-        // Give tasks time to acquire semaphore
-        try await Task.sleep(nanoseconds: 10_000_000) // 10ms
-        
-        // Check stats during execution
-        let duringStats = await middleware.getStats()
-        XCTAssertGreaterThan(duringStats.activeOperations, 0)
-        
-        // Wait for completion
-        _ = try await task1.value
-        _ = try await task2.value
-        
-        // Final stats should show resources released
-        let finalStats = await middleware.getStats()
-        XCTAssertEqual(finalStats.activeOperations, 0)
-    }
-    
-    func testConcurrentStressTest() async throws {
-        // Given
-        let middleware = BackPressureMiddleware(
-            maxConcurrency: 5,
-            maxOutstanding: 60
-        )
-        
-        // When - Execute many commands concurrently
-        let commandCount = 50
-        let tasks = (0..<commandCount).map { i in
+        // Add some queued items
+        let queued = (0..<5).map { i in
             Task {
-                let command = BPTestCommand(value: "stress-\(i)")
+                let command = BPTestCommand(value: "queued-\(i)")
                 let context = CommandContext()
                 
                 return try await middleware.execute(command, context: context) { cmd, _ in
-                    // Random work duration
-                    let sleepTime = UInt64.random(in: 1_000_000...10_000_000) // 1-10ms
-                    try await Task.sleep(nanoseconds: sleepTime)
                     return cmd.value
                 }
             }
         }
         
-        // Then - All should complete without errors
-        for (i, task) in tasks.enumerated() {
-            let result = try await task.value
-            XCTAssertEqual(result, "stress-\(i)")
-        }
+        // Let queue build
+        await synchronizer.mediumDelay()
         
-        // Verify final state
-        let finalStats = await middleware.getStats()
-        XCTAssertEqual(finalStats.activeOperations, 0)
-        XCTAssertEqual(finalStats.queuedOperations, 0)
+        // Get stats
+        let stats = await middleware.getStats()
+        
+        // Then
+        XCTAssertEqual(stats.currentConcurrency, 1, "One blocker executing")
+        XCTAssertGreaterThan(stats.queuedRequests, 0, "Should have queued requests")
+        XCTAssertGreaterThan(stats.totalProcessed, 0, "Should track processed count")
+        
+        // Cleanup
+        blocker.cancel()
+        queued.forEach { $0.cancel() }
     }
 }
 
-// Test support types
+// MARK: - Test Helpers
+
 private struct BPTestCommand: Command {
     typealias Result = String
     let value: String
-    
-    func execute() async throws -> String {
-        return value
-    }
 }
 
-private enum BPTestError: Error {
-    case intentionalFailure
-}
-
-// Helper actor to track concurrent executions
 private actor ExecutionTracker {
-    private var executionOrder: [Int] = []
+    private var order: [Int] = []
     
     func append(_ value: Int) {
-        executionOrder.append(value)
-    }
-    
-    func getCount() -> Int {
-        return executionOrder.count
+        order.append(value)
     }
     
     func getOrder() -> [Int] {
-        return executionOrder
+        return order
     }
 }
+
+// Timeout helper
+private func withTimeout<T>(
+    seconds: TimeInterval,
+    operation: @escaping () async throws -> T
+) async throws -> T {
+    try await withThrowingTaskGroup(of: T.self) { group in
+        group.addTask {
+            try await operation()
+        }
+        
+        group.addTask {
+            let tester = TimeoutTester()
+            try await tester.runWithTimeout(seconds) {
+                // Timeout task
+            }
+            throw TimeoutError()
+        }
+        
+        let result = try await group.next()!
+        group.cancelAll()
+        return result
+    }
+}
+
+private struct TimeoutError: Error {}

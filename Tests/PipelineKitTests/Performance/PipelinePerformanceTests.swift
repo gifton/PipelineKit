@@ -1,7 +1,7 @@
 import XCTest
 @testable import PipelineKit
 
-final class PipelinePerformanceTests: XCTestCase {
+final class PipelinePerformanceTests: PerformanceBenchmark {
     
     struct BenchmarkCommand: Command {
         typealias Result = Int
@@ -45,7 +45,40 @@ final class PipelinePerformanceTests: XCTestCase {
         }
     }
     
-    func testPipelinePerformance() async throws {
+    func testPipelineExecutionPerformance() async throws {
+        // Benchmark basic pipeline execution
+        let pipeline = StandardPipeline(handler: BenchmarkHandler())
+        let command = BenchmarkCommand(value: 42)
+        let context = CommandContext()
+        
+        try await benchmark("Pipeline Execution") {
+            _ = try await pipeline.execute(command, context: context)
+        }
+    }
+    
+    func testPipelineThroughput() async throws {
+        // Measure operations per second
+        let pipeline = StandardPipeline(handler: BenchmarkHandler())
+        let command = BenchmarkCommand(value: 42)
+        let context = CommandContext()
+        
+        try await benchmarkThroughput("Pipeline Throughput") {
+            _ = try await pipeline.execute(command, context: context)
+        }
+    }
+    
+    func testPipelineLatency() async throws {
+        // Measure latency percentiles
+        let pipeline = StandardPipeline(handler: BenchmarkHandler())
+        let command = BenchmarkCommand(value: 42)
+        let context = CommandContext()
+        
+        try await benchmarkLatency("Pipeline Latency", samples: 1000) {
+            _ = try await pipeline.execute(command, context: context)
+        }
+    }
+    
+    func testOriginalPipelinePerformance() async throws {
         let pipeline = StandardPipeline(handler: BenchmarkHandler())
         let counter = Actor(0)
         
@@ -54,24 +87,20 @@ final class PipelinePerformanceTests: XCTestCase {
             try await pipeline.addMiddleware(CounterMiddleware(counter: counter))
         }
         
-        let startTime = CFAbsoluteTimeGetCurrent()
-        
-        // Execute 1000 commands
-        for i in 0..<1000 {
-            _ = try await pipeline.execute(
-                BenchmarkCommand(value: i),
-                context: CommandContext(metadata: StandardCommandMetadata())
-            )
+        // Benchmark with proper measurement infrastructure
+        try await benchmark("Pipeline with 10 middlewares", iterations: 10) {
+            for i in 0..<100 {
+                _ = try await pipeline.execute(
+                    BenchmarkCommand(value: i),
+                    context: CommandContext(metadata: StandardCommandMetadata())
+                )
+            }
         }
         
-        let endTime = CFAbsoluteTimeGetCurrent()
-        let elapsed = endTime - startTime
-        
-        print("Pipeline execution time: \(elapsed) seconds")
-        print("Average time per command: \(elapsed / 1000) seconds")
-        
+        // Verify middleware execution count
+        let totalCommands = 10 * 100 // iterations * commands per iteration
         let count = await counter.get()
-        XCTAssertEqual(count, 10000) // 10 middlewares * 1000 commands
+        XCTAssertEqual(count, totalCommands * 10) // total commands * middlewares
     }
     
     func testConcurrentPipelinePerformance() async throws {
@@ -80,27 +109,53 @@ final class PipelinePerformanceTests: XCTestCase {
         
         await concurrentPipeline.register(BenchmarkCommand.self, pipeline: executor)
         
-        let commands = autoreleasepool {
-            (0..<1000).map { BenchmarkCommand(value: $0) }
+        // Test throughput of concurrent execution
+        let throughput = try await benchmarkThroughput("Concurrent Pipeline Throughput", duration: 2.0) {
+            _ = try await concurrentPipeline.execute(
+                BenchmarkCommand(value: 42),
+                context: CommandContext()
+            )
         }
         
-        let startTime = CFAbsoluteTimeGetCurrent()
+        print("Concurrent pipeline throughput: \(Int(throughput)) ops/sec")
+        XCTAssertGreaterThan(throughput, 100, "Should process at least 100 ops/sec")
         
-        let results = try await concurrentPipeline.executeConcurrently(commands)
+        // Test batch execution performance
+        let commands = (0..<100).map { BenchmarkCommand(value: $0) }
         
-        let endTime = CFAbsoluteTimeGetCurrent()
-        let elapsed = endTime - startTime
-        
-        print("Concurrent pipeline execution time: \(elapsed) seconds")
-        print("Average time per command: \(elapsed / 1000) seconds")
-        
-        XCTAssertEqual(results.count, 1000)
-        
-        // Verify all succeeded
-        for result in results {
-            if case .failure = result {
-                XCTFail("Unexpected failure in concurrent execution")
+        try await benchmark("Concurrent Batch Execution", iterations: 10) {
+            let results = try await concurrentPipeline.executeConcurrently(commands)
+            
+            // Verify all succeeded
+            XCTAssertEqual(results.count, commands.count)
+            for result in results {
+                if case .failure = result {
+                    XCTFail("Unexpected failure in concurrent execution")
+                }
             }
         }
+    }
+    
+    func testPipelineWithVsWithoutMiddleware() async throws {
+        let handler = BenchmarkHandler()
+        let command = BenchmarkCommand(value: 42)
+        let context = CommandContext()
+        
+        // Compare pipeline performance with middleware overhead
+        try await comparePerformance("Pipeline middleware overhead",
+            baseline: {
+                // Pipeline with middleware (baseline for comparison)
+                let pipeline = StandardPipeline(handler: handler)
+                for i in 0..<5 {
+                    try await pipeline.addMiddleware(CounterMiddleware(counter: Actor(i)))
+                }
+                _ = try await pipeline.execute(command, context: context)
+            },
+            optimized: {
+                // Pipeline without middleware (should be faster)
+                let pipeline = StandardPipeline(handler: handler)
+                _ = try await pipeline.execute(command, context: context)
+            }
+        )
     }
 }

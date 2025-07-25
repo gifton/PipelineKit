@@ -47,27 +47,27 @@ final class CommandTests: XCTestCase {
     }
     
     func testCommandContext() async throws {
-        let context = await CommandContext.test(
+        let context = CommandContext.test(
             userId: "user-123",
             correlationId: "corr-123",
             additionalData: ["key": "value"]
         )
         
-        let metadata = await context.commandMetadata
+        let metadata = context.commandMetadata
         XCTAssertNotNil(metadata)
         XCTAssertEqual(metadata.userId, "user-123")
         XCTAssertEqual(metadata.correlationId, "corr-123")
     }
     
     func testCommandContextWithCustomKeys() async throws {
-        let context = await CommandContext.test()
+        let context = CommandContext.test()
         
         // Set values using proper context keys
-        await context.set("customValue", for: TestCustomValueKey.self)
-        await context.set(42, for: TestNumberKey.self)
+        context.set("customValue", for: TestCustomValueKey.self)
+        context.set(42, for: TestNumberKey.self)
         
-        let customValue = await context.get(TestCustomValueKey.self)
-        let numberValue = await context.get(TestNumberKey.self)
+        let customValue = context.get(TestCustomValueKey.self)
+        let numberValue = context.get(TestNumberKey.self)
         
         XCTAssertEqual(customValue, "customValue")
         XCTAssertEqual(numberValue, 42)

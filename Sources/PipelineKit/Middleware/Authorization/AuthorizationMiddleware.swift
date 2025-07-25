@@ -2,7 +2,7 @@ import Foundation
 
 /// Authorization middleware with role-based access control.
 public struct AuthorizationMiddleware: Middleware {
-    public let priority: ExecutionPriority = .authorization
+    public let priority: ExecutionPriority = .validation
     private let requiredRoles: Set<String>
     private let getUserRoles: @Sendable (String) async throws -> Set<String>
 
@@ -25,12 +25,12 @@ public struct AuthorizationMiddleware: Middleware {
         }
         
         // Get authenticated user from context
-        guard let userId = await context[AuthenticatedUserKey.self] else {
+        guard let userId = context[AuthenticatedUserKey.self] else {
             throw AuthorizationError.notAuthenticated
         }
 
         let userRoles = try await getUserRoles(userId)
-        await context.set(userRoles, for: AuthorizationRolesKey.self)
+        context.set(userRoles, for: AuthorizationRolesKey.self)
 
         // Check if user has all required roles
         guard requiredRoles.isSubset(of: userRoles) else {
