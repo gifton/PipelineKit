@@ -239,7 +239,8 @@ final class ResilientMiddlewareTests: XCTestCase {
         }
         
         // Wait for reset timeout (with some buffer)
-        await synchronizer.mediumDelay()
+        // Circuit breaker timeout is 100ms, so we need to wait at least that long
+        try? await Task.sleep(nanoseconds: 150_000_000) // 150ms
         
         // Circuit should be half-open, allowing one attempt
         let result = try await middleware.execute(command, context: context) { cmd, _ in

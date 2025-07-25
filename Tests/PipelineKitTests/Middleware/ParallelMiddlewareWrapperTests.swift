@@ -85,9 +85,21 @@ final class ParallelMiddlewareWrapperTests: XCTestCase {
         ) async throws -> T.Result {
             await tracker.recordStart(middleware: name)
             
-            // Simulate work
+            // Simulate work with cancellation check
             if delay > 0 {
-                await self.synchronizer.shortDelay()
+                // Check for cancellation before starting work
+                try Task.checkCancellation()
+                
+                // Use Task.sleep which is cancellation-aware
+                do {
+                    try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+                } catch {
+                    // If cancelled during sleep, don't record end
+                    throw error
+                }
+                
+                // Check again after work
+                try Task.checkCancellation()
             }
             
             await tracker.recordEnd(middleware: name)
@@ -320,7 +332,7 @@ final class ParallelMiddlewareWrapperTests: XCTestCase {
             next: @Sendable (T, CommandContext) async throws -> T.Result
         ) async throws -> T.Result {
             if delay > 0 {
-                await self.synchronizer.shortDelay()
+                try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
             }
             throw error
         }

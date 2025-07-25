@@ -118,13 +118,13 @@ public struct ParallelMiddlewareWrapper: Middleware, Sendable {
         try await withThrowingTaskGroup(of: Void.self) { group in
             for middleware in middlewares {
                 group.addTask {
-                    // TODO: Context forking not implemented yet
-                    // For now, use the same context (not thread-safe for parallel execution)
+                    // Create a forked context for thread-safe parallel execution
+                    let forkedContext = context.fork()
                     
                     // Middleware should perform its side effects and not call next
                     // If it does call next, it will get an error
                     do {
-                        _ = try await middleware.execute(command, context: context, next: noOpNext)
+                        _ = try await middleware.execute(command, context: forkedContext, next: noOpNext)
                     } catch ParallelExecutionError.middlewareShouldNotCallNext {
                         // This is expected - middleware performed its side effects without calling next
                         return
@@ -135,7 +135,10 @@ public struct ParallelMiddlewareWrapper: Middleware, Sendable {
                 }
             }
             
-            try await group.waitForAll()
+            // Wait for all tasks, but if any task throws, all others are automatically cancelled
+            for try await _ in group {
+                // Tasks complete successfully
+            }
         }
     }
     
@@ -167,7 +170,10 @@ public struct ParallelMiddlewareWrapper: Middleware, Sendable {
                 }
             }
             
-            try await group.waitForAll()
+            // Wait for all tasks, but if any task throws, all others are automatically cancelled
+            for try await _ in group {
+                // Tasks complete successfully
+            }
         }
     }
     

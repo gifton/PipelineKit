@@ -154,8 +154,8 @@ final class EncryptionTests: XCTestCase {
         let encrypted1 = try await encryptor.encrypt(command1)
         let keyId1 = encrypted1.keyIdentifier
         
-        // Wait for rotation
-        await synchronizer.mediumDelay()
+        // Wait for rotation (key rotation interval is 0.1 seconds)
+        try? await Task.sleep(nanoseconds: 150_000_000) // 150ms
         
         let command2 = PaymentCommand(
             cardNumber: "5555-6666-7777-8888",
@@ -242,13 +242,14 @@ final class EncryptionTests: XCTestCase {
         let key3 = SymmetricKey(size: .bits256)
         
         await store.store(key: key1, identifier: "key1")
-        await synchronizer.shortDelay()
+        try? await Task.sleep(nanoseconds: 50_000_000) // 50ms
         await store.store(key: key2, identifier: "key2")
-        await synchronizer.shortDelay()
+        try? await Task.sleep(nanoseconds: 50_000_000) // 50ms
         await store.store(key: key3, identifier: "key3") // Current key
         
-        // Remove keys older than 0.05 seconds
-        let cutoff = Date().addingTimeInterval(-0.05)
+        // Remove keys older than 40ms
+        // At this point: key1 is ~100ms old, key2 is ~50ms old, key3 is ~0ms old
+        let cutoff = Date().addingTimeInterval(-0.04)
         await store.removeExpiredKeys(before: cutoff)
         
         // key1 and key2 should be removed, key3 should remain

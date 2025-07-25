@@ -46,9 +46,6 @@ let package = Package(
             dependencies: [
                 "PipelineMacros"
             ],
-            exclude: [
-                "Core/Optimization/PreCompiledPipeline.swift.disabled"
-            ],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency"),
                 // Enable System Programming Interface for internal module boundaries

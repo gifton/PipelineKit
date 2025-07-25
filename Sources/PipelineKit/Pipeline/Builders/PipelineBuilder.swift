@@ -153,9 +153,14 @@ public actor PipelineBuilder<T: Command, H: CommandHandler> where H.CommandType 
         return pipeline
     }
     
-    // Note: buildOptimized() has been temporarily removed due to generic type constraints
-    // The PreCompiledPipeline requires significant refactoring to work with the current
-    // generic constraints. This can be re-added once the type system issues are resolved.
+    /// Builds an optimized pipeline with pre-compiled middleware chain
+    public func buildOptimized() async throws -> PreCompiledPipeline<H> {
+        return PreCompiledPipeline(
+            handler: handler,
+            middleware: middlewares,
+            options: PipelineOptions()
+        )
+    }
     
     /// Applies middleware chain optimization to the pipeline.
     private func applyOptimization(to pipeline: StandardPipeline<T, H>) async {
