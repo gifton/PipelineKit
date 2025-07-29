@@ -78,7 +78,7 @@ struct PipelineFactory {
         
         // Optimization only in production
         return environment == .production 
-            ? try await builder.buildOptimized()
+            ? try await builder.build()
             : try await builder.build()
     }
 }

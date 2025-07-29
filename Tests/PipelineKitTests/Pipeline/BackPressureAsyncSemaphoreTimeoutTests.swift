@@ -2,20 +2,9 @@ import XCTest
 @testable import PipelineKit
 
 // DISABLED: BackPressureAsyncSemaphore timeout tests are temporarily disabled due to Swift compiler issues
-// with actor method visibility in test targets. Re-enable once the compiler issue is resolved.
+// with actor method visibility in test targets. The acquire(timeout:) method exists but is not visible to tests.
 /*
 final class BackPressureAsyncSemaphoreTimeoutTests: XCTestCase {
-    
-    // MARK: - Placeholder Tests
-    
-    func testPlaceholder() {
-        // TODO: The acquire(timeout:) method is not being recognized by the compiler
-        // This needs to be investigated
-        XCTAssertTrue(true, "BackPressureAsyncSemaphore timeout tests temporarily disabled")
-    }
-}
-    
-    // Original tests commented out until timeout methods are available
     
     // MARK: - Timeout Tests
     

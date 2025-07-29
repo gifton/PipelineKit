@@ -66,7 +66,7 @@ public struct PerformanceMiddleware: Middleware {
             metrics["processId"] = .int(Int(ProcessInfo.processInfo.processIdentifier))
         }
         
-        let measurement = PerformanceMeasurement(
+        let measurement = await PerformanceMiddleware.createMeasurement(
             commandName: commandName,
             executionTime: executionTime,
             isSuccess: isSuccess,

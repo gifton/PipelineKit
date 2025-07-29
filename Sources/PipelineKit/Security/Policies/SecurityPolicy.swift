@@ -199,11 +199,8 @@ public struct SecurityPolicyMiddleware: Middleware {
     
     /// Checks if a string contains HTML content
     private func containsHTML(_ string: String) -> Bool {
-        // Basic HTML tag detection
-        let htmlPattern = "<[^>]+>"
-        let regex = try? NSRegularExpression(pattern: htmlPattern, options: .caseInsensitive)
-        let range = NSRange(location: 0, length: string.utf16.count)
-        return regex?.firstMatch(in: string, options: [], range: range) != nil
+        // Use optimized pre-compiled regex
+        return OptimizedValidators.containsHTML(string)
     }
     
     /// Estimates the size of a value in bytes

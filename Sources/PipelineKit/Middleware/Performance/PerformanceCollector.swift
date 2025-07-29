@@ -7,7 +7,7 @@ public protocol PerformanceCollector: Sendable {
 }
 
 /// Sendable type for performance metric values
-public enum PerformanceMetricValue: Sendable {
+public enum PerformanceMetricValue: Sendable, Equatable {
     case int(Int)
     case double(Double)
     case string(String)

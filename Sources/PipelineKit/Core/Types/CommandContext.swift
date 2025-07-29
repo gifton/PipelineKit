@@ -22,7 +22,7 @@ public final class CommandContext: @unchecked Sendable {
     /// Pre-sized storage using integer keys for optimal performance.
     /// Most contexts use 8-16 keys.
     internal var storage: [Int: Any]
-    internal private(set) var metadata: CommandMetadata
+    internal var metadata: CommandMetadata
     internal let lock = NSLock()
     
     /// Creates a new command context with the given metadata.

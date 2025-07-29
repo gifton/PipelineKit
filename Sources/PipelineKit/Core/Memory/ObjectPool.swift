@@ -7,12 +7,12 @@ import Foundation
 /// command contexts, results, and temporary buffers.
 ///
 /// ## Features
-/// - Lock-free implementation using atomic operations
-/// - Configurable size limits
+/// - Thread-safe implementation using actor isolation
+/// - Configurable size limits with high/low water marks
 /// - Automatic cleanup of excess objects
-/// - Statistics tracking for monitoring
-/// - **Memory pressure handling with automatic shrinking**
-/// - **Configurable high/low water marks**
+/// - Comprehensive statistics tracking for monitoring
+/// - Memory pressure handling with automatic shrinking
+/// - Efficient acquire/release operations
 ///
 /// ## Example
 /// ```swift

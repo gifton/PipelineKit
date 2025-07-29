@@ -2,7 +2,7 @@ import XCTest
 import Foundation
 @testable import PipelineKit
 
-final class MetricsMiddlewareTestsV2: XCTestCase {
+final class MetricsMiddlewareTests: XCTestCase {
     private let synchronizer = TestSynchronizer()
     private let timeoutTester = TimeoutTester()
     
@@ -13,7 +13,7 @@ final class MetricsMiddlewareTestsV2: XCTestCase {
             collectedMetrics.append((name: name, duration: duration))
         }
         
-        let command = MetricsTestCommandV2(value: "test")
+        let command = MetricsTestCommand(value: "test")
         let context = CommandContext()
         context.set(Date(), for: RequestStartTimeKey.self)
         
@@ -27,7 +27,7 @@ final class MetricsMiddlewareTestsV2: XCTestCase {
         // Then
         XCTAssertEqual(result, "test")
         XCTAssertEqual(collectedMetrics.count, 1)
-        XCTAssertEqual(collectedMetrics[0].name, "MetricsTestCommandV2")
+        XCTAssertEqual(collectedMetrics[0].name, "MetricsTestCommand")
         XCTAssertGreaterThan(collectedMetrics[0].duration, 0.01) // At least 10ms
     }
     
@@ -38,7 +38,7 @@ final class MetricsMiddlewareTestsV2: XCTestCase {
             collectedMetrics.append((name: name, duration: duration))
         }
         
-        let command = MetricsTestCommandV2(value: "fail")
+        let command = MetricsTestCommand(value: "fail")
         let context = CommandContext()
         context.set(Date(), for: RequestStartTimeKey.self)
         
@@ -55,7 +55,7 @@ final class MetricsMiddlewareTestsV2: XCTestCase {
         
         // Verify failure metrics
         XCTAssertEqual(collectedMetrics.count, 1)
-        XCTAssertEqual(collectedMetrics[0].name, "MetricsTestCommandV2.error")
+        XCTAssertEqual(collectedMetrics[0].name, "MetricsTestCommand.error")
         XCTAssertGreaterThan(collectedMetrics[0].duration, 0.005) // At least 5ms
     }
     
@@ -66,7 +66,7 @@ final class MetricsMiddlewareTestsV2: XCTestCase {
             collectedMetrics.append((name: name, duration: duration))
         }
         
-        let command = MetricsTestCommandV2(value: "test")
+        let command = MetricsTestCommand(value: "test")
         let context = CommandContext()
         // No start time set - should use current time
         
@@ -110,7 +110,7 @@ final class MetricsMiddlewareTestsV2: XCTestCase {
         // When - Execute multiple commands concurrently
         let tasks = (0..<10).map { i in
             Task {
-                let command = MetricsTestCommandV2(value: "test-\(i)")
+                let command = MetricsTestCommand(value: "test-\(i)")
                 let context = CommandContext()
                 context.set(Date(), for: RequestStartTimeKey.self)
                 
@@ -132,7 +132,7 @@ final class MetricsMiddlewareTestsV2: XCTestCase {
         
         // Verify each metric has appropriate duration
         for (i, metric) in metrics.enumerated() {
-            XCTAssertEqual(metric.name, "MetricsTestCommandV2")
+            XCTAssertEqual(metric.name, "MetricsTestCommand")
             // Duration should be at least i milliseconds
             let expectedMinDuration = Double(i) / 1000.0
             if expectedMinDuration > 0 {
@@ -143,7 +143,7 @@ final class MetricsMiddlewareTestsV2: XCTestCase {
 }
 
 // Test support types
-private struct MetricsTestCommandV2: Command {
+private struct MetricsTestCommand: Command {
     typealias Result = String
     let value: String
     

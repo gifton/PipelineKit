@@ -245,6 +245,9 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: PipelineKit.Pipeli
     
     /// Type-safe execution for the specific command type this pipeline handles.
     private func executeTyped(_ command: C, context: CommandContext) async throws -> C.Result {
+        // Check for cancellation before starting
+        try Task.checkCancellation(context: "Pipeline execution cancelled before start")
+        
         // Apply back-pressure control if configured
         let token: SemaphoreToken?
         if let semaphore = semaphore {
@@ -267,6 +270,19 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: PipelineKit.Pipeli
         // Always initialize context first
         initializeContextIfNeeded(context)
         
+        // Check if we have an optimized fast path executor
+        if let optimizedChain = optimizationMetadata,
+           let fastPathExecutor = optimizedChain.fastPathExecutor {
+            // Use the optimized fast path executor
+            do {
+                return try await fastPathExecutor.execute(command, context: context) { cmd in
+                    try await self.handler.handle(cmd)
+                }
+            } catch OptimizationError.typeMismatch {
+                // Fall back to normal execution if type mismatch
+            }
+        }
+        
         // Fast path: No middleware
         if middlewares.isEmpty {
             return try await handler.handle(command)
@@ -275,8 +291,12 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: PipelineKit.Pipeli
         // Fast path: Single middleware
         if middlewares.count == 1 {
             let middleware = middlewares[0]
+            // Check for cancellation before executing single middleware
+            try Task.checkCancellation(context: "Pipeline execution cancelled before middleware")
             return try await middleware.execute(command, context: context) { cmd, _ in
-                try await self.handler.handle(cmd)
+                // Check for cancellation before handler
+                try Task.checkCancellation(context: "Pipeline execution cancelled before handler")
+                return try await self.handler.handle(cmd)
             }
         }
         
@@ -337,7 +357,9 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: PipelineKit.Pipeli
     private func compileMiddlewareChain() {
         // Start with the handler as the final step
         var chain: @Sendable (C, CommandContext) async throws -> C.Result = { [handler] cmd, _ in
-            try await handler.handle(cmd)
+            // Check for cancellation before executing handler
+            try Task.checkCancellation(context: "Pipeline execution cancelled before handler")
+            return try await handler.handle(cmd)
         }
         
         // Build the chain in reverse order
@@ -346,7 +368,9 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: PipelineKit.Pipeli
             let nextChain = chain
             
             chain = { cmd, ctx in
-                try await middleware.execute(cmd, context: ctx, next: nextChain)
+                // Check for cancellation before each middleware
+                try Task.checkCancellation(context: "Pipeline execution cancelled at middleware: \(String(describing: type(of: middleware)))")
+                return try await middleware.execute(cmd, context: ctx, next: nextChain)
             }
         }
         
@@ -410,6 +434,9 @@ public actor AnyStandardPipeline: Pipeline {
     
     /// Executes a command through the pipeline.
     public func execute<T: Command>(_ command: T, context: CommandContext) async throws -> T.Result {
+        // Check for cancellation before starting
+        try Task.checkCancellation(context: "Pipeline execution cancelled before start")
+        
         // Apply back-pressure if configured
         let token = if let semaphore = semaphore {
             try await semaphore.acquire()
@@ -426,6 +453,8 @@ public actor AnyStandardPipeline: Pipeline {
         }
         
         let finalHandler: @Sendable (T, CommandContext) async throws -> T.Result = { cmd, ctx in
+            // Check for cancellation before handler
+            try Task.checkCancellation(context: "Pipeline execution cancelled before handler")
             let result = try await self.executeHandler(cmd, ctx)
             guard let typedResult = result as? T.Result else {
                 throw PipelineErrorType.invalidCommandType
@@ -439,7 +468,9 @@ public actor AnyStandardPipeline: Pipeline {
             let middleware = middlewares[i]
             let next = chain
             chain = { cmd, ctx in
-                try await middleware.execute(cmd, context: ctx, next: next)
+                // Check for cancellation before each middleware
+                try Task.checkCancellation(context: "Pipeline execution cancelled at middleware: \(String(describing: type(of: middleware)))")
+                return try await middleware.execute(cmd, context: ctx, next: next)
             }
         }
         

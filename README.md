@@ -6,7 +6,6 @@
 
 A comprehensive, security-first Command-Pipeline architecture framework for Swift, featuring full concurrency support, robust middleware chains, enterprise-grade security features, and Swift macro support for simplified pipeline creation.
 
-> **📢 Important:** PipelineKit now uses a unified context-based API. If you're upgrading from v1.x, please see the [Migration Guide](MIGRATION_GUIDE.md).
 
 ## 🌟 Features
 
@@ -46,7 +45,7 @@ Add PipelineKit to your `Package.swift`:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/yourorg/PipelineKit", from: "1.0.0")
+    .package(url: "https://github.com/yourorg/PipelineKit", branch: "main")
 ]
 ```
 

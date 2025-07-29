@@ -291,7 +291,7 @@ public extension OSLogObserver {
             logLevel: .debug,
             includeCommandDetails: true,
             includeMetadata: true,
-            performanceThreshold: 0.1
+            performanceThreshold: PerformanceThresholds.development.slowMiddlewareThreshold
         ))
     }
     
@@ -302,7 +302,7 @@ public extension OSLogObserver {
             logLevel: .info,
             includeCommandDetails: false,
             includeMetadata: false,
-            performanceThreshold: 2.0
+            performanceThreshold: PerformanceThresholds.default.slowMiddlewareThreshold
         ))
     }
     
@@ -313,7 +313,7 @@ public extension OSLogObserver {
             logLevel: .info,
             includeCommandDetails: false,
             includeMetadata: false,
-            performanceThreshold: 0.5
+            performanceThreshold: PerformanceThresholds.strict.slowMiddlewareThreshold
         ))
     }
 }

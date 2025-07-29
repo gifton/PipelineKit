@@ -3,28 +3,11 @@ import Foundation
 /// A simple observer that logs pipeline events to the console with configurable formatting
 /// Useful for development and debugging purposes
 ///
-/// ## Design Decision: @unchecked Sendable with Thread-Local DateFormatter
-///
-/// This class uses `@unchecked Sendable` for the following reasons:
-///
-/// 1. **DateFormatter Thread Safety**: DateFormatter is not thread-safe, but we solve this
-///    by using thread-local storage. Each thread gets its own DateFormatter instance,
-///    eliminating any possibility of concurrent access.
-///
-/// 2. **All Other Properties Are Safe**:
-///    - `style`: Enum (inherently Sendable)
-///    - `level`: Enum with raw value (inherently Sendable)
-///    - `includeTimestamps`: Bool (inherently Sendable)
-///
-/// 3. **Thread-Local Storage Pattern**: The dateFormatter computed property uses
-///    Thread.current.threadDictionary to maintain one formatter per thread. This is a
-///    well-established pattern for making non-thread-safe objects safe in concurrent contexts.
-///
-/// 4. **Performance Optimization**: Creating DateFormatter instances is expensive. Thread-local
-///    storage provides the best balance between thread safety and performance.
-///
-/// The @unchecked annotation is required because Swift cannot analyze the thread-local
-/// storage pattern, but the implementation is genuinely thread-safe.
+/// This class inherits @unchecked Sendable from BaseObserver. All properties are Sendable:
+/// - `style`: Enum (inherently Sendable)
+/// - `level`: Enum with raw value (inherently Sendable)
+/// - `includeTimestamps`: Bool (inherently Sendable)
+/// - `dateFormatter`: SendableDateFormatter (thread-safe wrapper)
 public final class ConsoleObserver: BaseObserver, @unchecked Sendable {
     
     /// Formatting style for console output
@@ -50,20 +33,8 @@ public final class ConsoleObserver: BaseObserver, @unchecked Sendable {
     private let level: Level
     private let includeTimestamps: Bool
     
-    /// Thread-local storage key for date formatters
-    private static let dateFormatterKey = "ConsoleObserver.dateFormatter"
-    
-    /// Thread-safe access to DateFormatter using thread-local storage
-    /// This avoids the performance penalty of creating formatters while maintaining thread safety
-    private var dateFormatter: DateFormatter {
-        if let formatter = Thread.current.threadDictionary[Self.dateFormatterKey] as? DateFormatter {
-            return formatter
-        }
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm:ss.SSS"
-        Thread.current.threadDictionary[Self.dateFormatterKey] = formatter
-        return formatter
-    }
+    /// Thread-safe date formatter
+    private let dateFormatter = SendableDateFormatter.timestamp()
     
     public init(
         style: Style = .pretty,
@@ -155,7 +126,7 @@ public final class ConsoleObserver: BaseObserver, @unchecked Sendable {
         case .simple, .detailed:
             break // Skip success logs in simple/detailed mode for less noise
         case .pretty:
-            if duration > 0.1 { // Only log slow middleware
+            if duration > PerformanceConfiguration.thresholds.slowMiddlewareThreshold {
                 print("  \(timestamp)⚡ \(middlewareName) completed in \(formatDuration(duration))")
             }
         }

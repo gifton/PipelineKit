@@ -52,7 +52,7 @@ final class MinimalTest: XCTestCase {
                 SideEffectMiddleware(id: "m1"),
                 SideEffectMiddleware(id: "m2")
             ],
-            strategy: .sideEffectsOnly
+            strategy: .sideEffectsWithMerge
         )
         
         try await pipeline.addMiddleware(parallel)

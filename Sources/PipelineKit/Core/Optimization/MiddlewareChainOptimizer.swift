@@ -89,34 +89,31 @@ public actor MiddlewareChainOptimizer {
     }
     
     /// Fast path executor for common scenarios
-    public final class FastPathExecutor: @unchecked Sendable {
-        private let executor: @Sendable (Any, CommandContext) async throws -> Any
+    public struct FastPathExecutor: Sendable {
+        private let middleware: [any Middleware]
+        private let executorFunc: @Sendable (Any, CommandContext, @escaping @Sendable (Any) async throws -> Any) async throws -> Any
         
-        init<T: Command>(
+        init(
             middleware: [any Middleware],
-            handler: @escaping @Sendable (T, CommandContext) async throws -> T.Result
+            executorFunc: @escaping @Sendable (Any, CommandContext, @escaping @Sendable (Any) async throws -> Any) async throws -> Any
         ) {
-            // Pre-compile the execution chain
-            self.executor = { command, context in
-                guard let typedCommand = command as? T else {
-                    throw OptimizationError.typeMismatch
-                }
-                
-                // Direct execution without dynamic dispatch overhead
-                let result: T.Result = try await handler(typedCommand, context)
-                
-                // Note: In a real implementation, we'd inline the middleware
-                // execution here for maximum performance
-                
-                return result
-            }
+            self.middleware = middleware
+            self.executorFunc = executorFunc
         }
         
-        func execute<T: Command>(_ command: T, context: CommandContext) async throws -> T.Result {
-            let result = try await executor(command, context)
+        func execute<T: Command>(_ command: T, context: CommandContext, handler: @escaping @Sendable (T) async throws -> T.Result) async throws -> T.Result {
+            let result = try await executorFunc(command, context) { processedCommand in
+                guard let typedCommand = processedCommand as? T else {
+                    throw OptimizationError.typeMismatch
+                }
+                let handlerResult = try await handler(typedCommand)
+                return handlerResult as Any
+            }
+            
             guard let typedResult = result as? T.Result else {
                 throw OptimizationError.typeMismatch
             }
+            
             return typedResult
         }
     }
@@ -276,9 +273,91 @@ public actor MiddlewareChainOptimizer {
             return nil
         }
         
-        // In a real implementation, we'd generate specialized
-        // execution code here
-        return nil
+        // Generate specialized execution code based on middleware count
+        switch middleware.count {
+        case 0:
+            // Direct handler execution - no middleware to execute
+            return FastPathExecutor(
+                middleware: middleware,
+                executorFunc: { command, context, handler in
+                    // No middleware, directly call handler
+                    return try await handler(command)
+                }
+            )
+            
+        case 1:
+            // Single middleware optimization
+            let mw = middleware[0]
+            return FastPathExecutor(
+                middleware: middleware,
+                executorFunc: { command, context, handler in
+                    // Use a type-erased wrapper to handle the Command constraint
+                    struct TypeErasedCommand: Command {
+                        typealias Result = Any
+                        let wrapped: Any
+                    }
+                    
+                    let wrapped = TypeErasedCommand(wrapped: command)
+                    let result = try await mw.execute(wrapped, context: context) { cmd, ctx in
+                        try await handler((cmd as! TypeErasedCommand).wrapped)
+                    }
+                    return result
+                }
+            )
+            
+        case 2:
+            // Two middleware optimization
+            let mw1 = middleware[0]
+            let mw2 = middleware[1]
+            return FastPathExecutor(
+                middleware: middleware,
+                executorFunc: { command, context, handler in
+                    // Use a type-erased wrapper to handle the Command constraint
+                    struct TypeErasedCommand: Command {
+                        typealias Result = Any
+                        let wrapped: Any
+                    }
+                    
+                    let wrapped = TypeErasedCommand(wrapped: command)
+                    let result = try await mw1.execute(wrapped, context: context) { cmd1, ctx1 in
+                        try await mw2.execute(cmd1, context: ctx1) { cmd2, ctx2 in
+                            try await handler((cmd2 as! TypeErasedCommand).wrapped)
+                        }
+                    }
+                    return result
+                }
+            )
+            
+        case 3:
+            // Three middleware optimization
+            let mw1 = middleware[0]
+            let mw2 = middleware[1]
+            let mw3 = middleware[2]
+            return FastPathExecutor(
+                middleware: middleware,
+                executorFunc: { command, context, handler in
+                    // Use a type-erased wrapper to handle the Command constraint
+                    struct TypeErasedCommand: Command {
+                        typealias Result = Any
+                        let wrapped: Any
+                    }
+                    
+                    let wrapped = TypeErasedCommand(wrapped: command)
+                    let result = try await mw1.execute(wrapped, context: context) { cmd1, ctx1 in
+                        try await mw2.execute(cmd1, context: ctx1) { cmd2, ctx2 in
+                            try await mw3.execute(cmd2, context: ctx2) { cmd3, ctx3 in
+                                try await handler((cmd3 as! TypeErasedCommand).wrapped)
+                            }
+                        }
+                    }
+                    return result
+                }
+            )
+            
+        default:
+            // Should not reach here due to guard condition
+            return nil
+        }
     }
 }
 

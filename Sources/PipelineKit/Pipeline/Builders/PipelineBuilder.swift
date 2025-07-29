@@ -153,15 +153,6 @@ public actor PipelineBuilder<T: Command, H: CommandHandler> where H.CommandType 
         return pipeline
     }
     
-    /// Builds an optimized pipeline with pre-compiled middleware chain
-    public func buildOptimized() async throws -> PreCompiledPipeline<H> {
-        return PreCompiledPipeline(
-            handler: handler,
-            middleware: middlewares,
-            options: PipelineOptions()
-        )
-    }
-    
     /// Applies middleware chain optimization to the pipeline.
     private func applyOptimization(to pipeline: StandardPipeline<T, H>) async {
         let optimizer = MiddlewareChainOptimizer()

@@ -18,12 +18,6 @@ let package = Package(
             name: "PipelineKit",
             targets: ["PipelineKit"]
         ),
-        
-        // Future modular products (planned for v2.0):
-        // - PipelineKitCore: Essential pipeline functionality
-        // - PipelineKitSecurity: Authentication, authorization, encryption
-        // - PipelineKitObservability: Logging, metrics, monitoring  
-        // - PipelineKitExtensions: Optional features and utilities
     ],
     dependencies: [
         // Pin to exact version for reproducible builds
@@ -68,16 +62,6 @@ let package = Package(
                 .enableExperimentalFeature("StrictConcurrency")
             ]
         ),
-        // Integration tests disabled temporarily due to compilation errors
-        /*
-        .testTarget(
-            name: "PipelineKitIntegrationTests",
-            dependencies: ["PipelineKit"],
-            swiftSettings: [
-                .enableExperimentalFeature("StrictConcurrency")
-            ]
-        ),
-        */
         .testTarget(
             name: "PipelineMacrosTests",
             dependencies: [

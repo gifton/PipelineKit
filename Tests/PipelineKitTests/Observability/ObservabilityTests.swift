@@ -363,7 +363,7 @@ final class ObservabilityTests: XCTestCase {
         let handler = TestHandler()
         let pipeline = StandardPipeline(handler: handler)
         try await pipeline.addMiddleware(PerformanceTrackingMiddleware(
-            thresholds: PerformanceTrackingMiddleware.PerformanceThresholds(
+            thresholds: PerformanceThresholds(
                 slowCommandThreshold: 0.001, // Very low threshold to trigger alerts
                 slowMiddlewareThreshold: 0.001,
                 memoryUsageThreshold: 1

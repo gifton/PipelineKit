@@ -378,7 +378,7 @@ struct OrderSystem {
             .with(ValidationMiddleware())
             .with(SimpleLoggingMiddleware())
             .with(ErrorHandlingMiddleware())
-            .buildOptimized()
+            .build()
         
         // Create context with metadata
         let metadata = StandardCommandMetadata(

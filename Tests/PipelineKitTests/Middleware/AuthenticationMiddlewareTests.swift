@@ -2,7 +2,7 @@ import XCTest
 import Foundation
 @testable import PipelineKit
 
-final class AuthenticationMiddlewareTestsV2: XCTestCase {
+final class AuthenticationMiddlewareTests: XCTestCase {
     
     func testSuccessfulAuthentication() async throws {
         // Given

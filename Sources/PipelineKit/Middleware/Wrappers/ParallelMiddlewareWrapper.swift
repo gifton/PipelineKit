@@ -186,29 +186,28 @@ public struct ParallelMiddlewareWrapper: Middleware, Sendable {
             throw ParallelExecutionError.middlewareShouldNotCallNext
         }
         
-        // Execute middleware in parallel and collect contexts for merging
+        // Execute middleware with forked contexts and merge changes back
         try await withThrowingTaskGroup(of: CommandContext.self) { group in
             for middleware in middlewares {
                 group.addTask {
-                    // Create a forked context for this middleware
+                    // Create a forked context for thread-safe parallel execution
                     let forkedContext = context.fork()
                     
-                    // Execute middleware with forked context
                     do {
                         _ = try await middleware.execute(command, context: forkedContext, next: noOpNext)
+                        // If we get here, middleware didn't throw the expected error
+                        return forkedContext
                     } catch ParallelExecutionError.middlewareShouldNotCallNext {
-                        // Expected - return the forked context for merging
+                        // Expected - middleware completed its side effects
                         return forkedContext
                     } catch {
                         // Real error from the middleware
                         throw error
                     }
-                    
-                    return forkedContext
                 }
             }
             
-            // Collect all forked contexts and merge them back
+            // Wait for all tasks to complete and merge their contexts
             for try await forkedContext in group {
                 context.merge(from: forkedContext)
             }

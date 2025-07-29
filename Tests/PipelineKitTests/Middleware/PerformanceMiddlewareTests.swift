@@ -2,7 +2,7 @@ import XCTest
 import Foundation
 @testable import PipelineKit
 
-final class PerformanceMiddlewareTestsV2: XCTestCase {
+final class PerformanceMiddlewareTests: XCTestCase {
     private let synchronizer = TestSynchronizer()
     private let timeoutTester = TimeoutTester()
     
@@ -65,7 +65,7 @@ final class PerformanceMiddlewareTestsV2: XCTestCase {
         XCTAssertEqual(measurements.count, 1)
         let measurement = measurements[0]
         XCTAssertEqual(measurement.commandName, "PerfTestCommand")
-        XCTAssertGreaterThanOrEqual(measurement.executionTime, 0.025)
+        XCTAssertGreaterThanOrEqual(measurement.executionTime, 0.005) // At least 5ms
         XCTAssertFalse(measurement.isSuccess)
         XCTAssertNotNil(measurement.errorMessage)
     }

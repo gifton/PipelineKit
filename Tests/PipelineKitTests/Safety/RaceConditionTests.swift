@@ -1,7 +1,6 @@
 import XCTest
 // import Atomics // Removed - was used by removed components
 @testable import PipelineKit
-
 final class RaceConditionTests: XCTestCase {
     
     /* TODO: ShardedConcurrentQueue was removed

@@ -123,7 +123,7 @@ For better performance, use the optimized pipeline:
 let pipeline = try await PipelineBuilder(handler: handler)
     .with(middleware1)
     .with(middleware2)
-    .buildOptimized() // Pre-compiles execution path
+    .build() // Pre-compiles execution path
 ```
 
 ## Next Steps
@@ -187,7 +187,7 @@ let pipeline = try await PipelineBuilder(handler: handler)
    - Ensure your commands and middleware are thread-safe
 
 3. **Performance issues**
-   - Use `.buildOptimized()` for pre-compiled pipelines
+   - Use `.build()` for pre-compiled pipelines
    - Enable context pooling for high-throughput scenarios
 
 For more help, see our [Troubleshooting Guide](troubleshooting.md) or [file an issue](https://github.com/yourusername/PipelineKit/issues).

@@ -10,7 +10,7 @@ import Foundation
 ///     resetTimeout: 60.0
 /// )
 /// ```
-public actor CircuitBreaker: Sendable {
+public actor CircuitBreaker {
     public enum State: Sendable {
         case closed
         case open(until: Date)

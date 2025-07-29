@@ -163,23 +163,7 @@ public struct PerformanceTrackingMiddleware: Middleware {
     
     private let thresholds: PerformanceThresholds
     
-    public struct PerformanceThresholds: Sendable {
-        public let slowCommandThreshold: TimeInterval
-        public let slowMiddlewareThreshold: TimeInterval
-        public let memoryUsageThreshold: Int // MB
-        
-        public init(
-            slowCommandThreshold: TimeInterval = 1.0,
-            slowMiddlewareThreshold: TimeInterval = 0.1,
-            memoryUsageThreshold: Int = 100
-        ) {
-            self.slowCommandThreshold = slowCommandThreshold
-            self.slowMiddlewareThreshold = slowMiddlewareThreshold
-            self.memoryUsageThreshold = memoryUsageThreshold
-        }
-    }
-    
-    public init(thresholds: PerformanceThresholds = PerformanceThresholds()) {
+    public init(thresholds: PerformanceThresholds = PerformanceConfiguration.thresholds) {
         self.thresholds = thresholds
     }
     

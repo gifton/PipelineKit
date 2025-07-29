@@ -19,7 +19,7 @@ For feature requests:
 
 1. Use the feature request template
 2. Explain the use case and motivation
-3. Consider backward compatibility
+3. Consider API consistency
 4. Provide examples of the proposed API
 
 ### Pull Requests
@@ -378,8 +378,8 @@ Brief description of changes
 We use [Semantic Versioning](https://semver.org/):
 
 - **MAJOR**: Breaking changes
-- **MINOR**: New features (backward compatible)
-- **PATCH**: Bug fixes (backward compatible)
+- **MINOR**: New features
+- **PATCH**: Bug fixes
 
 ### Release Checklist
 

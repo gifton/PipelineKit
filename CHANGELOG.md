@@ -8,46 +8,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Nothing yet
+- Added `withBorrowedObject` method to `GenericObjectPool` for safe scoped borrowing
+- Added `withBorrowedMeasurement` method to `PerformanceMeasurementPool` for automatic cleanup
 
 ### Changed
-- Nothing yet
-
-### Deprecated
-- Nothing yet
+- Updated `PerformanceMiddleware.createMeasurement` to use scoped borrowing pattern
 
 ### Removed
 - Nothing yet
 
 ### Fixed
-- Nothing yet
+- Fixed PooledObject automatic return issue - deinit cannot call async actor methods
 
 ### Security
 - Nothing yet
 
-## [0.1.0] - 2024-01-15
+## [Planned for Initial Release]
 
-### Added
-- Initial release of PipelineKit
+### Features in Development
 - Core pipeline functionality with middleware pattern
-- Thread-safe `CommandContext` implementation with 94% performance improvement over actor-based approach
-- Pre-compiled pipeline optimization providing 30% faster execution
-- Parallel middleware execution support with up to 49% speedup on multi-core systems
+- Thread-safe `CommandContext` implementation
+- Parallel middleware execution support
 - Context pooling for reduced memory allocations
-- Middleware result caching with 99.8% hit rate in typical workloads
+- Middleware result caching
 - Comprehensive builder pattern for pipeline construction
 - Type-safe command and result handling
 - Flexible middleware prioritization system
 - Timeout middleware wrapper for execution monitoring
-- Batch processing support for high-throughput scenarios
-- Memory-efficient implementation (131 bytes per context)
+- Memory-efficient implementation
 - Full async/await support throughout the API
-- Comprehensive test suite with over 80% code coverage
+- Comprehensive test suite
 - Detailed documentation and examples
 - SwiftLint integration for code quality
 - GitHub Actions for CI/CD
-
-### Performance
 - Context operations: 94.4% faster than actor-based approach
 - Pipeline execution: 30% improvement with pre-compilation
 - Parallel execution: Up to 49% speedup with 4 cores

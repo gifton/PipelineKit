@@ -30,7 +30,7 @@ final class MockCommandHandler: CommandHandler {
 
 // MARK: - Mock Middleware
 
-final class MockAuthenticationMiddleware: Middleware, @unchecked Sendable {
+final class MockAuthenticationMiddleware: Middleware, Sendable {
     let priority = ExecutionPriority.authentication
     
     func execute<T: Command>(
@@ -46,7 +46,7 @@ final class MockAuthenticationMiddleware: Middleware, @unchecked Sendable {
     }
 }
 
-final class MockValidationMiddleware: Middleware, @unchecked Sendable {
+final class MockValidationMiddleware: Middleware, Sendable {
     let priority = ExecutionPriority.validation
     
     func execute<T: Command>(
@@ -67,6 +67,7 @@ final class MockValidationMiddleware: Middleware, @unchecked Sendable {
 final class MockLoggingMiddleware: Middleware, @unchecked Sendable {
     let priority = ExecutionPriority.postProcessing
     private(set) var loggedCommands: [String] = []
+    private let lock = NSLock()
     
     func execute<T: Command>(
         _ command: T,
@@ -74,7 +75,9 @@ final class MockLoggingMiddleware: Middleware, @unchecked Sendable {
         next: @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
         let commandName = String(describing: type(of: command))
-        loggedCommands.append(commandName)
+        lock.withLock {
+            loggedCommands.append(commandName)
+        }
         return try await next(command, context)
     }
 }
@@ -82,6 +85,7 @@ final class MockLoggingMiddleware: Middleware, @unchecked Sendable {
 final class MockMetricsMiddleware: Middleware, @unchecked Sendable {
     let priority = ExecutionPriority.postProcessing
     private(set) var recordedMetrics: [(command: String, duration: TimeInterval)] = []
+    private let lock = NSLock()
     
     func execute<T: Command>(
         _ command: T,
@@ -93,7 +97,9 @@ final class MockMetricsMiddleware: Middleware, @unchecked Sendable {
         let duration = Date().timeIntervalSince(start)
         
         let commandName = String(describing: type(of: command))
-        recordedMetrics.append((command: commandName, duration: duration))
+        lock.withLock {
+            recordedMetrics.append((command: commandName, duration: duration))
+        }
         
         return result
     }

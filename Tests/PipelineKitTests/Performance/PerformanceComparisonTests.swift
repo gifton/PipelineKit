@@ -51,51 +51,6 @@ final class PerformanceComparisonTests: XCTestCase {
         }
     }
     
-    // MARK: - Pipeline Performance Tests
-    
-    func testPreCompiledPipelinePerformance() async throws {
-        // Demonstrates pre-compiled pipeline performance improvement
-        
-        let handler = MockCommandHandler()
-        let middleware: [any Middleware] = [
-            MockAuthenticationMiddleware(),
-            MockValidationMiddleware(),
-            MockLoggingMiddleware(),
-            MockMetricsMiddleware()
-        ]
-        
-        // Standard pipeline
-        let standardPipeline = try await PipelineBuilder(handler: handler)
-            .with(middleware)
-            .build()
-        
-        // Note: Pre-compiled pipeline optimization is temporarily disabled
-        // Using standard pipeline for both until PreCompiledPipeline is fixed
-        let optimizedPipeline = try await PipelineBuilder(handler: handler)
-            .with(middleware)
-            .build()
-        
-        let command = MockCommand(value: 42)
-        let context = CommandContext(metadata: StandardCommandMetadata(userId: "test"))
-        
-        // Measure standard pipeline
-        let standardTime = await measureAsync {
-            _ = try await standardPipeline.execute(command, context: context)
-        }
-        
-        // Measure optimized pipeline
-        let optimizedTime = await measureAsync {
-            _ = try await optimizedPipeline.execute(command, context: context)
-        }
-        
-        // Calculate improvement
-        let improvement = ((standardTime - optimizedTime) / standardTime) * 100
-        print("Pre-compiled pipeline is \(String(format: "%.1f", improvement))% faster")
-        
-        // Should be 15-50% faster
-        XCTAssertLessThan(optimizedTime, standardTime)
-    }
-    
     // MARK: - Parallel Middleware Tests
     
     func testParallelMiddlewarePerformance() async throws {

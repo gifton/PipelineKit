@@ -15,7 +15,6 @@ public struct RateLimitingMiddleware: Middleware {
     private let limiter: RateLimiter
     private let identifierExtractor: @Sendable (any Command, CommandContext) async -> String
     private let costCalculator: @Sendable (any Command) -> Double
-    
     /// Creates rate limiting middleware.
     ///
     /// - Parameters:
@@ -34,7 +33,6 @@ public struct RateLimitingMiddleware: Middleware {
         self.identifierExtractor = identifierExtractor
         self.costCalculator = costCalculator
     }
-    
     public func execute<T: Command>(
         _ command: T,
         context: CommandContext,
@@ -42,7 +40,6 @@ public struct RateLimitingMiddleware: Middleware {
     ) async throws -> T.Result {
         let identifier = await identifierExtractor(command, context)
         let cost = costCalculator(command)
-        
         guard try await limiter.allowRequest(identifier: identifier, cost: cost) else {
             let status = await limiter.getStatus(identifier: identifier)
             throw RateLimitError.limitExceeded(
@@ -50,8 +47,6 @@ public struct RateLimitingMiddleware: Middleware {
                 resetAt: status.resetAt
             )
         }
-        
         return try await next(command, context)
     }
 }
-

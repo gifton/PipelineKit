@@ -37,7 +37,7 @@ public actor AsyncSemaphore {
     
     /// Type of continuation
     private enum ContinuationType {
-        case regular(CheckedContinuation<Void, Never>)
+        case regular(CheckedContinuation<Void, Error>)
         case timeout(CheckedContinuation<Bool, Never>)
     }
     
@@ -45,6 +45,7 @@ public actor AsyncSemaphore {
     private enum WaitResult {
         case signaled
         case timedOut
+        case cancelled
     }
     
     /// Represents a waiting task
@@ -66,7 +67,10 @@ public actor AsyncSemaphore {
             
             switch (continuation, result) {
             case (.regular(let cont), .signaled):
-                cont.resume()
+                cont.resume(returning: ())
+                return true
+            case (.regular(let cont), .cancelled):
+                cont.resume(throwing: CancellationError(context: "Semaphore wait cancelled"))
                 return true
             case (.timeout(let cont), .signaled):
                 cont.resume(returning: true)
@@ -77,6 +81,10 @@ public actor AsyncSemaphore {
             case (.regular, .timedOut):
                 // Regular wait doesn't timeout
                 return false
+            case (.timeout(let cont), .cancelled):
+                // Timeout wait returns false on cancellation
+                cont.resume(returning: false)
+                return true
             }
         }
         
@@ -98,7 +106,12 @@ public actor AsyncSemaphore {
     ///
     /// If resources are available (value > 0), this method decrements the count
     /// and returns immediately. Otherwise, it suspends until a resource is released.
-    public func wait() async {
+    ///
+    /// - Throws: CancellationError if the task is cancelled while waiting
+    public func wait() async throws {
+        // Check for cancellation before proceeding
+        try Task.checkCancellation()
+        
         // Fast path: resource available
         if availableResources > 0 {
             availableResources -= 1
@@ -106,10 +119,16 @@ public actor AsyncSemaphore {
         }
         
         // Slow path: need to wait
-        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
-            let waiter = Waiter(continuation: .regular(continuation))
-            waiters.append(waiter)
-            waiterLookup[waiter.id] = waiter
+        try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+                let waiter = Waiter(continuation: .regular(continuation))
+                waiters.append(waiter)
+                waiterLookup[waiter.id] = waiter
+            }
+        } onCancel: { [weak self] in
+            Task {
+                await self?.handleCancellation()
+            }
         }
     }
     
@@ -120,8 +139,13 @@ public actor AsyncSemaphore {
     /// or the timeout expires.
     ///
     /// - Parameter timeout: The maximum time to wait, in seconds
-    /// - Returns: True if a resource was acquired, false if timeout occurred
+    /// - Returns: True if a resource was acquired, false if timeout occurred or task was cancelled
     public func acquire(timeout: TimeInterval) async -> Bool {
+        // Check for cancellation before proceeding
+        if Task.isCancelled {
+            return false
+        }
+        
         // Fast path: resource available
         if availableResources > 0 {
             availableResources -= 1
@@ -192,9 +216,31 @@ public actor AsyncSemaphore {
     
     /// Handles task cancellation
     private func handleCancellation() {
-        // Clean up any cancelled tasks
-        // Note: This is a simplified implementation
-        // A full implementation would track specific cancelled tasks
+        // Resume all waiting tasks with cancellation error
+        let currentWaiters = waiters
+        waiters.removeAll()
+        waiterLookup.removeAll()
+        
+        // Resume each waiter with cancelled result
+        for waiter in currentWaiters {
+            waiter.cancelTimeout()
+            _ = waiter.tryResume(with: .cancelled)
+        }
+    }
+    
+    /// Handles cancellation for a specific waiter
+    private func handleCancellationForWaiter(waiterId: UUID) {
+        guard let waiter = waiterLookup[waiterId] else { return }
+        
+        // Try to resume with cancelled result
+        if waiter.tryResume(with: .cancelled) {
+            // Remove from storage
+            waiterLookup.removeValue(forKey: waiterId)
+            if let index = waiters.firstIndex(where: { $0.id == waiterId }) {
+                waiters.remove(at: index)
+            }
+            waiter.cancelTimeout()
+        }
     }
     
     /// Gets the current number of available resources (for testing)

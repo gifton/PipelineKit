@@ -8,10 +8,8 @@ public struct CommandValidator: Sendable {
     /// - Parameter email: The email address to validate
     /// - Throws: ValidationError.invalidEmail if format is invalid
     public static func validateEmail(_ email: String) throws {
-        let emailRegex = #"^[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$"#
-        let emailPredicate = NSPredicate(format: "SELF MATCHES %@", emailRegex)
-        
-        guard emailPredicate.evaluate(with: email) else {
+        // Use optimized pre-compiled regex validator
+        guard OptimizedValidators.validateEmail(email) else {
             throw ValidationError.invalidEmail
         }
     }

@@ -180,7 +180,6 @@ public final class PipelineBuilder<H: CommandHandler> {
     public func withPriority(_ priority: ExecutionPriority, _ middleware: any Middleware) -> Self
     
     public func build() async throws -> StandardPipeline<H>
-    public func buildOptimized() async throws -> PreCompiledPipeline<H>
 }
 ```
 
@@ -190,14 +189,13 @@ Fluent API for constructing pipelines.
 - `with(_:)`: Adds middleware to the pipeline
 - `withPriority(_:_:)`: Adds middleware with specific priority
 - `build()`: Creates standard pipeline
-- `buildOptimized()`: Creates pre-compiled optimized pipeline
 
 **Usage:**
 ```swift
 let pipeline = try await PipelineBuilder(handler: myHandler)
     .with(AuthMiddleware())
     .with(LoggingMiddleware())
-    .buildOptimized()
+    .build()
 ```
 
 ## Middleware

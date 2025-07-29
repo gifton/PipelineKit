@@ -47,7 +47,7 @@ final class MiddlewareChainOptimizerTests: XCTestCase {
     }
     
     final class TestMetricsMiddleware: Middleware, @unchecked Sendable {
-        let priority = ExecutionPriority.postProcessing
+        let priority = ExecutionPriority.postProcessing // Restored to postProcessing
         
         func execute<T: Command>(
             _ command: T,
@@ -55,6 +55,19 @@ final class MiddlewareChainOptimizerTests: XCTestCase {
             next: @Sendable (T, CommandContext) async throws -> T.Result
         ) async throws -> T.Result {
             // Metrics logic
+            return try await next(command, context)
+        }
+    }
+    
+    final class ProcessingMiddleware: Middleware, @unchecked Sendable {
+        let priority = ExecutionPriority.processing
+        
+        func execute<T: Command>(
+            _ command: T,
+            context: CommandContext,
+            next: @Sendable (T, CommandContext) async throws -> T.Result
+        ) async throws -> T.Result {
+            // Processing logic
             return try await next(command, context)
         }
     }
@@ -208,5 +221,49 @@ final class MiddlewareChainOptimizerTests: XCTestCase {
         } else {
             XCTFail("Expected parallel strategy")
         }
+    }
+    
+    func testFastPathExecutorCreation() async {
+        let optimizer = MiddlewareChainOptimizer()
+        
+        // Test 1: Empty chain - should create FastPathExecutor
+        let emptyChain = await optimizer.optimize(
+            middleware: [],
+            handler: TestHandler()
+        )
+        XCTAssertNotNil(emptyChain.fastPathExecutor, "FastPathExecutor should be created for empty chain")
+        
+        // Test 2: Single middleware - should create FastPathExecutor
+        let singleChain = await optimizer.optimize(
+            middleware: [ValidationMiddleware()],
+            handler: TestHandler()
+        )
+        XCTAssertNotNil(singleChain.fastPathExecutor, "FastPathExecutor should be created for single middleware")
+        
+        // Test 3: Two middleware - should create FastPathExecutor
+        let twoChain = await optimizer.optimize(
+            middleware: [ValidationMiddleware(), LoggingMiddleware()],
+            handler: TestHandler()
+        )
+        XCTAssertNotNil(twoChain.fastPathExecutor, "FastPathExecutor should be created for two middleware")
+        
+        // Test 4: Three middleware - should create FastPathExecutor
+        let threeChain = await optimizer.optimize(
+            middleware: [ValidationMiddleware(), ProcessingMiddleware(), LoggingMiddleware()],
+            handler: TestHandler()
+        )
+        XCTAssertNotNil(threeChain.fastPathExecutor, "FastPathExecutor should be created for three middleware")
+        
+        // Test 5: Four middleware - should NOT create FastPathExecutor
+        let fourChain = await optimizer.optimize(
+            middleware: [
+                ValidationMiddleware(),
+                LoggingMiddleware(),
+                TestMetricsMiddleware(),
+                ValidationMiddleware()
+            ],
+            handler: TestHandler()
+        )
+        XCTAssertNil(fourChain.fastPathExecutor, "FastPathExecutor should NOT be created for more than 3 middleware")
     }
 }

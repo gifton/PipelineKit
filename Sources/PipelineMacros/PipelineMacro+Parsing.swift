@@ -23,8 +23,6 @@ extension PipelineMacro {
             }
         }
         
-        // Context is now always enabled, no need for type inference
-        
         return config
     }
     
@@ -55,8 +53,8 @@ extension PipelineMacro {
         case "maxDepth":
             config.maxDepth = try parseMaxDepth(from: argument.expression, context: context)
         case "context":
-            // Context is now always enabled, ignore this parameter for backward compatibility
-            _ = try parseContextEnabled(from: argument.expression, context: context)
+            // Context parameter is no longer used - context is always enabled
+            break
         case "backPressure":
             config.backPressureOptions = try parseBackPressureOptions(from: argument.expression, context: context)
         default:
@@ -278,39 +276,6 @@ extension PipelineMacro {
             )
         )
         return .standard
-    }
-    
-    /// Parses context enabled from expression (kept for backward compatibility)
-    private static func parseContextEnabled(
-        from expr: ExprSyntax,
-        context: some MacroExpansionContext
-    ) throws -> Bool {
-        // Context is now always enabled, but we still parse for backward compatibility
-        // to avoid breaking existing code that uses this parameter
-        if let memberAccess = expr.as(MemberAccessExprSyntax.self) {
-            switch memberAccess.declName.baseName.text {
-            case "enabled":
-                return true
-            case "disabled":
-                return false
-            default:
-                context.diagnose(
-                    Diagnostic(
-                        node: expr,
-                        message: MacroError.invalidContextValue
-                    )
-                )
-                return false
-            }
-        }
-        
-        context.diagnose(
-            Diagnostic(
-                node: expr,
-                message: MacroError.invalidContextValue
-            )
-        )
-        return false
     }
     
     /// Parses back-pressure options from expression

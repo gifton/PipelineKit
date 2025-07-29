@@ -120,8 +120,8 @@ final class OptimizationSendableTests: XCTestCase {
         // FastPathExecutor should be Sendable
         let executor = MiddlewareChainOptimizer.FastPathExecutor(
             middleware: [],
-            handler: { (command: TestCommand, context: CommandContext) in
-                return "FastPath: \(command.id)"
+            executorFunc: { command, context, handler in
+                return try await handler(command)
             }
         )
         
@@ -132,7 +132,9 @@ final class OptimizationSendableTests: XCTestCase {
                     try? await executor.execute(
                         TestCommand(id: "test-\(i)"),
                         context: CommandContext()
-                    )
+                    ) { cmd in
+                        return "FastPath: \(cmd.id)"
+                    }
                 }
             }
             

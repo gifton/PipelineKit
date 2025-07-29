@@ -15,7 +15,7 @@ PipelineKit has been optimized for high-performance scenarios with:
 
 ### 1. Use Pre-Compiled Pipelines
 
-Always use `buildOptimized()` in production:
+Always use `build()` in production:
 
 ```swift
 // L Standard pipeline
@@ -26,7 +26,7 @@ let pipeline = try await PipelineBuilder(handler: handler)
 //  Optimized pipeline (30% faster)
 let pipeline = try await PipelineBuilder(handler: handler)
     .with(middleware)
-    .buildOptimized()
+    .build()
 ```
 
 ### 2. Enable Context Pooling
@@ -121,7 +121,7 @@ print("Hit rate: \(stats.hitRate * 100)%")
 Pre-compiled pipelines analyze middleware at construction:
 
 ```swift
-let pipeline = try await builder.buildOptimized()
+let pipeline = try await builder.build()
 
 // Check optimization statistics
 if let stats = pipeline.getOptimizationStats() {
@@ -304,7 +304,7 @@ let pipeline = try await PipelineBuilder(handler: handler)
         wrapping: [LoggingMiddleware(), MetricsMiddleware()],
         strategy: .sideEffectsOnly
     ))
-    .buildOptimized()
+    .build()
 
 // Process requests
 func handleRequest(_ request: Request) async throws -> Response {
@@ -386,7 +386,7 @@ class AdaptivePipeline<H: CommandHandler> {
 
 Before deploying to production:
 
-- [ ] Using `buildOptimized()` for pipelines
+- [ ] Using `build()` for pipelines
 - [ ] Context pooling enabled for high-throughput
 - [ ] Parallel middleware for independent operations
 - [ ] Caching enabled for expensive operations

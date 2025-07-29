@@ -1,6 +1,11 @@
 import Foundation
 
-/// Specific pipeline error types
+/// Enumeration of specific error types that can occur during pipeline execution.
+///
+/// These errors represent various failure scenarios in the command pipeline,
+/// from configuration issues to runtime failures.
+///
+/// - SeeAlso: `PipelineError`
 public enum PipelineErrorType: Error, Sendable, LocalizedError {
     case maxDepthExceeded(depth: Int)
     case invalidCommandType
@@ -70,7 +75,13 @@ public struct PipelineError: Error, Sendable, LocalizedError {
     
     // MARK: - Static Factory Methods
     
-    /// Creates a max depth exceeded error.
+    /// Creates a pipeline error for when the maximum middleware depth is exceeded.
+    ///
+    /// - Parameters:
+    ///   - depth: The depth that was exceeded
+    ///   - command: The command being processed
+    ///
+    /// - Returns: A configured `PipelineError` instance
     public static func maxDepthExceeded<T: Command>(depth: Int, command: T) -> PipelineError {
         PipelineError(
             underlyingError: PipelineErrorType.maxDepthExceeded(depth: depth),

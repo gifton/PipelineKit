@@ -6,10 +6,28 @@ import Foundation
 /// borrowed and returned, significantly reducing the overhead of creating
 /// new contexts for each command execution.
 ///
-/// This class is marked as @unchecked Sendable because:
-/// - All mutable state is protected by NSLock
-/// - Public API is fully thread-safe
-/// - No escaping closures capture mutable state
+/// ## Design Decision: @unchecked Sendable for Thread-Safe Pool
+///
+/// This class uses `@unchecked Sendable` for the following reasons:
+///
+/// 1. **NSLock Synchronization**: All mutable state is protected by NSLock, ensuring
+///    thread-safe access to the internal collections. NSLock provides mutual exclusion
+///    guarantees that prevent data races.
+///
+/// 2. **Mutable Collections**: The properties `available: [CommandContext]` and
+///    `inUse: Set<ObjectIdentifier>` are mutable collections that require synchronization.
+///    Swift cannot automatically verify thread safety of lock-protected mutable state.
+///
+/// 3. **Performance Requirement**: Using an actor would add async/await overhead to every
+///    pool operation. Since pools are used in hot paths, synchronous access with locks
+///    provides better performance.
+///
+/// 4. **Safe API Design**: All public methods use lock.withLock { } to ensure proper
+///    synchronization boundaries. No mutable state escapes the synchronization context.
+///
+/// This is a common pattern for high-performance concurrent data structures where
+/// actor overhead is prohibitive. The implementation guarantees thread safety through
+/// careful lock usage.
 public final class CommandContextPool: @unchecked Sendable {
     /// Maximum number of contexts to keep in the pool
     private let maxSize: Int
@@ -147,15 +165,34 @@ public final class CommandContextPool: @unchecked Sendable {
 }
 
 /// A wrapper around CommandContext that automatically returns it to the pool
+/// when deallocated.
 ///
-/// Thread-safe because:
-/// - Inherits thread-safety from CommandContext base class
-/// - Pool reference is weak and only accessed during dealloc
-/// - Pool's return method is thread-safe
+/// ## Design Decision: @unchecked Sendable for RAII Pattern
+///
+/// This class uses `@unchecked Sendable` for the following reasons:
+///
+/// 1. **CommandContext Inheritance**: The wrapped `context: CommandContext` already has
+///    @unchecked Sendable due to its mutable storage design. This wrapper maintains
+///    the same thread-safety guarantees as the underlying context.
+///
+/// 2. **RAII Pattern**: Implements Resource Acquisition Is Initialization (RAII) to ensure
+///    contexts are returned to the pool. The `isReturned` flag is protected by NSLock
+///    to prevent double-returns in concurrent scenarios.
+///
+/// 3. **Weak Pool Reference**: The `pool: CommandContextPool?` is weak to prevent retain
+///    cycles. Weak references are inherently thread-safe in Swift's ARC model.
+///
+/// 4. **Deallocation Safety**: The deinit method uses lock protection to safely check
+///    and update the return status, ensuring the context is returned exactly once even
+///    in concurrent deallocation scenarios.
+///
+/// This wrapper provides automatic resource management while maintaining the thread-safety
+/// characteristics of the underlying CommandContext.
 public final class PooledCommandContext: @unchecked Sendable {
     private let context: CommandContext
     private weak var pool: CommandContextPool?
     private var isReturned = false
+    private let lock = NSLock()
     
     init(context: CommandContext, pool: CommandContextPool) {
         self.context = context
@@ -173,9 +210,15 @@ public final class PooledCommandContext: @unchecked Sendable {
     
     /// Manually return to pool (called automatically on deinit)
     public func returnToPool() {
-        guard !isReturned else { return }
-        isReturned = true
-        pool?.returnContext(context)
+        let shouldReturn = lock.withLock {
+            guard !isReturned else { return false }
+            isReturned = true
+            return true
+        }
+        
+        if shouldReturn {
+            pool?.returnContext(context)
+        }
     }
 }
 
@@ -190,8 +233,8 @@ extension CommandContext {
         // Clear existing storage
         storage.removeAll(keepingCapacity: true)
         
-        // Update metadata - Note: metadata is immutable in CommandContext
-        // We would need to redesign this if we want true reset functionality
+        // Update metadata
+        self.metadata = metadata
     }
 }
 
