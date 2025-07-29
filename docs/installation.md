@@ -4,9 +4,9 @@ PipelineKit supports multiple installation methods to fit your workflow.
 
 ## Requirements
 
-- Swift 5.9 or later
+- Swift 5.10 or later
 - Xcode 15.0 or later (for Xcode integration)
-- macOS 13.0+ / iOS 16.0+ / tvOS 16.0+ / watchOS 9.0+
+- macOS 13.0+ / iOS 17.0+ / tvOS 16.0+ / watchOS 9.0+
 
 ## Swift Package Manager (Recommended)
 

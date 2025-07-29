@@ -33,6 +33,11 @@ let package = Package(
             name: "StressTestDemo",
             targets: ["StressTestDemo"]
         ),
+        // Metric aggregation demonstration
+        .executable(
+            name: "AggregationDemo",
+            targets: ["AggregationDemo"]
+        ),
     ],
     dependencies: [
         // Pin to exact version for reproducible builds
@@ -101,6 +106,10 @@ let package = Package(
         ),
         .executableTarget(
             name: "MetricBufferDemo",
+            dependencies: ["PipelineKit"]
+        ),
+        .executableTarget(
+            name: "AggregationDemo",
             dependencies: ["PipelineKit"]
         ),
     ]

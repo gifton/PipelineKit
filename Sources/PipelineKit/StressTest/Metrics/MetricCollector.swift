@@ -69,8 +69,8 @@ public actor MetricCollector {
     private var metricStream: AsyncStream<MetricDataPoint>?
     private var metricContinuation: AsyncStream<MetricDataPoint>.Continuation?
     
-    /// Aggregators for different time windows.
-    private var aggregators: [String: MetricAggregator] = [:]
+    /// The main aggregator for metrics.
+    private var aggregator: MetricAggregator?
     
     /// Export handlers.
     private var exporters: [any MetricExporter] = []
@@ -84,6 +84,14 @@ public actor MetricCollector {
     public init(configuration: Configuration = Configuration()) {
         self.configuration = configuration
         self.bufferPool = MetricBufferPool(defaultCapacity: configuration.defaultBufferCapacity)
+        
+        // Create integrated aggregator
+        self.aggregator = MetricAggregator(
+            configuration: MetricAggregator.Configuration(
+                windows: [60, 300, 900], // 1min, 5min, 15min
+                autoStart: configuration.autoStart
+            )
+        )
         
         if configuration.autoStart {
             Task {
@@ -114,10 +122,13 @@ public actor MetricCollector {
     }
     
     /// Starts the collection process.
-    public func start() {
+    public func start() async {
         guard state == .idle else { return }
         
         state = .collecting
+        
+        // Start aggregator
+        await aggregator?.start()
         
         // Create the stream
         let (stream, continuation) = AsyncStream<MetricDataPoint>.makeStream()
@@ -131,12 +142,15 @@ public actor MetricCollector {
     }
     
     /// Stops the collection process.
-    public func stop() {
+    public func stop() async {
         state = .stopped
         collectionTask?.cancel()
         collectionTask = nil
         metricContinuation?.finish()
         metricContinuation = nil
+        
+        // Stop aggregator
+        await aggregator?.stop()
     }
     
     /// Returns a stream of collected metrics.
@@ -158,13 +172,14 @@ public actor MetricCollector {
     /// Returns current collection statistics.
     public func statistics() async -> CollectionStatistics {
         let bufferStats = await bufferPool.allStatistics()
+        let aggregatorStats = await aggregator?.statistics()
         
         return CollectionStatistics(
             state: state,
             totalCollected: totalCollected,
             lastCollectionTime: lastCollectionTime,
             bufferStatistics: bufferStats,
-            aggregatorCount: aggregators.count,
+            aggregatorCount: aggregatorStats?.metricCount ?? 0,
             exporterCount: exporters.count
         )
     }
@@ -202,10 +217,8 @@ public actor MetricCollector {
                     // Send to stream
                     metricContinuation?.yield(sample)
                     
-                    // Update aggregators
-                    if let aggregator = aggregators[metric] {
-                        await aggregator.add(sample)
-                    }
+                    // Update aggregator
+                    await aggregator?.add(sample)
                     
                     // Send to exporters
                     for exporter in exporters {
@@ -218,11 +231,14 @@ public actor MetricCollector {
         }
     }
     
-    /// Creates an aggregator for a metric if it doesn't exist.
-    public func ensureAggregator(for metric: String, type: MetricType) {
-        if aggregators[metric] == nil {
-            aggregators[metric] = MetricAggregator(name: metric, type: type)
-        }
+    /// Queries aggregated metrics.
+    public func query(_ query: MetricQuery) async -> MetricQueryResult? {
+        await aggregator?.query(query)
+    }
+    
+    /// Gets the integrated aggregator.
+    public func getAggregator() -> MetricAggregator? {
+        aggregator
     }
 }
 
@@ -244,17 +260,3 @@ public protocol MetricExporter: Sendable {
     func flush() async
 }
 
-/// Placeholder for aggregator (to be implemented).
-actor MetricAggregator {
-    let name: String
-    let type: MetricType
-    
-    init(name: String, type: MetricType) {
-        self.name = name
-        self.type = type
-    }
-    
-    func add(_ sample: MetricDataPoint) {
-        // TODO: Implement aggregation logic
-    }
-}

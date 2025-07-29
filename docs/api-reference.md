@@ -425,8 +425,8 @@ public typealias MiddlewareExecutor<T: Command> =
 ## Availability
 
 All APIs require:
-- Swift 5.9+
-- macOS 13.0+ / iOS 16.0+ / tvOS 16.0+ / watchOS 9.0+
+- Swift 5.10+
+- macOS 13.0+ / iOS 17.0+ / tvOS 16.0+ / watchOS 9.0+
 
 APIs marked with `@available` annotations indicate platform-specific features.
 

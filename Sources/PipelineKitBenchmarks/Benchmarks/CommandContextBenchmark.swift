@@ -77,7 +77,7 @@ struct CommandContextPoolBenchmark: ParameterizedBenchmark {
     
     func run(input: CommandMetadata) async throws {
         // Test pool borrow/return cycle
-        let pooled = await CommandContextPool.shared.borrow(metadata: input)
+        let pooled = CommandContextPool.shared.borrow(metadata: input)
         
         // Simulate some work
         for i in 0..<10 {
