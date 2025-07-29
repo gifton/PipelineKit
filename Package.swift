@@ -18,6 +18,21 @@ let package = Package(
             name: "PipelineKit",
             targets: ["PipelineKit"]
         ),
+        // Test support library - only for use in tests
+        .library(
+            name: "PipelineKitTestSupport",
+            targets: ["PipelineKitTestSupport"]
+        ),
+        // Benchmark executable - not included in release builds
+        .executable(
+            name: "PipelineKitBenchmarks",
+            targets: ["PipelineKitBenchmarks"]
+        ),
+        // Stress test demonstration
+        .executable(
+            name: "StressTestDemo",
+            targets: ["StressTestDemo"]
+        ),
     ],
     dependencies: [
         // Pin to exact version for reproducible builds
@@ -46,6 +61,13 @@ let package = Package(
                 .enableExperimentalFeature("AccessLevelOnImport")
             ]
         ),
+        .target(
+            name: "PipelineKitTestSupport",
+            dependencies: ["PipelineKit"],
+            swiftSettings: [
+                .enableExperimentalFeature("StrictConcurrency")
+            ]
+        ),
         .executableTarget(
             name: "VerifyChanges",
             dependencies: ["PipelineKit"]
@@ -53,11 +75,12 @@ let package = Package(
         .executableTarget(
             name: "PipelineKitBenchmarks",
             dependencies: ["PipelineKit"],
-            path: "Sources/PipelineKitBenchmarks"
+            path: "Sources/PipelineKitBenchmarks",
+            exclude: ["README.md"]
         ),
         .testTarget(
             name: "PipelineKitTests",
-            dependencies: ["PipelineKit"],
+            dependencies: ["PipelineKit", "PipelineKitTestSupport"],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency")
             ]
@@ -71,6 +94,14 @@ let package = Package(
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency")
             ]
+        ),
+        .executableTarget(
+            name: "StressTestDemo",
+            dependencies: ["PipelineKit"]
+        ),
+        .executableTarget(
+            name: "MetricBufferDemo",
+            dependencies: ["PipelineKit"]
         ),
     ]
 )
@@ -103,4 +134,4 @@ let package = Package(
 //    - Resilience patterns
 //    - Testing utilities
 //
-// Future versions will split these into separate Swift packages for better modularity.
+// Future versions may split these into separate Swift packages for better modularity.

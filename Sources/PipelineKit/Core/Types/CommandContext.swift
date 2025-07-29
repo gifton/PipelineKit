@@ -16,7 +16,7 @@ import Foundation
 /// 
 /// ## Thread Safety
 /// This implementation uses NSLock for thread-safe access to the storage,
-/// providing significantly better performance than the previous actor-based
+/// providing significantly better performance than an actor-based
 /// implementation while maintaining safety in concurrent environments.
 public final class CommandContext: @unchecked Sendable {
     /// Pre-sized storage using integer keys for optimal performance.
