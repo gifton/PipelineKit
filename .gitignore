@@ -117,6 +117,14 @@ __pycache__/
 pip-log.txt
 pip-delete-this-directory.txt
 
+# Temporary analysis scripts
+analyze_*.py
+analyze_*.sh
+*_analysis.py
+*_analysis.sh
+swiftlint_*.py
+swiftlint_*.sh
+
 # Testing and Coverage
 .coverage
 *.lcov

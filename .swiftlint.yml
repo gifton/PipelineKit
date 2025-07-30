@@ -89,7 +89,6 @@ opt_in_rules:
 
 disabled_rules:
   - todo
-  - fixme
   - line_length
   - file_length
   - type_body_length
@@ -145,6 +144,17 @@ custom_rules:
     regex: '^\s*print\('
     message: "Use logging framework instead of print statements"
     severity: warning
+    excluded:
+      - "Tests/**"
+      - "**/Tests/**"
+      - "**/StressTestDemo/**"
+      - "**/MetricBufferDemo/**"
+      - "**/AggregationDemo/**"
+      - "**/ExportDemo/**"
+      - "**/ResourceTrackingDemo/**"
+      - "**/PipelineKitBenchmarks/**"
+      - "**/*Demo.swift"
+      - "**/*Example.swift"
     
   marks_space:
     name: "MARK Format"
@@ -158,8 +168,8 @@ custom_rules:
     message: "Address TODO/FIXME before release"
     severity: warning
     
-  weak_self:
-    name: "Weak Self"
+  weak_self_usage:
+    name: "Weak Self Usage"
     regex: '\[weak\s+self\]\s*in'
     message: "Consider using [weak self] to avoid retain cycles"
     severity: info

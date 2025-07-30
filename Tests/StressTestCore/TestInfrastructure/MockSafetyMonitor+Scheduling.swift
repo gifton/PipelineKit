@@ -1,6 +1,26 @@
 import Foundation
 @testable import PipelineKit
 
+// MARK: - Error Types
+
+/// Errors that can occur during violation scheduling.
+public enum ViolationSchedulingError: LocalizedError {
+    case invalidDuration(TimeInterval)
+    case invalidRange(String)
+    case invalidPattern(String)
+    
+    public var errorDescription: String? {
+        switch self {
+        case .invalidDuration(let duration):
+            return "Invalid duration: \(duration). Duration must be positive."
+        case .invalidRange(let description):
+            return "Invalid range: \(description)"
+        case .invalidPattern(let description):
+            return "Invalid pattern: \(description)"
+        }
+    }
+}
+
 /// Protocol for scheduling safety violations in tests.
 ///
 /// ViolationScheduler enables deterministic testing of safety violation scenarios
@@ -33,7 +53,7 @@ public protocol ViolationScheduler: Sendable {
 // MARK: - Violation Severity
 
 /// Severity levels for safety violations.
-public enum ViolationSeverity: Int, Sendable, Comparable, CaseIterable {
+public enum ViolationSeverity: Int, Sendable, Comparable, Equatable, CaseIterable {
     /// Minor violation for testing warning systems.
     case warning = 1
     
@@ -64,7 +84,7 @@ public enum ViolationSeverity: Int, Sendable, Comparable, CaseIterable {
 // MARK: - Violation Triggers
 
 /// Defines when a violation should be triggered.
-public enum ViolationTrigger: Sendable {
+public enum ViolationTrigger: Sendable, Equatable {
     /// Trigger after a specified time delay.
     case afterDelay(TimeInterval)
     
@@ -90,12 +110,28 @@ public enum ViolationTrigger: Sendable {
             return "\(pattern.description) over \(duration)s"
         }
     }
+    
+    public static func == (lhs: ViolationTrigger, rhs: ViolationTrigger) -> Bool {
+        switch (lhs, rhs) {
+        case (.afterDelay(let l), .afterDelay(let r)):
+            return l == r
+        case (.atTime(let l), .atTime(let r)):
+            return l == r
+        case (.whenCondition, .whenCondition):
+            // Closures can't be compared, so we consider all conditions different
+            return false
+        case (.pattern(let lp, let ld), .pattern(let rp, let rd)):
+            return lp == rp && ld == rd
+        default:
+            return false
+        }
+    }
 }
 
 // MARK: - Violation Patterns
 
 /// Patterns for simulating resource usage violations.
-public enum ViolationPattern: Sendable {
+public enum ViolationPattern: Sendable, Equatable {
     /// Gradually increase from start to end value.
     case gradual(start: Double, end: Double)
     
@@ -126,12 +162,59 @@ public enum ViolationPattern: Sendable {
             return "Stepped through \(levels.count) levels"
         }
     }
+    
+    /// Validates the pattern parameters.
+    /// - Throws: ViolationSchedulingError if parameters are invalid.
+    public func validate() throws {
+        switch self {
+        case .gradual(let start, let end):
+            if start < 0 || end < 0 {
+                throw ViolationSchedulingError.invalidRange("Start (\(start)) and end (\(end)) must be non-negative")
+            }
+        case .spike(let baseline, let peak, let at):
+            if baseline < 0 || peak < 0 {
+                throw ViolationSchedulingError.invalidRange("Baseline (\(baseline)) and peak (\(peak)) must be non-negative")
+            }
+            if at < 0 {
+                throw ViolationSchedulingError.invalidDuration(at)
+            }
+        case .oscillating(let min, let max, let period):
+            if min < 0 || max < 0 {
+                throw ViolationSchedulingError.invalidRange("Min (\(min)) and max (\(max)) must be non-negative")
+            }
+            if min > max {
+                throw ViolationSchedulingError.invalidRange("Min (\(min)) must be <= max (\(max))")
+            }
+            if period <= 0 {
+                throw ViolationSchedulingError.invalidDuration(period)
+            }
+        case .random(let range, let interval):
+            if range.lowerBound < 0 {
+                throw ViolationSchedulingError.invalidRange("Range must have non-negative bounds")
+            }
+            if interval <= 0 {
+                throw ViolationSchedulingError.invalidDuration(interval)
+            }
+        case .stepped(let levels):
+            if levels.isEmpty {
+                throw ViolationSchedulingError.invalidPattern("Stepped pattern must have at least one level")
+            }
+            for (index, level) in levels.enumerated() {
+                if level.value < 0 {
+                    throw ViolationSchedulingError.invalidRange("Level \(index) value (\(level.value)) must be non-negative")
+                }
+                if level.duration <= 0 {
+                    throw ViolationSchedulingError.invalidDuration(level.duration)
+                }
+            }
+        }
+    }
 }
 
 // MARK: - Scheduled Violation
 
 /// Represents a violation that has been scheduled but not yet triggered.
-public struct ScheduledViolation: Sendable, Identifiable {
+public struct ScheduledViolation: Sendable, Identifiable, Equatable {
     /// Unique identifier for this scheduled violation.
     public let id: UUID
     
@@ -170,12 +253,22 @@ public struct ScheduledViolation: Sendable, Identifiable {
         self.scheduledAt = scheduledAt
         self.isActive = isActive
     }
+    
+    public static func == (lhs: ScheduledViolation, rhs: ScheduledViolation) -> Bool {
+        // Compare all properties except isActive which can change
+        lhs.id == rhs.id &&
+        lhs.trigger == rhs.trigger &&
+        lhs.type == rhs.type &&
+        lhs.severity == rhs.severity &&
+        lhs.metadata == rhs.metadata &&
+        lhs.scheduledAt == rhs.scheduledAt
+    }
 }
 
 // MARK: - Violation Record
 
 /// Historical record of a triggered violation.
-public struct ViolationRecord: Sendable, Identifiable {
+public struct ViolationRecord: Sendable, Identifiable, Equatable {
     /// Unique identifier for this record.
     public let id: UUID
     
@@ -229,6 +322,84 @@ public struct ViolationRecord: Sendable, Identifiable {
     public var duration: TimeInterval? {
         guard let resolvedAt = resolvedAt else { return nil }
         return resolvedAt.timeIntervalSince(triggeredAt)
+    }
+}
+
+// MARK: - Factory Methods
+
+extension ScheduledViolation {
+    /// Creates a memory spike violation scheduled after a delay.
+    /// - Parameters:
+    ///   - delay: Time to wait before triggering the spike.
+    ///   - severity: The severity level (defaults to critical).
+    /// - Returns: A configured scheduled violation.
+    public static func memorySpike(
+        after delay: TimeInterval,
+        severity: ViolationSeverity = .critical
+    ) -> ScheduledViolation {
+        ScheduledViolation(
+            trigger: .afterDelay(delay),
+            type: .memory,
+            severity: severity,
+            metadata: ["pattern": "spike", "trigger": "delayed"]
+        )
+    }
+    
+    /// Creates a CPU stress violation with a specified pattern.
+    /// - Parameters:
+    ///   - pattern: The CPU usage pattern to simulate.
+    ///   - duration: How long to run the pattern.
+    ///   - severity: The severity level (defaults to moderate).
+    /// - Returns: A configured scheduled violation.
+    public static func cpuStress(
+        pattern: ViolationPattern,
+        duration: TimeInterval,
+        severity: ViolationSeverity = .moderate
+    ) -> ScheduledViolation {
+        ScheduledViolation(
+            trigger: .pattern(pattern, duration: duration),
+            type: .cpu,
+            severity: severity,
+            metadata: ["pattern": pattern.description]
+        )
+    }
+    
+    /// Creates a critical failure scheduled at a specific time.
+    /// - Parameters:
+    ///   - type: The type of violation.
+    ///   - time: When to trigger the violation.
+    /// - Returns: A configured scheduled violation.
+    public static func criticalFailure(
+        type: TestDefaults.ViolationType,
+        at time: Date
+    ) -> ScheduledViolation {
+        ScheduledViolation(
+            trigger: .atTime(time),
+            type: type,
+            severity: .emergency,
+            metadata: ["failure": "critical", "scheduled": ISO8601DateFormatter().string(from: time)]
+        )
+    }
+    
+    /// Creates a gradual resource exhaustion pattern.
+    /// - Parameters:
+    ///   - type: The resource type to exhaust.
+    ///   - start: Starting usage percentage (0.0-1.0).
+    ///   - end: Ending usage percentage (0.0-1.0).
+    ///   - duration: Time to transition from start to end.
+    /// - Returns: A configured scheduled violation.
+    public static func gradualExhaustion(
+        type: TestDefaults.ViolationType,
+        from start: Double = 0.3,
+        to end: Double = 0.95,
+        over duration: TimeInterval
+    ) -> ScheduledViolation {
+        ScheduledViolation(
+            trigger: .pattern(.gradual(start: start, end: end), duration: duration),
+            type: type,
+            severity: .critical,
+            metadata: ["exhaustion": "gradual", "start": "\(start)", "end": "\(end)"]
+        )
     }
 }
 

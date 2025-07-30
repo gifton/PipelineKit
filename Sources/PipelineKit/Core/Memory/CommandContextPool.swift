@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 
 /// A thread-safe pool for reusing CommandContext instances to reduce allocations.
 ///
@@ -255,7 +256,11 @@ public struct ConsoleContextPoolMonitor: ContextPoolMonitor {
     
     public func poolDidBorrow(context: CommandContext, hitRate: Double) {
         if hitRate < 0.8 {
-            print("[ContextPool] Low hit rate: \(String(format: "%.1f%%", hitRate * 100))")
+            if #available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *) {
+                PipelineLogger.memory.warning("Low hit rate: \(String(format: "%.1f%%", hitRate * 100), privacy: .public)")
+            } else {
+                LegacyLogger.log("Low hit rate: \(String(format: "%.1f%%", hitRate * 100))", category: "ContextPool")
+            }
         }
     }
     
@@ -264,7 +269,11 @@ public struct ConsoleContextPoolMonitor: ContextPoolMonitor {
     }
     
     public func poolDidExpand(newSize: Int) {
-        print("[ContextPool] Expanded to \(newSize) contexts")
+        if #available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *) {
+            PipelineLogger.memory.info("Expanded to \(newSize, privacy: .public) contexts")
+        } else {
+            LegacyLogger.log("Expanded to \(newSize) contexts", category: "ContextPool")
+        }
     }
 }
 

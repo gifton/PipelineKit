@@ -65,7 +65,7 @@ public struct CPUPatternValidation {
         
         try await Task.sleep(nanoseconds: 2_000_000_000)
         
-        let status = orchestrator.currentStatus()
+        let status = await orchestrator.currentStatus()
         print("   → Active simulations: \(status.activeSimulations.count)")
         
         await orchestrator.stopAll()
@@ -75,7 +75,7 @@ public struct CPUPatternValidation {
         print("5. Testing CPU Patterns in Scenarios...")
         
         // Test BurstLoadScenario with CPU focus
-        let burstLoadScenario = BurstLoadScenario(
+        let burstLoadScenario = await BurstLoadScenario(
             name: "CPU-Focused Burst",
             idleDuration: 1.0,
             spikeDuration: 2.0,

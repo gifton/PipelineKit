@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 
 /// A thread-safe command bus that routes commands to their handlers with middleware support.
 ///
@@ -234,17 +235,31 @@ public actor CommandBus {
     }
 
     private func logCommandFailure<T: Command>(command: T, context: ErrorRecoveryContext) {
-        // This could integrate with structured logging, metrics, or observability systems
-        print("🔴 Command failed after \(context.attempt) attempts: \(String(describing: T.self))")
-        print("   Total time: \(String(format: "%.2f", context.totalElapsedTime))s")
-        print("   Final error: \(context.error)")
+        if #available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *) {
+            PipelineLogger.bus.error("""
+                Command failed after \(context.attempt, privacy: .public) attempts: \(String(describing: T.self), privacy: .public)
+                Total time: \(String(format: "%.2f", context.totalElapsedTime), privacy: .public)s
+                Final error: \(context.error.localizedDescription, privacy: .public)
+                """)
+        } else {
+            LegacyLogger.log("Command failed after \(context.attempt) attempts: \(String(describing: T.self))", category: "CommandBus")
+            LegacyLogger.log("Total time: \(String(format: "%.2f", context.totalElapsedTime))s", category: "CommandBus")
+            LegacyLogger.log("Final error: \(context.error)", category: "CommandBus")
+        }
     }
 
     private func logCommandRetry<T: Command>(command: T, context: ErrorRecoveryContext, nextDelay: TimeInterval) {
-        // This could integrate with structured logging, metrics, or observability systems
-        print("🔄 Retrying command \(String(describing: T.self)) (attempt \(context.attempt))")
-        print("   Error: \(context.error)")
-        print("   Next retry in: \(String(format: "%.2f", nextDelay))s")
+        if #available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *) {
+            PipelineLogger.bus.notice("""
+                Retrying command \(String(describing: T.self), privacy: .public) (attempt \(context.attempt, privacy: .public))
+                Error: \(context.error.localizedDescription, privacy: .public)
+                Next retry in: \(String(format: "%.2f", nextDelay), privacy: .public)s
+                """)
+        } else {
+            LegacyLogger.log("Retrying command \(String(describing: T.self)) (attempt \(context.attempt))", category: "CommandBus")
+            LegacyLogger.log("Error: \(context.error)", category: "CommandBus")
+            LegacyLogger.log("Next retry in: \(String(format: "%.2f", nextDelay))s", category: "CommandBus")
+        }
     }
 
     public var circuitBreakerState: CircuitBreaker.State {

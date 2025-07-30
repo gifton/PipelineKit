@@ -1,5 +1,6 @@
 import Foundation
 import os.log
+import OSLog
 
 /// A comprehensive audit logging system for tracking command execution.
 ///
@@ -91,7 +92,11 @@ public actor AuditLogger {
                     for entry in buffer {
                         if let data = try? encoder.encode(entry),
                            let string = String(data: data, encoding: .utf8) {
-                            print("AUDIT: \(string)")
+                            if #available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *) {
+                                PipelineLogger.security.info("AUDIT: \(string, privacy: .public)")
+                            } else {
+                                os_log("AUDIT: %{public}@", log: .default, type: .info, string)
+                            }
                         }
                     }
                 }
