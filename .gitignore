@@ -60,7 +60,7 @@ playground.xcworkspace
 .swiftpm/xcode/xcshareddata/
 Index/
 /Packages
-/Package.resolved
+# DO NOT ignore Package.resolved - needed for reproducible CI builds
 
 # CocoaPods
 Pods/
@@ -101,6 +101,7 @@ iOSInjectionProject/
 .assistant/
 .ai-config/
 .github/copilot/
+# AI assistant instructions (optional - remove if you want to track these)
 CLAUDE.md
 **/CLAUDE.md
 
@@ -120,6 +121,7 @@ pip-delete-this-directory.txt
 .coverage
 *.lcov
 coverage/
+# Note: CI generates coverage.lcov but it's temporary and shouldn't be committed
 .tox/
 .pytest_cache/
 .phpunit.result.cache
@@ -159,6 +161,7 @@ benchmark-results/
 *.bench
 benchmark-baseline.json
 .benchmarks/
+# Note: CI uploads benchmark-results/ as artifacts but they shouldn't be committed
 
 # Security
 .env
