@@ -13,7 +13,7 @@ PipelineKit supports multiple installation methods to fit your workflow.
 ### Xcode Integration
 
 1. Open your project in Xcode
-2. Go to **File** ’ **Add Package Dependencies...**
+2. Go to **File** ï¿½ **Add Package Dependencies...**
 3. Enter the repository URL:
    ```
    https://github.com/yourusername/PipelineKit.git
@@ -195,8 +195,8 @@ Windows support is experimental. Use the official Swift for Windows installer.
 ### "No such module 'PipelineKit'"
 
 1. Ensure the package is properly added to your target dependencies
-2. Clean build folder: **Product** ’ **Clean Build Folder** (çK)
-3. Resolve packages: **File** ’ **Packages** ’ **Resolve Package Versions**
+2. Clean build folder: **Product** ï¿½ **Clean Build Folder** (ï¿½K)
+3. Resolve packages: **File** ï¿½ **Packages** ï¿½ **Resolve Package Versions**
 
 ### "Package.resolved file is corrupted"
 
@@ -211,6 +211,6 @@ Ensure you have internet connectivity and the repository URL is correct.
 
 ## Next Steps
 
-- Follow the [Getting Started](getting-started.md) guide
-- Read about [Architecture](architecture.md)
-- Check out [Examples](examples/basic-usage.md)
+- Follow the [Quick Start](quick-start.md) guide
+- Read about [Architecture](../guides/architecture.md)
+- Check out [Examples](../tutorials/basic-usage.md)

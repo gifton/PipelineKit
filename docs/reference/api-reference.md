@@ -432,6 +432,6 @@ APIs marked with `@available` annotations indicate platform-specific features.
 
 ## See Also
 
-- [Getting Started](getting-started.md)
-- [Architecture](architecture.md)
-- [Examples](examples/basic-usage.md)
+- [Getting Started](../getting-started/quick-start.md)
+- [Architecture](../guides/architecture.md)
+- [Examples](../tutorials/basic-usage.md)

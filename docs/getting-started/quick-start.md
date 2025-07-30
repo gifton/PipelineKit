@@ -128,9 +128,9 @@ let pipeline = try await PipelineBuilder(handler: handler)
 
 ## Next Steps
 
-- Read the [Architecture Guide](architecture.md) to understand the design
+- Read the [Architecture Guide](../guides/architecture.md) to understand the design
 - Check out [Advanced Patterns](examples/advanced-patterns.md) for complex scenarios
-- See [API Reference](api-reference.md) for detailed documentation
+- See [API Reference](../reference/api-reference.md) for detailed documentation
 
 ## Common Patterns
 

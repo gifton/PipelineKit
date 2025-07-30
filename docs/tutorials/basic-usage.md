@@ -410,4 +410,4 @@ struct OrderSystem {
 
 - Explore [Advanced Patterns](advanced-patterns.md) for complex scenarios
 - Learn about [Custom Middleware](custom-middleware.md) development
-- See the [API Reference](../api-reference.md) for detailed documentation
+- See the [API Reference](../reference/api-reference.md) for detailed documentation
