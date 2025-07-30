@@ -3,8 +3,7 @@ import Foundation
 /// Shared protocol for components that emit metrics during stress testing.
 ///
 /// This protocol provides a consistent interface for metric recording across
-/// all simulators while maintaining backward compatibility through optional
-/// MetricCollector support.
+/// all simulators through optional MetricCollector support.
 ///
 /// ## Usage
 ///
@@ -26,7 +25,7 @@ public protocol MetricRecordable {
     /// Simulator-specific metric namespace type.
     associatedtype Namespace: RawRepresentable where Namespace.RawValue == String
     
-    /// Optional metric collector for backward compatibility.
+    /// Optional metric collector for recording metrics.
     var metricCollector: MetricCollector? { get }
     
     /// The top-level namespace for this simulator (e.g., "memory", "cpu").
@@ -224,19 +223,6 @@ public extension MetricRecordable {
     }
 }
 
-// MARK: - Backwards Compatibility
-
-public extension MetricRecordable {
-    /// Temporary backwards compatibility method for direct MetricDataPoint recording.
-    /// This allows gradual migration from the old API to the new protocol methods.
-    ///
-    /// - Parameter dataPoint: The metric data point to record.
-    /// - Note: This method will be deprecated. Use the typed protocol methods instead.
-    @available(*, deprecated, message: "Use typed protocol methods like recordGauge, recordCounter, etc.")
-    func recordMetric(_ dataPoint: MetricDataPoint) async {
-        await metricCollector?.record(dataPoint)
-    }
-}
 
 // MARK: - Standard Metric Categories
 

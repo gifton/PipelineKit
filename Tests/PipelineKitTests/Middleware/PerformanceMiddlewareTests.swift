@@ -8,7 +8,7 @@ final class PerformanceMiddlewareTests: XCTestCase {
     
     func testSuccessfulPerformanceTracking() async throws {
         // Given
-        let collector = TestPerformanceCollectorV2()
+        let collector = TestPerformanceCollector()
         let middleware = PerformanceMiddleware(
             collector: collector,
             includeDetailedMetrics: true
@@ -41,7 +41,7 @@ final class PerformanceMiddlewareTests: XCTestCase {
     
     func testPerformanceTrackingWithFailure() async throws {
         // Given
-        let collector = TestPerformanceCollectorV2()
+        let collector = TestPerformanceCollector()
         let middleware = PerformanceMiddleware(collector: collector)
         
         let command = PerfTestCommand(value: "fail")
@@ -72,7 +72,7 @@ final class PerformanceMiddlewareTests: XCTestCase {
     
     func testPerformanceMetadataCollection() async throws {
         // Given
-        let collector = TestPerformanceCollectorV2()
+        let collector = TestPerformanceCollector()
         let middleware = PerformanceMiddleware(
             collector: collector,
             includeDetailedMetrics: true
@@ -104,7 +104,7 @@ final class PerformanceMiddlewareTests: XCTestCase {
     
     func testConcurrentPerformanceTracking() async throws {
         // Given
-        let collector = TestPerformanceCollectorV2()
+        let collector = TestPerformanceCollector()
         let middleware = PerformanceMiddleware(collector: collector)
         
         // When - Execute multiple commands with varying performance
@@ -173,7 +173,7 @@ private enum PerfTestError: Error {
     case intentionalFailure
 }
 
-private actor TestPerformanceCollectorV2: PerformanceCollector {
+private actor TestPerformanceCollector: PerformanceCollector {
     private var measurements: [PerformanceMeasurement] = []
     private var continuations: [CheckedContinuation<Void, Never>] = []
     

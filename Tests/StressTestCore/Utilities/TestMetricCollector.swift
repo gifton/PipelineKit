@@ -55,7 +55,7 @@ public actor TestMetricCollector {
         ))
     }
     
-    /// Query method that returns a simple value (for compatibility)
+    /// Query method that returns a simple value
     public func query(_ query: MetricQuery) async -> Double {
         let matchingMetrics = recordedMetrics.filter { metric in
             query.matches(name: metric.name)
@@ -174,7 +174,7 @@ public actor TestMetricCollector {
         recordedCounters.removeAll()
     }
     
-    // MARK: - Protocol Compatibility Methods
+    // MARK: - Protocol Methods
     
     /// Start collection (no-op for tests)
     public func start() async {

@@ -41,7 +41,7 @@ We use **exact version pinning** for all dependencies:
 2. **Security Alerts**: Monitor GitHub security advisories
 3. **Update Review**: All updates require:
    - Security review
-   - Compatibility testing
+   - Integration testing
    - Performance benchmarking
    - API stability check
 

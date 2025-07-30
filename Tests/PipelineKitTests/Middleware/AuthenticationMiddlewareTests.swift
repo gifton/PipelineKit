@@ -13,7 +13,7 @@ final class AuthenticationMiddlewareTests: XCTestCase {
             return "user-123"
         }
         
-        let command = AuthTestCommandV2(value: "test")
+        let command = AuthTestCommand(value: "test")
         let metadata = StandardCommandMetadata(userId: "valid-token")
         let context = CommandContext(metadata: metadata)
         
@@ -44,7 +44,7 @@ final class AuthenticationMiddlewareTests: XCTestCase {
             return "user-123"
         }
         
-        let command = AuthTestCommandV2(value: "test")
+        let command = AuthTestCommand(value: "test")
         let metadata = StandardCommandMetadata(userId: "invalid-token")
         let context = CommandContext(metadata: metadata)
         
@@ -69,7 +69,7 @@ final class AuthenticationMiddlewareTests: XCTestCase {
             return "user-123"
         }
         
-        let command = AuthTestCommandV2(value: "test")
+        let command = AuthTestCommand(value: "test")
         let metadata = StandardCommandMetadata() // No userId
         let context = CommandContext(metadata: metadata)
         
@@ -98,7 +98,7 @@ final class AuthenticationMiddlewareTests: XCTestCase {
             throw AuthenticationError.invalidToken
         }
         
-        let command = AuthTestCommandV2(value: "test")
+        let command = AuthTestCommand(value: "test")
         let metadata = StandardCommandMetadata(userId: "api-key-user456")
         let context = CommandContext(metadata: metadata)
         
@@ -133,7 +133,7 @@ final class AuthenticationMiddlewareTests: XCTestCase {
         // When - Execute multiple authentications concurrently
         let tasks = (0..<10).map { i in
             Task {
-                let command = AuthTestCommandV2(value: "test-\(i)")
+                let command = AuthTestCommand(value: "test-\(i)")
                 let metadata = StandardCommandMetadata(userId: "valid-token")
                 let context = CommandContext(metadata: metadata)
                 
@@ -156,7 +156,7 @@ final class AuthenticationMiddlewareTests: XCTestCase {
 }
 
 // Test support types
-private struct AuthTestCommandV2: Command {
+private struct AuthTestCommand: Command {
     typealias Result = String
     let value: String
     

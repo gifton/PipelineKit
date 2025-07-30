@@ -46,7 +46,7 @@ final class MetricsMiddlewareTests: XCTestCase {
         do {
             _ = try await middleware.execute(command, context: context) { cmd, _ in
                 await self.synchronizer.shortDelay()
-                throw MetricsTestErrorV2.intentionalFailure
+                throw MetricsTestError.intentionalFailure
             }
             XCTFail("Should have thrown error")
         } catch {
@@ -152,6 +152,6 @@ private struct MetricsTestCommand: Command {
     }
 }
 
-private enum MetricsTestErrorV2: Error {
+private enum MetricsTestError: Error {
     case intentionalFailure
 }

@@ -166,11 +166,11 @@ The threshold checking itself has minimal overhead:
 - No allocation or async operations
 - Logging only occurs when thresholds are exceeded
 
-## Migration from 0.1s Default
+## Performance Threshold Configuration
 
-The previous hardcoded 0.1s threshold for slow middleware has been replaced with:
+The configurable threshold system allows:
 - **Default**: 0.01s (10ms) - more appropriate for middleware
-- **Development**: 0.1s (100ms) - maintains backward compatibility
+- **Development**: 0.1s (100ms) - for development environment
 - **Custom**: Configure based on your specific needs
 
-This change provides better granularity for high-performance applications while maintaining flexibility for different environments.
+This provides better granularity for high-performance applications while maintaining flexibility for different environments.

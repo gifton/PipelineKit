@@ -221,9 +221,9 @@ func execute<C: Command>(_ command: C, ...) async throws -> C.Result {
 3. **SIMD Optimization**: Vectorize context operations for parallel middleware
 4. **Custom Allocators**: Reduce allocation overhead with specialized memory management
 
-## Migration Guide
+## Usage Guide
 
-### From Standard Pipeline
+### Switching to FastPath
 
 ```swift
 // Before

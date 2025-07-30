@@ -22,6 +22,17 @@ public actor MockSafetyMonitor: SafetyMonitor {
     private var configurationCalls: [SafetyConfiguration] = []
     private var reservationRequests: [(resource: ResourceType, amount: Int)] = []
     
+    // MARK: - Violation Scheduling
+    
+    private var schedulingEngine: ViolationSchedulingEngine?
+    private let timeController: TimeController
+    
+    // MARK: - Initialization
+    
+    public init(timeController: TimeController = TimeController.shared) {
+        self.timeController = timeController
+    }
+    
     // MARK: - SafetyMonitor Protocol
     
     public func configure(_ config: SafetyConfiguration) async {
@@ -281,5 +292,43 @@ extension MockSafetyMonitor {
         default:
             break
         }
+    }
+}
+
+// MARK: - ViolationScheduler Implementation
+
+extension MockSafetyMonitor: ViolationScheduler {
+    
+    /// Get or create the scheduling engine
+    private func getSchedulingEngine() -> ViolationSchedulingEngine {
+        if let engine = schedulingEngine {
+            return engine
+        }
+        let engine = ViolationSchedulingEngine(
+            timeController: timeController,
+            safetyMonitor: self
+        )
+        schedulingEngine = engine
+        return engine
+    }
+    
+    public func schedule(_ violation: ScheduledViolation) async -> UUID {
+        await getSchedulingEngine().schedule(violation)
+    }
+    
+    public func cancel(_ id: UUID) async -> Bool {
+        await getSchedulingEngine().cancel(id)
+    }
+    
+    public func cancelAll() async {
+        await getSchedulingEngine().cancelAll()
+    }
+    
+    public func history() async -> [ViolationRecord] {
+        await getSchedulingEngine().history()
+    }
+    
+    public func pendingViolations() async -> [ScheduledViolation] {
+        await getSchedulingEngine().pendingViolations()
     }
 }

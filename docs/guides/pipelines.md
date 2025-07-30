@@ -8,7 +8,7 @@ This guide provides in-depth coverage of PipelineKit's pipeline implementations,
 - [Pipeline Types Deep Dive](#pipeline-types-deep-dive)
 - [Performance Analysis](#performance-analysis)
 - [Configuration Patterns](#configuration-patterns)
-- [Migration Strategies](#migration-strategies)
+- [Implementation Strategies](#implementation-strategies)
 - [Troubleshooting](#troubleshooting)
 
 ## 🎯 Pipeline Fundamentals
@@ -878,9 +878,9 @@ let productionPipeline = try SecurePipelineBuilder()
     .build()
 ```
 
-## 🔄 Migration Strategies
+## 🔄 Implementation Strategies
 
-### From Basic to Concurrent
+### Choosing Between Basic and Concurrent
 
 ```swift
 // Step 1: Identify independent middleware
@@ -895,7 +895,7 @@ let dependentMiddleware = [
     BusinessLogicMiddleware()   // Depends on authorization
 ]
 
-// Step 2: Gradual migration
+// Step 2: Implement with appropriate pipeline
 let hybridPipeline = ConcurrentPipeline()
     // Group 1: Independent (parallel)
     .use(independentMiddleware)

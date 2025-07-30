@@ -126,9 +126,21 @@ public actor MockTimeController: TimeController {
     }
 }
 
+// MARK: - Shared Instance
+
+public extension TimeController {
+    /// Shared time controller instance for convenient access
+    static var shared: TimeController = RealTimeController()
+}
+
 // MARK: - Test Helpers
 
 public extension TimeController {
+    /// Wait for the specified duration (convenience wrapper around sleep)
+    func wait(for duration: TimeInterval) async {
+        try? await sleep(for: duration)
+    }
+    
     /// Runs a block with a timeout using this time controller
     func withTimeout<T>(
         _ timeout: TimeInterval,

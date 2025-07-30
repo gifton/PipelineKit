@@ -440,7 +440,7 @@ This document tracks identified improvements and optimization opportunities acro
 ## Recent Updates
 
 ### July 30, 2025
-- **ResourceExhauster Refactor Complete**: Implemented clean architecture with no legacy constraints
+- **ResourceExhauster Refactor Complete**: Implemented clean architecture
   - New API using ExhaustionRequest/Result types
   - Full ResourceHandle integration for automatic cleanup
   - Fixed all critical bugs (memory exhaustion, multi-resource holding)

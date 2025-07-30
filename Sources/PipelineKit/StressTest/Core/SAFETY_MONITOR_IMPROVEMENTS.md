@@ -77,7 +77,7 @@ This document tracks medium and low priority improvements identified during the 
 
 These improvements should be considered after the critical fixes are stable and proven. Each improvement should:
 
-1. Maintain backward compatibility
+1. Have clean API design
 2. Be feature-flagged for gradual rollout
 3. Include comprehensive testing
 4. Have minimal performance impact

@@ -86,10 +86,20 @@ public enum TestDefaults {
         return monitor
     }
     
-    public enum ViolationType {
+    public enum ViolationType: Sendable {
         case memory
         case cpu
+        case fileDescriptor
+        case custom
         case multiple
+    }
+    
+    // MARK: - Safety Limits
+    
+    public struct SafetyLimits {
+        public static let maxFileDescriptors: Int = 1000
+        public static let maxMemory: Int = 1024 * 1024 * 1024 // 1GB
+        public static let maxCPU: Double = 100.0
     }
     
     // MARK: - Test Utilities

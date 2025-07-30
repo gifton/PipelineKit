@@ -31,13 +31,3 @@ public struct PipelineLogger {
     public static let debug = Logger(subsystem: "com.pipelinekit", category: "debug")
 }
 
-/// Fallback logging for older OS versions
-@available(macOS, deprecated: 11.0, message: "Use PipelineLogger for better structured logging")
-@available(iOS, deprecated: 14.0, message: "Use PipelineLogger for better structured logging")
-public struct LegacyLogger {
-    /// Logs a message to stdout with timestamp
-    public static func log(_ message: String, category: String = "PipelineKit") {
-        let timestamp = ISO8601DateFormatter().string(from: Date())
-        print("[\(timestamp)] [\(category)] \(message)")
-    }
-}

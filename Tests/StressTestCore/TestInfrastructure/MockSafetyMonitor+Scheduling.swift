@@ -403,14 +403,8 @@ extension ScheduledViolation {
     }
 }
 
-// MARK: - MockSafetyMonitor Extension Placeholder
+// MARK: - MockSafetyMonitor Extension
 
-// Note: The actual implementation of ViolationScheduler for MockSafetyMonitor
-// will be added in the next phase. This extension serves as a placeholder
-// to indicate where the implementation will go.
-
-/*
-extension MockSafetyMonitor: ViolationScheduler {
-    // Implementation will be added in Phase A, Step 2
-}
-*/
+// Note: The ViolationScheduler protocol implementation for MockSafetyMonitor
+// has been completed in MockSafetyMonitor.swift. This file contains the
+// protocol definitions and supporting types used by the implementation.

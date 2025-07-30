@@ -50,12 +50,9 @@
 3. **Memory Safety**: Thread-safe design with proper Sendable conformance
 4. **Extensibility**: Easy to add new benchmarks and measurement types
 
-## Migration Plan
+## Implementation Plan
 
-Existing benchmarks in `/benchmarks` directory are marked for migration:
-- See `benchmarks/MIGRATION.md` for detailed plan
-- Old benchmarks remain for reference during migration
-- New benchmarks go in `Sources/PipelineKitBenchmarks/Benchmarks/`
+New benchmarks go in `Sources/PipelineKitBenchmarks/Benchmarks/`
 
 ## Next Steps
 
@@ -71,8 +68,7 @@ Existing benchmarks in `/benchmarks` directory are marked for migration:
 - Race condition detection
 - Thread sanitizer integration
 
-### Phase 4: Complete Migration
-- Migrate all existing benchmarks
+### Phase 4: Additional Features
 - Add comprehensive benchmark suite
 - Documentation and examples
 - Full CI/CD pipeline
@@ -102,7 +98,7 @@ swift run PipelineKitBenchmarks --save-baseline
 ✅ Statistical analysis with <2% variance goal
 ✅ Memory tracking capabilities
 ✅ Extensible architecture for future enhancements
-✅ Clear migration path for existing benchmarks
+✅ Clean benchmark structure
 ✅ Not included in release builds
 
 The foundation is now in place for comprehensive performance testing.
