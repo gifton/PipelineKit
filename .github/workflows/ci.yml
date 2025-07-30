@@ -35,7 +35,14 @@ jobs:
     - uses: actions/checkout@v4
     
     - name: Setup Swift
+      if: matrix.os != 'ubuntu-latest'
       uses: swift-actions/setup-swift@v2
+      with:
+        swift-version: ${{ matrix.swift }}
+    
+    - name: Setup Swift on Ubuntu
+      if: matrix.os == 'ubuntu-latest'
+      uses: swiftlang/setup-swift@v1
       with:
         swift-version: ${{ matrix.swift }}
     
@@ -120,7 +127,7 @@ jobs:
       run: swift run -c release PipelineKitBenchmarks --iterations 1000
       
     - name: Upload benchmark results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: benchmark-results
         path: benchmark-results/

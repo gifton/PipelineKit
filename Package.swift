@@ -58,7 +58,11 @@ let package = Package(
         // swift-atomics 1.2.0 - For lock-free atomic operations
         // Security: No known vulnerabilities
         // License: Apache-2.0
-        .package(url: "https://github.com/apple/swift-atomics.git", from: "1.2.0")
+        .package(url: "https://github.com/apple/swift-atomics.git", from: "1.2.0"),
+        // swift-docc-plugin 1.3.0 - For documentation generation
+        // Security: No known vulnerabilities
+        // License: Apache-2.0
+        .package(url: "https://github.com/apple/swift-docc-plugin", from: "1.3.0")
     ],
     targets: [
         .macro(
@@ -74,6 +78,13 @@ let package = Package(
             dependencies: [
                 "PipelineMacros",
                 .product(name: "Atomics", package: "swift-atomics")
+            ],
+            exclude: [
+                "Observability/Export/README.md",
+                "Observability/EXPORT_RESTRUCTURE.md",
+                "StressTest/Metrics/MetricRecordableMigrationGuide.md",
+                "StressTest/Core/SAFETY_MONITOR_IMPROVEMENTS.md",
+                "StressTest/TODO.md"
             ],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency"),
@@ -96,7 +107,7 @@ let package = Package(
             name: "PipelineKitBenchmarks",
             dependencies: ["PipelineKit"],
             path: "Sources/PipelineKitBenchmarks",
-            exclude: ["README.md"]
+            exclude: ["README.md", "PHASE1-SUMMARY.md"]
         ),
         .testTarget(
             name: "PipelineKitTests",
@@ -138,6 +149,7 @@ let package = Package(
         .testTarget(
             name: "StressTestCore",
             dependencies: ["PipelineKit", "PipelineKitTestSupport"],
+            exclude: ["README.md"],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency")
             ]

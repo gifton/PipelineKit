@@ -101,7 +101,7 @@ jobs:
     
     - name: Create Issue for Updates
       if: failure()
-      uses: actions/create-issue@v2
+      uses: actions/create-issue@v4
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
