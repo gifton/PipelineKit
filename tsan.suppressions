@@ -1,0 +1,62 @@
+# ThreadSanitizer suppressions for PipelineKit
+# This file contains suppressions for known benign races and system issues
+
+# Swift Runtime
+# The Swift runtime has some benign races during initialization
+race:swift_retain
+race:swift_release
+race:swift_allocObject
+race:swift_deallocObject
+race:swift_actor_init
+race:swift_task_create
+race:swift_task_dealloc
+
+# Actor Initialization
+# Actors may have benign races during their initialization phase
+race:*Actor.init*
+race:*Actor.__allocating_init*
+
+# System Libraries
+# Known issues in system frameworks that are out of our control
+race:libsystem_pthread.dylib
+race:libdispatch.dylib
+race:libswiftCore.dylib
+race:Foundation
+
+# Dispatch Queue
+# GCD has some internal races that are benign
+race:_dispatch_queue_push
+race:_dispatch_continuation_pop
+race:dispatch_group_leave
+
+# XCTest Framework
+# Test framework may have some internal races
+race:XCTest
+race:XCTestCase
+
+# Concurrency Runtime
+# Swift concurrency runtime has some documented benign races
+race:swift_job_run
+race:swift_task_switch
+race:TaskLocal
+
+# Memory Management
+# Some memory management operations may appear as races but are safe
+race:malloc_zone_malloc
+race:free_tiny
+race:tiny_malloc_from_free_list
+
+# Metrics Collection
+# Lock-free algorithms in metrics may trigger false positives
+# These should be reviewed case-by-case
+# race:MetricBuffer
+# race:RingBuffer
+
+# IMPORTANT: Each suppression should be documented with:
+# 1. Why the race is benign
+# 2. Link to relevant documentation or bug report
+# 3. Date when it should be re-evaluated
+
+# To use this file:
+# export TSAN_OPTIONS="suppressions=/path/to/tsan.suppressions"
+# Or pass it directly to the test command

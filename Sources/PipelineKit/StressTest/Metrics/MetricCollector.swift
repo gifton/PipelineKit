@@ -124,6 +124,51 @@ public actor MetricCollector {
         }
     }
     
+    // MARK: - Convenience Methods
+    
+    /// Records an event metric.
+    public func recordEvent(_ metric: String, tags: [String: String] = [:]) async {
+        await record(MetricDataPoint(
+            timestamp: Date(),
+            name: metric,
+            value: 1.0,
+            type: .counter,
+            tags: tags
+        ))
+    }
+    
+    /// Records a gauge metric.
+    public func recordGauge(_ metric: String, value: Double, tags: [String: String] = [:]) async {
+        await record(MetricDataPoint(
+            timestamp: Date(),
+            name: metric,
+            value: value,
+            type: .gauge,
+            tags: tags
+        ))
+    }
+    
+    /// Records a counter metric.
+    public func recordCounter(_ metric: String, value: Double = 1.0, tags: [String: String] = [:]) async {
+        await record(MetricDataPoint(
+            timestamp: Date(),
+            name: metric,
+            value: value,
+            type: .counter,
+            tags: tags
+        ))
+    }
+    
+    /// Simple query method that returns a value.
+    public func query(_ query: MetricQuery) async -> Double {
+        let result = await aggregator?.query(query)
+        // Return the sum value from the first metric in the result
+        if let firstMetric = result?.metrics.first {
+            return firstMetric.statistics.sum
+        }
+        return 0.0
+    }
+    
     /// Starts the collection process.
     public func start() async {
         guard state == .idle else { return }
@@ -243,10 +288,6 @@ public actor MetricCollector {
         }
     }
     
-    /// Queries aggregated metrics.
-    public func query(_ query: MetricQuery) async -> MetricQueryResult? {
-        await aggregator?.query(query)
-    }
     
     /// Gets the integrated aggregator.
     public func getAggregator() -> MetricAggregator? {

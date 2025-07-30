@@ -78,14 +78,40 @@ This document tracks identified improvements and optimization opportunities acro
 
 ### Completed
 - [x] Multi-core load generation
-- [x] Load pattern support
+- [x] Load pattern support (constant, sine/oscillating, burst)
 - [x] Thermal throttling consideration
+- [x] Prime number calculation workload
+- [x] Matrix operation workload
+- [x] Proper pattern mapping in StressOrchestrator
+- [x] All CPU scenarios properly integrated
 
-### Future Improvements
+### High Priority Improvements
+- [ ] **CPU Usage Monitoring**
+  - [ ] Implement actual CPU usage measurement in StressOrchestrator
+  - [ ] Replace hardcoded 0.0 in captureMetrics() with real CPU metrics
+  - [ ] Add per-core CPU usage tracking
+  - [ ] Integrate with system performance counters
+
+### Medium Priority Improvements
+- [ ] **Dynamic Parameter Updates**
+  - [ ] Implement updateSimulation() in StressOrchestrator for CPU scenarios
+  - [ ] Allow runtime intensity adjustments without restart
+  - [ ] Support dynamic core count changes
+  - [ ] Enable pattern switching during execution
+- [ ] **Thread Affinity**
+  - [ ] Implement actual thread-to-core pinning
+  - [ ] Add NUMA-aware thread placement
+  - [ ] Support CPU isolation for dedicated testing
+  - [ ] Create affinity masks for precise control
+
+### Low Priority Improvements
 - [ ] Add instruction-specific workloads (SIMD, floating-point)
 - [ ] Implement cache thrashing scenarios
 - [ ] Add CPU frequency scaling simulation
 - [ ] Create branch prediction stress patterns
+- [ ] Support heterogeneous core architectures (P-cores/E-cores)
+- [ ] Add CPU pipeline stall simulation
+- [ ] Implement thermal throttling prediction
 
 ## Stress Orchestrator
 
@@ -229,57 +255,116 @@ This document tracks identified improvements and optimization opportunities acro
 ## Resource Exhauster
 
 ### Completed
-- [x] Basic implementation of ResourceExhauster simulator
-- [x] File descriptor exhaustion
-- [x] Memory mapping exhaustion
-- [x] Network socket exhaustion (basic)
-- [x] Disk space exhaustion
-- [x] Safety monitor integration
+- [x] Clean API implementation with ExhaustionRequest/Result types
+- [x] Full ResourceHandle integration for automatic cleanup
+- [x] Fixed memory exhaustion bug using sparse file technique
+- [x] Fixed multi-resource exhaustion with proper holding phase
+- [x] Thread exhaustion implementation
+- [x] Process exhaustion implementation
+- [x] File descriptor exhaustion with SafetyMonitor integration
+- [x] Memory mapping exhaustion with proper size calculations
+- [x] Network socket exhaustion (TCP/UDP support)
+- [x] Disk space exhaustion with sparse files
 - [x] Comprehensive metrics recording
+- [x] Support for count, percentage, and byte-based allocations
+- [x] Proper error handling and safety limits
+- [x] Clean separation of allocation, holding, and release phases
+- [x] **CRITICAL FIX**: Implemented actual OS resource creation (not just quota tracking)
+- [x] Dual management: ResourceHandles for quotas + actual OS resources
+- [x] Proper cleanup of OS resources in releaseAllocation
+- [x] Tests verify actual OS resource creation and cleanup
 
-### Critical Issues to Fix
-- [ ] **Fix multi-resource exhaustion**: Resources are released immediately due to holdDuration=0
-- [ ] **Fix memory exhaustion risk**: Disk operations create full Data objects in memory
-- [ ] **Integrate ResourceHandle pattern**: Use SafetyMonitor's automatic cleanup instead of manual tracking
+### High Priority Improvements (from o3 analysis)
+- [ ] **Disk Commit vs Reservation**
+  - [ ] Implement fallocate/posix_fallocate on Linux for real disk allocation
+  - [ ] Write random blocks every N MB to force actual disk usage
+  - [ ] Add option flag to choose "sparse" vs "real" disk consumption
+- [ ] **Progressive Allocation Support**
+  - [ ] Allocate resources in increments (e.g., 10% at a time)
+  - [ ] Check system metrics between allocations
+  - [ ] Reduce risk of sudden OOM or system crash
+- [ ] **Platform Feature Flags**
+  - [ ] Add `.supportsProcesses`, `.supportsMmap` etc. capabilities
+  - [ ] Allow callers to tailor requests based on host capabilities
+  - [ ] Better cross-platform support
 
-### High Priority Improvements
-- [ ] Implement thread exhaustion (enum value exists but not implemented)
-- [ ] Implement process exhaustion (enum value exists but not implemented)
-- [ ] Add skipCleanup parameter to individual exhaust methods for multi-resource support
-- [ ] Use getpagesize() instead of hardcoded 4096 for memory mappings
-- [ ] Implement streaming writes for disk exhaustion to avoid memory issues
-
-### Medium Priority Improvements
-- [ ] Add gradual release support for all resource types (currently only file descriptors)
-- [ ] Implement connected socket exhaustion (not just unbound sockets)
-- [ ] Add port exhaustion for network testing
-- [ ] Fix partial allocation handling to properly report success/failure
-- [ ] Remove code duplication of SystemInfo methods
-
-### Low Priority Improvements
-- [ ] Add input parameter validation
-- [ ] Implement metric batching for tight loops
-- [ ] Add configurable constants instead of hardcoded values
+### Future Improvements
+- [ ] Add gradual release support for all resource types
+- [ ] Implement connected socket exhaustion (client/server pairs)
+- [ ] Add port exhaustion scenarios
+- [ ] Support for custom socket types (Unix domain, raw)
+- [ ] Add memory access patterns (sequential vs random)
+- [ ] Implement NUMA-aware memory allocation
+- [ ] Add disk I/O patterns during space exhaustion
 - [ ] Create comprehensive test coverage
+- [ ] Add CPU exhaustion patterns (spin loops, cache thrashing)
+- [ ] Implement semaphore/mutex exhaustion
+- [ ] Add pipe/FIFO exhaustion scenarios
+- [ ] Support epoll/kqueue handle exhaustion
 
-## Test Scenarios (Not Yet Implemented)
+## Test Framework Infrastructure
 
-### Burst Scenario
-- [ ] Design sudden load spike patterns
-- [ ] Implement recovery monitoring
-- [ ] Add cascade failure simulation
-- [ ] Create adaptive burst intensity
+### Completed
+- [x] **TestContext Builder**: Core test configuration and utilities
+  - [x] TestContext struct for centralized configuration
+  - [x] TestContextBuilder with fluent API
+  - [x] TimeController protocol with real and mock implementations
+  - [x] ResourceTracker for leak detection
+  - [x] TestDefaults with pre-configured contexts
+  - [x] Comprehensive test coverage
 
-### Sustained Scenario
-- [ ] Design long-running stress patterns
-- [ ] Implement resource degradation tracking
+### TestContext Improvements (from o3 analysis)
+- [ ] **Enhanced Isolation Features**
+  - [ ] Process-level isolation for stress tests
+  - [ ] Resource namespacing for parallel test execution
+  - [ ] Test-specific temporary directories with automatic cleanup
+  - [ ] Network isolation capabilities
+- [ ] **Advanced Time Control**
+  - [ ] Variable time acceleration factors
+  - [ ] Time-based event injection
+  - [ ] Synchronized time across distributed tests
+  - [ ] Historical time replay functionality
+- [ ] **Resource Tracking Enhancements**
+  - [ ] GPU resource tracking
+  - [ ] Network bandwidth monitoring
+  - [ ] Disk I/O tracking
+  - [ ] Custom resource type registration
+- [ ] **Error Injection Capabilities**
+  - [ ] Configurable failure injection points
+  - [ ] Network error simulation
+  - [ ] Resource exhaustion triggers
+  - [ ] Latency injection for async operations
+
+## Test Scenarios
+
+### Completed
+- [x] **Burst Scenario**: Sudden load spike patterns with recovery
+  - [x] Idle → Spike → Recovery phases
+  - [x] Configurable spike and recovery intensities
+  - [x] Safety monitoring during all phases
+  - [x] Metric recording for phase transitions
+- [x] **Sustained Scenario**: Long-running constant load
+  - [x] Configurable load intensity levels
+  - [x] Periodic checkpoint monitoring
+  - [x] Multiple resource type support
+  - [x] Safety event recording
+- [x] **Chaos Scenario**: Random, unpredictable patterns
+  - [x] Weighted simulator selection
+  - [x] Random duration and intensity
+  - [x] Seedable RNG for reproducibility
+  - [x] Dynamic simulation start/stop
+- [x] **RampUp Scenario**: Gradual load increase
+  - [x] Linear, exponential, logarithmic ramp styles
+  - [x] Hold at peak functionality
+  - [x] Controlled ramp down
+  - [x] Per-step intensity recording
+
+### Future Enhancements
+- [ ] Add cascade failure simulation to Burst
+- [ ] Implement resource degradation tracking in Sustained
 - [ ] Add memory leak simulation over time
 - [ ] Create performance drift detection
-
-### Chaos Scenario
-- [ ] Design random failure injection
-- [ ] Implement resource starvation patterns
-- [ ] Add network partition simulation
+- [ ] Add network partition simulation to Chaos
 - [ ] Create Byzantine failure scenarios
 
 ## Integration Tasks
@@ -348,6 +433,66 @@ This document tracks identified improvements and optimization opportunities acro
 
 ---
 
-*Last Updated: July 29, 2025*
+*Last Updated: July 30, 2025*
 
 *Note: This document is actively maintained. As new components are evaluated and improvements are identified, they will be added to the appropriate sections.*
+
+## Recent Updates
+
+### July 30, 2025
+- **ResourceExhauster Refactor Complete**: Implemented clean architecture with no legacy constraints
+  - New API using ExhaustionRequest/Result types
+  - Full ResourceHandle integration for automatic cleanup
+  - Fixed all critical bugs (memory exhaustion, multi-resource holding)
+  - Implemented thread and process exhaustion
+  - Created example usage patterns in ResourceExhausterExample.swift
+  - **Critical Architecture Fix**: ResourceExhauster now creates actual OS resources, not just tracking quotas
+    - Implemented dual management: handles for quotas + real OS resources
+    - Each resource type creates actual system resources (file handles, memory mappings, sockets, etc.)
+    - Proper cleanup ensures OS resources are released before handles
+    - Tests updated to verify actual resource creation, not just counter increments
+
+### July 30, 2025 (Part 2)
+- **Stress Test Scenarios Implementation**: Created four comprehensive stress test scenarios
+  - BurstLoadScenario: Sudden spike followed by recovery pattern
+  - SustainedLoadScenario: Constant load for extended period
+  - ChaosScenario: Random, unpredictable load patterns with seeded RNG
+  - RampUpScenario: Gradual load increase with different ramp styles
+  - ScenarioRunner: Orchestrates scenario execution with proper lifecycle
+
+- **Critical Fixes Implementation (P1-P4)**: Fixed all high-priority issues identified by o3
+  - **P1 - Periodic Safety Checks**: Added sleepWithSafetyCheck() to BaseScenario
+    - Replaced all raw Task.sleep() calls with safety-checked version
+    - Checks for cancellation and safety violations every safetyCheckInterval
+    - Throws ScenarioError.safetyViolation on critical violations
+  - **P2 - Cooperative Cancellation**: Ensured cancellation support throughout
+    - Added Task.checkCancellation() in sleepWithSafetyCheck
+    - All simulations tracked with cancellable tasks
+    - Proper task cleanup in stop() and stopAll()
+  - **P3 - Missing Orchestrator Methods**: Implemented all required scheduling methods
+    - schedule(CPULoadScenario), schedule(BasicMemoryScenario)
+    - schedulePattern(ConcurrencyPattern), scheduleExhaustion(ExhaustionRequest)
+    - updateSimulation() placeholder, currentStatus() implementation
+  - **P4 - Metrics Consistency**: Fixed metric recording API
+    - Added recordEvent, recordGauge, recordCounter convenience methods
+    - Fixed BaseScenario metric recording implementation
+    - Unified metricCollector naming throughout
+
+### July 30, 2025 (Part 3)
+- **CPU Scenario Implementation Completion**: Fixed remaining CPU scenario issues
+  - Fixed actor contention pattern to properly handle duration parameter
+  - Verified all CPU load patterns (constant, sine, burst) work correctly
+  - Created CPUPatternValidation example demonstrating all patterns
+  - Ensured proper integration across all scenario types
+  - Evaluated implementation with o3 - rating: 8.5/10
+  - Identified minor enhancements (CPU monitoring, dynamic updates, thread affinity)
+
+### July 30, 2025 (Part 4)
+- **Test Framework Phase 1, Step 1 - TestContext Builder**: Implemented comprehensive test infrastructure
+  - TestContext: Central configuration holder with safety, metrics, and resource management
+  - TestContextBuilder: Fluent API for configuring test contexts with sensible defaults
+  - TimeController: Protocol and implementations for deterministic time control
+  - ResourceTracker: Sophisticated resource leak detection with weak reference tracking
+  - TestDefaults: Pre-configured contexts and utilities for common test scenarios
+  - TestContextTests: Comprehensive test coverage for all components
+  - Evaluated with o3 - ratings: Quality 17/20, Correctness 18/20, Completeness 16/20, Design 18/20

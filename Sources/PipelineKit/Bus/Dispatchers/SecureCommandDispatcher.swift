@@ -77,7 +77,8 @@ public actor SecureCommandDispatcher {
         
         // Apply rate limiting
         if let limiter = rateLimiter {
-            let identifier = (executionMetadata as? StandardCommandMetadata)?.userId ?? "anonymous"
+            // TODO: Gifton - should this casting be to this specific type?
+            let identifier = metadata?.userId ?? "unknown"
             let allowed = try await limiter.allowRequest(
                 identifier: "\(identifier):\(commandType)",
                 cost: calculateCommandCost(command)

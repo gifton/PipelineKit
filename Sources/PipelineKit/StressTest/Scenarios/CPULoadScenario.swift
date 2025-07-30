@@ -57,6 +57,14 @@ public struct BasicCPUScenario: StressScenario {
         print("[BasicCPUScenario] Setting up with target usage: \(configuration.targetUsage * 100)% on \(configuration.cores) cores")
     }
     
+    public func execute(
+        orchestrator: StressOrchestrator,
+        safetyMonitor: any SafetyMonitor,
+        metricCollector: MetricCollector
+    ) async throws {
+        try await execute(with: orchestrator)
+    }
+    
     public func execute(with orchestrator: StressOrchestrator) async throws {
         let simulator = await orchestrator.cpuSimulator
         
@@ -134,6 +142,18 @@ public struct CPUBurstScenario: StressScenario {
         self.configuration = configuration
     }
     
+    public func setUp() async throws {
+        // No specific setup needed
+    }
+    
+    public func execute(
+        orchestrator: StressOrchestrator,
+        safetyMonitor: any SafetyMonitor,
+        metricCollector: MetricCollector
+    ) async throws {
+        try await execute(with: orchestrator)
+    }
+    
     public func execute(with orchestrator: StressOrchestrator) async throws {
         let simulator = await orchestrator.cpuSimulator
         
@@ -150,6 +170,10 @@ public struct CPUBurstScenario: StressScenario {
         )
         
         print("[CPUBurstScenario] Burst test completed")
+    }
+    
+    public func tearDown() async throws {
+        // No specific teardown needed
     }
 }
 

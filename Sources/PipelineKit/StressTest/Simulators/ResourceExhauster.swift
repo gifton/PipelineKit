@@ -53,15 +53,27 @@ public actor ResourceExhauster: MetricRecordable {
     private let safetyMonitor: any SafetyMonitor
     private(set) var state: State = .idle
     
-    /// Allocated resources for cleanup.
+    /// Active resource allocations tracked by request ID.
+    private var activeAllocations: [UUID: ResourceAllocation] = [:]
+    
+    /// FileHandles tracked by allocation ID for proper cleanup.
+    private var allocationFileHandles: [UUID: [FileHandle]] = [:]
+    
+    /// Temporary file directory for disk operations.
+    private var tempDirectory: URL?
+    
+    /// Temporary files created for disk space exhaustion.
+    private var tempFiles: [URL] = []
+    
+    /// Resource handles for cleanup tracking.
+    private var resourceHandles: [ResourceHandle<Never>] = []
+    
+    /// Legacy arrays for backwards compatibility with cleanup methods
     private var fileHandles: [FileHandle] = []
     private var mappedRegions: [UnsafeMutableRawPointer] = []
     private var sockets: [Int32] = []
-    private var tempFiles: [URL] = []
-    private var childProcesses: [Process] = []
-    private var resourceHandles: [ResourceHandle<Never>] = []
     
-    /// Metrics tracking
+    /// Legacy tracking for backwards compatibility
     private var totalResourcesAllocated: [ResourceType: Int] = [:]
     private var peakResourceUsage: [ResourceType: Int] = [:]
     private var exhaustionDuration: [ResourceType: TimeInterval] = [:]
@@ -74,20 +86,674 @@ public actor ResourceExhauster: MetricRecordable {
         self.metricCollector = metricCollector
     }
     
-    /// Exhausts file descriptors up to target percentage.
+    deinit {
+        if !activeAllocations.isEmpty {
+            print("⚠️ ResourceExhauster deinit with \(activeAllocations.count) active allocations. Call stopAll() before deallocation.")
+        }
+    }
+    
+    // MARK: - Public API
+    
+    /// Exhausts resources based on the request.
     ///
-    /// - Parameters:
-    ///   - targetPercentage: Target FD usage (0.0-1.0).
-    ///   - holdDuration: How long to hold resources.
-    ///   - releaseGradually: Whether to release gradually or all at once.
-    /// - Throws: If safety limits are exceeded.
+    /// This is the primary API for resource exhaustion. It handles all resource
+    /// types through a unified interface and ensures proper cleanup.
+    ///
+    /// - Parameter request: The exhaustion request specifying resource type and amount.
+    /// - Returns: Result containing allocation details and metrics.
+    /// - Throws: If safety limits are exceeded or allocation fails.
+    public func exhaust(_ request: ExhaustionRequest) async throws -> ExhaustionResult {
+        guard state == .idle else {
+            throw ResourceExhausterError.invalidState(current: "\(state)", expected: "idle")
+        }
+        
+        let startTime = Date()
+        state = .exhausting(resource: request.resource)
+        
+        // Record pattern start
+        await recordPatternStart(.patternStart, tags: [
+            "resource": request.resource.rawValue,
+            "amount": "\(request.amount)"
+        ])
+        
+        do {
+            // Phase 1: Allocate resources
+            let allocation = try await allocateResources(for: request)
+            
+            // Store allocation for cleanup
+            activeAllocations[allocation.id] = allocation
+            
+            // Update state
+            state = .holding(resource: request.resource, count: allocation.handles.count)
+            
+            // Phase 2: Hold resources (non-blocking)
+            let allocationId = allocation.id
+            let holdDuration = request.duration
+            
+            // Create a detached task for the hold phase to keep actor responsive
+            Task.detached { [weak self] in
+                try await Task.sleep(nanoseconds: UInt64(holdDuration * 1_000_000_000))
+                
+                // Phase 3: Release resources
+                await self?.releaseAndCleanup(allocationId: allocationId)
+            }
+            
+            // Wait for the hold phase to complete
+            try await Task.sleep(nanoseconds: UInt64(request.duration * 1_000_000_000))
+            
+            let endTime = Date()
+            
+            // Create result  
+            let result = ExhaustionResult(
+                resource: request.resource,
+                requestedCount: allocation.metadata.count,
+                actualCount: allocation.handles.count,
+                peakUsage: Double(allocation.handles.count) / Double(allocation.metadata.count),
+                duration: endTime.timeIntervalSince(startTime),
+                status: .success
+            )
+            
+            // Record pattern completion
+            await recordPatternCompletion(.patternComplete,
+                duration: result.duration,
+                tags: [
+                    "resource": request.resource.rawValue,
+                    "success": {
+                        switch result.status {
+                        case .success: return "true"
+                        default: return "false"
+                        }
+                    }()
+                ])
+            
+            return result
+            
+        } catch {
+            state = .idle
+            await recordPatternFailure(.patternFail, error: error, tags: ["resource": request.resource.rawValue])
+            throw error
+        }
+    }
+    
+    /// Exhausts multiple resources simultaneously.
+    ///
+    /// All resources are allocated together, held for the specified duration,
+    /// then released together. This tests system behavior under combined load.
+    ///
+    /// - Parameter requests: Array of exhaustion requests.
+    /// - Returns: Array of results for each request.
+    /// - Throws: If any allocation fails.
+    public func exhaustMultiple(_ requests: [ExhaustionRequest]) async throws -> [ExhaustionResult] {
+        guard state == .idle else {
+            throw ResourceExhausterError.invalidState(current: "\(state)", expected: "idle")
+        }
+        
+        let startTime = Date()
+        var allocations: [(ExhaustionRequest, ResourceAllocation)] = []
+        var results: [ExhaustionResult] = []
+        
+        // Record pattern start
+        await recordPatternStart(.patternStart, tags: [
+            "pattern": "multiple_resources",
+            "resource_count": String(requests.count)
+        ])
+        
+        do {
+            // Phase 1: Allocate all resources
+            for request in requests {
+                state = .exhausting(resource: request.resource)
+                let allocation = try await allocateResources(for: request)
+                activeAllocations[allocation.id] = allocation
+                allocations.append((request, allocation))
+            }
+            
+            // Update state to show we're holding multiple resources
+            state = .holding(resource: .fileDescriptors, count: allocations.count)
+            
+            // Phase 2: Hold all resources for the maximum duration
+            let maxDuration = requests.map { $0.duration }.max() ?? 0
+            try await Task.sleep(nanoseconds: UInt64(maxDuration * 1_000_000_000))
+            
+            // Phase 3: Release all resources
+            state = .releasing
+            for (request, allocation) in allocations {
+                await releaseAllocation(allocation)
+                activeAllocations.removeValue(forKey: allocation.id)
+                
+                // Create result for this allocation
+                let result = ExhaustionResult(
+                    resource: request.resource,
+                    requestedCount: allocation.metadata.count,
+                    actualCount: allocation.handles.count,
+                    peakUsage: Double(allocation.handles.count) / Double(allocation.metadata.count),
+                    duration: Date().timeIntervalSince(allocation.metadata.allocatedAt),
+                    status: .success
+                )
+                results.append(result)
+            }
+            
+            state = .idle
+            
+            // Record pattern completion
+            await recordPatternCompletion(.patternComplete,
+                duration: Date().timeIntervalSince(startTime),
+                tags: [
+                    "pattern": "multiple_resources",
+                    "total_allocated": String(allocations.count)
+                ])
+            
+            return results
+            
+        } catch {
+            // Cleanup any successful allocations
+            state = .releasing
+            for (_, allocation) in allocations {
+                await releaseAllocation(allocation)
+                activeAllocations.removeValue(forKey: allocation.id)
+            }
+            state = .idle
+            
+            await recordPatternFailure(.patternFail, error: error, tags: ["pattern": "multiple_resources"])
+            throw error
+        }
+    }
+    
+    // MARK: - Private Allocation Methods
+    
+    /// Allocates resources based on the request.
+    private func allocateResources(for request: ExhaustionRequest) async throws -> ResourceAllocation {
+        let allocationStart = Date()
+        var handles: [ResourceHandle<Never>] = []
+        let requestedCount = try calculateRequestedCount(for: request)
+        
+        do {
+            var osResources: OSResources
+            
+            switch request.resource {
+            case .fileDescriptors:
+                let (fdHandles, fileHandles) = try await allocateFileDescriptors(count: requestedCount)
+                handles = fdHandles
+                // Store FileHandles in our internal array for cleanup
+                self.fileHandles.append(contentsOf: fileHandles)
+                let fileDescriptors = fileHandles.map { FileDescriptor($0.fileDescriptor) }
+                osResources = OSResources(type: .fileDescriptors(fileDescriptors))
+                
+            case .memoryMappings:
+                let size = try calculateSize(from: request.amount)
+                let (mmHandles, mappedRegions) = try await allocateMemoryMappings(count: requestedCount, size: size)
+                handles = mmHandles
+                osResources = OSResources(type: .memoryMappings(mappedRegions))
+                
+            case .networkSockets:
+                let (sockHandles, sockets) = try await allocateSockets(count: requestedCount)
+                handles = sockHandles
+                osResources = OSResources(type: .networkSockets(sockets))
+                
+            case .diskSpace:
+                let size = try calculateSize(from: request.amount)
+                let (diskHandles, diskFiles) = try await allocateDiskSpace(totalSize: size, fileCount: min(requestedCount, 100))
+                handles = diskHandles
+                osResources = OSResources(type: .diskFiles(diskFiles.map { $0.path }))
+                
+            case .threads:
+                let (threadHandles, tasks) = try await allocateThreads(count: requestedCount)
+                handles = threadHandles
+                osResources = OSResources(type: .threads(tasks))
+                
+            case .processes:
+                let (procHandles, processes) = try await allocateProcesses(count: requestedCount)
+                handles = procHandles
+                osResources = OSResources(type: .processes(processes))
+            }
+            
+            let allocationTime = Date().timeIntervalSince(allocationStart)
+            
+            // Record allocation metrics
+            await recordGauge(.allocatedCount, value: Double(handles.count), tags: [
+                "resource": request.resource.rawValue,
+                "requested": String(requestedCount)
+            ])
+            
+            return ResourceAllocation(
+                type: request.resource,
+                metadata: ResourceAllocation.AllocationMetadata(
+                    count: requestedCount,
+                    size: request.resource == .memoryMappings || request.resource == .diskSpace ? try? calculateSize(from: request.amount) : nil,
+                    allocatedAt: allocationStart
+                ),
+                osResources: osResources,
+                handles: handles
+            )
+            
+        } catch {
+            // Clean up any partial allocations - handles will clean up automatically
+            // when they go out of scope
+            
+            throw error
+        }
+    }
+    
+    /// Calculates the requested count from the amount specification.
+    private func calculateRequestedCount(for request: ExhaustionRequest) throws -> Int {
+        switch request.amount {
+        case .count(let count), .absolute(let count):
+            return count
+            
+        case .percentage(let percentage):
+            guard percentage >= 0 && percentage <= 1.0 else {
+                throw ResourceExhausterError.invalidAmount("Percentage must be between 0 and 1")
+            }
+            
+            switch request.resource {
+            case .fileDescriptors:
+                var rlimit = rlimit()
+                getrlimit(RLIMIT_NOFILE, &rlimit)
+                let maxFDs = Int(rlimit.rlim_cur)
+                let currentFDs = SystemInfo.estimateCurrentFileDescriptors()
+                let available = max(0, maxFDs - currentFDs)
+                return Int(Double(available) * percentage)
+                
+            case .memoryMappings:
+                // Estimate based on system memory
+                let totalMemory = SystemInfo.totalMemory()
+                let pageSize = Int(getpagesize())
+                let maxMappings = totalMemory / (pageSize * 100)  // Assume 100 pages per mapping average
+                return Int(Double(maxMappings) * percentage)
+                
+            case .networkSockets:
+                // Similar to file descriptors
+                var rlimit = rlimit()
+                getrlimit(RLIMIT_NOFILE, &rlimit)
+                let maxFDs = Int(rlimit.rlim_cur)
+                let currentFDs = SystemInfo.estimateCurrentFileDescriptors()
+                let available = max(0, maxFDs - currentFDs)
+                return Int(Double(available) * percentage * 0.8)  // Leave some headroom
+                
+            case .threads, .processes:
+                // Conservative estimate
+                let maxThreads = 1000
+                return Int(Double(maxThreads) * percentage)
+                
+            case .diskSpace:
+                // For disk space, percentage applies to size, not file count
+                return 10  // Default file count
+            }
+            
+        case .bytes(let bytes):
+            // For resources that use byte counts
+            switch request.resource {
+            case .memoryMappings:
+                let pageSize = Int(getpagesize())
+                return max(1, bytes / pageSize)
+                
+            case .diskSpace:
+                return 10  // Default file count for disk operations
+                
+            default:
+                throw ResourceExhausterError.invalidAmount("Bytes specification not supported for \(request.resource)")
+            }
+        }
+    }
+    
+    /// Calculates size in bytes from amount specification.
+    private func calculateSize(from amount: ExhaustionAmount) throws -> Int {
+        switch amount {
+        case .bytes(let bytes):
+            return bytes
+            
+        case .percentage(let percentage):
+            guard percentage >= 0 && percentage <= 1.0 else {
+                throw ResourceExhausterError.invalidAmount("Percentage must be between 0 and 1")
+            }
+            // For percentage, use a reasonable base size
+            let baseSize = 100_000_000  // 100MB base
+            return Int(Double(baseSize) * percentage)
+            
+        case .count, .absolute:
+            // For count-based amounts, use a default size
+            return Int(getpagesize())  // One page per item
+        }
+    }
+    
+    /// Allocates file descriptors using SafetyMonitor.
+    private func allocateFileDescriptors(count: Int) async throws -> ([ResourceHandle<Never>], [FileHandle]) {
+        var handles: [ResourceHandle<Never>] = []
+        var fileHandles: [FileHandle] = []
+        
+        defer {
+            // If we have a mismatch, clean up the extra OS resources
+            if fileHandles.count > handles.count {
+                for i in handles.count..<fileHandles.count {
+                    try? fileHandles[i].close()
+                }
+                fileHandles.removeLast(fileHandles.count - handles.count)
+            }
+        }
+        
+        for i in 0..<count {
+            do {
+                // First create actual OS resource
+                let fileHandle = try FileHandle(forReadingFrom: URL(fileURLWithPath: "/dev/null"))
+                
+                // Then get permission from SafetyMonitor (if OS resource succeeded)
+                let handle = try await safetyMonitor.allocateFileDescriptor()
+                
+                // Only add to arrays if both succeeded
+                handles.append(handle)
+                fileHandles.append(fileHandle)
+                
+                if (i + 1) % 100 == 0 {
+                    await recordGauge(.allocatedCount, value: Double(i + 1))
+                }
+            } catch {
+                await recordCounter(.allocationFailures, tags: [
+                    "resource": "file_descriptors",
+                    "reason": error.localizedDescription
+                ])
+                break
+            }
+        }
+        
+        return (handles, fileHandles)
+    }
+    
+    /// Allocates memory mappings using SafetyMonitor.
+    private func allocateMemoryMappings(count: Int, size: Int) async throws -> ([ResourceHandle<Never>], [MappedMemory]) {
+        var handles: [ResourceHandle<Never>] = []
+        var mappedRegions: [MappedMemory] = []
+        
+        for i in 0..<count {
+            do {
+                // First get permission from SafetyMonitor
+                let handle = try await safetyMonitor.allocateMemoryMapping(size: size)
+                handles.append(handle)
+                
+                // Then create actual memory mapping
+                let ptr = mmap(nil, size,
+                    PROT_READ | PROT_WRITE,
+                    MAP_PRIVATE | MAP_ANONYMOUS,
+                    -1, 0)
+                
+                if ptr != MAP_FAILED {
+                    mappedRegions.append(MappedMemory(pointer: ptr!, size: size))
+                    
+                    // Touch every page to force physical memory allocation
+                    let pageSize = Int(getpagesize())
+                    for offset in stride(from: 0, to: size, by: pageSize) {
+                        ptr!.advanced(by: offset).storeBytes(of: UInt8(0xFF), as: UInt8.self)
+                    }
+                } else {
+                    // Remove the handle since we couldn't create the OS resource
+                    handles.removeLast()
+                    throw ResourceExhausterError.allocationFailed(type: "memory_mapping", reason: "mmap failed")
+                }
+                
+                if (i + 1) % 100 == 0 {
+                    await recordGauge(.allocatedCount, value: Double(i + 1))
+                }
+            } catch {
+                await recordCounter(.allocationFailures, tags: [
+                    "resource": "memory_mappings",
+                    "reason": error.localizedDescription
+                ])
+                break
+            }
+        }
+        
+        return (handles, mappedRegions)
+    }
+    
+    /// Allocates network sockets using SafetyMonitor.
+    private func allocateSockets(count: Int) async throws -> ([ResourceHandle<Never>], [Int32]) {
+        var handles: [ResourceHandle<Never>] = []
+        var sockets: [Int32] = []
+        
+        for i in 0..<count {
+            do {
+                // First get permission from SafetyMonitor
+                let handle = try await safetyMonitor.allocateSocket(type: .tcp)
+                handles.append(handle)
+                
+                // Then create actual socket
+                let sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)
+                if sock >= 0 {
+                    sockets.append(sock)
+                } else {
+                    // Remove the handle since we couldn't create the OS resource
+                    handles.removeLast()
+                    throw ResourceExhausterError.allocationFailed(type: "socket", reason: "socket() failed")
+                }
+                
+                if (i + 1) % 100 == 0 {
+                    await recordGauge(.allocatedCount, value: Double(i + 1))
+                }
+            } catch {
+                await recordCounter(.allocationFailures, tags: [
+                    "resource": "network_sockets",
+                    "reason": error.localizedDescription
+                ])
+                break
+            }
+        }
+        
+        return (handles, sockets)
+    }
+    
+    /// Allocates disk space using SafetyMonitor.
+    private func allocateDiskSpace(totalSize: Int, fileCount: Int) async throws -> ([ResourceHandle<Never>], [URL]) {
+        var handles: [ResourceHandle<Never>] = []
+        var diskFiles: [URL] = []
+        
+        // Create temp directory if needed
+        if tempDirectory == nil {
+            tempDirectory = FileManager.default.temporaryDirectory
+                .appendingPathComponent("stress-test-\(UUID().uuidString)")
+            try FileManager.default.createDirectory(at: tempDirectory!, withIntermediateDirectories: true)
+        }
+        
+        let sizePerFile = totalSize / fileCount
+        
+        for i in 0..<fileCount {
+            do {
+                // First get permission from SafetyMonitor
+                let handle = try await safetyMonitor.allocateDiskSpace(size: sizePerFile)
+                handles.append(handle)
+                
+                // Then create actual file
+                let fileURL = tempDirectory!.appendingPathComponent("test-\(i).dat")
+                try createSparseFile(at: fileURL, size: sizePerFile)
+                diskFiles.append(fileURL)
+                
+                await recordGauge(.allocatedSize,
+                    value: Double((i + 1) * sizePerFile) / 1_000_000,  // MB
+                    tags: ["unit": "mb"])
+            } catch {
+                // Remove the handle if file creation failed
+                if handles.count > diskFiles.count {
+                    handles.removeLast()
+                }
+                await recordCounter(.allocationFailures, tags: [
+                    "resource": "disk_space",
+                    "reason": error.localizedDescription
+                ])
+                break
+            }
+        }
+        
+        return (handles, diskFiles)
+    }
+    
+    /// Allocates threads using SafetyMonitor.
+    private func allocateThreads(count: Int) async throws -> ([ResourceHandle<Never>], [Task<Void, Never>]) {
+        var handles: [ResourceHandle<Never>] = []
+        var tasks: [Task<Void, Never>] = []
+        
+        for i in 0..<count {
+            do {
+                // First get permission from SafetyMonitor
+                let handle = try await safetyMonitor.allocateThread()
+                handles.append(handle)
+                
+                // Then create actual thread work
+                let task = Task {
+                    // Thread simulation work
+                    while !Task.isCancelled {
+                        try? await Task.sleep(nanoseconds: 100_000_000)  // 100ms
+                    }
+                }
+                tasks.append(task)
+                
+                if (i + 1) % 10 == 0 {
+                    await recordGauge(.allocatedCount, value: Double(i + 1))
+                }
+            } catch {
+                await recordCounter(.allocationFailures, tags: [
+                    "resource": "threads",
+                    "reason": error.localizedDescription
+                ])
+                break
+            }
+        }
+        
+        return (handles, tasks)
+    }
+    
+    /// Allocates processes using SafetyMonitor.
+    private func allocateProcesses(count: Int) async throws -> ([ResourceHandle<Never>], [ProcessInfoWrapper]) {
+        var handles: [ResourceHandle<Never>] = []
+        var processes: [ProcessInfoWrapper] = []
+        
+        #if os(macOS) || os(Linux)
+        for i in 0..<count {
+            do {
+                // First create actual subprocess
+                let process = Process()
+                process.executableURL = URL(fileURLWithPath: "/bin/sleep")
+                process.arguments = ["3600"]  // Sleep for 1 hour
+                try process.run()
+                
+                // Then get permission from SafetyMonitor (if OS resource succeeded)
+                let handle = try await safetyMonitor.allocateProcess()
+                
+                // Only add to arrays if both succeeded
+                handles.append(handle)
+                processes.append(ProcessInfoWrapper(process: process, pid: process.processIdentifier))
+                
+                if (i + 1) % 5 == 0 {
+                    await recordGauge(.allocatedCount, value: Double(i + 1))
+                }
+            } catch {
+                // Clean up process if handle allocation failed
+                if processes.count > handles.count {
+                    let process = processes.removeLast().process
+                    process.terminate()
+                }
+                await recordCounter(.allocationFailures, tags: [
+                    "resource": "processes",
+                    "reason": error.localizedDescription
+                ])
+                break
+            }
+        }
+        #else
+        // Process not available on iOS/tvOS/watchOS
+        throw ResourceExhausterError.allocationFailed(
+            type: "processes",
+            reason: "Process spawning not available on this platform"
+        )
+        #endif
+        
+        return (handles, processes)
+    }
+    
+    /// Releases and cleans up an allocation by ID.
+    private func releaseAndCleanup(allocationId: UUID) async {
+        guard let allocation = activeAllocations[allocationId] else { return }
+        
+        state = .releasing
+        await releaseAllocation(allocation)
+        activeAllocations.removeValue(forKey: allocationId)
+        
+        if activeAllocations.isEmpty {
+            state = .idle
+        }
+    }
+    
+    /// Releases an allocation and cleans up resources.
+    private func releaseAllocation(_ allocation: ResourceAllocation) async {
+        // IMPORTANT: Clean up OS resources FIRST, then handles will clean up automatically
+        
+        switch allocation.osResources.type {
+        case .fileDescriptors(let fileDescriptors):
+            // Close all file descriptors
+            for fd in fileDescriptors {
+                close(fd)
+            }
+            // Also close and remove corresponding FileHandles from our internal array
+            self.fileHandles.removeAll { handle in
+                fileDescriptors.contains(FileDescriptor(handle.fileDescriptor))
+            }
+            
+        case .memoryMappings(let mappedRegions):
+            // Unmap all memory regions
+            for region in mappedRegions {
+                munmap(region.pointer, region.size)
+            }
+            
+        case .networkSockets(let sockets):
+            // Close all sockets
+            for socket in sockets {
+                close(socket)
+            }
+            
+        case .diskFiles(let files):
+            // Remove all files
+            for file in files {
+                try? FileManager.default.removeItem(at: URL(fileURLWithPath: file))
+            }
+            // Clean up temp directory if empty
+            if let tempDir = tempDirectory {
+                let contents = try? FileManager.default.contentsOfDirectory(at: tempDir, includingPropertiesForKeys: nil)
+                if contents?.isEmpty ?? true {
+                    try? FileManager.default.removeItem(at: tempDir)
+                    tempDirectory = nil
+                }
+            }
+            
+        case .threads(let tasks):
+            // Tasks are raw pointers, no cleanup needed
+            _ = tasks
+            
+        case .processes(let processes):
+            // Terminate all processes
+            for processInfo in processes {
+                processInfo.process.terminate()
+                // Give process time to terminate gracefully
+                processInfo.process.waitUntilExit()
+            }
+        }
+        
+        // Record metrics
+        await recordCounter(.resourcesReleased,
+            value: Double(allocation.handles.count),
+            tags: ["resource": allocation.type.rawValue])
+        
+        // ResourceHandles will clean up automatically when deallocated
+    }
+    
+    /// Exhausts file descriptors up to target percentage.
+    // MARK: - Legacy API (Deprecated)
+    
+    /// Legacy method for file descriptor exhaustion.
+    /// - Deprecated: Use `exhaust(_:)` with an `ExhaustionRequest` instead.
+    @available(*, deprecated, message: "Use exhaust(_:) with an ExhaustionRequest instead")
     public func exhaustFileDescriptors(
         targetPercentage: Double,
         holdDuration: TimeInterval,
         releaseGradually: Bool = false
     ) async throws {
         guard state == .idle else {
-            throw ResourceError.invalidState(current: "\(state)", expected: "idle")
+            throw ResourceExhausterError.invalidState(current: "\(state)", expected: "idle")
         }
         
         state = .exhausting(resource: .fileDescriptors)
@@ -121,7 +787,7 @@ public actor ResourceExhauster: MetricRecordable {
                     requested: "\(toAllocate) descriptors",
                     tags: ["resource": "file_descriptors"])
                 
-                throw ResourceError.safetyLimitExceeded(
+                throw ResourceExhausterError.safetyLimitExceeded(
                     requested: toAllocate,
                     reason: "Would exceed file descriptor safety limits"
                 )
@@ -215,7 +881,7 @@ public actor ResourceExhauster: MetricRecordable {
         holdDuration: TimeInterval
     ) async throws {
         guard state == .idle else {
-            throw ResourceError.invalidState(current: "\(state)", expected: "idle")
+            throw ResourceExhausterError.invalidState(current: "\(state)", expected: "idle")
         }
         
         state = .exhausting(resource: .memoryMappings)
@@ -238,7 +904,7 @@ public actor ResourceExhauster: MetricRecordable {
                     requested: "\(totalMemory) bytes",
                     tags: ["resource": "memory_mappings"])
                 
-                throw ResourceError.safetyLimitExceeded(
+                throw ResourceExhausterError.safetyLimitExceeded(
                     requested: totalMemory,
                     reason: "Would exceed memory safety limits"
                 )
@@ -256,8 +922,11 @@ public actor ResourceExhauster: MetricRecordable {
                     mappedRegions.append(ptr!)
                     allocated += 1
                     
-                    // Touch the memory to ensure it's allocated
-                    ptr!.storeBytes(of: UInt8(i & 0xFF), as: UInt8.self)
+                    // Touch every page to force physical memory allocation
+                    let pageSize = Int(getpagesize())
+                    for offset in stride(from: 0, to: mappingSize, by: pageSize) {
+                        ptr!.advanced(by: offset).storeBytes(of: UInt8(0xFF), as: UInt8.self)
+                    }
                     
                     if (i + 1) % 100 == 0 {
                         await recordGauge(.allocatedCount, value: Double(allocated))
@@ -315,7 +984,7 @@ public actor ResourceExhauster: MetricRecordable {
         holdDuration: TimeInterval
     ) async throws {
         guard state == .idle else {
-            throw ResourceError.invalidState(current: "\(state)", expected: "idle")
+            throw ResourceExhausterError.invalidState(current: "\(state)", expected: "idle")
         }
         
         state = .exhausting(resource: .networkSockets)
@@ -337,7 +1006,7 @@ public actor ResourceExhauster: MetricRecordable {
                     requested: "\(targetCount) sockets",
                     tags: ["resource": "network_sockets"])
                 
-                throw ResourceError.safetyLimitExceeded(
+                throw ResourceExhausterError.safetyLimitExceeded(
                     requested: targetCount,
                     reason: "Would exceed file descriptor limits"
                 )
@@ -409,7 +1078,7 @@ public actor ResourceExhauster: MetricRecordable {
         holdDuration: TimeInterval
     ) async throws {
         guard state == .idle else {
-            throw ResourceError.invalidState(current: "\(state)", expected: "idle")
+            throw ResourceExhausterError.invalidState(current: "\(state)", expected: "idle")
         }
         
         state = .exhausting(resource: .diskSpace)
@@ -528,7 +1197,7 @@ public actor ResourceExhauster: MetricRecordable {
         holdDuration: TimeInterval
     ) async throws {
         guard state == .idle else {
-            throw ResourceError.invalidState(current: "\(state)", expected: "idle")
+            throw ResourceExhausterError.invalidState(current: "\(state)", expected: "idle")
         }
         
         // Record pattern start
@@ -603,29 +1272,41 @@ public actor ResourceExhauster: MetricRecordable {
     /// Stops all resource exhaustion and releases resources.
     public func stopAll() async {
         state = .releasing
-        await cleanupAll()
+        
+        // Release all active allocations
+        for allocation in activeAllocations.values {
+            await releaseAllocation(allocation)
+        }
+        activeAllocations.removeAll()
+        
+        // Clean up temp directory
+        if let tempDir = tempDirectory {
+            try? FileManager.default.removeItem(at: tempDir)
+            tempDirectory = nil
+        }
+        
         state = .idle
         
         // Record final metrics
-        for (resourceType, count) in totalResourcesAllocated {
-            await recordGauge(.totalAllocated,
-                value: Double(count),
-                tags: ["resource": resourceType.rawValue, "final": "true"])
-        }
-        
-        for (resourceType, peak) in peakResourceUsage {
-            await recordGauge(.peakUsage,
-                value: Double(peak),
-                tags: ["resource": resourceType.rawValue, "final": "true"])
-        }
+        await recordGauge(.allocatedCount, value: 0, tags: ["final": "true"])
     }
     
     /// Returns current exhaustion statistics.
     public func currentStats() -> ResourceStats {
-        ResourceStats(
-            totalAllocated: totalResourcesAllocated,
-            peakUsage: peakResourceUsage,
-            exhaustionDuration: exhaustionDuration,
+        var totalByType: [ResourceType: Int] = [:]
+        var sizeByType: [ResourceType: Int] = [:]
+        
+        for allocation in activeAllocations.values {
+            totalByType[allocation.type, default: 0] += allocation.handles.count
+            if let size = allocation.metadata.size {
+                sizeByType[allocation.type, default: 0] += size
+            }
+        }
+        
+        return ResourceStats(
+            activeAllocations: activeAllocations.count,
+            resourcesByType: totalByType,
+            sizeByType: sizeByType,
             currentState: state
         )
     }
@@ -699,25 +1380,12 @@ public actor ResourceExhauster: MetricRecordable {
 
 // MARK: - Supporting Types
 
-/// Socket types for exhaustion.
-public enum SocketType: String, Sendable {
-    case tcp = "tcp"
-    case udp = "udp"
-}
-
-/// Statistics for resource exhaustion.
-public struct ResourceStats: Sendable {
-    public let totalAllocated: [ResourceExhauster.ResourceType: Int]
-    public let peakUsage: [ResourceExhauster.ResourceType: Int]
-    public let exhaustionDuration: [ResourceExhauster.ResourceType: TimeInterval]
-    public let currentState: ResourceExhauster.State
-}
-
 /// Errors specific to resource exhaustion.
-public enum ResourceError: LocalizedError {
+public enum ResourceExhausterError: LocalizedError {
     case invalidState(current: String, expected: String)
     case safetyLimitExceeded(requested: Int, reason: String)
     case allocationFailed(type: String, reason: String)
+    case invalidAmount(_ reason: String)
     
     public var errorDescription: String? {
         switch self {
@@ -727,9 +1395,20 @@ public enum ResourceError: LocalizedError {
             return "Safety limit exceeded: requested \(requested) - \(reason)"
         case .allocationFailed(let type, let reason):
             return "Failed to allocate \(type): \(reason)"
+        case .invalidAmount(let reason):
+            return "Invalid amount specification: \(reason)"
         }
     }
 }
+
+/// Statistics for resource exhaustion.
+public struct ResourceStats: Sendable {
+    public let activeAllocations: Int
+    public let resourcesByType: [ResourceExhauster.ResourceType: Int]
+    public let sizeByType: [ResourceExhauster.ResourceType: Int]
+    public let currentState: ResourceExhauster.State
+}
+
 
 /// Resource exhaustion metrics namespace.
 public enum ResourceMetric: String {
@@ -760,23 +1439,3 @@ public enum ResourceMetric: String {
     case safetyRejection = "safety.rejection"
 }
 
-// MARK: - System Information Extension
-
-extension SystemInfo {
-    /// Estimates current file descriptor usage.
-    static func estimateCurrentFileDescriptors() -> Int {
-        #if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
-        let fdPath = "/dev/fd"
-        
-        do {
-            let contents = try FileManager.default.contentsOfDirectory(atPath: fdPath)
-            return contents.count
-        } catch {
-            // Fallback: assume some baseline usage
-            return 10
-        }
-        #else
-        return 10  // Conservative estimate
-        #endif
-    }
-}

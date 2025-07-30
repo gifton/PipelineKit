@@ -9,7 +9,7 @@ on:
 jobs:
   lint:
     name: SwiftLint
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     steps:
     - uses: actions/checkout@v4
       with:
@@ -29,12 +29,17 @@ jobs:
           echo "$file"
         done
         
-    - name: SwiftLint
-      uses: norio-nomura/action-swiftlint@3.2.1
-      env:
-        DIFF_BASE: ${{ github.base_ref }}
-      with:
-        args: --strict --config .swiftlint.yml
+    - name: Install SwiftLint
+      run: brew install swiftlint
+        
+    - name: Run SwiftLint
+      run: |
+        if [ -n "${{ steps.changed-files.outputs.all_changed_files }}" ]; then
+          swiftlint lint --strict --config .swiftlint.yml --reporter json > swiftlint.result.json || true
+          swiftlint lint --strict --config .swiftlint.yml
+        else
+          echo "No Swift files changed"
+        fi
         
     - name: SwiftLint Report
       if: failure()
@@ -53,7 +58,7 @@ jobs:
             comment += `Found ${violations.length} violation(s):\n\n`;
             
             violations.forEach(v => {
-              const level = v.severity === 'error' ? 'L' : ' ';
+              const level = v.severity === 'error' ? 'L' : 'ï¿½';
               comment += `${level} **${v.file}:${v.line}:${v.character}**\n`;
               comment += `Rule: \`${v.rule_id}\`\n`;
               comment += `${v.reason}\n\n`;

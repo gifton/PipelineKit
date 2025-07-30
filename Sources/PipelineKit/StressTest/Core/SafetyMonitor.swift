@@ -31,6 +31,9 @@ public protocol SafetyMonitor: Sendable {
     /// Checks overall system health and returns any warnings.
     func checkSystemHealth() async -> [SafetyWarning]
     
+    /// Returns the current safety status.
+    func currentStatus() async -> SafetyStatus
+    
     /// Initiates emergency shutdown of all stress operations.
     func emergencyShutdown() async
     
@@ -281,6 +284,21 @@ public actor DefaultSafetyMonitor: SafetyMonitor {
         }
         
         return warnings
+    }
+    
+    public func currentStatus() async -> SafetyStatus {
+        let warnings = await checkSystemHealth()
+        let criticalCount = warnings.filter { $0.level == .critical }.count
+        let isHealthy = criticalCount == 0
+        
+        let currentResources = await currentResourceUsage()
+        
+        return SafetyStatus(
+            isHealthy: isHealthy,
+            criticalViolations: criticalCount,
+            warnings: warnings,
+            resourceUsage: currentResources
+        )
     }
     
     public func emergencyShutdown() async {
@@ -900,6 +918,26 @@ public struct SafetyWarning: Sendable {
         self.level = level
         self.message = message
         self.source = source
+    }
+}
+
+/// Current safety status of the system.
+public struct SafetyStatus: Sendable {
+    public let isHealthy: Bool
+    public let criticalViolations: Int
+    public let warnings: [SafetyWarning]
+    public let resourceUsage: SafetyResourceUsage
+    
+    public init(
+        isHealthy: Bool,
+        criticalViolations: Int,
+        warnings: [SafetyWarning],
+        resourceUsage: SafetyResourceUsage
+    ) {
+        self.isHealthy = isHealthy
+        self.criticalViolations = criticalViolations
+        self.warnings = warnings
+        self.resourceUsage = resourceUsage
     }
 }
 
