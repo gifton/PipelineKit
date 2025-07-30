@@ -128,7 +128,7 @@ file_header:
     \/\/  PipelineKit
     \/\/
     \/\/  Created by .* on .*\.
-    \/\/  Copyright © .* All rights reserved\.
+    \/\/  Copyright ï¿½ .* All rights reserved\.
     \/\/
 
 # Custom Rules
@@ -163,6 +163,14 @@ custom_rules:
     regex: '\[weak\s+self\]\s*in'
     message: "Consider using [weak self] to avoid retain cycles"
     severity: info
+    
+  no_record_metric:
+    name: "Deprecated recordMetric"
+    regex: '\brecordMetric\s*\('
+    message: "Use MetricRecordable protocol methods instead (e.g., recordGauge, recordCounter, recordHistogram)"
+    severity: error
+    match_kinds:
+      - identifier
 
 # Reporter type (xcode, json, csv, checkstyle, junit, html, emoji)
 reporter: "xcode"

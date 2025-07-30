@@ -217,7 +217,8 @@ public actor StressOrchestrator {
             }
             
             let stressor = ConcurrencyStressor(
-                resourceManager: resourceManager
+                safetyMonitor: safetyMonitor,
+                metricCollector: nil  // TODO: Add proper metric collector
             )
             _concurrencyStressor = stressor
             return stressor
@@ -329,10 +330,6 @@ public enum OrchestratorError: LocalizedError {
     }
 }
 
-/// Placeholder types for simulators (to be implemented)
-public struct ConcurrencyStressor: Sendable {
-    let resourceManager: ResourceManager
-}
 
 /// Metrics collector for stress testing
 public actor StressMetricsCollector {

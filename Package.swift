@@ -38,13 +38,27 @@ let package = Package(
             name: "AggregationDemo",
             targets: ["AggregationDemo"]
         ),
+        // Metric export demonstration
+        .executable(
+            name: "ExportDemo",
+            targets: ["ExportDemo"]
+        ),
+        // Resource tracking demonstration
+        .executable(
+            name: "ResourceTrackingDemo",
+            targets: ["ResourceTrackingDemo"]
+        ),
     ],
     dependencies: [
         // Pin to exact version for reproducible builds
         // swift-syntax 510.0.3 - Last audited: 2025-05-28
         // Security: No known vulnerabilities
         // License: Apache-2.0
-        .package(url: "https://github.com/apple/swift-syntax.git", exact: "510.0.3")
+        .package(url: "https://github.com/apple/swift-syntax.git", exact: "510.0.3"),
+        // swift-atomics 1.2.0 - For lock-free atomic operations
+        // Security: No known vulnerabilities
+        // License: Apache-2.0
+        .package(url: "https://github.com/apple/swift-atomics.git", from: "1.2.0")
     ],
     targets: [
         .macro(
@@ -58,7 +72,8 @@ let package = Package(
         .target(
             name: "PipelineKit",
             dependencies: [
-                "PipelineMacros"
+                "PipelineMacros",
+                .product(name: "Atomics", package: "swift-atomics")
             ],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency"),
@@ -110,6 +125,14 @@ let package = Package(
         ),
         .executableTarget(
             name: "AggregationDemo",
+            dependencies: ["PipelineKit"]
+        ),
+        .executableTarget(
+            name: "ExportDemo",
+            dependencies: ["PipelineKit"]
+        ),
+        .executableTarget(
+            name: "ResourceTrackingDemo",
             dependencies: ["PipelineKit"]
         ),
     ]

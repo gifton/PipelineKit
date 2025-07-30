@@ -24,7 +24,10 @@ import Accelerate
 ///     duration: 10.0
 /// )
 /// ```
-public actor CPULoadSimulator {
+public actor CPULoadSimulator: MetricRecordable {
+    // MARK: - MetricRecordable Conformance
+    public typealias Namespace = CPUMetric
+    public let namespace = "cpu"
     /// Current simulator state.
     public enum State: Sendable, Equatable {
         case idle
@@ -43,6 +46,7 @@ public actor CPULoadSimulator {
     }
     
     private let safetyMonitor: any SafetyMonitor
+    public let metricCollector: MetricCollector?
     private(set) var state: State = .idle
     
     /// Active load tasks.
@@ -51,8 +55,17 @@ public actor CPULoadSimulator {
     /// Load control flag.
     private var shouldContinue = true
     
-    public init(safetyMonitor: any SafetyMonitor) {
+    /// Metrics tracking
+    private var totalOperations: Int = 0
+    private var throttleCount: Int = 0
+    private var startTime: Date?
+    
+    public init(
+        safetyMonitor: any SafetyMonitor,
+        metricCollector: MetricCollector? = nil
+    ) {
         self.safetyMonitor = safetyMonitor
+        self.metricCollector = metricCollector
     }
     
     /// Applies sustained CPU load at specified percentage.
@@ -71,7 +84,21 @@ public actor CPULoadSimulator {
             throw CPUSimulatorError.invalidState(current: "\(state)", expected: "idle")
         }
         
+        startTime = Date()
+        
+        // Record pattern start
+        await recordPatternStart(.patternStart, tags: [
+            "pattern": "sustained",
+            "target_percentage": String(Int(percentage * 100)),
+            "cores": String(cores)
+        ])
+        
         guard await safetyMonitor.canUseCPU(percentage: percentage, cores: cores) else {
+            await recordSafetyRejection(.safetyRejection, 
+                reason: "CPU load would exceed safety limits",
+                requested: "\(Int(percentage * 100))% on \(cores) cores",
+                tags: ["pattern": "sustained"])
+            
             throw CPUSimulatorError.safetyLimitExceeded(
                 requested: Int(percentage * 100),
                 reason: "CPU load would exceed safety limits"
@@ -82,10 +109,22 @@ public actor CPULoadSimulator {
         shouldContinue = true
         
         do {
+            let loadStart = Date()
             try await performSustainedLoad(percentage, cores: cores, duration: duration)
+            let loadDuration = Date().timeIntervalSince(loadStart)
+            
             state = .idle
+            
+            // Record pattern completion
+            await recordPatternCompletion(.patternComplete,
+                duration: loadDuration,
+                tags: ["pattern": "sustained"])
         } catch {
             state = .idle
+            
+            // Record pattern failure
+            await recordPatternFailure(.patternFail, error: error, tags: ["pattern": "sustained"])
+            
             throw error
         }
     }
@@ -109,22 +148,64 @@ public actor CPULoadSimulator {
             throw CPUSimulatorError.invalidState(current: "\(state)", expected: "idle")
         }
         
+        startTime = Date()
+        
+        // Record pattern start
+        await recordPatternStart(.patternStart, tags: [
+            "pattern": "burst",
+            "peak_percentage": String(Int(percentage * 100)),
+            "burst_duration": String(burstDuration),
+            "idle_duration": String(idleDuration),
+            "cores": String(cores)
+        ])
+        
         state = .applying(pattern: .burst(percentage: percentage, cores: cores, interval: burstDuration))
         shouldContinue = true
         
-        let startTime = Date()
+        let patternStart = Date()
+        var burstCount = 0
         
         do {
-            while shouldContinue && Date().timeIntervalSince(startTime) < totalDuration {
+            while shouldContinue && Date().timeIntervalSince(patternStart) < totalDuration {
+                let burstStart = Date()
+                burstCount += 1
+                
+                await recordGauge(.burstNumber, value: Double(burstCount), tags: [
+                    "phase": "start"
+                ])
+                
                 // Burst phase
                 try await performSustainedLoad(percentage, cores: cores, duration: burstDuration)
                 
+                let actualBurstDuration = Date().timeIntervalSince(burstStart)
+                await recordHistogram(.burstDuration, value: actualBurstDuration * 1000, tags: [
+                    "burst_number": String(burstCount)
+                ])
+                
                 // Idle phase
+                await recordGauge(.burstPhase, value: 0.0, tags: [
+                    "phase": "idle"
+                ])
+                
                 try await Task.sleep(nanoseconds: UInt64(idleDuration * 1_000_000_000))
             }
+            
             state = .idle
+            
+            // Record pattern completion
+            let totalPatternDuration = Date().timeIntervalSince(patternStart)
+            await recordPatternCompletion(.patternComplete,
+                duration: totalPatternDuration,
+                tags: [
+                    "pattern": "burst",
+                    "total_bursts": String(burstCount)
+                ])
         } catch {
             state = .idle
+            
+            // Record pattern failure
+            await recordPatternFailure(.patternFail, error: error, tags: ["pattern": "burst"])
+            
             throw error
         }
     }
@@ -148,20 +229,73 @@ public actor CPULoadSimulator {
             throw CPUSimulatorError.invalidState(current: "\(state)", expected: "idle")
         }
         
+        startTime = Date()
+        
+        // Record pattern start
+        await recordPatternStart(.patternStart, tags: [
+            "pattern": "oscillating",
+            "min_percentage": String(Int(minPercentage * 100)),
+            "max_percentage": String(Int(maxPercentage * 100)),
+            "period": String(period),
+            "cores": String(cores)
+        ])
+        
         state = .applying(pattern: .oscillating(min: minPercentage, max: maxPercentage, period: period, cores: cores))
         shouldContinue = true
         
         do {
-            for _ in 0..<cycles where shouldContinue {
+            for cycle in 0..<cycles where shouldContinue {
+                let cycleStart = Date()
+                
+                await recordGauge(.oscillationCycle, value: Double(cycle + 1), tags: [
+                    "phase": "start"
+                ])
+                
                 // Ramp up phase
+                await recordGauge(.oscillationPhase, value: 1.0, tags: [
+                    "direction": "up",
+                    "cycle": String(cycle + 1)
+                ])
                 try await rampLoad(from: minPercentage, to: maxPercentage, duration: period / 2, cores: cores)
                 
+                await recordGauge(.oscillationPeak, value: maxPercentage * 100, tags: [
+                    "cycle": String(cycle + 1)
+                ])
+                await recordCPUUsage()
+                
                 // Ramp down phase
+                await recordGauge(.oscillationPhase, value: -1.0, tags: [
+                    "direction": "down",
+                    "cycle": String(cycle + 1)
+                ])
                 try await rampLoad(from: maxPercentage, to: minPercentage, duration: period / 2, cores: cores)
+                
+                await recordGauge(.oscillationTrough, value: minPercentage * 100, tags: [
+                    "cycle": String(cycle + 1)
+                ])
+                
+                let cycleDuration = Date().timeIntervalSince(cycleStart)
+                await recordHistogram(.oscillationCycle, value: cycleDuration, tags: [
+                    "cycle": String(cycle + 1),
+                    "metric": "duration"
+                ])
             }
+            
             state = .idle
+            
+            // Record pattern completion
+            await recordPatternCompletion(.patternComplete,
+                duration: Date().timeIntervalSince(startTime ?? Date()),
+                tags: [
+                    "pattern": "oscillating",
+                    "cycles": String(cycles)
+                ])
         } catch {
             state = .idle
+            
+            // Record pattern failure
+            await recordPatternFailure(.patternFail, error: error, tags: ["pattern": "oscillating"])
+            
             throw error
         }
     }
@@ -224,6 +358,14 @@ public actor CPULoadSimulator {
     public func stopAll() async {
         shouldContinue = false
         
+        let stopStart = Date()
+        let tasksToStop = loadTasks.count
+        
+        // Record stop initiated
+        await recordCounter(.stopInitiated, tags: [
+            "active_tasks": String(tasksToStop)
+        ])
+        
         // Cancel all active tasks
         for task in loadTasks {
             task.cancel()
@@ -232,6 +374,20 @@ public actor CPULoadSimulator {
         // Wait for cancellation
         for task in loadTasks {
             _ = try? await task.value
+        }
+        
+        let stopDuration = Date().timeIntervalSince(stopStart)
+        
+        // Record stop completed
+        await recordHistogram(.stopDuration, value: stopDuration * 1000, tags: [
+            "tasks_stopped": String(tasksToStop)
+        ])
+        
+        if totalOperations > 0 {
+            await recordGauge(.finalOperations, value: Double(totalOperations))
+        }
+        if throttleCount > 0 {
+            await recordGauge(.throttleCount, value: Double(throttleCount))
         }
         
         loadTasks.removeAll()
@@ -285,29 +441,72 @@ public actor CPULoadSimulator {
         let workDuration: TimeInterval = 0.01  // 10ms work chunks
         let sleepDuration = workDuration * (1.0 - percentage) / percentage
         
+        var cycleCount = 0
+        var localThrottleCount = 0
+        
         while shouldContinue && Date() < endTime {
             try Task.checkCancellation()
+            
+            let cycleStart = Date()
             
             // Check safety
             let warnings = await safetyMonitor.checkSystemHealth()
             if warnings.contains(where: { $0.level == .critical }) {
                 state = .throttling(reason: "Safety limit exceeded")
+                localThrottleCount += 1
+                throttleCount += 1
+                
+                await recordThrottle(.throttleEvent, reason: "safety_limit", tags: [
+                    "core": String(coreIndex)
+                ])
+                
                 try await Task.sleep(nanoseconds: 1_000_000_000)  // 1 second throttle
                 continue
             }
             
             // Perform CPU-intensive work
             let workEnd = Date().addingTimeInterval(workDuration)
-            performIntensiveCalculation(until: workEnd)
+            let operations = performIntensiveCalculation(until: workEnd)
+            totalOperations += operations
+            cycleCount += 1
+            
+            // Record work metrics periodically (every 100 cycles)
+            if cycleCount % 100 == 0 {
+                let actualUsage = workDuration / (workDuration + sleepDuration) * 100
+                await recordGauge(.coreUsage, value: actualUsage, tags: [
+                    "core": String(coreIndex),
+                    "target_percentage": String(Int(percentage * 100))
+                ])
+                await recordCounter(.operationsTotal, value: Double(operations), tags: [
+                    "core": String(coreIndex)
+                ])
+            }
             
             // Sleep to achieve target percentage
             if sleepDuration > 0 {
                 try await Task.sleep(nanoseconds: UInt64(sleepDuration * 1_000_000_000))
             }
+            
+            let cycleDuration = Date().timeIntervalSince(cycleStart)
+            if cycleCount % 1000 == 0 {
+                await recordHistogram(.cycleDuration, value: cycleDuration * 1000, tags: [
+                    "core": String(coreIndex)
+                ])
+            }
+        }
+        
+        // Record final metrics for this core
+        await recordCounter(.coreCycles, value: Double(cycleCount), tags: [
+            "core": String(coreIndex)
+        ])
+        if localThrottleCount > 0 {
+            await recordGauge(.throttleCount, value: Double(localThrottleCount), tags: [
+                "core": String(coreIndex)
+            ])
         }
     }
     
-    private func performIntensiveCalculation(until endTime: Date) {
+    private func performIntensiveCalculation(until endTime: Date) -> Int {
         // Mix of different CPU-intensive operations
         var result: Double = Double.random(in: 0...1)
         var iterations = 0
@@ -328,6 +527,8 @@ public actor CPULoadSimulator {
                 blackHole(result)
             }
         }
+        
+        return iterations
     }
     
     private func rampLoad(
@@ -352,22 +553,51 @@ public actor CPULoadSimulator {
         startingFrom: Int
     ) async throws {
         let endTime = Date().addingTimeInterval(duration)
+        let calculationStart = Date()
         
         let tasks = (0..<cores).map { coreIndex in
             Task<Void, Error> {
                 var candidate = startingFrom + coreIndex
                 var primesFound = 0
+                var numbersChecked = 0
                 
                 while shouldContinue && Date() < endTime {
                     try Task.checkCancellation()
                     
+                    let checkStart = Date()
                     if isPrime(candidate) {
                         primesFound += 1
                         blackHole(candidate)  // Prevent optimization
+                        
+                        // Record prime found
+                        await recordCounter(.primeFound, tags: [
+                            "core": String(coreIndex)
+                        ])
                     }
+                    let checkDuration = Date().timeIntervalSince(checkStart)
                     
+                    numbersChecked += 1
                     candidate += cores  // Each core checks different numbers
+                    
+                    // Record metrics periodically
+                    if numbersChecked % 1000 == 0 {
+                        await recordGauge(.primeCandidate, value: Double(candidate), tags: [
+                            "core": String(coreIndex)
+                        ])
+                        await recordHistogram(.primeCheckDuration, value: checkDuration * 1_000_000, tags: [
+                            "core": String(coreIndex)
+                        ])
+                    }
                 }
+                
+                // Record final statistics for this core
+                await recordCounter(.primeChecked, value: Double(numbersChecked), tags: [
+                    "core": String(coreIndex)
+                ])
+                await recordGauge(.primeFound, value: Double(primesFound), tags: [
+                    "core": String(coreIndex),
+                    "metric": "total"
+                ])
                 
                 blackHole(primesFound)  // Use the result
             }
@@ -379,6 +609,13 @@ public actor CPULoadSimulator {
         for task in tasks {
             _ = try await task.value
         }
+        
+        let totalDuration = Date().timeIntervalSince(calculationStart)
+        await recordHistogram(.primeCheckDuration, value: totalDuration, tags: [
+            "cores": String(cores),
+            "starting_from": String(startingFrom),
+            "metric": "total"
+        ])
         
         loadTasks.removeAll()
     }
@@ -404,8 +641,16 @@ public actor CPULoadSimulator {
         duration: TimeInterval
     ) async throws {
         let endTime = Date().addingTimeInterval(duration)
+        let matrixStart = Date()
         
-        let tasks = (0..<cores).map { _ in
+        // Record matrix operation start
+        await recordGauge(.matrixOperations, value: Double(size), tags: [
+            "cores": String(cores),
+            "metric": "size"
+        ])
+        let flopsPerOperation = 2 * size * size * size  // For matrix multiplication
+        
+        let tasks = (0..<cores).map { coreIndex in
             Task<Void, Error> {
                 // Allocate matrices
                 let a = [Float](repeating: 1.0, count: size * size)
@@ -417,6 +662,8 @@ public actor CPULoadSimulator {
                 while shouldContinue && Date() < endTime {
                     try Task.checkCancellation()
                     
+                    let opStart = Date()
+                    
                     // Use Accelerate framework for matrix multiplication
                     cblas_sgemm(
                         CblasRowMajor, CblasNoTrans, CblasNoTrans,
@@ -426,9 +673,29 @@ public actor CPULoadSimulator {
                         0.0, &c, Int32(size)
                     )
                     
+                    let opDuration = Date().timeIntervalSince(opStart)
                     operations += 1
+                    
+                    // Record metrics periodically
+                    if operations % 10 == 0 {
+                        let gflops = Double(flopsPerOperation) / (opDuration * 1_000_000_000)
+                        await recordGauge(.matrixGflops, value: gflops, tags: [
+                            "core": String(coreIndex),
+                            "size": String(size)
+                        ])
+                        await recordHistogram(.matrixOpDuration, value: opDuration * 1000, tags: [
+                            "core": String(coreIndex)
+                        ])
+                    }
+                    
                     blackHole(c[0])  // Prevent optimization
                 }
+                
+                // Record final metrics for this core
+                await recordCounter(.matrixOperations, value: Double(operations), tags: [
+                    "core": String(coreIndex),
+                    "size": String(size)
+                ])
                 
                 blackHole(operations)  // Use the result
             }
@@ -441,6 +708,13 @@ public actor CPULoadSimulator {
             _ = try await task.value
         }
         
+        let totalDuration = Date().timeIntervalSince(matrixStart)
+        await recordHistogram(.matrixOpDuration, value: totalDuration, tags: [
+            "cores": String(cores),
+            "size": String(size),
+            "metric": "total"
+        ])
+        
         loadTasks.removeAll()
     }
     
@@ -448,6 +722,34 @@ public actor CPULoadSimulator {
     @inline(never)
     private func blackHole<T>(_ value: T) {
         withUnsafePointer(to: value) { _ in }
+    }
+    
+    // MARK: - Metrics Recording
+    
+    /// Records current CPU usage levels
+    private func recordCPUUsage() async {
+        let info = ProcessInfo.processInfo
+        let activeProcessorCount = info.activeProcessorCount
+        
+        // Get system load averages
+        var loadavg = [Double](repeating: 0.0, count: 3)
+        getloadavg(&loadavg, 3)
+        
+        await recordGauge(.loadAverage1Min, value: loadavg[0])
+        await recordGauge(.loadAverage5Min, value: loadavg[1])
+        await recordGauge(.loadAverage15Min, value: loadavg[2])
+        await recordGauge(.systemCores, value: Double(activeProcessorCount))
+        
+        // Record simulator state
+        let stateValue: Double
+        switch state {
+        case .idle: stateValue = 0
+        case .applying: stateValue = 1
+        case .throttling: stateValue = 2
+        }
+        await recordGauge(.simulatorState, value: stateValue, tags: [
+            "state": String(describing: state)
+        ])
     }
 }
 

@@ -72,8 +72,8 @@ public actor MetricCollector {
     /// The main aggregator for metrics.
     private var aggregator: MetricAggregator?
     
-    /// Export handlers.
-    private var exporters: [any MetricExporter] = []
+    /// The export manager for handling all exporters.
+    private var exportManager: ExportManager?
     
     /// Collection statistics.
     private var totalCollected: Int = 0
@@ -92,6 +92,9 @@ public actor MetricCollector {
                 autoStart: configuration.autoStart
             )
         )
+        
+        // Create export manager
+        self.exportManager = ExportManager()
         
         if configuration.autoStart {
             Task {
@@ -130,6 +133,9 @@ public actor MetricCollector {
         // Start aggregator
         await aggregator?.start()
         
+        // Start export manager
+        await exportManager?.start()
+        
         // Create the stream
         let (stream, continuation) = AsyncStream<MetricDataPoint>.makeStream()
         self.metricStream = stream
@@ -151,6 +157,9 @@ public actor MetricCollector {
         
         // Stop aggregator
         await aggregator?.stop()
+        
+        // Stop export manager
+        await exportManager?.shutdown()
     }
     
     /// Returns a stream of collected metrics.
@@ -164,9 +173,14 @@ public actor MetricCollector {
         return metricStream!
     }
     
-    /// Adds an exporter for metrics.
-    public func addExporter(_ exporter: any MetricExporter) {
-        exporters.append(exporter)
+    /// Registers an exporter with the export manager.
+    public func addExporter(_ exporter: any MetricExporter, name: String) async {
+        await exportManager?.register(exporter, name: name)
+    }
+    
+    /// Unregisters an exporter.
+    public func removeExporter(_ name: String) async {
+        await exportManager?.unregister(name)
     }
     
     /// Returns current collection statistics.
@@ -180,7 +194,7 @@ public actor MetricCollector {
             lastCollectionTime: lastCollectionTime,
             bufferStatistics: bufferStats,
             aggregatorCount: aggregatorStats?.metricCount ?? 0,
-            exporterCount: exporters.count
+            exporterCount: await exportManager?.exporterCount() ?? 0
         )
     }
     
@@ -220,10 +234,8 @@ public actor MetricCollector {
                     // Update aggregator
                     await aggregator?.add(sample)
                     
-                    // Send to exporters
-                    for exporter in exporters {
-                        await exporter.export(sample)
-                    }
+                    // Send to export manager
+                    await exportManager?.export(sample)
                     
                     totalCollected += 1
                 }
@@ -254,9 +266,4 @@ public struct CollectionStatistics: Sendable {
     public let exporterCount: Int
 }
 
-/// Protocol for metric exporters.
-public protocol MetricExporter: Sendable {
-    func export(_ sample: MetricDataPoint) async
-    func flush() async
-}
 
