@@ -1,11 +1,16 @@
 import XCTest
 @testable import PipelineKit
+@testable import PipelineKitSecurity
 
 // MARK: - Test Support Types for SecurityFailureTests
 
 struct SecurityTestCommand: Command {
     typealias Result = String
     let value: String
+    
+    func sanitized() throws -> SecurityTestCommand {
+        return self
+    }
 }
 
 /// Tests for security failure scenarios and attack resistance
@@ -32,12 +37,14 @@ final class SecurityFailureTests: XCTestCase {
         do {
             _ = try await middleware.execute(command, context: context) { _, _ in "fail" }
             XCTFail("Expected rate limit error")
-        } catch let error as RateLimitError {
-            if case let .limitExceeded(remaining, resetAt) = error {
-                XCTAssertEqual(remaining, 0)
-                XCTAssertTrue(resetAt.timeIntervalSinceNow > 0)
+        } catch let error as PipelineError {
+            if case let .rateLimitExceeded(limit, resetTime, _) = error {
+                XCTAssertNotNil(resetTime)
+                if let resetTime = resetTime {
+                    XCTAssertTrue(resetTime.timeIntervalSinceNow > 0)
+                }
             } else {
-                XCTFail("Expected limitExceeded error")
+                XCTFail("Expected rateLimitExceeded error")
             }
         }
     }
@@ -63,7 +70,7 @@ final class SecurityFailureTests: XCTestCase {
             do {
                 _ = try await middleware.execute(command, context: context) { _, _ in "bypass attempt" }
                 XCTFail("Rate limit bypass should not succeed")
-            } catch is RateLimitError {
+            } catch is PipelineError {
                 // Expected - rate limit should block
             }
         }
@@ -96,19 +103,99 @@ final class SecurityFailureTests: XCTestCase {
     
     // MARK: - Validation Failures
     
-    func testValidationFailures() async throws {
-        let middleware = ValidationMiddleware()
+    func testSimpleValidationCall() async throws {
+        let command = SimpleValidationCommand()
         
-        // Test XSS attempt
-        let xssCommand = ValidatableMaliciousCommand(input: "<script>alert('xss')</script>")
+        // Test direct call first
+        do {
+            try command.validate()
+            XCTFail("Direct call should have thrown")
+        } catch {
+            if let pipelineError = error as? PipelineError,
+               case .validation(_, let reason) = pipelineError,
+               case .custom(let message) = reason {
+                XCTAssertEqual(message, "Simple error from validate")
+            } else {
+                XCTFail("Expected validation error with custom message")
+            }
+        }
+        
+        // Now test a manual middleware-like call
+        func testGenericCall<T: Command>(_ cmd: T) throws {
+            try cmd.validate()
+        }
         
         do {
+            try testGenericCall(command)
+            XCTFail("Generic call should have thrown")
+        } catch {
+            if let pipelineError = error as? PipelineError,
+               case .validation(_, let reason) = pipelineError,
+               case .custom(let message) = reason {
+                XCTAssertEqual(message, "Simple error from validate")
+            } else {
+                XCTFail("Expected validation error with custom message")
+            }
+        }
+        
+        // Now test through middleware
+        let middleware = ValidationMiddleware()
+        let context = CommandContext(metadata: StandardCommandMetadata())
+        
+        do {
+            _ = try await middleware.execute(command, context: context) { _, _ in
+                return "Should not reach here"
+            }
+            XCTFail("Middleware should have thrown")
+        } catch {
+            if let pipelineError = error as? PipelineError,
+               case .validation(_, let reason) = pipelineError,
+               case .custom(let message) = reason {
+                XCTAssertEqual(message, "Simple error from validate")
+            } else {
+                XCTFail("Expected validation error with custom message")
+            }
+        }
+    }
+    
+    func testValidationFailures() async throws {
+        // First test direct validation
+        let xssCommand = ValidatableMaliciousCommand(input: "<script>alert('xss')</script>")
+        
+        // Test direct validation first
+        do {
+            try xssCommand.validate()
+            XCTFail("Direct validation should have thrown")
+        } catch let error as PipelineError {
+            if case .validation = error {
+                print("Direct validation correctly threw: \(error)")
+            } else {
+                XCTFail("Expected validation error")
+            }
+        }
+        
+        // Now test through middleware
+        let middleware = ValidationMiddleware()
+        
+        print("About to call middleware.execute")
+        do {
             let context = CommandContext(metadata: StandardCommandMetadata())
-            _ = try await middleware.execute(xssCommand, context: context) { _, _ in "success" }
+            let result = try await middleware.execute(xssCommand, context: context) { cmd, ctx in 
+                print("Next handler called - this shouldn't happen")
+                return "success" 
+            }
+            print("Middleware returned: \(result)")
             XCTFail("XSS validation should fail")
-        } catch let error as ValidationError {
-            // Expected validation error
-            XCTAssertNotNil(error)
+        } catch let error as PipelineError {
+            if case .validation = error {
+                // Expected validation error
+                XCTAssertNotNil(error)
+                print("Middleware correctly caught validation error: \(error)")
+            } else {
+                XCTFail("Expected validation error")
+            }
+        } catch {
+            XCTFail("Unexpected error type: \(error)")
         }
     }
     
@@ -120,9 +207,13 @@ final class SecurityFailureTests: XCTestCase {
             let context = CommandContext(metadata: StandardCommandMetadata())
             _ = try await middleware.execute(sqlInjectionCommand, context: context) { _, _ in "success" }
             XCTFail("SQL injection validation should fail")
-        } catch let error as ValidationError {
-            // Expected validation error for SQL injection
-            XCTAssertNotNil(error)
+        } catch let error as PipelineError {
+            if case .validation = error {
+                // Expected validation error for SQL injection
+                XCTAssertNotNil(error)
+            } else {
+                XCTFail("Expected validation error")
+            }
         }
     }
     
@@ -134,9 +225,13 @@ final class SecurityFailureTests: XCTestCase {
             let context = CommandContext(metadata: StandardCommandMetadata())
             _ = try await middleware.execute(largeDataCommand, context: context) { _, _ in "success" }
             XCTFail("Large data validation should fail")
-        } catch let error as ValidationError {
-            // Expected validation error for excessive data
-            XCTAssertNotNil(error)
+        } catch let error as PipelineError {
+            if case .validation = error {
+                // Expected validation error for excessive data
+                XCTAssertNotNil(error)
+            } else {
+                XCTFail("Expected validation error")
+            }
         }
     }
     
@@ -164,8 +259,13 @@ final class SecurityFailureTests: XCTestCase {
         do {
             _ = try await authMiddleware.execute(command, context: unauthorizedContext) { _, _ in "success" }
             XCTFail("Authorization should deny access")
-        } catch AuthorizationError.insufficientPermissions {
-            // Expected
+        } catch let error as PipelineError {
+            if case .authorization(let reason) = error,
+               case .insufficientPermissions = reason {
+                // Expected
+            } else {
+                XCTFail("Expected insufficientPermissions error")
+            }
         }
     }
     
@@ -192,8 +292,13 @@ final class SecurityFailureTests: XCTestCase {
         do {
             _ = try await authMiddleware.execute(adminCommand, context: regularUserContext) { _, _ in "success" }
             XCTFail("Privilege escalation should be blocked")
-        } catch AuthorizationError.insufficientPermissions {
-            // Expected
+        } catch let error as PipelineError {
+            if case .authorization(let reason) = error,
+               case .insufficientPermissions = reason {
+                // Expected
+            } else {
+                XCTFail("Expected insufficientPermissions error")
+            }
         }
     }
     
@@ -212,8 +317,9 @@ final class SecurityFailureTests: XCTestCase {
             let encrypted = try await encryptor1.encrypt(command)
             _ = try await encryptor2.decrypt(encrypted)
             XCTFail("Decryption with wrong key should fail")
-        } catch let error as EncryptionError {
-            if case .keyNotFound = error {
+        } catch let error as PipelineError {
+            if case .encryption(let reason) = error,
+               case .keyNotFound = reason {
                 // Expected - wrong key
             } else {
                 XCTFail("Unexpected encryption error: \(error)")
@@ -373,55 +479,81 @@ enum SecurityTestError: Error {
     case simulatedFailure
 }
 
+struct SimpleValidationCommand: Command {
+    typealias Result = String
+    func validate() throws {
+        throw PipelineError.validation(field: nil, reason: .custom("Simple error from validate"))
+    }
+    func sanitized() throws -> SimpleValidationCommand { self }
+}
+
 struct SecurityFaultyCommand: Command {
     typealias Result = String
+    
+    func sanitized() throws -> SecurityFaultyCommand {
+        return self
+    }
 }
 
 struct MaliciousCommand: Command {
     typealias Result = String
     var input: String
+    
+    func sanitized() throws -> MaliciousCommand {
+        return self
+    }
 }
 
-struct ValidatableMaliciousCommand: Command, ValidatableCommand {
+struct ValidatableMaliciousCommand: Command {
     typealias Result = String
     var input: String
     
     func validate() throws {
+        print("[ValidatableMaliciousCommand] validate() called with input: \(input)")
         // Check for XSS
         if input.contains("<script>") || input.contains("<svg") || input.contains("javascript:") {
-            throw ValidationError.invalidCharacters(field: "input")
+            print("[ValidatableMaliciousCommand] Throwing ValidationError for XSS")
+            throw PipelineError.validation(field: "input", reason: .invalidCharacters(field: "input"))
         }
         
         // Check for SQL injection patterns
         let sqlPatterns = ["DROP TABLE", "'; DELETE", "UNION SELECT"]
         for pattern in sqlPatterns {
             if input.uppercased().contains(pattern) {
-                throw ValidationError.invalidCharacters(field: "input")
+                throw PipelineError.validation(field: "input", reason: .invalidCharacters(field: "input"))
             }
         }
         
         // Check for excessive data
         if input.count > 1000 {
-            throw ValidationError.valueTooLong(field: "input", maxLength: 1000)
+            throw PipelineError.validation(field: "input", reason: .tooLong(field: "input", max: 1000))
         }
+    }
+    
+    func sanitized() throws -> ValidatableMaliciousCommand {
+        return self // No sanitization for this test
     }
 }
 
-struct SanitizableMaliciousCommand: Command, SanitizableCommand {
+struct SanitizableMaliciousCommand: Command {
     typealias Result = String
     var input: String
     
-    func sanitized() -> SanitizableMaliciousCommand {
-        SanitizableMaliciousCommand(input: CommandSanitizer.sanitizeHTML(input))
+    func sanitized() throws -> SanitizableMaliciousCommand {
+        return SanitizableMaliciousCommand(input: CommandSanitizer.sanitizeHTML(input))
     }
 }
 
 struct AdminCommand: Command {
     typealias Result = String
     let action: String
+    
+    func sanitized() throws -> AdminCommand {
+        return self
+    }
 }
 
-struct EncryptableTestCommand: Command, EncryptableCommand {
+struct EncryptableTestCommand: Command {
     typealias Result = String
     
     var sensitiveData: String
@@ -434,5 +566,9 @@ struct EncryptableTestCommand: Command, EncryptableCommand {
         if let data = fields["sensitiveData"] as? String {
             self.sensitiveData = data
         }
+    }
+    
+    func sanitized() throws -> EncryptableTestCommand {
+        return self
     }
 }

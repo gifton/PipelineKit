@@ -1,5 +1,6 @@
 import XCTest
 @testable import PipelineKit
+@testable import PipelineKitMiddleware
 
 final class CachingMiddlewareErrorTests: XCTestCase {
     private var cache: InMemoryCache!

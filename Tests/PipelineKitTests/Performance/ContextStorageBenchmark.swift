@@ -165,7 +165,7 @@ final class ContextStorageBenchmark: PerformanceBenchmark {
     /// Compare with ObjectIdentifier-based implementation (simulated)
     func testPerformanceComparison() async throws {
         let intContext = CommandContext()  // Our optimized version
-        let objContext = ObjectIdentifierContext()  // Simulated old version
+        let objContext = ObjectIdentifierContext()  // Simulated alternative implementation
         
         // Populate both
         intContext[BenchKey1.self] = "test"

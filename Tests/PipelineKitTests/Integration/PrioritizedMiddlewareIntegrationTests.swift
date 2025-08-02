@@ -4,7 +4,7 @@ import XCTest
 final class PrioritizedMiddlewareIntegrationTests: XCTestCase {
     
     // Test command
-    struct TestCommand: Command, ValidatableCommand, SanitizableCommand {
+    struct TestCommand: Command {
         typealias Result = String
         
         let input: String
@@ -12,11 +12,11 @@ final class PrioritizedMiddlewareIntegrationTests: XCTestCase {
         
         func validate() throws {
             guard !input.isEmpty else {
-                throw ValidationError.missingRequiredField("input")
+                throw PipelineError.validation(field: "input", reason: .missingRequired)
             }
         }
         
-        func sanitized() -> Self {
+        func sanitized() throws -> Self {
             TestCommand(
                 input: input.trimmingCharacters(in: .whitespaces),
                 tracker: tracker

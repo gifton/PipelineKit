@@ -1,5 +1,6 @@
 import XCTest
 @testable import PipelineKit
+@testable import PipelineKitMiddleware
 
 // MARK: - Type Parameter Constraints Tests
 

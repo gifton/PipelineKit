@@ -1,8 +1,9 @@
 import Foundation
 import PipelineKit
+import PipelineKitCore
 
-/// Mock encryptor for testing encryption middleware
-public actor MockEncryptor: CommandEncryptor {
+/// Mock encryptor for testing encryption - provides a simple implementation without inheritance
+public actor MockEncryptor {
     private let encryptionKey: String
     private var encryptedCommands: [String] = []
     
@@ -10,7 +11,7 @@ public actor MockEncryptor: CommandEncryptor {
         self.encryptionKey = key
     }
     
-    public func encrypt<T: Command>(_ command: T) async throws -> Data {
+    public func encrypt<T: Command>(_ command: T) async throws -> Data where T: Encodable {
         encryptedCommands.append(String(describing: type(of: command)))
         
         // Simple mock encryption - just encode to JSON and prefix with key
@@ -26,7 +27,7 @@ public actor MockEncryptor: CommandEncryptor {
 }
 
 /// Mock decryptor for testing decryption operations
-public actor MockDecryptor: CommandDecryptor {
+public actor MockDecryptor {
     private let encryptionKey: String
     private var decryptedCount = 0
     
@@ -34,7 +35,7 @@ public actor MockDecryptor: CommandDecryptor {
         self.encryptionKey = key
     }
     
-    public func decrypt<T: Command>(_ data: Data, as type: T.Type) async throws -> T {
+    public func decrypt<T: Command>(_ data: Data, as type: T.Type) async throws -> T where T: Decodable {
         decryptedCount += 1
         
         // Simple mock decryption

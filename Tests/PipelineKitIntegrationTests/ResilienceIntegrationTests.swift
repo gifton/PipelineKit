@@ -1,5 +1,6 @@
 import XCTest
 @testable import PipelineKit
+@testable import PipelineKitMiddleware
 
 /// Integration tests for resilience and recovery scenarios
 final class ResilienceIntegrationTests: XCTestCase {

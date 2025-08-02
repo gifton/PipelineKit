@@ -48,7 +48,7 @@ final class FastPathExecutorIntegrationTests: XCTestCase {
             // Validate command
             if let calc = command as? CalculateCommand {
                 guard calc.value >= 0 else {
-                    throw ValidationError.invalidInput
+                    throw PipelineError.validation(field: "value", reason: .custom("Value must be non-negative"))
                 }
             }
             return try await next(command, context)
@@ -81,7 +81,7 @@ final class FastPathExecutorIntegrationTests: XCTestCase {
         ) async throws -> T.Result {
             // Check auth
             guard context.get(UserIdKey.self) != nil else {
-                throw AuthError.notAuthenticated
+                throw PipelineError.authorization(reason: .invalidCredentials)
             }
             return try await next(command, context)
         }
@@ -96,14 +96,7 @@ final class FastPathExecutorIntegrationTests: XCTestCase {
         typealias Value = String
     }
     
-    // Errors
-    enum ValidationError: Error {
-        case invalidInput
-    }
-    
-    enum AuthError: Error {
-        case notAuthenticated
-    }
+    // Errors are now part of PipelineError
     
     // MARK: - Tests
     

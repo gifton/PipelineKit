@@ -1,5 +1,6 @@
 import XCTest
 @testable import PipelineKit
+import PipelineKitTestSupport
 
 final class RateLimiterTests: XCTestCase {
     private let synchronizer = TestSynchronizer()
@@ -215,10 +216,11 @@ final class RateLimiterTests: XCTestCase {
                 "should not reach"
             }
             XCTFail("Expected rate limit error")
-        } catch let error as RateLimitError {
-            switch error {
-            case .limitExceeded(let remaining, _):
-                XCTAssertEqual(remaining, 0)
+        } catch let error as PipelineError {
+            if case .rateLimitExceeded(_, _, _) = error {
+                // Expected
+            } else {
+                XCTFail("Expected rate limit error, got \(error)")
             }
         }
     }
@@ -255,7 +257,7 @@ final class RateLimiterTests: XCTestCase {
         do {
             _ = try await middleware.execute(cheapCommand, context: context) { _, _ in "fail" }
             XCTFail("Expected rate limit")
-        } catch is RateLimitError {
+        } catch is PipelineError {
             // Expected
         }
         
@@ -271,7 +273,7 @@ final class RateLimiterTests: XCTestCase {
         do {
             _ = try await middleware.execute(expensiveCommand, context: context) { _, _ in print("fail") }
             XCTFail("Expected rate limit")
-        } catch is RateLimitError {
+        } catch is PipelineError {
             // Expected
         }
     }

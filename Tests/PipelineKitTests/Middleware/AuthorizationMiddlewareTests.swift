@@ -55,9 +55,14 @@ final class AuthorizationMiddlewareTests: XCTestCase {
                 return ""
             }
             XCTFail("Should throw authorization error")
-        } catch let error as AuthorizationError {
+        } catch let error as PipelineError {
             // Expected error
-            XCTAssertEqual(error.localizedDescription, AuthorizationError.insufficientPermissions.localizedDescription)
+            if case .authorization(let reason) = error,
+               case .insufficientPermissions = reason {
+                // Expected
+            } else {
+                XCTFail("Expected insufficientPermissions error")
+            }
         }
     }
     
@@ -79,9 +84,14 @@ final class AuthorizationMiddlewareTests: XCTestCase {
                 return ""
             }
             XCTFail("Should throw authorization error")
-        } catch let error as AuthorizationError {
+        } catch let error as PipelineError {
             // Expected error
-            XCTAssertEqual(error.localizedDescription, AuthorizationError.notAuthenticated.localizedDescription)
+            if case .authorization(let reason) = error,
+               case .invalidCredentials = reason {
+                // Expected - no authenticated user
+            } else {
+                XCTFail("Expected authorization error")
+            }
         }
     }
     
@@ -121,7 +131,7 @@ final class AuthorizationMiddlewareTests: XCTestCase {
             }
             XCTFail("Should throw authorization error")
         } catch {
-            XCTAssertTrue(error is AuthorizationError)
+            XCTAssertTrue(error is PipelineError)
         }
     }
     

@@ -91,7 +91,7 @@ public enum SecurityOrder {
 Never trust user input. Validate all data at the entry point:
 
 ```swift
-struct CreateUserCommand: Command, ValidatableCommand {
+struct CreateUserCommand: Command {
     let email: String
     let username: String
     let password: String
@@ -182,7 +182,7 @@ func validateStrongPassword(_ value: String) throws {
 Always sanitize user input to prevent injection attacks:
 
 ```swift
-struct ProcessContentCommand: Command, SanitizableCommand {
+struct ProcessContentCommand: Command {
     var content: String
     var title: String
     
@@ -424,7 +424,7 @@ Task {
 Always encrypt sensitive data:
 
 ```swift
-struct PaymentCommand: Command, EncryptableCommand {
+struct PaymentCommand: Command {
     var cardNumber: String
     var cvv: String
     var ssn: String
@@ -477,7 +477,7 @@ Implement encryption at the field level for granular control:
 
 ```swift
 // The EncryptionMiddleware automatically handles encryption/decryption
-// for commands that conform to EncryptableCommand protocol
+// for commands that have sensitive fields
 
 // Example usage in pipeline:
 let securePipeline = try SecurePipelineBuilder()
@@ -1046,11 +1046,10 @@ class SecurityIncidentHandler {
 PipelineKit follows strict dependency management practices:
 
 ```bash
-# Run dependency audit
-./Scripts/dependency-audit.sh
+# Dependency audit runs automatically on CI
+# See .github/workflows/dependency-audit.yml
 
-# Generate Software Bill of Materials (SBOM)
-./Scripts/generate-sbom.sh
+# SBOM is generated automatically during dependency audit
 ```
 
 ### Version Pinning

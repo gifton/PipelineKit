@@ -1,0 +1,42 @@
+import Foundation
+import PipelineKitCore
+
+/// Middleware that sanitizes commands before execution.
+/// 
+/// This middleware automatically sanitizes any command by calling its
+/// sanitized() method, providing a security layer that cleans
+/// potentially dangerous input data.
+/// 
+/// Example:
+/// ```swift
+/// let bus = CommandBus()
+/// await bus.addMiddleware(SanitizationMiddleware())
+/// ```
+/// 
+/// For proper security, use with priority ordering:
+/// ```swift
+/// let pipeline = AnyStandardPipeline(handler: handler)
+/// try await pipeline.addMiddleware(
+///     SanitizationMiddleware(),
+///     priority: ExecutionPriority.preProcessing.rawValue
+/// )
+/// ```
+public struct SanitizationMiddleware: Middleware {
+    public let priority: ExecutionPriority = .preProcessing
+    
+    public init() {}
+    
+    public func execute<T: Command>(
+        _ command: T,
+        context: CommandContext,
+        next: @Sendable (T, CommandContext) async throws -> T.Result
+    ) async throws -> T.Result {
+        // All commands now have sanitized() via extension
+        // The default implementation returns self, so this is safe
+        let sanitized = try command.sanitized()
+        
+        // Continue with sanitized command
+        return try await next(sanitized, context)
+    }
+}
+

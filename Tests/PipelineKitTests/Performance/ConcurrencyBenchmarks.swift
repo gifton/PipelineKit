@@ -89,9 +89,7 @@ struct ValidationMiddleware: Middleware {
         next: @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
         // Simulate validation
-        if let validatable = command as? any ValidatableCommand {
-            try await validatable.validate()
-        }
+        try command.validate()
         return try await next(command, context)
     }
 }

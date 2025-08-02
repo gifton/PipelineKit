@@ -22,8 +22,8 @@ jobs:
     - name: Run SwiftLint
       run: swiftlint lint --strict --config .swiftlint.yml
 
-  build-and-test:
-    name: Build and Test
+  build:
+    name: Build
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -51,14 +51,39 @@ jobs:
       
     - name: Build
       run: swift build -v
+
+  unit-tests:
+    name: Unit Tests
+    needs: build
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-14, macos-13]
+        swift: ['5.10']
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Swift
+      if: matrix.os != 'ubuntu-latest'
+      uses: swift-actions/setup-swift@v2
+      with:
+        swift-version: ${{ matrix.swift }}
+    
+    - name: Setup Swift on Ubuntu
+      if: matrix.os == 'ubuntu-latest'
+      uses: swiftlang/setup-swift@v1
+      with:
+        swift-version: ${{ matrix.swift }}
       
-    - name: Run tests
-      run: swift test -v --enable-code-coverage
+    - name: Run unit tests
+      run: swift package test-unit --enable-code-coverage
       
     - name: Generate coverage report
       if: matrix.os == 'ubuntu-latest' && matrix.swift == '5.10'
       run: |
-        swift test --enable-code-coverage
+        swift test --filter PipelineKitTests --enable-code-coverage
         xcrun llvm-cov export -format="lcov" .build/debug/PipelineKitPackageTests.xctest/Contents/MacOS/PipelineKitPackageTests -instr-profile .build/debug/codecov/default.profdata > coverage.lcov
       
     - name: Upload coverage to Codecov
@@ -68,6 +93,57 @@ jobs:
         token: ${{ secrets.CODECOV_TOKEN }}
         file: ./coverage.lcov
         fail_ci_if_error: false
+
+  stress-tests:
+    name: Stress Tests
+    needs: build
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-14]  # Run stress tests on fewer platforms
+        swift: ['5.10']
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Swift
+      uses: swift-actions/setup-swift@v2
+      with:
+        swift-version: ${{ matrix.swift }}
+      
+    - name: Run stress tests
+      run: swift package test-stress
+      timeout-minutes: 30  # Stress tests may take longer
+
+  integration-tests:
+    name: Integration Tests
+    needs: build
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-14]  # Run on key platforms
+        swift: ['5.10']
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Swift
+      if: matrix.os != 'ubuntu-latest'
+      uses: swift-actions/setup-swift@v2
+      with:
+        swift-version: ${{ matrix.swift }}
+    
+    - name: Setup Swift on Ubuntu
+      if: matrix.os == 'ubuntu-latest'
+      uses: swiftlang/setup-swift@v1
+      with:
+        swift-version: ${{ matrix.swift }}
+      
+    - name: Run integration tests
+      run: swift package test-integration
+      timeout-minutes: 20
 
   test-examples:
     name: Test Examples

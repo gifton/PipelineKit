@@ -187,7 +187,7 @@ let payment = try await bus.send(PaymentCommand(amount: 99.99))
 ### 1. Command with Validation
 
 ```swift
-struct PaymentCommand: Command, ValidatableCommand {
+struct PaymentCommand: Command {
     let amount: Double
     let cardNumber: String
     let email: String
@@ -205,7 +205,7 @@ struct PaymentCommand: Command, ValidatableCommand {
 ### 2. Encrypted Sensitive Data
 
 ```swift
-struct PaymentCommand: Command, EncryptableCommand {
+struct PaymentCommand: Command {
     var cardNumber: String
     var cvv: String
     let amount: Double
@@ -1207,6 +1207,22 @@ Run tests:
 swift test
 ```
 
+### Stress Testing
+
+PipelineKit includes a comprehensive stress testing framework in a separate package. The stress tests validate performance, concurrency, and resource handling under extreme conditions.
+
+To run stress tests:
+
+```bash
+cd Scripts
+./run-stress-tests.sh
+
+# With Thread Sanitizer
+./run-stress-tests.sh --tsan
+```
+
+For more information about stress testing, see the [PipelineKitStressTest README](PipelineKitStressTest/README.md).
+
 ## 🔒 Security & Dependencies
 
 ### Dependency Management
@@ -1214,11 +1230,10 @@ swift test
 PipelineKit has minimal dependencies for security:
 
 ```bash
-# Audit dependencies
-./Scripts/dependency-audit.sh
+# Audit dependencies - runs automatically on CI
+# Check .github/workflows/dependency-audit.yml
 
-# Generate SBOM (Software Bill of Materials)
-./Scripts/generate-sbom.sh
+# SBOM is generated automatically during dependency audit
 ```
 
 **Current Dependencies:**

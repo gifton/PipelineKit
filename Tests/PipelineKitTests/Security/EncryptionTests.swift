@@ -1,6 +1,7 @@
 import XCTest
 import CryptoKit
 @testable import PipelineKit
+@testable import PipelineKitSecurity
 
 final class EncryptionTests: XCTestCase {
     private let synchronizer = TestSynchronizer()
@@ -8,7 +9,7 @@ final class EncryptionTests: XCTestCase {
     
     // MARK: - Test Commands
     
-    struct PaymentCommand: Command, EncryptableCommand {
+    struct PaymentCommand: Command {
         var cardNumber: String
         var cvv: String
         let amount: Double
@@ -38,7 +39,7 @@ final class EncryptionTests: XCTestCase {
         let success: Bool
     }
     
-    struct UserCommand: Command, EncryptableCommand {
+    struct UserCommand: Command {
         var ssn: String
         var password: String
         let username: String
@@ -322,7 +323,7 @@ final class EncryptionTests: XCTestCase {
         let encryptor = await CommandEncryptor(keyStore: keyStore)
         let middleware = EncryptionMiddleware(encryptor: encryptor)
         
-        struct EmptyEncryptableCommand: Command, EncryptableCommand {
+        struct EmptyEncryptableCommand: Command {
             typealias Result = String
             
             func execute() async throws -> String {
@@ -343,8 +344,9 @@ final class EncryptionTests: XCTestCase {
                 "Should not reach"
             }
             XCTFail("Expected error")
-        } catch let error as EncryptionError {
-            if case .noSensitiveFields = error {
+        } catch let error as PipelineError {
+            if case .encryption(let reason) = error,
+               case .noSensitiveFields = reason {
                 // Expected
             } else {
                 XCTFail("Wrong error type: \(error)")
@@ -374,8 +376,9 @@ final class EncryptionTests: XCTestCase {
         do {
             _ = try await encryptor2.decrypt(encrypted)
             XCTFail("Expected decryption to fail")
-        } catch let error as EncryptionError {
-            if case .keyNotFound = error {
+        } catch let error as PipelineError {
+            if case .encryption(let reason) = error,
+               case .keyNotFound = reason {
                 // Expected
             } else {
                 XCTFail("Wrong error type: \(error)")

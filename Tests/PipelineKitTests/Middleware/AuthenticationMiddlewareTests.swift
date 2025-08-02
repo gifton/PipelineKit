@@ -1,6 +1,7 @@
 import XCTest
 import Foundation
 @testable import PipelineKit
+@testable import PipelineKitSecurity
 
 final class AuthenticationMiddlewareTests: XCTestCase {
     
@@ -8,7 +9,7 @@ final class AuthenticationMiddlewareTests: XCTestCase {
         // Given
         let middleware = AuthenticationMiddleware { token in
             guard token == "valid-token" else {
-                throw AuthenticationError.invalidToken
+                throw PipelineError.authorization(reason: .invalidCredentials)
             }
             return "user-123"
         }
@@ -39,7 +40,7 @@ final class AuthenticationMiddlewareTests: XCTestCase {
         // Given
         let middleware = AuthenticationMiddleware { token in
             guard token == "valid-token" else {
-                throw AuthenticationError.invalidToken
+                throw PipelineError.authorization(reason: .invalidCredentials)
             }
             return "user-123"
         }
@@ -56,7 +57,7 @@ final class AuthenticationMiddlewareTests: XCTestCase {
             }
             XCTFail("Should throw authentication error")
         } catch {
-            XCTAssertTrue(error is AuthenticationError)
+            XCTAssertTrue(error is PipelineError)
         }
     }
     
@@ -64,7 +65,7 @@ final class AuthenticationMiddlewareTests: XCTestCase {
         // Given
         let middleware = AuthenticationMiddleware { token in
             guard token != nil else {
-                throw AuthenticationError.invalidToken
+                throw PipelineError.authorization(reason: .invalidCredentials)
             }
             return "user-123"
         }
@@ -81,7 +82,7 @@ final class AuthenticationMiddlewareTests: XCTestCase {
             }
             XCTFail("Should throw authentication error")
         } catch {
-            XCTAssertTrue(error is AuthenticationError)
+            XCTAssertTrue(error is PipelineError)
         }
     }
     
@@ -95,7 +96,7 @@ final class AuthenticationMiddlewareTests: XCTestCase {
             if token?.hasPrefix("api-key-") == true {
                 return String(token!.dropFirst(8)) // Extract user from api-key-{userId}
             }
-            throw AuthenticationError.invalidToken
+            throw PipelineError.authentication(required: false)
         }
         
         let command = AuthTestCommand(value: "test")
@@ -125,7 +126,7 @@ final class AuthenticationMiddlewareTests: XCTestCase {
             // Simulate async authentication
             try await Task.sleep(nanoseconds: 10_000_000) // 10ms
             guard token == "valid-token" else {
-                throw AuthenticationError.invalidToken
+                throw PipelineError.authorization(reason: .invalidCredentials)
             }
             return "user-\(UUID().uuidString)"
         }

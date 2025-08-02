@@ -1,6 +1,7 @@
 import XCTest
 import Foundation
 @testable import PipelineKit
+@testable import PipelineKitObservability
 
 final class PerformanceMiddlewareTests: XCTestCase {
     private let synchronizer = TestSynchronizer()
@@ -152,7 +153,7 @@ final class PerformanceMiddlewareTests: XCTestCase {
         XCTAssertEqual(result, "test")
         
         // Performance measurement should be stored in context
-        let measurement = context.get(PerformanceMeasurementKey.self)
+        let measurement = context.get(PerformanceMeasurementKey.self) as? PerformanceMeasurement
         XCTAssertNotNil(measurement)
         XCTAssertEqual(measurement?.commandName, "PerfTestCommand")
         XCTAssertTrue(measurement?.isSuccess ?? false)

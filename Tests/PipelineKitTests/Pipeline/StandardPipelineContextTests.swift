@@ -161,7 +161,7 @@ final class StandardPipelineContextTests: XCTestCase {
         let authMiddleware = AuthenticationMiddleware { userId in
             guard let userId = userId,
                   authenticatedUsers[userId] != nil else {
-                throw AuthorizationError.notAuthenticated
+                throw PipelineError.authentication(required: true)
             }
             return userId
         }

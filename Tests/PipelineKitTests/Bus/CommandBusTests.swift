@@ -101,7 +101,7 @@ final class CommandBusTests: XCTestCase {
         do {
             _ = try await bus.send(AddNumbersCommand(a: 1, b: 2))
             XCTFail("Expected error")
-        } catch let error as CommandBusError {
+        } catch let error as PipelineError {
             if case .handlerNotFound = error {
                 // Success
             } else {

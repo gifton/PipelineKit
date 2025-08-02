@@ -1,5 +1,7 @@
 import XCTest
 @testable import PipelineKit
+@testable import PipelineKitMiddleware
+@testable import PipelineKitSecurity
 
 /// End-to-end integration tests that verify complete system functionality
 final class EndToEndIntegrationTests: XCTestCase {

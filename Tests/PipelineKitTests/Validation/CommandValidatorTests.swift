@@ -47,8 +47,9 @@ final class CommandValidatorTests: XCTestCase {
                 try CommandValidator.validateEmail(email),
                 "Email '\(email)' should be invalid"
             ) { error in
-                XCTAssertTrue(error is ValidationError)
-                if case ValidationError.invalidEmail = error {
+                XCTAssertTrue(error is PipelineError)
+                if case PipelineError.validation(_, let reason) = error,
+                   case .invalidEmail = reason {
                     // Expected
                 } else {
                     XCTFail("Expected invalidEmail error for '\(email)'")
@@ -87,8 +88,10 @@ final class CommandValidatorTests: XCTestCase {
         XCTAssertThrowsError(
             try CommandValidator.validateLength(value, field: "username", minLength: 3)
         ) { error in
-            if case ValidationError.valueTooShort(let field, let minLength) = error {
+            if case PipelineError.validation(let field, let reason) = error,
+               case .tooShort(let fieldName, let minLength) = reason {
                 XCTAssertEqual(field, "username")
+                XCTAssertEqual(fieldName, "username")
                 XCTAssertEqual(minLength, 3)
             } else {
                 XCTFail("Expected valueTooShort error")
@@ -104,8 +107,10 @@ final class CommandValidatorTests: XCTestCase {
         XCTAssertThrowsError(
             try CommandValidator.validateLength(value, field: "title", maxLength: 10)
         ) { error in
-            if case ValidationError.valueTooLong(let field, let maxLength) = error {
+            if case PipelineError.validation(let field, let reason) = error,
+               case .tooLong(let fieldName, let maxLength) = reason {
                 XCTAssertEqual(field, "title")
+                XCTAssertEqual(fieldName, "title")
                 XCTAssertEqual(maxLength, 10)
             } else {
                 XCTFail("Expected valueTooLong error")
@@ -161,7 +166,8 @@ final class CommandValidatorTests: XCTestCase {
             XCTAssertThrowsError(
                 try CommandValidator.validateNotEmpty(value, field: "name")
             ) { error in
-                if case ValidationError.missingRequiredField(let field) = error {
+                if case PipelineError.validation(let field, let reason) = error,
+                   case .missingRequired = reason {
                     XCTAssertEqual(field, "name")
                 } else {
                     XCTFail("Expected missingRequiredField error")
@@ -217,8 +223,10 @@ final class CommandValidatorTests: XCTestCase {
             XCTAssertThrowsError(
                 try CommandValidator.validateAlphanumeric(value, field: "username")
             ) { error in
-                if case ValidationError.invalidCharacters(let field) = error {
+                if case PipelineError.validation(let field, let reason) = error,
+                   case .invalidCharacters(let fieldName) = reason {
                     XCTAssertEqual(field, "username")
+                    XCTAssertEqual(fieldName, "username")
                 } else {
                     XCTFail("Expected invalidCharacters error for '\(value)'")
                 }

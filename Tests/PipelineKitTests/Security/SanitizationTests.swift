@@ -4,14 +4,14 @@ import XCTest
 final class SanitizationTests: XCTestCase {
     
     // Test command with sanitization
-    struct CreatePostCommand: Command, SanitizableCommand {
+    struct CreatePostCommand: Command {
         typealias Result = String
         
         let title: String
         let content: String
         let tags: String
         
-        func sanitized() -> Self {
+        func sanitized() throws -> Self {
             CreatePostCommand(
                 title: title.trimmingCharacters(in: .whitespacesAndNewlines),
                 content: CommandSanitizer.sanitizeHTML(content),
@@ -126,14 +126,14 @@ final class SanitizationTests: XCTestCase {
         XCTAssertEqual(result, "Post created: My Post")
         
         // Create a new command to verify sanitization would work
-        let sanitizedCommand = command.sanitized()
+        let sanitizedCommand = try command.sanitized()
         XCTAssertEqual(sanitizedCommand.title, "My Post")
         XCTAssertEqual(sanitizedCommand.content, "Hello &lt;b&gt;World&lt;/b&gt;")
         XCTAssertTrue(sanitizedCommand.tags.count <= 50)
     }
     
     func testSecureCommand() throws {
-        struct SecureCreateUserCommand: Command, SecureCommand {
+        struct SecureCreateUserCommand: Command {
             typealias Result = String
             
             let email: String
@@ -143,7 +143,7 @@ final class SanitizationTests: XCTestCase {
                 try CommandValidator.validateEmail(email)
             }
             
-            func sanitized() -> Self {
+            func sanitized() throws -> Self {
                 SecureCreateUserCommand(
                     email: email.lowercased().trimmingCharacters(in: .whitespaces),
                     bio: CommandSanitizer.sanitizeHTML(bio)
@@ -160,7 +160,7 @@ final class SanitizationTests: XCTestCase {
         XCTAssertThrowsError(try command.validate()) // Should fail due to spaces
         
         // Sanitize and revalidate
-        let sanitizedCommand = command.sanitized()
+        let sanitizedCommand = try command.sanitized()
         XCTAssertNoThrow(try sanitizedCommand.validate())
         XCTAssertEqual(sanitizedCommand.email, "test@example.com")
         XCTAssertEqual(sanitizedCommand.bio, "My bio")

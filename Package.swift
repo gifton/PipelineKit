@@ -18,35 +18,55 @@ let package = Package(
             name: "PipelineKit",
             targets: ["PipelineKit"]
         ),
+        // Modular libraries
+        .library(
+            name: "PipelineKitCore",
+            targets: ["PipelineKitCore"]
+        ),
+        .library(
+            name: "PipelineKitMiddleware",
+            targets: ["PipelineKitMiddleware"]
+        ),
+        .library(
+            name: "PipelineKitSecurity",
+            targets: ["PipelineKitSecurity"]
+        ),
+        .library(
+            name: "PipelineKitObservability",
+            targets: ["PipelineKitObservability"]
+        ),
         // Test support library - only for use in tests
         .library(
             name: "PipelineKitTestSupport",
             targets: ["PipelineKitTestSupport"]
         ),
+        // Stress test support library
+        .library(
+            name: "StressTestSupport",
+            targets: ["StressTestSupport"]
+        ),
         // Benchmark executable - not included in release builds
-        .executable(
-            name: "PipelineKitBenchmarks",
-            targets: ["PipelineKitBenchmarks"]
+        // Benchmarks temporarily disabled during modularization
+        // .executable(
+        //     name: "PipelineKitBenchmarks",
+        //     targets: ["PipelineKitBenchmarks"]
+        // ),
+        // Command plugins for test execution
+        .plugin(
+            name: "test-unit",
+            targets: ["TestUnitCommand"]
         ),
-        // Stress test demonstration
-        .executable(
-            name: "StressTestDemo",
-            targets: ["StressTestDemo"]
+        .plugin(
+            name: "test-stress",
+            targets: ["TestStressCommand"]
         ),
-        // Metric aggregation demonstration
-        .executable(
-            name: "AggregationDemo",
-            targets: ["AggregationDemo"]
+        .plugin(
+            name: "test-stress-tsan",
+            targets: ["TestStressTSANCommand"]
         ),
-        // Metric export demonstration
-        .executable(
-            name: "ExportDemo",
-            targets: ["ExportDemo"]
-        ),
-        // Resource tracking demonstration
-        .executable(
-            name: "ResourceTrackingDemo",
-            targets: ["ResourceTrackingDemo"]
+        .plugin(
+            name: "test-integration",
+            targets: ["TestIntegrationCommand"]
         ),
     ],
     dependencies: [
@@ -77,14 +97,12 @@ let package = Package(
             name: "PipelineKit",
             dependencies: [
                 "PipelineMacros",
-                .product(name: "Atomics", package: "swift-atomics")
-            ],
-            exclude: [
-                "Observability/Export/README.md",
-                "Observability/EXPORT_RESTRUCTURE.md",
-                "StressTest/Metrics/MetricRecordableMigrationGuide.md",
-                "StressTest/Core/SAFETY_MONITOR_IMPROVEMENTS.md",
-                "StressTest/TODO.md"
+                .product(name: "Atomics", package: "swift-atomics"),
+                // Re-export all modular libraries
+                "PipelineKitCore",
+                "PipelineKitMiddleware",
+                "PipelineKitSecurity",
+                "PipelineKitObservability"
             ],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency"),
@@ -99,16 +117,27 @@ let package = Package(
                 .enableExperimentalFeature("StrictConcurrency")
             ]
         ),
+        .target(
+            name: "StressTestSupport",
+            dependencies: [
+                "PipelineKit",
+                .product(name: "Atomics", package: "swift-atomics")
+            ],
+            swiftSettings: [
+                .enableExperimentalFeature("StrictConcurrency")
+            ]
+        ),
         .executableTarget(
             name: "VerifyChanges",
             dependencies: ["PipelineKit"]
         ),
-        .executableTarget(
-            name: "PipelineKitBenchmarks",
-            dependencies: ["PipelineKit"],
-            path: "Sources/PipelineKitBenchmarks",
-            exclude: ["README.md", "PHASE1-SUMMARY.md"]
-        ),
+        // Benchmarks temporarily disabled during modularization
+        // .executableTarget(
+        //     name: "PipelineKitBenchmarks",
+        //     dependencies: ["PipelineKit"],
+        //     path: "Sources/PipelineKitBenchmarks",
+        //     exclude: ["README.md", "PHASE1-SUMMARY.md"]
+        // ),
         .testTarget(
             name: "PipelineKitTests",
             dependencies: ["PipelineKit", "PipelineKitTestSupport"],
@@ -126,44 +155,106 @@ let package = Package(
                 .enableExperimentalFeature("StrictConcurrency")
             ]
         ),
-        .executableTarget(
-            name: "StressTestDemo",
-            dependencies: ["PipelineKit"]
-        ),
-        .executableTarget(
-            name: "MetricBufferDemo",
-            dependencies: ["PipelineKit"]
-        ),
-        .executableTarget(
-            name: "AggregationDemo",
-            dependencies: ["PipelineKit"]
-        ),
-        .executableTarget(
-            name: "ExportDemo",
-            dependencies: ["PipelineKit"]
-        ),
-        .executableTarget(
-            name: "ResourceTrackingDemo",
-            dependencies: ["PipelineKit"]
-        ),
         .testTarget(
             name: "StressTestCore",
-            dependencies: ["PipelineKit", "PipelineKitTestSupport"],
-            exclude: ["README.md"],
+            dependencies: ["PipelineKit", "PipelineKitTestSupport", "StressTestSupport"],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency")
             ]
         ),
         .testTarget(
-            name: "StressTestTSan",
-            dependencies: ["PipelineKit", "PipelineKitTestSupport"],
+            name: "StressTestIntegration",
+            dependencies: ["PipelineKit", "PipelineKitTestSupport", "StressTestSupport"],
+            swiftSettings: [
+                .enableExperimentalFeature("StrictConcurrency")
+            ]
+        ),
+        
+        // MARK: - Modular Targets
+        
+        // Core module - Foundation with no dependencies on other PipelineKit modules
+        .target(
+            name: "PipelineKitCore",
+            dependencies: [
+                "PipelineMacros",
+                .product(name: "Atomics", package: "swift-atomics")
+            ],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency"),
-                .unsafeFlags(["-sanitize=thread"], .when(configuration: .debug))
-            ],
-            linkerSettings: [
-                .unsafeFlags(["-sanitize=thread"], .when(configuration: .debug))
+                .enableExperimentalFeature("AccessLevelOnImport")
             ]
+        ),
+        
+        // Security module - Depends on Core
+        .target(
+            name: "PipelineKitSecurity",
+            dependencies: ["PipelineKitCore"],
+            swiftSettings: [
+                .enableExperimentalFeature("StrictConcurrency"),
+                .enableExperimentalFeature("AccessLevelOnImport")
+            ]
+        ),
+        
+        // Observability module - Depends on Core
+        .target(
+            name: "PipelineKitObservability",
+            dependencies: ["PipelineKitCore"],
+            swiftSettings: [
+                .enableExperimentalFeature("StrictConcurrency"),
+                .enableExperimentalFeature("AccessLevelOnImport")
+            ]
+        ),
+        
+        // Middleware module - Depends on Core, Security, and Observability
+        .target(
+            name: "PipelineKitMiddleware",
+            dependencies: [
+                "PipelineKitCore",
+                "PipelineKitSecurity",
+                "PipelineKitObservability"
+            ],
+            swiftSettings: [
+                .enableExperimentalFeature("StrictConcurrency"),
+                .enableExperimentalFeature("AccessLevelOnImport")
+            ]
+        ),
+        
+        // MARK: - Command Plugins
+        
+        // Plugin for running unit tests only
+        .plugin(
+            name: "TestUnitCommand",
+            capability: .command(
+                intent: .custom(verb: "test-unit", description: "Run unit tests only"),
+                permissions: []
+            )
+        ),
+        
+        // Plugin for running stress tests
+        .plugin(
+            name: "TestStressCommand",
+            capability: .command(
+                intent: .custom(verb: "test-stress", description: "Run stress tests"),
+                permissions: []
+            )
+        ),
+        
+        // Plugin for running stress tests with Thread Sanitizer
+        .plugin(
+            name: "TestStressTSANCommand",
+            capability: .command(
+                intent: .custom(verb: "test-stress-tsan", description: "Run stress tests with Thread Sanitizer"),
+                permissions: []
+            )
+        ),
+        
+        // Plugin for running integration tests
+        .plugin(
+            name: "TestIntegrationCommand",
+            capability: .command(
+                intent: .custom(verb: "test-integration", description: "Run integration tests only"),
+                permissions: []
+            )
         ),
     ]
 )

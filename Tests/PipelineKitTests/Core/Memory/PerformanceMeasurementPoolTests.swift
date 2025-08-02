@@ -1,5 +1,6 @@
 import XCTest
 @testable import PipelineKit
+@testable import PipelineKitObservability
 
 final class PerformanceMeasurementPoolTests: XCTestCase {
     
@@ -171,7 +172,7 @@ final class PerformanceMeasurementPoolTests: XCTestCase {
         ]
         
         // When
-        let measurement = await PerformanceMiddleware.createMeasurement(
+        let measurement = await PerformanceMeasurementPool.shared.createMeasurement(
             commandName: "IntegrationTest",
             executionTime: 0.123,
             isSuccess: true,

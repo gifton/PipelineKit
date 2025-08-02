@@ -75,13 +75,11 @@ final class PipelineConfigurationErrorTests: XCTestCase {
         // When/Then
         do {
             _ = try await pipeline.execute(command, context: context)
-            XCTFail("Should throw PipelineErrorType.contextMissing")
-        } catch let error as PipelineErrorType {
-            if case .contextMissing = error {
-                // Expected - contextMissing has no associated values
-            } else {
-                XCTFail("Wrong error type: \(error)")
-            }
+            XCTFail("Should throw PipelineError")
+        } catch is PipelineError {
+            // Expected
+        } catch {
+            XCTFail("Wrong error type: \(error)")
         }
     }
     

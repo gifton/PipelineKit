@@ -1,5 +1,6 @@
 import XCTest
 @testable import PipelineKit
+@testable import PipelineKitMiddleware
 
 /// Benchmark test to verify no performance regression from Swift 6 concurrency changes
 final class Swift6PerformanceTest: XCTestCase {

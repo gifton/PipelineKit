@@ -1,6 +1,7 @@
 import XCTest
 import Foundation
 @testable import PipelineKit
+@testable import PipelineKitObservability
 
 final class MetricsMiddlewareTests: XCTestCase {
     private let synchronizer = TestSynchronizer()
