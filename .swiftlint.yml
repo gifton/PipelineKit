@@ -181,6 +181,20 @@ custom_rules:
     severity: error
     match_kinds:
       - identifier
+      
+  unchecked_sendable_documentation:
+    name: "Undocumented @unchecked Sendable"
+    regex: '@unchecked\s+Sendable(?![\s\S]*?Thread Safety:)'
+    message: "@unchecked Sendable must have documentation with 'Thread Safety:' explanation"
+    severity: warning
+    excluded:
+      - "Tests/**"
+    
+  unchecked_sendable_invariant:
+    name: "Missing Thread Safety Invariant"
+    regex: '(?:Thread Safety:(?![\s\S]*?Invariant:)[\s\S]*?@unchecked\s+Sendable)'
+    message: "Thread Safety documentation must include an 'Invariant:' section explaining safety guarantees"
+    severity: info
 
 # Reporter type (xcode, json, csv, checkstyle, junit, html, emoji)
 reporter: "xcode"

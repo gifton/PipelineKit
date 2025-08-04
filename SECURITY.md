@@ -49,22 +49,23 @@ pipeline.addMiddleware(ValidationMiddleware())
 All security-critical components use actor isolation:
 
 ```swift
-// Actor-based CommandBus with built-in security
-let busBuilder = CommandBusBuilder()
-await busBuilder.enableRateLimiting(
-    strategy: .adaptive(baseRate: 1000) { await getSystemLoad() }
-)
-await busBuilder.enableCircuitBreaker(
-    threshold: 5,
+// Actor-based CommandBus with security middleware
+let bus = CommandBus()
+await bus.addMiddleware(RateLimitingMiddleware(
+    limiter: RateLimiter(
+        strategy: .adaptive(baseRate: 1000) { await getSystemLoad() }
+    )
+))
+await bus.addMiddleware(CircuitBreakerMiddleware(
+    failureThreshold: 5,
     timeout: 30.0,
     resetTimeout: 300.0
-)
-await busBuilder.withErrorRecovery(
-    maxRetries: 3,
+))
+await bus.addMiddleware(RetryMiddleware(
+    maxAttempts: 3,
     retryDelay: 1.0,
     retryableErrors: [NetworkError.self, TimeoutError.self]
-)
-let secureBus = await busBuilder.build()
+))
 ```
 
 ### Middleware Execution Order

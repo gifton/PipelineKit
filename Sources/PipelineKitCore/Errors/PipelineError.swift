@@ -31,6 +31,9 @@ public enum PipelineError: Error, Sendable, LocalizedError {
     /// Pipeline not configured properly
     case pipelineNotConfigured(reason: String)
     
+    /// Operation was cancelled
+    case cancelled(context: String?)
+    
     // MARK: - Validation Errors
     
     /// Validation failed for a command
@@ -202,6 +205,7 @@ public enum PipelineError: Error, Sendable, LocalizedError {
         case serializationFailed(String)
         case ioError(String)
         case invalidData(String)
+        case exporterClosed
     }
     
     /// Security policy failure reasons
@@ -328,6 +332,12 @@ public enum PipelineError: Error, Sendable, LocalizedError {
             
         case .pipelineNotConfigured(let reason):
             return "Pipeline not configured: \(reason)"
+            
+        case .cancelled(let context):
+            if let context = context {
+                return "Operation cancelled: \(context)"
+            }
+            return "Operation cancelled"
             
         case .validation(let field, let reason):
             let fieldPrefix = field.map { "Field '\($0)': " } ?? ""
@@ -545,6 +555,8 @@ public enum PipelineError: Error, Sendable, LocalizedError {
             return "Export I/O error: \(message)"
         case .invalidData(let message):
             return "Invalid export data: \(message)"
+        case .exporterClosed:
+            return "Exporter has been closed"
         }
     }
     
@@ -711,6 +723,7 @@ extension PipelineError {
         }
     }
 }
+
 
 // MARK: - Convenience Factory Methods
 

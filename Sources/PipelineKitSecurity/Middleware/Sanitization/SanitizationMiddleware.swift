@@ -4,7 +4,7 @@ import PipelineKitCore
 /// Middleware that sanitizes commands before execution.
 /// 
 /// This middleware automatically sanitizes any command by calling its
-/// sanitized() method, providing a security layer that cleans
+/// sanitize() method, providing a security layer that cleans
 /// potentially dangerous input data.
 /// 
 /// Example:
@@ -31,9 +31,9 @@ public struct SanitizationMiddleware: Middleware {
         context: CommandContext,
         next: @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
-        // All commands now have sanitized() via extension
+        // All commands now have sanitize() via extension
         // The default implementation returns self, so this is safe
-        let sanitized = try command.sanitized()
+        let sanitized = try command.sanitize()
         
         // Continue with sanitized command
         return try await next(sanitized, context)

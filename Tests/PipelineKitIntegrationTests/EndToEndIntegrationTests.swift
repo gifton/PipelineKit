@@ -128,7 +128,7 @@ final class EndToEndIntegrationTests: XCTestCase {
     func testConcurrentPipelineExecutionIntegration() async throws {
         // Given - Pipeline handling concurrent requests
         let pipeline = StandardPipeline()
-        let semaphore = BackPressureAsyncSemaphore(value: 10) // Limit concurrency
+        let semaphore = AsyncSemaphore(value: 10) // Limit concurrency
         
         pipeline.use(ConcurrencyLimitingMiddleware(semaphore: semaphore))
         pipeline.use(LoadBalancingMiddleware())

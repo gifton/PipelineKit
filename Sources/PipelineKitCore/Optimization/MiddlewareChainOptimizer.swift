@@ -24,7 +24,12 @@ public actor MiddlewareChainOptimizer {
         public let metadata: ChainMetadata
         
         /// Fast-path executor for common cases
-        public let fastPathExecutor: FastPathExecutor?
+        let fastPathExecutor: FastPathExecutor?
+        
+        /// Indicates if a fast-path optimization is available
+        public var hasFastPath: Bool {
+            fastPathExecutor != nil
+        }
     }
     
     /// Execution strategies for optimized chains
@@ -302,7 +307,7 @@ public actor MiddlewareChainOptimizer {
                     
                     let wrapped = TypeErasedCommand(wrapped: command)
                     let result = try await mw.execute(wrapped, context: context) { cmd, ctx in
-                        try await handler((cmd as! TypeErasedCommand).wrapped)
+                        try await handler(cmd.wrapped)
                     }
                     return result
                 }
@@ -327,7 +332,7 @@ public actor MiddlewareChainOptimizer {
                     let wrapped = TypeErasedCommand(wrapped: command)
                     let result = try await mw1.execute(wrapped, context: context) { cmd1, ctx1 in
                         try await mw2.execute(cmd1, context: ctx1) { cmd2, ctx2 in
-                            try await handler((cmd2 as! TypeErasedCommand).wrapped)
+                            try await handler(cmd2.wrapped)
                         }
                     }
                     return result
@@ -355,7 +360,7 @@ public actor MiddlewareChainOptimizer {
                     let result = try await mw1.execute(wrapped, context: context) { cmd1, ctx1 in
                         try await mw2.execute(cmd1, context: ctx1) { cmd2, ctx2 in
                             try await mw3.execute(cmd2, context: ctx2) { cmd3, ctx3 in
-                                try await handler((cmd3 as! TypeErasedCommand).wrapped)
+                                try await handler(cmd3.wrapped)
                             }
                         }
                     }

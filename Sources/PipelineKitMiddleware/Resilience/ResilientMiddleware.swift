@@ -1,6 +1,5 @@
 import Foundation
 import PipelineKitCore
-import PipelineKitObservability
 
 /// Middleware that provides resilience patterns including retry and circuit breaker
 ///
@@ -102,7 +101,7 @@ public final class ResilientMiddleware: Middleware, @unchecked Sendable {
         var lastError: Error?
         let startTime = Date()
         let metadata = context.commandMetadata
-        let userId = (metadata as? StandardCommandMetadata)?.userId ?? "unknown"
+        let userId = (metadata as? DefaultCommandMetadata)?.userId ?? "unknown"
         
         for attempt in 1...retryPolicy.maxAttempts {
             do {
@@ -168,7 +167,7 @@ public final class ResilientMiddleware: Middleware, @unchecked Sendable {
             }
         }
         
-        throw lastError ?? ResilienceError.retryExhausted
+        throw lastError ?? PipelineError.resilience(reason: .retryExhausted(attempts: retryPolicy.maxAttempts))
     }
 }
 

@@ -381,7 +381,7 @@ public struct AuditLoggingMiddleware: Middleware {
         let startTime = Date()
         let metadata = context.commandMetadata
         let commandType = String(describing: T.self)
-        let userId = (metadata as? StandardCommandMetadata)?.userId ?? "anonymous"
+        let userId = (metadata as? DefaultCommandMetadata)?.userId ?? "anonymous"
         let extraMetadata = await metadataExtractor(command, metadata)
         
         do {

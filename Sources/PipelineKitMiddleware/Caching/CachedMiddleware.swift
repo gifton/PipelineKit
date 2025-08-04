@@ -108,7 +108,7 @@ public protocol MiddlewareCache: Sendable {
 }
 
 /// In-memory cache implementation with TTL support
-actor InMemoryMiddlewareCache: MiddlewareCache {
+public actor InMemoryMiddlewareCache: MiddlewareCache {
     private struct CacheEntry {
         let value: Any
         let expiresAt: Date
@@ -118,9 +118,9 @@ actor InMemoryMiddlewareCache: MiddlewareCache {
     private var cleanupTask: Task<Void, Never>?
     
     /// Shared instance
-    static let shared = InMemoryMiddlewareCache()
+    public static let shared = InMemoryMiddlewareCache()
     
-    init() {
+    public init() {
         // Cleanup task will be started on first access
     }
     
@@ -140,7 +140,7 @@ actor InMemoryMiddlewareCache: MiddlewareCache {
         cleanupTask?.cancel()
     }
     
-    func get<T: Sendable>(key: String, type: T.Type) async -> T? {
+    public func get<T: Sendable>(key: String, type: T.Type) async -> T? {
         ensureCleanupTaskRunning()
         guard let entry = storage[key] else { return nil }
         
@@ -153,17 +153,17 @@ actor InMemoryMiddlewareCache: MiddlewareCache {
         return entry.value as? T
     }
     
-    func set<T: Sendable>(key: String, value: T, ttl: TimeInterval) async {
+    public func set<T: Sendable>(key: String, value: T, ttl: TimeInterval) async {
         ensureCleanupTaskRunning()
         let expiresAt = Date().addingTimeInterval(ttl)
         storage[key] = CacheEntry(value: value, expiresAt: expiresAt)
     }
     
-    func invalidate(key: String) async {
+    public func invalidate(key: String) async {
         storage.removeValue(forKey: key)
     }
     
-    func invalidateAll() async {
+    public func invalidateAll() async {
         storage.removeAll()
     }
     

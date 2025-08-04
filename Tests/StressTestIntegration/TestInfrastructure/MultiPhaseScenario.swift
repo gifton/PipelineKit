@@ -355,7 +355,7 @@ private func withTimeout<T>(
         
         group.addTask {
             try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
-            throw CancellationError()
+            throw PipelineError.cancelled(context: nil)
         }
         
         let result = try await group.next()!

@@ -33,7 +33,7 @@ public final class TimeoutTester: @unchecked Sendable {
             
             group.addTask {
                 try await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
-                throw TimeoutError(timeout: timeout, middleware: "TimeoutTester", command: "TestOperation")
+                throw PipelineError.cancelled(context: "Timeout after \(timeout)s")
             }
             
             let result = try await group.next()!
@@ -50,7 +50,12 @@ public final class TimeoutTester: @unchecked Sendable {
         do {
             _ = try await withTimeout(timeout, operation: operation)
             return false // Did not timeout
-        } catch is TimeoutError {
+        } catch let error as PipelineError {
+            if case .cancelled = error {
+                return true // Did timeout as expected
+            }
+            return false // Different error
+        } catch {
             return true // Did timeout as expected
         } catch {
             return false // Other error

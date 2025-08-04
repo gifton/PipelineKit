@@ -56,8 +56,7 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: Pipeline where H.C
     /// Optional optimization metadata from MiddlewareChainOptimizer.
     public var optimizationMetadata: MiddlewareChainOptimizer.OptimizedChain?
     
-    /// Optional context pool for reducing allocations.
-    private let contextPool: CommandContextPool?
+    // Context pooling removed for performance - direct allocation is faster
     
     /// Pre-compiled middleware chain for performance optimization.
     /// This is invalidated and rebuilt when middleware changes.
@@ -69,18 +68,15 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: Pipeline where H.C
     ///   - handler: The command handler that will process commands after middleware
     ///   - useContext: Whether to use context for all middleware execution (default: true)
     ///   - maxDepth: Maximum middleware depth (default: 100)
-    ///   - useContextPool: Whether to use the global context pool (default: true)
     public init(
         handler: H,
         useContext: Bool = true,
-        maxDepth: Int = 100,
-        useContextPool: Bool = true
+        maxDepth: Int = 100
     ) {
         self.handler = handler
         self.useContext = useContext
         self.maxDepth = maxDepth
         self.semaphore = nil
-        self.contextPool = useContextPool ? CommandContextPool.shared : nil
     }
     
     /// Creates a new pipeline with concurrency control (supports macro .limited(Int) pattern).
@@ -90,13 +86,11 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: Pipeline where H.C
     ///   - maxConcurrency: Maximum number of concurrent executions
     ///   - useContext: Whether to use context for all middleware execution (default: true)
     ///   - maxDepth: Maximum middleware depth (default: 100)
-    ///   - useContextPool: Whether to use the global context pool (default: true)
     public init(
         handler: H,
         maxConcurrency: Int,
         useContext: Bool = true,
-        maxDepth: Int = 100,
-        useContextPool: Bool = true
+        maxDepth: Int = 100
     ) {
         self.handler = handler
         self.useContext = useContext
@@ -106,7 +100,6 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: Pipeline where H.C
             maxOutstanding: nil,
             strategy: .suspend
         )
-        self.contextPool = useContextPool ? CommandContextPool.shared : nil
     }
     
     /// Creates a new pipeline with full back-pressure control.
@@ -116,13 +109,11 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: Pipeline where H.C
     ///   - options: Pipeline configuration options
     ///   - useContext: Whether to use context for all middleware execution (default: true)
     ///   - maxDepth: Maximum middleware depth (default: 100)
-    ///   - useContextPool: Whether to use the global context pool (default: true)
     public init(
         handler: H,
         options: PipelineOptions,
         useContext: Bool = true,
-        maxDepth: Int = 100,
-        useContextPool: Bool = true
+        maxDepth: Int = 100
     ) {
         self.handler = handler
         self.useContext = useContext
@@ -138,8 +129,6 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: Pipeline where H.C
         } else {
             self.semaphore = nil
         }
-        
-        self.contextPool = useContextPool ? CommandContextPool.shared : nil
     }
     
     /// Adds middleware to the pipeline.
@@ -217,11 +206,9 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: Pipeline where H.C
         return typedResult
     }
     
-    /// Executes a command through the middleware pipeline using a pooled context.
+    /// Executes a command through the middleware pipeline.
     ///
-    /// This method automatically borrows a context from the pool if available,
-    /// or creates a new one if pooling is disabled. The context is automatically
-    /// returned to the pool after execution.
+    /// This method creates a new context for the command execution.
     ///
     /// - Parameters:
     ///   - command: The command to execute
@@ -229,18 +216,9 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: Pipeline where H.C
     /// - Returns: The result from the command handler
     /// - Throws: Any error from middleware or the handler
     public func execute<T: Command>(_ command: T, metadata: CommandMetadata? = nil) async throws -> T.Result {
-        let actualMetadata = metadata ?? StandardCommandMetadata()
-        
-        if let pool = contextPool {
-            // Use pooled context
-            let pooledContext = pool.borrow(metadata: actualMetadata)
-            defer { pooledContext.returnToPool() }
-            return try await execute(command, context: pooledContext.value)
-        } else {
-            // Create new context
-            let context = CommandContext(metadata: actualMetadata)
-            return try await execute(command, context: context)
-        }
+        let actualMetadata = metadata ?? DefaultCommandMetadata()
+        let context = CommandContext(metadata: actualMetadata)
+        return try await execute(command, context: context)
     }
     
     /// Type-safe execution for the specific command type this pipeline handles.
@@ -311,11 +289,11 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: Pipeline where H.C
     
     /// Initializes standard context values if not already set.
     private func initializeContextIfNeeded(_ context: CommandContext) {
-        if context.get(RequestIDKey.self) == nil {
-            context.set(UUID().uuidString, for: RequestIDKey.self)
+        if context.get(ContextKeys.Request.ID.self) == nil {
+            context.set(UUID().uuidString, for: ContextKeys.Request.ID.self)
         }
-        if context.get(RequestStartTimeKey.self) == nil {
-            context.set(Date(), for: RequestStartTimeKey.self)
+        if context.get(ContextKeys.Request.StartTime.self) == nil {
+            context.set(Date(), for: ContextKeys.Request.StartTime.self)
         }
     }
     
@@ -443,7 +421,7 @@ public actor AnyStandardPipeline: Pipeline {
         defer {
             if let token = token {
                 Task {
-                    await token.release()
+                    token.release()
                 }
             }
         }

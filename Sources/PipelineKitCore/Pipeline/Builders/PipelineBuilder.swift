@@ -50,8 +50,6 @@ public actor PipelineBuilder<T: Command, H: CommandHandler> where H.CommandType 
     /// Whether to apply middleware chain optimization.
     private var enableOptimization: Bool = false
     
-    /// Whether to use context pooling.
-    private var useContextPool: Bool = true
     
     /// Middleware order builder for managing execution priorities.
     private var orderBuilder = MiddlewareOrderBuilder()
@@ -119,19 +117,6 @@ public actor PipelineBuilder<T: Command, H: CommandHandler> where H.CommandType 
         return self
     }
     
-    /// Configures whether to use context pooling for reduced allocations.
-    ///
-    /// When enabled (default), the pipeline will use a shared pool of
-    /// CommandContext instances to reduce memory allocations. This can
-    /// significantly improve performance in high-throughput scenarios.
-    ///
-    /// - Parameter enabled: Whether to use context pooling
-    /// - Returns: The builder instance for method chaining.
-    @discardableResult
-    public func withContextPool(_ enabled: Bool) -> Self {
-        self.useContextPool = enabled
-        return self
-    }
     
     /// Adds middleware with a specific execution priority.
     ///
@@ -206,8 +191,7 @@ public actor PipelineBuilder<T: Command, H: CommandHandler> where H.CommandType 
     public func build() async throws -> StandardPipeline<T, H> {
         let pipeline = StandardPipeline(
             handler: handler,
-            maxDepth: maxDepth,
-            useContextPool: useContextPool
+            maxDepth: maxDepth
         )
         
         // Add middleware based on whether we're using ordered or unordered

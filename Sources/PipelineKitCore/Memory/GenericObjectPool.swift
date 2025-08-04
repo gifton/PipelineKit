@@ -150,21 +150,38 @@ public actor GenericObjectPool<T> {
     
     /// Borrows an object from the pool for the duration of the provided closure.
     /// The object is automatically returned to the pool when the closure completes.
+    /// 
+    /// - Important: The closure executes on the pool's actor executor.
+    ///   The borrowed object must NOT be stored or escaped outside the closure.
+    ///   This safety model relies on documentation rather than type constraints to
+    ///   support mutable, non-Sendable objects that are reset between uses.
+    /// 
     /// - Parameter body: Closure that uses the borrowed object
     /// - Returns: The result of the closure
     /// - Throws: Any error thrown by the closure
-    public func withBorrowedObject<R: Sendable>(
-        _ body: @Sendable (T) async throws -> R
+    /// 
+    /// ## Usage Example
+    /// ```swift
+    /// let result = try await pool.withBorrowedObject { obj in
+    ///     obj.configure(parameters)
+    ///     return obj.process()
+    /// }
+    /// ```
+    /// 
+    /// ## Safety Note
+    /// Do NOT do this:
+    /// ```swift
+    /// var leaked: MyObject?
+    /// try await pool.withBorrowedObject { obj in
+    ///     leaked = obj  // WRONG: Escaping the object!
+    /// }
+    /// ```
+    public func withBorrowedObject<R>(
+        _ body: (T) async throws -> R
     ) async throws -> R {
         let object = acquire()
-        do {
-            let result = try await body(object)
-            release(object)
-            return result
-        } catch {
-            release(object)
-            throw error
-        }
+        defer { release(object) }
+        return try await body(object)
     }
     
     /// Clears all objects from the pool

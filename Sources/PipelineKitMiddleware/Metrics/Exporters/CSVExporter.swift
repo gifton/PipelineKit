@@ -1,4 +1,5 @@
 import Foundation
+import PipelineKitCore
 
 /// Exports metrics to CSV format files.
 ///

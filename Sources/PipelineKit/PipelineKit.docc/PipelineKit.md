@@ -33,6 +33,12 @@ PipelineKit provides a robust foundation for implementing the Command pattern wi
 - <doc:MiddlewareComposition>
 - <doc:PipelineDSL>
 
+### Architecture Patterns
+
+- <doc:ChoosingArchitecture>
+- ``CommandBus``
+- ``Pipeline``
+
 ### Error Handling
 
 - ``PipelineError``

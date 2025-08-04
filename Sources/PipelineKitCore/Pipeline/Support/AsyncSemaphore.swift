@@ -70,7 +70,7 @@ public actor AsyncSemaphore {
                 cont.resume(returning: ())
                 return true
             case (.regular(let cont), .cancelled):
-                cont.resume(throwing: CancellationError(context: "Semaphore wait cancelled"))
+                cont.resume(throwing: PipelineError.cancelled(context: "Semaphore wait cancelled"))
                 return true
             case (.timeout(let cont), .signaled):
                 cont.resume(returning: true)

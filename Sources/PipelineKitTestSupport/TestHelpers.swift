@@ -90,6 +90,10 @@ public actor TestActor<T: Sendable>: Sendable {
 /// 3. **Alternative Considered**: Using a typed enum for values would limit
 ///    test flexibility and require constant updates for new test scenarios.
 ///
+/// 4. **Thread Safety Invariant**: All values stored in additionalData MUST be
+///    value types (String, Int, Double, etc.) or immutable reference types.
+///    Mutable reference types will cause data races.
+///
 /// This is a permanent solution for test infrastructure requiring flexible
 /// metadata storage across diverse test cases.
 public struct TestCommandMetadata: CommandMetadata, @unchecked Sendable {
@@ -221,8 +225,16 @@ public struct AsyncTestCommand: Command {
 /// 3. **Alternative Considered**: Converting to an actor would require async
 ///    access to check execution state, complicating test assertions.
 ///
+/// 4. **Thread Safety Invariant**: This middleware is ONLY safe for single-threaded
+///    test scenarios. For concurrent tests, data races WILL occur. Use thread-safe
+///    alternatives like MockLoggingMiddleware for concurrent testing.
+///
+/// 5. **Usage Constraint**: Test cases using this middleware MUST NOT execute
+///    commands concurrently or access properties from multiple threads.
+///
 /// This is a permanent solution for simple test scenarios. For concurrent tests,
-/// use MockLoggingMiddleware or MockMetricsMiddleware which have proper locking.
+/// use ThreadSafeTestMiddleware, ThreadSafeHistoryMiddleware, or ActorTestMiddleware
+/// which provide proper thread safety.
 public final class TestMiddleware: Middleware, @unchecked Sendable {
     public var executionCount = 0
     public var lastCommand: (any Command)?
@@ -257,6 +269,12 @@ public final class TestMiddleware: Middleware, @unchecked Sendable {
 /// 3. **Alternative Considered**: Constraining to Sendable errors would limit
 ///    test scenarios where custom non-Sendable errors need to be tested.
 ///
+/// 4. **Thread Safety Invariant**: The stored error MUST be immutable after
+///    initialization. The error property is never modified after init.
+///
+/// 5. **Usage Pattern**: Safe for concurrent use as the error is read-only
+///    and the middleware itself has no mutable state.
+///
 /// This is a permanent solution for test infrastructure that needs to simulate
 /// various error conditions with different error types.
 public final class TestFailingMiddleware: Middleware, @unchecked Sendable {
@@ -289,6 +307,14 @@ public final class TestFailingMiddleware: Middleware, @unchecked Sendable {
 ///
 /// 3. **Alternative Considered**: Adding Sendable constraint to Key.Value would
 ///    break existing tests and limit flexibility of context values in tests.
+///
+/// 4. **Thread Safety Invariant**: The stored value MUST be either:
+///    - A value type (struct/enum) with Sendable semantics
+///    - An immutable reference type
+///    - A type that's only accessed through CommandContext's thread-safe API
+///
+/// 5. **Context Safety**: CommandContext handles thread safety internally,
+///    so setting values through context.set() is always safe.
 ///
 /// This is a permanent solution for test infrastructure that needs to work
 /// with various context value types regardless of their Sendable status.
@@ -329,15 +355,64 @@ public extension CommandContext {
     // Metrics assertion would need proper ContextKey
 }
 
+// MARK: - Observability Support
+
+/// Protocol for commands that want to participate in observability events
+public protocol ObservableCommand: Command {
+    func setupObservability(context: CommandContext) async
+    func observabilityDidComplete<Result>(context: CommandContext, result: Result) async
+    func observabilityDidFail(context: CommandContext, error: Error) async
+}
+
+// MARK: - Retry Support
+
+/// Strategy for calculating retry delays
+public enum RetryStrategy: Sendable {
+    case immediate
+    case fixedDelay(TimeInterval)
+    case exponentialBackoff(base: TimeInterval, multiplier: Double, maxDelay: TimeInterval)
+    case linearBackoff(base: TimeInterval, increment: TimeInterval, maxDelay: TimeInterval)
+    
+    /// Calculate the delay for a given retry attempt
+    public func delay(for attempt: Int) async -> TimeInterval {
+        switch self {
+        case .immediate:
+            return 0
+        case .fixedDelay(let delay):
+            return delay
+        case .exponentialBackoff(let base, let multiplier, let maxDelay):
+            let delay = base * pow(multiplier, Double(attempt))
+            return min(delay, maxDelay)
+        case .linearBackoff(let base, let increment, let maxDelay):
+            let delay = base + (increment * Double(attempt))
+            return min(delay, maxDelay)
+        }
+    }
+}
+
 // MARK: - Performance Types
 
 /// Performance profiling information for middleware execution
 public struct ProfileInfo: Sendable {
-    let executionCount: Int
-    let totalDuration: TimeInterval
-    let averageDuration: TimeInterval
-    let minDuration: TimeInterval
-    let maxDuration: TimeInterval
+    public let executionCount: Int
+    public let totalDuration: TimeInterval
+    public let averageDuration: TimeInterval
+    public let minDuration: TimeInterval
+    public let maxDuration: TimeInterval
+    
+    public init(
+        executionCount: Int,
+        totalDuration: TimeInterval,
+        averageDuration: TimeInterval,
+        minDuration: TimeInterval,
+        maxDuration: TimeInterval
+    ) {
+        self.executionCount = executionCount
+        self.totalDuration = totalDuration
+        self.averageDuration = averageDuration
+        self.minDuration = minDuration
+        self.maxDuration = maxDuration
+    }
 }
 
 // MARK: - Mock Services
@@ -355,6 +430,12 @@ public struct ProfileInfo: Sendable {
 ///
 /// 3. **Alternative Considered**: Actor-based design would require async access
 ///    to recorded metrics, complicating test assertions and metric verification.
+///
+/// 4. **Thread Safety Invariant**: This mock is NOT thread-safe. Concurrent
+///    access to recordedMetrics array will cause data races and crashes.
+///
+/// 5. **Usage Constraint**: Only use in single-threaded test scenarios OR
+///    ensure all access is synchronized externally.
 ///
 /// This is a permanent solution for test infrastructure. Production code should
 /// use proper thread-safe metrics collectors.
@@ -389,6 +470,12 @@ public final class MockMetricsCollector: @unchecked Sendable {
 /// 3. **Alternative Considered**: Making this a struct would work but classes
 ///    are more flexible for test mocking with inheritance.
 ///
+/// 4. **Thread Safety Invariant**: This class has NO mutable state. All methods
+///    are pure functions that don't access or modify any instance variables.
+///
+/// 5. **Concurrency Safety**: Safe for concurrent use from any thread or actor
+///    as all operations are stateless transformations.
+///
 /// This is likely a temporary workaround that can be removed when Swift's
 /// Sendable inference improves for stateless classes.
 public final class MockEncryptionService: @unchecked Sendable {
@@ -409,5 +496,31 @@ public final class MockEncryptionService: @unchecked Sendable {
         let realData = Data(base64Encoded: base64)!
         let decoder = JSONDecoder()
         return try decoder.decode(type, from: realData)
+    }
+}
+
+// MARK: - Test Command Handlers
+
+public final class TestCommandHandler: CommandHandler {
+    public typealias CommandType = TestCommand
+    
+    public init() {}
+    
+    public func handle(_ command: TestCommand) async throws -> String {
+        if command.shouldFail {
+            throw PipelineError.executionFailed(message: "Test command failed", context: nil)
+        }
+        return command.value
+    }
+}
+
+public final class AsyncTestCommandHandler: CommandHandler {
+    public typealias CommandType = AsyncTestCommand
+    
+    public init() {}
+    
+    public func handle(_ command: AsyncTestCommand) async throws -> Int {
+        try await Task.sleep(nanoseconds: UInt64(command.delay * 1_000_000_000))
+        return command.value
     }
 }

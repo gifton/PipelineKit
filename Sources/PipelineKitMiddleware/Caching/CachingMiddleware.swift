@@ -151,7 +151,7 @@ public protocol CacheProtocol: Sendable {
 // MARK: - In-Memory Cache Implementation
 
 /// Simple in-memory cache implementation.
-actor InMemoryCache: CacheProtocol {
+public actor InMemoryCache: CacheProtocol {
     private struct CacheEntry {
         let data: Data
         let expiration: Date?
@@ -166,11 +166,11 @@ actor InMemoryCache: CacheProtocol {
     private let maxSize: Int
     private var accessOrder: [String] = [] // For LRU eviction
     
-    init(maxSize: Int = 1000) {
+    public init(maxSize: Int = 1000) {
         self.maxSize = maxSize
     }
     
-    func get(key: String) -> Data? {
+    public func get(key: String) -> Data? {
         guard let entry = storage[key] else { return nil }
         
         // Check expiration
@@ -187,7 +187,7 @@ actor InMemoryCache: CacheProtocol {
         return entry.data
     }
     
-    func set(key: String, value: Data, expiration: Date?) {
+    public func set(key: String, value: Data, expiration: Date?) {
         // Remove existing entry from access order
         accessOrder.removeAll { $0 == key }
         
@@ -205,12 +205,12 @@ actor InMemoryCache: CacheProtocol {
         accessOrder.append(key)
     }
     
-    func remove(key: String) {
+    public func remove(key: String) {
         storage.removeValue(forKey: key)
         accessOrder.removeAll { $0 == key }
     }
     
-    func clear() {
+    public func clear() {
         storage.removeAll()
         accessOrder.removeAll()
     }

@@ -251,8 +251,8 @@ public struct PoolStatistics: Sendable {
 
 // MARK: - Specialized Pools
 
-// Note: CommandContextPool is now defined in CommandContextPool.swift as a class
-// with more comprehensive functionality including borrowing/returning semantics
+// Note: Context pooling has been removed for performance reasons.
+// Direct allocation is faster for lightweight objects like CommandContext.
 
 /// Pool for reusable buffer objects.
 public actor BufferPool<T: Sendable> {
@@ -425,8 +425,7 @@ public actor PoolManager {
     /// Shared instance for global access
     public static let shared = PoolManager()
     
-    /// Pool for command contexts
-    public let contextPool = CommandContextPool(maxSize: 200)
+    // Context pooling removed for performance - direct allocation is faster
     
     /// Pool for data buffers
     public let dataBufferPool = BufferPool<UInt8>(maxSize: 100, bufferCapacity: 4096)
@@ -438,27 +437,15 @@ public actor PoolManager {
     
     /// Gets aggregated statistics from all pools.
     public func aggregatedStatistics() async -> AggregatedPoolStatistics {
-        let contextStats = contextPool.getStatistics()
-        
-        // Convert CommandContextPool.Statistics to PoolStatistics
-        var poolStats = PoolStatistics()
-        poolStats.acquisitions = contextStats.totalBorrows
-        poolStats.hits = Int(Double(contextStats.totalBorrows) * contextStats.hitRate)
-        poolStats.misses = contextStats.totalBorrows - poolStats.hits
-        poolStats.releases = contextStats.totalReturns
-        poolStats.allocations = contextStats.totalAllocated
-        
+        // Context pool removed - no statistics to report
         return AggregatedPoolStatistics(
-            pools: [
-                ("CommandContext", poolStats)
-            ]
+            pools: []
         )
     }
     
     /// Pre-warms all pools for better initial performance.
     public func prewarmAll() async {
-        // CommandContextPool already pre-allocates in its init
-        // No additional prewarm needed
+        // Context pool removed - no prewarm needed
         
         // Prewarm buffer pools
         await dataBufferPool.pool.prewarm(count: 10)

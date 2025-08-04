@@ -1,4 +1,5 @@
 import Foundation
+import PipelineKitCore
 
 /// Exports metrics to JSON format files.
 ///
@@ -233,7 +234,7 @@ public actor JSONExporter: MetricExporter {
             "name": metric.name,
             "value": formatDouble(metric.value),
             "type": metric.type.rawValue,
-            "tags": metric.tags.isEmpty ? nil : metric.tags as Any
+            "tags": metric.tags.isEmpty ? nil : metric.tags
         ].compactMapValues { $0 }
         
         let data = try JSONSerialization.data(

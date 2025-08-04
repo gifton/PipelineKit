@@ -65,7 +65,7 @@ struct VerifyChanges {
         print("=== Testing PipelineKit Changes ===\n")
         
         print("1. Testing CommandContext is no longer an actor...")
-        let metadata = StandardCommandMetadata(
+        let metadata = DefaultCommandMetadata(
             userId: "test-user",
             correlationId: "test-123"
         )

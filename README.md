@@ -370,11 +370,11 @@ await builder.with(ValidationMiddleware())
 await builder.with(AuthorizationMiddleware())
 let pipeline = await builder.build()
 
-// CommandBus builder with actor isolation
-let busBuilder = CommandBusBuilder()
-await busBuilder.register(CreateUserHandler(), for: CreateUserCommand.self)
-await busBuilder.enableCircuitBreaker(threshold: 5, timeout: 30)
-let bus = await busBuilder.build()
+// CommandBus with actor isolation
+let bus = CommandBus()
+await bus.register(CreateUserCommand.self, handler: CreateUserHandler())
+await bus.register(UpdateUserCommand.self, handler: UpdateUserHandler())
+// Circuit breaker functionality available via middleware
 
 // Security components use actors for thread-safe operations
 let keyStore = InMemoryKeyStore()  // Actor-based key storage
@@ -1222,6 +1222,23 @@ cd Scripts
 ```
 
 For more information about stress testing, see the [PipelineKitStressTest README](PipelineKitStressTest/README.md).
+
+### Performance Benchmarks
+
+PipelineKit includes comprehensive performance benchmarks:
+
+```bash
+# Quick benchmarks
+swift run PipelineKitBenchmarks --quick
+
+# Full benchmark suite
+swift run PipelineKitBenchmarks
+
+# Specific benchmarks
+swift run PipelineKitBenchmarks BackPressure
+```
+
+For detailed benchmark information, see [Benchmarks Documentation](docs/benchmarks.md).
 
 ## 🔒 Security & Dependencies
 

@@ -64,7 +64,7 @@ private actor ResultBox<T: Sendable> {
 ///
 /// This wrapper ensures that the wrapped middleware completes within the specified
 /// timeout duration. If the middleware exceeds the timeout, the task is cancelled
-/// and a `TimeoutError` is thrown.
+/// and a `PipelineError.timeout` is thrown.
 ///
 /// ## Example
 /// ```swift
@@ -77,7 +77,7 @@ private actor ResultBox<T: Sendable> {
 /// ## Implementation
 /// Uses Swift's structured concurrency to properly implement timeouts with
 /// task cancellation. If the timeout is exceeded, the underlying task is
-/// cancelled and a TimeoutError is thrown.
+/// cancelled and a PipelineError.timeout is thrown.
 public struct TimeoutMiddlewareWrapper: Middleware, Sendable {
     /// The wrapped middleware to execute with timeout
     private let wrapped: any Middleware
@@ -130,10 +130,13 @@ public struct TimeoutMiddlewareWrapper: Middleware, Sendable {
         
         async let timeoutTask: Void = {
             try? await Task.sleep(nanoseconds: UInt64(self.timeout * 1_000_000_000))
-            await resultBox.set(.failure(TimeoutError(
-                timeout: self.timeout,
-                middleware: String(describing: type(of: self.wrapped)),
-                command: String(describing: type(of: command))
+            let context = PipelineError.ErrorContext(
+                commandType: String(describing: type(of: command)),
+                middlewareType: String(describing: type(of: self.wrapped))
+            )
+            await resultBox.set(.failure(PipelineError.timeout(
+                duration: self.timeout,
+                context: context
             )))
         }()
         
@@ -142,10 +145,13 @@ public struct TimeoutMiddlewareWrapper: Middleware, Sendable {
         
         // Get the result
         guard let taskResult = await resultBox.get() else {
-            throw TimeoutError(
-                timeout: self.timeout,
-                middleware: String(describing: type(of: self.wrapped)),
-                command: String(describing: type(of: command))
+            let context = PipelineError.ErrorContext(
+                commandType: String(describing: type(of: command)),
+                middlewareType: String(describing: type(of: self.wrapped))
+            )
+            throw PipelineError.timeout(
+                duration: self.timeout,
+                context: context
             )
         }
         
@@ -158,25 +164,4 @@ public struct TimeoutMiddlewareWrapper: Middleware, Sendable {
     }
 }
 
-/// Error thrown when middleware execution exceeds the specified timeout.
-public struct TimeoutError: LocalizedError {
-    /// The timeout duration that was exceeded
-    public let timeout: TimeInterval
-    
-    /// The name of the middleware that timed out
-    public let middleware: String
-    
-    /// The command type being processed
-    public let command: String
-    
-    public init(timeout: TimeInterval, middleware: String, command: String) {
-        self.timeout = timeout
-        self.middleware = middleware
-        self.command = command
-    }
-    
-    public var errorDescription: String? {
-        String(format: "Middleware '%@' timed out after %.2f seconds while processing command '%@'",
-               middleware, timeout, command)
-    }
-}
+// Note: Using PipelineError.timeout from Core for consistency

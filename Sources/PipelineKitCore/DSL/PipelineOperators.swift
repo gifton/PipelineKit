@@ -1,28 +1,7 @@
 import Foundation
 
 // MARK: - Error Types
-
-struct NoResultError: LocalizedError {
-    var errorDescription: String? { "No pipeline completed successfully" }
-}
-
-struct TypeMismatchError: LocalizedError {
-    let message: String
-    var errorDescription: String? { message }
-}
-
-struct ConditionNotMetError: LocalizedError {
-    let message: String
-    var errorDescription: String? { "Condition not met: \(message)" }
-}
-
-struct AllPipelinesFailedError: LocalizedError {
-    let errors: [Error]
-    var errorDescription: String? {
-        let errorDescriptions = errors.map { $0.localizedDescription }.joined(separator: "; ")
-        return "All pipelines failed: \(errorDescriptions)"
-    }
-}
+// Note: Using PipelineError from Core for consistency
 
 // MARK: - Protocol for Chainable Commands
 
@@ -46,11 +25,6 @@ precedencegroup PipelinePrecedence {
     lowerThan: TernaryPrecedence
 }
 
-precedencegroup MiddlewarePrecedence {
-    associativity: left
-    higherThan: PipelinePrecedence
-    lowerThan: AdditionPrecedence
-}
 
 // MARK: - Pipeline Composition Operators
 
@@ -68,15 +42,6 @@ infix operator |?: PipelinePrecedence
 
 /// Error handling pipeline operator  
 infix operator |!: PipelinePrecedence
-
-// MARK: - Middleware Application Operators
-
-/// Apply middleware to pipeline
-infix operator <+: MiddlewarePrecedence
-
-/// Apply middleware with priority
-infix operator <++: MiddlewarePrecedence
-
 
 // MARK: - Pipeline Composition Implementations
 
@@ -131,29 +96,6 @@ public func |! (
 ) -> ErrorHandlingPipelineWrapper {
     ErrorHandlingPipelineWrapper(pipeline: lhs, errorHandler: errorHandler)
 }
-
-// MARK: - Middleware Application Implementations
-
-/// Apply middleware to handler
-public func <+ <T: Command, H: CommandHandler>(
-    handler: H,
-    middleware: any Middleware
-) async throws -> any Pipeline where H.CommandType == T {
-    try await PipelineBuilder(handler: handler)
-        .with(middleware)
-        .build()
-}
-
-/// Apply middleware with priority
-public func <++ <T: Command, H: CommandHandler>(
-    handler: H,
-    middlewareWithPriority: (any Middleware, ExecutionPriority)
-) async throws -> any Pipeline where H.CommandType == T {
-    try await PipelineBuilder(handler: handler)
-        .with(middlewareWithPriority.0)
-        .build()
-}
-
 
 // MARK: - Helper Types for Operators
 
@@ -340,53 +282,6 @@ public struct ErrorHandlingPipelineWrapper: Pipeline {
 
 // MARK: - Convenience Functions
 
-/// Creates a middleware-priority tuple for use with the `<++` operator.
-///
-/// This convenience function creates the tuple format expected by the priority
-/// middleware operator (`<++`). It makes the syntax cleaner when you need to
-/// specify execution priorities.
-///
-/// Example:
-/// ```swift
-/// let pipeline = try await pipeline(for: handler)
-///     <++ middleware(AuthMiddleware(), priority: .authentication)
-///     <++ middleware(ValidationMiddleware(), priority: .validation)
-///     .build()
-/// ```
-///
-/// - Parameters:
-///   - middleware: The middleware to be executed
-///   - priority: The execution priority level
-/// - Returns: A tuple that can be used with the `<++` operator
-public func middleware(_ middleware: any Middleware, priority: ExecutionPriority) -> (any Middleware, ExecutionPriority) {
-    (middleware, priority)
-}
-
-/// Creates a conditional middleware tuple for conditional execution patterns.
-///
-/// This function creates middleware that only executes when a condition is met.
-/// The condition is evaluated at runtime before the middleware executes.
-///
-/// Example:
-/// ```swift
-/// let debuggingPipeline = try await pipeline(for: handler)
-///     <+ AuthenticationMiddleware()
-///     <+ when({ isDebugMode }, use: DebugLoggingMiddleware())
-///     .build()
-/// ```
-///
-/// - Parameters:
-///   - condition: An async closure that returns whether the middleware should execute
-///   - middleware: The middleware to execute conditionally
-/// - Returns: A tuple that can be used with conditional middleware operators
-/// - Note: The condition is evaluated each time a command flows through the pipeline
-public func when(_ condition: @escaping @Sendable () async -> Bool, use middleware: any Middleware) -> (any Middleware, @Sendable () async -> Bool) {
-    (middleware, condition)
-}
-
-
-// MARK: - Additional Convenience Functions
-
 /// Creates a parallel execution strategy configuration
 public func parallel(strategy: CompositePipeline.ParallelStrategy) -> CompositePipeline.ParallelStrategy {
     strategy
@@ -403,20 +298,10 @@ public func whenElse<T>(
 // MARK: - Operator Usage Examples
 
 /*
-Example usage of operators:
+Example usage of pipeline composition operators:
 
 ```swift
-// Basic middleware application
-let pipeline1 = try handler <+ authMiddleware <+ loggingMiddleware
-
-// With priorities
-let pipeline2 = try handler <++ middleware(authMiddleware, priority: .authentication)
-                           <++ middleware(loggingMiddleware, priority: .logging)
-
-// Conditional middleware  
-let pipeline3 = try handler <?+ when({ await isDevelopment() }, use: debugMiddleware)
-
-// Pipeline composition with result chaining (for ChainableCommand)
+// Sequential pipeline composition
 let compositePipeline = pipeline1 |> pipeline2
 
 // Parallel execution with different strategies

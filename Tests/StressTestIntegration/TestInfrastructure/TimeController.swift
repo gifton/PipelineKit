@@ -1,4 +1,5 @@
 import Foundation
+import PipelineKitCore
 
 /// Protocol for controlling time in tests.
 ///
@@ -102,7 +103,7 @@ public actor MockTimeController: TimeController {
         
         // Cancel all sleeping tasks
         for (_, continuation) in sleepingTasks {
-            continuation.resume(throwing: CancellationError())
+            continuation.resume(throwing: PipelineError.cancelled(context: nil))
         }
         sleepingTasks.removeAll()
     }

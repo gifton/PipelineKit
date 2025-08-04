@@ -36,7 +36,7 @@ public final class CommandContext: @unchecked Sendable {
     
     /// Creates a new command context with standard metadata.
     public convenience init() {
-        self.init(metadata: StandardCommandMetadata())
+        self.init(metadata: DefaultCommandMetadata())
     }
     
     /// Gets the command metadata.

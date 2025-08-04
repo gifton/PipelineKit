@@ -31,10 +31,6 @@ let package = Package(
             name: "PipelineKitSecurity",
             targets: ["PipelineKitSecurity"]
         ),
-        .library(
-            name: "PipelineKitObservability",
-            targets: ["PipelineKitObservability"]
-        ),
         // Test support library - only for use in tests
         .library(
             name: "PipelineKitTestSupport",
@@ -42,8 +38,8 @@ let package = Package(
         ),
         // Stress test support library
         .library(
-            name: "StressTestSupport",
-            targets: ["StressTestSupport"]
+            name: "StressTesting",
+            targets: ["StressTesting"]
         ),
         // Benchmark executable - not included in release builds
         // Benchmarks temporarily disabled during modularization
@@ -51,6 +47,7 @@ let package = Package(
         //     name: "PipelineKitBenchmarks",
         //     targets: ["PipelineKitBenchmarks"]
         // ),
+        // Benchmark runner executable
         // Command plugins for test execution
         .plugin(
             name: "test-unit",
@@ -70,11 +67,6 @@ let package = Package(
         ),
     ],
     dependencies: [
-        // Pin to exact version for reproducible builds
-        // swift-syntax 510.0.3 - Last audited: 2025-05-28
-        // Security: No known vulnerabilities
-        // License: Apache-2.0
-        .package(url: "https://github.com/apple/swift-syntax.git", exact: "510.0.3"),
         // swift-atomics 1.2.0 - For lock-free atomic operations
         // Security: No known vulnerabilities
         // License: Apache-2.0
@@ -85,29 +77,21 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-docc-plugin", from: "1.3.0")
     ],
     targets: [
-        .macro(
-            name: "PipelineMacros",
-            dependencies: [
-                .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
-                .product(name: "SwiftCompilerPlugin", package: "swift-syntax"),
-                .product(name: "SwiftDiagnostics", package: "swift-syntax")
-            ]
-        ),
         .target(
             name: "PipelineKit",
             dependencies: [
-                "PipelineMacros",
                 .product(name: "Atomics", package: "swift-atomics"),
                 // Re-export all modular libraries
                 "PipelineKitCore",
                 "PipelineKitMiddleware",
-                "PipelineKitSecurity",
-                "PipelineKitObservability"
+                "PipelineKitSecurity"
             ],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency"),
                 // Enable System Programming Interface for internal module boundaries
-                .enableExperimentalFeature("AccessLevelOnImport")
+                .enableExperimentalFeature("AccessLevelOnImport"),
+                // Enable @testable imports in debug builds
+                .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
             ]
         ),
         .target(
@@ -118,7 +102,7 @@ let package = Package(
             ]
         ),
         .target(
-            name: "StressTestSupport",
+            name: "StressTesting",
             dependencies: [
                 "PipelineKit",
                 .product(name: "Atomics", package: "swift-atomics")
@@ -131,40 +115,76 @@ let package = Package(
             name: "VerifyChanges",
             dependencies: ["PipelineKit"]
         ),
-        // Benchmarks temporarily disabled during modularization
-        // .executableTarget(
-        //     name: "PipelineKitBenchmarks",
-        //     dependencies: ["PipelineKit"],
-        //     path: "Sources/PipelineKitBenchmarks",
-        //     exclude: ["README.md", "PHASE1-SUMMARY.md"]
-        // ),
+        // Unified benchmark runner
+        .executableTarget(
+            name: "PipelineKitBenchmarks",
+            dependencies: ["PipelineKit"],
+            path: "Sources/PipelineKitBenchmarks"
+        ),
+        // Core module tests
+        .testTarget(
+            name: "PipelineKitCoreTests",
+            dependencies: ["PipelineKitCore", "PipelineKitTestSupport", "PipelineKitTests"],
+            swiftSettings: [
+                .enableExperimentalFeature("StrictConcurrency"),
+                .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
+            ]
+        ),
+        // Middleware module tests
+        .testTarget(
+            name: "PipelineKitMiddlewareTests",
+            dependencies: ["PipelineKitMiddleware", "PipelineKitTestSupport", "PipelineKitTests"],
+            swiftSettings: [
+                .enableExperimentalFeature("StrictConcurrency"),
+                .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
+            ]
+        ),
+        // Security module tests
+        .testTarget(
+            name: "PipelineKitSecurityTests",
+            dependencies: ["PipelineKitSecurity", "PipelineKitTestSupport", "PipelineKitTests"],
+            swiftSettings: [
+                .enableExperimentalFeature("StrictConcurrency"),
+                .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
+            ]
+        ),
+        // Integration tests - tests that span multiple modules
+        .testTarget(
+            name: "PipelineKitIntegrationTests",
+            dependencies: ["PipelineKit", "PipelineKitTestSupport", "PipelineKitTests"],
+            swiftSettings: [
+                .enableExperimentalFeature("StrictConcurrency"),
+                .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
+            ]
+        ),
+        // Shared test utilities and helpers
         .testTarget(
             name: "PipelineKitTests",
             dependencies: ["PipelineKit", "PipelineKitTestSupport"],
             swiftSettings: [
-                .enableExperimentalFeature("StrictConcurrency")
-            ]
-        ),
-        .testTarget(
-            name: "PipelineMacrosTests",
-            dependencies: [
-                "PipelineMacros",
-                .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax"),
-            ],
-            swiftSettings: [
-                .enableExperimentalFeature("StrictConcurrency")
+                .enableExperimentalFeature("StrictConcurrency"),
+                // Enable @testable imports
+                .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
             ]
         ),
         .testTarget(
             name: "StressTestCore",
-            dependencies: ["PipelineKit", "PipelineKitTestSupport", "StressTestSupport"],
+            dependencies: ["PipelineKit", "PipelineKitTestSupport", "StressTesting"],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency")
             ]
         ),
         .testTarget(
             name: "StressTestIntegration",
-            dependencies: ["PipelineKit", "PipelineKitTestSupport", "StressTestSupport"],
+            dependencies: ["PipelineKit", "PipelineKitTestSupport", "StressTesting"],
+            swiftSettings: [
+                .enableExperimentalFeature("StrictConcurrency")
+            ]
+        ),
+        // Benchmark tests
+        .testTarget(
+            name: "PipelineKitBenchmarksTests",
+            dependencies: ["PipelineKit", "PipelineKitBenchmarks", "PipelineKitTests"],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency")
             ]
@@ -176,12 +196,12 @@ let package = Package(
         .target(
             name: "PipelineKitCore",
             dependencies: [
-                "PipelineMacros",
                 .product(name: "Atomics", package: "swift-atomics")
             ],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency"),
-                .enableExperimentalFeature("AccessLevelOnImport")
+                .enableExperimentalFeature("AccessLevelOnImport"),
+                .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
             ]
         ),
         
@@ -191,31 +211,22 @@ let package = Package(
             dependencies: ["PipelineKitCore"],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency"),
-                .enableExperimentalFeature("AccessLevelOnImport")
+                .enableExperimentalFeature("AccessLevelOnImport"),
+                .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
             ]
         ),
         
-        // Observability module - Depends on Core
-        .target(
-            name: "PipelineKitObservability",
-            dependencies: ["PipelineKitCore"],
-            swiftSettings: [
-                .enableExperimentalFeature("StrictConcurrency"),
-                .enableExperimentalFeature("AccessLevelOnImport")
-            ]
-        ),
-        
-        // Middleware module - Depends on Core, Security, and Observability
+        // Middleware module - Depends on Core and Security
         .target(
             name: "PipelineKitMiddleware",
             dependencies: [
                 "PipelineKitCore",
-                "PipelineKitSecurity",
-                "PipelineKitObservability"
+                "PipelineKitSecurity"
             ],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency"),
-                .enableExperimentalFeature("AccessLevelOnImport")
+                .enableExperimentalFeature("AccessLevelOnImport"),
+                .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
             ]
         ),
         

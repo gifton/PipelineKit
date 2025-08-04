@@ -100,21 +100,28 @@ public actor ExportManager {
     }
     
     /// Lists all registered exporters.
-    public func listExporters() -> [String: ExporterInfo] {
-        var info: [String: ExporterInfo] = [:]
-        
-        for (name, wrapper) in exporters {
-            info[name] = ExporterInfo(
-                name: name,
-                isActive: wrapper.isActive,
-                queueDepth: wrapper.queueDepth,
-                successCount: wrapper.successCount,
-                failureCount: wrapper.failureCount,
-                circuitBreakerState: wrapper.circuitBreakerState
-            )
+    public func listExporters() async -> [String: ExporterInfo] {
+        await withTaskGroup(of: (String, ExporterInfo).self) { group in
+            for (name, wrapper) in exporters {
+                group.addTask {
+                    let info = ExporterInfo(
+                        name: name,
+                        isActive: await wrapper.isActive(),
+                        queueDepth: await wrapper.queueDepth(),
+                        successCount: await wrapper.successCount,
+                        failureCount: await wrapper.failureCount,
+                        circuitBreakerState: await wrapper.circuitBreakerState()
+                    )
+                    return (name, info)
+                }
+            }
+            
+            var results: [String: ExporterInfo] = [:]
+            for await (name, info) in group {
+                results[name] = info
+            }
+            return results
         }
-        
-        return info
     }
     
     // MARK: - Export Operations
@@ -123,9 +130,11 @@ public actor ExportManager {
     public func export(_ metric: MetricDataPoint) async {
         guard !isShuttingDown else { return }
         
-        for (_, wrapper) in exporters where wrapper.isActive {
-            if !wrapper.enqueue(metric) && configuration.dropOnOverflow {
-                totalDropped += 1
+        for (_, wrapper) in exporters {
+            if await wrapper.isActive() {
+                if await !wrapper.enqueue(metric) && configuration.dropOnOverflow {
+                    totalDropped += 1
+                }
             }
         }
         
@@ -146,13 +155,15 @@ public actor ExportManager {
     public func exportAggregated(_ metrics: [AggregatedMetrics]) async {
         guard !isShuttingDown else { return }
         
-        for (_, wrapper) in exporters where wrapper.isActive {
-            Task {
-                do {
-                    try await wrapper.exporter.exportAggregated(metrics)
-                    wrapper.recordSuccess()
-                } catch {
-                    wrapper.recordFailure(error)
+        for (_, wrapper) in exporters {
+            if await wrapper.isActive() {
+                Task {
+                    do {
+                        try await wrapper.exporter.exportAggregated(metrics)
+                        await wrapper.recordSuccess()
+                    } catch {
+                        await wrapper.recordFailure(error)
+                    }
                 }
             }
         }
@@ -198,10 +209,17 @@ public actor ExportManager {
     }
     
     /// Returns current statistics.
-    public func statistics() -> ExportManagerStatistics {
-        ExportManagerStatistics(
+    public func statistics() async -> ExportManagerStatistics {
+        var activeCount = 0
+        for wrapper in exporters.values {
+            if await wrapper.isActive() {
+                activeCount += 1
+            }
+        }
+        
+        return ExportManagerStatistics(
             exporterCount: exporters.count,
-            activeExporters: exporters.values.filter { $0.isActive }.count,
+            activeExporters: activeCount,
             totalExported: totalExported,
             totalDropped: totalDropped,
             lastExportTime: lastExportTime
@@ -219,7 +237,7 @@ public actor ExportManager {
             
             // Check circuit breakers
             for (_, wrapper) in exporters {
-                wrapper.checkCircuitBreaker()
+                await wrapper.checkCircuitBreaker()
             }
             
             try? await Task.sleep(nanoseconds: UInt64(configuration.healthCheckInterval * 1_000_000_000))
@@ -230,7 +248,7 @@ public actor ExportManager {
 // MARK: - ExporterWrapper
 
 /// Wraps an exporter with queue management and circuit breaker.
-private final class ExporterWrapper {
+private actor ExporterWrapper {
     let name: String
     let exporter: any MetricExporter
     private let maxQueueDepth: Int
@@ -238,22 +256,21 @@ private final class ExporterWrapper {
     private let circuitBreakerResetTime: TimeInterval
     
     private var queue: [MetricDataPoint] = []
-    private let queueLock = NSLock()
     
     private(set) var successCount: Int = 0
     private(set) var failureCount: Int = 0
     private var consecutiveFailures: Int = 0
     private var circuitBreakerOpenTime: Date?
     
-    var isActive: Bool {
-        circuitBreakerState == .closed
+    func isActive() -> Bool {
+        circuitBreakerState() == .closed
     }
     
-    var queueDepth: Int {
-        queueLock.withLock { queue.count }
+    func queueDepth() -> Int {
+        queue.count
     }
     
-    var circuitBreakerState: CircuitBreakerState {
+    func circuitBreakerState() -> CircuitBreakerState {
         if let openTime = circuitBreakerOpenTime {
             if Date().timeIntervalSince(openTime) > circuitBreakerResetTime {
                 return .halfOpen
@@ -278,23 +295,17 @@ private final class ExporterWrapper {
     }
     
     func enqueue(_ metric: MetricDataPoint) -> Bool {
-        guard circuitBreakerState != .open else { return false }
-        
-        return queueLock.withLock {
-            guard queue.count < maxQueueDepth else { return false }
-            queue.append(metric)
-            return true
-        }
+        guard circuitBreakerState() != .open else { return false }
+        guard queue.count < maxQueueDepth else { return false }
+        queue.append(metric)
+        return true
     }
     
     func processQueue() async {
-        guard circuitBreakerState != .open else { return }
+        guard circuitBreakerState() != .open else { return }
         
-        let batch = queueLock.withLock {
-            let items = queue
-            queue.removeAll(keepingCapacity: true)
-            return items
-        }
+        let batch = queue
+        queue.removeAll(keepingCapacity: true)
         
         guard !batch.isEmpty else { return }
         
@@ -305,10 +316,8 @@ private final class ExporterWrapper {
             recordFailure(error)
             
             // Re-queue if circuit breaker isn't open
-            if circuitBreakerState != .open {
-                queueLock.withLock {
-                    queue.insert(contentsOf: batch, at: 0)
-                }
+            if circuitBreakerState() != .open {
+                queue.insert(contentsOf: batch, at: 0)
             }
         }
     }
@@ -318,7 +327,7 @@ private final class ExporterWrapper {
         consecutiveFailures = 0
         
         // Reset circuit breaker if half-open
-        if circuitBreakerState == .halfOpen {
+        if circuitBreakerState() == .halfOpen {
             circuitBreakerOpenTime = nil
         }
     }
@@ -333,7 +342,7 @@ private final class ExporterWrapper {
     }
     
     func checkCircuitBreaker() {
-        if circuitBreakerState == .halfOpen {
+        if circuitBreakerState() == .halfOpen {
             // Reset failure count for half-open state
             consecutiveFailures = 0
         }
@@ -373,12 +382,3 @@ public struct ExportManagerStatistics: Sendable {
     public let lastExportTime: Date?
 }
 
-// MARK: - Thread-Safe Lock Helper
-
-private extension NSLock {
-    func withLock<T>(_ body: () throws -> T) rethrows -> T {
-        lock()
-        defer { unlock() }
-        return try body()
-    }
-}

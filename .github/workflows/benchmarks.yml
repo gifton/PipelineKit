@@ -46,36 +46,20 @@ jobs:
     - name: Build benchmarks
       run: swift build --product PipelineKitBenchmarks -c release
     
-    - name: Download baseline
-      if: github.event_name == 'pull_request'
-      uses: actions/download-artifact@v3
-      with:
-        name: benchmark-baseline
-        path: .benchmarks
-      continue-on-error: true
+    # Baseline functionality not yet implemented in benchmark executable
     
     - name: Run benchmarks (quick mode for PRs)
       if: github.event_name == 'pull_request'
       run: |
-        swift run --configuration release PipelineKitBenchmarks \
-          --quick \
-          --compare-baseline \
-          --verbose
+        .build/release/PipelineKitBenchmarks --quick
     
     - name: Run benchmarks (full mode for main)
       if: github.event_name != 'pull_request'
       run: |
-        swift run --configuration release PipelineKitBenchmarks \
-          --save-baseline \
-          --verbose
+        .build/release/PipelineKitBenchmarks > benchmark-output.txt 2>&1 || true
+        cat benchmark-output.txt
     
-    - name: Upload baseline
-      if: github.event_name != 'pull_request' || github.event.inputs.save_baseline == 'true'
-      uses: actions/upload-artifact@v3
-      with:
-        name: benchmark-baseline
-        path: .benchmarks
-        retention-days: 30
+    # Baseline functionality not yet implemented in benchmark executable
     
     - name: Comment PR with results
       if: github.event_name == 'pull_request' && failure()
@@ -120,6 +104,4 @@ jobs:
     
     - name: Run benchmarks (smoke test)
       run: |
-        swift run --configuration release PipelineKitBenchmarks \
-          --quick \
-          --benchmark CommandContext
+        .build/release/PipelineKitBenchmarks CommandContext

@@ -64,8 +64,7 @@ public actor MemoryProfiler {
     
     /// Starts memory profiling
     public func startRecording() {
-        guard !isRecording else { return }
-        
+        // Reset state even if already recording
         isRecording = true
         startTime = Date()
         snapshots.removeAll()

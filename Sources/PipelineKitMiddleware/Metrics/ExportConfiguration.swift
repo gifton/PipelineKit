@@ -1,4 +1,5 @@
 import Foundation
+import PipelineKitCore
 
 /// Configuration for file-based exporters.
 public struct FileExportConfiguration: ExportConfiguration, Sendable {
@@ -185,6 +186,143 @@ public struct PrometheusExportConfiguration: ExportConfiguration, Sendable {
         self.bufferSize = 0 // Not used
         self.flushInterval = 0 // Not used
         self.realTimeExport = true // Always real-time
+    }
+}
+
+/// Configuration for OpenTelemetry exporter.
+public struct OpenTelemetryExportConfiguration: ExportConfiguration, Sendable {
+    /// OpenTelemetry collector endpoint URL.
+    public let endpoint: URL
+    
+    /// Service name for resource attributes.
+    public let serviceName: String
+    
+    /// Service version for resource attributes.
+    public let serviceVersion: String?
+    
+    /// Service instance ID for resource attributes.
+    public let serviceInstanceId: String?
+    
+    /// Additional resource attributes.
+    public let resourceAttributes: [String: String]
+    
+    /// HTTP headers for authentication.
+    public let headers: [String: String]
+    
+    /// Request timeout.
+    public let timeout: TimeInterval
+    
+    /// Buffer size for batching.
+    public let bufferSize: Int
+    
+    /// Flush interval for batched metrics.
+    public let flushInterval: TimeInterval
+    
+    /// Real-time export mode.
+    public let realTimeExport: Bool
+    
+    /// Export format (OTLP/JSON).
+    public let format: ExportFormat
+    
+    /// Compression type.
+    public let compression: CompressionType
+    
+    public enum ExportFormat: String, Sendable {
+        case json = "json"
+        case protobuf = "protobuf"
+    }
+    
+    public enum CompressionType: String, Sendable {
+        case none = "none"
+        case gzip = "gzip"
+    }
+    
+    public init(
+        endpoint: String,
+        serviceName: String,
+        serviceVersion: String? = nil,
+        serviceInstanceId: String? = nil,
+        resourceAttributes: [String: String] = [:],
+        headers: [String: String] = [:],
+        timeout: TimeInterval = 30.0,
+        bufferSize: Int = 1000,
+        flushInterval: TimeInterval = 10.0,
+        realTimeExport: Bool = false,
+        format: ExportFormat = .json,
+        compression: CompressionType = .none
+    ) throws {
+        guard let url = URL(string: endpoint) else {
+            throw PipelineError.pipelineNotConfigured(reason: "Invalid OpenTelemetry endpoint URL: \(endpoint)")
+        }
+        self.endpoint = url
+        self.serviceName = serviceName
+        self.serviceVersion = serviceVersion
+        self.serviceInstanceId = serviceInstanceId
+        self.resourceAttributes = resourceAttributes
+        self.headers = headers
+        self.timeout = timeout
+        self.bufferSize = bufferSize
+        self.flushInterval = flushInterval
+        self.realTimeExport = realTimeExport
+        self.format = format
+        self.compression = compression
+    }
+}
+
+/// Configuration for StatsD exporter.
+public struct StatsDExportConfiguration: ExportConfiguration, Sendable {
+    /// StatsD server host.
+    public let host: String
+    
+    /// StatsD server port.
+    public let port: Int
+    
+    /// Metric name prefix.
+    public let prefix: String
+    
+    /// Sample rate (0.0 to 1.0).
+    public let sampleRate: Double
+    
+    /// Global tags to add to all metrics.
+    public let globalTags: [String: String]
+    
+    /// Whether to enable tags (DogStatsD format).
+    public let enableTags: Bool
+    
+    /// Buffer size for batching.
+    public let bufferSize: Int
+    
+    /// Flush interval for batched metrics.
+    public let flushInterval: TimeInterval
+    
+    /// Real-time export mode.
+    public let realTimeExport: Bool
+    
+    /// Maximum packet size for UDP.
+    public let maxPacketSize: Int
+    
+    public init(
+        host: String = "localhost",
+        port: Int = 8125,
+        prefix: String = "",
+        sampleRate: Double = 1.0,
+        globalTags: [String: String] = [:],
+        enableTags: Bool = true,
+        bufferSize: Int = 100,
+        flushInterval: TimeInterval = 1.0,
+        realTimeExport: Bool = false,
+        maxPacketSize: Int = 1432 // Typical MTU - IP/UDP headers
+    ) {
+        self.host = host
+        self.port = port
+        self.prefix = prefix
+        self.sampleRate = sampleRate
+        self.globalTags = globalTags
+        self.enableTags = enableTags
+        self.bufferSize = bufferSize
+        self.flushInterval = flushInterval
+        self.realTimeExport = realTimeExport
+        self.maxPacketSize = maxPacketSize
     }
 }
 

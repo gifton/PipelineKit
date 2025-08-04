@@ -145,7 +145,7 @@ public actor MemoryPressureHandler {
         await handleMemoryPressure(level: .critical)
     }
     
-    private func handleMemoryPressure(level: MemoryPressureLevel) async {
+    internal func handleMemoryPressure(level: MemoryPressureLevel) async {
         stats.pressureEvents += 1
         
         // Execute all registered handlers concurrently

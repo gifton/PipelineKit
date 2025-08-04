@@ -12,13 +12,38 @@ public extension Command {
     func validate() throws {
         // Default: no validation required
     }
+    
+    /// Async version of validate() for potentially expensive validation operations.
+    /// 
+    /// Use this when validation involves:
+    /// - Database queries
+    /// - Network calls
+    /// - Complex computations
+    /// 
+    /// Default implementation performs no validation.
+    func validateAsync() async throws {
+        // Default: no validation required
+    }
 }
 
 // MARK: - Sanitization
 
 public extension Command {
-    /// Default implementation of sanitized() that returns self unchanged.
-    func sanitized() throws -> Self {
+    /// Default implementation of sanitize() that returns self unchanged.
+    func sanitize() throws -> Self {
+        // Default: return self unchanged
+        return self
+    }
+    
+    /// Async version of sanitize() for potentially expensive sanitization operations.
+    /// 
+    /// Use this when sanitization involves:
+    /// - External service calls (e.g., content moderation APIs)
+    /// - Complex text processing
+    /// - Large data transformations
+    /// 
+    /// Default implementation returns self unchanged.
+    func sanitizeAsync() async throws -> Self {
         // Default: return self unchanged
         return self
     }

@@ -1,6 +1,5 @@
 import Foundation
 import PipelineKitCore
-import PipelineKitMiddleware
 import os.log
 
 /// A security-focused command dispatcher with built-in protection mechanisms.
@@ -26,7 +25,7 @@ import os.log
 /// // Dispatch commands with automatic rate limiting
 /// let result = try await dispatcher.dispatch(
 ///     CreateUserCommand(email: "user@example.com"),
-///     metadata: StandardCommandMetadata(userId: "admin123")
+///     metadata: DefaultCommandMetadata(userId: "admin123")
 /// )
 /// ```
 public actor SecureCommandDispatcher {
@@ -67,7 +66,7 @@ public actor SecureCommandDispatcher {
         metadata: CommandMetadata? = nil
     ) async throws -> T.Result {
         let commandType = String(describing: T.self)
-        let executionMetadata = metadata ?? StandardCommandMetadata()
+        let executionMetadata = metadata ?? DefaultCommandMetadata()
         
         // Check circuit breaker first
         if let breaker = circuitBreaker {

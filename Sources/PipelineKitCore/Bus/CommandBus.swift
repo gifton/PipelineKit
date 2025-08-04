@@ -219,7 +219,7 @@ public actor CommandBus {
                     } catch {
                         // If sleep was cancelled, propagate the cancellation
                         if Task.isCancelled {
-                            throw CancellationError(context: "CommandBus retry delay cancelled")
+                            throw PipelineError.cancelled(context: "CommandBus retry delay cancelled")
                         }
                         throw error
                     }

@@ -18,27 +18,27 @@ PipelineKit has been optimized for high-performance scenarios with:
 Always use `build()` in production:
 
 ```swift
-// L Standard pipeline
+// Standard pipeline
 let pipeline = try await PipelineBuilder(handler: handler)
     .with(middleware)
     .build()
 
-//  Optimized pipeline (30% faster)
+// Optimized pipeline (30% faster)
 let pipeline = try await PipelineBuilder(handler: handler)
     .with(middleware)
     .build()
 ```
 
-### 2. Enable Context Pooling
+### 2. Direct Context Allocation
 
-For high-throughput scenarios:
+PipelineKit uses direct allocation for optimal performance:
 
 ```swift
-// L Creating new contexts
+// Create contexts directly - fast and efficient
 let context = CommandContext(metadata: metadata)
 let result = try await pipeline.execute(command, context: context)
 
-//  Automatic pooling
+// Or use the convenience method
 let result = try await pipeline.execute(command, metadata: metadata)
 ```
 
@@ -47,13 +47,13 @@ let result = try await pipeline.execute(command, metadata: metadata)
 Execute independent middleware concurrently:
 
 ```swift
-// L Sequential execution
+// Sequential execution
 pipeline
     .with(LoggingMiddleware())
     .with(MetricsMiddleware())
     .with(AuditMiddleware())
 
-//  Parallel execution (2-3x faster)
+// Parallel execution (2-3x faster)
 let parallel = ParallelMiddlewareWrapper(
     wrapping: [LoggingMiddleware(), MetricsMiddleware(), AuditMiddleware()],
     strategy: .sideEffectsOnly
@@ -77,378 +77,117 @@ The new thread-safe CommandContext eliminates async overhead:
 ```
 
 **Best Practices:**
-- Minimize context operations in hot paths
-- Use bulk operations when possible
-- Consider caching frequently accessed values
+- Use context keys for type-safe access
+- Pre-size contexts when possible
+- Avoid storing large objects in context
 
-### Memory Management
+### Pipeline Execution
 
-#### Context Pooling Configuration
-
-```swift
-// Configure pool size based on load
-ContextPoolConfiguration.globalPoolSize = 200  // Default: 100
-
-// Monitor pool performance
-ContextPoolConfiguration.monitor = ConsoleContextPoolMonitor()
-
-// Check pool statistics
-let stats = CommandContextPool.shared.getStatistics()
-print("Hit rate: \(stats.hitRate * 100)%")
-```
-
-**Sizing Guidelines:**
-- Light load (< 100 req/s): 50 contexts
-- Medium load (100-1000 req/s): 100-200 contexts
-- Heavy load (> 1000 req/s): 200-500 contexts
-
-#### Memory Footprint
+Pre-compiled pipelines reduce overhead:
 
 ```swift
-// Per-instance memory usage
-// Component     | Size (bytes)
-// ------------- | ------------
-// Context       | 131
-// Middleware    | 0 (after init)
-// Command       | Variable
-// Pipeline      | ~1KB
-```
-
-### Pipeline Optimization
-
-#### Pre-Compilation Benefits
-
-Pre-compiled pipelines analyze middleware at construction:
-
-```swift
-let pipeline = try await builder.build()
-
-// Check optimization statistics
-if let stats = pipeline.getOptimizationStats() {
-    print("Optimizations: \(stats.appliedOptimizations)")
-    print("Improvement: \(stats.estimatedImprovement)%")
-}
-```
-
-**Optimization Types:**
-- **Fast Path**: Direct execution for simple chains
-- **Parallel Execution**: Concurrent middleware
-- **Early Termination**: Fail-fast validation
-- **Context Consolidation**: Reduced lock contention
-
-#### Middleware Ordering
-
-Order matters for performance:
-
-```swift
-//  Optimal order (fail-fast)
-pipeline
-    .with(AuthenticationMiddleware())      // Fail early
-    .with(ValidationMiddleware())          // Fail early
-    .with(CachedDataMiddleware())         // Use cache
-    .with(ProcessingMiddleware())         // Main work
-    .with(LoggingMiddleware())           // Side effects
-
-// L Suboptimal order
-pipeline
-    .with(LoggingMiddleware())           // Runs even on auth failure
-    .with(ProcessingMiddleware())        // Expensive, runs early
-    .with(AuthenticationMiddleware())    // Should be first
-```
-
-### Caching Strategies
-
-#### Middleware Result Caching
-
-Cache expensive middleware operations:
-
-```swift
-// Basic caching
-let cached = ExpensiveMiddleware().cached(ttl: 300)
-
-// Conditional caching
-let smartCache = ExpensiveMiddleware().cachedWhen { command, context in
-    // Only cache for authenticated users
-    context.get(UserKey.self) != nil
-}
-
-// Custom cache key
-struct CustomKeyGenerator: CacheKeyGenerator {
-    func generateKey<T: Command>(
-        for command: T,
-        context: CommandContext,
-        middleware: String
-    ) -> String {
-        // Include user ID in cache key
-        let userId = context.get(UserKey.self)?.id ?? "anonymous"
-        return "\(middleware):\(type(of: command)):\(userId)"
-    }
-}
-
-let customCached = ExpensiveMiddleware().cached(
-    keyGenerator: CustomKeyGenerator()
-)
-```
-
-#### Cache Configuration
-
-```swift
-// In-memory cache with custom size
-let cache = InMemoryMiddlewareCache(maxEntries: 1000)
-
-// Check cache performance
-let stats = cache.getStats()
-print("Cache entries: \(stats.totalEntries)")
-print("Hit rate: \(stats.validEntries * 100 / stats.totalEntries)%")
-```
-
-### Parallel Execution
-
-#### When to Use Parallel Middleware
-
-Good candidates for parallel execution:
-- Logging and metrics
-- Independent validations
-- Side-effect operations
-- Read-only operations
-
-```swift
-// Identify parallel opportunities
-let parallel = ParallelMiddlewareWrapper(
-    wrapping: [
-        AccessLogMiddleware(),      // Independent
-        MetricsMiddleware(),        // Independent
-        AuditLogMiddleware(),       // Independent
-        NotificationMiddleware()    // Independent
-    ],
-    strategy: .sideEffectsOnly
-)
-```
-
-#### Parallel Execution Strategies
-
-```swift
-public enum ExecutionStrategy {
-    // Run for side effects, return command result
-    case sideEffectsOnly
-    
-    // Run as validators, collect errors
-    case preValidation
-}
-
-// Example: Parallel validation
-let validators = ParallelMiddlewareWrapper(
-    wrapping: [
-        SchemaValidator(),
-        BusinessRuleValidator(),
-        SecurityValidator()
-    ],
-    strategy: .preValidation
-)
-```
-
-### Benchmarking
-
-#### Built-in Benchmarks
-
-Run performance benchmarks:
-
-```bash
-swift run -c release PipelineKitBenchmarks
-```
-
-#### Custom Benchmarks
-
-Create application-specific benchmarks:
-
-```swift
-import PipelineKit
-
-let benchmark = PipelineKitPerformanceBenchmark(
-    iterations: 10000,
-    warmupIterations: 100
-)
-
-let results = try await benchmark.runAll()
-for result in results {
-    print("\(result.name): \(result.averageTimeMilliseconds)ms")
-}
-```
-
-#### Profiling
-
-Use Instruments for detailed profiling:
-
-```bash
-# Build with debug symbols
-swift build -c release -Xswiftc -g
-
-# Profile with Instruments
-instruments -t "Time Profiler" .build/release/YourApp
-```
-
-## Performance Patterns
-
-### Pattern 1: High-Throughput API
-
-```swift
-// Configure for high throughput
-ContextPoolConfiguration.globalPoolSize = 500
-ContextPoolConfiguration.usePoolingByDefault = true
-
-// Build optimized pipeline
+// Use PipelineBuilder for optimization
 let pipeline = try await PipelineBuilder(handler: handler)
-    .with(AuthMiddleware())
-    .with(RateLimitMiddleware().cached(ttl: 60))
-    .with(ParallelMiddlewareWrapper(
-        wrapping: [LoggingMiddleware(), MetricsMiddleware()],
-        strategy: .sideEffectsOnly
-    ))
+    .with(middleware)
+    .enableOptimization() // Enable chain optimization
     .build()
+```
 
-// Process requests
-func handleRequest(_ request: Request) async throws -> Response {
-    let command = request.toCommand()
-    let metadata = StandardCommandMetadata(
-        userId: request.userId,
-        correlationId: request.id
+### Concurrency Control
+
+Manage concurrent executions efficiently:
+
+```swift
+// Limit concurrent executions
+let pipeline = StandardPipeline(
+    handler: handler,
+    maxConcurrency: 100  // Prevents resource exhaustion
+)
+
+// Or use full back-pressure control
+let pipeline = StandardPipeline(
+    handler: handler,
+    options: PipelineOptions(
+        maxConcurrency: 100,
+        maxOutstanding: 1000,
+        backPressureStrategy: .dropOldest
     )
-    
-    let result = try await pipeline.execute(command, metadata: metadata)
-    return Response(result)
-}
+)
 ```
 
-### Pattern 2: Batch Processing
+## Benchmarking
+
+Measure performance in your specific use case:
 
 ```swift
-// Process commands in batches
-extension Pipeline {
-    func executeBatch<C: Collection>(
-        _ commands: C
-    ) async throws -> [C.Element.Result]
-        where C.Element: Command, C.Element == H.CommandType {
-        
-        try await withThrowingTaskGroup(of: (Int, C.Element.Result).self) { group in
-            for (index, command) in commands.enumerated() {
-                group.addTask {
-                    let result = try await self.execute(
-                        command,
-                        metadata: StandardCommandMetadata()
-                    )
-                    return (index, result)
-                }
-            }
-            
-            var results = Array<C.Element.Result?>(
-                repeating: nil,
-                count: commands.count
-            )
-            
-            for try await (index, result) in group {
-                results[index] = result
-            }
-            
-            return results.compactMap { $0 }
-        }
-    }
+// Basic benchmark
+let start = CFAbsoluteTimeGetCurrent()
+
+for _ in 0..<10_000 {
+    _ = try await pipeline.execute(command, context: context)
 }
+
+let duration = CFAbsoluteTimeGetCurrent() - start
+print("Operations/sec: \(10_000 / duration)")
 ```
 
-### Pattern 3: Adaptive Optimization
+## Memory Optimization
 
-```swift
-// Monitor and adapt performance
-class AdaptivePipeline<H: CommandHandler> {
-    private var pipeline: any Pipeline
-    private var metrics: PipelineMetrics
-    
-    func execute<T: Command>(_ command: T) async throws -> T.Result {
-        let start = CFAbsoluteTimeGetCurrent()
-        defer {
-            let duration = CFAbsoluteTimeGetCurrent() - start
-            metrics.record(duration)
-            
-            // Adapt based on performance
-            if metrics.averageLatency > 0.1 && !isOptimized {
-                Task {
-                    await switchToOptimized()
-                }
-            }
-        }
-        
-        return try await pipeline.execute(command)
-    }
-}
-```
+### Context Size
 
-## Performance Checklist
+CommandContext is lightweight at ~131 bytes:
+- Pre-sized dictionary (16 entries)
+- Minimal metadata overhead
+- Direct allocation is fast
 
-Before deploying to production:
+### Middleware Memory
 
-- [ ] Using `build()` for pipelines
-- [ ] Context pooling enabled for high-throughput
-- [ ] Parallel middleware for independent operations
-- [ ] Caching enabled for expensive operations
-- [ ] Middleware ordered for fail-fast
-- [ ] Benchmarks run and acceptable
-- [ ] Memory usage monitored
-- [ ] No unnecessary context operations
-- [ ] Appropriate pool sizes configured
-- [ ] Monitoring in place
+Tips for middleware:
+- Avoid capturing large closures
+- Use value types where possible
+- Pool heavy resources separately
 
-## Troubleshooting Performance
+## Production Checklist
 
-### High Memory Usage
+1. ✅ Use pre-compiled pipelines
+2. ✅ Create contexts directly (no pooling needed)
+3. ✅ Enable parallel middleware where appropriate
+4. ✅ Set appropriate concurrency limits
+5. ✅ Monitor performance metrics
+6. ✅ Profile under realistic load
 
-1. Check context pool size
-2. Look for context leaks
-3. Verify commands are cleaned up
-4. Profile with Instruments
+## Performance Metrics
+
+Track these key metrics:
+- **Throughput**: Commands/second
+- **Latency**: p50, p95, p99
+- **Context allocation**: Rate and size
+- **Middleware overhead**: Per-middleware timing
+- **Concurrency**: Active vs queued commands
+
+## Troubleshooting
 
 ### High Latency
+- Check middleware execution time
+- Verify handler isn't blocking
+- Consider parallel middleware
 
-1. Enable pre-compiled pipelines
-2. Check middleware ordering
-3. Add caching where appropriate
-4. Consider parallel execution
-5. Profile hot paths
+### Memory Growth
+- Ensure contexts are released
+- Check for retained closures
+- Monitor middleware allocations
 
 ### Low Throughput
+- Increase concurrency limits
+- Use parallel execution
+- Profile bottlenecks
 
-1. Increase context pool size
-2. Use batch processing
-3. Enable parallel middleware
-4. Check for blocking operations
-5. Consider horizontal scaling
+## Summary
 
-## Monitoring
+PipelineKit is optimized for high performance out of the box. Focus on:
+1. Using pre-compiled pipelines
+2. Direct context allocation
+3. Parallel middleware for independent operations
+4. Appropriate concurrency limits
 
-Integrate with your monitoring solution:
-
-```swift
-struct PrometheusMetricsMiddleware: Middleware {
-    let priority = ExecutionPriority.postProcessing
-    
-    func execute<T: Command>(...) async throws -> T.Result {
-        let timer = histogram.startTimer()
-        defer {
-            timer.observeDuration()
-            counter.increment()
-        }
-        
-        do {
-            return try await next(command, context)
-        } catch {
-            errorCounter.increment()
-            throw error
-        }
-    }
-}
-```
-
-## Conclusion
-
-PipelineKit is designed for high performance out of the box. By following these guidelines and using the built-in optimizations, you can achieve excellent performance for your specific use case.
-
-For more examples, see our [Examples](examples/advanced-patterns.md) documentation.
+The framework handles the complexity while you focus on your business logic.
