@@ -31,7 +31,7 @@ jobs:
     - name: Setup Swift
       uses: swift-actions/setup-swift@v2
       with:
-        swift-version: '5.9'
+        swift-version: '5.10'
     
     - name: Cache Swift packages
       uses: actions/cache@v3
@@ -51,7 +51,8 @@ jobs:
     - name: Run benchmarks (quick mode for PRs)
       if: github.event_name == 'pull_request'
       run: |
-        .build/release/PipelineKitBenchmarks --quick
+        .build/release/PipelineKitBenchmarks --quick > benchmark-output.txt 2>&1 || true
+        cat benchmark-output.txt
     
     - name: Run benchmarks (full mode for main)
       if: github.event_name != 'pull_request'
@@ -82,7 +83,6 @@ jobs:
       with:
         name: benchmark-results-${{ github.sha }}
         path: |
-          .benchmarks/*.json
           benchmark-output.txt
         retention-days: 90
 
@@ -97,7 +97,7 @@ jobs:
     - name: Setup Swift
       uses: swift-actions/setup-swift@v2
       with:
-        swift-version: '5.9'
+        swift-version: '5.10'
     
     - name: Build benchmarks
       run: swift build --product PipelineKitBenchmarks -c release

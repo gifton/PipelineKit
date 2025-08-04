@@ -65,6 +65,10 @@ let package = Package(
             name: "test-integration",
             targets: ["TestIntegrationCommand"]
         ),
+        .plugin(
+            name: "benchmark",
+            targets: ["BenchmarkCommand"]
+        ),
     ],
     dependencies: [
         // swift-atomics 1.2.0 - For lock-free atomic operations
@@ -264,6 +268,15 @@ let package = Package(
             name: "TestIntegrationCommand",
             capability: .command(
                 intent: .custom(verb: "test-integration", description: "Run integration tests only"),
+                permissions: []
+            )
+        ),
+        
+        // Plugin for running benchmarks
+        .plugin(
+            name: "BenchmarkCommand",
+            capability: .command(
+                intent: .custom(verb: "benchmark", description: "Run performance benchmarks"),
                 permissions: []
             )
         ),

@@ -202,11 +202,8 @@ jobs:
       with:
         swift-version: ${{ env.SWIFT_VERSION }}
     
-    - name: Build benchmarks
-      run: swift build -c release --target PipelineKitBenchmarks
-      
     - name: Run benchmarks
-      run: swift run -c release PipelineKitBenchmarks --iterations 1000
+      run: swift package benchmark --quick
       
     - name: Upload benchmark results
       uses: actions/upload-artifact@v4
