@@ -323,11 +323,11 @@ public actor BackPressureAsyncSemaphore {
     ) async throws -> SemaphoreToken? {
         do {
             return try await withThrowingTaskGroup(of: SemaphoreToken.self) { group in
-                group.addTask {
+                group.addTask { @Sendable in
                     try await self.acquire(priority: priority, estimatedSize: estimatedSize)
                 }
                 
-                group.addTask {
+                group.addTask { @Sendable in
                     try await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
                     throw PipelineError.backPressure(reason: .timeout(duration: timeout))
                 }

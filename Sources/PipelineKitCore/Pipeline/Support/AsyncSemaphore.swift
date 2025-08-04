@@ -125,8 +125,8 @@ public actor AsyncSemaphore {
                 waiters.append(waiter)
                 waiterLookup[waiter.id] = waiter
             }
-        } onCancel: { [weak self] in
-            Task {
+        } onCancel: {
+            Task { @Sendable [weak self] in
                 await self?.handleCancellation()
             }
         }
