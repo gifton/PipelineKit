@@ -1,5 +1,4 @@
 import Foundation
-import OSLog
 
 /// A thread-safe command bus that routes commands to their handlers with middleware support.
 ///

@@ -7,6 +7,8 @@
 //
 
 import Foundation
+
+#if canImport(OSLog)
 import OSLog
 
 /// Shared logger instances for PipelineKit components
@@ -30,4 +32,24 @@ public struct PipelineLogger {
     /// Logger for debugging (only enabled in DEBUG builds)
     public static let debug = Logger(subsystem: "com.pipelinekit", category: "debug")
 }
+#else
+// Fallback for Linux - no-op logger
+public struct PipelineLogger {
+    public struct NoOpLogger {
+        public func error(_ message: String) {}
+        public func warning(_ message: String) {}
+        public func info(_ message: String) {}
+        public func debug(_ message: String) {}
+        public func notice(_ message: String) {}
+        public func trace(_ message: String) {}
+    }
+    
+    public static let core = NoOpLogger()
+    public static let security = NoOpLogger()
+    public static let observability = NoOpLogger()
+    public static let bus = NoOpLogger()
+    public static let memory = NoOpLogger()
+    public static let debug = NoOpLogger()
+}
+#endif
 
