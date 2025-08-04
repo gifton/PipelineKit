@@ -53,12 +53,12 @@ jobs:
           let comment = '## SwiftLint Report\n\n';
           
           if (violations.length === 0) {
-            comment += ' No violations found!';
+            comment += '✅ No violations found!';
           } else {
             comment += `Found ${violations.length} violation(s):\n\n`;
             
             violations.forEach(v => {
-              const level = v.severity === 'error' ? 'L' : '�';
+              const level = v.severity === 'error' ? '❌' : '⚠️';
               comment += `${level} **${v.file}:${v.line}:${v.character}**\n`;
               comment += `Rule: \`${v.rule_id}\`\n`;
               comment += `${v.reason}\n\n`;
