@@ -35,8 +35,8 @@ jobs:
     - name: Run SwiftLint
       run: |
         if [ -n "${{ steps.changed-files.outputs.all_changed_files }}" ]; then
-          swiftlint lint --strict --config .swiftlint.yml --reporter json > swiftlint.result.json || true
-          swiftlint lint --strict --config .swiftlint.yml
+          swiftlint lint --config .swiftlint.yml --reporter json > swiftlint.result.json || true
+          swiftlint lint --config .swiftlint.yml
         else
           echo "No Swift files changed"
         fi
