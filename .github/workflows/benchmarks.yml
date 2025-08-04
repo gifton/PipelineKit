@@ -94,10 +94,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
     
-    - name: Setup Swift
-      uses: swiftlang/setup-swift@v1
-      with:
-        swift-version: '5.10'
+    # Ubuntu has Swift pre-installed in runner
     
     - name: Build benchmarks
       run: swift build --product PipelineKitBenchmarks -c release

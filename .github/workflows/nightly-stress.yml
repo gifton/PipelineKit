@@ -28,11 +28,7 @@ jobs:
       with:
         swift-version: ${{ matrix.swift }}
     
-    - name: Setup Swift on Ubuntu
-      if: matrix.os == 'ubuntu-22.04'
-      uses: swift-actions/setup-swift@v2
-      with:
-        swift-version: ${{ matrix.swift }}
+    # Ubuntu uses Docker container instead of setup action
     
     - name: Run stress tests with TSAN
       run: swift package test-stress-tsan

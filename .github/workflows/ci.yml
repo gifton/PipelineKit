@@ -40,12 +40,6 @@ jobs:
       with:
         swift-version: ${{ matrix.swift }}
     
-    - name: Setup Swift on Ubuntu
-      if: matrix.os == 'ubuntu-22.04'
-      uses: swiftlang/setup-swift@v1
-      with:
-        swift-version: ${{ matrix.swift }}
-    
     - name: Get swift version
       run: swift --version
       
@@ -68,12 +62,6 @@ jobs:
     - name: Setup Swift
       if: matrix.os != 'ubuntu-22.04'
       uses: swift-actions/setup-swift@v2
-      with:
-        swift-version: ${{ matrix.swift }}
-    
-    - name: Setup Swift on Ubuntu
-      if: matrix.os == 'ubuntu-22.04'
-      uses: swiftlang/setup-swift@v1
       with:
         swift-version: ${{ matrix.swift }}
       
@@ -138,12 +126,6 @@ jobs:
     - name: Setup Swift
       if: matrix.os != 'ubuntu-22.04'
       uses: swift-actions/setup-swift@v2
-      with:
-        swift-version: ${{ matrix.swift }}
-    
-    - name: Setup Swift on Ubuntu
-      if: matrix.os == 'ubuntu-22.04'
-      uses: swiftlang/setup-swift@v1
       with:
         swift-version: ${{ matrix.swift }}
       
