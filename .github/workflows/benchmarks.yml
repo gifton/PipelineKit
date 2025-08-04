@@ -29,7 +29,7 @@ jobs:
         fetch-depth: 0
     
     - name: Setup Swift
-      uses: swift-actions/setup-swift@v1
+      uses: swift-actions/setup-swift@v2
       with:
         swift-version: '5.9'
     
@@ -88,14 +88,14 @@ jobs:
 
   benchmark-linux:
     name: Run Performance Benchmarks (Linux)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
     
     - name: Setup Swift
-      uses: swift-actions/setup-swift@v1
+      uses: swift-actions/setup-swift@v2
       with:
         swift-version: '5.9'
     

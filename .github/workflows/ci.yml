@@ -28,21 +28,21 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-14, macos-13]
+        os: [ubuntu-22.04, macos-14, macos-13]
         swift: ['5.10']
     
     steps:
     - uses: actions/checkout@v4
     
     - name: Setup Swift
-      if: matrix.os != 'ubuntu-latest'
+      if: matrix.os != 'ubuntu-22.04'
       uses: swift-actions/setup-swift@v2
       with:
         swift-version: ${{ matrix.swift }}
     
     - name: Setup Swift on Ubuntu
-      if: matrix.os == 'ubuntu-latest'
-      uses: swiftlang/setup-swift@v1
+      if: matrix.os == 'ubuntu-22.04'
+      uses: swift-actions/setup-swift@v2
       with:
         swift-version: ${{ matrix.swift }}
     
@@ -59,21 +59,21 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-14, macos-13]
+        os: [ubuntu-22.04, macos-14, macos-13]
         swift: ['5.10']
     
     steps:
     - uses: actions/checkout@v4
     
     - name: Setup Swift
-      if: matrix.os != 'ubuntu-latest'
+      if: matrix.os != 'ubuntu-22.04'
       uses: swift-actions/setup-swift@v2
       with:
         swift-version: ${{ matrix.swift }}
     
     - name: Setup Swift on Ubuntu
-      if: matrix.os == 'ubuntu-latest'
-      uses: swiftlang/setup-swift@v1
+      if: matrix.os == 'ubuntu-22.04'
+      uses: swift-actions/setup-swift@v2
       with:
         swift-version: ${{ matrix.swift }}
       
@@ -81,7 +81,7 @@ jobs:
       run: swift package test-unit --enable-code-coverage
       
     - name: Generate coverage report
-      if: matrix.os == 'ubuntu-latest' && matrix.swift == '5.10'
+      if: matrix.os == 'ubuntu-22.04' && matrix.swift == '5.10'
       run: |
         swift test --filter PipelineKitTests --enable-code-coverage
         # Find the test executable (it's in a different location on Linux)
@@ -93,7 +93,7 @@ jobs:
         fi
       
     - name: Upload coverage to Codecov
-      if: matrix.os == 'ubuntu-latest' && matrix.swift == '5.10'
+      if: matrix.os == 'ubuntu-22.04' && matrix.swift == '5.10'
       uses: codecov/codecov-action@v3
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
@@ -129,21 +129,21 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-14]  # Run on key platforms
+        os: [ubuntu-22.04, macos-14]  # Run on key platforms
         swift: ['5.10']
     
     steps:
     - uses: actions/checkout@v4
     
     - name: Setup Swift
-      if: matrix.os != 'ubuntu-latest'
+      if: matrix.os != 'ubuntu-22.04'
       uses: swift-actions/setup-swift@v2
       with:
         swift-version: ${{ matrix.swift }}
     
     - name: Setup Swift on Ubuntu
-      if: matrix.os == 'ubuntu-latest'
-      uses: swiftlang/setup-swift@v1
+      if: matrix.os == 'ubuntu-22.04'
+      uses: swift-actions/setup-swift@v2
       with:
         swift-version: ${{ matrix.swift }}
       
@@ -179,9 +179,9 @@ jobs:
 
   linux-compatibility:
     name: Linux Compatibility
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     container:
-      image: swift:5.10
+      image: swift:5.10-jammy
     steps:
     - uses: actions/checkout@v4
     
