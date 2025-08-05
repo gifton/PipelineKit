@@ -126,10 +126,24 @@ public actor NonSendableObjectPool<T> {
     /// The borrowed object is guaranteed to be accessed only within this actor's
     /// isolation context. The object will be reset (if a reset function was provided)
     /// before being made available for the next use.
+    // For Swift 5.10 with strict concurrency, we disable this method
+    // and provide an alternative that doesn't trigger sendability warnings
+    #if !compiler(>=5.10)
     public func withObject<R: Sendable>(_ body: (T) async throws -> R) async rethrows -> R {
         let object = acquire()
         defer { release(object) }
         return try await body(object)
+    }
+    #endif
+    
+    // Alternative API for Swift 5.10+ that avoids sendability issues
+    // Callers must manually acquire and release objects
+    public func acquireObject() -> T {
+        return acquire()
+    }
+    
+    public func releaseObject(_ object: T) {
+        release(object)
     }
     
     /// Gets current pool statistics.

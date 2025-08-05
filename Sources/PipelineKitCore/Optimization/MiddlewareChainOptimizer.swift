@@ -30,7 +30,9 @@ import Foundation
 /// Since we know the actual result is Sendable (enforced by Command protocol),
 /// we use @unchecked Sendable to satisfy the compiler while maintaining performance.
 private struct TypeErasedCommand: Command, @unchecked Sendable {
-    typealias Result = Any
+    // Use a concrete Sendable type instead of Any
+    struct SendableResult: Sendable {}
+    typealias Result = SendableResult
     let wrapped: Any
 }
 
@@ -324,55 +326,16 @@ public actor MiddlewareChainOptimizer {
             )
             
         case 1:
-            // Single middleware optimization
-            let mw = middleware[0]
-            return FastPathExecutor(
-                middleware: middleware,
-                executorFunc: { command, context, handler in
-                    let wrapped = TypeErasedCommand(wrapped: command)
-                    let result = try await mw.execute(wrapped, context: context) { cmd, _ in
-                        try await handler(cmd.wrapped)
-                    }
-                    return result
-                }
-            )
+            // Single middleware - fall back to default path for now
+            return nil
             
         case 2:
-            // Two middleware optimization
-            let mw1 = middleware[0]
-            let mw2 = middleware[1]
-            return FastPathExecutor(
-                middleware: middleware,
-                executorFunc: { command, context, handler in
-                    let wrapped = TypeErasedCommand(wrapped: command)
-                    let result = try await mw1.execute(wrapped, context: context) { cmd1, ctx1 in
-                        try await mw2.execute(cmd1, context: ctx1) { cmd2, _ in
-                            try await handler(cmd2.wrapped)
-                        }
-                    }
-                    return result
-                }
-            )
+            // Two middleware - fall back to default path for now
+            return nil
             
         case 3:
-            // Three middleware optimization
-            let mw1 = middleware[0]
-            let mw2 = middleware[1]
-            let mw3 = middleware[2]
-            return FastPathExecutor(
-                middleware: middleware,
-                executorFunc: { command, context, handler in
-                    let wrapped = TypeErasedCommand(wrapped: command)
-                    let result = try await mw1.execute(wrapped, context: context) { cmd1, ctx1 in
-                        try await mw2.execute(cmd1, context: ctx1) { cmd2, ctx2 in
-                            try await mw3.execute(cmd2, context: ctx2) { cmd3, _ in
-                                try await handler(cmd3.wrapped)
-                            }
-                        }
-                    }
-                    return result
-                }
-            )
+            // Three middleware - fall back to default path for now
+            return nil
             
         default:
             // Should not reach here due to guard condition

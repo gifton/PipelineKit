@@ -96,6 +96,8 @@ public actor PerformanceMeasurementPool {
     }
     
     /// Creates a performance measurement with the provided values
+    /// This method works around Swift 5.10 strict concurrency issues by
+    /// performing all operations within the same actor context
     public func createMeasurement(
         commandName: String,
         executionTime: TimeInterval,
@@ -103,13 +105,13 @@ public actor PerformanceMeasurementPool {
         errorMessage: String? = nil,
         metrics: [String: PerformanceMetricValue] = [:]
     ) async -> PerformanceMeasurement {
-        return await pool.withObject { @Sendable measurement in
-            measurement.commandName = commandName
-            measurement.executionTime = executionTime
-            measurement.isSuccess = isSuccess
-            measurement.errorMessage = errorMessage
-            measurement.metrics = metrics
-            return measurement.toImmutable()
-        }
+        // Create the measurement directly without crossing actor boundaries
+        let measurement = MutableMeasurement()
+        measurement.commandName = commandName
+        measurement.executionTime = executionTime
+        measurement.isSuccess = isSuccess
+        measurement.errorMessage = errorMessage
+        measurement.metrics = metrics
+        return measurement.toImmutable()
     }
 }
