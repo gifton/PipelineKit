@@ -11,12 +11,12 @@ struct TestIntegrationCommand: CommandPlugin {
         print("🔗 Running Integration Tests")
         print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
         print("")
-        print("ℹ️  This runs the StressTestIntegration target only.")
-        print("   These tests may take longer as they test system integration.")
+        print("ℹ️  This runs the PipelineKitIntegrationTests target.")
+        print("   These tests may take longer as they test cross-module integration.")
         print("")
         
         // Build arguments for swift test
-        var args = ["test", "--filter", "StressTestIntegration"]
+        var args = ["test", "--filter", "PipelineKitIntegrationTests"]
         
         // Integration tests should not run in parallel by default
         if arguments.contains("--parallel") {

@@ -71,7 +71,7 @@ jobs:
     - name: Generate coverage report
       if: matrix.os == 'ubuntu-22.04' && matrix.swift == '5.10'
       run: |
-        swift test --filter PipelineKitTests --enable-code-coverage
+        swift test --filter "PipelineKitCoreTests|PipelineKitMiddlewareTests|PipelineKitSecurityTests" --enable-code-coverage
         # Find the test executable (it's in a different location on Linux)
         TEST_BINARY=$(find .build/debug -name "PipelineKitPackageTests.xctest" -type f 2>/dev/null || find .build/debug -name "*PackageTests" -type f | head -n 1)
         if [ -n "$TEST_BINARY" ]; then

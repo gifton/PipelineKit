@@ -331,7 +331,7 @@ private final class WindowAccumulator {
             return .histogram(histogram.statistics())
             
         default:
-            fatalError("Unknown accumulator type")
+            return .basic(.init())
         }
     }
     
