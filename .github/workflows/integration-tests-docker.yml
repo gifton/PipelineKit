@@ -1,11 +1,11 @@
-name: Integration Tests
+name: Integration Tests (Docker)
 
 on:
   pull_request:
     paths:
       - 'Sources/**'
       - 'Tests/**'
-      - '.github/workflows/integration-tests.yml'
+      - '.github/workflows/integration-tests-docker.yml'
   push:
     branches: [main]
   workflow_dispatch:
@@ -15,16 +15,13 @@ env:
 
 jobs:
   integration-tests:
-    name: Integration Tests
+    name: Integration Tests (Docker)
     runs-on: ubuntu-22.04
+    container:
+      image: swift:5.10-jammy
     
     steps:
     - uses: actions/checkout@v4
-    
-    - name: Setup Swift
-      uses: swift-actions/setup-swift@v2
-      with:
-        swift-version: ${{ env.SWIFT_VERSION }}
     
     - name: Cache Swift packages
       uses: actions/cache@v4
