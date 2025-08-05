@@ -331,7 +331,7 @@ public actor ObserverRegistry {
     private var observers: [PipelineObserver]
     
     /// Error handler for observer failures - can be customized for different logging systems.
-    private let errorHandler: (ObserverFailure) -> Void
+    private let errorHandler: @Sendable (ObserverFailure) -> Void
     
     /// Creates a new observer registry with optional custom error handling.
     ///
@@ -340,10 +340,10 @@ public actor ObserverRegistry {
     ///   - errorHandler: Custom error handler for observer failures (defaults to console logging)
     public init(
         observers: [PipelineObserver] = [],
-        errorHandler: ((ObserverFailure) -> Void)? = nil
+        errorHandler: (@Sendable (ObserverFailure) -> Void)? = nil
     ) {
         self.observers = observers
-        self.errorHandler = errorHandler ?? Self.defaultErrorHandler
+        self.errorHandler = errorHandler ?? ObserverRegistry.defaultErrorHandler
     }
     
     /// Adds an observer to the registry.
@@ -364,7 +364,7 @@ public actor ObserverRegistry {
     }
     
     /// Default error handler that logs to console with detailed context.
-    private static let defaultErrorHandler: (ObserverFailure) -> Void = { failure in
+    private static let defaultErrorHandler: @Sendable (ObserverFailure) -> Void = { failure in
         let timestamp = ISO8601DateFormatter().string(from: failure.timestamp)
         
         print("""

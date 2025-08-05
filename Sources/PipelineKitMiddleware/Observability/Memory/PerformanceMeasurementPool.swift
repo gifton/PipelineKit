@@ -55,8 +55,8 @@ public actor PerformanceMeasurementPool {
         
         self.pool = NonSendableObjectPool(
             configuration: configuration,
-            factory: { MutableMeasurement() },
-            reset: { measurement in
+            factory: { @Sendable in MutableMeasurement() },
+            reset: { @Sendable measurement in
                 measurement.reset()
             }
         )
@@ -103,7 +103,7 @@ public actor PerformanceMeasurementPool {
         errorMessage: String? = nil,
         metrics: [String: PerformanceMetricValue] = [:]
     ) async -> PerformanceMeasurement {
-        return await pool.withObject { measurement in
+        return await pool.withObject { @Sendable measurement in
             measurement.commandName = commandName
             measurement.executionTime = executionTime
             measurement.isSuccess = isSuccess
