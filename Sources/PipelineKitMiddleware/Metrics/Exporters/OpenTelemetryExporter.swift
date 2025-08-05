@@ -1,4 +1,4 @@
-import Foundation
+@preconcurrency import Foundation
 import PipelineKitCore
 
 /// Exports metrics in OpenTelemetry Protocol (OTLP) format.

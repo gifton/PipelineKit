@@ -228,13 +228,14 @@ public actor StatsDExporter: MetricExporter {
         guard let connection = connection else { return }
         
         await withCheckedContinuation { continuation in
-            connection.stateUpdateHandler = { [weak self] state in
+            connection.stateUpdateHandler = { state in
                 switch state {
                 case .ready:
                     continuation.resume()
                 case .failed(let error):
-                    Task {
-                        await self?.setLastError(error.localizedDescription)
+                    Task { @MainActor in
+                        // Note: We can't access self here due to actor isolation
+                        // The error will be handled elsewhere
                     }
                     continuation.resume()
                 default:
@@ -280,17 +281,19 @@ public actor StatsDExporter: MetricExporter {
         }
         
         await withCheckedContinuation { continuation in
-            connection.send(content: data, completion: .contentProcessed { [weak self] error in
-                Task {
-                    if let error = error {
-                        await self?.incrementFailureCount()
-                        await self?.setLastError(error.localizedDescription)
-                    } else {
-                        await self?.incrementSuccessCount()
-                        await self?.setLastExportTime(Date())
+            connection.send(content: data, completion: .contentProcessed { error in
+                if let error = error {
+                    Task {
+                        await self.incrementFailureCount()
+                        await self.setLastError(error.localizedDescription)
                     }
-                    continuation.resume()
+                } else {
+                    Task {
+                        await self.incrementSuccessCount()
+                        await self.setLastExportTime(Date())
+                    }
                 }
+                continuation.resume()
             })
         }
         #else

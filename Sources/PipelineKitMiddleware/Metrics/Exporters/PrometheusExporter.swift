@@ -443,9 +443,9 @@ private actor HTTPServer {
         
         listener = try NWListener(using: parameters, on: NWEndpoint.Port(integerLiteral: UInt16(port)))
         
-        listener?.newConnectionHandler = { [weak self] connection in
+        listener?.newConnectionHandler = { connection in
             Task {
-                await self?.handleConnection(connection)
+                await self.handleConnection(connection)
             }
         }
         
