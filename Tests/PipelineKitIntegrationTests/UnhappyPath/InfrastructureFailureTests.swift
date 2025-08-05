@@ -69,6 +69,8 @@ final class InfrastructureFailureTests: XCTestCase {
     }
     
     func testContextMemoryManagement() async throws {
+        /// Thread Safety: Uses NSLock to protect weak reference access
+        /// Invariant: All weak reference operations are synchronized through NSLock
         final class WeakContextHolder: @unchecked Sendable {
             private let lock = NSLock()
             weak var context: CommandContext?
@@ -540,6 +542,8 @@ struct InterruptibleMiddleware: Middleware {
     }
 }
 
+/// Thread Safety: Test middleware with simple boolean flag, no synchronization needed for test scenarios
+/// Invariant: Boolean flag is used in single-threaded test context only
 final class ShutdownAwareMiddleware: Middleware, @unchecked Sendable {
     private var isShuttingDown = false
     let priority: ExecutionPriority = .custom
@@ -560,6 +564,8 @@ final class ShutdownAwareMiddleware: Middleware, @unchecked Sendable {
     }
 }
 
+/// Thread Safety: Test middleware with simple boolean flag for degradation state
+/// Invariant: Boolean flag is used in single-threaded test context only
 final class DegradingMiddleware: Middleware, @unchecked Sendable {
     private var isDegraded = false
     let priority: ExecutionPriority = .custom

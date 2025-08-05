@@ -1,7 +1,6 @@
 import XCTest
 @testable import PipelineKit
 import PipelineKitTestSupport
-import PipelineKitTestSupport
 
 final class RateLimiterTests: XCTestCase {
     private let synchronizer = TestSynchronizer()

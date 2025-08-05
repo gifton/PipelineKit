@@ -168,6 +168,8 @@ final class PipelineExecutionFailureTests: XCTestCase {
     }
     
     func testContextMemoryLeak() async throws {
+        /// Thread Safety: Uses NSLock to protect weak reference access
+        /// Invariant: All weak reference operations are synchronized through NSLock
         final class WeakContextHolder: @unchecked Sendable {
             private let lock = NSLock()
             weak var context: CommandContext?
@@ -505,6 +507,8 @@ struct PipelineSlowHandler: CommandHandler {
     }
 }
 
+/// Thread Safety: Test handler with intentionally unsafe array for leak testing
+/// Invariant: Array is intentionally not synchronized to simulate memory leaks
 final class PipelineLeakyHandler: CommandHandler, @unchecked Sendable {
     typealias CommandType = PipelineTestCommand
     

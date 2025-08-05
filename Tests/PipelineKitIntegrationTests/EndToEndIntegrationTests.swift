@@ -413,7 +413,11 @@ final class EndToEndIntegrationTests: XCTestCase {
             WorkCommand(workerId: "worker-\(Int.random(in: 1...10))")
         ]
         
-        return commands.randomElement()!
+        return commands.randomElement() ?? CreateOrderCommand(
+            orderId: UUID().uuidString,
+            userId: "default-user",
+            amount: 100.0
+        )
     }
     
     private func createAuthenticatedContext() -> Context {

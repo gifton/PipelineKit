@@ -1,6 +1,8 @@
 import Foundation
 import PipelineKitCore
+#if canImport(os)
 import os.log
+#endif
 
 /// A security-focused command dispatcher with built-in protection mechanisms.
 /// 
@@ -30,7 +32,9 @@ import os.log
 /// ```
 public actor SecureCommandDispatcher {
     private let bus: CommandBus
+    #if canImport(os)
     private let logger = Logger(subsystem: "PipelineKit", category: "SecureDispatcher")
+    #endif
     private let rateLimiter: RateLimiter?
     private let circuitBreaker: CircuitBreaker?
     
@@ -71,7 +75,9 @@ public actor SecureCommandDispatcher {
         // Check circuit breaker first
         if let breaker = circuitBreaker {
             guard await breaker.shouldAllow() else {
+                #if canImport(os)
                 logger.warning("Circuit breaker open for command: \(commandType, privacy: .public)")
+#endif
                 throw PipelineError.circuitBreakerOpen(resetTime: nil)
             }
         }
@@ -87,7 +93,9 @@ public actor SecureCommandDispatcher {
             
             guard allowed else {
                 let status = await limiter.getStatus(identifier: "\(identifier):\(commandType)")
+                #if canImport(os)
                 logger.warning("Rate limit exceeded for: \(identifier, privacy: .private) - \(commandType, privacy: .public)")
+#endif
                 throw PipelineError.rateLimitExceeded(
                     limit: status.limit,
                     resetTime: status.resetAt,
@@ -96,11 +104,15 @@ public actor SecureCommandDispatcher {
             }
         }
         
+        #if canImport(os)
         logger.debug("Dispatching command: \(commandType, privacy: .public)")
+#endif
         
         do {
             let result = try await bus.send(command, context: CommandContext(metadata: executionMetadata))
+            #if canImport(os)
             logger.debug("Command executed successfully: \(commandType, privacy: .public)")
+#endif
             
             // Record success for circuit breaker
             if let breaker = circuitBreaker {
@@ -109,7 +121,9 @@ public actor SecureCommandDispatcher {
             
             return result
         } catch {
+            #if canImport(os)
             logger.error("Command execution failed: \(commandType, privacy: .public)")
+#endif
             
             // Record failure for circuit breaker
             if let breaker = circuitBreaker {

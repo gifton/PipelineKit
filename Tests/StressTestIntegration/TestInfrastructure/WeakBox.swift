@@ -168,6 +168,8 @@ public struct WeakBox<T: AnyObject>: Sendable {
 // MARK: - WeakReference Helper
 
 /// Thread-safe weak reference wrapper
+/// Thread Safety: Uses NSLock to protect weak reference access
+/// Invariant: All access to the weak reference is synchronized through NSLock
 private final class WeakReference<T: AnyObject>: @unchecked Sendable {
     private let lock = NSLock()
     private weak var _value: T?

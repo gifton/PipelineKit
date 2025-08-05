@@ -1,5 +1,7 @@
 import Foundation
+#if canImport(os)
 import os
+#endif
 import PipelineKitMiddleware
 import PipelineKit
 
@@ -56,17 +58,55 @@ public final class MetricBuffer: @unchecked Sendable {
     private let buffer: UnsafeMutablePointer<MetricDataPoint?>
     
     /// Atomic indices for lock-free operation.
-    /// Using os_unfair_lock for atomic operations as Swift doesn't have
-    /// native atomics in the standard library yet.
+    /// Using platform-specific locks for atomic operations
     private var head: Int = 0  // Write position
     private var tail: Int = 0  // Read position
     private var count: Int = 0 // Number of items in buffer
+    #if canImport(os)
     private var headLock = os_unfair_lock()
     private var tailLock = os_unfair_lock()
+    #else
+    private let headLock = NSLock()
+    private let tailLock = NSLock()
+    #endif
     
     /// Statistics for monitoring.
     private var totalWrites: Int = 0
     private var droppedSamples: Int = 0
+    
+    // MARK: - Lock helpers
+    
+    private func lockHead() {
+        #if canImport(os)
+        os_unfair_lock_lock(&headLock)
+        #else
+        headLock.lock()
+        #endif
+    }
+    
+    private func unlockHead() {
+        #if canImport(os)
+        os_unfair_lock_unlock(&headLock)
+        #else
+        headLock.unlock()
+        #endif
+    }
+    
+    private func lockTail() {
+        #if canImport(os)
+        os_unfair_lock_lock(&tailLock)
+        #else
+        tailLock.lock()
+        #endif
+    }
+    
+    private func unlockTail() {
+        #if canImport(os)
+        os_unfair_lock_unlock(&tailLock)
+        #else
+        tailLock.unlock()
+        #endif
+    }
     
     /// Creates a new metric buffer with specified capacity.
     ///
@@ -104,23 +144,23 @@ public final class MetricBuffer: @unchecked Sendable {
     /// - Returns: true if written successfully, false if buffer was full and sample was dropped.
     @discardableResult
     public func write(_ sample: MetricDataPoint) -> Bool {
-        os_unfair_lock_lock(&headLock)
-        defer { os_unfair_lock_unlock(&headLock) }
+        lockHead()
+        defer { unlockHead() }
         
         // Check if buffer is full
-        os_unfair_lock_lock(&tailLock)
+        lockTail()
         let isFull = count >= capacity
-        os_unfair_lock_unlock(&tailLock)
+        unlockTail()
         
         if isFull {
             // Buffer full - drop oldest sample
             droppedSamples += 1
             
             // Force advance tail (drop oldest)
-            os_unfair_lock_lock(&tailLock)
+            lockTail()
             tail = (tail + 1) & mask
             count -= 1  // One was removed
-            os_unfair_lock_unlock(&tailLock)
+            unlockTail()
         }
         
         // Write sample
@@ -128,9 +168,9 @@ public final class MetricBuffer: @unchecked Sendable {
         head = (head + 1) & mask
         
         // Update count
-        os_unfair_lock_lock(&tailLock)
+        lockTail()
         count += 1
-        os_unfair_lock_unlock(&tailLock)
+        unlockTail()
         
         totalWrites += 1
         
@@ -142,8 +182,8 @@ public final class MetricBuffer: @unchecked Sendable {
     /// - Parameter maxCount: Maximum number of samples to read.
     /// - Returns: Array of samples (may be less than maxCount if buffer has fewer).
     public func readBatch(maxCount: Int = 1000) -> [MetricDataPoint] {
-        os_unfair_lock_lock(&tailLock)
-        defer { os_unfair_lock_unlock(&tailLock) }
+        lockTail()
+        defer { unlockTail() }
         
         var samples: [MetricDataPoint] = []
         let toRead = min(maxCount, count)
@@ -166,11 +206,11 @@ public final class MetricBuffer: @unchecked Sendable {
     
     /// Returns current buffer statistics.
     public func statistics() -> BufferStatistics {
-        os_unfair_lock_lock(&headLock)
-        os_unfair_lock_lock(&tailLock)
+        lockHead()
+        lockTail()
         defer {
-            os_unfair_lock_unlock(&tailLock)
-            os_unfair_lock_unlock(&headLock)
+            unlockTail()
+            unlockHead()
         }
         
         return BufferStatistics(
@@ -184,11 +224,11 @@ public final class MetricBuffer: @unchecked Sendable {
     
     /// Clears all samples from the buffer.
     public func clear() {
-        os_unfair_lock_lock(&headLock)
-        os_unfair_lock_lock(&tailLock)
+        lockHead()
+        lockTail()
         defer {
-            os_unfair_lock_unlock(&tailLock)
-            os_unfair_lock_unlock(&headLock)
+            unlockTail()
+            unlockHead()
         }
         
         // Clear all samples

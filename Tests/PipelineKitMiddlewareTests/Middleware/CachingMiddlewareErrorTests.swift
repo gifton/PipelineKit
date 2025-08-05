@@ -260,6 +260,8 @@ final class CachingMiddlewareErrorTests: XCTestCase {
 
 // MARK: - Test Support Types
 
+/// Thread Safety: Test type with no mutable state
+/// Invariant: Immutable after initialization
 struct NonEncodableCommand: Command, @unchecked Sendable { // CacheableCommand not implemented yet
     typealias Result = NonEncodableResult
     
@@ -267,6 +269,8 @@ struct NonEncodableCommand: Command, @unchecked Sendable { // CacheableCommand n
     var cacheTTL: TimeInterval { 60 }
 }
 
+/// Thread Safety: Test type with immutable closure property
+/// Invariant: The closure property is immutable after initialization
 struct NonEncodableResult: @unchecked Sendable {
     let closure: () -> Void = {} // Closures are not encodable
 }

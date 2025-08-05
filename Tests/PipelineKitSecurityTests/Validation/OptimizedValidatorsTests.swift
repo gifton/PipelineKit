@@ -173,8 +173,9 @@ final class OptimizedValidatorsTests: XCTestCase {
             for _ in 0..<10 {
                 group.addTask {
                     for _ in 0..<iterations {
-                        let email = emails.randomElement()!
-                        _ = OptimizedValidators.validateEmail(email)
+                        if let email = emails.randomElement() {
+                            _ = OptimizedValidators.validateEmail(email)
+                        }
                     }
                 }
             }
@@ -183,8 +184,9 @@ final class OptimizedValidatorsTests: XCTestCase {
             for _ in 0..<10 {
                 group.addTask {
                     for _ in 0..<iterations {
-                        let html = htmlStrings.randomElement()!
-                        _ = OptimizedValidators.containsHTML(html)
+                        if let html = htmlStrings.randomElement() {
+                            _ = OptimizedValidators.containsHTML(html)
+                        }
                     }
                 }
             }

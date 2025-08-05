@@ -467,6 +467,8 @@ final class ConcurrencyFailureTests: XCTestCase {
     // MARK: - Priority Inversion
     
     func testPriorityInversion() async throws {
+        /// Thread Safety: Uses NSLock to protect array mutations
+        /// Invariant: All array operations are synchronized through NSLock
         final class ExecutionOrderTracker: @unchecked Sendable {
             private let lock = NSLock()
             private var executionOrder: [String] = []
@@ -606,6 +608,8 @@ struct MemoryIntensiveMiddleware: Middleware {
     }
 }
 
+/// Thread Safety: Test middleware with intentionally unsafe state for corruption testing
+/// Invariant: State is intentionally not synchronized to test race conditions
 final class StateCorruptingMiddleware: Middleware, @unchecked Sendable {
     private var sharedState = 0
     
@@ -627,6 +631,8 @@ final class StateCorruptingMiddleware: Middleware, @unchecked Sendable {
     }
 }
 
+/// Thread Safety: Test middleware with immutable Sendable closure
+/// Invariant: The orderTracker closure is immutable and marked @Sendable
 final class HighPriorityMiddleware: Middleware, @unchecked Sendable {
     let orderTracker: @Sendable (String) -> Void
     var priority: ExecutionPriority { .validation }  // Execute second
@@ -645,6 +651,8 @@ final class HighPriorityMiddleware: Middleware, @unchecked Sendable {
     }
 }
 
+/// Thread Safety: Test middleware with immutable Sendable closure
+/// Invariant: The orderTracker closure is immutable and marked @Sendable
 final class MediumPriorityMiddleware: Middleware, @unchecked Sendable {
     let orderTracker: @Sendable (String) -> Void
     var priority: ExecutionPriority { .preProcessing }  // Execute third
@@ -663,6 +671,8 @@ final class MediumPriorityMiddleware: Middleware, @unchecked Sendable {
     }
 }
 
+/// Thread Safety: Test middleware with immutable Sendable closure
+/// Invariant: The orderTracker closure is immutable and marked @Sendable
 final class LowPriorityMiddleware: Middleware, @unchecked Sendable {
     let orderTracker: @Sendable (String) -> Void
     var priority: ExecutionPriority { .postProcessing }

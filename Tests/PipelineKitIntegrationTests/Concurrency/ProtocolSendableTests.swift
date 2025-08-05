@@ -175,6 +175,8 @@ final class ProtocolSendableTests: XCTestCase {
 
 // TestPoolMonitor removed - ContextPoolMonitor no longer exists
 
+/// Thread Safety: Uses NSLock to protect dictionary mutations
+/// Invariant: All dictionary operations are synchronized through NSLock
 private final class TestProfiler: MiddlewareProfiler, @unchecked Sendable {
     private var profiles: [String: ProfileData] = [:]
     private let lock = NSLock()

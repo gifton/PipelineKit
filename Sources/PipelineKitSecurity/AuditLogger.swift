@@ -1,6 +1,10 @@
 import Foundation
+#if canImport(os)
 import os.log
+#endif
+#if canImport(OSLog)
 import OSLog
+#endif
 import PipelineKitCore
 
 /// A comprehensive audit logging system for tracking command execution.
@@ -26,7 +30,9 @@ public actor AuditLogger {
     private let destination: LogDestination
     private let privacyLevel: PrivacyLevel
     private let encoder = JSONEncoder()
+    #if canImport(OSLog)
     private let logger = Logger(subsystem: "PipelineKit", category: "Audit")
+    #endif
     private var buffer: [AuditEntry] = []
     private let bufferSize: Int
     private let flushInterval: TimeInterval
@@ -75,7 +81,9 @@ public actor AuditLogger {
         let sanitized = sanitizeEntry(entry)
         buffer.append(sanitized)
         
+        #if canImport(OSLog)
         logger.info("Command executed: \(sanitized.commandType, privacy: .public)")
+        #endif
         
         if buffer.count >= bufferSize || Date().timeIntervalSince(lastFlush) > flushInterval {
             await flush()
@@ -117,7 +125,9 @@ public actor AuditLogger {
             
             lastFlush = Date()
         } catch {
+            #if canImport(OSLog)
             logger.error("Failed to flush audit logs: \(error.localizedDescription, privacy: .public)")
+            #endif
         }
     }
     
@@ -140,7 +150,9 @@ public actor AuditLogger {
                     filterEntries(entries, criteria: criteria)
                 }
             } catch {
+                #if canImport(OSLog)
                 logger.error("Failed to query audit logs: \(error.localizedDescription, privacy: .public)")
+                #endif
                 return []
             }
             

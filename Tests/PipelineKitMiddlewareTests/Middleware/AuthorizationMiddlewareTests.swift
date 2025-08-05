@@ -246,6 +246,8 @@ private struct AuthzTestCommand: Command {
     }
 }
 
+/// Thread Safety: Test container with single mutable value, used only in test assertions
+/// Invariant: Value is accessed only in controlled test environments with predictable ordering
 private final class Box<T>: @unchecked Sendable {
     var value: T
     init(value: T) {

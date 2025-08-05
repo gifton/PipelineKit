@@ -1,5 +1,7 @@
 import Foundation
+#if canImport(os)
 import os
+#endif
 
 /// Collects and reports metrics from object pools for production monitoring.
 ///
@@ -16,7 +18,9 @@ public actor PoolMetricsCollector {
     private let maxHistorySize: Int
     
     /// Logger for metrics
+    #if canImport(os)
     private let logger = Logger(subsystem: "PipelineKit", category: "PoolMetrics")
+    #endif
     
     /// Collection task
     private var collectionTask: Task<Void, Never>?
@@ -166,13 +170,17 @@ public actor PoolMetricsCollector {
     private func checkAlerts(_ snapshot: PoolMetricsSnapshot) async {
         // Check hit rate threshold
         if snapshot.overallHitRate < alertThresholds.minHitRate {
+            #if canImport(os)
             logger.warning("Pool hit rate below threshold: \(String(format: "%.1f", snapshot.overallHitRate))%")
+            #endif
             await sendAlert(.lowHitRate(snapshot.overallHitRate))
         }
         
         // Check efficiency threshold
         if snapshot.overallEfficiency < alertThresholds.minEfficiency {
+            #if canImport(os)
             logger.warning("Pool efficiency below threshold: \(String(format: "%.2f", snapshot.overallEfficiency))")
+            #endif
             await sendAlert(.lowEfficiency(snapshot.overallEfficiency))
         }
         
@@ -183,7 +191,9 @@ public actor PoolMetricsCollector {
             let allocationRate = Double(allocationDelta) / timeDelta
             
             if allocationRate > alertThresholds.maxAllocationRate {
+                #if canImport(os)
                 logger.warning("High allocation rate: \(String(format: "%.1f", allocationRate)) allocations/second")
+                #endif
                 await sendAlert(.highAllocationRate(allocationRate))
             }
         }
@@ -216,6 +226,7 @@ public actor PoolMetricsCollector {
     }
     
     private func getMemoryUsage() -> Int {
+        #if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
         var info = mach_task_basic_info()
         var count = mach_msg_type_number_t(MemoryLayout<mach_task_basic_info>.size / MemoryLayout<natural_t>.size)
         
@@ -231,6 +242,11 @@ public actor PoolMetricsCollector {
         }
         
         return result == KERN_SUCCESS ? Int(info.resident_size) : 0
+        #else
+        // On Linux, we can try to read from /proc/self/status
+        // For now, return 0 as a placeholder
+        return 0
+        #endif
     }
 }
 

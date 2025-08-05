@@ -45,6 +45,9 @@ final class TypeParameterConstraintsTests: XCTestCase {
     
     func testObjectPoolRequiresSendableReference() async {
         // This should compile - NSLock is Sendable
+        /// Thread Safety: Uses NSLock to protect access to _value property,
+        /// ensuring thread-safe reads and writes.
+        /// Invariant: All property access is synchronized through NSLock
         final class SendableObject: NSObject, @unchecked Sendable {
             private let lock = NSLock()
             private var _value: Int = 0
@@ -196,6 +199,9 @@ private struct CacheableValue: Sendable, Equatable {
     let data: String
 }
 
+/// Thread Safety: Uses DispatchQueue for synchronized access to _counter,
+/// ensuring thread-safe reads and writes through serial queue execution.
+/// Invariant: All counter access is serialized through a dedicated DispatchQueue
 private final class SendableReference: NSObject, @unchecked Sendable {
     private let queue = DispatchQueue(label: "test.queue")
     private var _counter: Int = 0
