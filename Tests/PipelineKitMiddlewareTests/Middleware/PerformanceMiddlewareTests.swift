@@ -2,7 +2,7 @@ import XCTest
 import Foundation
 @testable import PipelineKit
 @testable import PipelineKitMiddleware
-import PipelineKitTests
+import PipelineKitTestSupport
 
 final class PerformanceMiddlewareTests: XCTestCase {
     private let synchronizer = TestSynchronizer()

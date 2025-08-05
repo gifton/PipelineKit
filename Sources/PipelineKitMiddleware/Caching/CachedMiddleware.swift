@@ -288,7 +288,7 @@ public extension Middleware {
     }
     
     /// Wraps this middleware with conditional caching
-    public func cachedWhen(
+    func cachedWhen(
         ttl: TimeInterval = 300,
         cache: MiddlewareCache,
         condition: @escaping @Sendable (Any, CommandContext) async -> Bool

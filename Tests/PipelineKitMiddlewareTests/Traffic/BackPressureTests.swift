@@ -1,7 +1,7 @@
 import XCTest
 @testable import PipelineKit
 import PipelineKitTestSupport
-import PipelineKitTests
+import PipelineKitTestSupport
 
 final class BackPressureTests: XCTestCase {
     private let synchronizer = TestSynchronizer()

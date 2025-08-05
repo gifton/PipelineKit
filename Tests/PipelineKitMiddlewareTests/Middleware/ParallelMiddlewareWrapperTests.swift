@@ -1,6 +1,6 @@
 import XCTest
 @testable import PipelineKit
-import PipelineKitTests
+import PipelineKitTestSupport
 
 final class ParallelMiddlewareWrapperTests: XCTestCase {
     private let synchronizer = TestSynchronizer()

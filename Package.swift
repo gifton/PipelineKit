@@ -41,13 +41,6 @@ let package = Package(
             name: "StressTesting",
             targets: ["StressTesting"]
         ),
-        // Benchmark executable - not included in release builds
-        // Benchmarks temporarily disabled during modularization
-        // .executable(
-        //     name: "PipelineKitBenchmarks",
-        //     targets: ["PipelineKitBenchmarks"]
-        // ),
-        // Benchmark runner executable
         // Command plugins for test execution
         .plugin(
             name: "test-unit",
@@ -115,10 +108,6 @@ let package = Package(
                 .enableExperimentalFeature("StrictConcurrency")
             ]
         ),
-        .executableTarget(
-            name: "VerifyChanges",
-            dependencies: ["PipelineKit"]
-        ),
         // Unified benchmark runner
         .executableTarget(
             name: "PipelineKitBenchmarks",
@@ -128,7 +117,7 @@ let package = Package(
         // Core module tests
         .testTarget(
             name: "PipelineKitCoreTests",
-            dependencies: ["PipelineKitCore", "PipelineKitTestSupport", "PipelineKitTests"],
+            dependencies: ["PipelineKitCore", "PipelineKitTestSupport"],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency"),
                 .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
@@ -137,7 +126,7 @@ let package = Package(
         // Middleware module tests
         .testTarget(
             name: "PipelineKitMiddlewareTests",
-            dependencies: ["PipelineKitMiddleware", "PipelineKitTestSupport", "PipelineKitTests"],
+            dependencies: ["PipelineKitMiddleware", "PipelineKitTestSupport"],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency"),
                 .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
@@ -146,7 +135,7 @@ let package = Package(
         // Security module tests
         .testTarget(
             name: "PipelineKitSecurityTests",
-            dependencies: ["PipelineKitSecurity", "PipelineKitTestSupport", "PipelineKitTests"],
+            dependencies: ["PipelineKitSecurity", "PipelineKitTestSupport"],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency"),
                 .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
@@ -155,19 +144,9 @@ let package = Package(
         // Integration tests - tests that span multiple modules
         .testTarget(
             name: "PipelineKitIntegrationTests",
-            dependencies: ["PipelineKit", "PipelineKitTestSupport", "PipelineKitTests"],
-            swiftSettings: [
-                .enableExperimentalFeature("StrictConcurrency"),
-                .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
-            ]
-        ),
-        // Shared test utilities and helpers
-        .testTarget(
-            name: "PipelineKitTests",
             dependencies: ["PipelineKit", "PipelineKitTestSupport"],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency"),
-                // Enable @testable imports
                 .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
             ]
         ),
@@ -181,14 +160,6 @@ let package = Package(
         .testTarget(
             name: "StressTestIntegration",
             dependencies: ["PipelineKit", "PipelineKitTestSupport", "StressTesting"],
-            swiftSettings: [
-                .enableExperimentalFeature("StrictConcurrency")
-            ]
-        ),
-        // Benchmark tests
-        .testTarget(
-            name: "PipelineKitBenchmarksTests",
-            dependencies: ["PipelineKit", "PipelineKitBenchmarks", "PipelineKitTests"],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency")
             ]

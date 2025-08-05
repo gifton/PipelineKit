@@ -1,6 +1,6 @@
 import XCTest
 @testable import PipelineKit
-import PipelineKitTests
+import PipelineKitTestSupport
 import PipelineKitTestSupport
 
 // Test counter actor

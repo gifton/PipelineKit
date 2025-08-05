@@ -86,7 +86,7 @@ public actor CommandEncryptor {
             options: []
         ) as? [String: Any] ?? [:]
         
-        var command = encrypted.originalCommand
+        let command = encrypted.originalCommand
         command.updateSensitiveFields(fields)
         
         return command
