@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(Darwin)
+import Darwin
+#endif
 import PipelineKitCore
 
 /// Advanced pipeline execution flow tracer with real-time bottleneck detection.
@@ -451,20 +454,25 @@ public actor PipelineFlowTracer {
     }
     
     private func getCurrentMemoryUsage() -> UInt64 {
+        #if canImport(Darwin)
         var info = mach_task_basic_info()
         var count = mach_msg_type_number_t(MemoryLayout<mach_task_basic_info>.size) / 4
         
         let kerr: kern_return_t = withUnsafeMutablePointer(to: &info) {
-            $0.withMemoryRebound(to: integer_t.self, capacity: 1) {
-                let taskSelf = mach_task_self_
-                return task_info(taskSelf,
+            $0.withMemoryRebound(to: integer_t.self, capacity: 1) { infoPtr in
+                // Access mach_task_self_ in a concurrency-safe way
+                let port = mach_task_self_
+                return task_info(port,
                                 task_flavor_t(MACH_TASK_BASIC_INFO),
-                                $0,
+                                infoPtr,
                                 &count)
             }
         }
         
         return kerr == KERN_SUCCESS ? info.resident_size : 0
+        #else
+        return 0
+        #endif
     }
     
     private func analyzeBottlenecks(flowId: UUID) {

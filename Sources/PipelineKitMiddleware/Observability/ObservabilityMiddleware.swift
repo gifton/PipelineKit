@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(Darwin)
+import Darwin
+#endif
 import PipelineKitCore
 
 // MARK: - Core Observability Middleware
@@ -233,17 +236,17 @@ public struct PerformanceTrackingMiddleware: Middleware {
     }
     
     private func getCurrentMemoryUsage() -> Int {
-        // Simplified memory usage calculation
-        // In practice, you might use more sophisticated methods
+        #if canImport(Darwin)
         var info = mach_task_basic_info()
         var count = mach_msg_type_number_t(MemoryLayout<mach_task_basic_info>.size) / 4
         
         let kerr: kern_return_t = withUnsafeMutablePointer(to: &info) {
-            $0.withMemoryRebound(to: integer_t.self, capacity: 1) {
-                let taskSelf = mach_task_self_
-                return task_info(taskSelf,
+            $0.withMemoryRebound(to: integer_t.self, capacity: 1) { infoPtr in
+                // Access mach_task_self_ in a concurrency-safe way
+                let port = mach_task_self_
+                return task_info(port,
                                 task_flavor_t(MACH_TASK_BASIC_INFO),
-                                $0,
+                                infoPtr,
                                 &count)
             }
         }
@@ -251,6 +254,7 @@ public struct PerformanceTrackingMiddleware: Middleware {
         if kerr == KERN_SUCCESS {
             return Int(info.resident_size) / (1024 * 1024) // Convert to MB
         }
+        #endif
         
         return 0
     }
