@@ -7,6 +7,8 @@ public actor TestSynchronizer {
     private var checkpoints: [String: Bool] = [:]
     private var continuations: [String: [CheckedContinuation<Void, Never>]] = [:]
     
+    public init() {}
+    
     /// Signal that a checkpoint has been reached
     public func signal(_ checkpoint: String) {
         checkpoints[checkpoint] = true

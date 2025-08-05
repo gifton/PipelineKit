@@ -31,7 +31,7 @@ final class OSLogObserverTests: XCTestCase {
         let observer = OSLogObserver.development()
         
         let command = TestCommand(value: "test")
-        let metadata = StandardCommandMetadata()
+        let metadata = TestCommandMetadata()
         
         // These tests mainly ensure no crashes occur during logging
         let context = CommandContext(metadata: metadata)

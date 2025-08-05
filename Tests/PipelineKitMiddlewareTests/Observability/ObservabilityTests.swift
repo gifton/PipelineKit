@@ -151,7 +151,7 @@ final class ObservabilityTests: XCTestCase {
         let registry = ObserverRegistry(observers: [observer1, observer2])
         
         let command = TestCommand(value: "test")
-        let metadata = StandardCommandMetadata()
+        let metadata = TestCommandMetadata()
         
         let context = CommandContext(metadata: metadata)
         await registry.notifyPipelineWillExecute(command, metadata: metadata, pipelineType: "TestPipeline")
@@ -192,7 +192,7 @@ final class ObservabilityTests: XCTestCase {
         )
         
         let command = TestCommand(value: "test")
-        let metadata = StandardCommandMetadata()
+        let metadata = TestCommandMetadata()
         
         let context = CommandContext(metadata: metadata)
         let result = try await observablePipeline.execute(command, context: context)
@@ -215,7 +215,7 @@ final class ObservabilityTests: XCTestCase {
         )
         
         let command = TestCommand(value: "test")
-        let metadata = StandardCommandMetadata()
+        let metadata = TestCommandMetadata()
         
         do {
             let context = CommandContext(metadata: metadata)
@@ -242,7 +242,7 @@ final class ObservabilityTests: XCTestCase {
         )
         
         let command = TestCommand(value: "test")
-        let metadata = StandardCommandMetadata(correlationId: "test-123")
+        let metadata = TestCommandMetadata(correlationId: "test-123")
         
         let context = CommandContext(metadata: metadata)
         let result = try await observableMiddleware.execute(command, context: context) { cmd, _ in
@@ -269,7 +269,7 @@ final class ObservabilityTests: XCTestCase {
         )
         
         let command = TestCommand(value: "test")
-        let metadata = StandardCommandMetadata(correlationId: "test-123")
+        let metadata = TestCommandMetadata(correlationId: "test-123")
         
         do {
             let context = CommandContext(metadata: metadata)
@@ -287,7 +287,7 @@ final class ObservabilityTests: XCTestCase {
     // MARK: - Context Tests
     
     func testSpanContext() async {
-        let context = CommandContext(metadata: StandardCommandMetadata())
+        let context = CommandContext(metadata: TestCommandMetadata())
         
         let span = await context.getOrCreateSpanContext(operation: "test_operation")
         XCTAssertEqual(span.operation, "test_operation")
@@ -302,7 +302,7 @@ final class ObservabilityTests: XCTestCase {
     }
     
     func testPerformanceContext() async {
-        let context = CommandContext(metadata: StandardCommandMetadata())
+        let context = CommandContext(metadata: TestCommandMetadata())
         
         await context.startTimer("test_timer")
         try? await Task.sleep(nanoseconds: 10_000_000) // 10ms
@@ -317,7 +317,7 @@ final class ObservabilityTests: XCTestCase {
     }
     
     func testObservabilityData() async {
-        let context = CommandContext(metadata: StandardCommandMetadata())
+        let context = CommandContext(metadata: TestCommandMetadata())
         
         await context.setObservabilityData("test_key", value: "test_value")
         let value = await context.getObservabilityData("test_key") as? String
@@ -341,7 +341,7 @@ final class ObservabilityTests: XCTestCase {
         try await pipeline.addMiddleware(ObservabilityMiddleware(configuration: configuration))
         
         let command = TestObservableCommand(value: "test")
-        let metadata = StandardCommandMetadata()
+        let metadata = TestCommandMetadata()
         
         let context = CommandContext(metadata: metadata)
         let result = try await pipeline.execute(command, context: context)
@@ -371,7 +371,7 @@ final class ObservabilityTests: XCTestCase {
         ))
         
         let command = TestCommand(value: "test")
-        let metadata = StandardCommandMetadata()
+        let metadata = TestCommandMetadata()
         
         let context = CommandContext(metadata: metadata)
         let result = try await pipeline.execute(command, context: context)
@@ -384,7 +384,7 @@ final class ObservabilityTests: XCTestCase {
     // MARK: - Utils Tests
     
     func testObservabilityUtils() {
-        let metadata = StandardCommandMetadata(userId: "test-user", correlationId: "test-correlation")
+        let metadata = TestCommandMetadata(userId: "test-user", correlationId: "test-correlation")
         
         let correlationId = ObservabilityUtils.extractCorrelationId(from: metadata)
         XCTAssertEqual(correlationId, "test-correlation")

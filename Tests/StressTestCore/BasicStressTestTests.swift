@@ -1,6 +1,6 @@
 import XCTest
 @testable import PipelineKit
-@testable import StressTestSupport
+@testable import StressTesting
 
 final class BasicStressTestTests: XCTestCase {
     func testSafetyMonitorInitialization() async throws {

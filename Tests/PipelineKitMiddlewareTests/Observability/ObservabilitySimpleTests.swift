@@ -79,7 +79,7 @@ final class ObservabilitySimpleTests: XCTestCase {
         
         // When
         let command = TestCommand(value: "test")
-        let metadata = StandardCommandMetadata()
+        let metadata = TestCommandMetadata()
         let context = CommandContext(metadata: metadata)
         let result = try await observablePipeline.execute(command, context: context)
         
@@ -103,7 +103,7 @@ final class ObservabilitySimpleTests: XCTestCase {
         
         // When
         let command = TestCommand(value: "test")
-        let metadata = StandardCommandMetadata()
+        let metadata = TestCommandMetadata()
         let context = CommandContext(metadata: metadata)
         let result = try await pipeline.execute(command, context: context)
         
@@ -114,7 +114,7 @@ final class ObservabilitySimpleTests: XCTestCase {
     
     func testSpanContext() async throws {
         // Given
-        let context = CommandContext(metadata: StandardCommandMetadata())
+        let context = CommandContext(metadata: TestCommandMetadata())
         
         // When
         let span = await context.getOrCreateSpanContext(operation: "test")
@@ -129,7 +129,7 @@ final class ObservabilitySimpleTests: XCTestCase {
     
     func testPerformanceTracking() async throws {
         // Given
-        let context = CommandContext(metadata: StandardCommandMetadata())
+        let context = CommandContext(metadata: TestCommandMetadata())
         
         // When
         await context.startTimer("test")
@@ -149,7 +149,7 @@ final class ObservabilitySimpleTests: XCTestCase {
         // Given
         let observer = OSLogObserver.development()
         let command = TestCommand(value: "test")
-        let metadata = StandardCommandMetadata(correlationId: "test-123")
+        let metadata = TestCommandMetadata(correlationId: "test-123")
         
         // When - Just ensure no crashes
         let context = CommandContext(metadata: metadata)
@@ -169,7 +169,7 @@ final class ObservabilitySimpleTests: XCTestCase {
         
         // When
         let command = TestCommand(value: "test")
-        let metadata = StandardCommandMetadata()
+        let metadata = TestCommandMetadata()
         let context = CommandContext(metadata: metadata)
         await registry.notifyPipelineWillExecute(command, metadata: metadata, pipelineType: "Test")
         

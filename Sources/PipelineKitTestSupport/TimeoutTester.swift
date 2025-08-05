@@ -4,6 +4,8 @@ import Foundation
 /// Test utility for validating timeout behavior
 /// Provides controlled timeout scenarios for testing
 public final class TimeoutTester: @unchecked Sendable {
+    public init() {}
+    
     /// Simulate an operation that will timeout
     public func operationThatWillTimeout(after timeout: TimeInterval) async throws {
         // Sleep for longer than the timeout
@@ -55,8 +57,6 @@ public final class TimeoutTester: @unchecked Sendable {
                 return true // Did timeout as expected
             }
             return false // Different error
-        } catch {
-            return true // Did timeout as expected
         } catch {
             return false // Other error
         }

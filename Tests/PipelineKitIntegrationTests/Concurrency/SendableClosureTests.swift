@@ -48,7 +48,7 @@ final class SendableClosureTests: XCTestCase {
         }
         
         // Test that the predicate is called and enforced
-        let metadata = StandardCommandMetadata()
+        let metadata = TestCommandMetadata()
         await observer.pipelineWillExecute(
             MockCommand(value: 42),
             metadata: metadata,
@@ -85,7 +85,7 @@ final class SendableClosureTests: XCTestCase {
         // Trigger an error
         await composite.pipelineWillExecute(
             MockCommand(value: 42),
-            metadata: StandardCommandMetadata(),
+            metadata: TestCommandMetadata(),
             pipelineType: "test"
         )
         

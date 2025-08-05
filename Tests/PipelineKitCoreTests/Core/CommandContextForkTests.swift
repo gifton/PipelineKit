@@ -48,7 +48,7 @@ final class CommandContextForkTests: XCTestCase {
     
     func testContextForkSharesMetadata() {
         // Given
-        let metadata = StandardCommandMetadata(userId: "test-user")
+        let metadata = TestCommandMetadata(userId: "test-user")
         let original = CommandContext(metadata: metadata)
         
         // When

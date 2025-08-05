@@ -171,7 +171,7 @@ public actor AsyncSemaphore {
             }
         } onCancel: { [weak self] in
             // Handle task cancellation
-            Task {
+            Task { [weak self] in
                 await self?.handleCancellation()
             }
         }

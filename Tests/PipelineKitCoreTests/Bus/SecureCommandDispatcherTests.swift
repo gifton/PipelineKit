@@ -57,7 +57,7 @@ final class SecureCommandDispatcherTests: XCTestCase {
             let command = TestCommand(value: "test-\(i)")
             let result = try await dispatcher.dispatch(
                 command,
-                metadata: StandardCommandMetadata(userId: "user1")
+                metadata: TestCommandMetadata(userId: "user1")
             )
             XCTAssertEqual(result, "Handled: test-\(i)")
         }
@@ -67,7 +67,7 @@ final class SecureCommandDispatcherTests: XCTestCase {
             let command = TestCommand(value: "test-6")
             _ = try await dispatcher.dispatch(
                 command,
-                metadata: StandardCommandMetadata(userId: "user1")
+                metadata: TestCommandMetadata(userId: "user1")
             )
             XCTFail("Expected rate limit error")
         } catch let error as PipelineError {
@@ -82,7 +82,7 @@ final class SecureCommandDispatcherTests: XCTestCase {
         let command = TestCommand(value: "test-user2")
         let result = try await dispatcher.dispatch(
             command,
-            metadata: StandardCommandMetadata(userId: "user2")
+            metadata: TestCommandMetadata(userId: "user2")
         )
         XCTAssertEqual(result, "Handled: test-user2")
     }

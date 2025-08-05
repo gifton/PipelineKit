@@ -207,7 +207,7 @@ final class MemoryConcurrencyIntegrationTests: XCTestCase {
                     for i in 0..<100 {
                         group.addTask {
                             do {
-                                let metadata = StandardCommandMetadata(
+                                let metadata = TestCommandMetadata(
                                     userId: "test-user-\(i)",
                                     correlationId: UUID().uuidString
                                 )

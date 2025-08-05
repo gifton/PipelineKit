@@ -5,6 +5,8 @@ public actor TestCounter {
     private var value: Int = 0
     private var values: [Int] = []
     
+    public init() {}
+    
     /// Increment the counter and return the new value
     public func increment() -> Int {
         value += 1
@@ -55,6 +57,8 @@ public actor TestCounter {
 public actor ExecutionOrderTracker {
     private var order: [String] = []
     private var timestamps: [(String, Date)] = []
+    
+    public init() {}
     
     /// Record an execution event
     public func recordExecution(_ event: String) {

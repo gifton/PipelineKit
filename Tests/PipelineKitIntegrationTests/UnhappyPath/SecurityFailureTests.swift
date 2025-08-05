@@ -26,7 +26,7 @@ final class SecurityFailureTests: XCTestCase {
         
         let middleware = RateLimitingMiddleware(limiter: rateLimiter)
         let command = SecurityTestCommand(value: "test")
-        let metadata = StandardCommandMetadata()
+        let metadata = TestCommandMetadata()
         
         // First two requests should succeed
         let context = CommandContext(metadata: metadata)
@@ -59,7 +59,7 @@ final class SecurityFailureTests: XCTestCase {
         
         // Simulate rapid requests from same user
         let command = SecurityTestCommand(value: "test")
-        let metadata = StandardCommandMetadata(userId: "user123")
+        let metadata = TestCommandMetadata(userId: "user123")
         let context = CommandContext(metadata: metadata)
         
         // First request consumes the token
@@ -140,7 +140,7 @@ final class SecurityFailureTests: XCTestCase {
         
         // Now test through middleware
         let middleware = ValidationMiddleware()
-        let context = CommandContext(metadata: StandardCommandMetadata())
+        let context = CommandContext(metadata: TestCommandMetadata())
         
         do {
             _ = try await middleware.execute(command, context: context) { _, _ in
@@ -179,7 +179,7 @@ final class SecurityFailureTests: XCTestCase {
         
         print("About to call middleware.execute")
         do {
-            let context = CommandContext(metadata: StandardCommandMetadata())
+            let context = CommandContext(metadata: TestCommandMetadata())
             let result = try await middleware.execute(xssCommand, context: context) { _, _ in
                 print("Next handler called - this shouldn't happen")
                 return "success"
@@ -204,7 +204,7 @@ final class SecurityFailureTests: XCTestCase {
         let sqlInjectionCommand = ValidatableMaliciousCommand(input: "'; DROP TABLE users; --")
         
         do {
-            let context = CommandContext(metadata: StandardCommandMetadata())
+            let context = CommandContext(metadata: TestCommandMetadata())
             _ = try await middleware.execute(sqlInjectionCommand, context: context) { _, _ in "success" }
             XCTFail("SQL injection validation should fail")
         } catch let error as PipelineError {
@@ -222,7 +222,7 @@ final class SecurityFailureTests: XCTestCase {
         let largeDataCommand = ValidatableMaliciousCommand(input: String(repeating: "A", count: 10000))
         
         do {
-            let context = CommandContext(metadata: StandardCommandMetadata())
+            let context = CommandContext(metadata: TestCommandMetadata())
             _ = try await middleware.execute(largeDataCommand, context: context) { _, _ in "success" }
             XCTFail("Large data validation should fail")
         } catch let error as PipelineError {
@@ -250,7 +250,7 @@ final class SecurityFailureTests: XCTestCase {
         )
         
         let command = SecurityTestCommand(value: "sensitive_action")
-        let unauthorizedMetadata = StandardCommandMetadata(userId: "unauthorized_user")
+        let unauthorizedMetadata = TestCommandMetadata(userId: "unauthorized_user")
         let unauthorizedContext = CommandContext(metadata: unauthorizedMetadata)
         
         // Need to set authenticated user in context for authorization middleware
@@ -283,7 +283,7 @@ final class SecurityFailureTests: XCTestCase {
         )
         
         let adminCommand = AdminCommand(action: "delete_all_users")
-        let regularUserMetadata = StandardCommandMetadata(userId: "regular_user")
+        let regularUserMetadata = TestCommandMetadata(userId: "regular_user")
         let regularUserContext = CommandContext(metadata: regularUserMetadata)
         
         // Need to set authenticated user in context for authorization middleware
@@ -364,7 +364,7 @@ final class SecurityFailureTests: XCTestCase {
         
         for attempt in bypassAttempts {
             let command = SanitizableMaliciousCommand(input: attempt)
-            let context = CommandContext(metadata: StandardCommandMetadata())
+            let context = CommandContext(metadata: TestCommandMetadata())
             _ = try await middleware.execute(command, context: context) { sanitizedCmd, _ in
                 // The middleware should have called sanitize() on the command
                 let sanitized = sanitizedCmd.input
@@ -389,7 +389,7 @@ final class SecurityFailureTests: XCTestCase {
         )
         
         let command = SecurityTestCommand(value: "test")
-        let metadata = StandardCommandMetadata()
+        let metadata = TestCommandMetadata()
         
         // This should handle the file system error gracefully
         let entry = AuditEntry(
@@ -415,7 +415,7 @@ final class SecurityFailureTests: XCTestCase {
             bufferSize: 5 // Very small buffer
         )
         
-        let metadata = StandardCommandMetadata()
+        let metadata = TestCommandMetadata()
         
         // Generate more entries than buffer size
         for _ in 0..<10 {
@@ -447,7 +447,7 @@ final class SecurityFailureTests: XCTestCase {
         let attackTasks = (0..<100).map { _ in
             Task {
                 do {
-                    let context = CommandContext(metadata: StandardCommandMetadata())
+                    let context = CommandContext(metadata: TestCommandMetadata())
                     _ = try await middleware.execute(command, context: context) { _, _ in "success" }
                     return true
                 } catch {

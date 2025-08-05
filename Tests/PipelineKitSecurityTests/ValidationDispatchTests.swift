@@ -55,7 +55,7 @@ final class ValidationDispatchTests: XCTestCase {
     
     func testValidationThroughMiddleware() async throws {
         let middleware = ValidationMiddleware()
-        let context = CommandContext(metadata: StandardCommandMetadata())
+        let context = CommandContext(metadata: TestCommandMetadata())
         
         let command1 = TestValidationCommand(value: "valid")
         let command2 = TestValidationCommand(value: "")

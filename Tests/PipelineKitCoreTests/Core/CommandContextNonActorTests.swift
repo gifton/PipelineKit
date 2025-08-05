@@ -12,7 +12,7 @@ final class CommandContextNonActorTests: XCTestCase {
     
     func testContextIsNoLongerActor() {
         // This test verifies that CommandContext methods don't require await
-        let metadata = StandardCommandMetadata(
+        let metadata = TestCommandMetadata(
             userId: "test-user",
             correlationId: "test-123"
         )

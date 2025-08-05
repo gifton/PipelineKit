@@ -14,7 +14,7 @@ final class AuthenticationMiddlewareTests: XCTestCase {
         }
         
         let command = AuthTestCommand(value: "test")
-        let metadata = StandardCommandMetadata(userId: "valid-token")
+        let metadata = TestCommandMetadata(userId: "valid-token")
         let context = CommandContext(metadata: metadata)
         
         var middlewareExecuted = false
@@ -45,7 +45,7 @@ final class AuthenticationMiddlewareTests: XCTestCase {
         }
         
         let command = AuthTestCommand(value: "test")
-        let metadata = StandardCommandMetadata(userId: "invalid-token")
+        let metadata = TestCommandMetadata(userId: "invalid-token")
         let context = CommandContext(metadata: metadata)
         
         // When/Then
@@ -70,7 +70,7 @@ final class AuthenticationMiddlewareTests: XCTestCase {
         }
         
         let command = AuthTestCommand(value: "test")
-        let metadata = StandardCommandMetadata() // No userId
+        let metadata = TestCommandMetadata() // No userId
         let context = CommandContext(metadata: metadata)
         
         // When/Then
@@ -99,7 +99,7 @@ final class AuthenticationMiddlewareTests: XCTestCase {
         }
         
         let command = AuthTestCommand(value: "test")
-        let metadata = StandardCommandMetadata(userId: "api-key-user456")
+        let metadata = TestCommandMetadata(userId: "api-key-user456")
         let context = CommandContext(metadata: metadata)
         
         // When
@@ -134,7 +134,7 @@ final class AuthenticationMiddlewareTests: XCTestCase {
         let tasks = (0..<10).map { i in
             Task {
                 let command = AuthTestCommand(value: "test-\(i)")
-                let metadata = StandardCommandMetadata(userId: "valid-token")
+                let metadata = TestCommandMetadata(userId: "valid-token")
                 let context = CommandContext(metadata: metadata)
                 
                 return try await middleware.execute(command, context: context) { cmd, ctx in

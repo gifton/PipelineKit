@@ -5,7 +5,6 @@ on:
     paths:
       - 'Sources/**'
       - 'Tests/**'
-      - 'docker/**'
       - '.github/workflows/integration-tests.yml'
   push:
     branches: [main]
@@ -18,26 +17,6 @@ jobs:
   integration-tests:
     name: Integration Tests
     runs-on: ubuntu-22.04
-    
-    services:
-      # Services are defined in docker-compose but we can also use GitHub services
-      otel-collector:
-        image: otel/opentelemetry-collector-contrib:0.96.0
-        ports:
-          - 4317:4317
-          - 8888:8888
-        options: >-
-          --health-cmd "wget --spider -q http://localhost:13133/"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-      
-      statsd:
-        image: graphiteapp/statsd:1.1.10-alpine
-        ports:
-          - 8125:8125/udp
-        env:
-          DEBUG: false
     
     steps:
     - uses: actions/checkout@v4
@@ -58,17 +37,9 @@ jobs:
     - name: Build
       run: swift build
     
-    - name: Run OpenTelemetry Integration Tests
+    - name: Run Integration Tests
       run: |
-        export DOCKER_HOST=localhost
-        swift test --filter "OpenTelemetryIntegrationTests" --enable-test-discovery
-      env:
-        CI: true
-        
-    - name: Run StatsD Integration Tests
-      run: |
-        export DOCKER_HOST=localhost
-        swift test --filter "StatsDIntegrationTests" --enable-test-discovery
+        swift test --filter "IntegrationTests" --enable-test-discovery
       env:
         CI: true
     
@@ -79,38 +50,3 @@ jobs:
         name: test-results
         path: |
           .build/testresults/
-          
-  integration-tests-docker:
-    name: Integration Tests (Docker Compose)
-    runs-on: ubuntu-22.04
-    
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Setup Swift
-      uses: swift-actions/setup-swift@v2
-      with:
-        swift-version: ${{ env.SWIFT_VERSION }}
-    
-    - name: Start services
-      run: |
-        cd docker/
-        make ci-up
-    
-    - name: Run Integration Tests
-      run: swift test --filter "IntegrationTests"
-      env:
-        CI: true
-        
-    - name: Collect logs on failure
-      if: failure()
-      run: |
-        cd docker/
-        make logs > docker-logs.txt
-        
-    - name: Upload logs
-      if: failure()
-      uses: actions/upload-artifact@v4
-      with:
-        name: docker-logs
-        path: docker/docker-logs.txt

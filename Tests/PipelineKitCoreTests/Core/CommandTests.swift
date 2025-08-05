@@ -35,7 +35,7 @@ final class CommandTests: XCTestCase {
     }
     
     func testCommandMetadata() async throws {
-        let metadata = StandardCommandMetadata(
+        let metadata = TestCommandMetadata(
             userId: "test-user",
             correlationId: "test-correlation"
         )

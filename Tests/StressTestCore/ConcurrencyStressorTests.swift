@@ -1,7 +1,7 @@
 import XCTest
 import Foundation
 @testable import PipelineKit
-@testable import StressTestSupport
+@testable import StressTesting
 
 // NOTE: These tests require PipelineKitStressTest types which have been
 // moved to a separate package. They should be moved to that package's test suite.

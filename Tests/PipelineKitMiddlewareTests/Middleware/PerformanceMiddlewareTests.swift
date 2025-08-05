@@ -81,7 +81,7 @@ final class PerformanceMiddlewareTests: XCTestCase {
         )
         
         let command = PerfTestCommand(value: "test")
-        let metadata = StandardCommandMetadata(userId: "user-123")
+        let metadata = TestCommandMetadata(userId: "user-123")
         let context = CommandContext(metadata: metadata)
         
         // When
