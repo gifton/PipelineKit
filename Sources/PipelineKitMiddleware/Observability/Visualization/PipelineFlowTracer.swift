@@ -1,6 +1,8 @@
 import Foundation
 #if canImport(Darwin)
-@preconcurrency import Darwin
+import Darwin
+// Cache mach_task_self_ at module initialization to avoid concurrency warnings
+private let machTaskSelf: mach_port_t = mach_task_self_
 #endif
 import PipelineKitCore
 
@@ -460,7 +462,7 @@ public actor PipelineFlowTracer {
         
         let kerr: kern_return_t = withUnsafeMutablePointer(to: &info) {
             $0.withMemoryRebound(to: integer_t.self, capacity: 1) { infoPtr in
-                task_info(mach_task_self_,
+                task_info(machTaskSelf,
                          task_flavor_t(MACH_TASK_BASIC_INFO),
                          infoPtr,
                          &count)
