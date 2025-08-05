@@ -441,7 +441,7 @@ public actor BackPressureAsyncSemaphore {
         }
     }
     
-    /// Legacy token release method - now just calls fast path.
+    /// Releases a semaphore token.
     internal func releaseToken(_ token: SemaphoreToken) {
         // Remove from active tracking if present
         activeTokens.remove(token.id)

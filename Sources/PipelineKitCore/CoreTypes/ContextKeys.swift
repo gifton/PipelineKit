@@ -56,28 +56,4 @@ public enum ContextKeys {
         public typealias Value = Set<String>
     }
     
-    // MARK: - Namespace Aliases (for backwards compatibility)
-    
-    /// Authentication-related context keys
-    public enum Auth {
-        public typealias UserID = AuthUserID
-        public typealias Roles = AuthRoles
-    }
-    
-    /// Request-related context keys
-    public enum Request {
-        public typealias StartTime = RequestStartTime
-        public typealias RequestID = ContextKeys.RequestID
-    }
-    
-    /// Tracing and observability context keys
-    public enum Tracing {
-        public typealias TraceID = TracingTraceID
-        public typealias ServiceName = TracingServiceName
-    }
-    
-    /// Feature flag context keys
-    public enum Features {
-        public typealias Flags = FeaturesFlags
-    }
 }

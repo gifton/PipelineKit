@@ -26,12 +26,12 @@ public struct AuthorizationMiddleware: Middleware {
         }
         
         // Get authenticated user from context
-        guard let userId = context[ContextKeys.Auth.UserID.self] else {
+        guard let userId = context[ContextKeys.AuthUserID.self] else {
             throw PipelineError.authorization(reason: .invalidCredentials)
         }
 
         let userRoles = try await getUserRoles(userId)
-        context.set(userRoles, for: ContextKeys.Auth.Roles.self)
+        context.set(userRoles, for: ContextKeys.AuthRoles.self)
 
         // Check if user has all required roles
         guard requiredRoles.isSubset(of: userRoles) else {

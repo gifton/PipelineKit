@@ -289,11 +289,11 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: Pipeline where H.C
     
     /// Initializes standard context values if not already set.
     private func initializeContextIfNeeded(_ context: CommandContext) {
-        if context.get(ContextKeys.Request.RequestID.self) == nil {
-            context.set(UUID().uuidString, for: ContextKeys.Request.RequestID.self)
+        if context.get(ContextKeys.RequestID.self) == nil {
+            context.set(UUID().uuidString, for: ContextKeys.RequestID.self)
         }
-        if context.get(ContextKeys.Request.StartTime.self) == nil {
-            context.set(Date(), for: ContextKeys.Request.StartTime.self)
+        if context.get(ContextKeys.RequestStartTime.self) == nil {
+            context.set(Date(), for: ContextKeys.RequestStartTime.self)
         }
     }
     

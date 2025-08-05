@@ -16,7 +16,7 @@ public struct SimpleMetricsMiddleware: Middleware {
         context: CommandContext,
         next: @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
-        let startTime = context[ContextKeys.Request.StartTime.self] ?? Date()
+        let startTime = context[ContextKeys.RequestStartTime.self] ?? Date()
 
         do {
             let result = try await next(command, context)

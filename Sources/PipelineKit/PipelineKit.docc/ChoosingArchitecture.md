@@ -197,20 +197,6 @@ class PublicAPI {
 - **Pipeline**: Linear with number of command types
 - **CommandBus**: Constant regardless of command types
 
-## Migration Path
-
-If you're currently using CommandBusBuilder, migrate to direct CommandBus usage:
-
-```swift
-// Old approach (removed)
-let builder = CommandBusBuilder()
-await builder.with(CreateUserCommand.self, handler: CreateUserHandler())
-let bus = await builder.build()
-
-// New approach
-let bus = CommandBus()
-await bus.register(CreateUserCommand.self, handler: CreateUserHandler())
-```
 
 ## Summary
 

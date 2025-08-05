@@ -1,6 +1,6 @@
 import Foundation
 #if canImport(Darwin)
-import Darwin
+@preconcurrency import Darwin
 #endif
 import PipelineKitCore
 
@@ -242,12 +242,10 @@ public struct PerformanceTrackingMiddleware: Middleware {
         
         let kerr: kern_return_t = withUnsafeMutablePointer(to: &info) {
             $0.withMemoryRebound(to: integer_t.self, capacity: 1) { infoPtr in
-                // Access mach_task_self_ in a concurrency-safe way
-                let port = mach_task_self_
-                return task_info(port,
-                                task_flavor_t(MACH_TASK_BASIC_INFO),
-                                infoPtr,
-                                &count)
+                task_info(mach_task_self_,
+                         task_flavor_t(MACH_TASK_BASIC_INFO),
+                         infoPtr,
+                         &count)
             }
         }
         
