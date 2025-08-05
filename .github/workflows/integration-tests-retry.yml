@@ -1,0 +1,77 @@
+name: Integration Tests (With Retry)
+
+on:
+  pull_request:
+    paths:
+      - 'Sources/**'
+      - 'Tests/**'
+      - '.github/workflows/integration-tests-retry.yml'
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  SWIFT_VERSION: '5.10'
+
+jobs:
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-22.04
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Swift (Attempt 1)
+      id: swift1
+      continue-on-error: true
+      uses: swift-actions/setup-swift@v2
+      with:
+        swift-version: ${{ env.SWIFT_VERSION }}
+    
+    - name: Setup Swift (Attempt 2)
+      if: steps.swift1.outcome == 'failure'
+      id: swift2
+      continue-on-error: true
+      uses: swift-actions/setup-swift@v2
+      with:
+        swift-version: ${{ env.SWIFT_VERSION }}
+    
+    - name: Setup Swift (Attempt 3 - Docker Fallback)
+      if: steps.swift2.outcome == 'failure'
+      run: |
+        docker pull swift:5.10-jammy
+        echo "Using Docker Swift image as fallback"
+    
+    - name: Cache Swift packages
+      uses: actions/cache@v4
+      with:
+        path: .build
+        key: ${{ runner.os }}-spm-${{ hashFiles('**/Package.resolved') }}
+        restore-keys: |
+          ${{ runner.os }}-spm-
+    
+    - name: Build
+      run: |
+        if [ "${{ steps.swift2.outcome }}" == "failure" ]; then
+          docker run --rm -v $PWD:/workspace -w /workspace swift:5.10-jammy swift build
+        else
+          swift build
+        fi
+    
+    - name: Run Integration Tests
+      run: |
+        if [ "${{ steps.swift2.outcome }}" == "failure" ]; then
+          docker run --rm -v $PWD:/workspace -w /workspace swift:5.10-jammy swift test --filter "IntegrationTests" --enable-test-discovery
+        else
+          swift test --filter "IntegrationTests" --enable-test-discovery
+        fi
+      env:
+        CI: true
+    
+    - name: Upload test results
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results
+        path: |
+          .build/testresults/

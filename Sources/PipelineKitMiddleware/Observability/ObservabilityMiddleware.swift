@@ -1,8 +1,6 @@
 import Foundation
 #if canImport(Darwin)
 import Darwin
-// Cache mach_task_self_ at module initialization to avoid concurrency warnings
-private let machTaskSelf: mach_port_t = mach_task_self_
 #endif
 import PipelineKitCore
 
@@ -242,9 +240,12 @@ public struct PerformanceTrackingMiddleware: Middleware {
         var info = mach_task_basic_info()
         var count = mach_msg_type_number_t(MemoryLayout<mach_task_basic_info>.size) / 4
         
+        // Access mach_task_self_ locally to avoid concurrency warnings
+        let port = mach_task_self_
+        
         let kerr: kern_return_t = withUnsafeMutablePointer(to: &info) {
             $0.withMemoryRebound(to: integer_t.self, capacity: 1) { infoPtr in
-                task_info(machTaskSelf,
+                task_info(port,
                          task_flavor_t(MACH_TASK_BASIC_INFO),
                          infoPtr,
                          &count)
