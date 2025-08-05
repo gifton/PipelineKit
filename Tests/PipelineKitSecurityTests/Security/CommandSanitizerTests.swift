@@ -2,7 +2,6 @@ import XCTest
 @testable import PipelineKit
 
 final class CommandSanitizerTests: XCTestCase {
-    
     // MARK: - HTML Sanitization Tests
     
     func testSanitizeHTMLRemovesScriptTags() {

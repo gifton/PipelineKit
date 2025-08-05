@@ -3,7 +3,6 @@ import XCTest
 
 /// Benchmarks to measure memory pool performance and hit rates
 final class MemoryPoolBenchmarkTests: XCTestCase {
-    
     // MARK: - Test Types
     
     private struct StringKey: ContextKey {
@@ -43,8 +42,8 @@ final class MemoryPoolBenchmarkTests: XCTestCase {
                         _ = await pool.createMeasurement(
                             commandName: "TestCommand-\(i)",
                             executionTime: 0.001,
-                            isSuccess: i % 10 != 0,
-                            errorMessage: i % 10 == 0 ? "Test error" : nil,
+                            isSuccess: !i.isMultiple(of: 10),
+                            errorMessage: i.isMultiple(of: 10) ? "Test error" : nil,
                             metrics: ["iteration": .int(i)]
                         )
                     }
@@ -62,8 +61,8 @@ final class MemoryPoolBenchmarkTests: XCTestCase {
         print("High water mark: \(stats.highWaterMark)")
         
         // Calculate hit rate manually
-        let hitRate = stats.totalBorrows > 0 
-            ? Double(stats.totalBorrows - stats.totalCreated) / Double(stats.totalBorrows) 
+        let hitRate = stats.totalBorrows > 0
+            ? Double(stats.totalBorrows - stats.totalCreated) / Double(stats.totalBorrows)
             : 0.0
         print("Hit rate: \(String(format: "%.1f", hitRate * 100))%")
         print("Pool efficiency: \(String(format: "%.1f", Double(stats.totalCreated) / Double(iterations) * 100))%")

@@ -2,7 +2,6 @@ import XCTest
 @testable import PipelineKit
 
 final class PerformanceThresholdTests: XCTestCase {
-    
     func testDefaultThresholds() {
         let thresholds = PerformanceThresholds.default
         

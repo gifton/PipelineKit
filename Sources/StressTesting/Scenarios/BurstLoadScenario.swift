@@ -8,7 +8,6 @@ import Foundation
 /// 3. Recovery period (return to low load)
 @MainActor
 public final class BurstLoadScenario: BaseScenario {
-    
     // Timing configuration
     public let idleDuration: TimeInterval
     public let spikeDuration: TimeInterval

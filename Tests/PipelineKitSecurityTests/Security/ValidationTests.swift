@@ -2,9 +2,8 @@ import XCTest
 @testable import PipelineKit
 
 final class ValidationTests: XCTestCase {
-    
     // Test command with validation
-    struct CreateUserCommand: Command {
+    private struct CreateUserCommand: Command {
         typealias Result = String
         
         let email: String

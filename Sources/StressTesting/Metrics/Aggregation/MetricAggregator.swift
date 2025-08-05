@@ -175,7 +175,7 @@ public actor MetricAggregator {
         // Group by metric name and type
         let grouped = Dictionary(grouping: result) { $0.name }
         
-        return grouped.map { (name, metrics) in
+        return grouped.map { name, metrics in
             let metric = metrics.first!
             return MetricInfo(
                 name: name,
@@ -268,9 +268,9 @@ public struct AggregationStatistics: Sendable {
 
 // MARK: - Integration Helpers
 
-extension MetricAggregator {
+public extension MetricAggregator {
     /// Creates an aggregator integrated with a MetricCollector.
-    public static func integrated(
+    static func integrated(
         with collector: MetricCollector,
         configuration: Configuration = Configuration()
     ) async -> MetricAggregator {

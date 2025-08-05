@@ -4,7 +4,6 @@ import XCTest
 import PipelineKitTestSupport
 
 final class CachingMiddlewareTests: XCTestCase {
-    
     func testCacheHit() async throws {
         // Given
         let cache = InMemoryCache(maxSize: 100)

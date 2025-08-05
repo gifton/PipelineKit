@@ -1,5 +1,4 @@
 import PipelineKitMiddleware
-import PipelineKitMiddleware
 import Foundation
 
 /// Result of querying aggregated metrics for a specific time window.

@@ -2,7 +2,6 @@ import XCTest
 @testable import PipelineKit
 
 final class AuthorizationMiddlewareTests: XCTestCase {
-    
     func testSuccessfulAuthorization() async throws {
         // Given
         let middleware = AuthorizationMiddleware(
@@ -25,7 +24,7 @@ final class AuthorizationMiddlewareTests: XCTestCase {
         let handlerExecutedBox = Box(value: false)
         
         // When
-        let result = try await middleware.execute(command, context: context) { cmd, ctx in
+        let result = try await middleware.execute(command, context: context) { cmd, _ in
             handlerExecutedBox.value = true
             return cmd.value
         }
@@ -39,7 +38,7 @@ final class AuthorizationMiddlewareTests: XCTestCase {
         // Given
         let middleware = AuthorizationMiddleware(
             requiredRoles: ["admin"],
-            getUserRoles: { userId in
+            getUserRoles: { _ in
                 return ["user"] // User doesn't have admin role
             }
         )
@@ -189,7 +188,7 @@ final class AuthorizationMiddlewareTests: XCTestCase {
             Task {
                 let command = AuthzTestCommand(value: "test-\(i)")
                 let context = CommandContext()
-                let userId = i % 2 == 0 ? "valid-user-\(i)" : "invalid-user-\(i)"
+                let userId = i.isMultiple(of: 2) ? "valid-user-\(i)" : "invalid-user-\(i)"
                 context.set(userId, for: ContextKeys.Auth.UserID.self)
                 
                 do {
@@ -206,7 +205,7 @@ final class AuthorizationMiddlewareTests: XCTestCase {
         var successCount = 0
         for (i, task) in tasks.enumerated() {
             let result = await task.value
-            if i % 2 == 0 {
+            if i.isMultiple(of: 2) {
                 XCTAssertEqual(result, "test-\(i)")
                 successCount += 1
             } else {

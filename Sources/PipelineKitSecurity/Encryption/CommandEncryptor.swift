@@ -56,9 +56,13 @@ public actor CommandEncryptor {
         
         let sealed = try AES.GCM.seal(sensitiveData, using: currentKey)
         
+        guard let combinedData = sealed.combined else {
+            throw PipelineError.encryption(reason: .encryptionFailed("Failed to create sealed box"))
+        }
+        
         return EncryptedCommand(
             originalCommand: command,
-            encryptedData: sealed.combined!,
+            encryptedData: combinedData,
             keyIdentifier: await keyStore.currentKeyIdentifier ?? "default",
             algorithm: "AES-GCM-256"
         )

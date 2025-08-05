@@ -244,7 +244,7 @@ struct PipelineBenchmark {
     }
     
     struct PassthroughMiddleware: Middleware {
-        func execute<T>(_ command: T, context: PipelineKitCore.CommandContext, next: @Sendable (T, PipelineKitCore.CommandContext) async throws -> T.Result) async throws -> T.Result where T : PipelineKitCore.Command {
+        func execute<T>(_ command: T, context: PipelineKitCore.CommandContext, next: @Sendable (T, PipelineKitCore.CommandContext) async throws -> T.Result) async throws -> T.Result where T: PipelineKitCore.Command {
             return try await next(command, context)
         }
     }
@@ -328,7 +328,7 @@ extension CommandContextBenchmark: SimpleBenchmark {}
 extension PipelineBenchmark: SimpleBenchmark {}
 
 @main
-struct BenchmarkMain {
+enum BenchmarkMain {
     static func main() async throws {
         let arguments = CommandLine.arguments
         var quick = false

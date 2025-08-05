@@ -3,7 +3,6 @@ import XCTest
 @testable import StressTestSupport
 
 final class BasicStressTestTests: XCTestCase {
-    
     func testSafetyMonitorInitialization() async throws {
         // Test that we can create a safety monitor
         let monitor = DefaultSafetyMonitor()

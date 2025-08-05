@@ -6,7 +6,6 @@ import Foundation
 /// operations, helping identify memory leaks, excessive allocations, and optimization
 /// opportunities.
 public actor MemoryProfiler {
-    
     // MARK: - Types
     
     /// A snapshot of memory state at a point in time
@@ -30,8 +29,12 @@ public actor MemoryProfiler {
         public let count: Int
         public let totalSize: Int
         
+        public var isEmpty: Bool {
+            count == 0
+        }
+        
         public var averageSize: Int {
-            count > 0 ? totalSize / count : 0
+            !isEmpty ? totalSize / count : 0
         }
     }
     
@@ -96,7 +99,7 @@ public actor MemoryProfiler {
         
         // Calculate statistics
         let peakMemory = snapshots.map { $0.residentMemory }.max() ?? 0
-        let averageMemory = snapshots.isEmpty ? 0 : 
+        let averageMemory = snapshots.isEmpty ? 0 :
             snapshots.map { $0.residentMemory }.reduce(0, +) / UInt64(snapshots.count)
         
         let memoryGrowth = Int64(snapshots.last?.residentMemory ?? 0) - Int64(baselineMemory)
@@ -197,7 +200,7 @@ public actor MemoryProfiler {
         // Calculate deltas
         var deltas: [Int64] = []
         for i in 1..<snapshots.count {
-            let delta = Int64(snapshots[i].residentMemory) - Int64(snapshots[i-1].residentMemory)
+            let delta = Int64(snapshots[i].residentMemory) - Int64(snapshots[i - 1].residentMemory)
             deltas.append(delta)
         }
         
@@ -220,7 +223,7 @@ public actor MemoryProfiler {
     
     private func getCurrentMemoryInfo() -> (resident: UInt64, virtual: UInt64) {
         var info = mach_task_basic_info()
-        var count = mach_msg_type_number_t(MemoryLayout<mach_task_basic_info>.size)/4
+        var count = mach_msg_type_number_t(MemoryLayout<mach_task_basic_info>.size) / 4
         
         let kerr: kern_return_t = withUnsafeMutablePointer(to: &info) {
             $0.withMemoryRebound(to: integer_t.self, capacity: 1) {

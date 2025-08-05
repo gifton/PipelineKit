@@ -4,15 +4,14 @@ import XCTest
 // MARK: - Simple Observability Tests
 
 final class ObservabilitySimpleTests: XCTestCase {
-    
     // MARK: - Test Commands
     
-    struct TestCommand: Command {
+    private struct TestCommand: Command {
         typealias Result = String
         let value: String
     }
     
-    struct TestHandler: CommandHandler {
+    private struct TestHandler: CommandHandler {
         typealias CommandType = TestCommand
         
         func handle(_ command: TestCommand) async throws -> String {
@@ -22,7 +21,7 @@ final class ObservabilitySimpleTests: XCTestCase {
     
     // MARK: - Test Observer
     
-    final class TestObserver: PipelineObserver, @unchecked Sendable {
+    private final class TestObserver: PipelineObserver, @unchecked Sendable {
         var events: [(type: String, details: String)] = []
         
         func pipelineWillExecute<T: Command>(_ command: T, metadata: CommandMetadata, pipelineType: String) async {

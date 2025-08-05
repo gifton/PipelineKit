@@ -3,7 +3,6 @@ import XCTest
 @testable import PipelineKitMiddleware
 
 final class PerformanceMeasurementPoolTests: XCTestCase {
-    
     func testBasicCreateMeasurement() async {
         // Given
         let pool = PerformanceMeasurementPool(maxSize: 10)
@@ -99,7 +98,7 @@ final class PerformanceMeasurementPoolTests: XCTestCase {
             
             // Then
             XCTAssertEqual(measurements.count, iterations)
-            for (_, measurement) in measurements.enumerated() {
+            for measurement in measurements {
                 XCTAssertEqual(measurement.executionTime, 0.001)
                 XCTAssertTrue(measurement.isSuccess)
             }

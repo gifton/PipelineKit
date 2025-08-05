@@ -3,8 +3,7 @@ import XCTest
 import PipelineKitTestSupport
 
 final class PipelineTests: XCTestCase {
-    
-    struct TransformCommand: Command {
+    private struct TransformCommand: Command {
         typealias Result = String
         let input: String
         
@@ -13,7 +12,7 @@ final class PipelineTests: XCTestCase {
         }
     }
     
-    struct TransformHandler: CommandHandler {
+    private struct TransformHandler: CommandHandler {
         typealias CommandType = TransformCommand
         
         func handle(_ command: TransformCommand) async throws -> String {
@@ -21,7 +20,7 @@ final class PipelineTests: XCTestCase {
         }
     }
     
-    struct AppendMiddleware: Middleware {
+    private struct AppendMiddleware: Middleware {
         let suffix: String
         let priority: ExecutionPriority
         
@@ -33,13 +32,15 @@ final class PipelineTests: XCTestCase {
             let result = try await next(command, context)
             if var stringResult = result as? String {
                 stringResult += suffix
-                return stringResult as! T.Result
+                if let typedResult = stringResult as? T.Result {
+                    return typedResult
+                }
             }
             return result
         }
     }
     
-    struct DelayMiddleware: Middleware {
+    private struct DelayMiddleware: Middleware {
         let delay: TimeInterval
         let priority: ExecutionPriority = .custom
         

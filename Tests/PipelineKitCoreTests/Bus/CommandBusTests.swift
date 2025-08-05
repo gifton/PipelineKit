@@ -2,14 +2,13 @@ import XCTest
 @testable import PipelineKit
 
 final class CommandBusTests: XCTestCase {
-    
-    struct AddNumbersCommand: Command {
+    private struct AddNumbersCommand: Command {
         typealias Result = Int
         let a: Int
         let b: Int
     }
     
-    struct AddNumbersHandler: CommandHandler {
+    private struct AddNumbersHandler: CommandHandler {
         typealias CommandType = AddNumbersCommand
         
         func handle(_ command: AddNumbersCommand) async throws -> Int {
@@ -17,13 +16,13 @@ final class CommandBusTests: XCTestCase {
         }
     }
     
-    struct MultiplyCommand: Command {
+    private struct MultiplyCommand: Command {
         typealias Result = Int
         let value: Int
         let multiplier: Int
     }
     
-    struct MultiplyHandler: CommandHandler {
+    private struct MultiplyHandler: CommandHandler {
         typealias CommandType = MultiplyCommand
         
         func handle(_ command: MultiplyCommand) async throws -> Int {
@@ -31,7 +30,7 @@ final class CommandBusTests: XCTestCase {
         }
     }
     
-    struct LoggingMiddleware: Middleware {
+    private struct LoggingMiddleware: Middleware {
         let logs: Actor<[String]>
         let priority: ExecutionPriority = .postProcessing
         
@@ -52,7 +51,7 @@ final class CommandBusTests: XCTestCase {
         }
     }
     
-    actor Actor<T: Sendable>: Sendable {
+    private actor Actor <T: Sendable> {
         private var value: T
         
         init(_ value: T) {

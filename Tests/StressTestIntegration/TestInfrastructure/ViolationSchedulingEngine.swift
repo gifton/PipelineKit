@@ -7,7 +7,6 @@ import Foundation
 /// ViolationSchedulingEngine provides deterministic scheduling of safety violations
 /// with support for various trigger types and resource usage patterns.
 actor ViolationSchedulingEngine {
-    
     // MARK: - State
     
     /// Currently scheduled violations awaiting trigger

@@ -5,7 +5,6 @@ import XCTest
 
 /// End-to-end integration tests that verify complete system functionality
 final class EndToEndIntegrationTests: XCTestCase {
-    
     // MARK: - Complete Pipeline Integration Test
     
     func testCompleteOrderProcessingPipeline() async throws {
@@ -26,7 +25,7 @@ final class EndToEndIntegrationTests: XCTestCase {
         pipeline.use(AuditLoggingMiddleware(logger: MockAuditLogger()))
         
         // Register handler
-        pipeline.registerHandler { (command: CreateOrderCommand, context: Context) in
+        pipeline.registerHandler { (command: CreateOrderCommand, _: Context) in
             // Simulate order creation
             return Order(
                 id: UUID().uuidString,
@@ -91,7 +90,7 @@ final class EndToEndIntegrationTests: XCTestCase {
         
         let notificationPipeline = StandardPipeline()
         notificationPipeline.use(NotificationMiddleware())
-        notificationPipeline.registerHandler { (command: SendNotificationCommand, context: Context) in
+        notificationPipeline.registerHandler { (_: SendNotificationCommand, _: Context) in
             NotificationResult(success: true, messageId: UUID().uuidString)
         }
         
@@ -135,7 +134,7 @@ final class EndToEndIntegrationTests: XCTestCase {
         pipeline.use(MetricsMiddleware())
         
         let executionCounter = ThreadSafeCounter()
-        pipeline.registerHandler { (command: WorkCommand, context: Context) in
+        pipeline.registerHandler { (command: WorkCommand, _: Context) in
             await executionCounter.increment()
             // Simulate work
             try await Task.sleep(nanoseconds: UInt64.random(in: 10_000_000...50_000_000))
@@ -194,7 +193,7 @@ final class EndToEndIntegrationTests: XCTestCase {
         pipeline.use(ErrorTransformationMiddleware())
         
         var attemptCount = 0
-        pipeline.registerHandler { (command: UnreliableCommand, context: Context) -> String in
+        pipeline.registerHandler { (_: UnreliableCommand, _: Context) -> String in
             attemptCount += 1
             
             // Fail first 2 attempts
@@ -217,7 +216,7 @@ final class EndToEndIntegrationTests: XCTestCase {
         
         // Test circuit breaker opens after failures
         attemptCount = 0
-        pipeline.registerHandler { (command: UnreliableCommand, context: Context) -> String in
+        pipeline.registerHandler { (_: UnreliableCommand, _: Context) -> String in
             throw ServiceError.permanentFailure
         }
         
@@ -257,7 +256,7 @@ final class EndToEndIntegrationTests: XCTestCase {
         pipeline.use(MemoryAwareMiddleware(memoryHandler: memoryHandler, pool: objectPool))
         pipeline.use(BatchingMiddleware(batchSize: 10))
         
-        pipeline.registerHandler { (command: ProcessLargeDataCommand, context: Context) in
+        pipeline.registerHandler { (command: ProcessLargeDataCommand, _: Context) in
             let processor = await objectPool.acquire()
             defer {
                 Task {
@@ -377,7 +376,7 @@ final class EndToEndIntegrationTests: XCTestCase {
         pipeline.use(AuditLoggingMiddleware(logger: MockAuditLogger()))
         
         // Register handlers for different command types
-        pipeline.registerHandler { (command: CreateOrderCommand, context: Context) in
+        pipeline.registerHandler { (command: CreateOrderCommand, _: Context) in
             Order(
                 id: UUID().uuidString,
                 userId: command.userId,
@@ -387,7 +386,7 @@ final class EndToEndIntegrationTests: XCTestCase {
             )
         }
         
-        pipeline.registerHandler { (command: ProcessDataCommand, context: Context) in
+        pipeline.registerHandler { (command: ProcessDataCommand, _: Context) in
             ProcessedData(
                 originalData: command.data,
                 transformedData: "transformed-\(command.data)",
@@ -396,7 +395,7 @@ final class EndToEndIntegrationTests: XCTestCase {
             )
         }
         
-        pipeline.registerHandler { (command: QueryCommand, context: Context) in
+        pipeline.registerHandler { (_: QueryCommand, _: Context) in
             QueryResult(data: ["result": "success"], count: 1)
         }
         

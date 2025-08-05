@@ -228,13 +228,13 @@ public struct OpenTelemetryExportConfiguration: ExportConfiguration, Sendable {
     public let compression: CompressionType
     
     public enum ExportFormat: String, Sendable {
-        case json = "json"
-        case protobuf = "protobuf"
+        case json
+        case protobuf
     }
     
     public enum CompressionType: String, Sendable {
-        case none = "none"
-        case gzip = "gzip"
+        case none
+        case gzip
     }
     
     public init(

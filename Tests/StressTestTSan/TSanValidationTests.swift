@@ -4,7 +4,6 @@ import Foundation
 
 /// Basic tests to validate Thread Sanitizer configuration and detection
 final class TSanValidationTests: XCTestCase {
-    
     /// Test that TSan is properly configured and working
     /// This test intentionally creates a data race to verify TSan detection
     /// It should ONLY pass when TSan is disabled

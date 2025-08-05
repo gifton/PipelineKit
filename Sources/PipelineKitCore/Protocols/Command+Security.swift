@@ -1,10 +1,5 @@
 import Foundation
 
-/// Security extensions for the Command protocol.
-///
-/// These extensions provide opt-in security capabilities for commands
-/// without requiring separate protocol conformances.
-
 // MARK: - Validation
 
 public extension Command {

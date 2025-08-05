@@ -5,7 +5,6 @@ import Foundation
 /// ResourceTracker monitors various system resources to ensure proper cleanup
 /// and detect resource leaks that could affect test reliability.
 public actor ResourceTracker {
-    
     // MARK: - Tracked Resources
     
     private var trackedResources: [ResourceID: TrackedResource] = [:]
@@ -127,15 +126,13 @@ public actor ResourceTracker {
     public func collectGarbage() {
         var collected = 0
         
-        for (id, resource) in trackedResources {
-            if resource.weakReference.value == nil {
-                trackedResources.removeValue(forKey: id)
-                allocationOrder.removeAll { $0 == id }
-                collected += 1
-                
-                if !resource.deallocated {
-                    totalDeallocations += 1
-                }
+        for (id, resource) in trackedResources where resource.weakReference.value == nil {
+            trackedResources.removeValue(forKey: id)
+            allocationOrder.removeAll { $0 == id }
+            collected += 1
+            
+            if !resource.deallocated {
+                totalDeallocations += 1
             }
         }
         

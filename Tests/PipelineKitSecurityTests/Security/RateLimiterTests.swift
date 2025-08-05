@@ -218,7 +218,7 @@ final class RateLimiterTests: XCTestCase {
             }
             XCTFail("Expected rate limit error")
         } catch let error as PipelineError {
-            if case .rateLimitExceeded(_, _, _) = error {
+            if case .rateLimitExceeded = error {
                 // Expected
             } else {
                 XCTFail("Expected rate limit error, got \(error)")
@@ -364,7 +364,7 @@ final class RateLimiterTests: XCTestCase {
     
     // MARK: - Test Helpers
     
-    struct TestCommand: Command {
+    private struct TestCommand: Command {
         let value: String
         typealias Result = String
         
@@ -373,15 +373,15 @@ final class RateLimiterTests: XCTestCase {
         }
     }
     
-    struct ExpensiveCommand: Command {
+    private struct ExpensiveCommand: Command {
         typealias Result = Void
         
-        func execute() async throws -> Void {
+        func execute() async throws {
             return ()
         }
     }
     
-    actor LoadActor {
+    private actor LoadActor {
         private var load: Double = 0.0
         
         func setLoad(_ newLoad: Double) {

@@ -159,9 +159,9 @@ public enum ViolationPattern: Sendable, Equatable {
         case (.random(let lrange, let linterval), .random(let rrange, let rinterval)):
             return lrange == rrange && linterval == rinterval
         case (.stepped(let llevels), .stepped(let rlevels)):
-            return llevels.count == rlevels.count && 
+            return llevels.count == rlevels.count &&
                    llevels.enumerated().allSatisfy { index, level in
-                       rlevels[index].value == level.value && 
+                       rlevels[index].value == level.value &&
                        rlevels[index].duration == level.duration
                    }
         default:
@@ -349,13 +349,13 @@ public struct ViolationRecord: Sendable, Identifiable, Equatable {
 
 // MARK: - Factory Methods
 
-extension ScheduledViolation {
+public extension ScheduledViolation {
     /// Creates a memory spike violation scheduled after a delay.
     /// - Parameters:
     ///   - delay: Time to wait before triggering the spike.
     ///   - severity: The severity level (defaults to critical).
     /// - Returns: A configured scheduled violation.
-    public static func memorySpike(
+    static func memorySpike(
         after delay: TimeInterval,
         severity: ViolationSeverity = .critical
     ) -> ScheduledViolation {
@@ -373,7 +373,7 @@ extension ScheduledViolation {
     ///   - duration: How long to run the pattern.
     ///   - severity: The severity level (defaults to moderate).
     /// - Returns: A configured scheduled violation.
-    public static func cpuStress(
+    static func cpuStress(
         pattern: ViolationPattern,
         duration: TimeInterval,
         severity: ViolationSeverity = .moderate
@@ -391,7 +391,7 @@ extension ScheduledViolation {
     ///   - type: The type of violation.
     ///   - time: When to trigger the violation.
     /// - Returns: A configured scheduled violation.
-    public static func criticalFailure(
+    static func criticalFailure(
         type: TestDefaults.ViolationType,
         at time: Date
     ) -> ScheduledViolation {
@@ -410,7 +410,7 @@ extension ScheduledViolation {
     ///   - end: Ending usage percentage (0.0-1.0).
     ///   - duration: Time to transition from start to end.
     /// - Returns: A configured scheduled violation.
-    public static func gradualExhaustion(
+    static func gradualExhaustion(
         type: TestDefaults.ViolationType,
         from start: Double = 0.3,
         to end: Double = 0.95,

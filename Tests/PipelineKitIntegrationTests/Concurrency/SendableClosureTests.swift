@@ -5,7 +5,6 @@ import PipelineKitTestSupport
 // MARK: - Sendable Closure Tests
 
 final class SendableClosureTests: XCTestCase {
-    
     // MARK: - CommandBus Retry Tests
     
     func testCommandBusRetrySendableClosure() async throws {
@@ -256,9 +255,15 @@ private struct ConditionalMiddleware: Middleware, Sendable {
     
     func execute<T: Command>(_ command: T, context: CommandContext, next: @Sendable (T, CommandContext) async throws -> T.Result) async throws -> T.Result {
         let result = try await closure(command, context) { cmd, ctx in
-            try await next(cmd as! T, ctx)
+            guard let typedCommand = cmd as? T else {
+                throw PipelineError.executionFailed(message: "Command type mismatch", context: nil)
+            }
+            return try await next(typedCommand, ctx)
         }
-        return result as! T.Result
+        guard let typedResult = result as? T.Result else {
+            throw PipelineError.executionFailed(message: "Result type mismatch", context: nil)
+        }
+        return typedResult
     }
 }
 

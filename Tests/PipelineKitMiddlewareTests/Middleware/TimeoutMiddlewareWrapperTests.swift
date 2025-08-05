@@ -2,7 +2,6 @@ import XCTest
 @testable import PipelineKit
 
 final class TimeoutMiddlewareWrapperTests: XCTestCase {
-    
     // MARK: - Test Types
     
     private struct TestCommand: Command {

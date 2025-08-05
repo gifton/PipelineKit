@@ -667,9 +667,9 @@ public enum PipelineError: Error, Sendable, LocalizedError {
 
 // MARK: - Error Analysis Extensions
 
-extension PipelineError {
+public extension PipelineError {
     /// Whether this error is retryable
-    public var isRetryable: Bool {
+    var isRetryable: Bool {
         switch self {
         case .timeout, .rateLimitExceeded, .circuitBreakerOpen:
             return true
@@ -696,7 +696,7 @@ extension PipelineError {
     }
     
     /// Whether this error is a security-related error
-    public var isSecurityError: Bool {
+    var isSecurityError: Bool {
         switch self {
         case .authorization, .securityPolicy, .encryption, .authentication:
             return true
@@ -711,7 +711,7 @@ extension PipelineError {
     }
     
     /// Extract error context if available
-    public var context: ErrorContext? {
+    var context: ErrorContext? {
         switch self {
         case .executionFailed(_, let context),
              .middlewareError(_, _, let context),
@@ -727,9 +727,9 @@ extension PipelineError {
 
 // MARK: - Convenience Factory Methods
 
-extension PipelineError {
+public extension PipelineError {
     /// Creates an execution failed error with command context
-    public static func executionFailed<C: Command>(
+    static func executionFailed<C: Command>(
         _ message: String,
         command: C,
         middleware: (any Middleware)? = nil,
@@ -746,7 +746,7 @@ extension PipelineError {
     }
     
     /// Creates a timeout error with command context
-    public static func timeout<C: Command>(
+    static func timeout<C: Command>(
         duration: TimeInterval,
         command: C,
         middleware: (any Middleware)? = nil

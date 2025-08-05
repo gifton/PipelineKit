@@ -2,10 +2,9 @@ import XCTest
 @testable import PipelineKit
 
 final class GenericObjectPoolTests: XCTestCase {
-    
     // MARK: - Test Types
     
-    final class TestObject: @unchecked Sendable {
+    private final class TestObject: @unchecked Sendable {
         var value: Int
         var isReset: Bool = false
         
@@ -278,7 +277,7 @@ final class GenericObjectPoolTests: XCTestCase {
         
         // Acquire some objects
         let obj1 = await pool.acquire()
-        let _ = await pool.acquire()
+        _ = await pool.acquire()
         await pool.release(obj1)
         
         // When

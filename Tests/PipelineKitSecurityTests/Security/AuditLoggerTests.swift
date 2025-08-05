@@ -3,7 +3,6 @@ import XCTest
 import PipelineKitTestSupport
 
 final class AuditLoggerTests: XCTestCase {
-    
     // MARK: - Basic Logging Tests
     
     func testConsoleLogging() async throws {
@@ -50,7 +49,7 @@ final class AuditLoggerTests: XCTestCase {
             let entry = AuditEntry(
                 commandType: "Command\(i)",
                 userId: "user\(i)",
-                success: i % 2 == 0,
+                success: i.isMultiple(of: 2),
                 duration: Double(i) * 0.1
             )
             await logger.log(entry)
@@ -441,7 +440,7 @@ final class AuditLoggerTests: XCTestCase {
     
     // MARK: - Test Helpers
     
-    struct TestCommand: Command {
+    private struct TestCommand: Command {
         let value: String
         typealias Result = String
         
@@ -450,7 +449,7 @@ final class AuditLoggerTests: XCTestCase {
         }
     }
     
-    actor EntriesCollector {
+    private actor EntriesCollector {
         private var entries: [AuditEntry] = []
         
         func add(_ newEntries: [AuditEntry]) {

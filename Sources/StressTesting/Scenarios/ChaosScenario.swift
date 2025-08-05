@@ -6,7 +6,6 @@ import Foundation
 /// to create chaotic conditions that test system resilience.
 @MainActor
 public final class ChaosScenario: BaseScenario {
-    
     // Chaos configuration
     public let totalDuration: TimeInterval
     public let seed: UInt64?
@@ -19,10 +18,10 @@ public final class ChaosScenario: BaseScenario {
     
     public struct SimulatorConfig: Sendable {
         public enum SimulatorType: String, Sendable {
-            case cpu = "cpu"
-            case memory = "memory"
-            case concurrency = "concurrency"
-            case resources = "resources"
+            case cpu
+            case memory
+            case concurrency
+            case resources
         }
         
         public let type: SimulatorType
@@ -160,7 +159,7 @@ public final class ChaosScenario: BaseScenario {
         
         switch config.type {
         case .cpu:
-            let pattern = Bool.random(using: &rng) ? 
+            let pattern = Bool.random(using: &rng) ?
                 CPULoadPattern.constant(percentage: intensity) :
                 CPULoadPattern.sine(
                     min: intensity * 0.5,

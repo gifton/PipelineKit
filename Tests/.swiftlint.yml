@@ -1,0 +1,17 @@
+# SwiftLint configuration for test files
+# Inherits from parent configuration but disables certain rules
+
+parent_config: ../.swiftlint.yml
+
+# Disable rules that are less critical in test code
+disabled_rules:
+  - force_unwrapping        # OK to use ! in tests for brevity
+  - pattern_matching_keywords  # if case is fine in tests
+  - empty_count            # .count == 0 is readable in tests
+  - for_where              # Simple for-in with if is fine in tests
+  - multiline_arguments    # Test readability over strict formatting
+  - vertical_parameter_alignment_on_call  # Less critical in tests
+  - file_length            # Test files can be longer
+  - type_body_length       # Test classes can be longer
+  - function_body_length   # Test functions can be longer
+  - unchecked_sendable_documentation  # Test helpers often need mutable state for tracking

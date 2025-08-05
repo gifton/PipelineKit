@@ -2,7 +2,6 @@ import XCTest
 @testable import PipelineKit
 
 final class OptimizedValidatorsTests: XCTestCase {
-    
     // MARK: - Email Validation Tests
     
     func testValidEmails() {

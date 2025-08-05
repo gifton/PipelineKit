@@ -22,7 +22,7 @@ import Foundation
 ///     // Rate limit exceeded
 /// }
 /// ```
-public actor RateLimiter: Sendable {
+public actor RateLimiter {
     private let strategy: RateLimitStrategy
     private let scope: RateLimitScope
     private var buckets: [String: TokenBucket] = [:]

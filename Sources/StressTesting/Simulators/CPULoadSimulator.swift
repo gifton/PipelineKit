@@ -95,7 +95,7 @@ public actor CPULoadSimulator: MetricRecordable {
         ])
         
         guard await safetyMonitor.canUseCPU(percentage: percentage, cores: cores) else {
-            await recordSafetyRejection(.safetyRejection, 
+            await recordSafetyRejection(.safetyRejection,
                 reason: "CPU load would exceed safety limits",
                 requested: "\(Int(percentage * 100))% on \(cores) cores",
                 tags: ["pattern": "sustained"])
@@ -472,7 +472,7 @@ public actor CPULoadSimulator: MetricRecordable {
             cycleCount += 1
             
             // Record work metrics periodically (every 100 cycles)
-            if cycleCount % 100 == 0 {
+            if cycleCount.isMultiple(of: 100) {
                 let actualUsage = workDuration / (workDuration + sleepDuration) * 100
                 await recordGauge(.coreUsage, value: actualUsage, tags: [
                     "core": String(coreIndex),
@@ -489,7 +489,7 @@ public actor CPULoadSimulator: MetricRecordable {
             }
             
             let cycleDuration = Date().timeIntervalSince(cycleStart)
-            if cycleCount % 1000 == 0 {
+            if cycleCount.isMultiple(of: 1000) {
                 await recordHistogram(.cycleDuration, value: cycleDuration * 1000, tags: [
                     "core": String(coreIndex)
                 ])
@@ -509,7 +509,7 @@ public actor CPULoadSimulator: MetricRecordable {
     
     private func performIntensiveCalculation(until endTime: Date) -> Int {
         // Mix of different CPU-intensive operations
-        var result: Double = Double.random(in: 0...1)
+        var result = Double.random(in: 0...1)
         var iterations = 0
         
         while Date() < endTime {
@@ -524,7 +524,7 @@ public actor CPULoadSimulator: MetricRecordable {
             iterations += 1
             
             // Prevent optimization
-            if iterations % 1000 == 0 {
+            if iterations.isMultiple(of: 1000) {
                 blackHole(result)
             }
         }
@@ -581,7 +581,7 @@ public actor CPULoadSimulator: MetricRecordable {
                     candidate += cores  // Each core checks different numbers
                     
                     // Record metrics periodically
-                    if numbersChecked % 1000 == 0 {
+                    if numbersChecked.isMultiple(of: 1000) {
                         await recordGauge(.primeCandidate, value: Double(candidate), tags: [
                             "core": String(coreIndex)
                         ])
@@ -624,11 +624,11 @@ public actor CPULoadSimulator: MetricRecordable {
     private func isPrime(_ n: Int) -> Bool {
         guard n > 1 else { return false }
         guard n > 3 else { return true }
-        guard n % 2 != 0 && n % 3 != 0 else { return false }
+        guard !n.isMultiple(of: 2) && !n.isMultiple(of: 3) else { return false }
         
         var i = 5
         while i * i <= n {
-            if n % i == 0 || n % (i + 2) == 0 {
+            if n.isMultiple(of: i) || n.isMultiple(of: i + 2) {
                 return false
             }
             i += 6
@@ -678,7 +678,7 @@ public actor CPULoadSimulator: MetricRecordable {
                     operations += 1
                     
                     // Record metrics periodically
-                    if operations % 10 == 0 {
+                    if operations.isMultiple(of: 10) {
                         let gflops = Double(flopsPerOperation) / (opDuration * 1_000_000_000)
                         await recordGauge(.matrixGflops, value: gflops, tags: [
                             "core": String(coreIndex),
@@ -761,8 +761,6 @@ public struct CPUStats: Sendable {
     public let activeThreads: Int
     public let state: CPULoadSimulator.State
 }
-
-/// Errors specific to CPU simulation.
 
 // MARK: - Convenience Extensions
 

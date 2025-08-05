@@ -3,7 +3,6 @@ import PipelineKitCore
 
 /// A validator that performs common validation checks.
 public struct CommandValidator: Sendable {
-    
     /// Validates an email address format.
     /// 
     /// - Parameter email: The email address to validate

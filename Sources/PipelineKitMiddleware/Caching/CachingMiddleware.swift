@@ -24,7 +24,7 @@ import PipelineKitCore
 ///
 /// This class uses `@unchecked Sendable` for the following reasons:
 ///
-/// 1. **Existential Type Limitation**: The stored property `cache: any CacheProtocol`
+/// 1. **Existential Type Limitation**: The stored property `cache: any Cache`
 ///    uses an existential type. Swift currently cannot verify Sendable conformance through
 ///    existential types, even though the protocol requires Sendable.
 ///
@@ -34,7 +34,7 @@ import PipelineKitCore
 ///    - `ttl`: TimeInterval? (Double?, inherently Sendable)
 ///    - `shouldCache`: @Sendable closure (explicitly thread-safe)
 ///
-/// 3. **Protocol Guarantee**: CacheProtocol explicitly requires Sendable, ensuring any
+/// 3. **Protocol Guarantee**: Cache protocol explicitly requires Sendable, ensuring any
 ///    cache implementation is thread-safe. This provides compile-time safety for all
 ///    concrete cache types.
 ///
@@ -43,10 +43,15 @@ import PipelineKitCore
 ///
 /// This is a known Swift limitation with existential types. The code is actually thread-safe,
 /// but the compiler cannot verify this through the existential type system.
+///
+/// Thread Safety: This type is thread-safe because all properties are immutable (let constants).
+/// The cache protocol requires Sendable conformance, and all closures are marked @Sendable.
+/// Invariant: All properties must be initialized with thread-safe values. The Cache protocol
+/// enforces Sendable conformance for any concrete implementation.
 public final class CachingMiddleware: Middleware, @unchecked Sendable {
     public let priority: ExecutionPriority = .postProcessing // Caching happens after main processing
     
-    private let cache: any CacheProtocol
+    private let cache: any Cache
     private let keyGenerator: @Sendable (any Command) -> String
     private let ttl: TimeInterval?
     private let shouldCache: @Sendable (any Command) -> Bool
@@ -59,7 +64,7 @@ public final class CachingMiddleware: Middleware, @unchecked Sendable {
     ///   - ttl: Time-to-live for cached entries (nil for no expiration)
     ///   - shouldCache: Function to determine if a command should be cached (default: always true)
     public init(
-        cache: any CacheProtocol,
+        cache: any Cache,
         keyGenerator: @escaping @Sendable (any Command) -> String,
         ttl: TimeInterval? = nil,
         shouldCache: @escaping @Sendable (any Command) -> Bool = { _ in true }
@@ -123,8 +128,10 @@ public final class CachingMiddleware: Middleware, @unchecked Sendable {
             return wrapper.result
         } catch {
             // Fallback for plain string data
-            if type == String.self, let stringResult = String(data: data, encoding: .utf8) {
-                return stringResult as! T
+            if type == String.self,
+               let stringResult = String(data: data, encoding: .utf8),
+               let typedResult = stringResult as? T {
+                return typedResult
             }
             throw PipelineError.cache(reason: .deserializationFailed("Cached data cannot be decoded to result type: \(error.localizedDescription)"))
         }
@@ -134,7 +141,7 @@ public final class CachingMiddleware: Middleware, @unchecked Sendable {
 // MARK: - Cache Protocol
 
 /// Protocol for cache backends used by CachingMiddleware.
-public protocol CacheProtocol: Sendable {
+public protocol Cache: Sendable {
     /// Gets a value from the cache.
     func get(key: String) async -> Data?
     
@@ -151,7 +158,7 @@ public protocol CacheProtocol: Sendable {
 // MARK: - In-Memory Cache Implementation
 
 /// Simple in-memory cache implementation.
-public actor InMemoryCache: CacheProtocol {
+public actor InMemoryCache: Cache {
     private struct CacheEntry {
         let data: Data
         let expiration: Date?
@@ -240,30 +247,63 @@ private struct CacheWrapper<T>: Codable {
         
         // Handle different types based on T
         if T.self == String.self {
-            self.result = try container.decode(String.self, forKey: .result) as! T
+            guard let value = try container.decode(String.self, forKey: .result) as? T else {
+                throw DecodingError.typeMismatch(T.self, DecodingError.Context(codingPath: [CodingKeys.result], debugDescription: "Type mismatch for String"))
+            }
+            self.result = value
         } else if T.self == Int.self {
-            self.result = try container.decode(Int.self, forKey: .result) as! T
+            guard let value = try container.decode(Int.self, forKey: .result) as? T else {
+                throw DecodingError.typeMismatch(T.self, DecodingError.Context(codingPath: [CodingKeys.result], debugDescription: "Type mismatch for Int"))
+            }
+            self.result = value
         } else if T.self == Double.self {
-            self.result = try container.decode(Double.self, forKey: .result) as! T
+            guard let value = try container.decode(Double.self, forKey: .result) as? T else {
+                throw DecodingError.typeMismatch(T.self, DecodingError.Context(codingPath: [CodingKeys.result], debugDescription: "Type mismatch for Double"))
+            }
+            self.result = value
         } else if T.self == Bool.self {
-            self.result = try container.decode(Bool.self, forKey: .result) as! T
+            guard let value = try container.decode(Bool.self, forKey: .result) as? T else {
+                throw DecodingError.typeMismatch(T.self, DecodingError.Context(codingPath: [CodingKeys.result], debugDescription: "Type mismatch for Bool"))
+            }
+            self.result = value
         } else if T.self == Data.self {
-            self.result = try container.decode(Data.self, forKey: .result) as! T
+            guard let value = try container.decode(Data.self, forKey: .result) as? T else {
+                throw DecodingError.typeMismatch(T.self, DecodingError.Context(codingPath: [CodingKeys.result], debugDescription: "Type mismatch for Data"))
+            }
+            self.result = value
         } else if T.self == Date.self {
-            self.result = try container.decode(Date.self, forKey: .result) as! T
+            guard let value = try container.decode(Date.self, forKey: .result) as? T else {
+                throw DecodingError.typeMismatch(T.self, DecodingError.Context(codingPath: [CodingKeys.result], debugDescription: "Type mismatch for Date"))
+            }
+            self.result = value
         } else if T.self == [String].self {
-            self.result = try container.decode([String].self, forKey: .result) as! T
+            guard let value = try container.decode([String].self, forKey: .result) as? T else {
+                throw DecodingError.typeMismatch(T.self, DecodingError.Context(codingPath: [CodingKeys.result], debugDescription: "Type mismatch for [String]"))
+            }
+            self.result = value
         } else if T.self == [Int].self {
-            self.result = try container.decode([Int].self, forKey: .result) as! T
+            guard let value = try container.decode([Int].self, forKey: .result) as? T else {
+                throw DecodingError.typeMismatch(T.self, DecodingError.Context(codingPath: [CodingKeys.result], debugDescription: "Type mismatch for [Int]"))
+            }
+            self.result = value
         } else if T.self == [String: String].self {
-            self.result = try container.decode([String: String].self, forKey: .result) as! T
+            guard let value = try container.decode([String: String].self, forKey: .result) as? T else {
+                throw DecodingError.typeMismatch(T.self, DecodingError.Context(codingPath: [CodingKeys.result], debugDescription: "Type mismatch for [String: String]"))
+            }
+            self.result = value
         } else if T.self == [String: Int].self {
-            self.result = try container.decode([String: Int].self, forKey: .result) as! T
+            guard let value = try container.decode([String: Int].self, forKey: .result) as? T else {
+                throw DecodingError.typeMismatch(T.self, DecodingError.Context(codingPath: [CodingKeys.result], debugDescription: "Type mismatch for [String: Int]"))
+            }
+            self.result = value
         } else {
             // For other Decodable types, try generic decoding
             if let decodableType = T.self as? Decodable.Type {
                 let value = try decodableType.init(from: try container.superDecoder(forKey: .result))
-                self.result = value as! T
+                guard let typedValue = value as? T else {
+                    throw DecodingError.typeMismatch(T.self, DecodingError.Context(codingPath: [CodingKeys.result], debugDescription: "Type mismatch for Decodable type"))
+                }
+                self.result = typedValue
             } else {
                 throw DecodingError.dataCorruptedError(
                     forKey: .result,
@@ -319,7 +359,7 @@ private struct CacheWrapper<T>: Codable {
 public extension CachingMiddleware {
     /// Creates a caching middleware with simple string-based key generation.
     convenience init(
-        cache: any CacheProtocol,
+        cache: any Cache,
         ttl: TimeInterval? = nil
     ) {
         self.init(
@@ -334,7 +374,7 @@ public extension CachingMiddleware {
     
     /// Creates a caching middleware for specific command types.
     convenience init<C: Command & Hashable>(
-        cache: any CacheProtocol,
+        cache: any Cache,
         commandType: C.Type,
         ttl: TimeInterval? = nil
     ) {

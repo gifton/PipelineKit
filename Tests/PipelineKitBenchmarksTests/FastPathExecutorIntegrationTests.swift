@@ -3,10 +3,9 @@ import XCTest
 
 /// Integration tests to validate FastPathExecutor performance improvements
 final class FastPathExecutorIntegrationTests: XCTestCase {
-    
     // MARK: - Test Infrastructure
     
-    struct CalculateCommand: Command {
+    private struct CalculateCommand: Command {
         typealias Result = Int
         let value: Int
         let operations: [Operation]
@@ -18,7 +17,7 @@ final class FastPathExecutorIntegrationTests: XCTestCase {
         }
     }
     
-    struct CalculateHandler: CommandHandler {
+    private struct CalculateHandler: CommandHandler {
         typealias CommandType = CalculateCommand
         
         func handle(_ command: CalculateCommand) async throws -> Int {
@@ -37,7 +36,7 @@ final class FastPathExecutorIntegrationTests: XCTestCase {
         }
     }
     
-    struct ValidationMiddleware: Middleware {
+    private struct ValidationMiddleware: Middleware {
         let priority = ExecutionPriority.validation
         
         func execute<T: Command>(
@@ -55,7 +54,7 @@ final class FastPathExecutorIntegrationTests: XCTestCase {
         }
     }
     
-    struct LoggingMiddleware: Middleware {
+    private struct LoggingMiddleware: Middleware {
         let priority = ExecutionPriority.postProcessing
         
         func execute<T: Command>(
@@ -71,7 +70,7 @@ final class FastPathExecutorIntegrationTests: XCTestCase {
         }
     }
     
-    struct AuthenticationMiddleware: Middleware {
+    private struct AuthenticationMiddleware: Middleware {
         let priority = ExecutionPriority.authentication
         
         func execute<T: Command>(
@@ -171,7 +170,7 @@ final class FastPathExecutorIntegrationTests: XCTestCase {
         
         // Test scalability as middleware count increases
         for middlewareCount in [1, 2, 3, 4, 5, 10] {
-            let middleware = (0..<middlewareCount).map { i in
+            let middleware = (0..<middlewareCount).map { _ in
                 LoggingMiddleware()
             }
             
@@ -205,7 +204,7 @@ final class FastPathExecutorIntegrationTests: XCTestCase {
                 optimizedTime = standardTime // No fast path for >3 middleware
             }
             
-            let improvement = middlewareCount <= 3 ? 
+            let improvement = middlewareCount <= 3 ?
                 ((standardTime - optimizedTime) / standardTime) * 100 : 0
             
             print("Middleware count: \(middlewareCount), Improvement: \(String(format: "%.1f", improvement))%")

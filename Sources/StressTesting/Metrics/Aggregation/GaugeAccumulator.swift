@@ -65,8 +65,8 @@ public struct GaugeAccumulator: StatisticsAccumulator {
     public func statistics() -> BasicStatistics {
         BasicStatistics(
             count: count,
-            min: count > 0 ? min : 0,
-            max: count > 0 ? max : 0,
+            min: !isEmpty ? min : 0,
+            max: !isEmpty ? max : 0,
             sum: sum,
             lastValue: lastValue,
             lastTimestamp: lastTimestamp

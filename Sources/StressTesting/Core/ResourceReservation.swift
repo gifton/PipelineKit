@@ -83,5 +83,3 @@ final class ReservationHandle: Sendable {
     /// Access the underlying reservation
     var value: ResourceReservation { reservation }
 }
-
-

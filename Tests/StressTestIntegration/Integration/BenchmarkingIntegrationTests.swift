@@ -8,10 +8,9 @@ import Foundation
 /// statistical analysis, performance comparison, and regression detection.
 @MainActor
 final class BenchmarkingIntegrationTests: XCTestCase {
-    
     // MARK: - Properties
     
-    var harness: ScenarioTestHarness!
+    private var harness: ScenarioTestHarness!
     
     // MARK: - Setup & Teardown
     

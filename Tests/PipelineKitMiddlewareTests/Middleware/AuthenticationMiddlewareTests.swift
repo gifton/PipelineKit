@@ -4,7 +4,6 @@ import Foundation
 @testable import PipelineKitSecurity
 
 final class AuthenticationMiddlewareTests: XCTestCase {
-    
     func testSuccessfulAuthentication() async throws {
         // Given
         let middleware = AuthenticationMiddleware { token in

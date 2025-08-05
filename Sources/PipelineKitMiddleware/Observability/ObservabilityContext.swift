@@ -173,7 +173,7 @@ public extension CommandContext {
     }
     
     /// Records a performance value
-    func recordMetric(_ name: String, value: Double, unit: String = "") {
+    func recordPerformanceMetric(_ name: String, value: Double, unit: String = "") {
         var context = getOrCreatePerformanceContext()
         context.recordValue(name, value: value, unit: unit)
         updatePerformanceContext(context)

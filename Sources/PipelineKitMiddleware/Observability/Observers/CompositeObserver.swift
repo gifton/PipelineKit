@@ -25,7 +25,6 @@ import PipelineKitCore
 /// This is purely a Swift limitation with arrays of protocol types. The implementation
 /// is fully thread-safe.
 public final class CompositeObserver: BaseObserver, @unchecked Sendable {
-    
     private let observers: [PipelineObserver]
     private let errorHandler: @Sendable (Error, String) -> Void
     
@@ -68,61 +67,61 @@ public final class CompositeObserver: BaseObserver, @unchecked Sendable {
     
     // MARK: - PipelineObserver Implementation
     
-    public override func pipelineWillExecute<T: Command>(_ command: T, metadata: CommandMetadata, pipelineType: String) async {
+    override public func pipelineWillExecute<T: Command>(_ command: T, metadata: CommandMetadata, pipelineType: String) async {
         await notifyAll { observer in
             await observer.pipelineWillExecute(command, metadata: metadata, pipelineType: pipelineType)
         }
     }
     
-    public override func pipelineDidExecute<T: Command>(_ command: T, result: T.Result, metadata: CommandMetadata, pipelineType: String, duration: TimeInterval) async {
+    override public func pipelineDidExecute<T: Command>(_ command: T, result: T.Result, metadata: CommandMetadata, pipelineType: String, duration: TimeInterval) async {
         await notifyAll { observer in
             await observer.pipelineDidExecute(command, result: result, metadata: metadata, pipelineType: pipelineType, duration: duration)
         }
     }
     
-    public override func pipelineDidFail<T: Command>(_ command: T, error: Error, metadata: CommandMetadata, pipelineType: String, duration: TimeInterval) async {
+    override public func pipelineDidFail<T: Command>(_ command: T, error: Error, metadata: CommandMetadata, pipelineType: String, duration: TimeInterval) async {
         await notifyAll { observer in
             await observer.pipelineDidFail(command, error: error, metadata: metadata, pipelineType: pipelineType, duration: duration)
         }
     }
     
-    public override func middlewareWillExecute(_ middlewareName: String, order: Int, correlationId: String) async {
+    override public func middlewareWillExecute(_ middlewareName: String, order: Int, correlationId: String) async {
         await notifyAll { observer in
             await observer.middlewareWillExecute(middlewareName, order: order, correlationId: correlationId)
         }
     }
     
-    public override func middlewareDidExecute(_ middlewareName: String, order: Int, correlationId: String, duration: TimeInterval) async {
+    override public func middlewareDidExecute(_ middlewareName: String, order: Int, correlationId: String, duration: TimeInterval) async {
         await notifyAll { observer in
             await observer.middlewareDidExecute(middlewareName, order: order, correlationId: correlationId, duration: duration)
         }
     }
     
-    public override func middlewareDidFail(_ middlewareName: String, order: Int, correlationId: String, error: Error, duration: TimeInterval) async {
+    override public func middlewareDidFail(_ middlewareName: String, order: Int, correlationId: String, error: Error, duration: TimeInterval) async {
         await notifyAll { observer in
             await observer.middlewareDidFail(middlewareName, order: order, correlationId: correlationId, error: error, duration: duration)
         }
     }
     
-    public override func handlerWillExecute<T: Command>(_ command: T, handlerType: String, correlationId: String) async {
+    override public func handlerWillExecute<T: Command>(_ command: T, handlerType: String, correlationId: String) async {
         await notifyAll { observer in
             await observer.handlerWillExecute(command, handlerType: handlerType, correlationId: correlationId)
         }
     }
     
-    public override func handlerDidExecute<T: Command>(_ command: T, result: T.Result, handlerType: String, correlationId: String, duration: TimeInterval) async {
+    override public func handlerDidExecute<T: Command>(_ command: T, result: T.Result, handlerType: String, correlationId: String, duration: TimeInterval) async {
         await notifyAll { observer in
             await observer.handlerDidExecute(command, result: result, handlerType: handlerType, correlationId: correlationId, duration: duration)
         }
     }
     
-    public override func handlerDidFail<T: Command>(_ command: T, error: Error, handlerType: String, correlationId: String, duration: TimeInterval) async {
+    override public func handlerDidFail<T: Command>(_ command: T, error: Error, handlerType: String, correlationId: String, duration: TimeInterval) async {
         await notifyAll { observer in
             await observer.handlerDidFail(command, error: error, handlerType: handlerType, correlationId: correlationId, duration: duration)
         }
     }
     
-    public override func customEvent(_ eventName: String, properties: [String: Sendable], correlationId: String) async {
+    override public func customEvent(_ eventName: String, properties: [String: Sendable], correlationId: String) async {
         await notifyAll { observer in
             await observer.customEvent(eventName, properties: properties, correlationId: correlationId)
         }
@@ -153,7 +152,6 @@ public final class CompositeObserver: BaseObserver, @unchecked Sendable {
 ///
 /// This is a Swift compiler limitation with existential types rather than a design flaw.
 public final class ConditionalObserver: BaseObserver, @unchecked Sendable {
-    
     public typealias Predicate = @Sendable (String, String?) -> Bool // (commandType, correlationId) -> shouldObserve
     
     private let wrapped: PipelineObserver
@@ -199,53 +197,53 @@ public final class ConditionalObserver: BaseObserver, @unchecked Sendable {
     
     // MARK: - PipelineObserver Implementation
     
-    public override func pipelineWillExecute<T: Command>(_ command: T, metadata: CommandMetadata, pipelineType: String) async {
+    override public func pipelineWillExecute<T: Command>(_ command: T, metadata: CommandMetadata, pipelineType: String) async {
         guard predicate(String(describing: type(of: command)), metadata.correlationId) else { return }
         await wrapped.pipelineWillExecute(command, metadata: metadata, pipelineType: pipelineType)
     }
     
-    public override func pipelineDidExecute<T: Command>(_ command: T, result: T.Result, metadata: CommandMetadata, pipelineType: String, duration: TimeInterval) async {
+    override public func pipelineDidExecute<T: Command>(_ command: T, result: T.Result, metadata: CommandMetadata, pipelineType: String, duration: TimeInterval) async {
         guard predicate(String(describing: type(of: command)), metadata.correlationId) else { return }
         await wrapped.pipelineDidExecute(command, result: result, metadata: metadata, pipelineType: pipelineType, duration: duration)
     }
     
-    public override func pipelineDidFail<T: Command>(_ command: T, error: Error, metadata: CommandMetadata, pipelineType: String, duration: TimeInterval) async {
+    override public func pipelineDidFail<T: Command>(_ command: T, error: Error, metadata: CommandMetadata, pipelineType: String, duration: TimeInterval) async {
         guard predicate(String(describing: type(of: command)), metadata.correlationId) else { return }
         await wrapped.pipelineDidFail(command, error: error, metadata: metadata, pipelineType: pipelineType, duration: duration)
     }
     
     // Forward other events based on correlation ID only
-    public override func middlewareWillExecute(_ middlewareName: String, order: Int, correlationId: String) async {
+    override public func middlewareWillExecute(_ middlewareName: String, order: Int, correlationId: String) async {
         guard predicate("", correlationId) else { return }
         await wrapped.middlewareWillExecute(middlewareName, order: order, correlationId: correlationId)
     }
     
-    public override func middlewareDidExecute(_ middlewareName: String, order: Int, correlationId: String, duration: TimeInterval) async {
+    override public func middlewareDidExecute(_ middlewareName: String, order: Int, correlationId: String, duration: TimeInterval) async {
         guard predicate("", correlationId) else { return }
         await wrapped.middlewareDidExecute(middlewareName, order: order, correlationId: correlationId, duration: duration)
     }
     
-    public override func middlewareDidFail(_ middlewareName: String, order: Int, correlationId: String, error: Error, duration: TimeInterval) async {
+    override public func middlewareDidFail(_ middlewareName: String, order: Int, correlationId: String, error: Error, duration: TimeInterval) async {
         guard predicate("", correlationId) else { return }
         await wrapped.middlewareDidFail(middlewareName, order: order, correlationId: correlationId, error: error, duration: duration)
     }
     
-    public override func handlerWillExecute<T: Command>(_ command: T, handlerType: String, correlationId: String) async {
+    override public func handlerWillExecute<T: Command>(_ command: T, handlerType: String, correlationId: String) async {
         guard predicate(String(describing: type(of: command)), correlationId) else { return }
         await wrapped.handlerWillExecute(command, handlerType: handlerType, correlationId: correlationId)
     }
     
-    public override func handlerDidExecute<T: Command>(_ command: T, result: T.Result, handlerType: String, correlationId: String, duration: TimeInterval) async {
+    override public func handlerDidExecute<T: Command>(_ command: T, result: T.Result, handlerType: String, correlationId: String, duration: TimeInterval) async {
         guard predicate(String(describing: type(of: command)), correlationId) else { return }
         await wrapped.handlerDidExecute(command, result: result, handlerType: handlerType, correlationId: correlationId, duration: duration)
     }
     
-    public override func handlerDidFail<T: Command>(_ command: T, error: Error, handlerType: String, correlationId: String, duration: TimeInterval) async {
+    override public func handlerDidFail<T: Command>(_ command: T, error: Error, handlerType: String, correlationId: String, duration: TimeInterval) async {
         guard predicate(String(describing: type(of: command)), correlationId) else { return }
         await wrapped.handlerDidFail(command, error: error, handlerType: handlerType, correlationId: correlationId, duration: duration)
     }
     
-    public override func customEvent(_ eventName: String, properties: [String: Sendable], correlationId: String) async {
+    override public func customEvent(_ eventName: String, properties: [String: Sendable], correlationId: String) async {
         guard predicate("", correlationId) else { return }
         await wrapped.customEvent(eventName, properties: properties, correlationId: correlationId)
     }
@@ -283,15 +281,15 @@ private final class FailureOnlyObserver: BaseObserver, @unchecked Sendable {
     }
     
     // Only forward failure events
-    public override func pipelineDidFail<T: Command>(_ command: T, error: Error, metadata: CommandMetadata, pipelineType: String, duration: TimeInterval) async {
+    override func pipelineDidFail<T: Command>(_ command: T, error: Error, metadata: CommandMetadata, pipelineType: String, duration: TimeInterval) async {
         await wrapped.pipelineDidFail(command, error: error, metadata: metadata, pipelineType: pipelineType, duration: duration)
     }
     
-    public override func middlewareDidFail(_ middlewareName: String, order: Int, correlationId: String, error: Error, duration: TimeInterval) async {
+    override func middlewareDidFail(_ middlewareName: String, order: Int, correlationId: String, error: Error, duration: TimeInterval) async {
         await wrapped.middlewareDidFail(middlewareName, order: order, correlationId: correlationId, error: error, duration: duration)
     }
     
-    public override func handlerDidFail<T: Command>(_ command: T, error: Error, handlerType: String, correlationId: String, duration: TimeInterval) async {
+    override func handlerDidFail<T: Command>(_ command: T, error: Error, handlerType: String, correlationId: String, duration: TimeInterval) async {
         await wrapped.handlerDidFail(command, error: error, handlerType: handlerType, correlationId: correlationId, duration: duration)
     }
 }

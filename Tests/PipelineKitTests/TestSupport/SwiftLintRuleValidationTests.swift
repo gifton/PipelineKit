@@ -5,7 +5,6 @@ import XCTest
 // It contains examples that SHOULD trigger warnings when SwiftLint is run
 
 final class SwiftLintRuleValidationTests: XCTestCase {
-    
     func testSwiftLintRules() {
         // This test just ensures the file compiles
         // The actual validation happens when SwiftLint runs

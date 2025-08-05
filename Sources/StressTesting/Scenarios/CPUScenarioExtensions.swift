@@ -2,12 +2,12 @@ import Foundation
 
 // Extension to add missing protocol methods to remaining CPU scenarios
 
-extension CPUOscillationScenario {
-    public func setUp() async throws {
+public extension CPUOscillationScenario {
+    func setUp() async throws {
         // No specific setup needed
     }
     
-    public func execute(
+    func execute(
         orchestrator: StressOrchestrator,
         safetyMonitor: any SafetyMonitor,
         metricCollector: MetricCollector
@@ -15,17 +15,17 @@ extension CPUOscillationScenario {
         try await execute(with: orchestrator)
     }
     
-    public func tearDown() async throws {
+    func tearDown() async throws {
         // No specific teardown needed
     }
 }
 
-extension MatrixComputationScenario {
-    public func setUp() async throws {
+public extension MatrixComputationScenario {
+    func setUp() async throws {
         // No specific setup needed
     }
     
-    public func execute(
+    func execute(
         orchestrator: StressOrchestrator,
         safetyMonitor: any SafetyMonitor,
         metricCollector: MetricCollector
@@ -33,17 +33,17 @@ extension MatrixComputationScenario {
         try await execute(with: orchestrator)
     }
     
-    public func tearDown() async throws {
+    func tearDown() async throws {
         // No specific teardown needed
     }
 }
 
-extension RealisticAppLoadScenario {
-    public func setUp() async throws {
+public extension RealisticAppLoadScenario {
+    func setUp() async throws {
         // No specific setup needed
     }
     
-    public func execute(
+    func execute(
         orchestrator: StressOrchestrator,
         safetyMonitor: any SafetyMonitor,
         metricCollector: MetricCollector
@@ -51,7 +51,7 @@ extension RealisticAppLoadScenario {
         try await execute(with: orchestrator)
     }
     
-    public func tearDown() async throws {
+    func tearDown() async throws {
         // No specific teardown needed
     }
 }

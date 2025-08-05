@@ -4,7 +4,6 @@ import XCTest
 
 /// Integration tests for resilience and recovery scenarios
 final class ResilienceIntegrationTests: XCTestCase {
-    
     // MARK: - Cascading Failure Recovery Test
     
     func testCascadingFailureRecovery() async throws {
@@ -28,7 +27,7 @@ final class ResilienceIntegrationTests: XCTestCase {
         pipeline.use(FallbackMiddleware(fallbackProvider: SmartFallbackProvider()))
         pipeline.use(BulkheadMiddleware(maxConcurrency: 10))
         
-        pipeline.registerHandler { (command: ComplexOperationCommand, context: Context) in
+        pipeline.registerHandler { (_: ComplexOperationCommand, context: Context) in
             // Try to use all services
             let resultA = try? await dependencyA.execute()
             let resultB = try? await dependencyB.execute()
@@ -94,7 +93,7 @@ final class ResilienceIntegrationTests: XCTestCase {
         pipeline.use(CachingMiddleware(cache: InMemoryCache()))
         pipeline.use(MetricsMiddleware())
         
-        pipeline.registerHandler { (command: FeatureRichCommand, context: Context) in
+        pipeline.registerHandler { (_: FeatureRichCommand, context: Context) in
             var enabledFeatures: [String] = []
             
             // Check which features are available
@@ -219,7 +218,7 @@ final class ResilienceIntegrationTests: XCTestCase {
         
         sagaCoordinator.register(saga: orderSaga)
         
-        pipeline.registerHandler { (command: OrderSagaCommand, context: Context) in
+        pipeline.registerHandler { (_: OrderSagaCommand, context: Context) in
             let sagaResult = try await sagaCoordinator.execute(
                 sagaName: "OrderProcessing",
                 context: context
@@ -287,7 +286,7 @@ final class ResilienceIntegrationTests: XCTestCase {
         pipeline.use(BackPressureMiddleware(maxQueueSize: 50))
         pipeline.use(AdaptiveTimeoutMiddleware())
         
-        pipeline.registerHandler { (command: PrioritizedCommand, context: Context) in
+        pipeline.registerHandler { (command: PrioritizedCommand, _: Context) in
             // Simulate variable processing time
             let processingTime = Double.random(in: 0.01...0.1)
             try await Task.sleep(nanoseconds: UInt64(processingTime * 1_000_000_000))
@@ -373,7 +372,7 @@ final class ResilienceIntegrationTests: XCTestCase {
         pipeline.use(TimeoutMiddleware(timeout: 1.0))
         pipeline.use(BulkheadMiddleware(maxConcurrency: 20))
         
-        pipeline.registerHandler { (command: TestCommand, context: Context) in
+        pipeline.registerHandler { (_: TestCommand, _: Context) in
             return "Success despite chaos"
         }
         

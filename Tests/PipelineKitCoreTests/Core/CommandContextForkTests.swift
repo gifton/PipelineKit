@@ -3,7 +3,6 @@ import XCTest
 import PipelineKitTestSupport
 
 final class CommandContextForkTests: XCTestCase {
-    
     // MARK: - Test Keys
     
     private struct TestKey: ContextKey {

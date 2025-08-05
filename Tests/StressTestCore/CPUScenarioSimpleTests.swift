@@ -5,7 +5,6 @@ import XCTest
 // NOTE: These tests require PipelineKitStressTest types which have been
 // moved to a separate package. They should be moved to that package's test suite.
 final class CPUScenarioSimpleTests: XCTestCase {
-    
     func testPlaceholder() {
         // Placeholder test to prevent empty test class
         XCTAssertTrue(true)

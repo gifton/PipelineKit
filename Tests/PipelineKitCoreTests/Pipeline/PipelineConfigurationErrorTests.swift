@@ -3,7 +3,6 @@ import XCTest
 import PipelineKitTestSupport
 
 final class PipelineConfigurationErrorTests: XCTestCase {
-    
     // MARK: - Empty Pipeline Tests
     
     func testEmptyPipelineThrows() async throws {
@@ -27,6 +26,10 @@ final class PipelineConfigurationErrorTests: XCTestCase {
         // TestPipeline always has a handler (either base or mock)
         // This test is not applicable to TestPipeline
         // Skip this test as TestPipeline cannot be created without a handler
+        
+        // Verify that TestPipeline requires a handler
+        let pipeline = TestPipeline(middleware: [TestMiddleware()])
+        XCTAssertNotNil(pipeline, "TestPipeline should be created with default handler")
     }
     
     // MARK: - Middleware Not Found Tests
@@ -198,7 +201,7 @@ final class PipelineConfigurationErrorTests: XCTestCase {
     
     // MARK: - Helper Types
     
-    private struct TestMetricsCollector: AdvancedMetricsCollector {
+    private struct TestMetricsCollector: DetailedMetricsCollector {
         func recordLatency(_ name: String, value: TimeInterval, tags: [String: String]) async {}
         func incrementCounter(_ name: String, value: Double, tags: [String: String]) async {}
         func recordGauge(_ name: String, value: Double, tags: [String: String]) async {}

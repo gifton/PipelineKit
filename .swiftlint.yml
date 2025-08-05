@@ -37,7 +37,7 @@ opt_in_rules:
   - extension_access_modifier
   - fallthrough
   - fatal_error_message
-  - file_header
+  # - file_header  # Disabled - no consistent header pattern
   - file_name_no_space
   - first_where
   - flatmap_over_map_reduce
@@ -97,6 +97,10 @@ disabled_rules:
   - large_tuple
   - multiple_closures_with_trailing_closure
   - identifier_name
+  # Style preferences that don't impact code quality
+  - multiline_parameters_brackets  # Both styles are readable
+  - multiline_function_chains      # Sometimes single-line is clearer
+  - vertical_parameter_alignment   # Not critical for readability
 
 # Rule Configuration
 force_cast: error
@@ -120,15 +124,16 @@ nesting:
   type_level: 2
   function_level: 3
 
-file_header:
-  required_pattern: |
-    \/\/
-    \/\/  .*\.swift
-    \/\/  PipelineKit
-    \/\/
-    \/\/  Created by .* on .*\.
-    \/\/  Copyright � .* All rights reserved\.
-    \/\/
+# file_header rule disabled - no consistent header pattern in project
+# file_header:
+#   required_pattern: |
+#     \/\/
+#     \/\/  .*\.swift
+#     \/\/  PipelineKit
+#     \/\/
+#     \/\/  Created by .* on .*\.
+#     \/\/  Copyright � .* All rights reserved\.
+#     \/\/
 
 # Custom Rules
 custom_rules:
@@ -139,22 +144,11 @@ custom_rules:
     message: "Use explicit type annotation when possible"
     severity: warning
 
-  discouraged_print:
-    name: "Print Statement"
-    regex: '^\s*print\('
-    message: "Use logging framework instead of print statements"
-    severity: warning
-    excluded:
-      - "Tests/**"
-      - "**/Tests/**"
-      - "**/StressTestDemo/**"
-      - "**/MetricBufferDemo/**"
-      - "**/AggregationDemo/**"
-      - "**/ExportDemo/**"
-      - "**/ResourceTrackingDemo/**"
-      - "**/PipelineKitBenchmarks/**"
-      - "**/*Demo.swift"
-      - "**/*Example.swift"
+  # discouraged_print rule disabled - print statements are used appropriately in benchmarks and CLI tools
+  # discouraged_print:
+  #   name: "Print Statement"
+  #   regex: '^\s*print\('
+  #   message: "Use logging framework instead of print statements"
     
   marks_space:
     name: "MARK Format"
@@ -168,11 +162,11 @@ custom_rules:
     message: "Address TODO/FIXME before release"
     severity: warning
     
-  weak_self_usage:
-    name: "Weak Self Usage"
-    regex: '\[weak\s+self\]\s*in'
-    message: "Consider using [weak self] to avoid retain cycles"
-    severity: info
+  # weak_self_usage rule disabled - was incorrectly detecting presence of [weak self] instead of absence
+  # weak_self_usage:
+  #   name: "Weak Self Usage"
+  #   regex: '\[weak\s+self\]\s*in'
+  #   message: "Consider using [weak self] to avoid retain cycles"
     
   no_record_metric:
     name: "Deprecated recordMetric"
@@ -186,15 +180,11 @@ custom_rules:
     name: "Undocumented @unchecked Sendable"
     regex: '@unchecked\s+Sendable(?![\s\S]*?Thread Safety:)'
     message: "@unchecked Sendable must have documentation with 'Thread Safety:' explanation"
-    severity: warning
-    excluded:
-      - "Tests/**"
     
   unchecked_sendable_invariant:
     name: "Missing Thread Safety Invariant"
     regex: '(?:Thread Safety:(?![\s\S]*?Invariant:)[\s\S]*?@unchecked\s+Sendable)'
     message: "Thread Safety documentation must include an 'Invariant:' section explaining safety guarantees"
-    severity: info
 
 # Reporter type (xcode, json, csv, checkstyle, junit, html, emoji)
 reporter: "xcode"

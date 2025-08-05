@@ -59,7 +59,6 @@ public actor ScenarioRunner {
                 "scenario": scenario.name,
                 "duration": String(format: "%.2f", duration)
             ])
-            
         } catch {
             // Record failure
             let duration = Date().timeIntervalSince(startTime)
@@ -213,10 +212,10 @@ public struct ScenarioConfig: Codable, Sendable {
     public let parameters: ScenarioParameters
     
     public enum ScenarioType: String, Codable, Sendable {
-        case burst
-        case sustained
-        case chaos
-        case rampUp
+        case burst = "burst"
+        case sustained = "sustained"
+        case chaos = "chaos"
+        case rampUp = "ramp_up"
     }
     
     /// Typed parameters for different scenario types.
@@ -240,7 +239,6 @@ public struct ScenarioConfig: Codable, Sendable {
         // Try to decode typed parameters based on scenario type
         if let parametersData = try? container.decode(Data.self, forKey: .parameters),
            let paramsDict = try? JSONSerialization.jsonObject(with: parametersData) as? [String: Any] {
-            
             switch type {
             case .burst:
                 let idle = (paramsDict["idleDuration"] as? TimeInterval) ?? 10.0

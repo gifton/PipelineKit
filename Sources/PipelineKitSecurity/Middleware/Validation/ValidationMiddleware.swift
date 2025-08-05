@@ -44,4 +44,3 @@ public struct ValidationMiddleware: Middleware {
         return try await next(command, context)
     }
 }
-

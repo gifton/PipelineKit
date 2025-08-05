@@ -44,7 +44,6 @@ public struct PipelineObservabilityMiddleware: Middleware {
             )
             
             return result
-            
         } catch {
             // Calculate duration and notify failure
             let duration = Date().timeIntervalSince(startTime)
@@ -139,7 +138,6 @@ public struct ObservableMiddlewareDecorator<M: Middleware>: Middleware {
             )
             
             return result
-            
         } catch {
             // Calculate duration and notify failure
             let duration = Date().timeIntervalSince(startTime)
@@ -179,7 +177,6 @@ public struct ObservableContextAwareMiddlewareDecorator<M: Middleware>: Middlewa
         context: CommandContext,
         next: @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
-        
         let startTime = Date()
         
         // Get span context from the command context
@@ -190,7 +187,7 @@ public struct ObservableContextAwareMiddlewareDecorator<M: Middleware>: Middlewa
         let observerRegistry = context.getObserverRegistry()
         
         // Create child span for this middleware
-        let _ = context.createChildSpan(
+        _ = context.createChildSpan(
             operation: middlewareName,
             tags: ["middleware.name": middlewareName, "middleware.order": String(order)]
         )
@@ -218,7 +215,6 @@ public struct ObservableContextAwareMiddlewareDecorator<M: Middleware>: Middlewa
             )
             
             return result
-            
         } catch {
             // End performance timer
             context.endTimer("middleware.\(middlewareName)")

@@ -7,13 +7,20 @@ public actor PerformanceMeasurementPool {
     /// Shared instance for convenience
     public static let shared = PerformanceMeasurementPool()
     
+    /// Creates a pre-warmed pool instance
+    public static func createPreWarmed(maxSize: Int = 200) async -> PerformanceMeasurementPool {
+        let pool = PerformanceMeasurementPool(maxSize: maxSize)
+        await pool.pool.warmUp()
+        return pool
+    }
+    
     /// Mutable wrapper for PerformanceMeasurement to allow reset
     /// This is internal to the actor and not exposed directly
     private final class MutableMeasurement {
         var commandName: String = ""
         var executionTime: TimeInterval = 0
         var isSuccess: Bool = true
-        var errorMessage: String? = nil
+        var errorMessage: String?
         var metrics: [String: PerformanceMetricValue] = [:]
         
         /// Creates an immutable PerformanceMeasurement from current values
@@ -37,16 +44,16 @@ public actor PerformanceMeasurementPool {
         }
     }
     
-    private let pool: GenericObjectPool<MutableMeasurement>
+    private let pool: NonSendableObjectPool<MutableMeasurement>
     
     public init(maxSize: Int = 200) {
-        let configuration = GenericObjectPool<MutableMeasurement>.Configuration(
+        let configuration = NonSendableObjectPool<MutableMeasurement>.Configuration(
             maxSize: maxSize,
             preAllocateCount: 20,
             trackStatistics: true
         )
         
-        self.pool = GenericObjectPool(
+        self.pool = NonSendableObjectPool(
             configuration: configuration,
             factory: { MutableMeasurement() },
             reset: { measurement in
@@ -96,7 +103,7 @@ public actor PerformanceMeasurementPool {
         errorMessage: String? = nil,
         metrics: [String: PerformanceMetricValue] = [:]
     ) async -> PerformanceMeasurement {
-        try! await pool.withBorrowedObject { measurement in
+        return await pool.withObject { measurement in
             measurement.commandName = commandName
             measurement.executionTime = executionTime
             measurement.isSuccess = isSuccess
@@ -106,4 +113,3 @@ public actor PerformanceMeasurementPool {
         }
     }
 }
-

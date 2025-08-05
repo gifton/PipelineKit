@@ -6,7 +6,6 @@ import PipelineKitTestSupport
 // MARK: - Protocol Sendable Requirements Tests
 
 final class ProtocolSendableTests: XCTestCase {
-    
     // MARK: - Compile-Time Verification
     
     func testProtocolsRequireSendable() {
@@ -19,8 +18,8 @@ final class ProtocolSendableTests: XCTestCase {
         let profiler: any MiddlewareProfiler = TestProfiler()
         requiresSendable(profiler)
         
-        // CacheProtocol
-        let cache: any CacheProtocol = InMemoryCache()
+        // Cache
+        let cache: any Cache = InMemoryCache()
         requiresSendable(cache)
         
         // CacheKeyGenerator
@@ -35,8 +34,8 @@ final class ProtocolSendableTests: XCTestCase {
         let metricsCollector: any MetricsCollector = TestSimpleMetricsCollector()
         requiresSendable(metricsCollector)
         
-        // AdvancedMetricsCollector
-        let advancedCollector: any AdvancedMetricsCollector = TestAdvancedMetricsCollector()
+        // DetailedMetricsCollector
+        let advancedCollector: any DetailedMetricsCollector = TestAdvancedMetricsCollector()
         requiresSendable(advancedCollector)
     }
     
@@ -113,7 +112,7 @@ final class ProtocolSendableTests: XCTestCase {
             // Writers
             for i in 0..<50 {
                 group.addTask {
-                    let data = "value\(i)".data(using: .utf8)!
+                    let data = Data("value\(i)".utf8)
                     await cache.set(key: "key\(i)", value: data, expiration: nil)
                 }
             }
@@ -207,14 +206,14 @@ private final class TestProfiler: MiddlewareProfiler, @unchecked Sendable {
         let key = String(describing: type(of: middleware))
         lock.lock()
         defer { lock.unlock() }
-        guard let data = profiles[key], data.count > 0 else { return nil }
+        guard let data = profiles[key], !data.isEmpty else { return nil }
         return data.totalDuration / Double(data.count)
     }
     
     func getProfile(for middleware: String) -> ProfileInfo? {
         lock.lock()
         defer { lock.unlock() }
-        guard let data = profiles[middleware], data.count > 0 else { return nil }
+        guard let data = profiles[middleware], !data.isEmpty else { return nil }
         
         return ProfileInfo(
             executionCount: data.count,
@@ -229,7 +228,7 @@ private final class TestProfiler: MiddlewareProfiler, @unchecked Sendable {
         lock.lock()
         defer { lock.unlock() }
         return profiles.compactMapValues { data in
-            guard data.count > 0 else { return nil }
+            guard !data.isEmpty else { return nil }
             return ProfileInfo(
                 executionCount: data.count,
                 totalDuration: data.totalDuration,
@@ -288,7 +287,7 @@ private struct TestSimpleMetricsCollector: MetricsCollector {
     }
 }
 
-private struct TestAdvancedMetricsCollector: AdvancedMetricsCollector {
+private struct TestAdvancedMetricsCollector: DetailedMetricsCollector {
     func recordLatency(_ name: String, value: TimeInterval, tags: [String: String]) async {
         // Implementation
     }

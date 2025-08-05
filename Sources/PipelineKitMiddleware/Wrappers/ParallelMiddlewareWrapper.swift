@@ -157,8 +157,8 @@ public struct ParallelMiddlewareWrapper: Middleware, Sendable {
         // For validation, we want middleware to either complete successfully or throw
         let validationNext: @Sendable (T, CommandContext) async throws -> T.Result = { _, _ in
             // Return a dummy result for validation purposes
-            if T.Result.self == Void.self {
-                return (() as! T.Result)
+            if let voidResult = () as? T.Result {
+                return voidResult
             }
             throw ParallelExecutionError.validationOnlyExecution
         }
@@ -239,4 +239,3 @@ public struct ParallelMiddlewareWrapper: Middleware, Sendable {
         }
     }
 }
-

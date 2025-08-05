@@ -2,7 +2,6 @@ import XCTest
 @testable import PipelineKit
 
 final class RegexValidationBenchmark: XCTestCase {
-    
     // MARK: - Email Validation Benchmarks
     
     func testEmailValidationPerformance() throws {

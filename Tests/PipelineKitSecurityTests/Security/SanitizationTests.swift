@@ -2,9 +2,8 @@ import XCTest
 @testable import PipelineKit
 
 final class SanitizationTests: XCTestCase {
-    
     // Test command with sanitization
-    struct CreatePostCommand: Command {
+    private struct CreatePostCommand: Command {
         typealias Result = String
         
         let title: String

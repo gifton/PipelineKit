@@ -2,7 +2,6 @@ import XCTest
 @testable import PipelineKit
 
 final class ErrorPayloadPreservationTests: XCTestCase {
-    
     func testBackPressureErrorPayloadMapping() {
         // Test all BackPressureReason cases are preserved
         
@@ -116,7 +115,7 @@ final class ErrorPayloadPreservationTests: XCTestCase {
         // Verify error descriptions include payload information
         
         let queueFullError = PipelineError.backPressure(reason: .queueFull(current: 100, limit: 50))
-        XCTAssertEqual(queueFullError.errorDescription, 
+        XCTAssertEqual(queueFullError.errorDescription,
                       "Pipeline queue is full: 100 commands (limit: 50)")
         
         let retryError = PipelineError.resilience(reason: .retryExhausted(attempts: 3))

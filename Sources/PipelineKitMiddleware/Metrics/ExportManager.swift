@@ -130,11 +130,9 @@ public actor ExportManager {
     public func export(_ metric: MetricDataPoint) async {
         guard !isShuttingDown else { return }
         
-        for (_, wrapper) in exporters {
-            if await wrapper.isActive() {
-                if await !wrapper.enqueue(metric) && configuration.dropOnOverflow {
-                    totalDropped += 1
-                }
+        for (_, wrapper) in exporters where await wrapper.isActive() {
+            if await !wrapper.enqueue(metric) && configuration.dropOnOverflow {
+                totalDropped += 1
             }
         }
         
@@ -381,4 +379,3 @@ public struct ExportManagerStatistics: Sendable {
     public let totalDropped: Int
     public let lastExportTime: Date?
 }
-

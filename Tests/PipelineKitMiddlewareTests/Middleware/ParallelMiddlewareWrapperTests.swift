@@ -47,7 +47,7 @@ final class ParallelMiddlewareWrapperTests: XCTestCase {
             
             // Check if any two middleware overlapped in execution
             for i in 0..<executions.count {
-                for j in (i+1)..<executions.count {
+                for j in (i + 1)..<executions.count {
                     let exec1 = executions[i]
                     let exec2 = executions[j]
                     
@@ -243,7 +243,7 @@ final class ParallelMiddlewareWrapperTests: XCTestCase {
         _ = try await parallelWrapper.execute(
             TestCommand(id: "context"),
             context: context,
-            next: { _, ctx in
+            next: { _, _ in
                 // Check that context modifications from parallel middleware are isolated
                 return "Completed"
             }

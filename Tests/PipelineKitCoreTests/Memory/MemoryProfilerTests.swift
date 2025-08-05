@@ -217,7 +217,7 @@ final class MemoryProfilerTests: XCTestCase {
         XCTAssertGreaterThan(report!.duration, 0)
         XCTAssertGreaterThan(report!.peakMemory, 0)
         XCTAssertGreaterThan(report!.averageMemory, 0)
-        XCTAssertTrue(report!.snapshots.last?.label == "Final")
+        XCTAssertEqual(report!.snapshots.last?.label, "Final")
     }
     
     func testReportRecommendations() async throws {

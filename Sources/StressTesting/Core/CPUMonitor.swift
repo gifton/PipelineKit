@@ -79,7 +79,6 @@ actor CPUMonitor {
         // Calculate usage if we have previous data
         if let previousInfo = previousInfo,
            let previousTime = previousTime {
-            
             let userDiff = Int(totalUser) - Int(previousInfo.cpu_ticks.0)
             let systemDiff = Int(totalSystem) - Int(previousInfo.cpu_ticks.1)
             let idleDiff = Int(totalIdle) - Int(previousInfo.cpu_ticks.2)

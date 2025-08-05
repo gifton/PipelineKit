@@ -16,7 +16,6 @@ struct SecurityTestCommand: Command {
 
 /// Tests for security failure scenarios and attack resistance
 final class SecurityFailureTests: XCTestCase {
-    
     // MARK: - Rate Limiting Failures
     
     func testRateLimitExceeded() async throws {
@@ -181,9 +180,9 @@ final class SecurityFailureTests: XCTestCase {
         print("About to call middleware.execute")
         do {
             let context = CommandContext(metadata: StandardCommandMetadata())
-            let result = try await middleware.execute(xssCommand, context: context) { cmd, ctx in 
+            let result = try await middleware.execute(xssCommand, context: context) { _, _ in
                 print("Next handler called - this shouldn't happen")
-                return "success" 
+                return "success"
             }
             print("Middleware returned: \(result)")
             XCTFail("XSS validation should fail")
@@ -445,7 +444,7 @@ final class SecurityFailureTests: XCTestCase {
         let command = SecurityTestCommand(value: "dos_attempt")
         
         // Simulate coordinated DoS attack
-        let attackTasks = (0..<100).map { i in
+        let attackTasks = (0..<100).map { _ in
             Task {
                 do {
                     let context = CommandContext(metadata: StandardCommandMetadata())

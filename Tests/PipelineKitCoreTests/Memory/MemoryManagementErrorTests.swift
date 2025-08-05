@@ -3,7 +3,6 @@ import XCTest
 @testable import PipelineKitCore
 
 final class MemoryManagementErrorTests: XCTestCase {
-    
     // MARK: - Object Pool Error Tests
     
     func testObjectPoolExhaustion() async throws {
@@ -136,7 +135,7 @@ final class MemoryManagementErrorTests: XCTestCase {
             let id = await handler.register {
                 await executionCounter.increment()
                 // Simulate varying cleanup times
-                if i % 3 == 0 {
+                if i.isMultiple(of: 3) {
                     try? await Task.sleep(nanoseconds: 1_000_000) // 1ms
                 }
             }
@@ -271,7 +270,7 @@ final class MemoryManagementErrorTests: XCTestCase {
                     do {
                         let obj = await pool.acquire()
                         // Simulate work
-                        if i % 10 == 0 {
+                        if i.isMultiple(of: 10) {
                             await Task.yield()
                         }
                         await pool.release(obj)

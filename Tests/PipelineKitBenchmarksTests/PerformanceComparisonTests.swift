@@ -5,7 +5,6 @@ import PipelineKitTestSupport
 
 /// Tests that demonstrate and validate performance improvements
 final class PerformanceComparisonTests: XCTestCase {
-    
     // MARK: - Context Performance Tests
     
     func testContextPerformanceImprovement() async throws {

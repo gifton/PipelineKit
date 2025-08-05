@@ -2,15 +2,14 @@ import XCTest
 @testable import PipelineKit
 
 final class MiddlewareChainOptimizerTests: XCTestCase {
-    
     // MARK: - Test Types
     
-    struct TestCommand: Command {
+    private struct TestCommand: Command {
         typealias Result = String
         let id: String
     }
     
-    struct TestHandler: CommandHandler {
+    private struct TestHandler: CommandHandler {
         typealias CommandType = TestCommand
         
         func handle(_ command: TestCommand) async throws -> String {
@@ -20,7 +19,7 @@ final class MiddlewareChainOptimizerTests: XCTestCase {
     
     // MARK: - Test Middleware
     
-    final class ValidationMiddleware: Middleware, @unchecked Sendable {
+    private final class ValidationMiddleware: Middleware, @unchecked Sendable {
         let priority = ExecutionPriority.validation
         
         func execute<T: Command>(
@@ -33,7 +32,7 @@ final class MiddlewareChainOptimizerTests: XCTestCase {
         }
     }
     
-    final class LoggingMiddleware: Middleware, @unchecked Sendable {
+    private final class LoggingMiddleware: Middleware, @unchecked Sendable {
         let priority = ExecutionPriority.postProcessing
         
         func execute<T: Command>(
@@ -46,7 +45,7 @@ final class MiddlewareChainOptimizerTests: XCTestCase {
         }
     }
     
-    final class TestMetricsMiddleware: Middleware, @unchecked Sendable {
+    private final class TestMetricsMiddleware: Middleware, @unchecked Sendable {
         let priority = ExecutionPriority.postProcessing // Restored to postProcessing
         
         func execute<T: Command>(
@@ -59,7 +58,7 @@ final class MiddlewareChainOptimizerTests: XCTestCase {
         }
     }
     
-    final class ProcessingMiddleware: Middleware, @unchecked Sendable {
+    private final class ProcessingMiddleware: Middleware, @unchecked Sendable {
         let priority = ExecutionPriority.processing
         
         func execute<T: Command>(

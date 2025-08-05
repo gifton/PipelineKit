@@ -1,8 +1,7 @@
 import Foundation
 
 /// Advanced pipeline visualization renderer with multiple output formats.
-public struct VisualizationRenderer {
-    
+public enum VisualizationRenderer {
     public enum OutputFormat {
         case mermaid
         case graphviz
@@ -279,17 +278,17 @@ public struct VisualizationRenderer {
                 body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 20px; }
                 .container { max-width: 1200px; margin: 0 auto; }
                 .metrics { display: flex; gap: 20px; margin: 20px 0; }
-                .metric-card { 
-                    background: #f5f5f5; 
-                    padding: 15px; 
-                    border-radius: 8px; 
-                    min-width: 150px; 
+                .metric-card {
+                    background: #f5f5f5;
+                    padding: 15px;
+                    border-radius: 8px;
+                    min-width: 150px;
                 }
-                .bottleneck { 
-                    background: #ffe6e6; 
-                    border-left: 4px solid #ff4444; 
-                    padding: 10px; 
-                    margin: 10px 0; 
+                .bottleneck {
+                    background: #ffe6e6;
+                    border-left: 4px solid #ff4444;
+                    padding: 10px;
+                    margin: 10px 0;
                 }
                 pre { background: #f5f5f5; padding: 15px; border-radius: 8px; overflow-x: auto; }
                 .mermaid { text-align: center; }

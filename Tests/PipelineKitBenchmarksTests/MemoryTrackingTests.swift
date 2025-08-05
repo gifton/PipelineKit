@@ -2,7 +2,6 @@ import XCTest
 @testable import PipelineKitBenchmarks
 
 final class MemoryTrackingTests: XCTestCase {
-    
     func testCurrentMemoryUsage() {
         // Given/When
         let memory = MemoryTracking.currentMemoryUsage()

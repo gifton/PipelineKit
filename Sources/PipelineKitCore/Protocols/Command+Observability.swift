@@ -1,10 +1,5 @@
 import Foundation
 
-/// Observability extensions for the Command protocol.
-///
-/// These extensions provide opt-in observability capabilities for commands
-/// without requiring separate protocol conformances.
-
 // MARK: - Observability Hooks
 
 public extension Command {

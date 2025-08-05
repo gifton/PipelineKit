@@ -2,10 +2,9 @@ import XCTest
 @testable import PipelineKit
 
 final class FastPathExecutorBenchmarkTests: XCTestCase {
-    
     // MARK: - Test Infrastructure
     
-    struct BenchmarkCommand: Command {
+    private struct BenchmarkCommand: Command {
         typealias Result = String
         let id: String
         let payload: String
@@ -16,7 +15,7 @@ final class FastPathExecutorBenchmarkTests: XCTestCase {
         }
     }
     
-    struct BenchmarkHandler: CommandHandler {
+    private struct BenchmarkHandler: CommandHandler {
         typealias CommandType = BenchmarkCommand
         
         func handle(_ command: BenchmarkCommand) async throws -> String {
@@ -25,7 +24,7 @@ final class FastPathExecutorBenchmarkTests: XCTestCase {
         }
     }
     
-    struct LightweightMiddleware: Middleware {
+    private struct LightweightMiddleware: Middleware {
         let name: String
         let priority: ExecutionPriority = .custom
         
@@ -40,7 +39,7 @@ final class FastPathExecutorBenchmarkTests: XCTestCase {
         }
     }
     
-    struct ProcessingMiddleware: Middleware {
+    private struct ProcessingMiddleware: Middleware {
         let name: String
         let priority: ExecutionPriority = .processing
         

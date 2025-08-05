@@ -3,15 +3,14 @@ import XCTest
 
 /// Tests for Sendable conformance of optimization-related types
 final class OptimizationSendableTests: XCTestCase {
-    
     // MARK: - Test Types
     
-    struct TestCommand: Command {
+    private struct TestCommand: Command {
         typealias Result = String
         let id: String
     }
     
-    struct TestHandler: CommandHandler {
+    private struct TestHandler: CommandHandler {
         typealias CommandType = TestCommand
         
         func handle(_ command: TestCommand) async throws -> String {
@@ -19,7 +18,7 @@ final class OptimizationSendableTests: XCTestCase {
         }
     }
     
-    struct TestMiddleware: Middleware {
+    private struct TestMiddleware: Middleware {
         let priority: ExecutionPriority
         let name: String
         
@@ -82,7 +81,7 @@ final class OptimizationSendableTests: XCTestCase {
                         TestMiddleware(priority: .processing, name: "Process\(i)")
                     ]
                     
-                    let _ = await optimizer.optimize(
+                    _ = await optimizer.optimize(
                         middleware: middlewares,
                         handler: nil
                     )
@@ -120,7 +119,7 @@ final class OptimizationSendableTests: XCTestCase {
         // FastPathExecutor should be Sendable
         let executor = MiddlewareChainOptimizer.FastPathExecutor(
             middleware: [],
-            executorFunc: { command, context, handler in
+            executorFunc: { command, _, handler in
                 return try await handler(command)
             }
         )

@@ -11,9 +11,8 @@ public struct TypedMetrics {}
 // MetricCollector is defined elsewhere
 public struct TestError: Error {
     let message: String
-    init(message: String) { self.message = message }
     static func configuration(_ msg: String) -> TestError { TestError(message: msg) }
-    static func phaseTransition(from: String, to: String, reason: String) -> TestError { 
+    static func phaseTransition(from: String, to: String, reason: String) -> TestError {
         TestError(message: "Phase transition failed from '\(from)' to '\(to)': \(reason)")
     }
     static func timeout(phase: String, limit: TimeInterval) -> TestError {
@@ -25,7 +24,7 @@ public struct TestError: Error {
     static func unsupported(_ msg: String) -> TestError { TestError(message: msg) }
 }
 public protocol StressOrchestrator {}
-public struct testLogger {
+public enum TestLogger {
     static func info(_ msg: String) {}
     static func error(_ msg: String, error: Error) {}
 }

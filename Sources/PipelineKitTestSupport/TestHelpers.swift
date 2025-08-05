@@ -46,7 +46,7 @@ public enum TestError: Error, LocalizedError {
 // MARK: - Test Actor for Thread-Safe Collection
 
 /// Helper actor for thread-safe test data collection
-public actor TestActor<T: Sendable>: Sendable {
+public actor TestActor <T: Sendable> {
     private var value: T
     
     public init(_ value: T) {
@@ -83,14 +83,14 @@ public actor TestActor<T: Sendable>: Sendable {
 /// 1. **Any Type Storage**: The `additionalData: [String: Any]` property uses
 ///    the Any type which cannot be verified as Sendable by the compiler.
 ///
-/// 2. **Thread Safety Guarantee**: In test scenarios, this dictionary typically
+/// 2. **Alternative Considered**: Using a typed enum for values would limit
+///    test flexibility and require constant updates for new test scenarios.
+///
+/// 3. **Thread Safety:** In test scenarios, this dictionary typically
 ///    contains simple values (strings, numbers) that are thread-safe. The struct
 ///    is immutable after creation.
 ///
-/// 3. **Alternative Considered**: Using a typed enum for values would limit
-///    test flexibility and require constant updates for new test scenarios.
-///
-/// 4. **Thread Safety Invariant**: All values stored in additionalData MUST be
+/// 4. **Thread Safety Invariant:** All values stored in additionalData MUST be
 ///    value types (String, Int, Double, etc.) or immutable reference types.
 ///    Mutable reference types will cause data races.
 ///
@@ -218,14 +218,14 @@ public struct AsyncTestCommand: Command {
 /// 1. **Test State Tracking**: Test middleware needs to track execution count
 ///    and last command/context for test assertions. This requires mutable state.
 ///
-/// 2. **Thread Safety Guarantee**: While this implementation doesn't use locks,
+/// 2. **Alternative Considered**: Converting to an actor would require async
+///    access to check execution state, complicating test assertions.
+///
+/// 3. **Thread Safety:** While this implementation doesn't use locks,
 ///    it's designed for single-threaded test scenarios where middleware execution
 ///    is typically sequential within a test case.
 ///
-/// 3. **Alternative Considered**: Converting to an actor would require async
-///    access to check execution state, complicating test assertions.
-///
-/// 4. **Thread Safety Invariant**: This middleware is ONLY safe for single-threaded
+/// 4. **Thread Safety Invariant:** This middleware is ONLY safe for single-threaded
 ///    test scenarios. For concurrent tests, data races WILL occur. Use thread-safe
 ///    alternatives like MockLoggingMiddleware for concurrent testing.
 ///
@@ -341,7 +341,7 @@ public final class ModifyingMiddleware<Key: ContextKey>: Middleware, @unchecked 
 
 // MARK: - Test Utilities
 
-public struct TestConstants {
+public enum TestConstants {
     public static let defaultUserId = "test-user-123"
     public static let defaultCorrelationId = "test-correlation-123"
     public static let defaultTimeout: TimeInterval = 5.0
@@ -380,10 +380,10 @@ public enum RetryStrategy: Sendable {
             return 0
         case .fixedDelay(let delay):
             return delay
-        case .exponentialBackoff(let base, let multiplier, let maxDelay):
+        case let .exponentialBackoff(base, multiplier, maxDelay):
             let delay = base * pow(multiplier, Double(attempt))
             return min(delay, maxDelay)
-        case .linearBackoff(let base, let increment, let maxDelay):
+        case let .linearBackoff(base, increment, maxDelay):
             let delay = base + (increment * Double(attempt))
             return min(delay, maxDelay)
         }
@@ -484,7 +484,7 @@ public final class MockEncryptionService: @unchecked Sendable {
     public func encrypt<T: Encodable>(_ value: T) throws -> Data {
         let encoder = JSONEncoder()
         let data = try encoder.encode(value)
-        return "ENCRYPTED:\(data.base64EncodedString())".data(using: .utf8)!
+        return Data("ENCRYPTED:\(data.base64EncodedString())".utf8)
     }
     
     public func decrypt<T: Decodable>(_ data: Data, as type: T.Type) throws -> T {

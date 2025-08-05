@@ -3,7 +3,6 @@ import XCTest
 
 /// Benchmark tests for the integer-based context storage optimization
 final class ContextStorageBenchmark: PerformanceBenchmark {
-    
     // Test keys for benchmarking
     struct BenchKey1: ContextKey { typealias Value = String }
     struct BenchKey2: ContextKey { typealias Value = Int }
@@ -78,7 +77,7 @@ final class ContextStorageBenchmark: PerformanceBenchmark {
             case 0: context[BenchKey1.self] = "value \(i)"
             case 1: context[BenchKey2.self] = i
             case 2: context[BenchKey3.self] = Double(i)
-            case 3: context[BenchKey4.self] = i % 2 == 0
+            case 3: context[BenchKey4.self] = i.isMultiple(of: 2)
             case 4: context[BenchKey5.self] = ["item \(i)"]
             case 5: context[BenchKey6.self] = Data("data \(i)".utf8)
             case 6: context[BenchKey7.self] = UUID()

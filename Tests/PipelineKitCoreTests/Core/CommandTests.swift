@@ -3,8 +3,7 @@ import XCTest
 import PipelineKitTestSupport
 
 final class CommandTests: XCTestCase {
-    
-    struct LocalTestCommand: Command {
+    private struct LocalTestCommand: Command {
         typealias Result = String
         let value: Int
         
@@ -13,7 +12,7 @@ final class CommandTests: XCTestCase {
         }
     }
     
-    struct TestHandler: CommandHandler {
+    private struct TestHandler: CommandHandler {
         typealias CommandType = LocalTestCommand
         
         func handle(_ command: LocalTestCommand) async throws -> String {
@@ -93,4 +92,3 @@ final class CommandTests: XCTestCase {
         }
     }
 }
-

@@ -158,7 +158,6 @@ public actor ResourceExhauster: MetricRecordable {
                 ])
             
             return result
-            
         } catch {
             state = .idle
             await recordPatternFailure(.patternFail, error: error, tags: ["resource": request.resource.rawValue])
@@ -234,7 +233,6 @@ public actor ResourceExhauster: MetricRecordable {
                 ])
             
             return results
-            
         } catch {
             // Cleanup any successful allocations
             state = .releasing
@@ -313,7 +311,6 @@ public actor ResourceExhauster: MetricRecordable {
                 osResources: osResources,
                 handles: handles
             )
-            
         } catch {
             // Clean up any partial allocations - handles will clean up automatically
             // when they go out of scope
@@ -431,7 +428,7 @@ public actor ResourceExhauster: MetricRecordable {
                 handles.append(handle)
                 fileHandles.append(fileHandle)
                 
-                if (i + 1) % 100 == 0 {
+                if (i + 1).isMultiple(of: 100) {
                     await recordGauge(.allocatedCount, value: Double(i + 1))
                 }
             } catch {
@@ -477,7 +474,7 @@ public actor ResourceExhauster: MetricRecordable {
                     throw PipelineError.simulation(reason: .exhaustion(.allocationFailed(type: "memory_mapping", reason: "mmap failed")))
                 }
                 
-                if (i + 1) % 100 == 0 {
+                if (i + 1).isMultiple(of: 100) {
                     await recordGauge(.allocatedCount, value: Double(i + 1))
                 }
             } catch {
@@ -513,7 +510,7 @@ public actor ResourceExhauster: MetricRecordable {
                     throw PipelineError.simulation(reason: .exhaustion(.allocationFailed(type: "socket", reason: "socket() failed")))
                 }
                 
-                if (i + 1) % 100 == 0 {
+                if (i + 1).isMultiple(of: 100) {
                     await recordGauge(.allocatedCount, value: Double(i + 1))
                 }
             } catch {
@@ -609,7 +606,7 @@ public actor ResourceExhauster: MetricRecordable {
                 }
                 tasks.append(task)
                 
-                if (i + 1) % 10 == 0 {
+                if (i + 1).isMultiple(of: 10) {
                     await recordGauge(.allocatedCount, value: Double(i + 1))
                 }
             } catch {
@@ -645,7 +642,7 @@ public actor ResourceExhauster: MetricRecordable {
                 handles.append(handle)
                 processes.append(ProcessInfoWrapper(process: process, pid: process.processIdentifier))
                 
-                if (i + 1) % 5 == 0 {
+                if (i + 1).isMultiple(of: 5) {
                     await recordGauge(.allocatedCount, value: Double(i + 1))
                 }
             } catch {
@@ -808,4 +805,3 @@ public enum ResourceMetric: String {
     case allocationFailures = "allocation.failures"
     case safetyRejection = "safety.rejection"
 }
-

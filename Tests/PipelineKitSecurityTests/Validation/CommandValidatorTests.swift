@@ -2,7 +2,6 @@ import XCTest
 @testable import PipelineKit
 
 final class CommandValidatorTests: XCTestCase {
-    
     // MARK: - Email Validation Tests
     
     func testValidEmailAddresses() throws {

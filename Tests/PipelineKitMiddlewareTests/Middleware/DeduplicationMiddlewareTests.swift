@@ -16,7 +16,6 @@ import PipelineKitTestSupport
  */
 
 final class DeduplicationMiddlewareTests: XCTestCase {
-    
     func testPlaceholder() {
         // Placeholder test to keep the test class valid
         XCTAssertTrue(true, "Deduplication feature not implemented yet")

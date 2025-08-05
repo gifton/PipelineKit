@@ -2,7 +2,6 @@ import XCTest
 @testable import PipelineKitBenchmarks
 
 final class BenchmarkRunnerTests: XCTestCase {
-    
     func testBasicBenchmarkExecution() async throws {
         // Given
         struct TestBenchmark: Benchmark {

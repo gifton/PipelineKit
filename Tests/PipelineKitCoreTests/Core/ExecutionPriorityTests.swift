@@ -3,7 +3,6 @@ import XCTest
 import PipelineKitTestSupport
 
 final class ExecutionPriorityTests: XCTestCase {
-    
     func testExecutionPriorityValues() {
         // Verify the simplified priorities are properly ordered
         XCTAssertEqual(ExecutionPriority.authentication.rawValue, 100)

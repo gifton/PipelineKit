@@ -256,8 +256,10 @@ public extension TestContext {
 */
 
 // Placeholder type to prevent compilation errors
-public struct TestContext {
+public enum TestContext {
     public static func build(_ configure: (Any) -> Void) -> TestContext {
-        return TestContext()
+        // Since TestContext is now an enum, we can't instantiate it
+        // This appears to be a placeholder anyway, so we'll need to rethink this
+        fatalError("TestContext is a placeholder type and should not be instantiated")
     }
 }

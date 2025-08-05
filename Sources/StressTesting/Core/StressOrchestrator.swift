@@ -137,7 +137,6 @@ public actor StressOrchestrator {
                 warnings: await safetyMonitor.checkSystemHealth(),
                 errors: []
             )
-            
         } catch {
             // Ensure cleanup happens even on failure
             state = .cleaningUp
@@ -221,7 +220,7 @@ public actor StressOrchestrator {
             
             let stressor = ConcurrencyStressor(
                 safetyMonitor: safetyMonitor,
-                metricCollector: nil  // TODO: Add proper metric collector
+                metricCollector: metricCollector
             )
             _concurrencyStressor = stressor
             return stressor
@@ -383,7 +382,7 @@ public actor StressOrchestrator {
                         holdTime: scenario.duration
                     )
                     
-                case .gradual(_):
+                case .gradual:
                     // Use gradual pressure for gradual pattern
                     try await simulator.applyGradualPressure(
                         targetUsage: scenario.targetPercentage,
@@ -615,7 +614,6 @@ public enum OrchestratorEvent: Sendable {
 public typealias EventHandler = @Sendable (OrchestratorEvent) async -> Void
 
 /// Errors that can occur during orchestration.
-
 
 
 /// Phases of metric collection.

@@ -61,6 +61,8 @@ struct StringKey: ContextKey {
 // Main test
 @main
 struct VerifyChanges {
+    private init() {}
+    
     static func main() async throws {
         print("=== Testing PipelineKit Changes ===\n")
         

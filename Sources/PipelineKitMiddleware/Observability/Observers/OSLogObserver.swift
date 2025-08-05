@@ -32,7 +32,6 @@ public enum LogLevel: Int, Comparable, Sendable {
 /// and Logger instances are thread-safe.
 @available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
 public final class OSLogObserver: BaseObserver, @unchecked Sendable {
-    
     // MARK: - Logger Categories
     
     private let pipelineLogger: Logger
@@ -84,7 +83,7 @@ public final class OSLogObserver: BaseObserver, @unchecked Sendable {
     
     // MARK: - Pipeline Events
     
-    public override func pipelineWillExecute<T: Command>(_ command: T, metadata: CommandMetadata, pipelineType: String) async {
+    override public func pipelineWillExecute<T: Command>(_ command: T, metadata: CommandMetadata, pipelineType: String) async {
         let correlationId = extractCorrelationId(from: metadata)
         let commandType = String(describing: type(of: command))
         
@@ -99,7 +98,7 @@ public final class OSLogObserver: BaseObserver, @unchecked Sendable {
         }
     }
     
-    public override func pipelineDidExecute<T: Command>(_ command: T, result: T.Result, metadata: CommandMetadata, pipelineType: String, duration: TimeInterval) async {
+    override public func pipelineDidExecute<T: Command>(_ command: T, result: T.Result, metadata: CommandMetadata, pipelineType: String, duration: TimeInterval) async {
         let correlationId = extractCorrelationId(from: metadata)
         let commandType = String(describing: type(of: command))
         let resultType = String(describing: type(of: result))
@@ -127,7 +126,7 @@ public final class OSLogObserver: BaseObserver, @unchecked Sendable {
         }
     }
     
-    public override func pipelineDidFail<T: Command>(_ command: T, error: Error, metadata: CommandMetadata, pipelineType: String, duration: TimeInterval) async {
+    override public func pipelineDidFail<T: Command>(_ command: T, error: Error, metadata: CommandMetadata, pipelineType: String, duration: TimeInterval) async {
         let correlationId = extractCorrelationId(from: metadata)
         let commandType = String(describing: type(of: command))
         let errorType = String(describing: type(of: error))
@@ -145,7 +144,7 @@ public final class OSLogObserver: BaseObserver, @unchecked Sendable {
     
     // MARK: - Middleware Events
     
-    public override func middlewareWillExecute(_ middlewareName: String, order: Int, correlationId: String) async {
+    override public func middlewareWillExecute(_ middlewareName: String, order: Int, correlationId: String) async {
         if configuration.logLevel <= .debug {
             middlewareLogger.debug("""
                 🔧 Middleware starting
@@ -156,7 +155,7 @@ public final class OSLogObserver: BaseObserver, @unchecked Sendable {
         }
     }
     
-    public override func middlewareDidExecute(_ middlewareName: String, order: Int, correlationId: String, duration: TimeInterval) async {
+    override public func middlewareDidExecute(_ middlewareName: String, order: Int, correlationId: String, duration: TimeInterval) async {
         if configuration.logLevel <= .debug {
             middlewareLogger.debug("""
                 ✅ Middleware completed
@@ -168,7 +167,7 @@ public final class OSLogObserver: BaseObserver, @unchecked Sendable {
         }
     }
     
-    public override func middlewareDidFail(_ middlewareName: String, order: Int, correlationId: String, error: Error, duration: TimeInterval) async {
+    override public func middlewareDidFail(_ middlewareName: String, order: Int, correlationId: String, error: Error, duration: TimeInterval) async {
         let errorType = String(describing: type(of: error))
         
         errorLogger.error("""
@@ -184,7 +183,7 @@ public final class OSLogObserver: BaseObserver, @unchecked Sendable {
     
     // MARK: - Handler Events
     
-    public override func handlerWillExecute<T: Command>(_ command: T, handlerType: String, correlationId: String) async {
+    override public func handlerWillExecute<T: Command>(_ command: T, handlerType: String, correlationId: String) async {
         let commandType = String(describing: type(of: command))
         
         if configuration.logLevel <= .debug {
@@ -197,7 +196,7 @@ public final class OSLogObserver: BaseObserver, @unchecked Sendable {
         }
     }
     
-    public override func handlerDidExecute<T: Command>(_ command: T, result: T.Result, handlerType: String, correlationId: String, duration: TimeInterval) async {
+    override public func handlerDidExecute<T: Command>(_ command: T, result: T.Result, handlerType: String, correlationId: String, duration: TimeInterval) async {
         let commandType = String(describing: type(of: command))
         let resultType = String(describing: type(of: result))
         
@@ -224,7 +223,7 @@ public final class OSLogObserver: BaseObserver, @unchecked Sendable {
         }
     }
     
-    public override func handlerDidFail<T: Command>(_ command: T, error: Error, handlerType: String, correlationId: String, duration: TimeInterval) async {
+    override public func handlerDidFail<T: Command>(_ command: T, error: Error, handlerType: String, correlationId: String, duration: TimeInterval) async {
         let commandType = String(describing: type(of: command))
         let errorType = String(describing: type(of: error))
         
@@ -241,7 +240,7 @@ public final class OSLogObserver: BaseObserver, @unchecked Sendable {
     
     // MARK: - Custom Events
     
-    public override func customEvent(_ eventName: String, properties: [String: Sendable], correlationId: String) async {
+    override public func customEvent(_ eventName: String, properties: [String: Sendable], correlationId: String) async {
         let propertiesString = formatProperties(properties)
         
         pipelineLogger.info("""

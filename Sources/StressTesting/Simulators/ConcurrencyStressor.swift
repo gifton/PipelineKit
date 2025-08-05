@@ -123,7 +123,7 @@ public actor ConcurrencyStressor: MetricRecordable {
                 let actor = TestActor(id: i, messageSize: messageSize, metricCollector: metricCollector)
                 testActors.append(actor)
                 
-                if (i + 1) % 10 == 0 {
+                if (i + 1).isMultiple(of: 10) {
                     await recordGauge(.actorCount, value: Double(i + 1))
                 }
             }
@@ -149,7 +149,7 @@ public actor ConcurrencyStressor: MetricRecordable {
                             await self.incrementMessageCount()
                             
                             // Record progress periodically
-                            if messageIndex % 100 == 0 {
+                            if messageIndex.isMultiple(of: 100) {
                                 await self.recordGauge(.mailboxDepth,
                                     value: Double(messageIndex),
                                     tags: ["actor": String(actorIndex)])
@@ -171,7 +171,6 @@ public actor ConcurrencyStressor: MetricRecordable {
             await recordPatternCompletion(.patternComplete,
                 duration: Date().timeIntervalSince(startTime ?? Date()),
                 tags: ["pattern": "actor_contention"])
-            
         } catch {
             state = .idle
             await recordPatternFailure(.patternFail, error: error, tags: ["pattern": "actor_contention"])
@@ -218,7 +217,7 @@ public actor ConcurrencyStressor: MetricRecordable {
                 let batchStart = Date()
                 
                 // Check safety
-                if i % 100 == 0 {
+                if i.isMultiple(of: 100) {
                     guard await safetyMonitor.canCreateTasks(count: 100) else {
                         await recordThrottle(.throttleEvent,
                             reason: "Task creation limit reached",
@@ -244,7 +243,7 @@ public actor ConcurrencyStressor: MetricRecordable {
                 activeTasks.append(task)
                 
                 // Record metrics periodically
-                if i % 1000 == 0 {
+                if i.isMultiple(of: 1000) {
                     await recordGauge(.taskCount, value: Double(activeTasks.count))
                     await recordGauge(.taskCreationRate, value: Double(i) / Date().timeIntervalSince(explosionStart))
                     
@@ -276,7 +275,6 @@ public actor ConcurrencyStressor: MetricRecordable {
             await recordPatternCompletion(.patternComplete,
                 duration: totalDuration,
                 tags: ["pattern": "task_explosion", "total_tasks": String(totalTasksCreated)])
-            
         } catch {
             state = .idle
             await recordPatternFailure(.patternFail, error: error, tags: ["pattern": "task_explosion"])
@@ -350,7 +348,7 @@ public actor ConcurrencyStressor: MetricRecordable {
                             tags: ["thread": String(threadIndex)])
                     }
                 }
-            }
+        }
             
             state = .idle
             
@@ -648,7 +646,7 @@ public actor ConcurrencyStressor: MetricRecordable {
     private func recordContentionEvent() {
         contentionEvents += 1
         
-        if contentionEvents % 100 == 0 {
+        if contentionEvents.isMultiple(of: 100) {
             Task {
                 await recordCounter(.contentionEvents, value: 100)
             }

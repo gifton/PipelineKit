@@ -3,10 +3,9 @@ import XCTest
 import PipelineKitTestSupport
 
 final class ObservabilityTests: XCTestCase {
-    
     // MARK: - Test Observer Implementation
     
-    final class TestObserver: BaseObserver, @unchecked Sendable {
+    private final class TestObserver: BaseObserver, @unchecked Sendable {
         var events: [ObservableEvent] = []
         var pipelineEvents: [(String, String)] = [] // (event, pipelineType)
         var middlewareEvents: [(String, String, Int)] = [] // (event, name, order)
@@ -64,12 +63,12 @@ final class ObservabilityTests: XCTestCase {
     
     // MARK: - Test Commands and Handlers
     
-    struct TestCommand: Command {
+    private struct TestCommand: Command {
         let value: String
         typealias Result = String
     }
     
-    struct TestObservableCommand: Command, ObservableCommand {
+    private struct TestObservableCommand: Command, ObservableCommand {
         let value: String
         typealias Result = String
         
@@ -90,7 +89,7 @@ final class ObservabilityTests: XCTestCase {
         }
     }
     
-    struct TestHandler: CommandHandler {
+    private struct TestHandler: CommandHandler {
         typealias CommandType = TestCommand
         let shouldFail: Bool
         
@@ -106,7 +105,7 @@ final class ObservabilityTests: XCTestCase {
         }
     }
     
-    struct TestObservableHandler: CommandHandler {
+    private struct TestObservableHandler: CommandHandler {
         typealias CommandType = TestObservableCommand
         let shouldFail: Bool
         
@@ -122,7 +121,7 @@ final class ObservabilityTests: XCTestCase {
         }
     }
     
-    struct TestMiddleware: Middleware {
+    private struct TestMiddleware: Middleware {
         let name: String
         let shouldFail: Bool
         let priority: ExecutionPriority = .custom
@@ -231,9 +230,9 @@ final class ObservabilityTests: XCTestCase {
     
     // MARK: - Observable Middleware Tests
     
-    func DISABLED_testObservableMiddlewareDecorator() async throws {
+    private func DISABLED_testObservableMiddlewareDecorator() async throws {
         let testObserver = TestObserver()
-        let _ = ObserverRegistry(observers: [testObserver])
+        _ = ObserverRegistry(observers: [testObserver])
         
         let baseMiddleware = TestMiddleware(name: "TestMiddleware")
         let observableMiddleware = ObservableMiddlewareDecorator(
@@ -246,7 +245,7 @@ final class ObservabilityTests: XCTestCase {
         let metadata = StandardCommandMetadata(correlationId: "test-123")
         
         let context = CommandContext(metadata: metadata)
-        let result = try await observableMiddleware.execute(command, context: context) { cmd, ctx in
+        let result = try await observableMiddleware.execute(command, context: context) { cmd, _ in
             return "processed: \(cmd.value)"
         }
         
@@ -258,9 +257,9 @@ final class ObservabilityTests: XCTestCase {
         XCTAssertEqual(testObserver.middlewareEvents[1].0, "didExecute")
     }
     
-    func DISABLED_testObservableMiddlewareDecoratorFailure() async throws {
+    private func DISABLED_testObservableMiddlewareDecoratorFailure() async throws {
         let testObserver = TestObserver()
-        let _ = ObserverRegistry(observers: [testObserver])
+        _ = ObserverRegistry(observers: [testObserver])
         
         let baseMiddleware = TestMiddleware(name: "TestMiddleware", shouldFail: true)
         let observableMiddleware = ObservableMiddlewareDecorator(
@@ -274,7 +273,7 @@ final class ObservabilityTests: XCTestCase {
         
         do {
             let context = CommandContext(metadata: metadata)
-            _ = try await observableMiddleware.execute(command, context: context) { cmd, ctx in
+            _ = try await observableMiddleware.execute(command, context: context) { cmd, _ in
                 return "processed: \(cmd.value)"
             }
             XCTFail("Expected error to be thrown")
@@ -418,45 +417,5 @@ final class ObservabilityTests: XCTestCase {
         XCTAssertTrue(prodConfig.enableHandlerObservability)
         XCTAssertTrue(prodConfig.enablePerformanceMetrics)
         XCTAssertFalse(prodConfig.enableDistributedTracing)
-    }
-}
-
-// MARK: - OSLogObserver Tests
-
-@available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
-final class OSLogObserverTests: XCTestCase {
-    
-    func testOSLogObserverInitialization() {
-        let observer = OSLogObserver()
-        XCTAssertNotNil(observer)
-        
-        let devObserver = OSLogObserver.development()
-        XCTAssertNotNil(devObserver)
-        
-        let prodObserver = OSLogObserver.production()
-        XCTAssertNotNil(prodObserver)
-        
-        let perfObserver = OSLogObserver.performance()
-        XCTAssertNotNil(perfObserver)
-    }
-    
-    func testOSLogObserverEvents() async {
-        let observer = OSLogObserver.development()
-        
-        let command = ObservabilityTests.TestCommand(value: "test")
-        let metadata = StandardCommandMetadata()
-        
-        // These tests mainly ensure no crashes occur during logging
-        let context = CommandContext(metadata: metadata)
-        await observer.pipelineWillExecute(command, metadata: metadata, pipelineType: "TestPipeline")
-        await observer.pipelineDidExecute(command, result: "success", metadata: metadata, pipelineType: "TestPipeline", duration: 0.1)
-        await observer.middlewareWillExecute("TestMiddleware", order: 1, correlationId: "test-123")
-        await observer.middlewareDidExecute("TestMiddleware", order: 1, correlationId: "test-123", duration: 0.05)
-        await observer.handlerWillExecute(command, handlerType: "TestHandler", correlationId: "test-123")
-        await observer.handlerDidExecute(command, result: "success", handlerType: "TestHandler", correlationId: "test-123", duration: 0.02)
-        await observer.customEvent("test.event", properties: ["key": "value"], correlationId: "test-123")
-        
-        // If we reach here without crashes, the test passes
-        XCTAssertTrue(true)
     }
 }

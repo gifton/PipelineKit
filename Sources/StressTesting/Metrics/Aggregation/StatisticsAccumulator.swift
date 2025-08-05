@@ -51,9 +51,14 @@ public struct BasicStatistics: Sendable, Equatable {
     public let lastValue: Double
     public let lastTimestamp: Date?
     
+    /// Whether this statistics object represents empty data.
+    public var isEmpty: Bool {
+        count == 0
+    }
+    
     /// The arithmetic mean of all values.
     public var mean: Double {
-        count > 0 ? sum / Double(count) : 0
+        !isEmpty ? sum / Double(count) : 0
     }
     
     /// The range between min and max.

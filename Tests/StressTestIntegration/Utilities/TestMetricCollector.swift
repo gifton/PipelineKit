@@ -271,9 +271,9 @@ public actor TestMetricCollector {
 
 // MARK: - Test Extensions
 
-extension TestMetricCollector {
+public extension TestMetricCollector {
     /// Extract phase information from recorded metrics
-    public func extractPhases() -> [String] {
+    func extractPhases() -> [String] {
         let phaseEvents = recordedEvents.filter { $0.name.contains("phase") }
         return phaseEvents.compactMap { event in
             event.tags["phase"]
@@ -281,15 +281,15 @@ extension TestMetricCollector {
     }
     
     /// Get peak value for a gauge metric
-    public func getPeakValue(for metricName: String) -> Double? {
-        let gauges = recordedMetrics.filter { 
-            $0.name == metricName && $0.type == .gauge 
+    func getPeakValue(for metricName: String) -> Double? {
+        let gauges = recordedMetrics.filter {
+            $0.name == metricName && $0.type == .gauge
         }
         return gauges.map(\.value).max()
     }
     
     /// Verify metric sequence
-    public func verifySequence(_ expectedSequence: [String]) -> Bool {
+    func verifySequence(_ expectedSequence: [String]) -> Bool {
         let actualSequence = recordedMetrics.map(\.name)
         guard actualSequence.count >= expectedSequence.count else { return false }
         

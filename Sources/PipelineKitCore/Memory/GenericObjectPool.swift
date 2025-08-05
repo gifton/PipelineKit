@@ -7,7 +7,7 @@ import Foundation
 ///
 /// This actor provides thread-safe access to pooled objects and
 /// automatically manages the pool size based on configuration.
-public actor GenericObjectPool<T> {
+public actor GenericObjectPool<T: Sendable> {
     /// Factory for creating new instances
     public typealias Factory = @Sendable () -> T
     
@@ -132,8 +132,8 @@ public actor GenericObjectPool<T> {
     
     /// Gets current pool statistics
     public func getStatistics() -> Statistics {
-        let hitRate = totalBorrows > 0 
-            ? Double(hits) / Double(totalBorrows) 
+        let hitRate = totalBorrows > 0
+            ? Double(hits) / Double(totalBorrows)
             : 0.0
         
         return Statistics(
@@ -176,7 +176,7 @@ public actor GenericObjectPool<T> {
     ///     leaked = obj  // WRONG: Escaping the object!
     /// }
     /// ```
-    public func withBorrowedObject<R>(
+    public func withBorrowedObject<R: Sendable>(
         _ body: (T) async throws -> R
     ) async throws -> R {
         let object = acquire()
@@ -239,7 +239,24 @@ public actor GenericObjectPool<T> {
 ///
 /// The wrapper itself is thread-safe through lock protection, while the wrapped object's
 /// thread safety is the responsibility of the pool's configuration and usage patterns.
-public final class PooledObject<T>: @unchecked Sendable {
+///
+/// ## Thread Safety Guarantees
+/// 
+/// This type is thread-safe because:
+/// - The `value` property is immutable after initialization
+/// - The `isReturned` flag is protected by an NSLock for all accesses
+/// - The pool reference is immutable and the pool itself is an actor (thread-safe)
+/// 
+/// ## Usage Requirements
+/// 
+/// Since T is constrained to Sendable, the pooled objects are safe to share
+/// across concurrency domains. The @unchecked Sendable annotation is only
+/// needed for the mutable isReturned state, which is properly synchronized
+/// with NSLock
+/// 
+/// Invariant: The lock must be held when accessing or modifying the isReturned flag.
+/// The pool's thread safety ensures safe object lifecycle management.
+public final class PooledObject<T: Sendable>: @unchecked Sendable {
     private let value: T
     private let pool: GenericObjectPool<T>
     private var isReturned = false
@@ -276,10 +293,56 @@ public final class PooledObject<T>: @unchecked Sendable {
 
 // MARK: - Convenience Extensions
 
-extension GenericObjectPool {
+public extension GenericObjectPool {
     /// Acquires an object wrapped in a PooledObject for automatic return
-    public func acquirePooled() -> PooledObject<T> {
+    func acquirePooled() -> PooledObject<T> {
         let object = acquire()
         return PooledObject(value: object, pool: self)
+    }
+}
+
+// MARK: - Sendable Object Pool
+
+/// A specialized object pool for types that conform to Sendable.
+/// 
+/// This variant provides compile-time guarantees that pooled objects
+/// can be safely shared across concurrency domains.
+/// 
+/// Use this pool when:
+/// - Your pooled objects conform to Sendable
+/// - You need to share objects across different actors/tasks
+/// - You want compile-time safety for concurrent access
+/// 
+/// For non-Sendable types (e.g., mutable objects that are reset between uses),
+/// use the regular GenericObjectPool instead.
+public typealias SendableObjectPool<T: Sendable> = GenericObjectPool<T>
+
+// MARK: - Pool Creation Helpers
+
+public extension GenericObjectPool {
+    /// Creates a pool for Sendable types with compile-time safety guarantees.
+    /// 
+    /// This method is only available when T conforms to Sendable, providing
+    /// compile-time verification that the pooled objects can be safely
+    /// shared across concurrency domains.
+    /// 
+    /// Example:
+    /// ```swift
+    /// let pool = GenericObjectPool.createSendable(
+    ///     factory: { MyData() },
+    ///     reset: { $0.clear() }
+    /// )
+    /// ```
+    @available(*, message: "Use this initializer for Sendable types to get compile-time safety")
+    static func createSendable(
+        configuration: Configuration = Configuration(),
+        factory: @escaping Factory,
+        reset: Reset? = nil
+    ) -> GenericObjectPool<T> where T: Sendable {
+        return GenericObjectPool(
+            configuration: configuration,
+            factory: factory,
+            reset: reset
+        )
     }
 }

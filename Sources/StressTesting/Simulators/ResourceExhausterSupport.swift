@@ -19,8 +19,13 @@ public struct OSResources: Sendable {
     /// 3. **Test Infrastructure**: This enum is exclusively used in stress testing to track
     ///    allocated OS resources during resource exhaustion scenarios.
     ///
-    /// 4. **Temporary Storage**: Resources are allocated, tracked briefly, then released.
-    ///    No long-term cross-thread sharing occurs.
+    /// 4. **Thread Safety:** Resources are allocated, tracked briefly, then released.
+    ///    No long-term cross-thread sharing occurs. Each resource is owned by the
+    ///    ResourceExhauster and not accessed concurrently.
+    ///
+    /// 5. **Thread Safety Invariant:** Resources stored in this enum MUST NOT be
+    ///    accessed from multiple threads. The ResourceExhauster must ensure exclusive
+    ///    access during resource lifecycle (allocation to deallocation).
     ///
     /// This is a necessary pattern for low-level resource testing where heterogeneous
     /// platform resources must be tracked together.
@@ -58,8 +63,15 @@ public struct OSResources: Sendable {
 ///    temporary memory allocations during stress tests. The memory is unmapped when the
 ///    test completes, preventing cross-thread access.
 ///
-/// 4. **Test Infrastructure Only**: This is exclusively test support code for simulating
-///    memory pressure conditions. Production code should never use this pattern.
+/// 4. **Thread Safety:** Memory regions are allocated and deallocated by a single owner.
+///    No concurrent access to the mapped memory occurs during the resource lifecycle.
+///
+/// 5. **Thread Safety Invariant:** The mapped memory pointer MUST NOT be accessed from
+///    multiple threads. The owning ResourceExhauster must ensure exclusive access from
+///    allocation (mmap) to deallocation (munmap).
+///
+/// This is exclusively test support code for simulating memory pressure conditions.
+/// Production code should never use this pattern.
 ///
 /// This is a permanent requirement for low-level memory testing scenarios where raw
 /// pointer access is unavoidable.

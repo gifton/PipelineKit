@@ -2,7 +2,6 @@ import XCTest
 @testable import PipelineKit
 
 final class PipelinePerformanceTests: PerformanceBenchmark {
-    
     struct BenchmarkCommand: Command {
         typealias Result = Int
         let value: Int
@@ -29,7 +28,7 @@ final class PipelinePerformanceTests: PerformanceBenchmark {
         }
     }
     
-    actor Actor<T: Sendable>: Sendable {
+    actor Actor <T: Sendable> {
         private var value: T
         
         init(_ value: T) {

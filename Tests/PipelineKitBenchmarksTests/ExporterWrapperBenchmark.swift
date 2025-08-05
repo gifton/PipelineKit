@@ -4,9 +4,8 @@ import PipelineKitCore
 
 /// Benchmark for ExporterWrapper performance before and after actor refactoring
 final class ExporterWrapperBenchmarkTests: XCTestCase {
-    
     /// Mock exporter for benchmarking
-    final class MockExporter: MetricExporter, @unchecked Sendable {
+    private final class MockExporter: MetricExporter, @unchecked Sendable {
         var exportedMetrics: [MetricDataPoint] = []
         var batchExportCount = 0
         var flushCount = 0
@@ -116,7 +115,7 @@ final class ExporterWrapperBenchmarkTests: XCTestCase {
             }
             
             // Readers
-            for _ in 0..<operationCount/10 {
+            for _ in 0..<operationCount / 10 {
                 group.addTask {
                     _ = await manager.listExporters()
                 }
@@ -130,9 +129,9 @@ final class ExporterWrapperBenchmarkTests: XCTestCase {
         
         Mixed Operations Benchmark (Current Implementation):
         - Write operations: \(operationCount)
-        - Read operations: \(operationCount/10)
+        - Read operations: \(operationCount / 10)
         - Total time: \(String(format: "%.4f", totalTime)) seconds
-        - Operations/second: \(String(format: "%.0f", Double(operationCount + operationCount/10) / totalTime))
+        - Operations/second: \(String(format: "%.0f", Double(operationCount + operationCount / 10) / totalTime))
         """)
     }
     

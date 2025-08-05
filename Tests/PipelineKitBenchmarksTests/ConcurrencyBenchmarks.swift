@@ -2,14 +2,13 @@ import XCTest
 @testable import PipelineKit
 
 final class ConcurrencyBenchmarks: XCTestCase {
-    
-    struct BenchmarkCommand: Command {
+    private struct BenchmarkCommand: Command {
         typealias Result = Int
         let value: Int
         let complexity: Int // Simulated work complexity
     }
     
-    struct BenchmarkHandler: CommandHandler {
+    private struct BenchmarkHandler: CommandHandler {
         typealias CommandType = BenchmarkCommand
         
         func handle(_ command: BenchmarkCommand) async throws -> Int {
@@ -22,7 +21,6 @@ final class ConcurrencyBenchmarks: XCTestCase {
             return command.value * 2
         }
     }
-    
 }
 
 // MARK: - Mock Middleware for Testing

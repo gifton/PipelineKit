@@ -4,13 +4,27 @@ import PipelineKitCore
 /// A simple observer that logs pipeline events to the console with configurable formatting
 /// Useful for development and debugging purposes
 ///
-/// This class inherits @unchecked Sendable from BaseObserver. All properties are Sendable:
-/// - `style`: Enum (inherently Sendable)
-/// - `level`: Enum with raw value (inherently Sendable)
-/// - `includeTimestamps`: Bool (inherently Sendable)
-/// - `dateFormatter`: SendableDateFormatter (thread-safe wrapper)
+/// ## Design Decision: @unchecked Sendable for Console Logging
+///
+/// This class uses `@unchecked Sendable` for the following reasons:
+///
+/// 1. **Base Class Inheritance**: Inherits from BaseObserver which may have
+///    non-Sendable stored properties that are safely managed.
+///
+/// 2. **All Properties Are Sendable**:
+///    - `style`: Enum (inherently Sendable)
+///    - `level`: Enum with raw value (inherently Sendable)
+///    - `includeTimestamps`: Bool (inherently Sendable)
+///    - `dateFormatter`: SendableDateFormatter (thread-safe wrapper)
+///
+/// 3. **Thread Safety:** All properties are immutable after initialization and
+///    console output is synchronized by the system. The dateFormatter uses a
+///    thread-safe wrapper to ensure concurrent access is safe.
+///
+/// 4. **Thread Safety Invariant:** The dateFormatter MUST be accessed through
+///    the SendableDateFormatter wrapper which provides thread-safe formatting.
+///    Direct access to the underlying DateFormatter would cause data races.
 public final class ConsoleObserver: BaseObserver, @unchecked Sendable {
-    
     /// Formatting style for console output
     public enum Style: Sendable {
         case simple      // Minimal output
@@ -50,7 +64,7 @@ public final class ConsoleObserver: BaseObserver, @unchecked Sendable {
     
     // MARK: - Pipeline Events
     
-    public override func pipelineWillExecute<T: Command>(_ command: T, metadata: CommandMetadata, pipelineType: String) async {
+    override public func pipelineWillExecute<T: Command>(_ command: T, metadata: CommandMetadata, pipelineType: String) async {
         guard level <= .info else { return }
         
         switch style {
@@ -68,7 +82,7 @@ public final class ConsoleObserver: BaseObserver, @unchecked Sendable {
         }
     }
     
-    public override func pipelineDidExecute<T: Command>(_ command: T, result: T.Result, metadata: CommandMetadata, pipelineType: String, duration: TimeInterval) async {
+    override public func pipelineDidExecute<T: Command>(_ command: T, result: T.Result, metadata: CommandMetadata, pipelineType: String, duration: TimeInterval) async {
         guard level <= .info else { return }
         
         switch style {
@@ -86,7 +100,7 @@ public final class ConsoleObserver: BaseObserver, @unchecked Sendable {
         }
     }
     
-    public override func pipelineDidFail<T: Command>(_ command: T, error: Error, metadata: CommandMetadata, pipelineType: String, duration: TimeInterval) async {
+    override public func pipelineDidFail<T: Command>(_ command: T, error: Error, metadata: CommandMetadata, pipelineType: String, duration: TimeInterval) async {
         guard level <= .error else { return }
         
         switch style {
@@ -107,7 +121,7 @@ public final class ConsoleObserver: BaseObserver, @unchecked Sendable {
     
     // MARK: - Middleware Events
     
-    public override func middlewareWillExecute(_ middlewareName: String, order: Int, correlationId: String) async {
+    override public func middlewareWillExecute(_ middlewareName: String, order: Int, correlationId: String) async {
         guard level <= .verbose else { return }
         
         switch style {
@@ -120,7 +134,7 @@ public final class ConsoleObserver: BaseObserver, @unchecked Sendable {
         }
     }
     
-    public override func middlewareDidExecute(_ middlewareName: String, order: Int, correlationId: String, duration: TimeInterval) async {
+    override public func middlewareDidExecute(_ middlewareName: String, order: Int, correlationId: String, duration: TimeInterval) async {
         guard level <= .verbose else { return }
         
         switch style {
@@ -133,7 +147,7 @@ public final class ConsoleObserver: BaseObserver, @unchecked Sendable {
         }
     }
     
-    public override func middlewareDidFail(_ middlewareName: String, order: Int, correlationId: String, error: Error, duration: TimeInterval) async {
+    override public func middlewareDidFail(_ middlewareName: String, order: Int, correlationId: String, error: Error, duration: TimeInterval) async {
         guard level <= .error else { return }
         
         switch style {
@@ -148,7 +162,7 @@ public final class ConsoleObserver: BaseObserver, @unchecked Sendable {
     
     // MARK: - Custom Events
     
-    public override func customEvent(_ eventName: String, properties: [String: Sendable], correlationId: String) async {
+    override public func customEvent(_ eventName: String, properties: [String: Sendable], correlationId: String) async {
         guard level <= .info else { return }
         
         switch style {

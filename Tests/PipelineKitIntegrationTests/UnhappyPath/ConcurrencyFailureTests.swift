@@ -94,7 +94,7 @@ final class ConcurrencyFailureTests: XCTestCase {
         
         // Try to acquire another - should timeout
         do {
-            let _ = try await semaphore.acquire(timeout: 0.15)
+            _ = try await semaphore.acquire(timeout: 0.15)
             XCTFail("Should have timed out")
         } catch let error as PipelineError {
             if case .backPressure(let reason) = error,
@@ -206,7 +206,7 @@ final class ConcurrencyFailureTests: XCTestCase {
         let context = CommandContext()
         
         // Execute multiple commands concurrently to trigger race conditions
-        let tasks = (0..<20).map { i in
+        let tasks = (0..<20).map { _ in
             Task {
                 do {
                     return try await pipeline.execute(command, context: context)
@@ -352,7 +352,7 @@ final class ConcurrencyFailureTests: XCTestCase {
         let tasks = (0..<50).map { i in
             Task {
                 do {
-                    let _ = try await semaphore.acquire()
+                    _ = try await semaphore.acquire()
                     // Hold the token for a short time
                     await self.synchronizer.shortDelay()
                     return (i, true)
@@ -540,7 +540,7 @@ final class ConcurrencyFailureTests: XCTestCase {
         
         // Cancel tasks at different times
         for (index, task) in tasks.enumerated() {
-            if index % 2 == 0 {
+            if index.isMultiple(of: 2) {
                 await synchronizer.shortDelay()
                 task.cancel()
             }
@@ -570,7 +570,7 @@ struct ConcurrentContextMiddleware: Middleware {
         context.set("key1", for: ConcurrencyStringKey.self)
         context.set("key2", for: ConcurrencyStringKey.self)
         
-        let _ = await context[ConcurrencyStringKey.self]
+        _ = await context[ConcurrencyStringKey.self]
         
         context.set("key3", for: ConcurrencyStringKey.self)
         
@@ -600,7 +600,7 @@ struct MemoryIntensiveMiddleware: Middleware {
     ) async throws -> T.Result {
         // Allocate and immediately release memory
         autoreleasepool {
-            let _ = Array(repeating: Array(repeating: 0, count: 100), count: 100)
+            _ = Array(repeating: Array(repeating: 0, count: 100), count: 100)
         }
         return try await next(command, context)
     }

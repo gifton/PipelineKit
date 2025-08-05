@@ -6,7 +6,6 @@ import XCTest
 // moved to a separate package. They should be moved to that package's test suite.
 /// Basic integration test for the stress testing framework
 final class BasicStressTestIntegration: XCTestCase {
-    
     func testPlaceholder() {
         // Placeholder test to prevent empty test class
         XCTAssertTrue(true)

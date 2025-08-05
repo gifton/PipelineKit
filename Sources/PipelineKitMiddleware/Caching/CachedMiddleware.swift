@@ -274,9 +274,9 @@ public struct ConditionalCachedMiddleware<M: Middleware>: Middleware where M: Se
 
 // MARK: - Builder Extensions
 
-extension Middleware {
+public extension Middleware {
     /// Wraps this middleware with caching
-    public func cached(
+    func cached(
         ttl: TimeInterval = 300,
         cache: MiddlewareCache
     ) -> CachedMiddleware<Self> {

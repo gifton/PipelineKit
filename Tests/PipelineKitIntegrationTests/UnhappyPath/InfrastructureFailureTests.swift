@@ -40,7 +40,7 @@ final class InfrastructureFailureTests: XCTestCase {
             XCTAssertEqual(result, "Handled: memory_pressure_test")
         } catch {
             // If it fails due to memory issues, verify graceful handling
-            XCTAssertTrue(error.localizedDescription.contains("memory") || 
+            XCTAssertTrue(error.localizedDescription.contains("memory") ||
                          error.localizedDescription.contains("resource"))
         }
     }
@@ -162,7 +162,6 @@ final class InfrastructureFailureTests: XCTestCase {
             // Should handle disk space issues gracefully
             let logs = await auditLogger.query(AuditQueryCriteria())
             XCTAssertLessThanOrEqual(logs.count, 1000, "Should handle disk space limitations")
-            
         }
     }
     
@@ -195,7 +194,6 @@ final class InfrastructureFailureTests: XCTestCase {
             // Should be able to query despite initial corruption
             let logs = await auditLogger.query(AuditQueryCriteria())
             XCTAssertGreaterThanOrEqual(logs.count, 0, "Should handle corrupted files")
-            
         }
         
         // Clean up
@@ -473,7 +471,7 @@ struct MemoryPressureMiddleware: Middleware {
     ) async throws -> T.Result {
         // Simulate memory pressure
         autoreleasepool {
-            let _ = Array(repeating: Array(repeating: 0, count: 1000), count: 100)
+            _ = Array(repeating: Array(repeating: 0, count: 1000), count: 100)
         }
         return try await next(command, context)
     }

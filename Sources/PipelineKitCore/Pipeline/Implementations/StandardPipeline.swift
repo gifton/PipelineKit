@@ -1,7 +1,7 @@
 import Foundation
 
 // Helper command for error cases
-fileprivate struct DummyCommand: Command {
+private struct DummyCommand: Command {
     typealias Result = Void
     func execute() async throws {}
 }
@@ -289,8 +289,8 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: Pipeline where H.C
     
     /// Initializes standard context values if not already set.
     private func initializeContextIfNeeded(_ context: CommandContext) {
-        if context.get(ContextKeys.Request.ID.self) == nil {
-            context.set(UUID().uuidString, for: ContextKeys.Request.ID.self)
+        if context.get(ContextKeys.Request.RequestID.self) == nil {
+            context.set(UUID().uuidString, for: ContextKeys.Request.RequestID.self)
         }
         if context.get(ContextKeys.Request.StartTime.self) == nil {
             context.set(Date(), for: ContextKeys.Request.StartTime.self)
@@ -377,7 +377,7 @@ public actor AnyStandardPipeline: Pipeline {
         options: PipelineOptions = .default,
         maxDepth: Int = 100
     ) where H.CommandType == T {
-        self.executeHandler = { command, context in
+        self.executeHandler = { command, _ in
             guard let typedCommand = command as? T else {
                 throw PipelineError.executionFailed(message: "Invalid command type provided to pipeline", context: nil)
             }

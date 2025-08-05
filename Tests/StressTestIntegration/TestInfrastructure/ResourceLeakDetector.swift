@@ -6,7 +6,6 @@ import XCTest
 /// ResourceLeakDetector provides automatic memory leak detection across test boundaries,
 /// maintaining isolation between tests while preserving history for analysis.
 public actor ResourceLeakDetector {
-    
     // MARK: - Singleton
     
     /// Shared global instance
@@ -191,13 +190,11 @@ public actor ResourceLeakDetector {
     public func detectAllLeaks() -> [LeakReport] {
         var allLeaks: [LeakReport] = []
         
-        for (_, box) in globalRegistry {
-            if box.isAlive() {
-                let age = Date().timeIntervalSince(box.allocationTime)
-                if age >= configuration.minimumLeakAge {
-                    if let report = box.createReport() {
-                        allLeaks.append(report)
-                    }
+        for (_, box) in globalRegistry where box.isAlive() {
+            let age = Date().timeIntervalSince(box.allocationTime)
+            if age >= configuration.minimumLeakAge {
+                if let report = box.createReport() {
+                    allLeaks.append(report)
                 }
             }
         }

@@ -81,7 +81,7 @@ public struct HistogramAccumulator: StatisticsAccumulator {
     }
     
     public func statistics() -> HistogramStatistics {
-        guard count > 0 else {
+        guard !isEmpty else {
             return HistogramStatistics()
         }
         
@@ -164,10 +164,10 @@ extension HistogramAccumulator: CustomStringConvertible {
 
 // MARK: - Advanced Histogram Features
 
-extension HistogramAccumulator {
+public extension HistogramAccumulator {
     /// Creates histogram buckets for visualization.
-    public func buckets(count: Int = 10) -> [HistogramBucket] {
-        guard !reservoir.isEmpty && count > 0 else { return [] }
+    func buckets(count: Int = 10) -> [HistogramBucket] {
+        guard !reservoir.isEmpty && !isEmpty else { return [] }
         
         let sortedReservoir = reservoir.sorted()
         let minValue = sortedReservoir.first!
@@ -175,12 +175,14 @@ extension HistogramAccumulator {
         
         guard minValue < maxValue else {
             // All values are the same
-            return [HistogramBucket(
-                lowerBound: minValue,
-                upperBound: maxValue,
-                count: reservoir.count,
-                percentage: 100.0
-            )]
+            return [
+                HistogramBucket(
+                    lowerBound: minValue,
+                    upperBound: maxValue,
+                    count: reservoir.count,
+                    percentage: 100.0
+                )
+            ]
         }
         
         let bucketWidth = (maxValue - minValue) / Double(count)

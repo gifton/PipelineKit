@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  # OpenTelemetry Collector - minimal configuration
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.96.0
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    restart: unless-stopped
+    volumes:
+      - ./otel-collector/config.yaml:/etc/otel-collector-config.yaml:ro
+    ports:
+      - "4317:4317"   # OTLP gRPC receiver
+      - "8888:8888"   # Prometheus metrics for health check
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:13133/"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
+          cpus: '0.1'
+
+  # StatsD server - using graphiteapp/statsd for simplicity
+  statsd:
+    image: graphiteapp/statsd:1.1.10-alpine
+    restart: unless-stopped
+    ports:
+      - "8125:8125/udp"  # StatsD UDP port
+      - "8126:8126"      # StatsD management port
+    environment:
+      - DEBUG=true
+    healthcheck:
+      test: ["CMD", "netstat", "-un", "|", "grep", "8125"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
+
+networks:
+  default:
+    name: pipelinekit-test
+    driver: bridge

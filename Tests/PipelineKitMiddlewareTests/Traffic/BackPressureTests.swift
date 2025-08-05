@@ -145,7 +145,7 @@ final class BackPressureTests: XCTestCase {
         
         // This should fail due to outstanding limit exceeded
         do {
-            let _ = try await pipeline.execute(TestSlowCommand(duration: 0.1))
+            _ = try await pipeline.execute(TestSlowCommand(duration: 0.1))
             XCTFail("Expected PipelineError.backPressure")
         } catch {
             // Success - should fail with back-pressure
@@ -293,7 +293,7 @@ final class BackPressureTests: XCTestCase {
             BackPressureTestCommand(value: "test"),
             context: CommandContext(),
             estimatedSize: 512
-        ) { command, context in
+        ) { command, _ in
             try await handler.handle(command)
         }
         

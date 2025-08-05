@@ -2,29 +2,28 @@ import XCTest
 @testable import PipelineKit
 
 final class ParallelMiddlewareContextTests: XCTestCase {
-    
     // MARK: - Test Types
     
-    struct TestCommand: Command {
+    private struct TestCommand: Command {
         typealias Result = String
         let id: String
     }
     
-    struct CounterKey: ContextKey {
+    private struct CounterKey: ContextKey {
         typealias Value = Int
     }
     
-    struct MessagesKey: ContextKey {
+    private struct MessagesKey: ContextKey {
         typealias Value = [String]
     }
     
-    struct ThreadIDKey: ContextKey {
+    private struct ThreadIDKey: ContextKey {
         typealias Value = String
     }
     
     // MARK: - Test Middleware
     
-    final class ContextModifyingMiddleware: Middleware {
+    private final class ContextModifyingMiddleware: Middleware {
         let id: String
         let delay: TimeInterval
         let priority = ExecutionPriority.processing
@@ -86,7 +85,7 @@ final class ParallelMiddlewareContextTests: XCTestCase {
         context.set(0, for: CounterKey.self)
         
         // When: We execute in parallel
-        let result = try await wrapper.execute(command, context: context) { cmd, ctx in
+        let result = try await wrapper.execute(command, context: context) { _, _ in
             "completed"
         }
         
@@ -115,7 +114,7 @@ final class ParallelMiddlewareContextTests: XCTestCase {
         context.set(0, for: CounterKey.self)
         
         // When: We execute with merging
-        let result = try await wrapper.execute(command, context: context) { cmd, ctx in
+        let result = try await wrapper.execute(command, context: context) { _, _ in
             "completed"
         }
         
@@ -276,20 +275,20 @@ final class ParallelMiddlewareContextTests: XCTestCase {
     
     // MARK: - Helper Types
     
-    struct StringKey: ContextKey {
+    private struct StringKey: ContextKey {
         typealias Value = String
     }
     
-    struct IntKey: ContextKey {
+    private struct IntKey: ContextKey {
         typealias Value = Int
     }
     
-    enum TestError: Error {
+    private enum TestError: Error {
         case validationFailed
         case contextInterference(expected: String, actual: String)
     }
     
-    final class LightweightMiddleware: Middleware {
+    private final class LightweightMiddleware: Middleware {
         let id: Int
         let priority = ExecutionPriority.processing
         

@@ -95,15 +95,6 @@ swift package dump-package > sbom.json
 |------|---------|---------|-------|
 | 2025-05-28 | 510.0.3 | CI | Initial audit, no issues found |
 
-## 🚨 Emergency Response
-
-If a critical vulnerability is discovered:
-
-1. **Immediate**: Assess impact
-2. **Within 24h**: Patch or mitigate
-3. **Within 48h**: Release update
-4. **Within 72h**: Notify users
-
 ## 🤝 Contributing
 
 When proposing new dependencies:

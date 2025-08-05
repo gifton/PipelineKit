@@ -13,7 +13,7 @@ import OSLog
 
 /// Shared logger instances for PipelineKit components
 @available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
-public struct PipelineLogger {
+public enum PipelineLogger {
     /// Logger for core pipeline operations
     public static let core = Logger(subsystem: "com.pipelinekit", category: "core")
     
@@ -34,7 +34,7 @@ public struct PipelineLogger {
 }
 #else
 // Fallback for Linux - no-op logger
-public struct PipelineLogger {
+public enum PipelineLogger {
     public struct NoOpLogger {
         public func error(_ message: String) {}
         public func warning(_ message: String) {}
@@ -52,4 +52,3 @@ public struct PipelineLogger {
     public static let debug = NoOpLogger()
 }
 #endif
-

@@ -6,7 +6,6 @@ import Foundation
 /// their deallocation. It captures rich metadata about the allocation context
 /// for comprehensive leak detection and debugging.
 public struct WeakBox<T: AnyObject>: Sendable {
-    
     // MARK: - Properties
     
     /// Unique identifier for this tracked instance
@@ -186,9 +185,9 @@ private final class WeakReference<T: AnyObject>: @unchecked Sendable {
 
 // MARK: - Leak Detection Support
 
-extension WeakBox {
+public extension WeakBox {
     /// Creates a leak report entry if the object is still alive
-    public func createLeakReport() -> LeakReport? {
+    func createLeakReport() -> LeakReport? {
         guard isAlive else { return nil }
         
         return LeakReport(
@@ -239,19 +238,19 @@ public enum LeakSeverity: String, Sendable, Codable {
 
 // MARK: - Collection Extensions
 
-extension Array where Element == LeakReport {
+public extension Array where Element == LeakReport {
     /// Groups leaks by test name
-    public func groupedByTest() -> [String: [LeakReport]] {
+    func groupedByTest() -> [String: [LeakReport]] {
         Dictionary(grouping: self, by: { $0.testName })
     }
     
     /// Groups leaks by type name
-    public func groupedByType() -> [String: [LeakReport]] {
+    func groupedByType() -> [String: [LeakReport]] {
         Dictionary(grouping: self, by: { $0.typeName })
     }
     
     /// Sorts leaks by severity and age
-    public func sortedBySeverity() -> [LeakReport] {
+    func sortedBySeverity() -> [LeakReport] {
         sorted { lhs, rhs in
             if lhs.severity != rhs.severity {
                 return lhs.severity.sortOrder < rhs.severity.sortOrder

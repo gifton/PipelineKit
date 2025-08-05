@@ -8,9 +8,8 @@ struct TestCustomValueKey: ContextKey {
 }
 
 final class StandardPipelineContextTests: XCTestCase {
-    
     // Test command
-    struct CalculateCommand: Command {
+    private struct CalculateCommand: Command {
         typealias Result = Int
         let value: Int
         
@@ -20,7 +19,7 @@ final class StandardPipelineContextTests: XCTestCase {
     }
     
     // Test handler
-    struct CalculateHandler: CommandHandler {
+    private struct CalculateHandler: CommandHandler {
         typealias CommandType = CalculateCommand
         
         func handle(_ command: CalculateCommand) async throws -> Int {
@@ -29,17 +28,17 @@ final class StandardPipelineContextTests: XCTestCase {
     }
     
     // Test context key for multiplier
-    struct MultiplierKey: ContextKey {
+    private struct MultiplierKey: ContextKey {
         typealias Value = Int
     }
     
     // Test context key for accumulator
-    struct AccumulatorKey: ContextKey {
+    private struct AccumulatorKey: ContextKey {
         typealias Value = [String]
     }
     
     // Context-aware middleware that modifies result
-    struct MultiplierMiddleware: Middleware {
+    private struct MultiplierMiddleware: Middleware {
         let multiplier: Int
         
         func execute<T: Command>(
@@ -51,8 +50,9 @@ final class StandardPipelineContextTests: XCTestCase {
             
             let result = try await next(command, context)
             
-            if let intResult = result as? Int {
-                return (intResult * multiplier) as! T.Result
+            if let intResult = result as? Int,
+               let multipliedResult = (intResult * multiplier) as? T.Result {
+                return multipliedResult
             }
             
             return result
@@ -60,7 +60,7 @@ final class StandardPipelineContextTests: XCTestCase {
     }
     
     // Middleware that accumulates execution info
-    struct AccumulatorMiddleware: Middleware {
+    private struct AccumulatorMiddleware: Middleware {
         let name: String
         
         func execute<T: Command>(
@@ -244,7 +244,7 @@ final class StandardPipelineContextTests: XCTestCase {
         
         let inspector = ContextInspectorMiddleware { context in
             let metadata = context.commandMetadata
-            let requestId = context.get(ContextKeys.Request.ID.self)
+            let requestId = context.get(ContextKeys.Request.RequestID.self)
             await capturedData.set((metadata.userId, requestId, metadata.timestamp))
             expectation.fulfill()
         }
@@ -306,7 +306,7 @@ final class StandardPipelineContextTests: XCTestCase {
 }
 
 // Helper actor for thread-safe test data collection
-actor Actor<T: Sendable>: Sendable {
+actor Actor <T: Sendable> {
     private var value: T
     
     init(_ value: T) {

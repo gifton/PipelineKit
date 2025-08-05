@@ -10,7 +10,7 @@ final class EncryptionTests: XCTestCase {
     
     // MARK: - Test Commands
     
-    struct PaymentCommand: Command {
+    private struct PaymentCommand: Command {
         var cardNumber: String
         var cvv: String
         let amount: Double
@@ -35,12 +35,12 @@ final class EncryptionTests: XCTestCase {
         }
     }
     
-    struct PaymentResult: Sendable {
+    private struct PaymentResult: Sendable {
         let transactionId: String
         let success: Bool
     }
     
-    struct UserCommand: Command {
+    private struct UserCommand: Command {
         var ssn: String
         var password: String
         let username: String

@@ -2,9 +2,8 @@ import XCTest
 @testable import PipelineKit
 
 final class TimeoutMiddlewareTests: XCTestCase {
-    
     // Test command
-    struct TestCommand: Command {
+    private struct TestCommand: Command {
         typealias Result = String
         let value: String
         
@@ -14,7 +13,7 @@ final class TimeoutMiddlewareTests: XCTestCase {
     }
     
     // Test handler
-    struct TestHandler: CommandHandler {
+    private struct TestHandler: CommandHandler {
         typealias CommandType = TestCommand
         
         func handle(_ command: TestCommand) async throws -> String {
@@ -23,7 +22,7 @@ final class TimeoutMiddlewareTests: XCTestCase {
     }
     
     // Slow middleware for testing timeouts
-    struct SlowMiddleware: Middleware {
+    private struct SlowMiddleware: Middleware {
         let delay: TimeInterval
         let priority: ExecutionPriority = .custom
         

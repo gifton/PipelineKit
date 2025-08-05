@@ -1,0 +1,9 @@
+# SwiftLint configuration for test support code
+# Inherits from parent configuration but disables certain rules
+
+parent_config: ../../.swiftlint.yml
+
+# Disable rules that are less critical in test support code
+disabled_rules:
+  - unchecked_sendable_documentation  # Test helpers often have mutable state for tracking
+  - force_unwrapping  # Test helpers can use ! for simplicity

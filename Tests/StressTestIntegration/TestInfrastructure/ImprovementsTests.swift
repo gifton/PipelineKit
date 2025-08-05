@@ -13,7 +13,6 @@ import Foundation
 /// - Multi-phase scenario support
 @MainActor
 final class ImprovementsTests: XCTestCase {
-    
     func testPlaceholder() {
         // Placeholder test to prevent empty test class
         XCTAssertTrue(true)

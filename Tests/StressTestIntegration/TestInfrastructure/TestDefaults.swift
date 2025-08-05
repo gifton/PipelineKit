@@ -277,7 +277,7 @@ public enum TestDefaults {
         case multiple
     }
     
-    public struct SafetyLimits {
+    public enum SafetyLimits {
         public static let maxFileDescriptors: Int = 1000
         public static let maxMemory: Int = 1024 * 1024 * 1024 // 1GB
         public static let maxCPU: Double = 100.0

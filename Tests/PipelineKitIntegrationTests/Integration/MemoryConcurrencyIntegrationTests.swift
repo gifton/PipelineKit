@@ -12,12 +12,12 @@ final class MemoryConcurrencyIntegrationTests: XCTestCase {
     override func setUp() async throws {
         try await super.setUp()
         // Start memory pressure monitoring
-        await MemoryPressureMonitor.shared.startMonitoring()
+        await MemoryPressureDetector.shared.startMonitoring()
     }
     
     override func tearDown() async throws {
         // Stop monitoring
-        await MemoryPressureMonitor.shared.stopMonitoring()
+        await MemoryPressureDetector.shared.stopMonitoring()
         try await super.tearDown()
     }
     
@@ -298,7 +298,7 @@ final class MemoryConcurrencyIntegrationTests: XCTestCase {
     
     // MARK: - Helper Types
     
-    class TestObject {
+    private class TestObject {
         var value: Int = 0
         
         func reset() {
@@ -306,14 +306,14 @@ final class MemoryConcurrencyIntegrationTests: XCTestCase {
         }
     }
     
-    struct TestCommand: Command {
+    private struct TestCommand: Command {
         typealias Result = String
         
         let id: Int
         let value: String
     }
     
-    struct TestCommandHandler: CommandHandler {
+    private struct TestCommandHandler: CommandHandler {
         typealias CommandType = TestCommand
         
         func handle(_ command: TestCommand) async throws -> String {
@@ -321,7 +321,7 @@ final class MemoryConcurrencyIntegrationTests: XCTestCase {
         }
     }
     
-    final class TestMetricsMiddleware: Middleware {
+    private final class TestMetricsMiddleware: Middleware {
         var priority: ExecutionPriority { .custom }
         
         func execute<T: Command>(
@@ -340,7 +340,7 @@ final class MemoryConcurrencyIntegrationTests: XCTestCase {
         }
     }
     
-    struct ExecutionTimeKey: ContextKey {
+    private struct ExecutionTimeKey: ContextKey {
         typealias Value = TimeInterval
     }
     

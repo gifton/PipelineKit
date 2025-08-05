@@ -2,9 +2,8 @@ import XCTest
 @testable import PipelineKit
 
 final class PrioritizedMiddlewareIntegrationTests: XCTestCase {
-    
     // Test command
-    struct TestCommand: Command {
+    private struct TestCommand: Command {
         typealias Result = String
         
         let input: String
@@ -25,7 +24,7 @@ final class PrioritizedMiddlewareIntegrationTests: XCTestCase {
     }
     
     // Test handler
-    struct TestHandler: CommandHandler {
+    private struct TestHandler: CommandHandler {
         typealias CommandType = TestCommand
         
         func handle(_ command: TestCommand) async throws -> String {
@@ -35,7 +34,7 @@ final class PrioritizedMiddlewareIntegrationTests: XCTestCase {
     }
     
     // Tracking middleware
-    struct TrackingMiddleware: Middleware {
+    private struct TrackingMiddleware: Middleware {
         let name: String
         let tracker: OrderTestActor<[String]>
         let priority: ExecutionPriority = .custom // Default priority
@@ -152,12 +151,10 @@ final class PrioritizedMiddlewareIntegrationTests: XCTestCase {
             XCTAssertLessThan(authIndex, logIndex)
         }
     }
-    
-    
 }
 
 // Helper actor
-actor OrderTestActor<T: Sendable>: Sendable {
+actor OrderTestActor <T: Sendable> {
     private var value: T
     
     init(_ value: T) {

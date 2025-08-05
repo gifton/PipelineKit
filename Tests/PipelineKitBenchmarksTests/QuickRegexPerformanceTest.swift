@@ -2,11 +2,10 @@ import XCTest
 @testable import PipelineKit
 
 final class QuickRegexPerformanceTest: XCTestCase {
-    
     func testEmailValidationPerformanceImprovement() throws {
         let emails = [
             "test@example.com",
-            "user.name@domain.co.uk", 
+            "user.name@domain.co.uk",
             "invalid.email",
             "another@test.org",
             "@invalid.com"

@@ -1,31 +1,6 @@
 import Foundation
 import PipelineKit
 import PipelineKitMiddleware
-import PipelineKitMiddleware
-
-/// Central metric collection engine that manages buffers, aggregation, and export.
-///
-/// The MetricCollector is the main entry point for the metrics system. It:
-/// - Manages per-metric buffers through MetricBufferPool
-/// - Performs periodic collection from buffers
-/// - Aggregates metrics over time windows
-/// - Streams metrics to consumers
-/// - Exports metrics in various formats
-///
-/// ## Usage Example
-/// ```swift
-/// let collector = MetricCollector()
-/// await collector.start()
-///
-/// // Record metrics
-/// await collector.record(.gauge("cpu.usage", value: 75.0))
-/// await collector.record(.counter("requests.total", value: 1.0))
-///
-/// // Stream metrics
-/// for await sample in await collector.stream() {
-///     print("\(sample.name): \(sample.value)")
-/// }
-/// ```
 public actor MetricCollector {
     /// Collection configuration.
     public struct Configuration: Sendable {
@@ -269,24 +244,22 @@ public actor MetricCollector {
         let bufferStats = await bufferPool.allStatistics()
         
         // Collect from each buffer
-        for (metric, stats) in bufferStats {
-            if stats.used > 0 {
-                let buffer = await bufferPool.buffer(for: metric)
-                let samples = buffer.readBatch(maxCount: configuration.batchSize)
+        for (metric, stats) in bufferStats where stats.used > 0 {
+            let buffer = await bufferPool.buffer(for: metric)
+            let samples = buffer.readBatch(maxCount: configuration.batchSize)
+            
+            // Process collected samples
+            for sample in samples {
+                // Send to stream
+                metricContinuation?.yield(sample)
                 
-                // Process collected samples
-                for sample in samples {
-                    // Send to stream
-                    metricContinuation?.yield(sample)
-                    
-                    // Update aggregator
-                    await aggregator?.add(sample)
-                    
-                    // Send to export manager
-                    await exportManager?.export(sample)
-                    
-                    totalCollected += 1
-                }
+                // Update aggregator
+                await aggregator?.add(sample)
+                
+                // Send to export manager
+                await exportManager?.export(sample)
+                
+                totalCollected += 1
             }
         }
     }
@@ -309,5 +282,3 @@ public struct CollectionStatistics: Sendable {
     public let aggregatorCount: Int
     public let exporterCount: Int
 }
-
-

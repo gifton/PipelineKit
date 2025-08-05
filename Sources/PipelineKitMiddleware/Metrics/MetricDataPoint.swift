@@ -45,9 +45,9 @@ public struct MetricDataPoint: Sendable, Codable {
 
 // MARK: - Convenience Extensions
 
-extension MetricDataPoint {
+public extension MetricDataPoint {
     /// Creates a gauge metric sample.
-    public static func gauge(
+    static func gauge(
         _ name: String,
         value: Double,
         tags: [String: String] = [:]
@@ -61,7 +61,7 @@ extension MetricDataPoint {
     }
     
     /// Creates a counter metric sample.
-    public static func counter(
+    static func counter(
         _ name: String,
         value: Double,
         tags: [String: String] = [:]
@@ -75,7 +75,7 @@ extension MetricDataPoint {
     }
     
     /// Creates a histogram metric sample.
-    public static func histogram(
+    static func histogram(
         _ name: String,
         value: Double,
         tags: [String: String] = [:]
@@ -89,7 +89,7 @@ extension MetricDataPoint {
     }
     
     /// Creates a timer metric sample (value in seconds).
-    public static func timer(
+    static func timer(
         _ name: String,
         seconds: Double,
         tags: [String: String] = [:]

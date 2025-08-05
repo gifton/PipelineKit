@@ -3,7 +3,6 @@ import PipelineKitCore
 
 /// Optimized validators with pre-compiled regex patterns
 public enum OptimizedValidators {
-    
     // Pre-compiled regex patterns (thread-safe, only compiled once)
     private static let emailRegex: NSRegularExpression? = {
         // Comprehensive email pattern based on RFC 5322 (simplified for practical use)

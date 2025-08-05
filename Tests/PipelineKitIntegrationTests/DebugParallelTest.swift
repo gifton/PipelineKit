@@ -4,7 +4,7 @@ import PipelineKitTestSupport
 
 final class DebugParallelTest: XCTestCase {
     // Define context key outside of function
-    struct DebugTestKey: ContextKey {
+    private struct DebugTestKey: ContextKey {
         typealias Value = String
     }
     
@@ -47,7 +47,7 @@ final class DebugParallelTest: XCTestCase {
         let context = CommandContext()
         
         do {
-            let result = try await wrapper.execute(command, context: context) { cmd, ctx in
+            let result = try await wrapper.execute(command, context: context) { _, _ in
                 print("Next handler called")
                 return "Success"
             }

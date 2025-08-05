@@ -9,7 +9,6 @@ import XCTest
 ///
 /// These tests serve as both validation and documentation for common usage patterns.
 final class ExampleUsageTests: XCTestCase {
-    
     func testPlaceholder() {
         // Placeholder test to prevent empty test class
         XCTAssertTrue(true)

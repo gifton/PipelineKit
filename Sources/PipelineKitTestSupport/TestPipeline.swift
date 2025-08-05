@@ -63,10 +63,10 @@ public actor TestPipeline: Pipeline {
                 result = try await base.execute(command, context: context)
             } else {
                 // Simple mock execution
-                if T.Result.self == String.self {
-                    result = "Mocked result" as! T.Result
-                } else if T.Result.self == Void.self {
-                    result = () as! T.Result
+                if let stringResult = "Mocked result" as? T.Result {
+                    result = stringResult
+                } else if let voidResult = () as? T.Result {
+                    result = voidResult
                 } else {
                     throw TestPipelineError.unsupportedResultType
                 }
@@ -226,7 +226,7 @@ public enum TestPipelineError: LocalizedError {
 }
 
 /// Pipeline test utilities
-public struct PipelineTestUtils {
+public enum PipelineTestUtils {
     /// Create a test pipeline with common middleware
     public static func createTestPipeline<T: Command, H: CommandHandler>(
         handler: H,

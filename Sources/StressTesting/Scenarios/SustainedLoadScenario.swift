@@ -6,7 +6,6 @@ import Foundation
 /// moderate, consistent pressure across all resource types.
 @MainActor
 public final class SustainedLoadScenario: BaseScenario {
-    
     // Duration configuration
     public let sustainedDuration: TimeInterval
     

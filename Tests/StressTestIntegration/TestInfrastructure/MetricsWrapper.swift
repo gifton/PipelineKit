@@ -116,6 +116,6 @@ public struct TypedMetrics: Sendable {
 // Placeholder types to prevent compilation errors
 public enum MetricValue: Sendable {}
 public enum MetricKey: String, CaseIterable, Sendable {
-    case placeholder = "placeholder"
+    case placeholder
 }
 public struct MetricsWrapper {}

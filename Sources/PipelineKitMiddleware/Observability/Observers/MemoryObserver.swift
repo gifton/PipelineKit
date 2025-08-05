@@ -4,7 +4,6 @@ import PipelineKitCore
 /// An observer that stores events in memory for later inspection
 /// Useful for testing, debugging, and analyzing pipeline behavior
 public actor MemoryObserver: PipelineObserver {
-    
     /// Represents a recorded event with timestamp
     public struct RecordedEvent: Sendable {
         public let timestamp: Date
@@ -13,14 +12,65 @@ public actor MemoryObserver: PipelineObserver {
         public enum Event: Sendable {
             case pipelineStarted(command: String, pipeline: String, correlationId: String?)
             case pipelineCompleted(command: String, pipeline: String, duration: TimeInterval, correlationId: String?)
-            case pipelineFailed(command: String, pipeline: String, error: String, duration: TimeInterval, correlationId: String?)
+            case pipelineFailed(data: PipelineFailureData)
             case middlewareStarted(name: String, order: Int, correlationId: String)
             case middlewareCompleted(name: String, order: Int, duration: TimeInterval, correlationId: String)
-            case middlewareFailed(name: String, order: Int, error: String, duration: TimeInterval, correlationId: String)
+            case middlewareFailed(data: MiddlewareFailureData)
             case handlerStarted(command: String, handler: String, correlationId: String)
             case handlerCompleted(command: String, handler: String, duration: TimeInterval, correlationId: String)
-            case handlerFailed(command: String, handler: String, error: String, duration: TimeInterval, correlationId: String)
+            case handlerFailed(data: HandlerFailureData)
             case custom(name: String, properties: [String: String], correlationId: String)
+        }
+        
+        /// Data for pipeline failure events
+        public struct PipelineFailureData: Sendable {
+            public let command: String
+            public let pipeline: String
+            public let error: String
+            public let duration: TimeInterval
+            public let correlationId: String?
+            
+            public init(command: String, pipeline: String, error: String, duration: TimeInterval, correlationId: String?) {
+                self.command = command
+                self.pipeline = pipeline
+                self.error = error
+                self.duration = duration
+                self.correlationId = correlationId
+            }
+        }
+        
+        /// Data for middleware failure events
+        public struct MiddlewareFailureData: Sendable {
+            public let name: String
+            public let order: Int
+            public let error: String
+            public let duration: TimeInterval
+            public let correlationId: String
+            
+            public init(name: String, order: Int, error: String, duration: TimeInterval, correlationId: String) {
+                self.name = name
+                self.order = order
+                self.error = error
+                self.duration = duration
+                self.correlationId = correlationId
+            }
+        }
+        
+        /// Data for handler failure events
+        public struct HandlerFailureData: Sendable {
+            public let command: String
+            public let handler: String
+            public let error: String
+            public let duration: TimeInterval
+            public let correlationId: String
+            
+            public init(command: String, handler: String, error: String, duration: TimeInterval, correlationId: String) {
+                self.command = command
+                self.handler = handler
+                self.error = error
+                self.duration = duration
+                self.correlationId = correlationId
+            }
         }
     }
     
@@ -110,13 +160,13 @@ public actor MemoryObserver: PipelineObserver {
     }
     
     public func pipelineDidFail<T: Command>(_ command: T, error: Error, metadata: CommandMetadata, pipelineType: String, duration: TimeInterval) async {
-        record(.pipelineFailed(
+        record(.pipelineFailed(data: RecordedEvent.PipelineFailureData(
             command: String(describing: type(of: command)),
             pipeline: pipelineType,
             error: error.localizedDescription,
             duration: duration,
             correlationId: metadata.correlationId
-        ))
+        )))
     }
     
     public func middlewareWillExecute(_ middlewareName: String, order: Int, correlationId: String) async {
@@ -131,13 +181,13 @@ public actor MemoryObserver: PipelineObserver {
     
     public func middlewareDidFail(_ middlewareName: String, order: Int, correlationId: String, error: Error, duration: TimeInterval) async {
         guard options.captureMiddlewareEvents else { return }
-        record(.middlewareFailed(
+        record(.middlewareFailed(data: RecordedEvent.MiddlewareFailureData(
             name: middlewareName,
             order: order,
             error: error.localizedDescription,
             duration: duration,
             correlationId: correlationId
-        ))
+        )))
     }
     
     public func handlerWillExecute<T: Command>(_ command: T, handlerType: String, correlationId: String) async {
@@ -161,13 +211,13 @@ public actor MemoryObserver: PipelineObserver {
     
     public func handlerDidFail<T: Command>(_ command: T, error: Error, handlerType: String, correlationId: String, duration: TimeInterval) async {
         guard options.captureHandlerEvents else { return }
-        record(.handlerFailed(
+        record(.handlerFailed(data: RecordedEvent.HandlerFailureData(
             command: String(describing: type(of: command)),
             handler: handlerType,
             error: error.localizedDescription,
             duration: duration,
             correlationId: correlationId
-        ))
+        )))
     }
     
     public func customEvent(_ eventName: String, properties: [String: Sendable], correlationId: String) async {
@@ -190,16 +240,21 @@ public actor MemoryObserver: PipelineObserver {
         return events.filter { event in
             switch event.event {
             case .pipelineStarted(_, _, let id),
-                 .pipelineCompleted(_, _, _, let id),
-                 .pipelineFailed(_, _, _, _, let id):
+                 .pipelineCompleted(_, _, _, let id):
                 return id == correlationId
+            case .pipelineFailed(let data):
+                return data.correlationId == correlationId
             case .middlewareStarted(_, _, let id),
-                 .middlewareCompleted(_, _, _, let id),
-                 .middlewareFailed(_, _, _, _, let id),
-                 .handlerStarted(_, _, let id),
-                 .handlerCompleted(_, _, _, let id),
-                 .handlerFailed(_, _, _, _, let id),
-                 .custom(_, _, let id):
+                 .middlewareCompleted(_, _, _, let id):
+                return id == correlationId
+            case .middlewareFailed(let data):
+                return data.correlationId == correlationId
+            case .handlerStarted(_, _, let id),
+                 .handlerCompleted(_, _, _, let id):
+                return id == correlationId
+            case .handlerFailed(let data):
+                return data.correlationId == correlationId
+            case .custom(_, _, let id):
                 return id == correlationId
             }
         }
@@ -265,9 +320,9 @@ public actor MemoryObserver: PipelineObserver {
                 case .pipelineCompleted(_, _, let duration, _):
                     successCount += 1
                     totalDuration += duration
-                case .pipelineFailed(_, _, _, let duration, _):
+                case .pipelineFailed(let data):
                     failureCount += 1
-                    totalDuration += duration
+                    totalDuration += data.duration
                 default:
                     break
                 }

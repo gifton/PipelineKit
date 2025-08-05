@@ -3,13 +3,12 @@ import PipelineKit
 import PipelineKitCore
 
 final class ModuleValidationTests: XCTestCase {
-    
-    struct TestCommand: Command {
+    private struct TestCommand: Command {
         typealias Result = String
         let value: String
     }
     
-    final class TestHandler: CommandHandler {
+    private final class TestHandler: CommandHandler {
         typealias CommandType = TestCommand
         
         func handle(_ command: TestCommand) async throws -> String {
@@ -37,7 +36,7 @@ final class ModuleValidationTests: XCTestCase {
         struct TestMiddleware: Middleware {
             let priority: ExecutionPriority = .processing
             
-            func execute<T>(_ command: T, context: CommandContext, next: @Sendable (T, CommandContext) async throws -> T.Result) async throws -> T.Result where T : Command {
+            func execute<T>(_ command: T, context: CommandContext, next: @Sendable (T, CommandContext) async throws -> T.Result) async throws -> T.Result where T: Command {
                 return try await next(command, context)
             }
         }

@@ -250,11 +250,13 @@ public actor DefaultSafetyMonitor: SafetyMonitor {
     
     public func checkSystemHealth() async -> [SafetyWarning] {
         guard !isShutdown else {
-            return [SafetyWarning(
-                level: .critical,
-                message: "System is in emergency shutdown state",
-                source: "SafetyMonitor"
-            )]
+            return [
+                SafetyWarning(
+                    level: .critical,
+                    message: "System is in emergency shutdown state",
+                    source: "SafetyMonitor"
+                )
+            ]
         }
         
         var warnings: [SafetyWarning] = []
@@ -741,7 +743,7 @@ public actor DefaultSafetyMonitor: SafetyMonitor {
     /// Periodically removes inactive reservations to prevent memory growth
     private func reapInactiveReservations() {
         // Only reap every 1000 reservations to amortize cost
-        guard activeReservations.count % 1_000 == 0 else { return }
+        guard activeReservations.count.isMultiple(of: 1_000) else { return }
         
         activeReservations = activeReservations.filter { _, reservation in
             reservation.isActive.load(ordering: .relaxed)
@@ -826,8 +828,8 @@ public actor DefaultSafetyMonitor: SafetyMonitor {
 
 /// Socket types for resource exhaustion.
 public enum SocketType: String, Sendable {
-    case tcp = "tcp"
-    case udp = "udp"
+    case tcp
+    case udp
 }
 
 /// Resource type enumeration for tracking.

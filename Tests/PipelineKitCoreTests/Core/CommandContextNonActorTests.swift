@@ -2,12 +2,11 @@ import XCTest
 @testable import PipelineKit
 
 final class CommandContextNonActorTests: XCTestCase {
-    
-    struct TestKey: ContextKey {
+    private struct TestKey: ContextKey {
         typealias Value = String
     }
     
-    struct NumberKey: ContextKey {
+    private struct NumberKey: ContextKey {
         typealias Value = Int
     }
     

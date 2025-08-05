@@ -6,7 +6,6 @@ import Foundation
 /// useful for finding system breaking points and performance cliffs.
 @MainActor
 public final class RampUpScenario: BaseScenario {
-    
     // Ramp configuration
     public let startIntensity: Double
     public let endIntensity: Double
@@ -17,9 +16,9 @@ public final class RampUpScenario: BaseScenario {
     
     // Ramp style
     public enum RampStyle: String, Sendable {
-        case linear = "linear"
-        case exponential = "exponential"
-        case logarithmic = "logarithmic"
+        case linear
+        case exponential
+        case logarithmic
     }
     public let rampStyle: RampStyle
     
@@ -27,10 +26,10 @@ public final class RampUpScenario: BaseScenario {
     private var activeSimulations: [SimulatorType: UUID] = [:]
     
     private enum SimulatorType: String, CaseIterable {
-        case cpu = "cpu"
-        case memory = "memory"
-        case concurrency = "concurrency"
-        case resources = "resources"
+        case cpu
+        case memory
+        case concurrency
+        case resources
     }
     
     public init(

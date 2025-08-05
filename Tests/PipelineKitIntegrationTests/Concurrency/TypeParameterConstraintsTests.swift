@@ -6,7 +6,6 @@ import PipelineKitTestSupport
 // MARK: - Type Parameter Constraints Tests
 
 final class TypeParameterConstraintsTests: XCTestCase {
-    
     // MARK: - MiddlewareCache Tests
     
     func testMiddlewareCacheRequiresSendableTypes() async {

@@ -105,9 +105,9 @@ public actor MemoryPressureSimulator: MetricRecordable {
             state = .idle
             
             // Record pattern completion
-            await recordPatternCompletion(.patternComplete, 
-                duration: Date().timeIntervalSince(startTime ?? Date()),
-                tags: ["pattern": "gradual"])
+            await recordPatternCompletion(.patternComplete,
+                                          duration: Date().timeIntervalSince(startTime ?? Date()),
+                                          tags: ["pattern": "gradual"])
         } catch {
             state = .idle
             
@@ -604,8 +604,6 @@ public struct MemoryStats: Sendable {
     public let averageBufferSize: Int
 }
 
-/// Errors specific to memory simulation.
-
 // MARK: - Convenience Extensions
 
 public extension MemoryPressureSimulator {
@@ -652,7 +650,7 @@ public extension MemoryPressureSimulator {
             successfulFragments += 1
             
             // Record fragmentation progress
-            if (i + 1) % 10 == 0 || i == fragmentCount - 1 {
+            if (i + 1).isMultiple(of: 10) || i == fragmentCount - 1 {
                 await recordGauge(.fragmentationProgress, value: Double(i + 1), tags: [
                     "total_fragments": String(fragmentCount),
                     "percent_complete": String(Int(Double(i + 1) / Double(fragmentCount) * 100))

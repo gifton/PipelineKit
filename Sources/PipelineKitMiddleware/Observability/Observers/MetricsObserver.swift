@@ -16,7 +16,6 @@ public protocol MetricsBackend: Sendable {
 /// An observer that collects and reports metrics about pipeline execution
 /// Can be integrated with various metrics backends like StatsD, Prometheus, etc.
 public actor MetricsObserver: PipelineObserver {
-    
     /// Configuration for the metrics observer
     public struct Configuration: Sendable {
         /// Prefix for all metric names

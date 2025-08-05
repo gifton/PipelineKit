@@ -3,7 +3,6 @@ import XCTest
 
 /// Comprehensive benchmarks to measure CommandContext performance
 final class CommandContextBenchmarkTests: XCTestCase {
-    
     // MARK: - Test Infrastructure
     
     private struct StringKey: ContextKey {
@@ -22,7 +21,7 @@ final class CommandContextBenchmarkTests: XCTestCase {
         typealias Value = ComplexValue
     }
     
-    struct ComplexValue: Sendable {
+    private struct ComplexValue: Sendable {
         let id: String
         let timestamp: Date
         let values: [Int]
@@ -111,7 +110,7 @@ final class CommandContextBenchmarkTests: XCTestCase {
             for taskId in 0..<concurrentTasks {
                 group.addTask {
                     for i in 0..<iterations {
-                        if i % 2 == 0 {
+                        if i.isMultiple(of: 2) {
                             context.set("task-\(taskId)-\(i)", for: StringKey.self)
                         } else {
                             _ = context.get(StringKey.self)
@@ -151,7 +150,7 @@ final class CommandContextBenchmarkTests: XCTestCase {
                             _ = context.get(IntKey.self)
                             
                             // Occasionally access other contexts (cross-context contention)
-                            if i % 100 == 0 {
+                            if i.isMultiple(of: 100) {
                                 let otherContext = contextArray[(contextIndex + 1) % contexts]
                                 _ = otherContext.get(StringKey.self)
                             }
@@ -187,7 +186,7 @@ final class CommandContextBenchmarkTests: XCTestCase {
                 context.set(i, for: IntKey.self)
                 
                 // Simulate churn by removing some values
-                if i % 10 == 0 {
+                if i.isMultiple(of: 10) {
                     context.set(nil, for: DataKey.self)
                 }
             }
@@ -220,7 +219,7 @@ final class CommandContextBenchmarkTests: XCTestCase {
             let value = ComplexValue(
                 id: "id-\(i)",
                 timestamp: Date(),
-                values: [i, i+1, i+2],
+                values: [i, i + 1, i + 2],
                 metadata: ["iteration": "\(i)"]
             )
             context.set(value, for: ComplexKey.self)

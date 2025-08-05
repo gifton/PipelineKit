@@ -3,10 +3,9 @@ import XCTest
 
 /// Stress tests for concurrent command execution to validate thread safety.
 final class ConcurrencyStressTests: XCTestCase {
-    
     // MARK: - Test Commands
     
-    struct TestCommand: Command {
+    private struct TestCommand: Command {
         let id: Int
         let payload: String
         
@@ -17,7 +16,7 @@ final class ConcurrencyStressTests: XCTestCase {
         }
     }
     
-    struct CountingHandler: CommandHandler {
+    private struct CountingHandler: CommandHandler {
         typealias CommandType = TestCommand
         
         private let counter: Counter
@@ -47,7 +46,7 @@ final class ConcurrencyStressTests: XCTestCase {
     
     // MARK: - Test Infrastructure
     
-    actor Counter {
+    private actor Counter {
         private var value = 0
         
         func increment() {
@@ -155,7 +154,7 @@ final class ConcurrencyStressTests: XCTestCase {
             XCTAssertEqual(count, 1, "Command \(commandId) should appear exactly once in results")
         }
         
-        print("Executed \(commandCount) commands in \(totalDuration)s (\(Double(commandCount)/totalDuration) commands/sec)")
+        print("Executed \(commandCount) commands in \(totalDuration)s (\(Double(commandCount) / totalDuration) commands/sec)")
         
         // Performance assertions
         XCTAssertLessThan(totalDuration, 30.0, "Should complete within 30 seconds")
@@ -207,7 +206,7 @@ final class ConcurrencyStressTests: XCTestCase {
         await withTaskGroup(of: TestCommand.Result?.self) { group in
             for index in 0..<operationCount {
                 group.addTask {
-                    if index % 10 == 0 {
+                    if index.isMultiple(of: 10) {
                         // Every 10th operation, try to re-register (should fail gracefully)
                         do {
                             try await bus.register(TestCommand.self, handler: handler)

@@ -81,7 +81,7 @@ final class ResilientMiddlewareTests: XCTestCase {
         let attemptTracker = ResilientTestCounter(0)
         
         // When
-        let result = try await middleware.execute(command, context: context) { cmd, _ in
+        let result = try await middleware.execute(command, context: context) { _, _ in
             await attemptTracker.increment()
             let count = await attemptTracker.get()
             
@@ -117,7 +117,7 @@ final class ResilientMiddlewareTests: XCTestCase {
         
         // When/Then
         do {
-            _ = try await middleware.execute(command, context: context) { cmd, _ in
+            _ = try await middleware.execute(command, context: context) { _, _ in
                 await attemptTracker.increment()
                 throw TransientError.temporaryFailure
             }
@@ -150,7 +150,7 @@ final class ResilientMiddlewareTests: XCTestCase {
         
         // When/Then
         do {
-            _ = try await middleware.execute(command, context: context) { cmd, _ in
+            _ = try await middleware.execute(command, context: context) { _, _ in
                 await attemptTracker.increment()
                 throw PermanentError.unrecoverable
             }
@@ -251,7 +251,7 @@ final class ResilientMiddlewareTests: XCTestCase {
         try? await Task.sleep(nanoseconds: 150_000_000) // 150ms
         
         // Circuit should be half-open, allowing one attempt
-        let result = try await middleware.execute(command, context: context) { cmd, _ in
+        let result = try await middleware.execute(command, context: context) { _, _ in
             "recovered"
         }
         
@@ -278,7 +278,7 @@ final class ResilientMiddlewareTests: XCTestCase {
         
         // When
         do {
-            _ = try await middleware.execute(command, context: context) { cmd, _ in
+            _ = try await middleware.execute(command, context: context) { _, _ in
                 await attemptTracker.increment()
                 await attemptTimesActor.recordAttempt()
                 throw TransientError.temporaryFailure
@@ -326,7 +326,7 @@ final class ResilientMiddlewareTests: XCTestCase {
         let attemptTracker = ResilientTestCounter(0)
         
         // When - Fail once then succeed
-        let result = try await middleware.execute(command, context: context) { cmd, _ in
+        let result = try await middleware.execute(command, context: context) { _, _ in
             await attemptTracker.increment()
             let count = await attemptTracker.get()
             

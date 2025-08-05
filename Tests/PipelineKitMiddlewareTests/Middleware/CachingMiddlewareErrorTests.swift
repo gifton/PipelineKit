@@ -75,7 +75,7 @@ final class CachingMiddlewareErrorTests: XCTestCase {
     func testNotDecodableError() async throws {
         // Given - Corrupted data in cache
         let command = TestCacheCommand(id: "corrupted")
-        let corruptedData = "not valid json".data(using: .utf8)!
+        let corruptedData = Data("not valid json".utf8)
         await cache.set(key: "test-cache-corrupted", value: corruptedData, expiration: Date().addingTimeInterval(60))
         
         let context = CommandContext.test()
@@ -177,7 +177,7 @@ final class CachingMiddlewareErrorTests: XCTestCase {
                     do {
                         let result = try await self.middleware.execute(command, context: context) { _, _ in
                             // Simulate variable processing time
-                            if i % 3 == 0 {
+                            if i.isMultiple(of: 3) {
                                 await Task.yield()
                             }
                             return "result-\(i)"
@@ -283,7 +283,7 @@ struct TestCacheCommand: Command { // CacheableCommand not implemented yet
 }
 
 // Failing cache implementation for testing error scenarios
-actor FailingCache: CacheProtocol {
+actor FailingCache: Cache {
     enum FailureMode {
         case alwaysFail
         case intermittent(failureRate: Double)

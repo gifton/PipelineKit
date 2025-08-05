@@ -150,7 +150,7 @@ public actor PoolMetricsCollector {
     
     private func collectSnapshot() async -> PoolMetricsSnapshot {
         let aggregated = await PoolManager.shared.aggregatedStatistics()
-        let memoryPressureStats = await MemoryPressureMonitor.shared.statistics
+        let memoryPressureStats = await MemoryPressureDetector.shared.statistics
         
         return PoolMetricsSnapshot(
             timestamp: Date(),

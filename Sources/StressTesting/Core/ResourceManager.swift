@@ -286,6 +286,28 @@ public extension ResourceManager {
 }
 
 /// A managed memory buffer.
+/// 
+/// ## Design Decision: @unchecked Sendable for Unsafe Pointer Storage
+/// 
+/// This struct uses `@unchecked Sendable` because it contains an `UnsafeMutableRawPointer`,
+/// which cannot conform to Sendable. However, this type is safe to use across concurrency
+/// domains because:
+/// 
+/// 1. **Immutable After Creation**: All properties are `let` constants and cannot be modified
+///    after initialization.
+/// 
+/// 2. **Pointer Lifetime Management**: The pointer's lifetime is managed by the ResourceManager
+///    actor, which ensures:
+///    - The pointer remains valid for the lifetime of this struct
+///    - Deallocation only happens through the registered cleanup closure
+///    - No concurrent access to the pointed-to memory occurs
+/// 
+/// 3. **Single Ownership Model**: Each ManagedBuffer represents unique ownership of its
+///    memory region. The ResourceManager ensures no aliasing occurs.
+/// 
+/// Thread Safety: This type is thread-safe because all properties are immutable.
+/// The pointed-to memory is managed exclusively by ResourceManager's cleanup system.
+/// Invariant: The pointer must remain valid until ResourceManager deallocates it.
 public struct ManagedBuffer: @unchecked Sendable {
     public let id: UUID
     public let pointer: UnsafeMutableRawPointer

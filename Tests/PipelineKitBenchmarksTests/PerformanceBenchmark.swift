@@ -3,16 +3,15 @@ import XCTest
 
 /// Base class for performance benchmarks with built-in measurement infrastructure
 class PerformanceBenchmark: XCTestCase {
-    
     /// Default number of iterations for benchmarks
-    static let defaultIterations = 100
+    private static let defaultIterations = 100
     
     /// Measures the performance of a block of code
     /// - Parameters:
     ///   - name: Name of the benchmark
     ///   - iterations: Number of iterations (default: 100)
     ///   - block: The code to benchmark
-    func benchmark(
+    private func benchmark(
         _ name: String,
         iterations: Int = defaultIterations,
         block: @escaping () async throws -> Void
@@ -41,7 +40,7 @@ class PerformanceBenchmark: XCTestCase {
     ///   - duration: How long to run the test
     ///   - block: The code to benchmark
     /// - Returns: Operations per second
-    @discardableResult
+    private @discardableResult
     func benchmarkThroughput(
         _ name: String,
         duration: TimeInterval = 1.0,
@@ -68,7 +67,7 @@ class PerformanceBenchmark: XCTestCase {
     ///   - samples: Number of samples to collect
     ///   - block: The code to benchmark
     /// - Returns: Latency statistics
-    @discardableResult
+    private @discardableResult
     func benchmarkLatency(
         _ name: String,
         samples: Int = 1000,
@@ -105,7 +104,7 @@ class PerformanceBenchmark: XCTestCase {
     ///   - name: Name of the comparison
     ///   - baseline: Baseline implementation
     ///   - optimized: Optimized implementation
-    func comparePerformance(
+    private func comparePerformance(
         _ name: String,
         baseline: @escaping () async throws -> Void,
         optimized: @escaping () async throws -> Void

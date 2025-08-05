@@ -3,7 +3,6 @@ import XCTest
 @testable import PipelineKitTestSupport
 
 final class ThreadSafeTestMiddlewareTests: XCTestCase {
-    
     func testThreadSafeTestMiddlewareConcurrentAccess() async throws {
         let middleware = ThreadSafeTestMiddleware()
         let handler = MockCommandHandler()
@@ -129,7 +128,7 @@ final class ThreadSafeTestMiddlewareTests: XCTestCase {
         for i in 1..<history.count {
             XCTAssertGreaterThanOrEqual(
                 history[i].timestamp.timeIntervalSince1970,
-                history[i-1].timestamp.timeIntervalSince1970
+                history[i - 1].timestamp.timeIntervalSince1970
             )
         }
     }

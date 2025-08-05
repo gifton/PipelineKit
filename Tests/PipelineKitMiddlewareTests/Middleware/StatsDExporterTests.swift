@@ -4,7 +4,6 @@ import Foundation
 @testable import PipelineKitMiddleware
 
 final class StatsDExporterTests: XCTestCase {
-    
     func testStatsDExporterInitialization() async throws {
         // Given
         let configuration = StatsDExportConfiguration(

@@ -3,7 +3,6 @@ import Foundation
 @testable import PipelineKit
 
 final class SimpleCancellationTests: XCTestCase {
-    
     // MARK: - Pipeline Cancellation Tests
     
     func testPipelineExecutionThrowsOnCancellation() async throws {
@@ -40,7 +39,7 @@ final class SimpleCancellationTests: XCTestCase {
         } catch {
             // Check if it's any kind of cancellation error
             let errorString = String(describing: error)
-            XCTAssertTrue(errorString.contains("CancellationError") || error is CancellationError, 
+            XCTAssertTrue(errorString.contains("CancellationError") || error is CancellationError,
                          "Expected CancellationError, got \(error)")
         }
     }
@@ -102,7 +101,7 @@ final class SimpleCancellationTests: XCTestCase {
         } catch {
             // Check if it's any kind of cancellation error
             let errorString = String(describing: error)
-            XCTAssertTrue(errorString.contains("CancellationError") || error is CancellationError, 
+            XCTAssertTrue(errorString.contains("CancellationError") || error is CancellationError,
                          "Expected CancellationError, got \(error)")
         }
     }
@@ -187,7 +186,7 @@ final class SimpleCancellationTests: XCTestCase {
         } catch {
             // Check if it's a CancellationError
             let errorString = String(describing: error)
-            XCTAssertTrue(errorString.contains("CancellationError") || error is CancellationError, 
+            XCTAssertTrue(errorString.contains("CancellationError") || error is CancellationError,
                          "Expected CancellationError, got \(error)")
             XCTAssertEqual(handler.attemptCount, 1, "Should only attempt once for CancellationError")
         }
@@ -249,7 +248,7 @@ final class SimpleCancellationTests: XCTestCase {
         } catch {
             // Check if it's any kind of cancellation error
             let errorString = String(describing: error)
-            XCTAssertTrue(errorString.contains("CancellationError") || error is CancellationError, 
+            XCTAssertTrue(errorString.contains("CancellationError") || error is CancellationError,
                          "Expected CancellationError, got \(error)")
         }
     }

@@ -21,7 +21,6 @@ public protocol TimeController: Sendable {
 
 /// Real time controller that uses actual system time
 public actor RealTimeController: TimeController {
-    
     public init() {}
     
     public nonisolated func now() -> Date {
@@ -43,7 +42,6 @@ public actor RealTimeController: TimeController {
 
 /// Mock time controller for deterministic testing
 public actor MockTimeController: TimeController {
-    
     // MARK: - State
     
     private var currentTime: Date
@@ -180,7 +178,6 @@ public struct TimeoutError: LocalizedError {
 
 /// Utilities for working with time in tests
 public enum TimeControlUtilities {
-    
     /// Executes a block with accelerated time
     public static func withAcceleratedTime<T>(
         factor: Double = 10.0,

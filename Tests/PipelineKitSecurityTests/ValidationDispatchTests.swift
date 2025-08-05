@@ -2,9 +2,8 @@ import XCTest
 @testable import PipelineKit
 
 final class ValidationDispatchTests: XCTestCase {
-    
     // Test command with custom validation
-    struct TestValidationCommand: Command {
+    private struct TestValidationCommand: Command {
         typealias Result = String
         let value: String
         
@@ -70,7 +69,7 @@ final class ValidationDispatchTests: XCTestCase {
         
         // Test empty value command
         do {
-            _ = try await middleware.execute(command2, context: context) { cmd, _ in
+            _ = try await middleware.execute(command2, context: context) { _, _ in
                 return "Should not reach here"
             }
             XCTFail("Middleware should have thrown for empty value")
@@ -86,7 +85,7 @@ final class ValidationDispatchTests: XCTestCase {
         
         // Test invalid value command
         do {
-            _ = try await middleware.execute(command3, context: context) { cmd, _ in
+            _ = try await middleware.execute(command3, context: context) { _, _ in
                 return "Should not reach here"
             }
             XCTFail("Middleware should have thrown for invalid value")

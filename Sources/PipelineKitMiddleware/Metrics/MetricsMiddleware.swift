@@ -5,10 +5,10 @@ import PipelineKitCore
 /// For more advanced metrics collection, use AdvancedMetricsMiddleware.
 public struct SimpleMetricsMiddleware: Middleware {
     public let priority: ExecutionPriority = .postProcessing // Metrics collection happens after processing
-    private let recordMetric: @Sendable (String, TimeInterval) async -> Void
+    private let metricsRecorder: @Sendable (String, TimeInterval) async -> Void
 
     public init(recordMetric: @escaping @Sendable (String, TimeInterval) async -> Void) {
-        self.recordMetric = recordMetric
+        self.metricsRecorder = recordMetric
     }
 
     public func execute<T: Command>(
@@ -22,12 +22,12 @@ public struct SimpleMetricsMiddleware: Middleware {
             let result = try await next(command, context)
 
             let duration = Date().timeIntervalSince(startTime)
-            await recordMetric(String(describing: T.self), duration)
+            await metricsRecorder(String(describing: T.self), duration)
 
             return result
         } catch {
             let duration = Date().timeIntervalSince(startTime)
-            await recordMetric("\(String(describing: T.self)).error", duration)
+            await metricsRecorder("\(String(describing: T.self)).error", duration)
             throw error
         }
     }
@@ -64,18 +64,20 @@ public struct SimpleMetricsMiddleware: Middleware {
 ///    - `customTags`: [String: String] (inherently Sendable)
 ///    - All closures are marked @Sendable
 ///
-/// 3. **Guaranteed Thread Safety**: Since AdvancedMetricsCollector protocol explicitly
+/// 3. **Thread Safety:** Since DetailedMetricsCollector protocol explicitly
 ///    requires Sendable, any conforming type must be thread-safe, making this usage safe.
+///    All properties are immutable after initialization.
 ///
-/// 4. **No Mutable State**: All properties are `let` constants, preventing any mutations
-///    after initialization.
+/// 4. **Thread Safety Invariant:** The collector provided MUST conform to both
+///    DetailedMetricsCollector AND Sendable protocols. Passing a non-Sendable
+///    collector will cause undefined behavior in concurrent environments.
 ///
 /// This is a Swift language limitation rather than a design choice. Once Swift improves
 /// existential type handling, the @unchecked annotation can be removed.
 public final class MetricsMiddleware: Middleware, @unchecked Sendable {
     public let priority: ExecutionPriority = .postProcessing
     
-    private let collector: any AdvancedMetricsCollector
+    private let collector: any DetailedMetricsCollector
     private let namespace: String?
     private let includeCommandType: Bool
     private let customTags: [String: String]
@@ -88,7 +90,7 @@ public final class MetricsMiddleware: Middleware, @unchecked Sendable {
     ///   - includeCommandType: Whether to include command type in metric tags
     ///   - customTags: Additional tags to include with all metrics
     public init(
-        collector: any AdvancedMetricsCollector,
+        collector: any DetailedMetricsCollector,
         namespace: String? = nil,
         includeCommandType: Bool = true,
         customTags: [String: String] = [:]
@@ -116,6 +118,7 @@ public final class MetricsMiddleware: Middleware, @unchecked Sendable {
         // Track active requests
         await collector.incrementCounter(
             "\(metricPrefix)requests.active",
+            value: 1,
             tags: tags
         )
         
@@ -140,6 +143,7 @@ public final class MetricsMiddleware: Middleware, @unchecked Sendable {
             
             await collector.incrementCounter(
                 "\(metricPrefix)requests.success",
+                value: 1,
                 tags: tags
             )
             
@@ -162,7 +166,6 @@ public final class MetricsMiddleware: Middleware, @unchecked Sendable {
             }
             
             return result
-            
         } catch {
             // Record failure metrics
             let duration = Date().timeIntervalSince(startTime)
@@ -172,6 +175,7 @@ public final class MetricsMiddleware: Middleware, @unchecked Sendable {
             
             await collector.incrementCounter(
                 "\(metricPrefix)requests.failure",
+                value: 1,
                 tags: errorTags
             )
             
@@ -189,7 +193,7 @@ public final class MetricsMiddleware: Middleware, @unchecked Sendable {
 // MARK: - Advanced Metrics Collector Protocol
 
 /// Protocol for advanced metrics collection backends.
-public protocol AdvancedMetricsCollector: Sendable {
+public protocol DetailedMetricsCollector: Sendable {
     /// Records a latency measurement (typically in seconds).
     func recordLatency(_ name: String, value: TimeInterval, tags: [String: String]) async
     
@@ -201,7 +205,7 @@ public protocol AdvancedMetricsCollector: Sendable {
 }
 
 // Default implementations with default parameter values
-public extension AdvancedMetricsCollector {
+public extension DetailedMetricsCollector {
     func recordLatency(_ name: String, value: TimeInterval, tags: [String: String] = [:]) async {
         await recordLatency(name, value: value, tags: tags)
     }
@@ -222,7 +226,7 @@ public extension AdvancedMetricsCollector {
 // MARK: - Standard Metrics Collector
 
 /// Advanced in-memory metrics collector for development and testing.
-actor StandardAdvancedMetricsCollector: AdvancedMetricsCollector {
+actor StandardAdvancedMetricsCollector: DetailedMetricsCollector {
     struct Metric: Sendable {
         let name: String
         let value: Double
@@ -331,7 +335,7 @@ public protocol MetricsProvider {
 
 public extension MetricsMiddleware {
     /// Creates a metrics middleware with a simple configuration.
-    convenience init(collector: any AdvancedMetricsCollector) {
+    convenience init(collector: any DetailedMetricsCollector) {
         self.init(
             collector: collector,
             namespace: nil,
@@ -342,7 +346,7 @@ public extension MetricsMiddleware {
     
     /// Creates a metrics middleware with a namespace.
     convenience init(
-        collector: any AdvancedMetricsCollector,
+        collector: any DetailedMetricsCollector,
         namespace: String
     ) {
         self.init(

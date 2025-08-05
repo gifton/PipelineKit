@@ -2,7 +2,6 @@ import XCTest
 @testable import PipelineKitBenchmarks
 
 final class StatisticsTests: XCTestCase {
-    
     func testBasicStatisticsCalculation() {
         // Given
         let measurements = [
@@ -238,7 +237,7 @@ final class StatisticsTests: XCTestCase {
         
         let measurements = (0..<100).map { _ in
             BenchmarkMeasurement(
-                duration: mean + Double.random(in: -mean*0.1...mean*0.1),
+                duration: mean + Double.random(in: -mean * 0.1...mean * 0.1),
                 memoryUsed: nil,
                 allocations: nil,
                 peakMemory: nil

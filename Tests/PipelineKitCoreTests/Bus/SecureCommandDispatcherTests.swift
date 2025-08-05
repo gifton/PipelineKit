@@ -3,13 +3,12 @@ import XCTest
 import PipelineKitTestSupport
 
 final class SecureCommandDispatcherTests: XCTestCase {
-    
-    struct TestCommand: Command {
+    private struct TestCommand: Command {
         typealias Result = String
         let value: String
     }
     
-    struct TestHandler: CommandHandler {
+    private struct TestHandler: CommandHandler {
         typealias CommandType = TestCommand
         
         func handle(_ command: TestCommand) async throws -> String {
@@ -17,11 +16,11 @@ final class SecureCommandDispatcherTests: XCTestCase {
         }
     }
     
-    struct FailingCommand: Command {
+    private struct FailingCommand: Command {
         typealias Result = Void
     }
     
-    struct FailingHandler: CommandHandler {
+    private struct FailingHandler: CommandHandler {
         typealias CommandType = FailingCommand
         
         func handle(_ command: FailingCommand) async throws {

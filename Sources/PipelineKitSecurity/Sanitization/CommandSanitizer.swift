@@ -2,7 +2,6 @@ import Foundation
 
 /// Provides common sanitization utilities for command data.
 public struct CommandSanitizer: Sendable {
-    
     /// Sanitizes a string by removing potentially dangerous HTML/script content.
     /// 
     /// - Parameter input: The string to sanitize

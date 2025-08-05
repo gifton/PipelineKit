@@ -361,6 +361,8 @@ Request → Validation → Authorization → Rate Limiting → Business Logic �
 
 ### Thread Safety & Actor Isolation
 
+PipelineKit is designed for safe concurrent execution with **zero strict concurrency warnings** in Swift 5.10. All commands and results must conform to `Sendable`, ensuring thread safety across async boundaries.
+
 PipelineKit uses Swift's actor model for guaranteed thread safety in critical components:
 
 ```swift
@@ -386,6 +388,8 @@ All actor-based components ensure:
 - ✅ Safe sharing across async boundaries
 - ✅ Predictable state management
 - ✅ Compile-time safety guarantees
+
+For detailed information about our concurrency model, Sendable conformance, and Swift 6 roadmap, see [docs/CONCURRENCY.md](docs/CONCURRENCY.md).
 
 ## 🔧 Pipeline Types
 

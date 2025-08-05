@@ -138,7 +138,7 @@ public struct SecurityPolicyMiddleware: Middleware {
             // Recursively validate nested objects
             else if !isSimpleType(child.value) {
                 let childMirror = Mirror(reflecting: child.value)
-                if childMirror.children.count > 0 {
+                if !childMirror.children.isEmpty {
                     try validateMirror(childMirror, path: fieldPath)
                 }
             }
@@ -206,7 +206,7 @@ public struct SecurityPolicyMiddleware: Middleware {
                 size += MemoryLayout<Any>.size
             } else {
                 let childMirror = Mirror(reflecting: child.value)
-                if childMirror.children.count > 0 {
+                if !childMirror.children.isEmpty {
                     size += estimateMirrorSize(childMirror)
                 }
             }

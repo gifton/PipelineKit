@@ -3,7 +3,6 @@ import PipelineKitCore
 
 /// Advanced pipeline execution flow tracer with real-time bottleneck detection.
 public actor PipelineFlowTracer {
-    
     // MARK: - Execution Node Representation
     
     public struct ExecutionNode: Sendable, Identifiable, Codable {
@@ -18,19 +17,19 @@ public actor PipelineFlowTracer {
         public let status: ExecutionStatus
         
         public enum NodeType: String, Sendable, Codable {
-            case command = "command"
-            case middleware = "middleware"
-            case handler = "handler"
-            case context = "context"
-            case pipeline = "pipeline"
+            case command
+            case middleware
+            case handler
+            case context
+            case pipeline
         }
         
         public enum ExecutionStatus: String, Sendable, Codable {
-            case pending = "pending"
-            case executing = "executing" 
-            case completed = "completed"
-            case failed = "failed"
-            case timeout = "timeout"
+            case pending
+            case executing
+            case completed
+            case failed
+            case timeout
         }
         
         public init(
@@ -110,11 +109,11 @@ public actor PipelineFlowTracer {
         public let latency: TimeInterval?
         
         public enum EdgeType: String, Sendable, Codable {
-            case sequential = "sequential"
-            case conditional = "conditional"
-            case parallel = "parallel"
-            case error = "error"
-            case timeout = "timeout"
+            case sequential
+            case conditional
+            case parallel
+            case error
+            case timeout
         }
         
         public init(from: UUID, to: UUID, type: EdgeType, latency: TimeInterval? = nil) {
@@ -168,10 +167,10 @@ public actor PipelineFlowTracer {
         }
         
         public enum Severity: String, Sendable, Comparable, Codable {
-            case low = "low"
-            case medium = "medium"
-            case high = "high"
-            case critical = "critical"
+            case low
+            case medium
+            case high
+            case critical
             
             public static func < (lhs: Severity, rhs: Severity) -> Bool {
                 let order: [Severity] = [.low, .medium, .high, .critical]
@@ -453,7 +452,7 @@ public actor PipelineFlowTracer {
     
     private func getCurrentMemoryUsage() -> UInt64 {
         var info = mach_task_basic_info()
-        var count = mach_msg_type_number_t(MemoryLayout<mach_task_basic_info>.size)/4
+        var count = mach_msg_type_number_t(MemoryLayout<mach_task_basic_info>.size) / 4
         
         let kerr: kern_return_t = withUnsafeMutablePointer(to: &info) {
             $0.withMemoryRebound(to: integer_t.self, capacity: 1) {
@@ -510,10 +509,10 @@ public actor PipelineFlowTracer {
         public let overallHealth: HealthStatus
         
         public enum HealthStatus: String, Sendable {
-            case excellent = "excellent"
-            case good = "good" 
-            case degraded = "degraded"
-            case critical = "critical"
+            case excellent
+            case good
+            case degraded
+            case critical
         }
     }
     

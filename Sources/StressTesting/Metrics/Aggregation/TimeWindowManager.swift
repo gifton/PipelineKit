@@ -1,5 +1,4 @@
 import PipelineKitMiddleware
-import PipelineKitMiddleware
 import Foundation
 import PipelineKit
 
@@ -353,9 +352,9 @@ public struct WindowStatistics: Sendable {
 
 // MARK: - Extensions
 
-extension ClosedRange where Bound == Date {
+fileprivate extension ClosedRange where Bound == Date {
     /// Checks if this range overlaps with another.
-    fileprivate func overlaps(_ other: ClosedRange<Date>) -> Bool {
+    func overlaps(_ other: ClosedRange<Date>) -> Bool {
         return lowerBound <= other.upperBound && upperBound >= other.lowerBound
     }
 }

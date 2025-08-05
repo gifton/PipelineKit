@@ -82,7 +82,7 @@ public actor ObjectPool<T: AnyObject & Sendable> {
         // **Cleanup memory pressure handler**
         if let handlerID = memoryHandlerID {
             Task {
-                await MemoryPressureMonitor.shared.unregister(id: handlerID)
+                await MemoryPressureDetector.shared.unregister(id: handlerID)
             }
         }
     }
@@ -155,14 +155,14 @@ public actor ObjectPool<T: AnyObject & Sendable> {
     
     /// **Registers this pool with the memory pressure handler.**
     private func registerMemoryPressureHandler() async {
-        memoryHandlerID = await MemoryPressureMonitor.shared.register { [weak self] in
+        memoryHandlerID = await MemoryPressureDetector.shared.register { [weak self] in
             await self?.handleMemoryPressure()
         }
     }
     
     /// **Handles memory pressure by shrinking the pool.**
     private func handleMemoryPressure() async {
-        let pressureLevel = await MemoryPressureMonitor.shared.pressureLevel
+        let pressureLevel = await MemoryPressureDetector.shared.pressureLevel
         
         switch pressureLevel {
         case .normal:
@@ -287,6 +287,12 @@ public actor BufferPool<T: Sendable> {
     /// This is a permanent design choice for high-performance concurrent buffers. The
     /// implementation provides thread safety through careful lock usage while maintaining
     /// the performance characteristics required for pooling.
+    ///
+    /// Thread Safety: This type is thread-safe because all access to mutable state (storage)
+    /// is protected by an os_unfair_lock. All public methods acquire the lock before
+    /// accessing or modifying the internal storage.
+    /// Invariant: The lock must be held whenever accessing or modifying the storage property.
+    /// Copy-on-write semantics ensure thread-safe sharing of underlying data.
     public final class Buffer<Element: Sendable>: @unchecked Sendable {
         /// Internal storage that implements copy-on-write semantics
         private final class Storage {

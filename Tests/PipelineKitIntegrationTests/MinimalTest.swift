@@ -2,7 +2,6 @@ import XCTest
 @testable import PipelineKit
 
 final class MinimalTest: XCTestCase {
-    
     func testCommandContextIsNotActor() {
         // This test verifies CommandContext is no longer an actor
         let context = CommandContext.test()

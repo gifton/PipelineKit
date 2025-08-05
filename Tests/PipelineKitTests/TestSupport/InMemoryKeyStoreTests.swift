@@ -4,7 +4,6 @@ import CryptoKit
 @testable import PipelineKitTestSupport
 
 final class InMemoryKeyStoreTests: XCTestCase {
-    
     func testConcurrentAccess() async throws {
         let store = InMemoryKeyStore()
         let iterations = 100
@@ -55,7 +54,7 @@ final class InMemoryKeyStoreTests: XCTestCase {
         
         // Verify current key is one of the test keys
         let currentIdentifier = await store.currentKeyIdentifier
-        XCTAssertTrue(expectedKeys.contains(currentIdentifier ?? ""), 
+        XCTAssertTrue(expectedKeys.contains(currentIdentifier ?? ""),
                      "Current key should be one of the test keys")
     }
     
@@ -126,7 +125,7 @@ final class InMemoryKeyStoreTests: XCTestCase {
         
         // Verify it's the current key
         let currentIdentifier = await store.currentKeyIdentifier
-        XCTAssertEqual(currentIdentifier, keyIdentifier, 
+        XCTAssertEqual(currentIdentifier, keyIdentifier,
                       "Last stored key should be current")
     }
     
@@ -168,7 +167,7 @@ final class InMemoryKeyStoreTests: XCTestCase {
         XCTAssertNotNil(finalCurrentKey, "Current key should not be removed by expiration")
         
         let currentIdentifier = await store.currentKeyIdentifier
-        XCTAssertEqual(currentIdentifier, "current", 
+        XCTAssertEqual(currentIdentifier, "current",
                       "Current key identifier should remain unchanged")
     }
     

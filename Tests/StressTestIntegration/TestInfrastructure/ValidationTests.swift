@@ -10,7 +10,6 @@ import Foundation
 @MainActor
 */
 final class ValidationTests: XCTestCase {
-    
     func testPlaceholder() {
         // Placeholder test to prevent empty test class
         XCTAssertTrue(true)

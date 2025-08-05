@@ -71,11 +71,13 @@ public actor PrometheusExporter: MetricExporter {
                 name: prometheusName,
                 type: .gauge,
                 help: "Gauge metric \(metric.name)",
-                samples: [PrometheusMetric.Sample(
-                    labels: labels,
-                    value: metric.value,
-                    timestamp: configuration.includeTimestamp ? metric.timestamp : nil
-                )]
+                samples: [
+                    PrometheusMetric.Sample(
+                        labels: labels,
+                        value: metric.value,
+                        timestamp: configuration.includeTimestamp ? metric.timestamp : nil
+                    )
+                ]
             )
             
         case .counter:
@@ -105,11 +107,13 @@ public actor PrometheusExporter: MetricExporter {
                     name: prometheusName,
                     type: .counter,
                     help: "Counter metric \(metric.name)",
-                    samples: [PrometheusMetric.Sample(
-                        labels: labels,
-                        value: metric.value,
-                        timestamp: configuration.includeTimestamp ? metric.timestamp : nil
-                    )]
+                    samples: [
+                        PrometheusMetric.Sample(
+                            labels: labels,
+                            value: metric.value,
+                            timestamp: configuration.includeTimestamp ? metric.timestamp : nil
+                        )
+                    ]
                 )
             }
             
@@ -156,33 +160,39 @@ public actor PrometheusExporter: MetricExporter {
                     name: "\(prometheusName)_mean",
                     type: .gauge,
                     help: "Mean value of \(aggregated.name)",
-                    samples: [PrometheusMetric.Sample(
-                        labels: labels,
-                        value: stats.mean,
-                        timestamp: configuration.includeTimestamp ? aggregated.timestamp : nil
-                    )]
+                    samples: [
+                        PrometheusMetric.Sample(
+                            labels: labels,
+                            value: stats.mean,
+                            timestamp: configuration.includeTimestamp ? aggregated.timestamp : nil
+                        )
+                    ]
                 )
                 
                 self.metrics["\(prometheusName)_min"] = PrometheusMetric(
                     name: "\(prometheusName)_min",
                     type: .gauge,
                     help: "Minimum value of \(aggregated.name)",
-                    samples: [PrometheusMetric.Sample(
-                        labels: labels,
-                        value: stats.min,
-                        timestamp: configuration.includeTimestamp ? aggregated.timestamp : nil
-                    )]
+                    samples: [
+                        PrometheusMetric.Sample(
+                            labels: labels,
+                            value: stats.min,
+                            timestamp: configuration.includeTimestamp ? aggregated.timestamp : nil
+                        )
+                    ]
                 )
                 
                 self.metrics["\(prometheusName)_max"] = PrometheusMetric(
                     name: "\(prometheusName)_max",
                     type: .gauge,
                     help: "Maximum value of \(aggregated.name)",
-                    samples: [PrometheusMetric.Sample(
-                        labels: labels,
-                        value: stats.max,
-                        timestamp: configuration.includeTimestamp ? aggregated.timestamp : nil
-                    )]
+                    samples: [
+                        PrometheusMetric.Sample(
+                            labels: labels,
+                            value: stats.max,
+                            timestamp: configuration.includeTimestamp ? aggregated.timestamp : nil
+                        )
+                    ]
                 )
                 
             case .counter(let stats):
@@ -190,11 +200,13 @@ public actor PrometheusExporter: MetricExporter {
                     name: "\(prometheusName)_rate",
                     type: .gauge,
                     help: "Rate of \(aggregated.name) per second",
-                    samples: [PrometheusMetric.Sample(
-                        labels: labels,
-                        value: stats.rate,
-                        timestamp: configuration.includeTimestamp ? aggregated.timestamp : nil
-                    )]
+                    samples: [
+                        PrometheusMetric.Sample(
+                            labels: labels,
+                            value: stats.rate,
+                            timestamp: configuration.includeTimestamp ? aggregated.timestamp : nil
+                        )
+                    ]
                 )
                 
             case .histogram(let stats):
@@ -212,11 +224,13 @@ public actor PrometheusExporter: MetricExporter {
                         name: "\(prometheusName)_\(percentile)",
                         type: .gauge,
                         help: "\(percentile) of \(aggregated.name)",
-                        samples: [PrometheusMetric.Sample(
-                            labels: labels,
-                            value: value,
-                            timestamp: configuration.includeTimestamp ? aggregated.timestamp : nil
-                        )]
+                        samples: [
+                            PrometheusMetric.Sample(
+                                labels: labels,
+                                value: value,
+                                timestamp: configuration.includeTimestamp ? aggregated.timestamp : nil
+                            )
+                        ]
                     )
                 }
             }
@@ -401,9 +415,9 @@ private struct PrometheusMetric {
     }
     
     enum MetricType: String {
-        case gauge = "gauge"
-        case counter = "counter"
-        case histogram = "histogram"
+        case gauge
+        case counter
+        case histogram
     }
 }
 
@@ -413,10 +427,10 @@ private struct PrometheusMetric {
 private actor HTTPServer {
     private let port: Int
     private let host: String
-    private let handler: (HTTPRequest) async -> HTTPResponse
+    private let handler: @Sendable (HTTPRequest) async -> HTTPResponse
     private var listener: NWListener?
     
-    init(port: Int, host: String, handler: @escaping (HTTPRequest) async -> HTTPResponse) {
+    init(port: Int, host: String, handler: @escaping @Sendable (HTTPRequest) async -> HTTPResponse) {
         self.port = port
         self.host = host
         self.handler = handler
@@ -452,7 +466,7 @@ private actor HTTPServer {
     private func handleConnection(_ connection: NWConnection) async {
         connection.start(queue: .global())
         
-        connection.receive(minimumIncompleteLength: 1, maximumLength: 65536) { data, _, isComplete, error in
+        connection.receive(minimumIncompleteLength: 1, maximumLength: 65536) { data, _, _, error in
             guard let data = data, error == nil else {
                 connection.cancel()
                 return

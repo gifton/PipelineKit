@@ -5,7 +5,6 @@ import PipelineKitCore
 
 /// Middleware that automatically instruments command execution with observability
 public struct ObservabilityMiddleware: Middleware {
-    
     public var priority: ExecutionPriority { .postProcessing }
     
     private let configuration: ObservabilityConfiguration
@@ -19,7 +18,6 @@ public struct ObservabilityMiddleware: Middleware {
         context: CommandContext,
         next: @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
-        
         // Set up observability context
         await setupObservabilityContext(for: command, context: context)
         
@@ -70,9 +68,8 @@ public struct ObservabilityMiddleware: Middleware {
         context: CommandContext,
         next: @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
-        
         let startTime = Date()
-        let _ = context.getOrCreateSpanContext(operation: "command_execution")
+        _ = context.getOrCreateSpanContext(operation: "command_execution")
         
         // Handle command observability setup
         await command.setupObservability(context: context)
@@ -88,7 +85,6 @@ public struct ObservabilityMiddleware: Middleware {
             await command.observabilityDidComplete(context: context, result: result)
             
             return result
-            
         } catch {
             // Record failure metrics
             await recordFailureMetrics(for: command, error: error, context: context, startTime: startTime)
@@ -110,8 +106,8 @@ public struct ObservabilityMiddleware: Middleware {
         
         if configuration.enablePerformanceMetrics {
             context.endTimer("command.total_duration")
-            context.recordMetric("command.duration", value: duration, unit: "seconds")
-            context.recordMetric("command.success", value: 1, unit: "count")
+            context.recordPerformanceMetric("command.duration", value: duration, unit: "seconds")
+            context.recordPerformanceMetric("command.success", value: 1, unit: "count")
         }
         
         // Emit custom event
@@ -133,8 +129,8 @@ public struct ObservabilityMiddleware: Middleware {
         
         if configuration.enablePerformanceMetrics {
             context.endTimer("command.total_duration")
-            context.recordMetric("command.duration", value: duration, unit: "seconds")
-            context.recordMetric("command.failure", value: 1, unit: "count")
+            context.recordPerformanceMetric("command.duration", value: duration, unit: "seconds")
+            context.recordPerformanceMetric("command.failure", value: 1, unit: "count")
         }
         
         // Emit custom event
@@ -146,14 +142,12 @@ public struct ObservabilityMiddleware: Middleware {
             "success": false
         ])
     }
-    
 }
 
 // MARK: - Performance Tracking Middleware
 
 /// Specialized middleware for detailed performance tracking
 public struct PerformanceTrackingMiddleware: Middleware {
-    
     public var priority: ExecutionPriority { .postProcessing }
     
     private let thresholds: PerformanceThresholds
@@ -167,13 +161,12 @@ public struct PerformanceTrackingMiddleware: Middleware {
         context: CommandContext,
         next: @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
-        
         let startTime = Date()
         let initialMemory = getCurrentMemoryUsage()
         
         // Start detailed performance tracking
         context.startTimer("performance.command_execution")
-        context.recordMetric("performance.memory_start", value: Double(initialMemory), unit: "MB")
+        context.recordPerformanceMetric("performance.memory_start", value: Double(initialMemory), unit: "MB")
         
         do {
             let result = try await next(command, context)
@@ -184,8 +177,8 @@ public struct PerformanceTrackingMiddleware: Middleware {
             let memoryDelta = finalMemory - initialMemory
             
             context.endTimer("performance.command_execution")
-            context.recordMetric("performance.memory_end", value: Double(finalMemory), unit: "MB")
-            context.recordMetric("performance.memory_delta", value: Double(memoryDelta), unit: "MB")
+            context.recordPerformanceMetric("performance.memory_end", value: Double(finalMemory), unit: "MB")
+            context.recordPerformanceMetric("performance.memory_delta", value: Double(memoryDelta), unit: "MB")
             
             // Check for performance issues
             await checkPerformanceThresholds(
@@ -196,14 +189,13 @@ public struct PerformanceTrackingMiddleware: Middleware {
             )
             
             return result
-            
         } catch {
             // Record failure performance metrics
             let duration = Date().timeIntervalSince(startTime)
             let finalMemory = getCurrentMemoryUsage()
             
             context.endTimer("performance.command_execution")
-            context.recordMetric("performance.memory_end", value: Double(finalMemory), unit: "MB")
+            context.recordPerformanceMetric("performance.memory_end", value: Double(finalMemory), unit: "MB")
             
             await context.emitCustomEvent("performance.command_failed", properties: [
                 "duration": duration,
@@ -221,7 +213,6 @@ public struct PerformanceTrackingMiddleware: Middleware {
         memoryDelta: Int,
         context: CommandContext
     ) async {
-        
         // Check for slow command execution
         if duration > thresholds.slowCommandThreshold {
             await context.emitCustomEvent("performance.slow_command", properties: [
@@ -245,7 +236,7 @@ public struct PerformanceTrackingMiddleware: Middleware {
         // Simplified memory usage calculation
         // In practice, you might use more sophisticated methods
         var info = mach_task_basic_info()
-        var count = mach_msg_type_number_t(MemoryLayout<mach_task_basic_info>.size)/4
+        var count = mach_msg_type_number_t(MemoryLayout<mach_task_basic_info>.size) / 4
         
         let kerr: kern_return_t = withUnsafeMutablePointer(to: &info) {
             $0.withMemoryRebound(to: integer_t.self, capacity: 1) {
@@ -268,7 +259,6 @@ public struct PerformanceTrackingMiddleware: Middleware {
 
 /// Middleware for distributed tracing integration
 public struct DistributedTracingMiddleware: Middleware {
-    
     public var priority: ExecutionPriority { .postProcessing }
     
     private let serviceName: String
@@ -284,7 +274,6 @@ public struct DistributedTracingMiddleware: Middleware {
         context: CommandContext,
         next: @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
-        
         // Create or update span context for distributed tracing
         let span = context.getOrCreateSpanContext(operation: String(describing: type(of: command)))
         
@@ -314,7 +303,6 @@ public struct DistributedTracingMiddleware: Middleware {
 
 /// Middleware that allows easy emission of custom business events
 public struct CustomEventEmitterMiddleware: Middleware {
-    
     public var priority: ExecutionPriority { .postProcessing }
     
     private let eventPrefix: String
@@ -328,7 +316,6 @@ public struct CustomEventEmitterMiddleware: Middleware {
         context: CommandContext,
         next: @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
-        
         // Emit command started event
         await context.emitCustomEvent("\(eventPrefix).command_started", properties: [
             "command_type": String(describing: type(of: command)),
@@ -346,7 +333,6 @@ public struct CustomEventEmitterMiddleware: Middleware {
             ])
             
             return result
-            
         } catch {
             // Emit command failed event
             await context.emitCustomEvent("\(eventPrefix).command_failed", properties: [
@@ -360,4 +346,3 @@ public struct CustomEventEmitterMiddleware: Middleware {
         }
     }
 }
-

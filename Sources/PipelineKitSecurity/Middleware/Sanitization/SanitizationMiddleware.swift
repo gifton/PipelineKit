@@ -39,4 +39,3 @@ public struct SanitizationMiddleware: Middleware {
         return try await next(sanitized, context)
     }
 }
-

@@ -10,7 +10,6 @@ import Atomics
 /// - Zero actor hops for uncontended operations
 /// - Efficient token management with atomics
 final class BackPressureBenchmarkTests: XCTestCase {
-    
     func testPriorityQueuePerformance() async throws {
         let semaphore = BackPressureAsyncSemaphore(
             maxConcurrency: 10,

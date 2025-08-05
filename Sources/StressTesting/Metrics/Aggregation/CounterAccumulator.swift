@@ -93,12 +93,12 @@ extension CounterAccumulator: CustomStringConvertible {
 
 // MARK: - Counter Validation
 
-extension CounterAccumulator {
+public extension CounterAccumulator {
     /// Validates that counter values are monotonically increasing.
     ///
     /// - Parameter value: The value to validate.
     /// - Returns: true if the value is valid (greater than or equal to last value).
-    public func isValidValue(_ value: Double) -> Bool {
+    func isValidValue(_ value: Double) -> Bool {
         if isEmpty {
             return value >= 0  // Counters should start at 0 or positive
         }

@@ -46,7 +46,7 @@ final class MetricsMiddlewareTests: XCTestCase {
         
         // When/Then
         do {
-            _ = try await middleware.execute(command, context: context) { cmd, _ in
+            _ = try await middleware.execute(command, context: context) { _, _ in
                 await self.synchronizer.shortDelay()
                 throw MetricsTestError.intentionalFailure
             }

@@ -142,6 +142,7 @@ public class BaseScenario: StressScenario {
     }
     
     /// Override this to implement the scenario's main timeline.
+    /// Subclasses must override this method.
     open func runTimeline(
         orchestrator: StressOrchestrator,
         safetyMonitor: any SafetyMonitor,

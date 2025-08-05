@@ -24,7 +24,6 @@ struct PipelineTestHandler: CommandHandler {
 
 /// Tests for pipeline execution failure scenarios
 final class PipelineExecutionFailureTests: XCTestCase {
-    
     // MARK: - Handler Failures
     
     func testHandlerException() async throws {
@@ -246,7 +245,7 @@ final class PipelineExecutionFailureTests: XCTestCase {
             // If it completes, memory management is working
         } catch {
             // If it fails due to memory pressure, that's also valid
-            XCTAssertTrue(error.localizedDescription.contains("memory") || 
+            XCTAssertTrue(error.localizedDescription.contains("memory") ||
                          error.localizedDescription.contains("resource"))
         }
     }
@@ -339,7 +338,10 @@ struct ShortCircuitMiddleware: Middleware {
         context: CommandContext,
         next: @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
-        return "short_circuit" as! T.Result
+        if let result = "short_circuit" as? T.Result {
+            return result
+        }
+        throw PipelineError.executionFailed(message: "Cannot convert short_circuit result", context: nil)
     }
 }
 
@@ -457,7 +459,10 @@ struct ErrorRecoveryMiddleware: Middleware {
             return try await next(command, context)
         } catch {
             // Recover from error
-            return "recovered" as! T.Result
+            if let recoveredResult = "recovered" as? T.Result {
+                return recoveredResult
+            }
+            throw PipelineError.executionFailed(message: "Recovery failed - cannot convert result", context: nil)
         }
     }
 }

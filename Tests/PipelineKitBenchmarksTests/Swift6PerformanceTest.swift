@@ -4,13 +4,12 @@ import XCTest
 
 /// Benchmark test to verify no performance regression from Swift 6 concurrency changes
 final class Swift6PerformanceTest: XCTestCase {
-    
-    struct TestCommand: Command {
+    private struct TestCommand: Command {
         typealias Result = String
         let id: Int
     }
     
-    struct TestHandler: CommandHandler {
+    private struct TestHandler: CommandHandler {
         typealias CommandType = TestCommand
         
         func handle(_ command: TestCommand) async throws -> String {
@@ -62,7 +61,7 @@ final class Swift6PerformanceTest: XCTestCase {
         try await pipeline.addMiddleware(MetricsMiddleware(collector: collector))
         try await pipeline.addMiddleware(AuthorizationMiddleware(
             requiredRoles: Set(["user"]),
-            getUserRoles: { userId in Set(["user", "admin"]) }
+            getUserRoles: { _ in Set(["user", "admin"]) }
         ))
         try await pipeline.addMiddleware(CachingMiddleware(
             cache: InMemoryCache()
@@ -136,7 +135,7 @@ final class Swift6PerformanceTest: XCTestCase {
 
 // MARK: - Test Helpers
 
-private struct TestMetricsCollector: AdvancedMetricsCollector {
+private struct TestMetricsCollector: DetailedMetricsCollector {
     func recordLatency(_ name: String, value: TimeInterval, tags: [String: String]) async {}
     func incrementCounter(_ name: String, value: Double, tags: [String: String]) async {}
     func recordGauge(_ name: String, value: Double, tags: [String: String]) async {}

@@ -38,8 +38,12 @@ import PipelineKit
 ///    single-consumer scenarios, which simplifies the synchronization requirements and
 ///    makes the @unchecked usage safe in practice.
 ///
-/// 5. **Test Infrastructure**: This is stress test support code where performance
-///    characteristics are critical for accurately measuring system behavior under load.
+/// 5. **Thread Safety:** Lock-free implementation safe for one writer and one reader
+///    concurrently. Uses os_unfair_lock for atomic operations on indices.
+///
+/// 6. **Thread Safety Invariant:** This buffer is ONLY safe for single-producer,
+///    single-consumer scenarios. Multiple concurrent writers or readers will cause
+///    data corruption. All index operations must use the provided atomic helpers.
 ///
 /// This is a permanent requirement for implementing lock-free data structures where
 /// performance is paramount and manual memory management is necessary.

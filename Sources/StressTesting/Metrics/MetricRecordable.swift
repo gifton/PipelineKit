@@ -37,7 +37,6 @@ public protocol MetricRecordable {
 // MARK: - Default Implementations
 
 public extension MetricRecordable {
-    
     // MARK: Core Recording
     
     /// Records a metric data point with the simulator's namespace.

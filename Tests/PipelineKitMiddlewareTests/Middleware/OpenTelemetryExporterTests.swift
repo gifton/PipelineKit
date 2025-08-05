@@ -4,7 +4,6 @@ import Foundation
 @testable import PipelineKitMiddleware
 
 final class OpenTelemetryExporterTests: XCTestCase {
-    
     func testOpenTelemetryExporterInitialization() async throws {
         // Given
         let configuration = try OpenTelemetryExportConfiguration(
@@ -249,4 +248,3 @@ final class OpenTelemetryExporterTests: XCTestCase {
         await exporter.shutdown()
     }
 }
-
