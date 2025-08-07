@@ -1,50 +1,114 @@
 import Foundation
 
-/// A type-safe key for storing values in a command context.
-/// 
-/// Context keys provide type safety when storing and retrieving values
-/// from the command execution context. Each key type is automatically
-/// assigned a unique integer ID for high-performance lookups.
-/// 
-/// Example:
+/// Type-safe key for CommandContext storage.
+///
+/// ContextKey provides compile-time type safety for values stored in CommandContext.
+/// Each key is associated with a specific value type, preventing type mismatches.
+///
+/// ## Usage Example
 /// ```swift
-/// struct UserContextKey: ContextKey {
-///     typealias Value = User
-/// }
+/// // Define a key
+/// let userIDKey = ContextKey<String>("userID")
 /// 
-/// // Store in context
-/// context[UserContextKey.self] = authenticatedUser
-/// 
-/// // Retrieve from context
-/// let user = context[UserContextKey.self]
+/// // Use with CommandContext
+/// context[userIDKey] = "user123"
+/// let id: String? = context[userIDKey]  // Type-safe access
 /// ```
-public protocol ContextKey {
-    /// The type of value associated with this key
-    associatedtype Value: Sendable
+public struct ContextKey<Value: Sendable>: Hashable, Sendable {
+    /// The string name of the key
+    public let name: String
     
-    /// A unique integer identifier for this key type.
-    /// The default implementation automatically assigns a unique ID.
-    static var keyID: Int { get }
-}
-
-// MARK: - Key ID Generation
-
-/// A type that provides a unique integer ID based on its memory address.
-/// This is more efficient than using ObjectIdentifier for lookups.
-private enum TypeID {
-    static func id<T>(for type: T.Type) -> Int {
-        // Use the type's metadata pointer as a unique identifier
-        // This is stable for the lifetime of the program
-        return unsafeBitCast(type, to: Int.self)
+    /// Creates a new context key with the specified name.
+    /// - Parameter name: The unique name for this key
+    public init(_ name: String) {
+        self.name = name
     }
 }
 
-// MARK: - Default Implementation
+// MARK: - Standard Keys
 
-public extension ContextKey {
-    /// Returns a unique integer ID for this key type.
-    /// Uses the type's metadata pointer for zero-cost identification.
-    static var keyID: Int {
-        TypeID.id(for: Self.self)
+/// Namespace for predefined context keys
+public enum ContextKeys {
+    // MARK: Request Metadata
+    
+    /// Key for request ID
+    public static let requestID = ContextKey<String>("requestID")
+    
+    /// Key for user ID
+    public static let userID = ContextKey<String>("userID")
+    
+    /// Key for correlation ID
+    public static let correlationID = ContextKey<String>("correlationID")
+    
+    /// Key for start time
+    public static let startTime = ContextKey<Date>("startTime")
+    
+    /// Key for metrics dictionary
+    public static let metrics = ContextKey<[String: any Sendable]>("metrics")
+    
+    /// Key for metadata dictionary
+    public static let metadata = ContextKey<[String: any Sendable]>("metadata")
+    
+    /// Key for trace ID (for distributed tracing)
+    public static let traceID = ContextKey<String>("traceID")
+    
+    /// Key for span ID (for distributed tracing)
+    public static let spanID = ContextKey<String>("spanID")
+    
+    /// Key for command type name
+    public static let commandType = ContextKey<String>("commandType")
+    
+    /// Key for command ID
+    public static let commandID = ContextKey<UUID>("commandID")
+    
+    // MARK: Security
+    
+    /// Key for authentication token
+    public static let authToken = ContextKey<String>("authToken")
+    
+    /// Key for authenticated user info
+    public static let authenticatedUser = ContextKey<[String: any Sendable]>("authenticatedUser")
+    
+    /// Key for authorization roles
+    public static let roles = ContextKey<[String]>("roles")
+    
+    /// Key for permissions
+    public static let permissions = ContextKey<[String]>("permissions")
+    
+    // MARK: Observability
+    
+    /// Key for log level
+    public static let logLevel = ContextKey<String>("logLevel")
+    
+    /// Key for log context
+    public static let logContext = ContextKey<[String: any Sendable]>("logContext")
+    
+    /// Key for performance measurements
+    public static let performanceMeasurements = ContextKey<[String: TimeInterval]>("performanceMeasurements")
+    
+    // MARK: Resilience
+    
+    /// Key for retry count
+    public static let retryCount = ContextKey<Int>("retryCount")
+    
+    /// Key for circuit breaker state
+    public static let circuitBreakerState = ContextKey<String>("circuitBreakerState")
+    
+    /// Key for rate limit remaining
+    public static let rateLimitRemaining = ContextKey<Int>("rateLimitRemaining")
+}
+
+// MARK: - Convenience Factory Methods
+
+extension ContextKey {
+    /// Creates a custom key with automatic type inference.
+    /// 
+    /// Example:
+    /// ```swift
+    /// let temperatureKey = ContextKey.custom("temperature", Double.self)
+    /// context[temperatureKey] = 98.6
+    /// ```
+    public static func custom<T: Sendable>(_ name: String, _ type: T.Type) -> ContextKey<T> {
+        ContextKey<T>(name)
     }
 }

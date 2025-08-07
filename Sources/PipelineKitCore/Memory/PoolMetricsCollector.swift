@@ -153,16 +153,23 @@ public actor PoolMetricsCollector {
     }
     
     private func collectSnapshot() async -> PoolMetricsSnapshot {
-        let aggregated = await PoolManager.shared.aggregatedStatistics()
-        let memoryPressureStats = await MemoryPressureDetector.shared.statistics
+        // TODO: Implement pool registry for collecting stats from all pools
+        let poolStats: [(name: String, stats: ObjectPoolStatistics)] = []
+        // TODO: Implement memory pressure detection
+        let memoryPressureEvents = 0
+        
+        // Calculate overall metrics from individual pool stats
+        let overallHitRate = poolStats.isEmpty ? 0.0 : 
+            poolStats.reduce(0.0) { $0 + $1.stats.hitRate } / Double(poolStats.count) * 100.0
+        let totalAllocations = poolStats.reduce(0) { $0 + $1.stats.totalAllocated }
         
         return PoolMetricsSnapshot(
             timestamp: Date(),
-            poolStatistics: aggregated.pools,
-            overallHitRate: aggregated.overallHitRate,
-            overallEfficiency: aggregated.overallEfficiency,
-            totalAllocations: aggregated.totalAllocations,
-            memoryPressureEvents: memoryPressureStats.pressureEvents,
+            poolStatistics: poolStats,
+            overallHitRate: overallHitRate,
+            overallEfficiency: 0.0, // TODO: Calculate efficiency metric
+            totalAllocations: totalAllocations,
+            memoryPressureEvents: memoryPressureEvents,
             currentMemoryUsage: getMemoryUsage()
         )
     }
@@ -255,7 +262,7 @@ public actor PoolMetricsCollector {
 /// Snapshot of pool metrics at a point in time.
 public struct PoolMetricsSnapshot: Sendable {
     public let timestamp: Date
-    public let poolStatistics: [(name: String, stats: PoolStatistics)]
+    public let poolStatistics: [(name: String, stats: ObjectPoolStatistics)]
     public let overallHitRate: Double
     public let overallEfficiency: Double
     public let totalAllocations: Int
@@ -265,7 +272,7 @@ public struct PoolMetricsSnapshot: Sendable {
     
     public init(
         timestamp: Date,
-        poolStatistics: [(name: String, stats: PoolStatistics)],
+        poolStatistics: [(name: String, stats: ObjectPoolStatistics)],
         overallHitRate: Double,
         overallEfficiency: Double,
         totalAllocations: Int,

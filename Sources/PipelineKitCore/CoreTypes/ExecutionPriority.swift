@@ -19,6 +19,9 @@ public enum ExecutionPriority: Int, Sendable, CaseIterable {
     /// Input validation and sanitization
     case validation = 200
     
+    /// Resilience patterns (circuit breakers, retry, timeout)
+    case resilience = 250
+    
     /// Pre-processing (transformation, decompression)
     case preProcessing = 300
     
@@ -30,6 +33,9 @@ public enum ExecutionPriority: Int, Sendable, CaseIterable {
     
     /// Error handling and recovery
     case errorHandling = 600
+    
+    /// Observability (logging, metrics, tracing)
+    case observability = 700
     
     /// Custom user-defined priority
     case custom = 1000
@@ -71,6 +77,8 @@ public extension ExecutionPriority {
             return "Authentication"
         case .validation:
             return "Validation"
+        case .resilience:
+            return "Resilience"
         case .preProcessing:
             return "Pre-Processing"
         case .processing:
@@ -79,6 +87,8 @@ public extension ExecutionPriority {
             return "Post-Processing"
         case .errorHandling:
             return "Error Handling"
+        case .observability:
+            return "Observability"
         case .custom:
             return "Custom"
         }

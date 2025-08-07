@@ -2,3 +2,6 @@
 @_exported import PipelineKitCore
 @_exported import PipelineKitSecurity
 @_exported import PipelineKitMiddleware
+@_exported import PipelineKitResilience
+@_exported import PipelineKitObservability
+@_exported import PipelineKitCaching

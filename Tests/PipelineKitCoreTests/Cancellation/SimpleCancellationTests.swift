@@ -1,6 +1,7 @@
 import XCTest
 import Foundation
 @testable import PipelineKit
+import PipelineKitTestSupport
 
 final class SimpleCancellationTests: XCTestCase {
     // MARK: - Pipeline Cancellation Tests

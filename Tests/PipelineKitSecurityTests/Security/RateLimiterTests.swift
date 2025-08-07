@@ -293,13 +293,13 @@ final class RateLimiterTests: XCTestCase {
         if case .closed = state1 {} else {
             XCTFail("Expected closed state")
         }
-        let shouldAllow1 = await breaker.shouldAllow()
+        let shouldAllow1 = await breaker.allowRequest()
         XCTAssertTrue(shouldAllow1)
         
         // Record failures
         await breaker.recordFailure()
         await breaker.recordFailure()
-        let shouldAllow2 = await breaker.shouldAllow()
+        let shouldAllow2 = await breaker.allowRequest()
         XCTAssertTrue(shouldAllow2) // Still closed
         
         // Third failure opens the circuit
@@ -308,14 +308,14 @@ final class RateLimiterTests: XCTestCase {
         if case .open = state2 {} else {
             XCTFail("Expected open state")
         }
-        let shouldAllow3 = await breaker.shouldAllow()
+        let shouldAllow3 = await breaker.allowRequest()
         XCTAssertFalse(shouldAllow3)
         
         // Wait for timeout
         await synchronizer.longDelay() // Simulate longer wait for reset
         
         // Should be half-open
-        let shouldAllow4 = await breaker.shouldAllow()
+        let shouldAllow4 = await breaker.allowRequest()
         XCTAssertTrue(shouldAllow4)
         let state3 = await breaker.getState()
         if case .halfOpen = state3 {} else {
@@ -342,17 +342,17 @@ final class RateLimiterTests: XCTestCase {
         // Open the circuit
         await breaker.recordFailure()
         await breaker.recordFailure()
-        let shouldAllow5 = await breaker.shouldAllow()
+        let shouldAllow5 = await breaker.allowRequest()
         XCTAssertFalse(shouldAllow5)
         
         // Wait for half-open
         await synchronizer.mediumDelay() // Simulate token regeneration
-        let shouldAllow6 = await breaker.shouldAllow()
+        let shouldAllow6 = await breaker.allowRequest()
         XCTAssertTrue(shouldAllow6)
         
         // Failure in half-open should re-open
         await breaker.recordFailure()
-        let shouldAllow7 = await breaker.shouldAllow()
+        let shouldAllow7 = await breaker.allowRequest()
         XCTAssertFalse(shouldAllow7)
         
         let state = await breaker.getState()

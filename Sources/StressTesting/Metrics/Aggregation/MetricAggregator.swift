@@ -1,4 +1,4 @@
-import PipelineKitMiddleware
+import PipelineKitObservability
 import Foundation
 import PipelineKit
 
@@ -147,7 +147,7 @@ public actor MetricAggregator {
         metric: String,
         window: TimeInterval,
         at timestamp: Date = Date()
-    ) async -> AggregatedMetrics? {
+    ) async -> PipelineKitObservability.AggregatedMetrics? {
         let query = MetricQuery(
             namePattern: metric,
             timeRange: timestamp.addingTimeInterval(-window)...timestamp,
@@ -232,7 +232,7 @@ public actor MetricAggregator {
     }
     
     /// Gets percentiles for a histogram metric.
-    public func histogramPercentiles(_ metric: String, window: TimeInterval = 60) async -> HistogramStatistics? {
+    public func histogramPercentiles(_ metric: String, window: TimeInterval = 60) async -> PipelineKitObservability.HistogramStatistics? {
         guard let aggregated = await get(metric: metric, window: window) else {
             return nil
         }

@@ -1,4 +1,4 @@
-import PipelineKitMiddleware
+import PipelineKitObservability
 import Foundation
 import PipelineKit
 
@@ -68,8 +68,8 @@ public actor TimeWindowManager {
     }
     
     /// Queries aggregated metrics for a time range.
-    public func query(_ query: MetricQuery) -> [AggregatedMetrics] {
-        var results: [AggregatedMetrics] = []
+    public func query(_ query: MetricQuery) -> [PipelineKitObservability.AggregatedMetrics] {
+        var results: [PipelineKitObservability.AggregatedMetrics] = []
         
         for (metricName, windows) in metricWindows {
             guard query.matches(name: metricName) else { continue }
@@ -178,7 +178,7 @@ private final class MetricWindows {
         }
     }
     
-    func query(duration: TimeInterval, timeRange: ClosedRange<Date>) -> [AggregatedMetrics] {
+    func query(duration: TimeInterval, timeRange: ClosedRange<Date>) -> [PipelineKitObservability.AggregatedMetrics] {
         guard let durationWindows = windows[duration] else { return [] }
         
         return durationWindows.compactMap { window in
@@ -186,7 +186,7 @@ private final class MetricWindows {
                 return nil
             }
             
-            return AggregatedMetrics(
+            return PipelineKitObservability.AggregatedMetrics(
                 name: metricName,
                 type: metricType,
                 window: window.timeWindow,
@@ -278,11 +278,11 @@ private final class MetricWindows {
 
 /// Accumulator for a specific time window.
 private final class WindowAccumulator {
-    let timeWindow: TimeWindow
+    let timeWindow: PipelineKitObservability.TimeWindow
     let metricType: MetricType
     private var accumulator: any StatisticsAccumulator
     
-    init(timeWindow: TimeWindow, metricType: MetricType) {
+    init(timeWindow: PipelineKitObservability.TimeWindow, metricType: MetricType) {
         self.timeWindow = timeWindow
         self.metricType = metricType
         
@@ -319,19 +319,47 @@ private final class WindowAccumulator {
         }
     }
     
-    func statistics() -> MetricStatistics {
+    func statistics() -> PipelineKitObservability.MetricStatistics {
         switch accumulator {
         case let gauge as GaugeAccumulator:
-            return .basic(gauge.statistics())
+            let stats = gauge.statistics()
+            return .basic(PipelineKitObservability.BasicStatistics(
+                count: stats.count,
+                min: stats.min,
+                max: stats.max,
+                sum: stats.sum,
+                lastValue: stats.mean,  // Use mean as last value
+                lastTimestamp: Date()
+            ))
             
         case let counter as CounterAccumulator:
-            return .counter(counter.statistics())
+            let stats = counter.statistics()
+            return .counter(PipelineKitObservability.CounterStatistics(
+                count: stats.count,
+                sum: stats.sum,
+                firstValue: stats.firstValue,
+                firstTimestamp: nil,
+                lastValue: stats.lastValue,
+                lastTimestamp: Date()
+            ))
             
         case let histogram as HistogramAccumulator:
-            return .histogram(histogram.statistics())
+            let stats = histogram.statistics()
+            return .histogram(PipelineKitObservability.HistogramStatistics(
+                count: stats.count,
+                min: stats.min,
+                max: stats.max,
+                sum: stats.sum,
+                mean: stats.mean,
+                p50: stats.p50,
+                p90: stats.p90,
+                p95: stats.p95,
+                p99: stats.p99,
+                p999: stats.p999
+            ))
             
         default:
-            return .basic(.init())
+            return .basic(PipelineKitObservability.BasicStatistics())
         }
     }
     

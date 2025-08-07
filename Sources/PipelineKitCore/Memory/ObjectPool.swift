@@ -1,485 +1,211 @@
 import Foundation
 
-/// A thread-safe object pool for recycling frequently allocated objects.
+/// A thread-safe object pool for reusing instances to reduce allocations.
 ///
-/// `ObjectPool` reduces memory allocations by reusing objects instead of creating new ones.
-/// It's particularly useful for objects that are created and destroyed frequently, such as
-/// command contexts, results, and temporary buffers.
+/// ObjectPool provides a high-performance, thread-safe mechanism for
+/// recycling objects. It's particularly useful for frequently allocated
+/// objects like buffers, contexts, or temporary data structures.
 ///
 /// ## Features
-/// - Thread-safe implementation using actor isolation
-/// - Configurable size limits with high/low water marks
-/// - Automatic cleanup of excess objects
-/// - Comprehensive statistics tracking for monitoring
-/// - Memory pressure handling with automatic shrinking
-/// - Efficient acquire/release operations
+/// - Works with any Sendable type
+/// - Thread-safe via actor isolation
+/// - Configurable size limits
+/// - Optional statistics tracking
+/// - Factory and reset closures for object lifecycle
 ///
 /// ## Example
 /// ```swift
-/// let pool = ObjectPool<CommandContext>(
-///     maxSize: 100,
-///     factory: { CommandContext() },
+/// let pool = ObjectPool(
+///     configuration: .default,
+///     factory: { Buffer() },
 ///     reset: { $0.clear() }
 /// )
 ///
-/// let context = await pool.acquire()
-/// // Use context...
-/// await pool.release(context)
+/// let buffer = await pool.acquire()
+/// // Use buffer...
+/// await pool.release(buffer)
 /// ```
-public actor ObjectPool<T: AnyObject & Sendable> {
-    /// Factory closure to create new instances
+///
+/// ## Performance Notes
+/// The pool uses actor isolation for thread safety, which has minimal
+/// overhead for the acquire/release operations.
+public actor ObjectPool<T: Sendable> {
+    // MARK: - Properties
+    
+    /// Pool configuration.
+    public let configuration: ObjectPoolConfiguration
+    
+    /// Factory closure to create new instances.
     private let factory: @Sendable () -> T
     
-    /// Reset closure to prepare objects for reuse
-    private let reset: @Sendable (T) async -> Void
+    /// Reset closure to prepare objects for reuse.
+    private let reset: @Sendable (T) -> Void
     
-    /// Maximum number of objects to keep in the pool
-    private let maxSize: Int
-    
-    /// **High water mark - start releasing objects above this threshold**
-    private let highWaterMark: Int
-    
-    /// **Low water mark - aggressively release objects to this level under pressure**
-    private let lowWaterMark: Int
-    
-    /// Available objects ready for reuse
+    /// Available objects ready for reuse.
     private var available: [T] = []
     
-    /// Statistics tracking
-    private var stats = PoolStatistics()
+    /// Statistics tracking (if enabled).
+    private var stats: MutablePoolStatistics
     
-    /// **Memory pressure handler registration ID**
-    private var memoryHandlerID: UUID?
+    // MARK: - Initialization
     
     /// Creates a new object pool.
     ///
     /// - Parameters:
-    ///   - maxSize: Maximum number of objects to keep pooled
-    ///   - highWaterMark: Pool size threshold to start releasing objects (default: 80% of maxSize)
-    ///   - lowWaterMark: Target pool size under memory pressure (default: 20% of maxSize)
-    ///   - factory: Closure to create new instances when pool is empty
-    ///   - reset: Closure to reset objects before returning to pool
+    ///   - configuration: Pool configuration settings
+    ///   - factory: Closure to create new instances when needed
+    ///   - reset: Closure to reset objects before reuse (default: no-op)
     public init(
-        maxSize: Int = 100,
-        highWaterMark: Int? = nil,
-        lowWaterMark: Int? = nil,
+        configuration: ObjectPoolConfiguration = .default,
         factory: @escaping @Sendable () -> T,
-        reset: @escaping @Sendable (T) async -> Void = { _ in }
+        reset: @escaping @Sendable (T) -> Void = { _ in }
     ) {
-        self.maxSize = maxSize
-        self.highWaterMark = highWaterMark ?? Int(Double(maxSize) * 0.8)
-        self.lowWaterMark = lowWaterMark ?? Int(Double(maxSize) * 0.2)
+        self.configuration = configuration
         self.factory = factory
         self.reset = reset
+        self.stats = MutablePoolStatistics()
         
-        // **Register for memory pressure handling**
-        Task {
-            await self.registerMemoryPressureHandler()
+        // Reserve capacity for better performance
+        self.available.reserveCapacity(configuration.maxSize)
+    }
+    
+    // MARK: - Public Methods
+    
+    /// Acquires an object from the pool.
+    ///
+    /// If an object is available in the pool, it will be reset and returned.
+    /// Otherwise, a new object is created using the factory closure.
+    ///
+    /// - Returns: An object ready for use
+    public func acquire() -> T {
+        let object: T
+        let wasHit: Bool
+        
+        if let pooled = available.popLast() {
+            // Reuse from pool
+            reset(pooled)
+            object = pooled
+            wasHit = true
+        } else {
+            // Create new
+            object = factory()
+            wasHit = false
+        }
+        
+        if configuration.trackStatistics {
+            stats.recordAcquisition(wasHit: wasHit)
+        }
+        
+        return object
+    }
+    
+    /// Releases an object back to the pool.
+    ///
+    /// The object will be stored for reuse if the pool hasn't reached
+    /// its maximum size. Otherwise, it will be discarded.
+    ///
+    /// - Parameter object: The object to return to the pool
+    public func release(_ object: T) {
+        let wasEvicted: Bool
+        
+        if available.count < configuration.maxSize {
+            // Return to pool
+            available.append(object)
+            wasEvicted = false
+        } else {
+            // Pool is full, discard
+            wasEvicted = true
+        }
+        
+        if configuration.trackStatistics {
+            stats.recordRelease(wasEvicted: wasEvicted)
         }
     }
     
-    deinit {
-        // **Cleanup memory pressure handler**
-        if let handlerID = memoryHandlerID {
-            Task {
-                await MemoryPressureDetector.shared.unregister(id: handlerID)
+    /// Gets current pool statistics.
+    ///
+    /// - Returns: A snapshot of current statistics, or empty if tracking is disabled
+    public func statistics() -> ObjectPoolStatistics {
+        guard configuration.trackStatistics else { return .empty }
+        
+        // Update current counts
+        stats.currentlyAvailable = available.count
+        
+        return stats.snapshot()
+    }
+    
+    /// Clears all objects from the pool.
+    ///
+    /// This removes all available objects, allowing them to be deallocated.
+    /// Statistics are preserved.
+    public func clear() {
+        available.removeAll(keepingCapacity: true)
+        if configuration.trackStatistics {
+            stats.currentlyAvailable = 0
+        }
+    }
+    
+    /// Pre-allocates objects up to the specified count.
+    ///
+    /// This can be useful to warm up the pool before heavy usage.
+    ///
+    /// - Parameter count: Number of objects to pre-allocate (capped by maxSize)
+    public func preallocate(count: Int) {
+        let targetCount = min(count, configuration.maxSize)
+        let toAllocate = targetCount - available.count
+        
+        guard toAllocate > 0 else { return }
+        
+        for _ in 0..<toAllocate {
+            available.append(factory())
+            if configuration.trackStatistics {
+                stats.totalAllocated += 1
+                stats.currentlyAvailable += 1
             }
         }
     }
     
-    /// Acquires an object from the pool or creates a new one.
+    // MARK: - Water Mark Support
+    
+    /// Shrinks the pool to the specified size.
     ///
-    /// - Returns: An object ready for use
-    public func acquire() -> T {
-        stats.acquisitions += 1
-        
-        if let object = available.popLast() {
-            stats.hits += 1
-            return object
-        } else {
-            stats.misses += 1
-            stats.allocations += 1
-            return factory()
-        }
-    }
-    
-    /// Returns an object to the pool for reuse.
+    /// This is exposed for manual pool management.
     ///
-    /// - Parameter object: The object to return to the pool
-    public func release(_ object: T) async {
-        stats.releases += 1
-        
-        // Reset the object for reuse
-        await reset(object)
-        
-        // Only keep if under size limit
-        if available.count < maxSize {
-            available.append(object)
-        } else {
-            stats.evictions += 1
-            // Let it be deallocated
-        }
-    }
-    
-    /// Pre-warms the pool by creating objects up to the specified count.
-    ///
-    /// - Parameter count: Number of objects to pre-create (capped at maxSize)
-    public func prewarm(count: Int) async {
-        let targetCount = min(count, maxSize)
-        let toCreate = max(0, targetCount - available.count)
-        
-        for _ in 0..<toCreate {
-            let object = factory()
-            await reset(object)
-            available.append(object)
-            stats.allocations += 1
-        }
-    }
-    
-    /// Clears all objects from the pool.
-    public func clear() {
-        available.removeAll()
-    }
-    
-    /// Gets current pool statistics.
-    public var statistics: PoolStatistics {
-        stats
-    }
-    
-    /// Current number of available objects in the pool.
-    public var availableCount: Int {
-        available.count
-    }
-    
-    // MARK: - Memory Pressure Handling
-    
-    /// **Registers this pool with the memory pressure handler.**
-    private func registerMemoryPressureHandler() async {
-        memoryHandlerID = await MemoryPressureDetector.shared.register { [weak self] in
-            await self?.handleMemoryPressure()
-        }
-    }
-    
-    /// **Handles memory pressure by shrinking the pool.**
-    private func handleMemoryPressure() async {
-        let pressureLevel = await MemoryPressureDetector.shared.pressureLevel
-        
-        switch pressureLevel {
-        case .normal:
-            // Trim to high water mark if exceeded
-            await trimToSize(highWaterMark)
-        case .warning:
-            // More aggressive trimming
-            let targetSize = (highWaterMark + lowWaterMark) / 2
-            await trimToSize(targetSize)
-        case .critical:
-            // Aggressive trimming to low water mark
-            await trimToSize(lowWaterMark)
-        }
-        
-        stats.memoryPressureEvents += 1
-    }
-    
-    /// **Trims the pool to the specified size.**
-    private func trimToSize(_ targetSize: Int) async {
+    /// - Parameter targetSize: Target number of objects to keep
+    public func shrink(to targetSize: Int) {
         guard available.count > targetSize else { return }
         
         let toRemove = available.count - targetSize
         available.removeLast(toRemove)
         
-        stats.evictions += toRemove
-        stats.memoryPressureEvictions += toRemove
-    }
-    
-    /// **Manually triggers memory pressure handling for testing.**
-    public func simulateMemoryPressure(level: MemoryPressureLevel) async {
-        switch level {
-        case .normal:
-            await trimToSize(highWaterMark)
-        case .warning:
-            await trimToSize((highWaterMark + lowWaterMark) / 2)
-        case .critical:
-            await trimToSize(lowWaterMark)
+        if configuration.trackStatistics {
+            stats.evictions += toRemove
+            stats.currentlyAvailable = available.count
         }
     }
 }
 
-/// Statistics for monitoring pool performance.
-public struct PoolStatistics: Sendable {
-    /// Total number of acquisitions
-    public var acquisitions: Int = 0
-    
-    /// Number of acquisitions served from pool
-    public var hits: Int = 0
-    
-    /// Number of acquisitions that required allocation
-    public var misses: Int = 0
-    
-    /// Total number of releases back to pool
-    public var releases: Int = 0
-    
-    /// Total number of new allocations
-    public var allocations: Int = 0
-    
-    /// Number of objects evicted due to size limits
-    public var evictions: Int = 0
-    
-    /// **Number of memory pressure events handled**
-    public var memoryPressureEvents: Int = 0
-    
-    /// **Number of objects evicted due to memory pressure**
-    public var memoryPressureEvictions: Int = 0
-    
-    /// Hit rate as a percentage (0-100)
-    public var hitRate: Double {
-        guard acquisitions > 0 else { return 0 }
-        return Double(hits) / Double(acquisitions) * 100
-    }
-    
-    /// Efficiency score (higher is better)
-    public var efficiency: Double {
-        guard allocations > 0 else { return 0 }
-        return Double(acquisitions) / Double(allocations)
-    }
-    
-    /// **Memory pressure response rate (evictions per event)**
-    public var memoryPressureResponseRate: Double {
-        guard memoryPressureEvents > 0 else { return 0 }
-        return Double(memoryPressureEvictions) / Double(memoryPressureEvents)
-    }
-}
+// MARK: - Convenience Initializers
 
-// MARK: - Specialized Pools
-
-// Note: Context pooling has been removed for performance reasons.
-// Direct allocation is faster for lightweight objects like CommandContext.
-
-/// Pool for reusable buffer objects.
-public actor BufferPool<T: Sendable> {
-    internal let pool: ObjectPool<Buffer<T>>
-    
-    /// A thread-safe buffer implementation using internal synchronization.
+public extension ObjectPool {
+    /// Creates a pool with just a factory closure.
     ///
-    /// ## Design Decision: @unchecked Sendable for Performance-Critical Pooled Buffers
+    /// Use this when objects don't need resetting between uses.
     ///
-    /// This class uses `@unchecked Sendable` for the following reasons:
-    ///
-    /// 1. **Mutable State with Lock Protection**: The internal `storage: Storage` contains
-    ///    mutable arrays that require synchronization. Swift cannot verify thread safety of
-    ///    lock-protected mutable state automatically.
-    ///
-    /// 2. **ObjectPool Requirement**: ObjectPool requires reference types (AnyObject), preventing
-    ///    use of value types with automatic Sendable conformance. This necessitates a class
-    ///    with manual synchronization.
-    ///
-    /// 3. **Performance Critical Path**: Buffers are used in hot paths where actor overhead
-    ///    would be prohibitive. The os_unfair_lock provides minimal synchronization overhead
-    ///    while maintaining thread safety.
-    ///
-    /// 4. **Copy-on-Write Optimization**: The internal Storage class implements CoW semantics
-    ///    to minimize allocations during concurrent access. This pattern requires manual
-    ///    memory management that Swift cannot verify.
-    ///
-    /// 5. **Safe Implementation**: All public methods use withLock { } to ensure proper
-    ///    synchronization boundaries. The lock guarantees mutual exclusion for all state
-    ///    mutations.
-    ///
-    /// This is a permanent design choice for high-performance concurrent buffers. The
-    /// implementation provides thread safety through careful lock usage while maintaining
-    /// the performance characteristics required for pooling.
-    ///
-    /// Thread Safety: This type is thread-safe because all access to mutable state (storage)
-    /// is protected by an os_unfair_lock. All public methods acquire the lock before
-    /// accessing or modifying the internal storage.
-    /// Invariant: The lock must be held whenever accessing or modifying the storage property.
-    /// Copy-on-write semantics ensure thread-safe sharing of underlying data.
-    public final class Buffer<Element: Sendable>: @unchecked Sendable {
-        /// Internal storage that implements copy-on-write semantics
-        private final class Storage {
-            var data: [Element]
-            let capacity: Int
-            
-            init(capacity: Int) {
-                self.capacity = capacity
-                self.data = []
-                self.data.reserveCapacity(capacity)
-            }
-            
-            func copy() -> Storage {
-                let newStorage = Storage(capacity: capacity)
-                newStorage.data = data
-                return newStorage
-            }
-        }
-        
-        private var storage: Storage
-        private let lock = NSLock()
-        
-        /// The capacity that was reserved for this buffer
-        public var capacity: Int {
-            lock.withLock { storage.capacity }
-        }
-        
-        /// The current data in the buffer (returns a copy for safety)
-        public var data: [Element] {
-            get { lock.withLock { storage.data } }
-            set {
-                lock.withLock {
-                    // Ensure unique reference before mutation (CoW)
-                    if !isKnownUniquelyReferenced(&storage) {
-                        storage = storage.copy()
-                    }
-                    storage.data = newValue
-                }
-            }
-        }
-        
-        /// The number of elements in the buffer
-        public var count: Int {
-            lock.withLock { storage.data.count }
-        }
-        
-        /// Whether the buffer is empty
-        public var isEmpty: Bool {
-            lock.withLock { storage.data.isEmpty }
-        }
-        
-        /// Creates a new buffer with the specified capacity
-        init(capacity: Int) {
-            self.storage = Storage(capacity: capacity)
-        }
-        
-        /// Appends an element to the buffer
-        public func append(_ element: Element) {
-            lock.withLock {
-                // Ensure unique reference before mutation (CoW)
-                if !isKnownUniquelyReferenced(&storage) {
-                    storage = storage.copy()
-                }
-                storage.data.append(element)
-            }
-        }
-        
-        /// Appends a sequence of elements to the buffer
-        public func append<S: Sequence>(contentsOf elements: S) where S.Element == Element {
-            lock.withLock {
-                // Ensure unique reference before mutation (CoW)
-                if !isKnownUniquelyReferenced(&storage) {
-                    storage = storage.copy()
-                }
-                storage.data.append(contentsOf: elements)
-            }
-        }
-        
-        /// Removes all elements from the buffer while preserving capacity
-        func reset() {
-            lock.withLock {
-                // Ensure unique reference before mutation (CoW)
-                if !isKnownUniquelyReferenced(&storage) {
-                    storage = storage.copy()
-                }
-                storage.data.removeAll(keepingCapacity: true)
-            }
-        }
-        
-        /// Provides synchronized access to the buffer data
-        /// - Parameter body: A closure that receives the data array
-        /// - Returns: The result of the closure
-        public func withData<R>(_ body: ([Element]) throws -> R) rethrows -> R {
-            try lock.withLock {
-                try body(storage.data)
-            }
-        }
-        
-        /// Provides synchronized mutable access to the buffer data
-        /// - Parameter body: A closure that can mutate the data array
-        /// - Returns: The result of the closure
-        public func withMutableData<R>(_ body: (inout [Element]) throws -> R) rethrows -> R {
-            try lock.withLock {
-                // Ensure unique reference before mutation (CoW)
-                if !isKnownUniquelyReferenced(&storage) {
-                    storage = storage.copy()
-                }
-                return try body(&storage.data)
-            }
-        }
+    /// - Parameter factory: Closure to create new instances
+    init(factory: @escaping @Sendable () -> T) {
+        self.init(configuration: .default, factory: factory)
     }
     
-    public init(maxSize: Int = 50, bufferCapacity: Int = 1024) {
-        self.pool = ObjectPool(
-            maxSize: maxSize,
-            factory: { Buffer(capacity: bufferCapacity) },
-            reset: { buffer in
-                buffer.reset()
-            }
+    /// Creates a pool with a specific size limit.
+    ///
+    /// - Parameters:
+    ///   - maxSize: Maximum number of objects to pool
+    ///   - factory: Closure to create new instances
+    init(maxSize: Int, factory: @escaping @Sendable () -> T) {
+        self.init(
+            configuration: ObjectPoolConfiguration(maxSize: maxSize),
+            factory: factory
         )
-    }
-    
-    public func acquire() async -> Buffer<T> {
-        await pool.acquire()
-    }
-    
-    public func release(_ buffer: Buffer<T>) async {
-        await pool.release(buffer)
-    }
-}
-
-// MARK: - Global Pool Manager
-
-/// Manages a collection of object pools for the pipeline system.
-public actor PoolManager {
-    /// Shared instance for global access
-    public static let shared = PoolManager()
-    
-    // Context pooling removed for performance - direct allocation is faster
-    
-    /// Pool for data buffers
-    public let dataBufferPool = BufferPool<UInt8>(maxSize: 100, bufferCapacity: 4096)
-    
-    /// Pool for string buffers
-    public let stringBufferPool = BufferPool<Character>(maxSize: 50, bufferCapacity: 1024)
-    
-    private init() {}
-    
-    /// Gets aggregated statistics from all pools.
-    public func aggregatedStatistics() async -> AggregatedPoolStatistics {
-        // Context pool removed - no statistics to report
-        return AggregatedPoolStatistics(
-            pools: []
-        )
-    }
-    
-    /// Pre-warms all pools for better initial performance.
-    public func prewarmAll() async {
-        // Context pool removed - no prewarm needed
-        
-        // Prewarm buffer pools
-        await dataBufferPool.pool.prewarm(count: 10)
-        await stringBufferPool.pool.prewarm(count: 5)
-    }
-}
-
-/// Aggregated statistics from multiple pools.
-public struct AggregatedPoolStatistics: Sendable {
-    public let pools: [(name: String, stats: PoolStatistics)]
-    
-    public var totalAcquisitions: Int {
-        pools.reduce(0) { $0 + $1.stats.acquisitions }
-    }
-    
-    public var totalAllocations: Int {
-        pools.reduce(0) { $0 + $1.stats.allocations }
-    }
-    
-    public var overallHitRate: Double {
-        let totalHits = pools.reduce(0) { $0 + $1.stats.hits }
-        let totalAcquisitions = self.totalAcquisitions
-        guard totalAcquisitions > 0 else { return 0 }
-        return Double(totalHits) / Double(totalAcquisitions) * 100
-    }
-    
-    public var overallEfficiency: Double {
-        guard totalAllocations > 0 else { return 0 }
-        return Double(totalAcquisitions) / Double(totalAllocations)
     }
 }

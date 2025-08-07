@@ -1,6 +1,6 @@
 import Foundation
 import PipelineKit
-import PipelineKitMiddleware
+import PipelineKitObservability
 public actor MetricCollector {
     /// Collection configuration.
     public struct Configuration: Sendable {

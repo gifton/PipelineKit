@@ -1,5 +1,6 @@
 import XCTest
 @testable import PipelineKit
+import PipelineKitTestSupport
 @testable import StressTesting
 
 final class BasicStressTestTests: XCTestCase {

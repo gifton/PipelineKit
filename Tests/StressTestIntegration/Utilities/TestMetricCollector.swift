@@ -1,7 +1,8 @@
 import Foundation
 import XCTest
 @testable import PipelineKit
-@testable import StressTestSupport
+import PipelineKitTestSupport
+@testable import StressTesting
 
 // Placeholder types to prevent compilation errors
 public struct CollectionStatistics {
@@ -97,7 +98,7 @@ public actor TestMetricCollector {
     }
     
     /// Query method that returns a simple value
-    public func query(_ query: StressTestSupport.MetricQuery) async -> Double {
+    public func query(_ query: StressTesting.MetricQuery) async -> Double {
         let matchingMetrics = recordedMetrics.filter { metric in
             query.matches(name: metric.name)
         }

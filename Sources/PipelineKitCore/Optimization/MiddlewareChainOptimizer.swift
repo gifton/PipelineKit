@@ -196,10 +196,15 @@ public actor MiddlewareChainOptimizer {
             case .authentication, .validation:
                 canThrow = true
                 contextReaders += 1
+            case .resilience:
+                canThrow = true
+                contextModifiers += 1
             case .preProcessing, .processing:
                 contextModifiers += 1
                 canThrow = true
             case .postProcessing, .errorHandling:
+                contextReaders += 1
+            case .observability:
                 contextReaders += 1
             case .custom:
                 // Conservative assumption

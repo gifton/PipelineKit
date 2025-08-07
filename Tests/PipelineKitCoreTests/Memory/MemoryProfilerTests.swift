@@ -1,5 +1,6 @@
 import XCTest
 @testable import PipelineKit
+import PipelineKitTestSupport
 
 final class MemoryProfilerTests: XCTestCase {
     private var profiler: MemoryProfiler!

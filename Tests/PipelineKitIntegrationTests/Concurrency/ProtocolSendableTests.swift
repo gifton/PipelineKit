@@ -113,20 +113,20 @@ final class ProtocolSendableTests: XCTestCase {
             for i in 0..<50 {
                 group.addTask {
                     let data = Data("value\(i)".utf8)
-                    await cache.set(key: "key\(i)", value: data, expiration: nil)
+                    await cache.set(key: "key\(i)", value: data)
                 }
             }
             
             // Readers
             for i in 0..<50 {
                 group.addTask {
-                    _ = await cache.get(key: "key\(i)")
+                    _ = await cache.get(key: "key\(i)", type: Data.self)
                 }
             }
         }
         
         // Verify some data was written
-        let testData = await cache.get(key: "key0")
+        let testData = await cache.get(key: "key0", type: Data.self)
         XCTAssertNotNil(testData)
     }
     
@@ -186,6 +186,10 @@ private final class TestProfiler: MiddlewareProfiler, @unchecked Sendable {
         var totalDuration: TimeInterval = 0
         var minDuration: TimeInterval = .infinity
         var maxDuration: TimeInterval = 0
+        
+        var isEmpty: Bool {
+            count == 0
+        }
     }
     
     func recordExecution(

@@ -1,5 +1,6 @@
 import XCTest
 @testable import PipelineKit
+import PipelineKitTestSupport
 
 final class CommandBusTests: XCTestCase {
     private struct AddNumbersCommand: Command {

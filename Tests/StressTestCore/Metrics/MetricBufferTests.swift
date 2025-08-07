@@ -1,5 +1,6 @@
 import XCTest
 @testable import PipelineKit
+import PipelineKitTestSupport
 @testable import StressTesting
 
 // NOTE: These tests require PipelineKitStressTest types which have been
@@ -12,10 +13,7 @@ final class MetricBufferTests: XCTestCase {
 }
 
 /*
-import XCTest
 import Foundation
-@testable import PipelineKit
-@testable import StressTesting
 
 /// Tests for MetricBuffer lock-free ring buffer implementation.
 final class MetricBufferTests: XCTestCase {

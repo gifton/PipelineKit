@@ -131,7 +131,7 @@ final class PipelineExecutionFailureTests: XCTestCase {
     }
     
     func testMiddlewareInfiniteLoop() async throws {
-        let pipeline = StandardPipeline(handler: PipelineTestHandler(), maxDepth: 5)
+        let pipeline = StandardPipeline(handler: PipelineTestHandler(), maxConcurrency: 5)
         
         // Add more middleware than max depth allows
         for i in 0..<10 {
@@ -365,7 +365,7 @@ struct ContextCorruptingMiddleware: Middleware {
         next: @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
         // Simulate context corruption by setting an unexpected value
-        context.set("corrupted", for: TestCustomValueKey.self)
+        await context.set("corrupted", for: "test_custom_value")
         throw TestError.middlewareFailed
     }
 }
@@ -384,8 +384,10 @@ struct ContextCapturingMiddleware: Middleware {
 }
 
 // Context keys for racing test
-private struct RacingKey1: ContextKey { typealias Value = String }
-private struct RacingKey2: ContextKey { typealias Value = String }
+private enum RacingKeys {
+    static let key1 = "racing_key_1"
+    static let key2 = "racing_key_2"
+}
 
 struct ContextRacingMiddleware: Middleware {
     func execute<T: Command>(
@@ -394,10 +396,10 @@ struct ContextRacingMiddleware: Middleware {
         next: @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
         // Simulate concurrent context access
-        async let set1 = context.set("value1", for: RacingKey1.self)
-        async let set2 = context.set("value2", for: RacingKey2.self)
-        async let get1 = context.get(RacingKey1.self)
-        async let get2 = context.get(RacingKey2.self)
+        async let set1: Void = context.set("value1", for: RacingKeys.key1)
+        async let set2: Void = context.set("value2", for: RacingKeys.key2)
+        async let get1: String? = context.get(String.self, for: RacingKeys.key1)
+        async let get2: String? = context.get(String.self, for: RacingKeys.key2)
         
         await set1
         await set2
@@ -408,8 +410,8 @@ struct ContextRacingMiddleware: Middleware {
     }
 }
 
-struct LargeDataKey: ContextKey {
-    typealias Value = [String]
+private enum LargeDataKeys {
+    static let largeData = "large_data_key"
 }
 
 struct MemoryHogMiddleware: Middleware {
@@ -420,7 +422,7 @@ struct MemoryHogMiddleware: Middleware {
     ) async throws -> T.Result {
         // Allocate large amount of memory
         let largeData = Array(repeating: "memory", count: 1_000_000)
-        context.set(largeData, for: LargeDataKey.self)
+        await context.set(largeData, for: LargeDataKeys.largeData)
         return try await next(command, context)
     }
 }

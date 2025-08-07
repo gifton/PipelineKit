@@ -1,14 +1,15 @@
 import XCTest
 @testable import PipelineKit
+import PipelineKitTestSupport
 
 final class MinimalTest: XCTestCase {
-    func testCommandContextIsNotActor() {
+    func testCommandContextIsNotActor() async {
         // This test verifies CommandContext is no longer an actor
         let context = CommandContext.test()
         
-        // These should compile without await
-        context.set("value", for: StringKey.self)
-        let value = context.get(StringKey.self)
+        // These now require await for async storage access
+        await context.set("value", for: "string_key")
+        let value: String? = await context.get(String.self, for: "string_key")
         XCTAssertEqual(value, "value")
         
         // Verify metadata access
@@ -40,7 +41,7 @@ final class MinimalTest: XCTestCase {
                 next: @Sendable (T, CommandContext) async throws -> T.Result
             ) async throws -> T.Result {
                 // Just a side effect, don't call next
-                context.set(id, for: StringKey.self)
+                await context.set(id, for: "string_key")
                 throw ParallelExecutionError.middlewareShouldNotCallNext
             }
         }
@@ -63,10 +64,9 @@ final class MinimalTest: XCTestCase {
         )
         
         XCTAssertEqual(result, "test")
-        XCTAssertNotNil(context.get(StringKey.self))
+        let storedValue: String? = await context.get(String.self, for: "string_key")
+        XCTAssertNotNil(storedValue)
     }
 }
 
-struct StringKey: ContextKey {
-    typealias Value = String
-}
+// StringKey no longer needed - using string keys directly

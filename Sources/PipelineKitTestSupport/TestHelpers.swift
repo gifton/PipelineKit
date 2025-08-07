@@ -121,22 +121,7 @@ public struct TestCommandMetadata: CommandMetadata, @unchecked Sendable {
 // MARK: - CommandContext Test Extensions
 
 // MARK: - Test Context Keys
-
-public struct TestCustomValueKey: ContextKey {
-    public typealias Value = String
-}
-
-public struct TestNumberKey: ContextKey {
-    public typealias Value = Int
-}
-
-public struct TestMetricsKey: ContextKey {
-    public typealias Value = MockMetricsCollector
-}
-
-public struct TestEncryptionServiceKey: ContextKey {
-    public typealias Value = MockEncryptionService
-}
+// Context keys have been replaced with string keys in the new API
 
 public extension CommandContext {
     static func test(
@@ -158,17 +143,6 @@ public extension CommandContext {
         return context
     }
     
-    static func testWithMetrics() -> CommandContext {
-        let context = test()
-        context.set(MockMetricsCollector(), for: TestMetricsKey.self)
-        return context
-    }
-    
-    static func testWithEncryption() -> CommandContext {
-        let context = test()
-        context.set(MockEncryptionService(), for: TestEncryptionServiceKey.self)
-        return context
-    }
 }
 
 // MARK: - Test Commands
@@ -233,8 +207,7 @@ public struct AsyncTestCommand: Command {
 ///    commands concurrently or access properties from multiple threads.
 ///
 /// This is a permanent solution for simple test scenarios. For concurrent tests,
-/// use ThreadSafeTestMiddleware, ThreadSafeHistoryMiddleware, or ActorTestMiddleware
-/// which provide proper thread safety.
+/// use ActorTestMiddleware which provides proper thread safety through actor isolation.
 public final class TestMiddleware: Middleware, @unchecked Sendable {
     public var executionCount = 0
     public var lastCommand: (any Command)?
@@ -316,27 +289,6 @@ public final class TestFailingMiddleware: Middleware, @unchecked Sendable {
 /// 5. **Context Safety**: CommandContext handles thread safety internally,
 ///    so setting values through context.set() is always safe.
 ///
-/// This is a permanent solution for test infrastructure that needs to work
-/// with various context value types regardless of their Sendable status.
-public final class ModifyingMiddleware<Key: ContextKey>: Middleware, @unchecked Sendable {
-    public let keyType: Key.Type
-    public let value: Key.Value
-    public let priority: ExecutionPriority = .custom
-    
-    public init(key: Key.Type, value: Key.Value) {
-        self.keyType = key
-        self.value = value
-    }
-    
-    public func execute<T: Command>(
-        _ command: T,
-        context: CommandContext,
-        next: @Sendable (T, CommandContext) async throws -> T.Result
-    ) async throws -> T.Result {
-        context.set(value, for: keyType)
-        return try await next(command, context)
-    }
-}
 
 
 // MARK: - Test Utilities

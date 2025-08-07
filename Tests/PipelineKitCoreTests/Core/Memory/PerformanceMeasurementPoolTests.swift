@@ -1,6 +1,6 @@
 import XCTest
 @testable import PipelineKit
-@testable import PipelineKitMiddleware
+import PipelineKitTestSupport
 
 final class PerformanceMeasurementPoolTests: XCTestCase {
     func testBasicCreateMeasurement() async {

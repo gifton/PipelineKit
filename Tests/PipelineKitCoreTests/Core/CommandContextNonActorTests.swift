@@ -1,29 +1,27 @@
 import XCTest
 @testable import PipelineKit
+import PipelineKitTestSupport
 
 final class CommandContextNonActorTests: XCTestCase {
-    private struct TestKey: ContextKey {
-        typealias Value = String
+    private enum TestKeys {
+        static let testKey = "test_key"
+        static let numberKey = "number_key"
     }
     
-    private struct NumberKey: ContextKey {
-        typealias Value = Int
-    }
-    
-    func testContextIsNoLongerActor() {
-        // This test verifies that CommandContext methods don't require await
+    func testContextIsNoLongerActor() async {
+        // This test verifies that CommandContext uses async storage
         let metadata = TestCommandMetadata(
             userId: "test-user",
             correlationId: "test-123"
         )
         let context = CommandContext(metadata: metadata)
         
-        // These operations should not require await
-        context.set("test-value", for: TestKey.self)
-        let value = context.get(TestKey.self)
+        // These operations now require await for async storage
+        await context.set("test-value", for: TestKeys.testKey)
+        let value: String? = await context.get(String.self, for: TestKeys.testKey)
         XCTAssertEqual(value, "test-value")
         
-        // Test metadata access
+        // Test metadata access (still synchronous)
         let retrievedMetadata = context.commandMetadata
         XCTAssertEqual(retrievedMetadata.userId, "test-user")
     }
@@ -36,23 +34,28 @@ final class CommandContextNonActorTests: XCTestCase {
             // Multiple writers
             for i in 0..<iterations {
                 group.addTask {
-                    context.set("value-\(i)", for: TestKey.self)
-                    context.set(i, for: NumberKey.self)
+                    Task {
+                        await context.set("value-\(i)", for: TestKeys.testKey)
+                        await context.set(i, for: TestKeys.numberKey)
+                    }
                 }
             }
             
             // Multiple readers
             for _ in 0..<iterations {
                 group.addTask {
-                    _ = context.get(TestKey.self)
-                    _ = context.get(NumberKey.self)
+                    Task {
+                        _ = await context.get(String.self, for: TestKeys.testKey)
+                        _ = await context.get(Int.self, for: TestKeys.numberKey)
+                    }
                 }
             }
         }
         
         // Verify context still works after concurrent access
-        context.set("final", for: TestKey.self)
-        XCTAssertEqual(context.get(TestKey.self), "final")
+        await context.set("final", for: TestKeys.testKey)
+        let finalValue: String? = await context.get(String.self, for: TestKeys.testKey)
+        XCTAssertEqual(finalValue, "final")
     }
     
     func testMiddlewareWithoutAwaitOnContext() async throws {
@@ -64,9 +67,9 @@ final class CommandContextNonActorTests: XCTestCase {
                 context: CommandContext,
                 next: @Sendable (T, CommandContext) async throws -> T.Result
             ) async throws -> T.Result {
-                // No await needed for context operations
-                context.set("middleware-value", for: TestKey.self)
-                let value = context.get(TestKey.self)
+                // Now await is needed for context operations
+                await context.set("middleware-value", for: TestKeys.testKey)
+                let value: String? = await context.get(String.self, for: TestKeys.testKey)
                 XCTAssertEqual(value, "middleware-value")
                 
                 return try await next(command, context)
@@ -84,7 +87,8 @@ final class CommandContextNonActorTests: XCTestCase {
         XCTAssertEqual(result, "test")
         
         // Verify context retained the value
-        XCTAssertEqual(context.get(TestKey.self), "middleware-value")
+        let retainedValue: String? = await context.get(String.self, for: TestKeys.testKey)
+        XCTAssertEqual(retainedValue, "middleware-value")
     }
     
     func testParallelMiddlewareExecution() async throws {
@@ -99,7 +103,7 @@ final class CommandContextNonActorTests: XCTestCase {
             ) async throws -> T.Result {
                 // Simulate some work
                 try await Task.sleep(nanoseconds: 10_000_000) // 10ms
-                context.set(id, for: TestKey.self)
+                await context.set(id, for: TestKeys.testKey)
                 
                 // For parallel middleware, we don't call next
                 throw ParallelExecutionError.middlewareShouldNotCallNext
@@ -127,7 +131,8 @@ final class CommandContextNonActorTests: XCTestCase {
         XCTAssertEqual(result, "test")
         
         // One of the middleware should have set a value
-        XCTAssertNotNil(context.get(TestKey.self))
+        let storedValue: String? = await context.get(String.self, for: TestKeys.testKey)
+        XCTAssertNotNil(storedValue)
     }
 }
 

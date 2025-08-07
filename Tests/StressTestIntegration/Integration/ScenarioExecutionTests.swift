@@ -1,7 +1,8 @@
 import XCTest
 import Foundation
 @testable import PipelineKit
-@testable import StressTestSupport
+import PipelineKitTestSupport
+@testable import StressTesting
 
 /// Tests for executing complete stress test scenarios
 final class ScenarioExecutionTests: XCTestCase {

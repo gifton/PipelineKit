@@ -1,5 +1,6 @@
 import XCTest
 @testable import PipelineKit
+import PipelineKitTestSupport
 
 final class ValidationTests: XCTestCase {
     // Test command with validation

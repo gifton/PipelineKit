@@ -1,4 +1,4 @@
-import PipelineKitMiddleware
+import PipelineKitObservability
 import Foundation
 import PipelineKit
 

@@ -1,5 +1,6 @@
 import XCTest
 @testable import PipelineKit
+import PipelineKitTestSupport
 
 // DISABLED: AsyncSemaphore tests are temporarily disabled due to Swift compiler issues
 // with actor method visibility in test targets. The implementation is complete but

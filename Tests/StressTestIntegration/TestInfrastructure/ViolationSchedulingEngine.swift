@@ -1,6 +1,7 @@
 import Foundation
 @testable import PipelineKit
-@testable import StressTestSupport
+import PipelineKitTestSupport
+@testable import StressTesting
 
 /// Thread-safe engine for scheduling and managing safety violations in tests.
 ///

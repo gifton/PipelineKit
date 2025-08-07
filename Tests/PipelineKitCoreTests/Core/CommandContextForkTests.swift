@@ -5,54 +5,53 @@ import PipelineKitTestSupport
 final class CommandContextForkTests: XCTestCase {
     // MARK: - Test Keys
     
-    private struct TestKey: ContextKey {
-        typealias Value = String
-    }
-    
-    private struct CounterKey: ContextKey {
-        typealias Value = Int
-    }
-    
-    @available(*, deprecated, message: "Test-only key with non-Sendable value type")
-    private struct DataKey: ContextKey {
-        typealias Value = [String: Any]
+    private enum TestKeys {
+        static let testKey = "test_key"
+        static let counterKey = "counter_key"
+        static let dataKey = "data_key"
     }
     
     // MARK: - Fork Tests
     
-    func testContextForkCreatesIndependentCopy() {
+    func testContextForkCreatesIndependentCopy() async {
         // Given
         let original = CommandContext()
-        original.set("original", for: TestKey.self)
-        original.set(42, for: CounterKey.self)
+        await original.set("original", for: TestKeys.testKey)
+        await original.set(42, for: TestKeys.counterKey)
         
         // When
-        let forked = original.fork()
+        let forked = await original.fork()
         
         // Then - Forked has same values
-        XCTAssertEqual(forked.get(TestKey.self), "original")
-        XCTAssertEqual(forked.get(CounterKey.self), 42)
+        let forkedTest: String? = await forked.get(String.self, for: TestKeys.testKey)
+        let forkedCounter: Int? = await forked.get(Int.self, for: TestKeys.counterKey)
+        XCTAssertEqual(forkedTest, "original")
+        XCTAssertEqual(forkedCounter, 42)
         
         // When - Modify forked
-        forked.set("forked", for: TestKey.self)
-        forked.set(99, for: CounterKey.self)
+        await forked.set("forked", for: TestKeys.testKey)
+        await forked.set(99, for: TestKeys.counterKey)
         
         // Then - Original unchanged
-        XCTAssertEqual(original.get(TestKey.self), "original")
-        XCTAssertEqual(original.get(CounterKey.self), 42)
+        let originalTest: String? = await original.get(String.self, for: TestKeys.testKey)
+        let originalCounter: Int? = await original.get(Int.self, for: TestKeys.counterKey)
+        XCTAssertEqual(originalTest, "original")
+        XCTAssertEqual(originalCounter, 42)
         
         // And - Forked has new values
-        XCTAssertEqual(forked.get(TestKey.self), "forked")
-        XCTAssertEqual(forked.get(CounterKey.self), 99)
+        let forkedTestNew: String? = await forked.get(String.self, for: TestKeys.testKey)
+        let forkedCounterNew: Int? = await forked.get(Int.self, for: TestKeys.counterKey)
+        XCTAssertEqual(forkedTestNew, "forked")
+        XCTAssertEqual(forkedCounterNew, 99)
     }
     
-    func testContextForkSharesMetadata() {
+    func testContextForkSharesMetadata() async {
         // Given
         let metadata = TestCommandMetadata(userId: "test-user")
         let original = CommandContext(metadata: metadata)
         
         // When
-        let forked = original.fork()
+        let forked = await original.fork()
         
         // Then - Both have same metadata
         XCTAssertEqual(original.commandMetadata.userId, "test-user")
@@ -62,39 +61,50 @@ final class CommandContextForkTests: XCTestCase {
     
     // MARK: - Merge Tests
     
-    func testContextMergeUpdatesValues() {
+    func testContextMergeUpdatesValues() async {
         // Given
         let context1 = CommandContext()
-        context1.set("value1", for: TestKey.self)
-        context1.set(10, for: CounterKey.self)
+        await context1.set("value1", for: TestKeys.testKey)
+        await context1.set(10, for: TestKeys.counterKey)
         
         let context2 = CommandContext()
-        context2.set("value2", for: TestKey.self)
-        context2.set(["key": "value"], for: DataKey.self)
+        await context2.set("value2", for: TestKeys.testKey)
+        // Store a Sendable dictionary instead of [String: Any]
+        struct SendableData: Sendable {
+            let data: [String: String]
+        }
+        await context2.set(SendableData(data: ["key": "value"]), for: TestKeys.dataKey)
         
         // When
-        context1.merge(from: context2)
+        await context1.merge(from: context2)
         
         // Then
-        XCTAssertEqual(context1.get(TestKey.self), "value2") // Overwritten
-        XCTAssertEqual(context1.get(CounterKey.self), 10) // Unchanged
-        XCTAssertEqual(context1.get(DataKey.self)?["key"] as? String, "value") // Added
+        let testValue: String? = await context1.get(String.self, for: TestKeys.testKey)
+        let counterValue: Int? = await context1.get(Int.self, for: TestKeys.counterKey)
+        let dataValue: SendableData? = await context1.get(SendableData.self, for: TestKeys.dataKey)
+        
+        XCTAssertEqual(testValue, "value2") // Overwritten
+        XCTAssertEqual(counterValue, 10) // Unchanged
+        XCTAssertEqual(dataValue?.data["key"], "value") // Added
     }
     
-    func testContextMergeDoesNotAffectSource() {
+    func testContextMergeDoesNotAffectSource() async {
         // Given
         let source = CommandContext()
-        source.set("source", for: TestKey.self)
+        await source.set("source", for: TestKeys.testKey)
         
         let target = CommandContext()
-        target.set("target", for: TestKey.self)
+        await target.set("target", for: TestKeys.testKey)
         
         // When
-        target.merge(from: source)
+        await target.merge(from: source)
         
         // Then
-        XCTAssertEqual(source.get(TestKey.self), "source") // Source unchanged
-        XCTAssertEqual(target.get(TestKey.self), "source") // Target updated
+        let sourceValue: String? = await source.get(String.self, for: TestKeys.testKey)
+        let targetValue: String? = await target.get(String.self, for: TestKeys.testKey)
+        
+        XCTAssertEqual(sourceValue, "source") // Source unchanged
+        XCTAssertEqual(targetValue, "source") // Target updated
     }
     
     // MARK: - Parallel Execution Tests
@@ -102,22 +112,25 @@ final class CommandContextForkTests: XCTestCase {
     func testParallelContextModificationWithForking() async {
         // Given
         let original = CommandContext()
-        original.set(0, for: CounterKey.self)
+        await original.set(0, for: TestKeys.counterKey)
         
         // When - Parallel modifications on forked contexts
         await withTaskGroup(of: Void.self) { group in
             for i in 1...100 {
                 group.addTask {
-                    let forked = original.fork()
-                    let current = forked.get(CounterKey.self) ?? 0
-                    forked.set(current + i, for: CounterKey.self)
-                    // Forked context is discarded - no race condition
+                    Task {
+                        let forked = await original.fork()
+                        let current: Int = await forked.get(Int.self, for: TestKeys.counterKey) ?? 0
+                        await forked.set(current + i, for: TestKeys.counterKey)
+                        // Forked context is discarded - no race condition
+                    }
                 }
             }
         }
         
         // Then - Original unchanged
-        XCTAssertEqual(original.get(CounterKey.self), 0)
+        let originalValue: Int? = await original.get(Int.self, for: TestKeys.counterKey)
+        XCTAssertEqual(originalValue, 0)
     }
     
     func testParallelMiddlewareWithContextForking() async throws {
@@ -146,26 +159,16 @@ final class CommandContextForkTests: XCTestCase {
         _ = try await pipeline.execute(command, context: context)
         
         // Then - All middleware changes are merged
-        XCTAssertEqual(context.get(MW1Key.self), "value1")
-        XCTAssertEqual(context.get(MW2Key.self), "value2")
-        XCTAssertEqual(context.get(MW3Key.self), "value3")
+        let mw1Value: String? = await context.get(String.self, for: "MW1")
+        let mw2Value: String? = await context.get(String.self, for: "MW2")
+        let mw3Value: String? = await context.get(String.self, for: "MW3")
+        XCTAssertEqual(mw1Value, "value1")
+        XCTAssertEqual(mw2Value, "value2")
+        XCTAssertEqual(mw3Value, "value3")
     }
 }
 
 // MARK: - Test Middleware
-
-// Context keys for each middleware
-private struct MW1Key: ContextKey {
-    typealias Value = String
-}
-
-private struct MW2Key: ContextKey {
-    typealias Value = String
-}
-
-private struct MW3Key: ContextKey {
-    typealias Value = String
-}
 
 private struct ContextModifyingMiddleware: Middleware {
     let key: String
@@ -178,16 +181,7 @@ private struct ContextModifyingMiddleware: Middleware {
         next: @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
         // Set value in context based on key name
-        switch key {
-        case "MW1":
-            context.set(value, for: MW1Key.self)
-        case "MW2":
-            context.set(value, for: MW2Key.self)
-        case "MW3":
-            context.set(value, for: MW3Key.self)
-        default:
-            fatalError("Unknown key: \(key)")
-        }
+        await context.set(value, for: key)
         
         // Don't call next for side effects
         throw ParallelExecutionError.middlewareShouldNotCallNext

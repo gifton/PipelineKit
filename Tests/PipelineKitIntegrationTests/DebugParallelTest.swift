@@ -3,10 +3,6 @@ import XCTest
 import PipelineKitTestSupport
 
 final class DebugParallelTest: XCTestCase {
-    // Define context key outside of function
-    private struct DebugTestKey: ContextKey {
-        typealias Value = String
-    }
     
     func testDebugParallelExecution() async throws {
         print("Starting test...")
@@ -24,8 +20,8 @@ final class DebugParallelTest: XCTestCase {
             ) async throws -> T.Result {
                 print("ContextSettingMiddleware executing for key: \(key)")
                 
-                // Set value in context
-                context.set("\(key):\(value)", for: DebugTestKey.self)
+                // Set value in context using async storage
+                await context.set("\(key):\(value)", for: "debug_\(key)")
                 
                 // Don't call next for side effects - throw the expected error
                 print("About to throw middlewareShouldNotCallNext for key: \(key)")

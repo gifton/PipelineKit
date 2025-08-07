@@ -1,5 +1,6 @@
 import Foundation
 import PipelineKitCore
+import PipelineKitResilience
 #if canImport(os)
 import os.log
 #endif
@@ -74,7 +75,7 @@ public actor SecureCommandDispatcher {
         
         // Check circuit breaker first
         if let breaker = circuitBreaker {
-            guard await breaker.shouldAllow() else {
+            guard await breaker.allowRequest() else {
                 #if canImport(os)
                 logger.warning("Circuit breaker open for command: \(commandType, privacy: .public)")
 #endif

@@ -1,6 +1,7 @@
 import Foundation
 @testable import PipelineKit
-@testable import StressTestSupport
+import PipelineKitTestSupport
+@testable import StressTesting
 
 // NOTE: These types require PipelineKitStressTest types which have been
 // moved to a separate package. They should be moved to that package's test suite.
@@ -24,10 +25,6 @@ public struct TestError: Error {
     static func unsupported(_ msg: String) -> TestError { TestError(message: msg) }
 }
 public protocol StressOrchestrator {}
-public enum TestLogger {
-    static func info(_ msg: String) {}
-    static func error(_ msg: String, error: Error) {}
-}
 
 // Minimal placeholder scenario
 public struct MultiPhaseScenario {

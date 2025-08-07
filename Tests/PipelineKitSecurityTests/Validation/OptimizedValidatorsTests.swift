@@ -1,5 +1,6 @@
 import XCTest
 @testable import PipelineKit
+import PipelineKitTestSupport
 
 final class OptimizedValidatorsTests: XCTestCase {
     // MARK: - Email Validation Tests

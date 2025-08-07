@@ -1,5 +1,6 @@
 import XCTest
 @testable import PipelineKit
+import PipelineKitTestSupport
 
 final class MemoryPressureResponderTests: XCTestCase {
     private var handler: MemoryPressureResponder!

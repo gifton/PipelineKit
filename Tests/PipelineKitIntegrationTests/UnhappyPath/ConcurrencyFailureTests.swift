@@ -1,6 +1,7 @@
 import XCTest
 import Foundation
 @testable import PipelineKit
+import PipelineKitTestSupport
 
 // MARK: - Test Support Types for ConcurrencyFailureTests
 
@@ -318,7 +319,7 @@ final class ConcurrencyFailureTests: XCTestCase {
         
         // Try to access pipeline from multiple actors simultaneously
         actor PipelineUser {
-            func usePipeline(_ pipeline: StandardPipeline<ConcurrencyTestCommand, ConcurrencyTestHandler>) async throws -> String {
+            func usePipeline(_ pipeline: StandardPipeline) async throws -> String {
                 let command = ConcurrencyTestCommand(value: "isolation_test")
                 return try await pipeline.execute(command, context: CommandContext())
             }
@@ -569,19 +570,19 @@ struct ConcurrentContextMiddleware: Middleware {
         next: @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
         // Simulate concurrent context access
-        context.set("key1", for: ConcurrencyStringKey.self)
-        context.set("key2", for: ConcurrencyStringKey.self)
+        await context.set("key1", for: "concurrency_string_key")
+        await context.set("key2", for: "concurrency_string_key")
         
-        _ = await context[ConcurrencyStringKey.self]
+        _ = await context.get(String.self, for: "concurrency_string_key")
         
-        context.set("key3", for: ConcurrencyStringKey.self)
+        await context.set("key3", for: "concurrency_string_key")
         
         return try await next(command, context)
     }
 }
 
 struct CrossReferencingMiddleware: Middleware {
-    let otherPipeline: StandardPipeline<ConcurrencyTestCommand, ConcurrencyTestHandler>
+    let otherPipeline: StandardPipeline
     
     func execute<T: Command>(
         _ command: T,
@@ -718,9 +719,7 @@ struct ConcurrencySlowHandler: CommandHandler {
     }
 }
 
-struct ConcurrencyStringKey: ContextKey {
-    typealias Value = String
-}
+// ConcurrencyStringKey no longer needed - using string keys directly
 
 // Helper for timeout testing
 // ConcurrencyTimeoutError removed - using PipelineError.cancelled instead

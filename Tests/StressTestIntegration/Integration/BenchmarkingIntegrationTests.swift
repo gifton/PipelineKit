@@ -1,7 +1,8 @@
 import XCTest
 import Foundation
 @testable import PipelineKit
-@testable import StressTestSupport
+import PipelineKitTestSupport
+@testable import StressTesting
 /// Benchmarking integration tests demonstrating performance measurement and analysis.
 ///
 /// These tests validate the benchmarking functionality including warmup runs,

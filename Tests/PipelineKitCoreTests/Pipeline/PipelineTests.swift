@@ -161,10 +161,6 @@ final class PipelineTests: XCTestCase {
     }
     
     func testPipelineContextPropagation() async throws {
-        struct TestContextKey: ContextKey {
-            typealias Value = String
-        }
-        
         struct ContextTrackingMiddleware: Middleware {
             let value: String
             let priority: ExecutionPriority = .custom
@@ -174,7 +170,7 @@ final class PipelineTests: XCTestCase {
                 context: CommandContext,
                 next: @Sendable (T, CommandContext) async throws -> T.Result
             ) async throws -> T.Result {
-                context.set(value, for: TestContextKey.self)
+                await context.set(value, for: "test_context_key")
                 return try await next(command, context)
             }
         }
@@ -188,7 +184,7 @@ final class PipelineTests: XCTestCase {
                 context: CommandContext,
                 next: @Sendable (T, CommandContext) async throws -> T.Result
             ) async throws -> T.Result {
-                let value = context.get(TestContextKey.self)
+                let value: String? = await context.get(String.self, for: "test_context_key")
                 if value != expectedValue {
                     throw TestError.validationFailed
                 }
@@ -211,7 +207,7 @@ final class PipelineTests: XCTestCase {
         XCTAssertEqual(result, "CONTEXT-TEST")
         
         // Verify context still has the value after execution
-        let finalValue = context.get(TestContextKey.self)
+        let finalValue: String? = await context.get(String.self, for: "test_context_key")
         XCTAssertEqual(finalValue, "test-value")
     }
 }

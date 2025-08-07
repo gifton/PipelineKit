@@ -1,4 +1,4 @@
-// swift-tools-version: 5.10
+// swift-tools-version: 6.0
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
@@ -8,9 +8,9 @@ let package = Package(
     name: "PipelineKit",
     platforms: [
         .iOS(.v17),
-        .macOS(.v13),
-        .tvOS(.v16),
-        .watchOS(.v9)
+        .macOS(.v14),
+        .tvOS(.v17),
+        .watchOS(.v10)
     ],
     products: [
         // Main library containing all functionality
@@ -24,22 +24,34 @@ let package = Package(
             targets: ["PipelineKitCore"]
         ),
         .library(
-            name: "PipelineKitMiddleware",
-            targets: ["PipelineKitMiddleware"]
-        ),
-        .library(
             name: "PipelineKitSecurity",
             targets: ["PipelineKitSecurity"]
+        ),
+        .library(
+            name: "PipelineKitResilience",
+            targets: ["PipelineKitResilience"]
+        ),
+        .library(
+            name: "PipelineKitObservability",
+            targets: ["PipelineKitObservability"]
+        ),
+        .library(
+            name: "PipelineKitCaching",
+            targets: ["PipelineKitCaching"]
+        ),
+        .library(
+            name: "PipelineKitCompression",
+            targets: ["PipelineKitCompression"]
+        ),
+        // Benchmark support library
+        .library(
+            name: "PipelineKitBenchmark",
+            targets: ["PipelineKitBenchmark"]
         ),
         // Test support library - only for use in tests
         .library(
             name: "PipelineKitTestSupport",
             targets: ["PipelineKitTestSupport"]
-        ),
-        // Stress test support library
-        .library(
-            name: "StressTesting",
-            targets: ["StressTesting"]
         ),
         // Command plugins for test execution
         .plugin(
@@ -80,8 +92,11 @@ let package = Package(
                 .product(name: "Atomics", package: "swift-atomics"),
                 // Re-export all modular libraries
                 "PipelineKitCore",
-                "PipelineKitMiddleware",
-                "PipelineKitSecurity"
+                "PipelineKitSecurity",
+                "PipelineKitResilience",
+                "PipelineKitObservability",
+                "PipelineKitCaching",
+                "PipelineKitCompression"
             ],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency"),
@@ -108,11 +123,11 @@ let package = Package(
                 .enableExperimentalFeature("StrictConcurrency")
             ]
         ),
-        // Unified benchmark runner
+        // Unified benchmark executable
         .executableTarget(
-            name: "PipelineKitBenchmarks",
-            dependencies: ["PipelineKit"],
-            path: "Sources/PipelineKitBenchmarks"
+            name: "Benchmarks",
+            dependencies: ["PipelineKit", "PipelineKitBenchmark"],
+            path: "Sources/Benchmarks"
         ),
         // Core module tests
         .testTarget(
@@ -123,19 +138,37 @@ let package = Package(
                 .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
             ]
         ),
-        // Middleware module tests
+        // Security module tests
         .testTarget(
-            name: "PipelineKitMiddlewareTests",
-            dependencies: ["PipelineKitMiddleware", "PipelineKitTestSupport"],
+            name: "PipelineKitSecurityTests",
+            dependencies: ["PipelineKitSecurity", "PipelineKitTestSupport"],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency"),
                 .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
             ]
         ),
-        // Security module tests
+        // Resilience module tests
         .testTarget(
-            name: "PipelineKitSecurityTests",
-            dependencies: ["PipelineKitSecurity", "PipelineKitTestSupport"],
+            name: "PipelineKitResilienceTests",
+            dependencies: ["PipelineKitResilience", "PipelineKitTestSupport"],
+            swiftSettings: [
+                .enableExperimentalFeature("StrictConcurrency"),
+                .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
+            ]
+        ),
+        // Observability module tests
+        .testTarget(
+            name: "PipelineKitObservabilityTests",
+            dependencies: ["PipelineKitObservability", "PipelineKitTestSupport"],
+            swiftSettings: [
+                .enableExperimentalFeature("StrictConcurrency"),
+                .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
+            ]
+        ),
+        // Caching module tests
+        .testTarget(
+            name: "PipelineKitCachingTests",
+            dependencies: ["PipelineKitCaching", "PipelineKitTestSupport"],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency"),
                 .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
@@ -183,6 +216,28 @@ let package = Package(
         // Security module - Depends on Core
         .target(
             name: "PipelineKitSecurity",
+            dependencies: ["PipelineKitCore", "PipelineKitResilience"],
+            swiftSettings: [
+                .enableExperimentalFeature("StrictConcurrency"),
+                .enableExperimentalFeature("AccessLevelOnImport"),
+                .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
+            ]
+        ),
+        
+        // Resilience module - Circuit breakers, retry, rate limiting
+        .target(
+            name: "PipelineKitResilience",
+            dependencies: ["PipelineKitCore", "PipelineKitObservability"],
+            swiftSettings: [
+                .enableExperimentalFeature("StrictConcurrency"),
+                .enableExperimentalFeature("AccessLevelOnImport"),
+                .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
+            ]
+        ),
+        
+        // Observability module - Logging, metrics, tracing
+        .target(
+            name: "PipelineKitObservability",
             dependencies: ["PipelineKitCore"],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency"),
@@ -191,17 +246,35 @@ let package = Package(
             ]
         ),
         
-        // Middleware module - Depends on Core and Security
+        // Caching module - Various caching strategies
         .target(
-            name: "PipelineKitMiddleware",
-            dependencies: [
-                "PipelineKitCore",
-                "PipelineKitSecurity"
-            ],
+            name: "PipelineKitCaching",
+            dependencies: ["PipelineKitCore"],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency"),
                 .enableExperimentalFeature("AccessLevelOnImport"),
                 .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
+            ]
+        ),
+        
+        // Compression module - Compression middleware
+        .target(
+            name: "PipelineKitCompression",
+            dependencies: ["PipelineKitCore"],
+            swiftSettings: [
+                .enableExperimentalFeature("StrictConcurrency"),
+                .enableExperimentalFeature("AccessLevelOnImport"),
+                .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
+            ]
+        ),
+        
+        // Benchmark module - High-performance benchmarking utilities
+        .target(
+            name: "PipelineKitBenchmark",
+            dependencies: [],
+            swiftSettings: [
+                .enableExperimentalFeature("StrictConcurrency"),
+                .enableExperimentalFeature("AccessLevelOnImport")
             ]
         ),
         

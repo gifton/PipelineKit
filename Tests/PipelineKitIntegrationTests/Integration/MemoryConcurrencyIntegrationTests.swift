@@ -1,5 +1,6 @@
 import XCTest
 @testable import PipelineKit
+import PipelineKitTestSupport
 
 /// Integration tests validating memory optimizations work correctly with concurrent execution.
 ///
@@ -29,8 +30,7 @@ final class MemoryConcurrencyIntegrationTests: XCTestCase {
         
         let pool = ObjectPool<TestObject>(
             maxSize: 100,
-            factory: { TestObject() },
-            reset: { $0.reset() }
+            factory: { TestObject() }
         )
         
         let iterations = 10_000
@@ -70,10 +70,7 @@ final class MemoryConcurrencyIntegrationTests: XCTestCase {
         
         let pool = ObjectPool<TestObject>(
             maxSize: 200,
-            highWaterMark: 160,
-            lowWaterMark: 40,
-            factory: { TestObject() },
-            reset: { $0.reset() }
+            factory: { TestObject() }
         )
         
         // Pre-warm the pool
@@ -101,7 +98,7 @@ final class MemoryConcurrencyIntegrationTests: XCTestCase {
         
         // Simulate memory pressure during execution
         await synchronizer.mediumDelay()
-        await pool.simulateMemoryPressure(level: .warning)
+        await pool.simulateMemoryPressure(level: MemoryPressureLevel.warning)
         
         // Check pool size reduced
         let warningCount = await pool.availableCount
@@ -109,7 +106,7 @@ final class MemoryConcurrencyIntegrationTests: XCTestCase {
         XCTAssertLessThanOrEqual(warningCount, 100) // Should be around (160+40)/2 = 100
         
         // Simulate critical pressure
-        await pool.simulateMemoryPressure(level: .critical)
+        await pool.simulateMemoryPressure(level: MemoryPressureLevel.critical)
         let criticalCount = await pool.availableCount
         XCTAssertLessThanOrEqual(criticalCount, 40) // Should shrink to low water mark
         
@@ -262,8 +259,7 @@ final class MemoryConcurrencyIntegrationTests: XCTestCase {
         do {
             let pool = ObjectPool<TestObject>(
                 maxSize: 10,
-                factory: { TestObject() },
-                reset: { $0.reset() }
+                factory: { TestObject() }
             )
             
             // Acquire and track an object
@@ -334,14 +330,10 @@ final class MemoryConcurrencyIntegrationTests: XCTestCase {
             let result = try await next(command, context)
             
             let duration = Date().timeIntervalSince(startTime)
-            context.set(duration, for: ExecutionTimeKey.self)
+            await context.set(duration, for: "execution_time")
             
             return result
         }
-    }
-    
-    private struct ExecutionTimeKey: ContextKey {
-        typealias Value = TimeInterval
     }
     
     private func getMemoryUsage() -> Int {

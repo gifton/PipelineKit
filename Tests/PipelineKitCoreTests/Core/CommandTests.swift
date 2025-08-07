@@ -62,12 +62,12 @@ final class CommandTests: XCTestCase {
     func testCommandContextWithCustomKeys() async throws {
         let context = CommandContext.test()
         
-        // Set values using proper context keys
-        context.set("customValue", for: TestCustomValueKey.self)
-        context.set(42, for: TestNumberKey.self)
+        // Set values using string keys
+        await context.set("customValue", for: "test_custom_value")
+        await context.set(42, for: "test_number")
         
-        let customValue = context.get(TestCustomValueKey.self)
-        let numberValue = context.get(TestNumberKey.self)
+        let customValue = await context.get(String.self, for: "test_custom_value")
+        let numberValue = await context.get(Int.self, for: "test_number")
         
         XCTAssertEqual(customValue, "customValue")
         XCTAssertEqual(numberValue, 42)

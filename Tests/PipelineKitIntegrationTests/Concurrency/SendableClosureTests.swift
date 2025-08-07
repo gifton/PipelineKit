@@ -153,7 +153,7 @@ final class SendableClosureTests: XCTestCase {
     // MARK: - Memory Pressure Handler Tests
     
     func testMemoryPressureHandlerSendableHandlers() async {
-        let handler = MemoryPressureHandler()
+        let handler = MemoryPressureResponder()
         var notificationCounts = [Int: Int]()
         let countsLock = NSLock()
         
@@ -227,19 +227,23 @@ final class SendableClosureTests: XCTestCase {
         }
         
         let counter = Counter()
-        let handler = MemoryPressureHandler()
+        let handler = MemoryPressureResponder()
         
         // Register handler that uses actor - must be @Sendable
-        let token = await handler.register { @Sendable in
+        _ = await handler.register { @Sendable in
             await counter.increment()
         }
         
         // We can't directly trigger handlers in the current API
         // The handlers would be called when actual memory pressure occurs
         // Just verify registration works without crashes
-        XCTAssertNotNil(token)
         
-        await handler.unregister(id: token)
+        // Simulate memory pressure to test the handler
+        await handler.simulateMemoryPressure()
+        
+        // Verify the handler was called
+        let count = await counter.getCount()
+        XCTAssertGreaterThan(count, 0)
     }
 }
 
@@ -290,7 +294,7 @@ private struct ContextModifyingMiddleware: Middleware, Sendable {
     
     func execute<T: Command>(_ command: T, context: CommandContext, next: @Sendable (T, CommandContext) async throws -> T.Result) async throws -> T.Result {
         // Store in context using a test key
-        context.set(value, for: TestCustomValueKey.self)
+        await context.set(value, for: "test_custom_value")
         return try await next(command, context)
     }
 }

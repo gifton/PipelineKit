@@ -1,6 +1,15 @@
 import Foundation
 import PipelineKitCore
 
+/// Wrapper for Any to make it Sendable
+struct SendableAny: @unchecked Sendable {
+    let value: Any
+    
+    init(_ value: Any) {
+        self.value = value
+    }
+}
+
 /// Manages and tracks resources allocated during stress tests.
 ///
 /// The ResourceManager ensures that all resources allocated during testing are
@@ -8,12 +17,12 @@ import PipelineKitCore
 /// It enforces per-test resource limits and provides automatic cleanup.
 public actor ResourceManager {
     /// Tracks a managed resource with automatic cleanup.
-    private struct ManagedResource {
+    private struct ManagedResource: Sendable {
         let id: UUID
         let type: ResourceType
         let cleanup: @Sendable () async -> Void
         let size: Int?
-        let metadata: [String: Any]
+        let metadata: [String: SendableAny]
         let createdAt = Date()
     }
     
@@ -62,7 +71,7 @@ public actor ResourceManager {
             type: type,
             cleanup: cleanup,
             size: size,
-            metadata: metadata
+            metadata: metadata.mapValues { SendableAny($0) }
         )
         
         resources[id] = resource
@@ -90,8 +99,9 @@ public actor ResourceManager {
         
         await withTaskGroup(of: Void.self) { group in
             for resource in matching {
+                let resourceId = resource.id
                 group.addTask { [weak self] in
-                    try? await self?.release(resource.id)
+                    try? await self?.release(resourceId)
                 }
             }
         }
@@ -103,8 +113,9 @@ public actor ResourceManager {
         
         await withTaskGroup(of: Void.self) { group in
             for resource in resources.values {
+                let cleanup = resource.cleanup
                 group.addTask {
-                    await resource.cleanup()
+                    await cleanup()
                 }
             }
         }
@@ -188,8 +199,9 @@ public actor ResourceManager {
     
     deinit {
         // Ensure cleanup even if not explicitly called
-        Task { [resources] in
-            for resource in resources.values {
+        let resourcesToCleanup = Array(resources.values)
+        Task { @Sendable in
+            for resource in resourcesToCleanup {
                 await resource.cleanup()
             }
         }
@@ -261,10 +273,17 @@ public extension ResourceManager {
             alignment: MemoryLayout<UInt8>.alignment
         )
         
+        // Store pointer address to avoid capturing non-Sendable pointer in closure
+        let bufferAddress = Int(bitPattern: buffer)
+        
         let id = try await register(
             type: .memory,
             size: size,
-            cleanup: { [buffer] in buffer.deallocate() }
+            cleanup: { @Sendable in
+                // Reconstruct pointer from address
+                let bufferToDealloc = UnsafeMutableRawPointer(bitPattern: bufferAddress)!
+                bufferToDealloc.deallocate()
+            }
         )
         
         return ManagedBuffer(id: id, pointer: buffer, size: size)

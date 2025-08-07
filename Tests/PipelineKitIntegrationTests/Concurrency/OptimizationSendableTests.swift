@@ -1,5 +1,6 @@
 import XCTest
 @testable import PipelineKit
+import PipelineKitTestSupport
 
 /// Tests for Sendable conformance of optimization-related types
 final class OptimizationSendableTests: XCTestCase {

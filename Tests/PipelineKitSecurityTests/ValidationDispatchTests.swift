@@ -1,5 +1,6 @@
 import XCTest
 @testable import PipelineKit
+import PipelineKitTestSupport
 
 final class ValidationDispatchTests: XCTestCase {
     // Test command with custom validation

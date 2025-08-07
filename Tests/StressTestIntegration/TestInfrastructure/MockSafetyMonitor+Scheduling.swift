@@ -1,6 +1,7 @@
 import Foundation
 @testable import PipelineKit
-@testable import StressTestSupport
+import PipelineKitTestSupport
+@testable import StressTesting
 
 // MARK: - Error Types
 

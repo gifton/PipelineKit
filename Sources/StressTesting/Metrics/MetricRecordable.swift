@@ -1,6 +1,6 @@
 import Foundation
 import PipelineKit
-import PipelineKitMiddleware
+import PipelineKitObservability
 
 /// Shared protocol for components that emit metrics during stress testing.
 ///

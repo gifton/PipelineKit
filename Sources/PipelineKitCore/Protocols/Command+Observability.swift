@@ -46,8 +46,8 @@ public extension Command {
     /// Default implementation does nothing.
     /// Override to collect pre-execution metrics.
     ///
-    /// - Parameter metrics: Any metrics collector instance
-    func willExecute(metrics: Any) {
+    /// - Parameter metrics: The metrics collector instance
+    func willExecute(metrics: any MetricsCollector) async {
         // Default: no metrics collection
     }
     
@@ -57,9 +57,9 @@ public extension Command {
     /// Override to collect post-execution metrics.
     ///
     /// - Parameters:
-    ///   - metrics: Any metrics collector instance
+    ///   - metrics: The metrics collector instance
     ///   - result: The execution result
-    func didExecute(metrics: Any, result: Result) {
+    func didExecute(metrics: any MetricsCollector, result: Result) async {
         // Default: no metrics collection
     }
     
@@ -69,9 +69,9 @@ public extension Command {
     /// Override to collect failure metrics.
     ///
     /// - Parameters:
-    ///   - metrics: Any metrics collector instance
+    ///   - metrics: The metrics collector instance
     ///   - error: The error that occurred
-    func didFail(metrics: Any, error: Error) {
+    func didFail(metrics: any MetricsCollector, error: Error) async {
         // Default: no metrics collection
     }
 }
@@ -83,7 +83,7 @@ public extension Command {
     ///
     /// Default implementation returns empty dictionary.
     /// Override to provide command-specific properties.
-    var observabilityProperties: [String: Any] {
+    var observabilityProperties: [String: any Sendable] {
         return [:]
     }
     

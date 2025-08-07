@@ -49,6 +49,34 @@ dependencies: [
 ]
 ```
 
+### Module Structure
+
+PipelineKit is organized into functional modules for better separation of concerns:
+
+- **PipelineKitCore**: Core protocols, types, and basic functionality
+- **PipelineKitResilience**: Circuit breakers, retry mechanisms, rate limiting, back pressure
+- **PipelineKitObservability**: Logging, metrics, tracing, and monitoring
+- **PipelineKitSecurity**: Authentication, authorization, validation, encryption
+- **PipelineKitCaching**: Various caching strategies and middleware
+- **PipelineKit**: Umbrella module that re-exports all functionality
+
+#### Using Individual Modules
+
+For minimal dependencies, import only what you need:
+
+```swift
+import PipelineKitCore      // Just core types
+import PipelineKitResilience // Just resilience patterns
+```
+
+#### Using Everything
+
+For convenience, import the umbrella module:
+
+```swift
+import PipelineKit // All modules
+```
+
 ### Basic Usage
 
 ```swift

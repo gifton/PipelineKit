@@ -7,14 +7,9 @@ PipelineKit is designed for safe concurrent execution using Swift's modern concu
 ## Swift Version Strategy
 
 ### Production (Current)
-- **Swift Version**: 5.10
-- **Concurrency Mode**: Strict concurrency checking enabled
-- **Status**: 0 warnings with `-strict-concurrency=complete`
-
-### Experimental (Future)
 - **Swift Version**: 6.0
-- **Status**: Tracking compatibility, architectural changes planned
-- **Branch**: `swift-6-experiments` (when created)
+- **Concurrency Mode**: Swift 6 language mode with strict concurrency
+- **Status**: Full Swift 6 compliance with Sendable conformance
 
 ## Sendable Conformance
 
@@ -29,51 +24,44 @@ PipelineKit is designed for safe concurrent execution using Swift's modern concu
 We use `@unchecked Sendable` in specific, well-documented cases where we can guarantee thread safety through other means:
 
 #### 1. PooledObject<T: Sendable>
-**File**: `Sources/PipelineKitCore/Memory/GenericObjectPool.swift`
+**File**: `Sources/PipelineKitCore/Memory/PooledObject.swift`
 **Reason**: Uses `NSLock` to protect mutable `isReturned` state
 **Safety**: Lock ensures thread-safe access, T is constrained to Sendable
 
-#### 2. TypeErasedCommand
-**File**: `Sources/PipelineKitCore/Optimization/MiddlewareChainOptimizer.swift`
-**Reason**: Performance optimization using `Result = Any`
-**Safety**: Runtime guarantee - only Sendable commands enter the system
-
-#### 3. NonSendableObjectPool<T>
-**File**: `Sources/PipelineKitCore/Memory/NonSendableObjectPool.swift`
-**Reason**: Actor-based pool for non-Sendable types
-**Safety**: Actor isolation ensures single-threaded access
+#### 2. AnySendable
+**File**: `Sources/PipelineKitCore/Concurrency/AnySendable.swift`
+**Reason**: Type-erased wrapper for heterogeneous Sendable storage
+**Safety**: Only accepts Sendable values, runtime assertion in debug builds
 
 ## Architecture Decisions
 
 ### Object Pooling
 
-We maintain two pool types for different use cases:
+We provide a unified actor-based pool design:
 
-1. **GenericObjectPool<T: Sendable>**: For Sendable types, fully concurrent
-2. **NonSendableObjectPool<T>**: For non-Sendable types, actor-isolated
+1. **ObjectPool<T: Sendable>**: Base actor for all Sendable types
+2. **ReferenceObjectPool<T: AnyObject & Sendable>**: Wrapper for reference types with memory pressure handling
+3. **PooledObject<T: Sendable>**: RAII wrapper for automatic pool return
 
-This separation ensures type safety while maintaining performance for mutable, reusable objects.
+This design ensures thread safety through actor isolation while maintaining high performance.
 
 ### Type Erasure
 
-The `TypeErasedCommand` pattern is used in fast paths for 10-15% performance improvement. While this creates Swift 6 compatibility challenges, the performance benefit justifies the complexity in Swift 5.
+We use `AnySendable` for type-erased storage in contexts like `CommandContext`. This allows heterogeneous storage while maintaining Swift 6 compliance through proper Sendable constraints.
 
-## Swift 6 Roadmap
+## Swift 6 Compliance
 
-### Short Term (Current)
-- Maintain Swift 5.10 with strict concurrency
-- Document all concurrency decisions
-- Zero warnings in production builds
+### Current Status
+- Full Swift 6.0 support with strict concurrency
+- All public APIs require Sendable conformance
+- Actor-based concurrency for thread safety
+- Type-safe context storage with ContextKey<T>
 
-### Medium Term (6-12 months)
-- Experiment with `any Sendable` for type erasure
-- Measure performance impact of existential types
-- Evaluate alternative patterns
-
-### Long Term (12+ months)
-- Consider architectural changes if Swift 6 becomes mandatory
-- Possible removal of type erasure for full compatibility
-- Migration guide for users
+### Design Principles
+- Prefer actors over manual locking
+- Use value types where possible
+- Explicit Sendable constraints on all generic parameters
+- Minimal use of @unchecked Sendable with thorough documentation
 
 ## Performance Considerations
 

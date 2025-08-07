@@ -1,6 +1,7 @@
 import XCTest
 import Foundation
 @testable import PipelineKit
+import PipelineKitTestSupport
 
 /// Basic tests to validate Thread Sanitizer configuration and detection
 final class TSanValidationTests: XCTestCase {

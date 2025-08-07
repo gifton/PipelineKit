@@ -27,9 +27,9 @@ final class PipelineConfigurationErrorTests: XCTestCase {
         // This test is not applicable to TestPipeline
         // Skip this test as TestPipeline cannot be created without a handler
         
-        // Verify that TestPipeline requires a handler
-        let pipeline = TestPipeline(middleware: [TestMiddleware()])
-        XCTAssertNotNil(pipeline, "TestPipeline should be created with default handler")
+        // TestPipeline is created with a basePipeline, not middleware
+        let pipeline = TestPipeline()
+        XCTAssertNotNil(pipeline, "TestPipeline should be created successfully")
     }
     
     // MARK: - Middleware Not Found Tests
@@ -41,7 +41,7 @@ final class PipelineConfigurationErrorTests: XCTestCase {
         let pipeline = StandardPipeline(handler: handler)
         
         // When/Then - removeMiddleware returns count of removed, not throwing
-        let removedCount = await pipeline.removeMiddleware(ofType: LoggingMiddleware.self)
+        let removedCount = await pipeline.removeMiddleware(ofType: TestMiddleware.self)
         XCTAssertEqual(removedCount, 0) // No middleware to remove
     }
     
@@ -126,8 +126,8 @@ final class PipelineConfigurationErrorTests: XCTestCase {
         let handler = MockCommandHandler()
         let pipeline = StandardPipeline(handler: handler)
         
-        let middleware1 = LoggingMiddleware()
-        let middleware2 = LoggingMiddleware()
+        let middleware1 = TestMiddleware()
+        let middleware2 = TestMiddleware()
         
         try await pipeline.addMiddleware(middleware1)
         try await pipeline.addMiddleware(middleware2)
@@ -171,7 +171,7 @@ final class PipelineConfigurationErrorTests: XCTestCase {
         let handler = MockCommandHandler()
         let pipeline = StandardPipeline(handler: handler)
         
-        try await pipeline.addMiddleware(LoggingMiddleware())
+        try await pipeline.addMiddleware(TestMiddleware())
         
         // Start multiple executions
         await withTaskGroup(of: Void.self) { group in
@@ -191,7 +191,7 @@ final class PipelineConfigurationErrorTests: XCTestCase {
             }
             
             group.addTask {
-                _ = await pipeline.removeMiddleware(ofType: LoggingMiddleware.self)
+                _ = await pipeline.removeMiddleware(ofType: TestMiddleware.self)
             }
         }
         
@@ -250,7 +250,7 @@ final class PipelineConfigurationErrorTests: XCTestCase {
             context: CommandContext,
             next: @Sendable (T, CommandContext) async throws -> T.Result
         ) async throws -> T.Result {
-            guard context.get(TestCustomValueKey.self) != nil else {
+            guard await context.get(String.self, for: requiredKey) != nil else {
                 throw PipelineError.pipelineNotConfigured(reason: "Missing required context")
             }
             return try await next(command, context)
@@ -268,7 +268,7 @@ final class PipelineConfigurationErrorTests: XCTestCase {
             next: @Sendable (T, CommandContext) async throws -> T.Result
         ) async throws -> T.Result {
             // Store value in context using a test key
-            context.set(value, for: TestCustomValueKey.self)
+            await context.set(value, for: "test_custom_value")
             return try await next(command, context)
         }
     }
@@ -282,7 +282,7 @@ final class PipelineConfigurationErrorTests: XCTestCase {
             next: @Sendable (T, CommandContext) async throws -> T.Result
         ) async throws -> T.Result {
             // Clear specific keys
-            context.remove(TestCustomValueKey.self)
+            await context.set(nil as String?, for: "test_custom_value")
             return try await next(command, context)
         }
     }

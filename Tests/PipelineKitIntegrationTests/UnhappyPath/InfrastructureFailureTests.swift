@@ -1,6 +1,7 @@
 import XCTest
 import Foundation
 @testable import PipelineKit
+import PipelineKitTestSupport
 
 // MARK: - Test Support Types for InfrastructureFailureTests
 
@@ -46,7 +47,7 @@ final class InfrastructureFailureTests: XCTestCase {
     }
     
     func testMemoryLeakDetection() async throws {
-        weak var weakPipeline: StandardPipeline<InfrastructureTestCommand, InfrastructureTestHandler>?
+        weak var weakPipeline: StandardPipeline?
         
         do {
             let handler = InfrastructureTestHandler()

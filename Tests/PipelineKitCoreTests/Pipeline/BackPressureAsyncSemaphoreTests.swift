@@ -1,5 +1,6 @@
 import XCTest
 @testable import PipelineKit
+import PipelineKitTestSupport
 
 // DISABLED: BackPressureAsyncSemaphore tests are temporarily disabled due to Swift compiler issues
 // with actor method visibility in test targets. Re-enable once the compiler issue is resolved.

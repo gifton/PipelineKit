@@ -42,11 +42,11 @@ import PipelineKitCore
 ///
 /// ## Context Keys
 ///
-/// The middleware stores the authenticated user ID using `ContextKeys.AuthUserID`.
+/// The middleware stores the authenticated user ID in the context metadata.
 /// Subsequent middleware and handlers can access it:
 ///
 /// ```swift
-/// if let userId = context[ContextKeys.AuthUserID.self] {
+/// if let userId = context.metadata["authUserId"] as? String {
 ///     // Use authenticated user ID
 /// }
 /// ```
@@ -54,7 +54,7 @@ import PipelineKitCore
 /// - Note: This middleware has `.authentication` priority, ensuring it runs
 ///   before authorization and business logic middleware.
 ///
-/// - SeeAlso: `AuthenticationError`, `ContextKeys.AuthUserID`, `Middleware`
+/// - SeeAlso: `AuthenticationError`, `Middleware`
 public struct AuthenticationMiddleware: Middleware {
     /// Priority ensures authentication happens early in the pipeline.
     public let priority: ExecutionPriority = .authentication
@@ -91,7 +91,7 @@ public struct AuthenticationMiddleware: Middleware {
         let userId = try await authenticate(metadata.userId)
 
         // Store authenticated user in context
-        context.set(userId, for: ContextKeys.AuthUserID.self)
+        context.metadata["authUserId"] = userId
 
         return try await next(command, context)
     }

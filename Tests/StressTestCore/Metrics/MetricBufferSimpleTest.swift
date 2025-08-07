@@ -1,5 +1,6 @@
 import XCTest
 @testable import PipelineKit
+import PipelineKitTestSupport
 @testable import StressTesting
 
 // NOTE: These tests require PipelineKitStressTest types which have been
@@ -12,10 +13,7 @@ final class MetricBufferSimpleTest: XCTestCase {
 }
 
 /*
-import XCTest
 import Foundation
-@testable import PipelineKit
-@testable import StressTesting
 
 /// Simple test to verify MetricBuffer basic functionality.
 final class MetricBufferSimpleTest: XCTestCase {

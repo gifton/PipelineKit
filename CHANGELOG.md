@@ -8,14 +8,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Added `withBorrowedObject` method to `GenericObjectPool` for safe scoped borrowing
-- Added `withBorrowedMeasurement` method to `PerformanceMeasurementPool` for automatic cleanup
+- Swift 6.0 support with full strict concurrency compliance
+- `AnySendable` wrapper for type-erased Sendable storage
+- `ContextKey<T>` for type-safe CommandContext access
+- Unified actor-based object pool design with `ObjectPool<T: Sendable>`
+- `ReferenceObjectPool` wrapper with memory pressure handling
+- `PooledObject` RAII wrapper for automatic pool return
 
 ### Changed
-- Updated `PerformanceMiddleware.createMeasurement` to use scoped borrowing pattern
+- Migrated to Swift 6.0 minimum requirement
+- Upgraded platform requirements (iOS 17, macOS 14, tvOS 17, watchOS 10)
+- Refactored `CommandContext` to use `OSAllocatedUnfairLock` with type-safe keys
+- Updated `Command` protocol to require Sendable conformance
+- Consolidated object pool implementations into unified design
 
 ### Removed
-- Nothing yet
+- Removed `GenericObjectPool` (replaced by `ObjectPool`)
+- Removed `NonSendableObjectPool` (use `ObjectPool` with Sendable types)
+- Removed deprecated CommandContext methods
 
 ### Fixed
 - Fixed PooledObject automatic return issue - deinit cannot call async actor methods

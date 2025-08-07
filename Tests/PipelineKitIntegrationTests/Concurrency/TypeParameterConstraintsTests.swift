@@ -60,10 +60,7 @@ final class TypeParameterConstraintsTests: XCTestCase {
         
         let pool = ObjectPool<SendableObject>(
             maxSize: 10,
-            factory: { SendableObject() },
-            reset: { obj in
-                obj.value = 0
-            }
+            factory: { SendableObject() }
         )
         
         let obj = await pool.acquire()
@@ -167,14 +164,10 @@ final class TypeParameterConstraintsTests: XCTestCase {
         XCTAssertTrue(true) // Compilation is the test
     }
     
-    // MARK: - ContextKey Value Constraints
+    // MARK: - Context Storage Constraints
     
-    func testContextKeyValueMustBeSendable() {
-        // ContextKey protocol requires Value: Sendable
-        struct UserKey: ContextKey {
-            typealias Value = User
-        }
-        
+    func testContextStorageMustBeSendable() async {
+        // Context now uses direct property access instead of ContextKey
         struct User: Sendable {
             let id: String
             let name: String
@@ -183,8 +176,9 @@ final class TypeParameterConstraintsTests: XCTestCase {
         let context = CommandContext()
         let user = User(id: "123", name: "Test")
         
-        context[UserKey.self] = user
-        let retrieved = context[UserKey.self]
+        // Store user in async storage
+        await context.set(user, for: "user")
+        let retrieved: User? = await context.get(User.self, for: "user")
         
         XCTAssertEqual(retrieved?.id, "123")
         XCTAssertEqual(retrieved?.name, "Test")

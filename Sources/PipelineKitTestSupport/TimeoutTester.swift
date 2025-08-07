@@ -26,7 +26,7 @@ public final class TimeoutTester: @unchecked Sendable {
     /// Run an operation with a timeout
     public func withTimeout<T: Sendable>(
         _ timeout: TimeInterval,
-        operation: @escaping () async throws -> T
+        operation: @escaping @Sendable () async throws -> T
     ) async throws -> T {
         try await withThrowingTaskGroup(of: T.self) { group in
             group.addTask {
@@ -47,7 +47,7 @@ public final class TimeoutTester: @unchecked Sendable {
     /// Test if an operation times out
     public func expectTimeout<T: Sendable>(
         within timeout: TimeInterval,
-        operation: @escaping () async throws -> T
+        operation: @escaping @Sendable () async throws -> T
     ) async -> Bool {
         do {
             _ = try await withTimeout(timeout, operation: operation)
