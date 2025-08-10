@@ -4,8 +4,8 @@ import Foundation
 @main
 struct TestStressCommand: CommandPlugin {
     func performCommand(context: PluginContext, arguments: [String]) async throws {
-        // Get the swift executable path
-        let swiftExec = try context.tool(named: "swift").path
+        // Get the swift executable URL
+        let swiftExec = try context.tool(named: "swift").url
         
         // Print header
         print("💪 Running Stress Tests")
@@ -27,9 +27,9 @@ struct TestStressCommand: CommandPlugin {
         
         // Create and run the process
         let process = Process()
-        process.executableURL = URL(fileURLWithPath: swiftExec.string)
+        process.executableURL = swiftExec
         process.arguments = args
-        process.currentDirectoryURL = URL(fileURLWithPath: context.package.directory.string)
+        process.currentDirectoryURL = context.package.directoryURL
         
         do {
             try process.run()

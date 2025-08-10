@@ -301,10 +301,8 @@ public actor RateLimiter {
         
         // Clean up unused sliding windows
         var activeWindows: [String: SlidingWindow] = [:]
-        for (key, window) in slidingWindows {
-            if await window.hasRecentRequests(within: cleanupInterval) {
-                activeWindows[key] = window
-            }
+        for (key, window) in slidingWindows where await window.hasRecentRequests(within: cleanupInterval) {
+            activeWindows[key] = window
         }
         slidingWindows = activeWindows
         

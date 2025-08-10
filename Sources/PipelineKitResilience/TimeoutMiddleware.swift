@@ -27,37 +27,37 @@ import PipelineKitCore
 /// ```
 public struct TimeoutMiddleware: Middleware {
     public let priority: ExecutionPriority = .resilience
-    
+
     // MARK: - Configuration
-    
+
     public struct Configuration: Sendable {
         /// Default timeout for all commands
         public let defaultTimeout: TimeInterval
-        
+
         /// Specific timeouts per command type
         public let commandTimeouts: [String: TimeInterval]
-        
+
         /// Grace period after timeout before forceful cancellation
         public let gracePeriod: TimeInterval
-        
+
         /// Grace period backoff configuration
         public let gracePeriodBackoff: GracePeriodBackoff?
-        
+
         /// Custom timeout resolver function
         public let timeoutResolver: (@Sendable (any Command) -> TimeInterval?)?
-        
+
         /// Handler called when a timeout occurs
         public let timeoutHandler: (@Sendable (any Command, TimeoutContext) async -> Void)?
-        
+
         /// Whether to emit observability events
         public let emitEvents: Bool
-        
+
         /// Whether to cancel the task on timeout or just throw an error
         public let cancelOnTimeout: Bool
-        
+
         /// Metrics collector for detailed timeout tracking
         public let metricsCollector: (any MetricsCollector)?
-        
+
         public init(
             defaultTimeout: TimeInterval = 30.0,
             commandTimeouts: [String: TimeInterval] = [:],
@@ -80,23 +80,23 @@ public struct TimeoutMiddleware: Middleware {
             self.metricsCollector = metricsCollector
         }
     }
-    
+
     private let configuration: Configuration
     private let gracePeriodManager = GracePeriodManager()
     private let stateTracker = TimeoutStateTracker()
-    
+
     public init(configuration: Configuration) {
         self.configuration = configuration
     }
-    
+
     public init(defaultTimeout: TimeInterval) {
         self.init(
             configuration: Configuration(defaultTimeout: defaultTimeout)
         )
     }
-    
+
     // MARK: - Middleware Implementation
-    
+
     public func execute<T: Command>(
         _ command: T,
         context: CommandContext,
@@ -105,10 +105,10 @@ public struct TimeoutMiddleware: Middleware {
         let commandType = String(describing: type(of: command))
         let timeout = resolveTimeout(for: command, commandType: commandType)
         let startTime = Date()
-        
+
         // Update state
         _ = await stateTracker.transition(to: .executing)
-        
+
         // Use withoutActuallyEscaping to enable timeout enforcement
         // This is necessary because the middleware protocol defines `next` as non-escaping,
         // but we need to pass it to our timeout utility which requires @escaping.
@@ -124,9 +124,9 @@ public struct TimeoutMiddleware: Middleware {
             )
         }
     }
-    
+
     // MARK: - Private Methods
-    
+
     private func executeWithTimeout<T: Command>(
         command: T,
         commandType: String,
@@ -137,7 +137,7 @@ public struct TimeoutMiddleware: Middleware {
     ) async throws -> T.Result {
         do {
             let result: T.Result
-            
+
             if configuration.gracePeriod > 0 {
                 // Use timeout with grace period
                 result = try await withTimeoutAndGrace(
@@ -148,16 +148,17 @@ public struct TimeoutMiddleware: Middleware {
                     },
                     onGracePeriodStart: { [stateTracker, configuration] in
                         _ = await stateTracker.transition(to: .gracePeriod)
-                        
+
                         // Emit grace period event
                         if configuration.emitEvents {
-                            context.emitCustomEvent(
-                                "command_grace_period_started",
+                            context.emitMiddlewareEvent(
+                                "middleware.timeout_grace_period",
+                                middleware: "TimeoutMiddleware",
                                 properties: [
-                                    "command_type": commandType,
+                                    "commandType": commandType,
                                     "timeout": timeout,
-                                    "grace_period": configuration.gracePeriod
-                                ] as [String: any Sendable]
+                                    "gracePeriod": configuration.gracePeriod
+                                ]
                             )
                         }
                     }
@@ -168,23 +169,26 @@ public struct TimeoutMiddleware: Middleware {
                     try await next(command, context)
                 }
             }
-            
+
             // Command completed successfully
             let currentState = await stateTracker.currentState()
             _ = await stateTracker.transition(to: .completed)
-            
+
             let duration = Date().timeIntervalSince(startTime)
-            
+
             // Handle grace period recovery
             if currentState == .gracePeriod && configuration.gracePeriod > 0 {
                 // Record recovery metrics - we were in grace period
                 if let collector = configuration.metricsCollector {
-                    let adapter = collector.asTimeoutMetricsCollector()
-                    await adapter.recordTimeoutRecovery(
-                        commandType: commandType,
-                        timeoutDuration: timeout,
-                        recoveryDuration: duration - timeout,
-                        tags: [:]
+                    await collector.recordCounter(
+                        "pipeline.timeout.grace_recovery",
+                        value: 1,
+                        tags: ["command": commandType]
+                    )
+                    await collector.recordTimer(
+                        "pipeline.timeout.grace_duration",
+                        duration: duration - timeout,
+                        tags: ["command": commandType]
                     )
                 }
             } else if duration > timeout * 0.9 {
@@ -196,13 +200,12 @@ public struct TimeoutMiddleware: Middleware {
                     context: context
                 )
             }
-            
+
             return result
-            
         } catch let timeoutError as TimeoutError {
             // Handle timeout errors
             _ = await stateTracker.transition(to: .timedOut)
-            
+
             switch timeoutError {
             case .exceeded(let duration):
                 let actualDuration = Date().timeIntervalSince(startTime)
@@ -215,11 +218,11 @@ public struct TimeoutMiddleware: Middleware {
                     reason: .executionTimeout,
                     metadata: [:]
                 )
-                
+
                 await handleTimeout(command: command, context: context, timeoutContext: timeoutContext)
                 throw PipelineError.timeoutWithContext(timeoutContext)
-                
-            case .gracePeriodExpired(_, let gracePeriod, let totalDuration):
+
+            case let .gracePeriodExpired(_, gracePeriod, totalDuration):
                 let timeoutContext = TimeoutContext(
                     commandType: commandType,
                     timeoutDuration: timeout,
@@ -229,10 +232,10 @@ public struct TimeoutMiddleware: Middleware {
                     reason: .gracePeriodExpired,
                     metadata: [:]
                 )
-                
+
                 await handleTimeout(command: command, context: context, timeoutContext: timeoutContext)
                 throw PipelineError.timeoutWithContext(timeoutContext)
-                
+
             case .noResult:
                 throw PipelineError.executionFailed(
                     message: "No result from timeout operation",
@@ -245,7 +248,7 @@ public struct TimeoutMiddleware: Middleware {
             throw error
         }
     }
-    
+
     private func handleTimeout<T: Command>(
         command: T,
         context: CommandContext,
@@ -258,46 +261,52 @@ public struct TimeoutMiddleware: Middleware {
                 context: context
             )
         }
-        
+
         // Call custom timeout handler
         if let handler = configuration.timeoutHandler {
             await handler(command, timeoutContext)
         }
-        
+
         // Record timeout metrics
         if let collector = configuration.metricsCollector {
-            let adapter = collector.asTimeoutMetricsCollector()
-            await adapter.recordTimeout(
-                commandType: timeoutContext.commandType,
-                timeoutDuration: timeoutContext.timeoutDuration,
-                actualDuration: timeoutContext.actualDuration,
-                gracePeriodUsed: timeoutContext.gracePeriodUsed,
-                tags: timeoutContext.metadata
+            await collector.recordCounter(
+                "pipeline.timeout.exceeded",
+                value: 1,
+                tags: [
+                    "command": timeoutContext.commandType,
+                    "reason": timeoutContext.reason.rawValue,
+                    "grace_used": String(timeoutContext.gracePeriodUsed)
+                ]
+            )
+            await collector.recordTimer(
+                "pipeline.timeout.duration",
+                duration: timeoutContext.actualDuration,
+                tags: ["command": timeoutContext.commandType]
             )
         }
     }
-    
+
     private func resolveTimeout<T: Command>(for command: T, commandType: String) -> TimeInterval {
         // Check custom resolver first
         if let resolver = configuration.timeoutResolver,
            let customTimeout = resolver(command) {
             return customTimeout
         }
-        
+
         // Check if command implements TimeoutConfigurable
         if let configurableCommand = command as? TimeoutConfigurable {
             return configurableCommand.timeout
         }
-        
+
         // Check command-specific timeout
         if let specificTimeout = configuration.commandTimeouts[commandType] {
             return specificTimeout
         }
-        
+
         // Use default timeout
         return configuration.defaultTimeout
     }
-    
+
     private func emitNearTimeout(
         commandType: String,
         duration: TimeInterval,
@@ -305,60 +314,51 @@ public struct TimeoutMiddleware: Middleware {
         context: CommandContext
     ) async {
         let percentage = (duration / timeout) * 100
-        
+
         if configuration.emitEvents {
-            context.emitCustomEvent(
-                "command_near_timeout",
+            context.emitMiddlewareEvent(
+                "middleware.near_timeout",
+                middleware: "TimeoutMiddleware",
                 properties: [
-                    "command_type": commandType,
+                    "commandType": commandType,
                     "duration": duration,
                     "timeout": timeout,
-                    "percentage": percentage,
-                    "timestamp": Date()
-                ] as [String: any Sendable]
+                    "percentage": percentage
+                ]
             )
         }
-        
+
         // Record near-timeout metrics
         if let collector = configuration.metricsCollector {
-            let adapter = collector.asTimeoutMetricsCollector()
-            await adapter.recordNearTimeout(
-                commandType: commandType,
-                duration: duration,
-                threshold: timeout,
-                percentage: percentage,
-                tags: [:]
+            await collector.recordCounter(
+                "pipeline.timeout.near_timeout",
+                value: 1,
+                tags: [
+                    "command": commandType,
+                    "percentage_bucket": String(Int(percentage / 10) * 10)
+                ]
             )
         }
     }
-    
+
     private func emitTimeoutEvent(
         timeoutContext: TimeoutContext,
         context: CommandContext
     ) async {
-        context.emitCustomEvent(
-            "command_timeout",
+        context.emitMiddlewareEvent(
+            PipelineEvent.Name.middlewareTimeout,
+            middleware: "TimeoutMiddleware",
             properties: [
-                "command_type": timeoutContext.commandType,
-                "timeout_seconds": timeoutContext.timeoutDuration,
-                "actual_duration": timeoutContext.actualDuration,
-                "grace_period_used": timeoutContext.gracePeriodUsed,
-                "reason": timeoutContext.reason.rawValue,
-                "timestamp": Date()
-            ] as [String: any Sendable]
+                "commandType": timeoutContext.commandType,
+                "timeoutDuration": timeoutContext.timeoutDuration,
+                "actualDuration": timeoutContext.actualDuration,
+                "gracePeriod": timeoutContext.gracePeriod,
+                "gracePeriodUsed": timeoutContext.gracePeriodUsed,
+                "reason": timeoutContext.reason.rawValue
+            ]
         )
-        
-        // Record timeout metrics
-        if let collector = configuration.metricsCollector {
-            let adapter = collector.asTimeoutMetricsCollector()
-            await adapter.recordTimeout(
-                commandType: timeoutContext.commandType,
-                timeoutDuration: timeoutContext.timeoutDuration,
-                actualDuration: timeoutContext.actualDuration,
-                gracePeriodUsed: timeoutContext.gracePeriodUsed,
-                tags: timeoutContext.metadata
-            )
-        }
+
+        // Metrics recording is handled in handleTimeout method
     }
 }
 
@@ -381,7 +381,7 @@ public extension TimeoutMiddleware {
             )
         )
     }
-    
+
     /// Creates a timeout middleware with a custom timeout resolver
     init(
         defaultTimeout: TimeInterval = 30.0,
@@ -394,7 +394,7 @@ public extension TimeoutMiddleware {
             )
         )
     }
-    
+
     /// Creates a timeout middleware with progressive backoff grace period
     init(
         defaultTimeout: TimeInterval = 30.0,
@@ -407,7 +407,7 @@ public extension TimeoutMiddleware {
             )
         )
     }
-    
+
     /// Creates a timeout middleware with metrics collection
     init(
         defaultTimeout: TimeInterval = 30.0,

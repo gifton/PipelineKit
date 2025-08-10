@@ -6,7 +6,7 @@
 //
 
 import Foundation
-import PipelineKit
+import PipelineKitCore
 
 // MARK: - Test Errors
 
@@ -142,7 +142,6 @@ public extension CommandContext {
         
         return context
     }
-    
 }
 
 // MARK: - Test Commands

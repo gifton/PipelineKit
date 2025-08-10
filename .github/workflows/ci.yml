@@ -7,7 +7,7 @@ on:
     branches: [ main, develop ]
 
 env:
-  SWIFT_VERSION: '5.10'
+  SWIFT_VERSION: '6.0'
 
 jobs:
   lint:
@@ -29,14 +29,14 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-22.04, macos-14, macos-13]
-        swift: ['5.10']
+        swift: ['6.0']
     
     steps:
     - uses: actions/checkout@v4
     
     - name: Setup Swift
       if: matrix.os != 'ubuntu-22.04'
-      uses: swift-actions/setup-swift@v2
+      uses: swift-actions/setup-swift@v2.3.0
       with:
         swift-version: ${{ matrix.swift }}
     
@@ -54,14 +54,14 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-22.04, macos-14, macos-13]
-        swift: ['5.10']
+        swift: ['6.0']
     
     steps:
     - uses: actions/checkout@v4
     
     - name: Setup Swift
       if: matrix.os != 'ubuntu-22.04'
-      uses: swift-actions/setup-swift@v2
+      uses: swift-actions/setup-swift@v2.3.0
       with:
         swift-version: ${{ matrix.swift }}
       
@@ -69,7 +69,7 @@ jobs:
       run: swift package test-unit --enable-code-coverage
       
     - name: Generate coverage report
-      if: matrix.os == 'ubuntu-22.04' && matrix.swift == '5.10'
+      if: matrix.os == 'ubuntu-22.04' && matrix.swift == '6.0'
       run: |
         swift test --filter "PipelineKitCoreTests|PipelineKitMiddlewareTests|PipelineKitSecurityTests" --enable-code-coverage
         # Find the test executable (it's in a different location on Linux)
@@ -81,7 +81,7 @@ jobs:
         fi
       
     - name: Upload coverage to Codecov
-      if: matrix.os == 'ubuntu-22.04' && matrix.swift == '5.10'
+      if: matrix.os == 'ubuntu-22.04' && matrix.swift == '6.0'
       uses: codecov/codecov-action@v3
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
@@ -96,13 +96,13 @@ jobs:
       fail-fast: false
       matrix:
         os: [macos-14]  # Run stress tests on fewer platforms
-        swift: ['5.10']
+        swift: ['6.0']
     
     steps:
     - uses: actions/checkout@v4
     
     - name: Setup Swift
-      uses: swift-actions/setup-swift@v2
+      uses: swift-actions/setup-swift@v2.3.0
       with:
         swift-version: ${{ matrix.swift }}
       
@@ -118,14 +118,14 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-22.04, macos-14]  # Run on key platforms
-        swift: ['5.10']
+        swift: ['6.0']
     
     steps:
     - uses: actions/checkout@v4
     
     - name: Setup Swift
       if: matrix.os != 'ubuntu-22.04'
-      uses: swift-actions/setup-swift@v2
+      uses: swift-actions/setup-swift@v2.3.0
       with:
         swift-version: ${{ matrix.swift }}
       
@@ -141,7 +141,7 @@ jobs:
   #   - uses: actions/checkout@v4
   #   
   #   - name: Setup Swift
-  #     uses: swift-actions/setup-swift@v2
+  #     uses: swift-actions/setup-swift@v2.3.0
   #     with:
   #       swift-version: ${{ env.SWIFT_VERSION }}
   #   
@@ -181,7 +181,7 @@ jobs:
     - uses: actions/checkout@v4
     
     - name: Setup Swift
-      uses: swift-actions/setup-swift@v2
+      uses: swift-actions/setup-swift@v2.3.0
       with:
         swift-version: ${{ env.SWIFT_VERSION }}
     
@@ -201,7 +201,7 @@ jobs:
     - uses: actions/checkout@v4
     
     - name: Setup Swift
-      uses: swift-actions/setup-swift@v2
+      uses: swift-actions/setup-swift@v2.3.0
       with:
         swift-version: ${{ env.SWIFT_VERSION }}
         

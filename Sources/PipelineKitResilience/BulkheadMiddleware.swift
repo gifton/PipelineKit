@@ -1,6 +1,5 @@
 import Foundation
 import PipelineKitCore
-
 /// Middleware that implements the Bulkhead pattern for resource isolation.
 ///
 /// The Bulkhead pattern prevents a failure in one part of the system from
@@ -30,39 +29,39 @@ import PipelineKitCore
 /// let middleware = BulkheadMiddleware(
 ///     maxConcurrency: 10,
 ///     rejectionHandler: { command, context in
-///         await context.emitCustomEvent("bulkhead_rejected", properties: [
-///             "command": String(describing: type(of: command))
+// // ///         await context.emitCustomEvent("bulkhead_rejected", properties: [
+// // ///             "command": String(describing: type(of: command))
 ///         ])
 ///     }
 /// )
 /// ```
 public struct BulkheadMiddleware: Middleware {
     public let priority: ExecutionPriority = .resilience
-    
+
     // MARK: - Configuration
-    
+
     public struct Configuration: Sendable {
         /// Maximum concurrent executions allowed
         public let maxConcurrency: Int
-        
+
         /// Maximum number of commands that can wait in queue
         public let maxQueueSize: Int
-        
+
         /// Timeout for queued commands
         public let queueTimeout: TimeInterval?
-        
+
         /// Strategy for handling rejected commands
         public let rejectionPolicy: RejectionPolicy
-        
+
         /// Custom rejection handler
         public let rejectionHandler: (@Sendable (any Command, CommandContext) async -> Void)?
-        
+
         /// Whether to emit metrics
         public let emitMetrics: Bool
-        
+
         /// Isolation mode
         public let isolationMode: IsolationMode
-        
+
         public init(
             maxConcurrency: Int,
             maxQueueSize: Int = 0,
@@ -81,46 +80,46 @@ public struct BulkheadMiddleware: Middleware {
             self.isolationMode = isolationMode
         }
     }
-    
+
     /// Rejection policy for commands when bulkhead is full
     public enum RejectionPolicy: Sendable {
         /// Immediately fail with an error
         case failFast
-        
+
         /// Queue the command if queue space available
         case queue
-        
+
         /// Use a fallback value
         case fallback(value: @Sendable () async -> Any)
-        
+
         /// Custom rejection logic
         case custom(handler: @Sendable (any Command) async throws -> Any)
     }
-    
+
     /// Isolation mode for the bulkhead
     public enum IsolationMode: Sendable {
         /// Use a semaphore for concurrency control
         case semaphore
-        
+
         /// Use task-based isolation with priority
         case taskGroup(priority: TaskPriority?)
-        
+
         /// Use tagged isolation for different command types
         case tagged(keyExtractor: @Sendable (any Command) -> String)
     }
-    
+
     private let configuration: Configuration
     private let semaphore: AsyncSemaphore
     private let queuedCommands: QueuedCommands
     private let metrics: BulkheadMetricsTracker
-    
+
     public init(configuration: Configuration) {
         self.configuration = configuration
         self.semaphore = AsyncSemaphore(value: configuration.maxConcurrency)
         self.queuedCommands = QueuedCommands(maxSize: configuration.maxQueueSize)
         self.metrics = BulkheadMetricsTracker()
     }
-    
+
     public init(
         maxConcurrency: Int,
         maxQueueSize: Int = 0,
@@ -134,19 +133,19 @@ public struct BulkheadMiddleware: Middleware {
             )
         )
     }
-    
+
     // MARK: - Middleware Implementation
-    
+
     public func execute<T: Command>(
         _ command: T,
         context: CommandContext,
         next: @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
         let startTime = Date()
-        
+
         // Record attempt
         await metrics.recordAttempt()
-        
+
         switch configuration.isolationMode {
         case .semaphore:
             return try await executeSemaphoreIsolation(
@@ -155,7 +154,7 @@ public struct BulkheadMiddleware: Middleware {
                 next: next,
                 startTime: startTime
             )
-            
+
         case let .taskGroup(priority):
             return try await executeTaskGroupIsolation(
                 command,
@@ -164,7 +163,7 @@ public struct BulkheadMiddleware: Middleware {
                 priority: priority,
                 startTime: startTime
             )
-            
+
         case let .tagged(keyExtractor):
             let tag = keyExtractor(command)
             return try await executeTaggedIsolation(
@@ -176,9 +175,9 @@ public struct BulkheadMiddleware: Middleware {
             )
         }
     }
-    
+
     // MARK: - Private Methods
-    
+
     private func executeSemaphoreIsolation<T: Command>(
         _ command: T,
         context: CommandContext,
@@ -187,7 +186,7 @@ public struct BulkheadMiddleware: Middleware {
     ) async throws -> T.Result {
         // Try to acquire semaphore immediately
         let acquired = await semaphore.tryWait()
-        
+
         if acquired {
             // Execute immediately
             await metrics.recordExecution()
@@ -199,7 +198,7 @@ public struct BulkheadMiddleware: Middleware {
             }
             return try await next(command, context)
         }
-        
+
         // Handle rejection based on policy
         switch configuration.rejectionPolicy {
         case .failFast:
@@ -208,7 +207,7 @@ public struct BulkheadMiddleware: Middleware {
             throw PipelineError.bulkheadRejected(
                 reason: "Maximum concurrency limit reached: \(configuration.maxConcurrency)"
             )
-            
+
         case .queue:
             // Try to queue the command
             guard await queuedCommands.canEnqueue() else {
@@ -218,11 +217,11 @@ public struct BulkheadMiddleware: Middleware {
                     reason: "Queue is full: \(configuration.maxQueueSize)"
                 )
             }
-            
+
             // Queue and wait
             await metrics.recordQueued()
             let queueStartTime = Date()
-            
+
             do {
                 // Wait with timeout if configured
                 if let timeout = configuration.queueTimeout {
@@ -234,36 +233,34 @@ public struct BulkheadMiddleware: Middleware {
                                 queueTime: Date().timeIntervalSince(queueStartTime)
                             )
                         }
-                        
+
                         group.addTask {
                             await self.semaphore.wait()
                         }
-                        
+
                         try await group.next()
                         group.cancelAll()
                     }
                 } else {
                     await semaphore.wait()
                 }
-                
+
                 // Execute after waiting
                 await metrics.recordExecution()
                 await metrics.recordQueueTime(Date().timeIntervalSince(queueStartTime))
-                
+
                 defer {
                     Task {
                         await semaphore.signal()
                         await emitMetrics(context: context, startTime: startTime, wasQueued: true)
                     }
                 }
-                
+
                 return try await next(command, context)
-                
-            } catch {
                 await metrics.recordTimeout()
                 throw error
             }
-            
+
         case let .fallback(fallbackProvider):
             await metrics.recordFallback()
             if let result = await fallbackProvider() as? T.Result {
@@ -272,7 +269,7 @@ public struct BulkheadMiddleware: Middleware {
             throw PipelineError.bulkheadRejected(
                 reason: "Fallback failed to provide valid result"
             )
-            
+
         case let .custom(handler):
             await metrics.recordRejection()
             if let result = try await handler(command) as? T.Result {
@@ -283,7 +280,7 @@ public struct BulkheadMiddleware: Middleware {
             )
         }
     }
-    
+
     private func executeTaskGroupIsolation<T: Command>(
         _ command: T,
         context: CommandContext,
@@ -294,7 +291,7 @@ public struct BulkheadMiddleware: Middleware {
         // This is a conceptual implementation using task groups
         // In practice, Swift doesn't provide true thread pool isolation
         // Just delegate to semaphore isolation
-        
+
         return try await executeSemaphoreIsolation(
             command,
             context: context,
@@ -302,7 +299,7 @@ public struct BulkheadMiddleware: Middleware {
             startTime: startTime
         )
     }
-    
+
     private func executeTaggedIsolation<T: Command>(
         _ command: T,
         context: CommandContext,
@@ -313,7 +310,7 @@ public struct BulkheadMiddleware: Middleware {
         // For tagged isolation, we could maintain separate semaphores per tag
         // This is a simplified implementation
         context.metadata["bulkheadTag"] = tag
-        
+
         return try await executeSemaphoreIsolation(
             command,
             context: context,
@@ -321,50 +318,49 @@ public struct BulkheadMiddleware: Middleware {
             startTime: startTime
         )
     }
-    
+
     private func handleRejection(_ command: any Command, context: CommandContext) async {
         if let handler = configuration.rejectionHandler {
             await handler(command, context)
         }
-        
+
         if configuration.emitMetrics {
-            await context.emitCustomEvent(
-                "bulkhead_rejection",
+            context.emitMiddlewareEvent(
+                "middleware.bulkhead_rejected",
+                middleware: "BulkheadMiddleware",
                 properties: [
-                    "command_type": String(describing: type(of: command)),
-                    "max_concurrency": configuration.maxConcurrency,
-                    "timestamp": Date()
+                    "commandType": String(describing: type(of: command))
                 ]
             )
         }
     }
-    
+
     private func emitMetrics(
         context: CommandContext,
         startTime: Date,
         wasQueued: Bool
     ) async {
         guard configuration.emitMetrics else { return }
-        
+
         let duration = Date().timeIntervalSince(startTime)
         let stats = await metrics.getStats()
-        
+
         context.metrics["bulkhead.duration"] = duration
         context.metrics["bulkhead.wasQueued"] = wasQueued
         context.metrics["bulkhead.activeCount"] = stats.activeExecutions
         context.metrics["bulkhead.queuedCount"] = stats.queuedCommands
-        
-        await context.emitCustomEvent(
-            "bulkhead_execution",
-            properties: [
-                "duration": duration,
-                "was_queued": wasQueued,
-                "active_executions": stats.activeExecutions,
-                "queued_commands": stats.queuedCommands,
-                "total_attempts": stats.totalAttempts,
-                "total_rejections": stats.totalRejections
-            ]
-        )
+
+// //         await context.emitCustomEvent(
+// //             "bulkhead_execution",
+// //             properties: [
+// //                 "duration": duration,
+// //                 "was_queued": wasQueued,
+// //                 "active_executions": stats.activeExecutions,
+// //                 "queued_commands": stats.queuedCommands,
+// //                 "total_attempts": stats.totalAttempts,
+// //                 "total_rejections": stats.totalRejections
+// //             ]
+// //         )
     }
 }
 
@@ -374,22 +370,22 @@ public struct BulkheadMiddleware: Middleware {
 private actor AsyncSemaphore {
     private var value: Int
     private var waiters: [CheckedContinuation<Void, Never>] = []
-    
+
     init(value: Int) {
         self.value = value
     }
-    
+
     func wait() async {
         if value > 0 {
             value -= 1
             return
         }
-        
+
         await withCheckedContinuation { continuation in
             waiters.append(continuation)
         }
     }
-    
+
     func tryWait() -> Bool {
         if value > 0 {
             value -= 1
@@ -397,7 +393,7 @@ private actor AsyncSemaphore {
         }
         return false
     }
-    
+
     func signal() {
         if let waiter = waiters.first {
             waiters.removeFirst()
@@ -412,11 +408,11 @@ private actor AsyncSemaphore {
 private actor QueuedCommands {
     private let maxSize: Int
     private var queueSize = 0
-    
+
     init(maxSize: Int) {
         self.maxSize = maxSize
     }
-    
+
     func canEnqueue() -> Bool {
         guard maxSize > 0 else { return false }
         if queueSize < maxSize {
@@ -425,7 +421,7 @@ private actor QueuedCommands {
         }
         return false
     }
-    
+
     func dequeue() {
         if queueSize > 0 {
             queueSize -= 1
@@ -443,44 +439,44 @@ private actor BulkheadMetricsTracker {
     private var activeExecutions = 0
     private var queuedCommands = 0
     private var queueTimes: [TimeInterval] = []
-    
+
     func recordAttempt() {
         totalAttempts += 1
     }
-    
+
     func recordExecution() {
         totalExecutions += 1
         activeExecutions += 1
     }
-    
+
     func recordCompletion() {
         if activeExecutions > 0 {
             activeExecutions -= 1
         }
     }
-    
+
     func recordRejection() {
         totalRejections += 1
     }
-    
+
     func recordTimeout() {
         totalTimeouts += 1
     }
-    
+
     func recordFallback() {
         totalFallbacks += 1
     }
-    
+
     func recordQueued() {
         queuedCommands += 1
     }
-    
+
     func recordDequeued() {
         if queuedCommands > 0 {
             queuedCommands -= 1
         }
     }
-    
+
     func recordQueueTime(_ time: TimeInterval) {
         queueTimes.append(time)
         // Keep only recent queue times
@@ -488,10 +484,10 @@ private actor BulkheadMetricsTracker {
             queueTimes.removeFirst(500)
         }
     }
-    
+
     func getStats() -> BulkheadMetrics {
         let avgQueueTime = queueTimes.isEmpty ? 0 : queueTimes.reduce(0, +) / Double(queueTimes.count)
-        
+
         return BulkheadMetrics(
             totalAttempts: totalAttempts,
             totalExecutions: totalExecutions,
@@ -532,7 +528,7 @@ public extension PipelineError {
             )
         )
     }
-    
+
     /// Error when a command times out in the bulkhead queue
     static func bulkheadTimeout(timeout: TimeInterval, queueTime: TimeInterval) -> PipelineError {
         .middlewareError(

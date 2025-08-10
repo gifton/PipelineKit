@@ -4,8 +4,8 @@ import Foundation
 @main
 struct TestStressTSANCommand: CommandPlugin {
     func performCommand(context: PluginContext, arguments: [String]) async throws {
-        // Get the swift executable path
-        let swiftExec = try context.tool(named: "swift").path
+        // Get the swift executable URL
+        let swiftExec = try context.tool(named: "swift").url
         
         // Print header
         print("🔍 Running Stress Tests with Thread Sanitizer")
@@ -32,9 +32,9 @@ struct TestStressTSANCommand: CommandPlugin {
         
         // Create and run the process
         let process = Process()
-        process.executableURL = URL(fileURLWithPath: swiftExec.string)
+        process.executableURL = swiftExec
         process.arguments = args
-        process.currentDirectoryURL = URL(fileURLWithPath: context.package.directory.string)
+        process.currentDirectoryURL = context.package.directoryURL
         
         // Set environment for TSAN
         var env = ProcessInfo.processInfo.environment

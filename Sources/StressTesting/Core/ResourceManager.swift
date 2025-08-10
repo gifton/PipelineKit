@@ -2,6 +2,13 @@ import Foundation
 import PipelineKitCore
 
 /// Wrapper for Any to make it Sendable
+///
+/// Thread Safety: This type wraps non-Sendable values for use in Sendable contexts.
+/// The wrapped value is immutable after initialization, preventing modification across threads.
+/// However, if the wrapped value contains mutable reference types, those could still cause races.
+/// Invariant: The wrapped value should ideally be a value type or immutable reference type.
+/// Users must ensure the wrapped value is thread-safe for their use case. Consider using
+/// AnySendable from PipelineKitCore instead for better type safety.
 struct SendableAny: @unchecked Sendable {
     let value: Any
     

@@ -623,10 +623,8 @@ public actor BackPressureAsyncSemaphore {
         
         // Cancel all waiters
         let shutdownError = error ?? PipelineError.semaphoreShutdown
-        for waiter in waitersToCancel {
-            if waiter.cancelledFlag.exchange(true, ordering: .acquiring) == false {
-                waiter.continuation.resume(throwing: shutdownError)
-            }
+        for waiter in waitersToCancel where waiter.cancelledFlag.exchange(true, ordering: .acquiring) == false {
+            waiter.continuation.resume(throwing: shutdownError)
         }
         
         // Update counter to reflect cleared queue

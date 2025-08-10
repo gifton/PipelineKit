@@ -6,22 +6,22 @@ import PipelineKitCore
 /// Manages grace periods with cancellation support
 actor GracePeriodManager {
     private var activeTasks: [UUID: Task<Void, Never>] = [:]
-    
+
     /// Starts a grace period that can be cancelled
     func startGracePeriod(
         duration: TimeInterval,
         onExpiration: @escaping @Sendable () async -> Void
     ) -> UUID {
         let id = UUID()
-        
+
         let task = Task {
             // Use multiple shorter sleeps for cancellation responsiveness
             let intervals = 10
             let intervalDuration = duration / Double(intervals)
-            
+
             for _ in 0..<intervals {
                 guard !Task.isCancelled else { return }
-                
+
                 do {
                     try await Task.sleep(nanoseconds: UInt64(intervalDuration * 1_000_000_000))
                 } catch {
@@ -29,17 +29,17 @@ actor GracePeriodManager {
                     return
                 }
             }
-            
+
             // Grace period expired
             if !Task.isCancelled {
                 await onExpiration()
             }
         }
-        
+
         activeTasks[id] = task
         return id
     }
-    
+
     /// Cancels a grace period
     func cancelGracePeriod(_ id: UUID) {
         if let task = activeTasks[id] {
@@ -47,7 +47,7 @@ actor GracePeriodManager {
             activeTasks.removeValue(forKey: id)
         }
     }
-    
+
     /// Cancels all active grace periods
     func cancelAll() {
         for task in activeTasks.values {
@@ -63,25 +63,25 @@ actor GracePeriodManager {
 public struct TimeoutContext: Sendable {
     /// The command that timed out
     public let commandType: String
-    
+
     /// The timeout duration that was exceeded
     public let timeoutDuration: TimeInterval
-    
+
     /// How long the command actually ran before timeout
     public let actualDuration: TimeInterval
-    
+
     /// Grace period configuration
     public let gracePeriod: TimeInterval
-    
+
     /// Whether grace period was used
     public let gracePeriodUsed: Bool
-    
+
     /// Timeout reason
     public let reason: TimeoutReason
-    
+
     /// Additional metadata
     public let metadata: [String: String]
-    
+
     public init(
         commandType: String,
         timeoutDuration: TimeInterval,
@@ -125,7 +125,7 @@ public extension PipelineError {
                 "reason": context.reason.rawValue
             ].merging(context.metadata) { _, new in new }
         )
-        
+
         return .timeout(duration: context.timeoutDuration, context: errorContext)
     }
 }
@@ -138,7 +138,7 @@ public struct GracePeriodBackoff: Sendable {
     public let maxDuration: TimeInterval
     public let multiplier: Double
     public let jitter: Double
-    
+
     public init(
         initialDuration: TimeInterval = 0.5,
         maxDuration: TimeInterval = 5.0,
@@ -150,16 +150,16 @@ public struct GracePeriodBackoff: Sendable {
         self.multiplier = multiplier
         self.jitter = jitter
     }
-    
+
     /// Calculate next backoff duration
     public func nextDuration(attemptNumber: Int) -> TimeInterval {
         let baseDelay = initialDuration * pow(multiplier, Double(attemptNumber - 1))
         let clampedDelay = min(baseDelay, maxDuration)
-        
+
         // Add jitter
         let jitterRange = clampedDelay * jitter
         let randomJitter = Double.random(in: -jitterRange...jitterRange)
-        
+
         return max(0, clampedDelay + randomJitter)
     }
 }
@@ -176,10 +176,10 @@ actor TimeoutStateTracker {
         case completed
         case cancelled
     }
-    
+
     private var state: State = .idle
     private var stateTimestamps: [State: Date] = [:]
-    
+
     func transition(to newState: State) -> Bool {
         // Validate state transition
         let isValid = isValidTransition(from: state, to: newState)
@@ -189,17 +189,17 @@ actor TimeoutStateTracker {
         }
         return isValid
     }
-    
+
     func currentState() -> State {
         return state
     }
-    
+
     func stateHistory() -> [(State, Date)] {
         return stateTimestamps
             .sorted { $0.value < $1.value }
             .map { ($0.key, $0.value) }
     }
-    
+
     private func isValidTransition(from: State, to: State) -> Bool {
         switch (from, to) {
         case (.idle, .executing),

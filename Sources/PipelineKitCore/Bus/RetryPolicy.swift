@@ -84,7 +84,7 @@ public enum DelayStrategy: Sendable {
         case .linear(let base):
             return base * Double(attempt)
             
-        case .exponentialBackoff(let base, let multiplier, let maxDelay, let jitter):
+        case let .exponentialBackoff(base, multiplier, maxDelay, jitter):
             let exponentialDelay = base * pow(multiplier, Double(attempt - 1))
             let cappedDelay = min(exponentialDelay, maxDelay)
             

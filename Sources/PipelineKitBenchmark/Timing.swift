@@ -4,16 +4,16 @@ import Foundation
 public struct Timing: Sendable {
     /// Total time for all iterations.
     public let total: TimeInterval
-    
+
     /// Average time per iteration.
     public let average: TimeInterval
-    
+
     /// Minimum time recorded.
     public let min: TimeInterval
-    
+
     /// Maximum time recorded.
     public let max: TimeInterval
-    
+
     /// Format the timing as a human-readable string.
     public func formatted() -> String {
         let formatter = DurationFormatter()
@@ -70,20 +70,20 @@ public func measure(_ operation: () async throws -> Void) async rethrows -> Time
 /// A high-precision timer for manual timing control.
 public struct Timer: Sendable {
     @usableFromInline
-    internal let startTime: CFAbsoluteTime
-    
+    internal let startTime: CFAbsoluteTime // swiftlint:disable:this attributes
+
     /// Create a new timer starting now.
     @inlinable
     public init() {
         self.startTime = CFAbsoluteTimeGetCurrent()
     }
-    
+
     /// Get the elapsed time since the timer was created.
     @inlinable
-    public var elapsed: TimeInterval {
+    public var elapsed: TimeInterval { // swiftlint:disable:this attributes
         CFAbsoluteTimeGetCurrent() - startTime
     }
-    
+
     /// Create a new lap timer from this point.
     @inlinable
     public func lap() -> Timer {
@@ -106,7 +106,7 @@ struct DurationFormatter {
             return String(format: "%.3fs", duration)
         }
     }
-    
+
     /// Format throughput (operations per second).
     func formatThroughput(_ operationsPerSecond: Double) -> String {
         switch operationsPerSecond {
@@ -118,7 +118,7 @@ struct DurationFormatter {
             return String(format: "%.1fM ops/sec", operationsPerSecond / 1_000_000)
         }
     }
-    
+
     /// Format latency with appropriate precision.
     func formatLatency(_ latency: TimeInterval) -> String {
         switch latency {
@@ -142,7 +142,7 @@ public extension Array where Element == TimeInterval {
         let totalTime = reduce(0, +)
         return totalTime > 0 ? Double(count) / totalTime : 0
     }
-    
+
     /// Calculate average latency.
     var averageLatency: TimeInterval {
         isEmpty ? 0 : reduce(0, +) / Double(count)

@@ -1,6 +1,5 @@
 import Foundation
 import PipelineKitCore
-import PipelineKitObservability
 
 /// Middleware that provides resilience patterns including retry and circuit breaker
 ///
@@ -25,6 +24,13 @@ import PipelineKitObservability
 ///
 /// This appears to be a Swift compiler limitation with optional actor references rather
 /// than an actual thread safety concern. All components are genuinely thread-safe.
+///
+/// Thread Safety: This type is thread-safe because all properties are immutable let constants.
+/// The CircuitBreaker is an actor providing its own synchronization. The RetryPolicy is a
+/// Sendable struct, and the name is a String (inherently Sendable).
+/// Invariant: All properties must be initialized with thread-safe values. The CircuitBreaker
+/// actor provides isolation, and the RetryPolicy must conform to Sendable. No mutable state
+/// exists after initialization.
 public final class ResilientMiddleware: Middleware, @unchecked Sendable {
     public let priority: ExecutionPriority = .errorHandling
     private let retryPolicy: RetryPolicy
@@ -49,12 +55,11 @@ public final class ResilientMiddleware: Middleware, @unchecked Sendable {
         // Check circuit breaker first
         if let breaker = circuitBreaker {
             guard await breaker.allowRequest() else {
-                // Emit custom event for circuit breaker rejection
-                await context.emitCustomEvent(
-                    "resilience.circuit_breaker.rejected",
+                context.emitMiddlewareEvent(
+                    PipelineEvent.Name.middlewareCircuitOpen,
+                    middleware: "ResilientMiddleware",
                     properties: [
-                        "middleware": name,
-                        "reason": "circuit_open"
+                        "commandType": String(describing: type(of: command))
                     ]
                 )
                 throw PipelineError.resilience(reason: .circuitBreakerOpen)
@@ -68,10 +73,12 @@ public final class ResilientMiddleware: Middleware, @unchecked Sendable {
             if let breaker = circuitBreaker {
                 await breaker.recordSuccess()
                 
-                // Emit success event
-                await context.emitCustomEvent(
-                    "resilience.circuit_breaker.success",
-                    properties: ["middleware": name]
+                context.emitMiddlewareEvent(
+                    "middleware.circuit_breaker.success",
+                    middleware: "ResilientMiddleware",
+                    properties: [
+                        "commandType": String(describing: type(of: command))
+                    ]
                 )
             }
             
@@ -81,12 +88,13 @@ public final class ResilientMiddleware: Middleware, @unchecked Sendable {
             if let breaker = circuitBreaker {
                 await breaker.recordFailure()
                 
-                // Emit failure event
-                await context.emitCustomEvent(
-                    "resilience.circuit_breaker.failure",
+                context.emitMiddlewareEvent(
+                    "middleware.circuit_breaker.failure",
+                    middleware: "ResilientMiddleware",
                     properties: [
-                        "middleware": name,
-                        "error": error.localizedDescription
+                        "commandType": String(describing: type(of: command)),
+                        "errorType": String(describing: type(of: error)),
+                        "errorMessage": error.localizedDescription
                     ]
                 )
             }
@@ -102,19 +110,19 @@ public final class ResilientMiddleware: Middleware, @unchecked Sendable {
         var lastError: Error?
         let startTime = Date()
         let metadata = context.commandMetadata
-        let userId = (metadata as? DefaultCommandMetadata)?.userId ?? "unknown"
+        _ = (metadata as? DefaultCommandMetadata)?.userId ?? "unknown"
         
         for attempt in 1...retryPolicy.maxAttempts {
             do {
                 // Emit retry attempt event for attempts > 1
                 if attempt > 1 {
-                    await context.emitCustomEvent(
-                        "resilience.retry.attempt",
+                    context.emitMiddlewareEvent(
+                        PipelineEvent.Name.middlewareRetry,
+                        middleware: "ResilientMiddleware",
                         properties: [
-                            "middleware": name,
+                            "commandType": String(describing: type(of: command)),
                             "attempt": attempt,
-                            "userId": userId,
-                            "command": String(describing: type(of: command))
+                            "maxAttempts": retryPolicy.maxAttempts
                         ]
                     )
                 }
@@ -123,15 +131,14 @@ public final class ResilientMiddleware: Middleware, @unchecked Sendable {
             } catch {
                 lastError = error
                 
-                // Emit retry failure event
-                await context.emitCustomEvent(
-                    "resilience.retry.failed",
+                context.emitMiddlewareEvent(
+                    "middleware.retry_failed",
+                    middleware: "ResilientMiddleware",
                     properties: [
-                        "middleware": name,
+                        "commandType": String(describing: type(of: command)),
                         "attempt": attempt,
-                        "userId": userId,
-                        "error": error.localizedDescription,
-                        "elapsed": Date().timeIntervalSince(startTime)
+                        "errorType": String(describing: type(of: error)),
+                        "errorMessage": error.localizedDescription
                     ]
                 )
                 
@@ -147,13 +154,14 @@ public final class ResilientMiddleware: Middleware, @unchecked Sendable {
                 guard !recoveryContext.isFinalAttempt && retryPolicy.shouldRetry(error) else {
                     // Emit exhausted event if we're done retrying
                     if recoveryContext.isFinalAttempt {
-                        await context.emitCustomEvent(
-                            "resilience.retry.exhausted",
+                        context.emitMiddlewareEvent(
+                            "middleware.retry_exhausted",
+                            middleware: "ResilientMiddleware",
                             properties: [
-                                "middleware": name,
-                                "totalAttempts": attempt,
-                                "userId": userId,
-                                "totalElapsed": Date().timeIntervalSince(startTime)
+                                "commandType": String(describing: type(of: command)),
+                                "attempts": retryPolicy.maxAttempts,
+                                "errorType": String(describing: type(of: error)),
+                                "errorMessage": error.localizedDescription
                             ]
                         )
                     }

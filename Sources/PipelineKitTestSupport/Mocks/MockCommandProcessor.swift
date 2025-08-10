@@ -1,5 +1,5 @@
 import Foundation
-import PipelineKit
+import PipelineKitCore
 
 /// Mock command processor for testing command transformation
 public actor MockCommandProcessor {

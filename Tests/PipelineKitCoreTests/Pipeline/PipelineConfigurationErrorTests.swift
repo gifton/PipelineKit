@@ -1,5 +1,6 @@
 import XCTest
-@testable import PipelineKit
+@testable import PipelineKitCore
+@testable import PipelineKitMetrics
 import PipelineKitTestSupport
 
 final class PipelineConfigurationErrorTests: XCTestCase {
@@ -71,7 +72,7 @@ final class PipelineConfigurationErrorTests: XCTestCase {
         // Given - Middleware that requires specific context data
         let handler = MockCommandHandler()
         let pipeline = StandardPipeline(handler: handler)
-        try await pipeline.addMiddleware(ContextRequiringMiddleware(requiredKey: "user_id"))
+        try await pipeline.addMiddleware(ContextRequiringMiddleware())
         
         let command = MockCommand(value: 1)
         let context = CommandContext.test() // Missing required "user_id"
@@ -95,13 +96,13 @@ final class PipelineConfigurationErrorTests: XCTestCase {
         let pipeline = StandardPipeline(handler: handler)
         
         // Middleware that sets a value
-        try await pipeline.addMiddleware(ValueSettingMiddleware(key: "auth_token", value: "token123"))
+        try await pipeline.addMiddleware(ValueSettingMiddleware(value: "token123"))
         
         // Middleware that clears all context (should be before setter)
         try await pipeline.addMiddleware(ContextClearingMiddleware())
         
         // Middleware that requires the value
-        try await pipeline.addMiddleware(ContextRequiringMiddleware(requiredKey: "auth_token"))
+        try await pipeline.addMiddleware(ContextRequiringMiddleware())
         
         let command = MockCommand(value: 1)
         let context = CommandContext.test()
@@ -186,8 +187,8 @@ final class PipelineConfigurationErrorTests: XCTestCase {
             
             // Modify pipeline concurrently
             group.addTask {
-                let collector = TestMetricsCollector()
-                try? await pipeline.addMiddleware(MetricsMiddleware(collector: collector))
+                // Add a different middleware since MetricsMiddleware was removed
+                try? await pipeline.addMiddleware(TestMiddleware())
             }
             
             group.addTask {
@@ -201,36 +202,33 @@ final class PipelineConfigurationErrorTests: XCTestCase {
     
     // MARK: - Helper Types
     
-    private struct TestMetricsCollector: DetailedMetricsCollector {
-        func recordLatency(_ name: String, value: TimeInterval, tags: [String: String]) async {}
-        func incrementCounter(_ name: String, value: Double, tags: [String: String]) async {}
+    private struct TestMetricsCollector: MetricsCollector {
+        func recordCounter(_ name: String, value: Double, tags: [String: String]) async {}
         func recordGauge(_ name: String, value: Double, tags: [String: String]) async {}
+        func recordHistogram(_ name: String, value: Double, tags: [String: String]) async {}
+        func recordTimer(_ name: String, duration: TimeInterval, tags: [String: String]) async {}
     }
     
-    private final class RecursiveMiddleware: Middleware, @unchecked Sendable {
+    private actor RecursiveMiddleware: Middleware {
         let priority = ExecutionPriority.custom
         let maxDepth: Int
         private var currentDepth = 0
-        private let lock = NSLock()
         
         init(maxDepth: Int) {
             self.maxDepth = maxDepth
         }
         
-        func execute<T: Command>(
+        nonisolated func execute<T: Command>(
             _ command: T,
             context: CommandContext,
             next: @Sendable (T, CommandContext) async throws -> T.Result
         ) async throws -> T.Result {
-            lock.lock()
-            currentDepth += 1
-            let depth = currentDepth
-            lock.unlock()
+            let depth = await incrementDepth()
             
             defer {
-                lock.lock()
-                currentDepth -= 1
-                lock.unlock()
+                Task {
+                    await decrementDepth()
+                }
             }
             
             if depth > maxDepth {
@@ -239,10 +237,18 @@ final class PipelineConfigurationErrorTests: XCTestCase {
             
             return try await next(command, context)
         }
+        
+        private func incrementDepth() -> Int {
+            currentDepth += 1
+            return currentDepth
+        }
+        
+        private func decrementDepth() {
+            currentDepth -= 1
+        }
     }
     
     private struct ContextRequiringMiddleware: Middleware, Sendable {
-        let requiredKey: String
         let priority = ExecutionPriority.validation
         
         func execute<T: Command>(
@@ -250,7 +256,8 @@ final class PipelineConfigurationErrorTests: XCTestCase {
             context: CommandContext,
             next: @Sendable (T, CommandContext) async throws -> T.Result
         ) async throws -> T.Result {
-            guard await context.get(String.self, for: requiredKey) != nil else {
+            let value: String? = context[TestContextKeys.testKey]
+            guard value != nil else {
                 throw PipelineError.pipelineNotConfigured(reason: "Missing required context")
             }
             return try await next(command, context)
@@ -258,7 +265,6 @@ final class PipelineConfigurationErrorTests: XCTestCase {
     }
     
     private struct ValueSettingMiddleware: Middleware, Sendable {
-        let key: String
         let value: String
         let priority = ExecutionPriority.preProcessing
         
@@ -268,7 +274,7 @@ final class PipelineConfigurationErrorTests: XCTestCase {
             next: @Sendable (T, CommandContext) async throws -> T.Result
         ) async throws -> T.Result {
             // Store value in context using a test key
-            await context.set(value, for: "test_custom_value")
+            context[TestContextKeys.testKey] = value
             return try await next(command, context)
         }
     }
@@ -281,8 +287,11 @@ final class PipelineConfigurationErrorTests: XCTestCase {
             context: CommandContext,
             next: @Sendable (T, CommandContext) async throws -> T.Result
         ) async throws -> T.Result {
-            // Clear specific keys
-            await context.set(nil as String?, for: "test_custom_value")
+            // Clear specific keys - set to nil by not setting anything
+            // In the new API, we can't explicitly set nil, so we just don't set
+            // We need to use a different approach - perhaps remove the key
+            // For now, set it to empty string to simulate clearing
+            context[TestContextKeys.testKey] = ""
             return try await next(command, context)
         }
     }

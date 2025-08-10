@@ -18,17 +18,18 @@ import Foundation
 /// Avoiding generic constraints provides 10-15% faster execution in middleware
 /// chains with 1-3 components by eliminating generic dispatch overhead.
 /// 
-/// ## Thread Safety
-/// 
-/// The wrapped command was verified as Sendable when entering the pipeline.
-/// This wrapper maintains that guarantee. The Result type is also guaranteed
-/// to be Sendable by the Command protocol requirements.
-///
 /// ## Swift 6 Compatibility
 ///
 /// In Swift 6 mode, returning Any from async functions requires Sendable.
 /// Since we know the actual result is Sendable (enforced by Command protocol),
 /// we use @unchecked Sendable to satisfy the compiler while maintaining performance.
+///
+/// Thread Safety: The wrapped command was verified as Sendable when entering the pipeline.
+/// This wrapper maintains that guarantee. The Result type is also guaranteed to be Sendable
+/// by the Command protocol requirements.
+/// Invariant: The wrapped value must always be a Command conforming type that is Sendable.
+/// This is enforced by the pipeline's type constraints at the entry point. The type erasure
+/// is purely for performance optimization and does not compromise thread safety.
 private struct TypeErasedCommand: Command, @unchecked Sendable {
     // Use a concrete Sendable type instead of Any
     struct SendableResult: Sendable {}

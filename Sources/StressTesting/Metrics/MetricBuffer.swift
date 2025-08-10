@@ -2,7 +2,6 @@ import Foundation
 #if canImport(os)
 import os
 #endif
-import PipelineKitObservability
 import PipelineKit
 
 /// A lock-free ring buffer for high-performance metric collection.

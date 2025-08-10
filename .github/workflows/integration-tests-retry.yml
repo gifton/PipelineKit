@@ -24,7 +24,7 @@ jobs:
     - name: Setup Swift (Attempt 1)
       id: swift1
       continue-on-error: true
-      uses: swift-actions/setup-swift@v2
+      uses: swift-actions/setup-swift@v2.3.0
       with:
         swift-version: ${{ env.SWIFT_VERSION }}
     
@@ -32,7 +32,7 @@ jobs:
       if: steps.swift1.outcome == 'failure'
       id: swift2
       continue-on-error: true
-      uses: swift-actions/setup-swift@v2
+      uses: swift-actions/setup-swift@v2.3.0
       with:
         swift-version: ${{ env.SWIFT_VERSION }}
     

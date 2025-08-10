@@ -5,14 +5,14 @@ import Foundation
 public final class GenericMockPipeline<C, H> {
     public init() {}
     public init(handler: H) {}
-    
+
     public func addMiddleware(_ middleware: any Middleware) {}
     public func use(_ middleware: any Middleware) {}
-    
+
     public func registerHandler<Command: PipelineKit.Command>(
         _ handler: @escaping (Command, CommandContext) async throws -> Command.Result
     ) {}
-    
+
     public func execute<Command: PipelineKit.Command>(
         _ command: Command,
         context: CommandContext
@@ -20,3 +20,4 @@ public final class GenericMockPipeline<C, H> {
         fatalError("Mock execute not implemented")
     }
 }
+

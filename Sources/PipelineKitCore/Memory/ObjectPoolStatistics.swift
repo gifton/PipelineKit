@@ -7,40 +7,40 @@ import Foundation
 public struct ObjectPoolStatistics: Sendable {
     /// Total number of objects allocated by the pool.
     public let totalAllocated: Int
-    
+
     /// Number of objects currently available in the pool.
     public let currentlyAvailable: Int
-    
+
     /// Number of objects currently in use (checked out).
     public let currentlyInUse: Int
-    
+
     /// Total number of acquire operations.
     public let totalAcquisitions: Int
-    
+
     /// Total number of release operations.
     public let totalReleases: Int
-    
+
     /// Number of times an object was reused from the pool.
     public let hits: Int
-    
+
     /// Number of times a new object had to be created.
     public let misses: Int
-    
+
     /// Cache hit rate (0.0 to 1.0).
     public var hitRate: Double {
         guard totalAcquisitions > 0 else { return 0.0 }
         return Double(hits) / Double(totalAcquisitions)
     }
-    
+
     /// Number of objects evicted due to pool size limits.
     public let evictions: Int
-    
+
     /// Peak number of objects in use at one time.
     public let peakUsage: Int
-    
+
     /// Average time objects spend in the pool (if tracked).
     public let averagePoolTime: TimeInterval?
-    
+
     /// Creates a statistics snapshot.
     public init(
         totalAllocated: Int = 0,
@@ -65,7 +65,7 @@ public struct ObjectPoolStatistics: Sendable {
         self.peakUsage = peakUsage
         self.averagePoolTime = averagePoolTime
     }
-    
+
     /// Empty statistics for initial state.
     public static let empty = ObjectPoolStatistics()
 }
@@ -84,7 +84,7 @@ struct MutablePoolStatistics {
     var misses: Int = 0
     var evictions: Int = 0
     var peakUsage: Int = 0
-    
+
     /// Creates an immutable snapshot of current statistics.
     func snapshot() -> ObjectPoolStatistics {
         ObjectPoolStatistics(
@@ -99,12 +99,12 @@ struct MutablePoolStatistics {
             peakUsage: peakUsage
         )
     }
-    
+
     /// Records an acquisition (object checked out).
     mutating func recordAcquisition(wasHit: Bool) {
         totalAcquisitions += 1
         currentlyInUse += 1
-        
+
         if wasHit {
             hits += 1
             currentlyAvailable -= 1
@@ -112,17 +112,17 @@ struct MutablePoolStatistics {
             misses += 1
             totalAllocated += 1
         }
-        
+
         if currentlyInUse > peakUsage {
             peakUsage = currentlyInUse
         }
     }
-    
+
     /// Records a release (object returned).
     mutating func recordRelease(wasEvicted: Bool) {
         totalReleases += 1
         currentlyInUse -= 1
-        
+
         if wasEvicted {
             evictions += 1
         } else {

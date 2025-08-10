@@ -26,7 +26,7 @@ internal func withTimeout<T: Sendable>(
                 return .failure(error)
             }
         }
-        
+
         // Add the timeout task
         group.addTask {
             do {
@@ -37,26 +37,26 @@ internal func withTimeout<T: Sendable>(
                 return .cancelled
             }
         }
-        
+
         // Wait for the first result
         guard let firstResult = try await group.next() else {
             throw TimeoutError.noResult
         }
-        
+
         // Cancel all remaining tasks (cooperative cancellation)
         group.cancelAll()
-        
+
         // Handle the result
         switch firstResult {
         case .success(let value):
             return value
-            
+
         case .timeout:
             throw TimeoutError.exceeded(duration: seconds)
-            
+
         case .failure(let error):
             throw error
-            
+
         case .cancelled:
             // This should only happen if we explicitly cancelled
             // In practice, we'll get another result from the group
@@ -89,7 +89,7 @@ internal func withTimeoutAndGrace<T: Sendable>(
     try await withThrowingTaskGroup(of: TimeoutRaceResult<T>.self) { group in
         // Track timing
         let startTime = Date()
-        
+
         // Add the main operation task
         group.addTask {
             do {
@@ -99,7 +99,7 @@ internal func withTimeoutAndGrace<T: Sendable>(
                 return .failure(error)
             }
         }
-        
+
         // Add the initial timeout task
         group.addTask {
             do {
@@ -109,24 +109,24 @@ internal func withTimeoutAndGrace<T: Sendable>(
                 return .cancelled
             }
         }
-        
+
         // Wait for the first result
         guard let firstResult = try await group.next() else {
             throw TimeoutError.noResult
         }
-        
+
         switch firstResult {
         case .success(let value):
             // Operation completed within timeout
             group.cancelAll()
             return value
-            
+
         case .timeout:
             // Initial timeout reached, start grace period
             if let onGracePeriodStart = onGracePeriodStart {
                 await onGracePeriodStart()
             }
-            
+
             // Add grace period task
             group.addTask {
                 do {
@@ -136,20 +136,20 @@ internal func withTimeoutAndGrace<T: Sendable>(
                     return .cancelled
                 }
             }
-            
+
             // Wait for either operation completion or grace period expiry
             guard let gracePeriodResult = try await group.next() else {
                 throw TimeoutError.noResult
             }
-            
+
             group.cancelAll()
-            
+
             switch gracePeriodResult {
             case .success(let value):
                 // Operation completed during grace period
                 // Return the value - caller can check timing if needed
                 return value
-                
+
             case .timeout:
                 // Grace period also expired
                 let totalDuration = Date().timeIntervalSince(startTime)
@@ -158,19 +158,19 @@ internal func withTimeoutAndGrace<T: Sendable>(
                     gracePeriod: gracePeriod,
                     totalDuration: totalDuration
                 )
-                
+
             case .failure(let error):
                 throw error
-                
+
             case .cancelled:
                 // Shouldn't happen in grace period
                 throw CancellationError()
             }
-            
+
         case .failure(let error):
             group.cancelAll()
             throw error
-            
+
         case .cancelled:
             // Timeout task was cancelled, get the operation result
             if let secondResult = try await group.next() {
@@ -190,7 +190,7 @@ internal enum TimeoutRaceResult<T: Sendable>: Sendable {
     case timeout
     case failure(Error)
     case cancelled
-    
+
     func get() throws -> T {
         switch self {
         case .success(let value):
@@ -209,14 +209,14 @@ internal enum TimeoutRaceResult<T: Sendable>: Sendable {
 public enum TimeoutError: Error {
     /// Operation exceeded the specified timeout
     case exceeded(duration: TimeInterval)
-    
+
     /// Grace period expired without completion
     case gracePeriodExpired(
         timeout: TimeInterval,
         gracePeriod: TimeInterval,
         totalDuration: TimeInterval
     )
-    
+
     /// No result from task group (shouldn't happen)
     case noResult
 }

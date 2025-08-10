@@ -29,9 +29,9 @@ jobs:
         fetch-depth: 0
     
     - name: Setup Swift
-      uses: swift-actions/setup-swift@v2
+      uses: swift-actions/setup-swift@v2.3.0
       with:
-        swift-version: '5.10'
+        swift-version: '6.0'
     
     - name: Cache Swift packages
       uses: actions/cache@v3
@@ -44,20 +44,20 @@ jobs:
           ${{ runner.os }}-swift-
     
     - name: Build benchmarks
-      run: swift build --product PipelineKitBenchmarks -c release
+      run: swift build --product Benchmarks -c release
     
     # Baseline functionality not yet implemented in benchmark executable
     
     - name: Run benchmarks (quick mode for PRs)
       if: github.event_name == 'pull_request'
       run: |
-        .build/release/PipelineKitBenchmarks --quick > benchmark-output.txt 2>&1 || true
+        .build/release/Benchmarks --quick > benchmark-output.txt 2>&1 || true
         cat benchmark-output.txt
     
     - name: Run benchmarks (full mode for main)
       if: github.event_name != 'pull_request'
       run: |
-        .build/release/PipelineKitBenchmarks > benchmark-output.txt 2>&1 || true
+        .build/release/Benchmarks > benchmark-output.txt 2>&1 || true
         cat benchmark-output.txt
     
     # Baseline functionality not yet implemented in benchmark executable
@@ -97,8 +97,8 @@ jobs:
     # Ubuntu has Swift pre-installed in runner
     
     - name: Build benchmarks
-      run: swift build --product PipelineKitBenchmarks -c release
+      run: swift build --product Benchmarks -c release
     
     - name: Run benchmarks (smoke test)
       run: |
-        .build/release/PipelineKitBenchmarks CommandContext
+        .build/release/Benchmarks CommandContext

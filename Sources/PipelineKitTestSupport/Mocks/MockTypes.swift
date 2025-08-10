@@ -1,5 +1,4 @@
 import Foundation
-import PipelineKit
 import PipelineKitCore
 
 // MARK: - Mock Command

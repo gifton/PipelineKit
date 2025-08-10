@@ -31,24 +31,24 @@ import Foundation
 /// overhead for the acquire/release operations.
 public actor ObjectPool<T: Sendable> {
     // MARK: - Properties
-    
+
     /// Pool configuration.
     public let configuration: ObjectPoolConfiguration
-    
+
     /// Factory closure to create new instances.
     private let factory: @Sendable () -> T
-    
+
     /// Reset closure to prepare objects for reuse.
     private let reset: @Sendable (T) -> Void
-    
+
     /// Available objects ready for reuse.
     private var available: [T] = []
-    
+
     /// Statistics tracking (if enabled).
     private var stats: MutablePoolStatistics
-    
+
     // MARK: - Initialization
-    
+
     /// Creates a new object pool.
     ///
     /// - Parameters:
@@ -64,13 +64,13 @@ public actor ObjectPool<T: Sendable> {
         self.factory = factory
         self.reset = reset
         self.stats = MutablePoolStatistics()
-        
+
         // Reserve capacity for better performance
         self.available.reserveCapacity(configuration.maxSize)
     }
-    
+
     // MARK: - Public Methods
-    
+
     /// Acquires an object from the pool.
     ///
     /// If an object is available in the pool, it will be reset and returned.
@@ -80,7 +80,7 @@ public actor ObjectPool<T: Sendable> {
     public func acquire() -> T {
         let object: T
         let wasHit: Bool
-        
+
         if let pooled = available.popLast() {
             // Reuse from pool
             reset(pooled)
@@ -91,14 +91,14 @@ public actor ObjectPool<T: Sendable> {
             object = factory()
             wasHit = false
         }
-        
+
         if configuration.trackStatistics {
             stats.recordAcquisition(wasHit: wasHit)
         }
-        
+
         return object
     }
-    
+
     /// Releases an object back to the pool.
     ///
     /// The object will be stored for reuse if the pool hasn't reached
@@ -107,7 +107,7 @@ public actor ObjectPool<T: Sendable> {
     /// - Parameter object: The object to return to the pool
     public func release(_ object: T) {
         let wasEvicted: Bool
-        
+
         if available.count < configuration.maxSize {
             // Return to pool
             available.append(object)
@@ -116,24 +116,24 @@ public actor ObjectPool<T: Sendable> {
             // Pool is full, discard
             wasEvicted = true
         }
-        
+
         if configuration.trackStatistics {
             stats.recordRelease(wasEvicted: wasEvicted)
         }
     }
-    
+
     /// Gets current pool statistics.
     ///
     /// - Returns: A snapshot of current statistics, or empty if tracking is disabled
     public func statistics() -> ObjectPoolStatistics {
         guard configuration.trackStatistics else { return .empty }
-        
+
         // Update current counts
         stats.currentlyAvailable = available.count
-        
+
         return stats.snapshot()
     }
-    
+
     /// Clears all objects from the pool.
     ///
     /// This removes all available objects, allowing them to be deallocated.
@@ -144,7 +144,7 @@ public actor ObjectPool<T: Sendable> {
             stats.currentlyAvailable = 0
         }
     }
-    
+
     /// Pre-allocates objects up to the specified count.
     ///
     /// This can be useful to warm up the pool before heavy usage.
@@ -153,9 +153,9 @@ public actor ObjectPool<T: Sendable> {
     public func preallocate(count: Int) {
         let targetCount = min(count, configuration.maxSize)
         let toAllocate = targetCount - available.count
-        
+
         guard toAllocate > 0 else { return }
-        
+
         for _ in 0..<toAllocate {
             available.append(factory())
             if configuration.trackStatistics {
@@ -164,9 +164,9 @@ public actor ObjectPool<T: Sendable> {
             }
         }
     }
-    
+
     // MARK: - Water Mark Support
-    
+
     /// Shrinks the pool to the specified size.
     ///
     /// This is exposed for manual pool management.
@@ -174,10 +174,10 @@ public actor ObjectPool<T: Sendable> {
     /// - Parameter targetSize: Target number of objects to keep
     public func shrink(to targetSize: Int) {
         guard available.count > targetSize else { return }
-        
+
         let toRemove = available.count - targetSize
         available.removeLast(toRemove)
-        
+
         if configuration.trackStatistics {
             stats.evictions += toRemove
             stats.currentlyAvailable = available.count
@@ -196,7 +196,7 @@ public extension ObjectPool {
     init(factory: @escaping @Sendable () -> T) {
         self.init(configuration: .default, factory: factory)
     }
-    
+
     /// Creates a pool with a specific size limit.
     ///
     /// - Parameters:

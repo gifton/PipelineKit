@@ -1,8 +1,14 @@
 import Foundation
-@testable import PipelineKit
+import PipelineKitCore
 
 /// Test utility for validating timeout behavior
 /// Provides controlled timeout scenarios for testing
+///
+/// Thread Safety: This type is thread-safe because it has no mutable state. All methods
+/// are stateless operations that create new tasks or sleep without modifying any instance
+/// variables. The class is essentially a namespace for test utility functions.
+/// Invariant: This class must remain stateless. Any future additions should use local
+/// variables or create new instances rather than storing mutable state.
 public final class TimeoutTester: @unchecked Sendable {
     public init() {}
     

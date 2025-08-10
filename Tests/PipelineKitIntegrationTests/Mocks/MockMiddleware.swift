@@ -5,9 +5,9 @@ import Foundation
 
 public struct MetricsMiddleware: Middleware {
     public let priority: ExecutionPriority = .postProcessing
-    
+
     public init() {}
-    
+
     public func execute<T: Command>(
         _ command: T,
         context: CommandContext,
@@ -31,9 +31,9 @@ public struct MetricsMiddleware: Middleware {
 
 public struct LoggingMiddleware: Middleware {
     public let priority: ExecutionPriority = .postProcessing
-    
+
     public init() {}
-    
+
     public func execute<T: Command>(
         _ command: T,
         context: CommandContext,
@@ -41,7 +41,7 @@ public struct LoggingMiddleware: Middleware {
     ) async throws -> T.Result {
         let requestId = UUID().uuidString
         await context.set(requestId, for: "request_id")
-        
+
         let startTime = Date()
         do {
             let result = try await next(command, context)
@@ -58,9 +58,9 @@ public struct LoggingMiddleware: Middleware {
 
 public struct RequestIDMiddleware: Middleware {
     public let priority: ExecutionPriority = .authentication
-    
+
     public init() {}
-    
+
     public func execute<T: Command>(
         _ command: T,
         context: CommandContext,
@@ -79,11 +79,11 @@ public struct RequestIDMiddleware: Middleware {
 public struct MockCircuitBreakerMiddleware: Middleware {
     public let priority: ExecutionPriority = .preProcessing
     private let breaker: CircuitBreaker
-    
+
     public init(breaker: CircuitBreaker) {
         self.breaker = breaker
     }
-    
+
     public func execute<T: Command>(
         _ command: T,
         context: CommandContext,
@@ -92,7 +92,7 @@ public struct MockCircuitBreakerMiddleware: Middleware {
         guard await breaker.allowRequest() else {
             throw CircuitBreakerError.circuitOpen
         }
-        
+
         do {
             let result = try await next(command, context)
             await breaker.recordSuccess()
@@ -108,41 +108,41 @@ public struct RetryMiddleware: Middleware {
     public let priority: ExecutionPriority = .errorHandling
     private let maxAttempts: Int
     private let backoffStrategy: BackoffStrategy
-    
+
     public enum BackoffStrategy: Sendable {
         case constant(delay: TimeInterval)
         case linear(baseDelay: TimeInterval)
         case exponential(baseDelay: TimeInterval)
     }
-    
+
     public init(maxAttempts: Int, backoffStrategy: BackoffStrategy = .constant(delay: 0.1)) {
         self.maxAttempts = maxAttempts
         self.backoffStrategy = backoffStrategy
     }
-    
+
     public func execute<T: Command>(
         _ command: T,
         context: CommandContext,
         next: @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
         var lastError: Error?
-        
+
         for attempt in 1...maxAttempts {
             do {
                 return try await next(command, context)
             } catch {
                 lastError = error
-                
+
                 if attempt < maxAttempts {
                     let delay = calculateDelay(for: attempt)
                     try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
                 }
             }
         }
-        
+
         throw lastError ?? PipelineError.executionFailed(message: "All retries failed", context: nil)
     }
-    
+
     private func calculateDelay(for attempt: Int) -> TimeInterval {
         switch backoffStrategy {
         case .constant(let delay):
@@ -158,11 +158,11 @@ public struct RetryMiddleware: Middleware {
 public struct TimeoutMiddleware: Middleware {
     public let priority: ExecutionPriority = .preProcessing
     private let timeout: TimeInterval
-    
+
     public init(timeout: TimeInterval) {
         self.timeout = timeout
     }
-    
+
     public func execute<T: Command>(
         _ command: T,
         context: CommandContext,
@@ -179,11 +179,11 @@ public struct TimeoutMiddleware: Middleware {
 public struct ConcurrencyLimitingMiddleware: Middleware {
     public let priority: ExecutionPriority = .preProcessing
     private let semaphore: MockAsyncSemaphore
-    
+
     public init(semaphore: MockAsyncSemaphore) {
         self.semaphore = semaphore
     }
-    
+
     public func execute<T: Command>(
         _ command: T,
         context: CommandContext,
@@ -203,9 +203,9 @@ public struct ConcurrencyLimitingMiddleware: Middleware {
 
 public struct SanitizationMiddleware: Middleware {
     public let priority: ExecutionPriority = .validation
-    
+
     public init() {}
-    
+
     public func execute<T: Command>(
         _ command: T,
         context: CommandContext,
@@ -221,22 +221,22 @@ public struct SanitizationMiddleware: Middleware {
 public struct CachingMiddleware: Middleware {
     public let priority: ExecutionPriority = .preProcessing
     private let cache: any PipelineKitCore.Cache
-    
+
     public init(cache: any PipelineKitCore.Cache) {
         self.cache = cache
     }
-    
+
     public func execute<T: Command>(
         _ command: T,
         context: CommandContext,
         next: @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
         let cacheKey = String(describing: type(of: command))
-        
+
         if let cached = await cache.get(key: cacheKey, type: T.Result.self) {
             return cached
         }
-        
+
         let result = try await next(command, context)
         await cache.set(key: cacheKey, value: result)
         return result
@@ -248,11 +248,11 @@ public struct CachingMiddleware: Middleware {
 public struct AuthenticationMiddleware: Middleware {
     public let priority: ExecutionPriority = .authentication
     private let authenticate: @Sendable (String?) async throws -> String
-    
+
     public init(authenticate: @escaping @Sendable (String?) async throws -> String) {
         self.authenticate = authenticate
     }
-    
+
     public func execute<T: Command>(
         _ command: T,
         context: CommandContext,
@@ -269,11 +269,11 @@ public struct AuthenticationMiddleware: Middleware {
 public struct AuthorizationMiddleware: Middleware {
     public let priority: ExecutionPriority = .validation
     private let authorize: @Sendable (String, String) async -> Bool
-    
+
     public init(authorize: @escaping @Sendable (String, String) async -> Bool) {
         self.authorize = authorize
     }
-    
+
     public func execute<T: Command>(
         _ command: T,
         context: CommandContext,
@@ -282,12 +282,12 @@ public struct AuthorizationMiddleware: Middleware {
         guard let userId = await context.get(String.self, for: "user_id") else {
             throw PipelineError.authorization(reason: .invalidCredentials)
         }
-        
+
         let permission = String(describing: type(of: command))
         guard await authorize(userId, permission) else {
             throw PipelineError.authorization(reason: .insufficientPermissions(required: [permission], actual: []))
         }
-        
+
         return try await next(command, context)
     }
 }
@@ -307,22 +307,22 @@ public enum CircuitBreakerError: Error {
 public actor MockAsyncSemaphore {
     private var count: Int
     private var waiters: [CheckedContinuation<Void, Never>] = []
-    
+
     public init(value: Int) {
         self.count = value
     }
-    
+
     public func wait() async {
         if count > 0 {
             count -= 1
             return
         }
-        
+
         await withCheckedContinuation { continuation in
             waiters.append(continuation)
         }
     }
-    
+
     public func signal() {
         if !waiters.isEmpty {
             let waiter = waiters.removeFirst()
@@ -350,18 +350,18 @@ public actor TokenBucketRateLimiter: RateLimiter {
     private let capacity: Int
     private let refillRate: Double
     private var buckets: [String: TokenBucket] = [:]
-    
+
     public init(capacity: Int, refillRate: Double) {
         self.capacity = capacity
         self.refillRate = refillRate
     }
-    
+
     public func allowRequest(identifier: String, cost: Double) -> Bool {
         let bucket = buckets[identifier] ?? TokenBucket(capacity: capacity, refillRate: refillRate)
         buckets[identifier] = bucket
         return bucket.consume(cost)
     }
-    
+
     public func getStatus(identifier: String) -> RateLimitStatus {
         let bucket = buckets[identifier] ?? TokenBucket(capacity: capacity, refillRate: refillRate)
         return RateLimitStatus(
@@ -377,34 +377,34 @@ class TokenBucket {
     private let refillRate: Double
     private var tokens: Double
     private var lastRefill: Date
-    
+
     var currentTokens: Double {
         refill()
         return tokens
     }
-    
+
     init(capacity: Int, refillRate: Double) {
         self.capacity = capacity
         self.refillRate = refillRate
         self.tokens = Double(capacity)
         self.lastRefill = Date()
     }
-    
+
     func consume(_ amount: Double) -> Bool {
         refill()
-        
+
         if tokens >= amount {
             tokens -= amount
             return true
         }
         return false
     }
-    
+
     private func refill() {
         let now = Date()
         let elapsed = now.timeIntervalSince(lastRefill)
         let refillAmount = elapsed * refillRate
-        
+
         tokens = min(Double(capacity), tokens + refillAmount)
         lastRefill = now
     }
@@ -414,12 +414,12 @@ public actor AdaptiveRateLimiter: RateLimiter {
     private let baseCapacity: Int
     private let baseRefillRate: Double
     private var limiters: [String: TokenBucketRateLimiter] = [:]
-    
+
     public init(baseCapacity: Int = 100, baseRefillRate: Double = 10) {
         self.baseCapacity = baseCapacity
         self.baseRefillRate = baseRefillRate
     }
-    
+
     public func allowRequest(identifier: String, cost: Double) async throws -> Bool {
         let limiter = limiters[identifier] ?? TokenBucketRateLimiter(
             capacity: baseCapacity,
@@ -428,7 +428,7 @@ public actor AdaptiveRateLimiter: RateLimiter {
         limiters[identifier] = limiter
         return await limiter.allowRequest(identifier: identifier, cost: cost)
     }
-    
+
     public func getStatus(identifier: String) async -> RateLimitStatus {
         let limiter = limiters[identifier] ?? TokenBucketRateLimiter(
             capacity: baseCapacity,
@@ -442,29 +442,29 @@ public actor AdaptiveRateLimiter: RateLimiter {
 
 public actor MemoryPressureResponder {
     private var handlers: [UUID: @Sendable () async -> Void] = [:]
-    
+
     public init() {}
-    
+
     public func register(_ handler: @escaping @Sendable () async -> Void) -> UUID {
         let id = UUID()
         handlers[id] = handler
         return id
     }
-    
+
     public func simulateMemoryPressure() async {
         for handler in handlers.values {
             await handler()
         }
     }
-    
+
     public func startMonitoring() async {
         // Mock implementation - does nothing
     }
-    
+
     public func stopMonitoring() async {
         // Mock implementation - does nothing
     }
-    
+
     public func unregister(id: UUID) {
         handlers.removeValue(forKey: id)
     }
@@ -474,29 +474,29 @@ public actor ObjectPool<T> {
     private var available: [T] = []
     private let maxSize: Int
     private let factory: @Sendable () -> T
-    
+
     public init(maxSize: Int, factory: @escaping @Sendable () -> T) {
         self.maxSize = maxSize
         self.factory = factory
     }
-    
+
     public func acquire() -> T {
         if !available.isEmpty {
             return available.removeLast()
         }
         return factory()
     }
-    
+
     public func release(_ object: T) {
         if available.count < maxSize {
             available.append(object)
         }
     }
-    
+
     public func clear() {
         available.removeAll()
     }
-    
+
     public func prewarm(count: Int) async {
         for _ in 0..<count {
             if available.count < maxSize {
@@ -504,11 +504,11 @@ public actor ObjectPool<T> {
             }
         }
     }
-    
+
     public var availableCount: Int {
         available.count
     }
-    
+
     public var statistics: PoolStatistics {
         PoolStatistics(
             acquisitions: 0,
@@ -516,7 +516,7 @@ public actor ObjectPool<T> {
             allocations: 0
         )
     }
-    
+
     public func simulateMemoryPressure(level: MemoryPressureLevel = .warning) async {
         // Clear objects based on pressure level
         let removeCount: Int
@@ -539,7 +539,7 @@ public struct PoolStatistics: Sendable {
     public let releases: Int
     public let allocations: Int
     public let memoryPressureEvents: Int = 0
-    
+
     public var hitRate: Double {
         guard acquisitions > 0 else { return 0 }
         return Double(acquisitions - allocations) / Double(acquisitions)
@@ -552,3 +552,4 @@ enum MockServiceError: Error {
     case temporaryFailure
     case permanentFailure
 }
+

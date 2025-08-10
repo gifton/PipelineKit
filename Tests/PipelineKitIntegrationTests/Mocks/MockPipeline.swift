@@ -5,21 +5,21 @@ import Foundation
 public final class StandardPipeline: Pipeline {
     private var middleware: [any Middleware] = []
     private var handlers: [ObjectIdentifier: Any] = [:]
-    
+
     public init() {}
-    
+
     // For compatibility with tests that pass a handler
     public init(handler: Any) {
         // Register the handler based on its type
         registerHandlerIfPossible(handler)
     }
-    
+
     // For compatibility with tests that pass maxConcurrency
     public init(handler: Any, maxConcurrency: Int) {
         // Register the handler based on its type
         registerHandlerIfPossible(handler)
     }
-    
+
     private func registerHandlerIfPossible(_ handler: Any) {
         // Handle different handler types
         if let concurrencyHandler = handler as? ConcurrencyTestHandler {
@@ -33,22 +33,22 @@ public final class StandardPipeline: Pipeline {
         }
         // Add more handler types as needed
     }
-    
+
     public func use(_ middleware: any Middleware) {
         self.middleware.append(middleware)
     }
-    
+
     // Alias for compatibility
     public func addMiddleware(_ middleware: any Middleware) {
         self.use(middleware)
     }
-    
+
     public func registerHandler<C: Command>(
         _ handler: @escaping (C, CommandContext) async throws -> C.Result
     ) {
         handlers[ObjectIdentifier(C.self)] = handler
     }
-    
+
     public func execute<C: Command>(
         _ command: C,
         context: CommandContext
@@ -56,7 +56,7 @@ public final class StandardPipeline: Pipeline {
         guard let handler = handlers[ObjectIdentifier(C.self)] as? (C, CommandContext) async throws -> C.Result else {
             fatalError("No handler registered for command type \(C.self)")
         }
-        
+
         // Build middleware chain
         var chain = handler
         for m in middleware.reversed() {
@@ -66,7 +66,8 @@ public final class StandardPipeline: Pipeline {
                 try await currentMiddleware.execute(cmd, context: ctx, next: nextChain)
             }
         }
-        
+
         return try await chain(command, context)
     }
 }
+

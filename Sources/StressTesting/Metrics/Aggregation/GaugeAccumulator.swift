@@ -1,4 +1,3 @@
-import PipelineKitObservability
 import Foundation
 import PipelineKit
 

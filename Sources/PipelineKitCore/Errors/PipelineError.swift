@@ -302,25 +302,25 @@ public enum PipelineError: Error, Sendable, LocalizedError {
         case .handlerNotFound(let commandType):
             return "No handler registered for command type: \(commandType)"
             
-        case .executionFailed(let message, let context):
+        case let .executionFailed(message, context):
             if let context = context {
                 return "Command execution failed for \(context.commandType): \(message)"
             }
             return "Command execution failed: \(message)"
             
-        case .middlewareError(let middleware, let message, _):
+        case let .middlewareError(middleware, message, _):
             return "Middleware '\(middleware)' error: \(message)"
             
-        case .maxDepthExceeded(let depth, let max):
+        case let .maxDepthExceeded(depth, max):
             return "Maximum middleware depth exceeded: \(depth) (max: \(max))"
             
-        case .timeout(let duration, let context):
+        case let .timeout(duration, context):
             if let context = context {
                 return "Operation '\(context.commandType)' timed out after \(duration) seconds"
             }
             return "Operation timed out after \(duration) seconds"
             
-        case .retryExhausted(let attempts, let lastError):
+        case let .retryExhausted(attempts, lastError):
             var message = "Retry exhausted after \(attempts) attempts"
             if let error = lastError {
                 message += ": \(error.localizedDescription)"
@@ -339,7 +339,7 @@ public enum PipelineError: Error, Sendable, LocalizedError {
             }
             return "Operation cancelled"
             
-        case .validation(let field, let reason):
+        case let .validation(field, reason):
             let fieldPrefix = field.map { "Field '\($0)': " } ?? ""
             return fieldPrefix + validationReasonDescription(reason)
             
@@ -352,7 +352,7 @@ public enum PipelineError: Error, Sendable, LocalizedError {
         case .encryption(let reason):
             return encryptionReasonDescription(reason)
             
-        case .rateLimitExceeded(let limit, let resetTime, let retryAfter):
+        case let .rateLimitExceeded(limit, resetTime, retryAfter):
             var message = "Rate limit exceeded: \(limit) requests allowed"
             if let resetTime = resetTime {
                 let formatter = DateFormatter()
@@ -408,7 +408,7 @@ public enum PipelineError: Error, Sendable, LocalizedError {
         case .simulation(let reason):
             return simulationReasonDescription(reason)
             
-        case .wrapped(let error, let context):
+        case let .wrapped(error, context):
             if let context = context {
                 return "Error in \(context.commandType): \(error.localizedDescription)"
             }
@@ -428,13 +428,13 @@ public enum PipelineError: Error, Sendable, LocalizedError {
             return "Required field is missing"
         case .invalidFormat(let expected):
             return "Invalid format, expected: \(expected)"
-        case .tooLong(let field, let max):
+        case let .tooLong(field, max):
             return "\(field) exceeds maximum length of \(max)"
-        case .tooShort(let field, let min):
+        case let .tooShort(field, min):
             return "\(field) is shorter than minimum length of \(min)"
         case .invalidCharacters(let field):
             return "\(field) contains invalid characters"
-        case .outOfRange(let field, let min, let max):
+        case let .outOfRange(field, min, max):
             var message = "\(field) is out of range"
             if let min = min, let max = max {
                 message += " (\(min)-\(max))"
@@ -451,7 +451,7 @@ public enum PipelineError: Error, Sendable, LocalizedError {
     
     private func authorizationReasonDescription(_ reason: AuthorizationReason) -> String {
         switch reason {
-        case .insufficientPermissions(let required, let actual):
+        case let .insufficientPermissions(required, actual):
             return "Insufficient permissions. Required: \(required.joined(separator: ", ")), Actual: \(actual.joined(separator: ", "))"
         case .invalidCredentials:
             return "Invalid credentials provided"
@@ -502,7 +502,7 @@ public enum PipelineError: Error, Sendable, LocalizedError {
         switch reason {
         case .missingRequiredValue(let key):
             return "Missing required context value: \(key)"
-        case .typeMismatch(let expected, let actual):
+        case let .typeMismatch(expected, actual):
             return "Context type mismatch. Expected: \(expected), Actual: \(actual)"
         case .accessDenied(let key):
             return "Access denied to context value: \(key)"
@@ -517,7 +517,7 @@ public enum PipelineError: Error, Sendable, LocalizedError {
             return "Resource exhausted: \(resource)"
         case .unavailable(let resource):
             return "Resource unavailable: \(resource)"
-        case .limitExceeded(let resource, let limit):
+        case let .limitExceeded(resource, limit):
             return "Resource limit exceeded for \(resource): \(limit)"
         case .allocationFailed(let message):
             return "Resource allocation failed: \(message)"
@@ -562,11 +562,11 @@ public enum PipelineError: Error, Sendable, LocalizedError {
     
     private func securityPolicyReasonDescription(_ reason: SecurityPolicyReason) -> String {
         switch reason {
-        case .commandTooLarge(let size, let maxSize):
+        case let .commandTooLarge(size, maxSize):
             return "Command size \(size) bytes exceeds maximum allowed size of \(maxSize) bytes"
-        case .stringTooLong(let field, let length, let maxLength):
+        case let .stringTooLong(field, length, maxLength):
             return "Field '\(field)' length \(length) exceeds maximum allowed length of \(maxLength)"
-        case .invalidCharacters(let field, let invalidChars):
+        case let .invalidCharacters(field, invalidChars):
             return "Field '\(field)' contains invalid characters: \(invalidChars)"
         case .htmlContentNotAllowed(let field):
             return "Field '\(field)' contains HTML content which is not allowed"
@@ -577,7 +577,7 @@ public enum PipelineError: Error, Sendable, LocalizedError {
     
     private func backPressureReasonDescription(_ reason: BackPressureReason) -> String {
         switch reason {
-        case .queueFull(let current, let limit):
+        case let .queueFull(current, limit):
             return "Pipeline queue is full: \(current) commands (limit: \(limit))"
         case .timeout(let duration):
             return "Timeout occurred while waiting for capacity: \(duration) seconds"
@@ -605,29 +605,29 @@ public enum PipelineError: Error, Sendable, LocalizedError {
     
     private func cpuReasonDescription(_ reason: CPUReason) -> String {
         switch reason {
-        case .invalidState(let current, let expected):
+        case let .invalidState(current, expected):
             return "Invalid CPU simulator state: \(current), expected \(expected)"
-        case .safetyLimitExceeded(let requested, let reason):
+        case let .safetyLimitExceeded(requested, reason):
             return "CPU safety limit exceeded: requested \(requested)% - \(reason)"
         }
     }
     
     private func memoryReasonDescription(_ reason: MemoryReason) -> String {
         switch reason {
-        case .invalidState(let current, let expected):
+        case let .invalidState(current, expected):
             return "Invalid memory simulator state: \(current), expected \(expected)"
-        case .safetyLimitExceeded(let requested, let reason):
+        case let .safetyLimitExceeded(requested, reason):
             return "Memory safety limit exceeded: requested \(requested) bytes - \(reason)"
-        case .allocationFailed(let size, let error):
+        case let .allocationFailed(size, error):
             return "Failed to allocate \(size) bytes: \(error)"
         }
     }
     
     private func concurrencyReasonDescription(_ reason: ConcurrencyReason) -> String {
         switch reason {
-        case .invalidState(let current, let expected):
+        case let .invalidState(current, expected):
             return "Invalid concurrency stressor state: \(current), expected \(expected)"
-        case .safetyLimitExceeded(let requested, let reason):
+        case let .safetyLimitExceeded(requested, reason):
             return "Concurrency safety limit exceeded: requested \(requested) - \(reason)"
         case .resourceExhausted(let type):
             return "Concurrency resource exhausted: \(type)"
@@ -636,11 +636,11 @@ public enum PipelineError: Error, Sendable, LocalizedError {
     
     private func exhaustionReasonDescription(_ reason: ExhaustionReason) -> String {
         switch reason {
-        case .invalidState(let current, let expected):
+        case let .invalidState(current, expected):
             return "Invalid exhauster state: \(current), expected \(expected)"
-        case .safetyLimitExceeded(let requested, let reason):
+        case let .safetyLimitExceeded(requested, reason):
             return "Safety limit exceeded: requested \(requested) - \(reason)"
-        case .allocationFailed(let type, let reason):
+        case let .allocationFailed(type, reason):
             return "Failed to allocate \(type): \(reason)"
         case .invalidAmount(let reason):
             return "Invalid amount specification: \(reason)"

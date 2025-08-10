@@ -4,8 +4,8 @@ import Foundation
 @main
 struct BenchmarkCommand: CommandPlugin {
     func performCommand(context: PluginContext, arguments: [String]) async throws {
-        // Get the swift executable path
-        let swiftExec = try context.tool(named: "swift").path
+        // Get the swift executable URL
+        let swiftExec = try context.tool(named: "swift").url
         
         // Print header
         print("📊 Running PipelineKit Benchmarks")
@@ -48,9 +48,9 @@ struct BenchmarkCommand: CommandPlugin {
         // Build the benchmark executable
         print("🔨 Building benchmarks (\(buildConfiguration) mode)...")
         let buildProcess = Process()
-        buildProcess.executableURL = URL(fileURLWithPath: swiftExec.string)
+        buildProcess.executableURL = swiftExec
         buildProcess.arguments = ["build", "--product", "PipelineKitBenchmarks", "-c", buildConfiguration]
-        buildProcess.currentDirectoryURL = URL(fileURLWithPath: context.package.directory.string)
+        buildProcess.currentDirectoryURL = context.package.directoryURL
         
         if verbose {
             buildProcess.arguments?.append("-v")
@@ -81,11 +81,11 @@ struct BenchmarkCommand: CommandPlugin {
         }
         print("")
         
-        let benchmarkPath = context.package.directory.appending([".build", buildConfiguration, "PipelineKitBenchmarks"]).string
+        let benchmarkURL = context.package.directoryURL.appending(components: ".build", buildConfiguration, "PipelineKitBenchmarks")
         let benchmarkProcess = Process()
-        benchmarkProcess.executableURL = URL(fileURLWithPath: benchmarkPath)
+        benchmarkProcess.executableURL = benchmarkURL
         benchmarkProcess.arguments = benchmarkArgs
-        benchmarkProcess.currentDirectoryURL = URL(fileURLWithPath: context.package.directory.string)
+        benchmarkProcess.currentDirectoryURL = context.package.directoryURL
         
         // Capture output for potential analysis
         let outputPipe = Pipe()

@@ -1,5 +1,4 @@
 import Foundation
-import PipelineKit
 import PipelineKitCore
 
 /// Mock encryptor for testing encryption - provides a simple implementation without inheritance

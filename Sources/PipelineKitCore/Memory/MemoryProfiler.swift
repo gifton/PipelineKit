@@ -29,7 +29,13 @@ public actor MemoryProfiler {
         public let count: Int
         public let totalSize: Int
         
+        /// Checks if the tracker has recorded any allocations.
+        ///
+        /// Using count == 0 is appropriate here as count is a stored property
+        /// with O(1) access. This is not a collection traversal but a simple
+        /// integer comparison.
         public var isEmpty: Bool {
+            // swiftlint:disable:next empty_count
             count == 0
         }
         
@@ -108,6 +114,10 @@ public actor MemoryProfiler {
         let allocations = allocationTracking.map { key, value in
             AllocationInfo(
                 type: key,
+                // Using count > 0 instead of !isEmpty because 'value' is a tuple
+                // (count: Int, totalSize: Int) not a collection, so it has no isEmpty property.
+                // This is checking if we have any allocations to avoid division by zero.
+                // swiftlint:disable:next empty_count
                 size: value.count > 0 ? value.totalSize / value.count : 0,
                 count: value.count,
                 totalSize: value.totalSize
@@ -205,7 +215,10 @@ public actor MemoryProfiler {
         }
         
         // Analyze pattern
-        let totalGrowth = Int64(snapshots.last!.residentMemory) - Int64(snapshots.first!.residentMemory)
+        // We know snapshots has at least 2 elements due to guard above
+        let lastMemory = snapshots.last?.residentMemory ?? 0
+        let firstMemory = snapshots.first?.residentMemory ?? 0
+        let totalGrowth = Int64(lastMemory) - Int64(firstMemory)
         let averageDelta = deltas.reduce(0, +) / Int64(deltas.count)
         
         if totalGrowth > Int64(100 * 1024 * 1024) { // > 100MB growth
@@ -228,9 +241,9 @@ public actor MemoryProfiler {
         let kerr: kern_return_t = withUnsafeMutablePointer(to: &info) {
             $0.withMemoryRebound(to: integer_t.self, capacity: 1) {
                 task_info(mach_task_self_,
-                         task_flavor_t(MACH_TASK_BASIC_INFO),
-                         $0,
-                         &count)
+                          task_flavor_t(MACH_TASK_BASIC_INFO),
+                          $0,
+                          &count)
             }
         }
         

@@ -1,6 +1,7 @@
 import XCTest
 @testable import PipelineKit
-@testable import PipelineKitMiddleware
+// TODO: Fix after middleware refactoring
+// @testable import PipelineKitMiddleware
 import PipelineKitTestSupport
 
 // MARK: - Protocol Sendable Requirements Tests

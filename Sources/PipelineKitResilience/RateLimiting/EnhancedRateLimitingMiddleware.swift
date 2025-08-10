@@ -31,7 +31,7 @@ public struct EnhancedRateLimitingMiddleware: Middleware {
     private let identifierExtractor: @Sendable (any Command, CommandContext) async -> String
     private let costCalculator: @Sendable (any Command) -> Double
     private let priorityExtractor: @Sendable (any Command, CommandContext) async -> Priority
-    
+
     /// Creates enhanced rate limiting middleware.
     ///
     /// - Parameters:
@@ -53,7 +53,7 @@ public struct EnhancedRateLimitingMiddleware: Middleware {
         self.costCalculator = costCalculator
         self.priorityExtractor = priorityExtractor
     }
-    
+
     public func execute<T: Command>(
         _ command: T,
         context: CommandContext,
@@ -62,13 +62,13 @@ public struct EnhancedRateLimitingMiddleware: Middleware {
         let identifier = await identifierExtractor(command, context)
         let cost = costCalculator(command)
         let priority = await priorityExtractor(command, context)
-        
+
         // Store priority in context for the rate limiter to use
         context.metadata["rateLimitPriority"] = priority.rawValue
-        
+
         guard try await limiter.allowRequest(identifier: identifier, cost: cost) else {
             let status = await limiter.getStatus(identifier: identifier)
-            
+
             // Store rate limit info in context
             context.metadata["rateLimitExceeded"] = true
             context.metadata["rateLimitIdentifier"] = identifier
@@ -79,18 +79,18 @@ public struct EnhancedRateLimitingMiddleware: Middleware {
                 "resetAt": status.resetAt,
                 "retryAfter": status.resetAt.timeIntervalSinceNow
             ] as [String: any Sendable]
-            
+
             throw PipelineError.rateLimitExceeded(
                 limit: status.limit,
                 resetTime: status.resetAt,
                 retryAfter: status.resetAt.timeIntervalSinceNow
             )
         }
-        
+
         // Track successful rate limit checks
         let currentChecks = (context.metrics["rateLimitChecks"] as? Int) ?? 0
         context.metrics["rateLimitChecks"] = currentChecks + 1
-        
+
         return try await next(command, context)
     }
 }
@@ -118,7 +118,7 @@ public extension RateLimiter {
             scope: scope
         )
     }
-    
+
     /// Creates a rate limiter with sliding window strategy
     static func slidingWindow(
         windowSize: TimeInterval,
@@ -130,7 +130,7 @@ public extension RateLimiter {
             scope: scope
         )
     }
-    
+
     /// Creates a rate limiter with fixed window strategy
     static func fixedWindow(
         windowSize: TimeInterval,
@@ -142,7 +142,7 @@ public extension RateLimiter {
             scope: scope
         )
     }
-    
+
     /// Creates a rate limiter with leaky bucket strategy
     static func leakyBucket(
         capacity: Int,
@@ -154,7 +154,7 @@ public extension RateLimiter {
             scope: scope
         )
     }
-    
+
     /// Creates a rate limiter with priority-based strategy
     static func priorityBased(
         limits: [Priority: RateLimitConfig],

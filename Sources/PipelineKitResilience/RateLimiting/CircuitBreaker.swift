@@ -224,12 +224,19 @@ public actor CircuitBreaker {
 
 // MARK: - Configuration Defaults
 
-extension CircuitBreaker.Configuration {
+public extension CircuitBreaker.Configuration {
     /// Default configuration with reasonable values
-    public static let `default`: CircuitBreaker.Configuration = try! CircuitBreaker.Configuration(
-        failureThreshold: 5,
-        successThreshold: 2,
-        timeout: 30.0,
-        resetTimeout: 60.0
-    )
+    static let `default`: CircuitBreaker.Configuration = {
+        do {
+            return try CircuitBreaker.Configuration(
+                failureThreshold: 5,
+                successThreshold: 2,
+                timeout: 30.0,
+                resetTimeout: 60.0
+            )
+        } catch {
+            // These are known valid values, should never fail
+            fatalError("Failed to create default CircuitBreaker.Configuration: \(error)")
+        }
+    }()
 }

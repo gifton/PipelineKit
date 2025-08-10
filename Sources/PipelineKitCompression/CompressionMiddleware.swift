@@ -26,34 +26,34 @@ import PipelineKitCore
 /// ```
 public struct CompressionMiddleware: Middleware {
     public let priority: ExecutionPriority = .processing
-    
+
     // MARK: - Configuration
-    
+
     public struct Configuration: Sendable {
         /// Compression algorithm to use
         public let algorithm: CompressionAlgorithm
-        
+
         /// Minimum payload size for compression (in bytes)
         public let compressionThreshold: Int
-        
+
         /// Compression level
         public let compressionLevel: CompressionLevel
-        
+
         /// Whether to compress command inputs
         public let compressInputs: Bool
-        
+
         /// Whether to compress command results
         public let compressResults: Bool
-        
+
         /// Content types to compress (if empty, compress all)
         public let allowedContentTypes: Set<String>
-        
+
         /// Content types to never compress
         public let excludedContentTypes: Set<String>
-        
+
         /// Whether to emit metrics
         public let emitMetrics: Bool
-        
+
         public init(
             algorithm: CompressionAlgorithm = .zlib,
             compressionThreshold: Int = 1024,
@@ -74,14 +74,14 @@ public struct CompressionMiddleware: Middleware {
             self.emitMetrics = emitMetrics
         }
     }
-    
+
     /// Compression algorithms
     public enum CompressionAlgorithm: String, Sendable, CaseIterable {
         case zlib
         case lz4
         case lzfse
         case lzma
-        
+
         var algorithm: compression_algorithm {
             switch self {
             case .zlib: return COMPRESSION_ZLIB
@@ -91,14 +91,14 @@ public struct CompressionMiddleware: Middleware {
             }
         }
     }
-    
+
     /// Compression levels
     public enum CompressionLevel: Sendable {
         case fastest
         case balanced
         case best
         case custom(Int)
-        
+
         var level: Int {
             switch self {
             case .fastest: return 1
@@ -108,15 +108,15 @@ public struct CompressionMiddleware: Middleware {
             }
         }
     }
-    
+
     private let configuration: Configuration
     private let compressor: PayloadCompressor
-    
+
     public init(configuration: Configuration) {
         self.configuration = configuration
         self.compressor = PayloadCompressor(configuration: configuration)
     }
-    
+
     public init(
         algorithm: CompressionAlgorithm = .zlib,
         compressionThreshold: Int = 1024
@@ -128,9 +128,9 @@ public struct CompressionMiddleware: Middleware {
             )
         )
     }
-    
+
     // MARK: - Middleware Implementation
-    
+
     public func execute<T: Command>(
         _ command: T,
         context: CommandContext,
@@ -141,24 +141,24 @@ public struct CompressionMiddleware: Middleware {
         var compressionApplied = false
         var originalSize = 0
         var compressedSize = 0
-        
+
         // Compress command if it implements CompressibleCommand
         if configuration.compressInputs,
            var compressible = command as? any CompressibleCommand {
             let payload = compressible.getCompressiblePayload()
-            
+
             if shouldCompress(payload: payload, contentType: compressible.contentType) {
                 originalSize = payload.count
-                
+
                 do {
                     let compressed = try await compressor.compress(payload)
                     compressedSize = compressed.count
                     compressible.setCompressedPayload(compressed, algorithm: configuration.algorithm)
-                    
+
                     if let updatedCommand = compressible as? T {
                         compressedCommand = updatedCommand
                         compressionApplied = true
-                        
+
                         // Store compression info in context
                         context.metadata["compressionApplied"] = true
                         context.metadata["compressionAlgorithm"] = configuration.algorithm.rawValue
@@ -171,10 +171,10 @@ public struct CompressionMiddleware: Middleware {
                 }
             }
         }
-        
+
         // Execute command
         let result = try await next(compressedCommand, context)
-        
+
         // Handle result compression if needed
         var finalResult = result
         if configuration.compressResults,
@@ -184,7 +184,7 @@ public struct CompressionMiddleware: Middleware {
                 context: context
             ) as? T.Result ?? result
         }
-        
+
         // Emit metrics
         if compressionApplied {
             let duration = Date().timeIntervalSince(startTime)
@@ -195,51 +195,51 @@ public struct CompressionMiddleware: Middleware {
                 context: context
             )
         }
-        
+
         return finalResult
     }
-    
+
     // MARK: - Private Methods
-    
+
     private func shouldCompress(payload: Data, contentType: String?) -> Bool {
         // Check size threshold
         guard payload.count >= configuration.compressionThreshold else {
             return false
         }
-        
+
         // Check content type if specified
         if let contentType = contentType {
             // Check excluded types first
             if configuration.excludedContentTypes.contains(contentType) {
                 return false
             }
-            
+
             // If allowed types are specified, check inclusion
             if !configuration.allowedContentTypes.isEmpty {
                 return configuration.allowedContentTypes.contains(contentType)
             }
         }
-        
+
         return true
     }
-    
+
     private func handleResultCompression<R: CompressibleResult>(
         result: R,
         context: CommandContext
     ) async throws -> R {
         let payload = result.getCompressiblePayload()
-        
+
         guard shouldCompress(payload: payload, contentType: result.contentType) else {
             return result
         }
-        
+
         let originalSize = payload.count
         let compressed = try await compressor.compress(payload)
         let compressedSize = compressed.count
-        
+
         var compressedResult = result
         compressedResult.setCompressedPayload(compressed, algorithm: configuration.algorithm)
-        
+
         // Update metrics
         if let existingOriginal = context.metrics["compression.result.originalSize"] as? Int {
             context.metrics["compression.result.originalSize"] = existingOriginal + originalSize
@@ -248,10 +248,10 @@ public struct CompressionMiddleware: Middleware {
             context.metrics["compression.result.originalSize"] = originalSize
             context.metrics["compression.result.compressedSize"] = compressedSize
         }
-        
+
         return compressedResult
     }
-    
+
     private func emitCompressionMetrics(
         originalSize: Int,
         compressedSize: Int,
@@ -259,14 +259,14 @@ public struct CompressionMiddleware: Middleware {
         context: CommandContext
     ) async {
         guard configuration.emitMetrics else { return }
-        
+
         let compressionRatio = Double(originalSize - compressedSize) / Double(originalSize)
-        
+
         context.metrics["compression.originalSize"] = originalSize
         context.metrics["compression.compressedSize"] = compressedSize
         context.metrics["compression.ratio"] = compressionRatio
         context.metrics["compression.duration"] = duration
-        
+
         // Store compression event data in context metadata
         context.metadata["compressionEvent"] = [
             "event": "payload_compressed",
@@ -278,10 +278,10 @@ public struct CompressionMiddleware: Middleware {
             "timestamp": Date()
         ] as [String: any Sendable]
     }
-    
+
     private func emitCompressionError(error: Error, context: CommandContext) async {
         guard configuration.emitMetrics else { return }
-        
+
         // Store compression error event data in context metadata
         context.metadata["compressionErrorEvent"] = [
             "event": "compression_error",
@@ -298,10 +298,10 @@ public struct CompressionMiddleware: Middleware {
 public protocol CompressibleCommand: Command {
     /// Content type of the payload (e.g., "application/json")
     var contentType: String? { get }
-    
+
     /// Get the payload to compress
     func getCompressiblePayload() -> Data
-    
+
     /// Set the compressed payload
     mutating func setCompressedPayload(_ data: Data, algorithm: CompressionMiddleware.CompressionAlgorithm)
 }
@@ -310,10 +310,10 @@ public protocol CompressibleCommand: Command {
 public protocol CompressibleResult {
     /// Content type of the result
     var contentType: String? { get }
-    
+
     /// Get the payload to compress
     func getCompressiblePayload() -> Data
-    
+
     /// Set the compressed payload
     mutating func setCompressedPayload(_ data: Data, algorithm: CompressionMiddleware.CompressionAlgorithm)
 }
@@ -322,47 +322,59 @@ public protocol CompressibleResult {
 
 private actor PayloadCompressor {
     private let configuration: CompressionMiddleware.Configuration
-    
+
     init(configuration: CompressionMiddleware.Configuration) {
         self.configuration = configuration
     }
-    
+
     func compress(_ data: Data) throws -> Data {
         let destinationBuffer = UnsafeMutablePointer<UInt8>.allocate(capacity: data.count)
         defer { destinationBuffer.deallocate() }
-        
-        let compressedSize = compression_encode_buffer(
-            destinationBuffer, data.count,
-            data.withUnsafeBytes { $0.bindMemory(to: UInt8.self).baseAddress! },
-            data.count,
-            nil,
-            configuration.algorithm.algorithm
-        )
-        
+
+        let compressedSize = data.withUnsafeBytes { bytes in
+            guard let baseAddress = bytes.bindMemory(to: UInt8.self).baseAddress else {
+                return 0
+            }
+            return compression_encode_buffer(
+                destinationBuffer,
+                data.count,
+                baseAddress,
+                data.count,
+                nil,
+                configuration.algorithm.algorithm
+            )
+        }
+
         guard compressedSize > 0 else {
             throw CompressionError.compressionFailed
         }
-        
+
         return Data(bytes: destinationBuffer, count: compressedSize)
     }
-    
+
     func decompress(_ data: Data, originalSize: Int? = nil) throws -> Data {
         let bufferSize = originalSize ?? data.count * 4
         let destinationBuffer = UnsafeMutablePointer<UInt8>.allocate(capacity: bufferSize)
         defer { destinationBuffer.deallocate() }
-        
-        let decompressedSize = compression_decode_buffer(
-            destinationBuffer, bufferSize,
-            data.withUnsafeBytes { $0.bindMemory(to: UInt8.self).baseAddress! },
-            data.count,
-            nil,
-            configuration.algorithm.algorithm
-        )
-        
+
+        let decompressedSize = data.withUnsafeBytes { bytes in
+            guard let baseAddress = bytes.bindMemory(to: UInt8.self).baseAddress else {
+                return 0
+            }
+            return compression_decode_buffer(
+                destinationBuffer,
+                bufferSize,
+                baseAddress,
+                data.count,
+                nil,
+                configuration.algorithm.algorithm
+            )
+        }
+
         guard decompressedSize > 0 else {
             throw CompressionError.decompressionFailed
         }
-        
+
         return Data(bytes: destinationBuffer, count: decompressedSize)
     }
 }
@@ -390,7 +402,7 @@ public extension CompressionMiddleware {
             )
         )
     }
-    
+
     /// Creates a compression middleware optimized for text payloads
     static func text(threshold: Int = 1024) -> CompressionMiddleware {
         CompressionMiddleware(
@@ -402,7 +414,7 @@ public extension CompressionMiddleware {
             )
         )
     }
-    
+
     /// Creates a compression middleware for large binary payloads
     static func binary(threshold: Int = 10240) -> CompressionMiddleware {
         CompressionMiddleware(

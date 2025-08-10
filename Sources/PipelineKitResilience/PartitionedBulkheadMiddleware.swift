@@ -32,16 +32,16 @@ import PipelineKitCore
 /// ```
 public struct PartitionedBulkheadMiddleware: Middleware {
     public let priority: ExecutionPriority = .resilience
-    
+
     // MARK: - Configuration
-    
+
     /// Configuration for a single partition
     public struct PartitionConfig: Sendable {
         public let capacity: Int
         public let queueSize: Int
         public let queueTimeout: TimeInterval?
         public let adaptiveScaling: Bool
-        
+
         public init(
             capacity: Int,
             queueSize: Int = 0,
@@ -54,27 +54,27 @@ public struct PartitionedBulkheadMiddleware: Middleware {
             self.adaptiveScaling = adaptiveScaling
         }
     }
-    
+
     /// Overall configuration
     public struct Configuration: Sendable {
         /// Partition configurations
         public let partitions: [String: PartitionConfig]
-        
+
         /// Function to extract partition key from command
         public let partitionExtractor: @Sendable (any Command, CommandContext) async -> String
-        
+
         /// Default partition name if extraction fails
         public let defaultPartition: String
-        
+
         /// Whether to allow borrowing capacity from other partitions
         public let allowBorrowing: Bool
-        
+
         /// Maximum percentage of capacity that can be borrowed
         public let maxBorrowPercentage: Double
-        
+
         /// Whether to emit detailed metrics
         public let emitMetrics: Bool
-        
+
         public init(
             partitions: [String: PartitionConfig],
             partitionExtractor: @escaping @Sendable (any Command, CommandContext) async -> String,
@@ -91,15 +91,26 @@ public struct PartitionedBulkheadMiddleware: Middleware {
             self.emitMetrics = emitMetrics
         }
     }
+
+    // MARK: - Helper Types
+    
+    private struct ExecutionMetrics {
+        let startTime: Date
+        let partitionKey: String
+        let wasBorrowed: Bool
+        let borrowedFrom: String?
+        let wasQueued: Bool
+        let queueTime: TimeInterval?
+    }
     
     private let configuration: Configuration
     private let partitionManager: PartitionManager
-    
+
     public init(configuration: Configuration) {
         self.configuration = configuration
         self.partitionManager = PartitionManager(configuration: configuration)
     }
-    
+
     public init(
         partitions: [String: PartitionConfig],
         partitionExtractor: @escaping @Sendable (any Command, CommandContext) async -> String
@@ -111,31 +122,31 @@ public struct PartitionedBulkheadMiddleware: Middleware {
             )
         )
     }
-    
+
     // MARK: - Middleware Implementation
-    
+
     public func execute<T: Command>(
         _ command: T,
         context: CommandContext,
         next: @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
         let startTime = Date()
-        
+
         // Determine partition
         let partitionKey = await configuration.partitionExtractor(command, context)
-        let effectiveKey = configuration.partitions[partitionKey] != nil 
-            ? partitionKey 
+        let effectiveKey = configuration.partitions[partitionKey] != nil
+            ? partitionKey
             : configuration.defaultPartition
-        
+
         // Store partition info in context
         context.metadata["bulkheadPartition"] = effectiveKey
-        
+
         // Try to acquire resources from partition
         let acquisition = try await partitionManager.acquire(
             partitionKey: effectiveKey,
             command: command
         )
-        
+
         switch acquisition {
         case let .immediate(release):
             // Execute immediately
@@ -148,7 +159,7 @@ public struct PartitionedBulkheadMiddleware: Middleware {
                 partitionKey: effectiveKey,
                 wasBorrowed: false
             )
-            
+
         case let .borrowed(release, fromPartition):
             // Execute with borrowed capacity
             return try await executeWithRelease(
@@ -161,20 +172,20 @@ public struct PartitionedBulkheadMiddleware: Middleware {
                 wasBorrowed: true,
                 borrowedFrom: fromPartition
             )
-            
+
         case let .queued(future):
             // Wait for resource to become available
             let queueStartTime = Date()
-            
+
             do {
                 let release = try await future()
-                
+
                 let queueTime = Date().timeIntervalSince(queueStartTime)
                 await partitionManager.recordQueueTime(
                     partition: effectiveKey,
                     time: queueTime
                 )
-                
+
                 return try await executeWithRelease(
                     command,
                     context: context,
@@ -185,35 +196,34 @@ public struct PartitionedBulkheadMiddleware: Middleware {
                     wasQueued: true,
                     queueTime: queueTime
                 )
-                
             } catch {
                 await partitionManager.recordTimeout(partition: effectiveKey)
                 throw error
             }
-            
+
         case .rejected:
             // Handle rejection
             await partitionManager.recordRejection(partition: effectiveKey)
-            
+
             if configuration.emitMetrics {
-                await context.emitCustomEvent(
-                    "partitioned_bulkhead_rejection",
+                context.emitMiddlewareEvent(
+                    "middleware.partitioned_bulkhead_rejected",
+                    middleware: "PartitionedBulkheadMiddleware",
                     properties: [
-                        "command_type": String(describing: type(of: command)),
-                        "partition": effectiveKey,
-                        "timestamp": Date()
+                        "commandType": String(describing: type(of: command)),
+                        "partition": effectiveKey
                     ]
                 )
             }
-            
+
             throw PipelineError.bulkheadRejected(
                 reason: "Partition '\(effectiveKey)' is at capacity and queue is full"
             )
         }
     }
-    
+
     // MARK: - Private Methods
-    
+
     private func executeWithRelease<T: Command>(
         _ command: T,
         context: CommandContext,
@@ -231,56 +241,49 @@ public struct PartitionedBulkheadMiddleware: Middleware {
                 await release()
                 await emitExecutionMetrics(
                     context: context,
-                    startTime: startTime,
-                    partitionKey: partitionKey,
-                    wasBorrowed: wasBorrowed,
-                    borrowedFrom: borrowedFrom,
-                    wasQueued: wasQueued,
-                    queueTime: queueTime
+                    metrics: ExecutionMetrics(
+                        startTime: startTime,
+                        partitionKey: partitionKey,
+                        wasBorrowed: wasBorrowed,
+                        borrowedFrom: borrowedFrom,
+                        wasQueued: wasQueued,
+                        queueTime: queueTime
+                    )
                 )
             }
         }
-        
+
         return try await next(command, context)
     }
-    
+
     private func emitExecutionMetrics(
         context: CommandContext,
-        startTime: Date,
-        partitionKey: String,
-        wasBorrowed: Bool,
-        borrowedFrom: String?,
-        wasQueued: Bool,
-        queueTime: TimeInterval?
+        metrics: ExecutionMetrics
     ) async {
         guard configuration.emitMetrics else { return }
-        
-        let duration = Date().timeIntervalSince(startTime)
-        let stats = await partitionManager.getStats(for: partitionKey)
-        
-        context.metrics["bulkhead.partition"] = partitionKey
+
+        let duration = Date().timeIntervalSince(metrics.startTime)
+        _ = await partitionManager.getStats(for: metrics.partitionKey)
+
+        context.metrics["bulkhead.partition"] = metrics.partitionKey
         context.metrics["bulkhead.duration"] = duration
-        context.metrics["bulkhead.wasBorrowed"] = wasBorrowed
-        context.metrics["bulkhead.wasQueued"] = wasQueued
-        
-        if let queueTime = queueTime {
+        context.metrics["bulkhead.wasBorrowed"] = metrics.wasBorrowed
+        context.metrics["bulkhead.wasQueued"] = metrics.wasQueued
+
+        if let queueTime = metrics.queueTime {
             context.metrics["bulkhead.queueTime"] = queueTime
         }
-        
-        await context.emitCustomEvent(
-            "partitioned_bulkhead_execution",
+
+        context.emitMiddlewareEvent(
+            "middleware.partitioned_bulkhead_execution",
+            middleware: "PartitionedBulkheadMiddleware",
             properties: [
-                "partition": partitionKey,
-                "duration": duration,
-                "was_borrowed": wasBorrowed,
-                "borrowed_from": borrowedFrom ?? "",
-                "was_queued": wasQueued,
-                "queue_time": queueTime ?? 0,
-                "partition_stats": [
-                    "active": stats.activeCount,
-                    "queued": stats.queuedCount,
-                    "capacity": stats.capacity
-                ]
+                "partition": metrics.partitionKey,
+                "wasBorrowed": metrics.wasBorrowed,
+                "borrowedFrom": metrics.borrowedFrom ?? "",
+                "wasQueued": metrics.wasQueued,
+                "queueTime": metrics.queueTime ?? 0,
+                "duration": duration
             ]
         )
     }
@@ -291,10 +294,10 @@ public struct PartitionedBulkheadMiddleware: Middleware {
 private actor PartitionManager {
     private let configuration: PartitionedBulkheadMiddleware.Configuration
     private var partitions: [String: Partition] = [:]
-    
+
     init(configuration: PartitionedBulkheadMiddleware.Configuration) {
         self.configuration = configuration
-        
+
         // Initialize partitions
         for (key, config) in configuration.partitions {
             partitions[key] = Partition(
@@ -303,14 +306,14 @@ private actor PartitionManager {
             )
         }
     }
-    
+
     enum ResourceAcquisition {
         case immediate(release: @Sendable () async -> Void)
         case borrowed(release: @Sendable () async -> Void, fromPartition: String)
         case queued(future: @Sendable () async throws -> @Sendable () async -> Void)
         case rejected
     }
-    
+
     func acquire(
         partitionKey: String,
         command: any Command
@@ -320,14 +323,14 @@ private actor PartitionManager {
                 reason: "Unknown partition: \(partitionKey)"
             )
         }
-        
+
         // Try immediate acquisition
         if await partition.tryAcquire() {
             return .immediate(release: { [weak self] in
                 await self?.partitions[partitionKey]?.release()
             })
         }
-        
+
         // Try borrowing from other partitions if allowed
         if configuration.allowBorrowing {
             if let borrowed = await tryBorrow(
@@ -337,7 +340,7 @@ private actor PartitionManager {
                 return borrowed
             }
         }
-        
+
         // Try queueing if space available
         if await partition.canQueue() {
             let future: @Sendable () async throws -> @Sendable () async -> Void = {
@@ -348,10 +351,10 @@ private actor PartitionManager {
             }
             return .queued(future: future)
         }
-        
+
         return .rejected
     }
-    
+
     private func tryBorrow(
         requestingPartition: String,
         command: any Command
@@ -361,7 +364,7 @@ private actor PartitionManager {
             let stats = await partition.getStats()
             let borrowableCapacity = Int(Double(stats.capacity) * configuration.maxBorrowPercentage)
             let availableForBorrowing = stats.capacity - stats.activeCount - borrowableCapacity
-            
+
             if availableForBorrowing > 0 {
                 let acquired = await partition.tryAcquire()
                 if acquired {
@@ -374,22 +377,22 @@ private actor PartitionManager {
                 }
             }
         }
-        
+
         return nil
     }
-    
+
     func recordQueueTime(partition: String, time: TimeInterval) async {
         await partitions[partition]?.recordQueueTime(time)
     }
-    
+
     func recordTimeout(partition: String) async {
         await partitions[partition]?.recordTimeout()
     }
-    
+
     func recordRejection(partition: String) async {
         await partitions[partition]?.recordRejection()
     }
-    
+
     func getStats(for partition: String) async -> PartitionStats {
         await partitions[partition]?.getStats() ?? PartitionStats(
             name: partition,
@@ -408,7 +411,7 @@ private actor PartitionManager {
 private actor Partition {
     let name: String
     let config: PartitionedBulkheadMiddleware.PartitionConfig
-    
+
     private var activeCount = 0
     private var queuedCount = 0
     private var totalExecutions = 0
@@ -416,12 +419,12 @@ private actor Partition {
     private var totalTimeouts = 0
     private var queueTimes: [TimeInterval] = []
     private var waiters: [CheckedContinuation<Void, Error>] = []
-    
+
     init(name: String, config: PartitionedBulkheadMiddleware.PartitionConfig) {
         self.name = name
         self.config = config
     }
-    
+
     func tryAcquire() -> Bool {
         if activeCount < config.capacity {
             activeCount += 1
@@ -430,7 +433,7 @@ private actor Partition {
         }
         return false
     }
-    
+
     func release() {
         if let waiter = waiters.first {
             waiters.removeFirst()
@@ -440,20 +443,20 @@ private actor Partition {
             activeCount = max(0, activeCount - 1)
         }
     }
-    
+
     func canQueue() -> Bool {
         config.queueSize > 0 && queuedCount < config.queueSize
     }
-    
+
     func waitForResource() async throws {
         guard canQueue() else {
             throw PipelineError.bulkheadRejected(
                 reason: "Queue is full for partition '\(name)'"
             )
         }
-        
+
         queuedCount += 1
-        
+
         do {
             if let timeout = config.queueTimeout {
                 try await withThrowingTaskGroup(of: Void.self) { group in
@@ -464,7 +467,7 @@ private actor Partition {
                             queueTime: timeout
                         )
                     }
-                    
+
                     group.addTask { [weak self] in
                         try await withCheckedThrowingContinuation { continuation in
                             Task { [weak self] in
@@ -472,7 +475,7 @@ private actor Partition {
                             }
                         }
                     }
-                    
+
                     try await group.next()
                     group.cancelAll()
                 }
@@ -481,10 +484,9 @@ private actor Partition {
                     waiters.append(continuation)
                 }
             }
-            
+
             activeCount += 1
             totalExecutions += 1
-            
         } catch {
             // Remove from waiters if still there
             waiters.removeAll { _ in true }
@@ -493,25 +495,25 @@ private actor Partition {
             throw error
         }
     }
-    
+
     func recordQueueTime(_ time: TimeInterval) {
         queueTimes.append(time)
         if queueTimes.count > 100 {
             queueTimes.removeFirst(50)
         }
     }
-    
+
     func recordTimeout() {
         totalTimeouts += 1
     }
-    
+
     func recordRejection() {
         totalRejections += 1
     }
-    
+
     func getStats() -> PartitionStats {
         let avgQueueTime = queueTimes.isEmpty ? 0 : queueTimes.reduce(0, +) / Double(queueTimes.count)
-        
+
         return PartitionStats(
             name: name,
             capacity: config.capacity,
@@ -522,7 +524,7 @@ private actor Partition {
             averageQueueTime: avgQueueTime
         )
     }
-    
+
     func addWaiter(_ continuation: CheckedContinuation<Void, Error>) {
         waiters.append(continuation)
     }

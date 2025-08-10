@@ -1,6 +1,6 @@
 import Foundation
 import XCTest
-import PipelineKit
+import PipelineKitCore
 
 /// Test pipeline for unit testing with recording and mocking capabilities
 public actor TestPipeline: Pipeline {

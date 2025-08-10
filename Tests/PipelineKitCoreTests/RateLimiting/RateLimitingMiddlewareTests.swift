@@ -3,30 +3,30 @@ import XCTest
 import PipelineKitTestSupport
 
 final class RateLimitingMiddlewareTests: XCTestCase {
-    
+
     // MARK: - Test Commands
-    
+
     struct TestCommand: Command {
         typealias Result = String
         let id: Int
-        
+
         func execute() async throws -> String {
             "Command \(id) executed"
         }
     }
-    
+
     struct PriorityCommand: Command, PriorityAware {
         typealias Result = String
         let id: Int
         let priority: Priority
-        
+
         func execute() async throws -> String {
             "Priority command \(id) executed"
         }
     }
-    
+
     // MARK: - Tests
-    
+
     func testTokenBucketStrategy() async throws {
         // Given
         let limiter = RateLimiter(
@@ -34,7 +34,7 @@ final class RateLimitingMiddlewareTests: XCTestCase {
             scope: .perUser
         )
         let middleware = RateLimitingMiddleware(limiter: limiter)
-        
+
         // When - consume all tokens
         for i in 0..<3 {
             let result = try await middleware.execute(
@@ -45,7 +45,7 @@ final class RateLimitingMiddlewareTests: XCTestCase {
             }
             XCTAssertEqual(result, "Command \(i) executed")
         }
-        
+
         // Then - next request should be rate limited
         do {
             _ = try await middleware.execute(
@@ -62,10 +62,10 @@ final class RateLimitingMiddlewareTests: XCTestCase {
                 XCTFail("Unexpected error: \(error)")
             }
         }
-        
+
         // Wait for token refill
         try await Task.sleep(nanoseconds: 1_100_000_000) // 1.1 seconds
-        
+
         // Should be able to execute again
         let result = try await middleware.execute(
             TestCommand(id: 4),
@@ -75,7 +75,7 @@ final class RateLimitingMiddlewareTests: XCTestCase {
         }
         XCTAssertEqual(result, "Command 4 executed")
     }
-    
+
     func testSlidingWindowStrategy() async throws {
         // Given
         let limiter = RateLimiter(
@@ -83,7 +83,7 @@ final class RateLimitingMiddlewareTests: XCTestCase {
             scope: .perUser
         )
         let middleware = RateLimitingMiddleware(limiter: limiter)
-        
+
         // When - execute 3 requests
         for i in 0..<3 {
             _ = try await middleware.execute(
@@ -93,7 +93,7 @@ final class RateLimitingMiddlewareTests: XCTestCase {
                 try await cmd.execute()
             }
         }
-        
+
         // Then - 4th request should be limited
         do {
             _ = try await middleware.execute(
@@ -106,10 +106,10 @@ final class RateLimitingMiddlewareTests: XCTestCase {
         } catch {
             XCTAssertTrue(error is PipelineError)
         }
-        
+
         // Wait for window to slide
         try await Task.sleep(nanoseconds: 1_100_000_000)
-        
+
         // Should work again
         _ = try await middleware.execute(
             TestCommand(id: 4),
@@ -118,7 +118,7 @@ final class RateLimitingMiddlewareTests: XCTestCase {
             try await cmd.execute()
         }
     }
-    
+
     func testFixedWindowStrategy() async throws {
         // Given
         let limiter = RateLimiter(
@@ -126,7 +126,7 @@ final class RateLimitingMiddlewareTests: XCTestCase {
             scope: .perUser
         )
         let middleware = RateLimitingMiddleware(limiter: limiter)
-        
+
         // When - execute 2 requests
         for i in 0..<2 {
             _ = try await middleware.execute(
@@ -136,7 +136,7 @@ final class RateLimitingMiddlewareTests: XCTestCase {
                 try await cmd.execute()
             }
         }
-        
+
         // Then - 3rd request in same window should fail
         do {
             _ = try await middleware.execute(
@@ -150,7 +150,7 @@ final class RateLimitingMiddlewareTests: XCTestCase {
             XCTAssertTrue(error is PipelineError)
         }
     }
-    
+
     func testLeakyBucketStrategy() async throws {
         // Given
         let limiter = RateLimiter(
@@ -159,7 +159,7 @@ final class RateLimitingMiddlewareTests: XCTestCase {
         )
         let middleware = RateLimitingMiddleware(limiter: limiter
         )
-        
+
         // When - fill the bucket
         for i in 0..<3 {
             _ = try await middleware.execute(
@@ -169,7 +169,7 @@ final class RateLimitingMiddlewareTests: XCTestCase {
                 try await cmd.execute()
             }
         }
-        
+
         // Bucket should be full
         do {
             _ = try await middleware.execute(
@@ -182,10 +182,10 @@ final class RateLimitingMiddlewareTests: XCTestCase {
         } catch {
             XCTAssertTrue(error is PipelineError)
         }
-        
+
         // Wait for leak
         try await Task.sleep(nanoseconds: 150_000_000) // 150ms
-        
+
         // Should have room for one more
         _ = try await middleware.execute(
             TestCommand(id: 4),
@@ -194,7 +194,7 @@ final class RateLimitingMiddlewareTests: XCTestCase {
             try await cmd.execute()
         }
     }
-    
+
     func testAdaptiveStrategy() async throws {
         // Given
         var currentLoad = 0.3
@@ -206,26 +206,26 @@ final class RateLimitingMiddlewareTests: XCTestCase {
             scope: .perUser
         )
         let middleware = RateLimitingMiddleware(limiter: limiter)
-        
+
         // When load is low (0.3), should allow more requests
         let allowedAtLowLoad = await countAllowedRequests(
             middleware: middleware,
             count: 15
         )
-        
+
         // Increase load
         currentLoad = 0.9
-        
+
         // When load is high, should allow fewer requests
         let allowedAtHighLoad = await countAllowedRequests(
             middleware: middleware,
             count: 15
         )
-        
+
         // Then
         XCTAssertGreaterThan(allowedAtLowLoad, allowedAtHighLoad)
     }
-    
+
     func testPriorityBasedStrategy() async throws {
         // Given
         let limiter = RateLimiter(
@@ -238,9 +238,9 @@ final class RateLimitingMiddlewareTests: XCTestCase {
             scope: .perUser
         )
         let middleware = RateLimitingMiddleware(limiter: limiter)
-        
+
         // When - test different priorities
-        
+
         // Low priority - should allow 1
         _ = try await middleware.execute(
             PriorityCommand(id: 1, priority: .low),
@@ -248,7 +248,7 @@ final class RateLimitingMiddlewareTests: XCTestCase {
         ) { cmd, _ in
             try await cmd.execute()
         }
-        
+
         // Second low priority should fail
         do {
             _ = try await middleware.execute(
@@ -261,7 +261,7 @@ final class RateLimitingMiddlewareTests: XCTestCase {
         } catch {
             XCTAssertTrue(error is PipelineError)
         }
-        
+
         // High priority should still work
         for i in 0..<3 {
             _ = try await middleware.execute(
@@ -272,7 +272,7 @@ final class RateLimitingMiddlewareTests: XCTestCase {
             }
         }
     }
-    
+
     func testRateLimitBypassForAllowedCommands() async throws {
         // Given
         let limiter = RateLimiter(
@@ -280,7 +280,7 @@ final class RateLimitingMiddlewareTests: XCTestCase {
             scope: .perUser
         )
         let middleware = RateLimitingMiddleware(limiter: limiter)
-        
+
         // When - consume the token
         _ = try await middleware.execute(
             TestCommand(id: 1),
@@ -288,7 +288,7 @@ final class RateLimitingMiddlewareTests: XCTestCase {
         ) { cmd, _ in
             try await cmd.execute()
         }
-        
+
         // Regular command should be rate limited
         do {
             _ = try await middleware.execute(
@@ -301,11 +301,11 @@ final class RateLimitingMiddlewareTests: XCTestCase {
         } catch {
             XCTAssertTrue(error is PipelineError)
         }
-        
+
         // Note: The current API doesn't support command-specific bypassing
         // This test is modified to test basic rate limiting only
     }
-    
+
     func testKeyExtractor() async throws {
         // Given - rate limit per user
         let limiter = RateLimiter(
@@ -319,14 +319,14 @@ final class RateLimitingMiddlewareTests: XCTestCase {
                 return metadata.userId ?? "anonymous"
             }
         )
-        
+
         // When - execute requests for different users
         let metadata1 = TestCommandMetadata(userId: "user1")
         let context1 = CommandContext(metadata: metadata1)
-        
+
         let metadata2 = TestCommandMetadata(userId: "user2")
         let context2 = CommandContext(metadata: metadata2)
-        
+
         // User 1 can make 2 requests
         for i in 0..<2 {
             _ = try await middleware.execute(
@@ -336,7 +336,7 @@ final class RateLimitingMiddlewareTests: XCTestCase {
                 try await cmd.execute()
             }
         }
-        
+
         // User 2 can also make 2 requests
         for i in 0..<2 {
             _ = try await middleware.execute(
@@ -346,7 +346,7 @@ final class RateLimitingMiddlewareTests: XCTestCase {
                 try await cmd.execute()
             }
         }
-        
+
         // User 1's 3rd request should fail
         do {
             _ = try await middleware.execute(
@@ -360,7 +360,7 @@ final class RateLimitingMiddlewareTests: XCTestCase {
             XCTAssertTrue(error is PipelineError)
         }
     }
-    
+
     func testMetricsEmission() async throws {
         // Given
         let limiter = RateLimiter(
@@ -368,9 +368,9 @@ final class RateLimitingMiddlewareTests: XCTestCase {
             scope: .perUser
         )
         let middleware = RateLimitingMiddleware(limiter: limiter)
-        
+
         let context = CommandContext()
-        
+
         // When - successful request
         _ = try await middleware.execute(
             TestCommand(id: 1),
@@ -378,13 +378,13 @@ final class RateLimitingMiddlewareTests: XCTestCase {
         ) { cmd, _ in
             try await cmd.execute()
         }
-        
+
         // Then
         XCTAssertEqual(context.metrics["rateLimit.allowed"] as? Bool, true)
         XCTAssertNotNil(context.metrics["rateLimit.strategy"])
         XCTAssertNotNil(context.metrics["rateLimit.key"])
     }
-    
+
     func testConcurrentRequests() async throws {
         // Given
         let limiter = RateLimiter(
@@ -392,9 +392,9 @@ final class RateLimitingMiddlewareTests: XCTestCase {
             scope: .perUser
         )
         let middleware = RateLimitingMiddleware(limiter: limiter)
-        
+
         let requestCount = 20
-        
+
         // When - send concurrent requests
         let results = await withTaskGroup(of: Result<String, Error>.self) { group in
             for i in 0..<requestCount {
@@ -412,30 +412,30 @@ final class RateLimitingMiddlewareTests: XCTestCase {
                     }
                 }
             }
-            
+
             var results: [Result<String, Error>] = []
             for await result in group {
                 results.append(result)
             }
             return results
         }
-        
+
         // Then - exactly 10 should succeed
         let successes = results.filter { if case .success = $0 { return true } else { return false } }
         let failures = results.filter { if case .failure = $0 { return true } else { return false } }
-        
+
         XCTAssertEqual(successes.count, 10)
         XCTAssertEqual(failures.count, 10)
     }
-    
+
     // MARK: - Helper Methods
-    
+
     private func countAllowedRequests(
         middleware: RateLimitingMiddleware,
         count: Int
     ) async -> Int {
         var allowed = 0
-        
+
         for i in 0..<count {
             do {
                 _ = try await middleware.execute(
@@ -449,7 +449,7 @@ final class RateLimitingMiddlewareTests: XCTestCase {
                 // Rate limited
             }
         }
-        
+
         return allowed
     }
 }
@@ -459,3 +459,4 @@ final class RateLimitingMiddlewareTests: XCTestCase {
 protocol PriorityAware {
     var priority: Priority { get }
 }
+

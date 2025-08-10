@@ -12,29 +12,29 @@ import Foundation
 /// - Export-ready: Data format suitable for various metric backends
 public protocol MetricsCollector: Sendable {
     // MARK: - Core Metric Recording
-    
+
     /// Records a counter metric (cumulative value that only increases).
     func recordCounter(_ name: String, value: Double, tags: [String: String]) async
-    
+
     /// Records a gauge metric (point-in-time value that can go up or down).
     func recordGauge(_ name: String, value: Double, tags: [String: String]) async
-    
+
     /// Records a histogram metric (distribution of values).
     func recordHistogram(_ name: String, value: Double, tags: [String: String]) async
-    
+
     /// Records a timer metric (duration of operations).
     func recordTimer(_ name: String, duration: TimeInterval, tags: [String: String]) async
-    
+
     // MARK: - Batch Recording
-    
+
     /// Records multiple metrics in a single batch operation.
     func recordBatch(_ metrics: [(name: String, type: MetricType, value: Double, tags: [String: String])]) async
-    
+
     // MARK: - Lifecycle Management
-    
+
     /// Flushes any pending metrics to their destinations.
     func flush() async
-    
+
     /// Resets all collected metrics.
     func reset() async
 }

@@ -1,5 +1,5 @@
 import Foundation
-import PipelineKit
+import PipelineKitCore
 
 /// Actor-based test middleware for thread-safe testing.
 ///
@@ -30,33 +30,33 @@ public actor ActorTestMiddleware: Middleware {
     private var executionCount = 0
     private var lastCommand: (any Command)?
     private var lastContext: CommandContext?
-    
+
     public let priority: ExecutionPriority = .custom
-    
+
     public init() {}
-    
+
     /// Get current execution count
     public func getExecutionCount() -> Int {
         executionCount
     }
-    
+
     /// Get last executed command
     public func getLastCommand() -> (any Command)? {
         lastCommand
     }
-    
+
     /// Get last execution context
     public func getLastContext() -> CommandContext? {
         lastContext
     }
-    
+
     /// Reset all state
     public func reset() {
         executionCount = 0
         lastCommand = nil
         lastContext = nil
     }
-    
+
     public nonisolated func execute<T: Command>(
         _ command: T,
         context: CommandContext,
@@ -64,11 +64,11 @@ public actor ActorTestMiddleware: Middleware {
     ) async throws -> T.Result {
         // Update state on actor
         await recordExecution(command, context: context)
-        
+
         // Execute next
         return try await next(command, context)
     }
-    
+
     private func recordExecution(_ command: any Command, context: CommandContext) {
         executionCount += 1
         lastCommand = command

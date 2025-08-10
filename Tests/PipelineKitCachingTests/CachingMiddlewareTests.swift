@@ -1,6 +1,6 @@
 import XCTest
 @testable import PipelineKit
-@testable import PipelineKitMiddleware
+@testable import PipelineKitCaching
 import PipelineKitTestSupport
 
 final class CachingMiddlewareTests: XCTestCase {

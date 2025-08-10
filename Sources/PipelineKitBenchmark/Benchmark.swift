@@ -2,27 +2,26 @@ import Foundation
 
 /// A high-performance benchmarking framework with zero-overhead abstractions.
 public struct Benchmark: Sendable {
-    
     // MARK: - Types
-    
+
     /// The result of a benchmark operation.
     public struct Result<T: Sendable>: Sendable {
         /// The value returned by the benchmark operation.
         public let value: T
-        
+
         /// Timing information for the benchmark.
         public let timing: Timing
-        
+
         /// Statistical analysis of multiple iterations.
         public let statistics: Statistics?
-        
+
         /// Memory usage information if tracking was enabled.
         public let memory: MemoryInfo?
-        
+
         /// Metadata about the benchmark execution.
         public let metadata: Metadata
     }
-    
+
     /// Metadata about benchmark execution.
     public struct Metadata: Sendable {
         public let name: String
@@ -30,7 +29,7 @@ public struct Benchmark: Sendable {
         public let warmupIterations: Int
         public let concurrentTasks: Int
         public let timestamp: Date
-        
+
         init(
             name: String,
             iterations: Int,
@@ -44,7 +43,7 @@ public struct Benchmark: Sendable {
             self.timestamp = Date()
         }
     }
-    
+
     /// Configuration for benchmark execution.
     @usableFromInline
     struct Configuration: Sendable {
@@ -56,21 +55,21 @@ public struct Benchmark: Sendable {
         var outputFormat: OutputFormat = .human
         var quiet: Bool = false
     }
-    
+
     // MARK: - Properties
-    
+
     @usableFromInline
-    internal var configuration: Configuration
-    
+    internal var configuration: Configuration // swiftlint:disable:this attributes
+
     // MARK: - Initialization
-    
+
     @usableFromInline
     internal init(configuration: Configuration) {
         self.configuration = configuration
     }
-    
+
     // MARK: - Public API
-    
+
     /// Measure the performance of an operation.
     ///
     /// - Parameters:
@@ -92,58 +91,58 @@ public struct Benchmark: Sendable {
         ))
         return try await benchmark.run(operation)
     }
-    
+
     /// Create a benchmark with a specific name.
     public static func named(_ name: String) -> Benchmark {
         Benchmark(configuration: Configuration(name: name))
     }
-    
+
     // MARK: - Fluent Configuration
-    
+
     /// Set the number of iterations.
     public func iterations(_ count: Int) -> Benchmark {
         var config = configuration
         config.iterations = count
         return Benchmark(configuration: config)
     }
-    
+
     /// Set the number of warmup iterations.
     public func warmup(_ count: Int) -> Benchmark {
         var config = configuration
         config.warmupIterations = count
         return Benchmark(configuration: config)
     }
-    
+
     /// Run the benchmark with concurrent tasks.
     public func concurrent(tasks: Int) -> Benchmark {
         var config = configuration
         config.concurrentTasks = tasks
         return Benchmark(configuration: config)
     }
-    
+
     /// Enable memory tracking.
     public func memory(tracking: Bool = true) -> Benchmark {
         var config = configuration
         config.trackMemory = tracking
         return Benchmark(configuration: config)
     }
-    
+
     /// Set the output format.
     public func output(_ format: OutputFormat) -> Benchmark {
         var config = configuration
         config.outputFormat = format
         return Benchmark(configuration: config)
     }
-    
+
     /// Run in quiet mode (no output during execution).
     public func quiet(_ enabled: Bool = true) -> Benchmark {
         var config = configuration
         config.quiet = enabled
         return Benchmark(configuration: config)
     }
-    
+
     // MARK: - Execution
-    
+
     /// Run the benchmark with the configured settings.
     public func run<T: Sendable>(
         _ operation: @escaping @Sendable () async throws -> T
@@ -152,18 +151,18 @@ public struct Benchmark: Sendable {
         if configuration.warmupIterations > 0 && !configuration.quiet {
             print("Running \(configuration.warmupIterations) warmup iterations...")
         }
-        
+
         for _ in 0..<configuration.warmupIterations {
             _ = try await operation()
         }
-        
+
         // Track memory if enabled
         let memoryBefore = configuration.trackMemory ? MemoryInfo.current() : nil
-        
+
         // Run actual benchmark
         let timings: [TimeInterval]
         let finalValue: T
-        
+
         if configuration.concurrentTasks > 1 {
             // Concurrent execution
             (finalValue, timings) = try await runConcurrent(operation)
@@ -171,14 +170,14 @@ public struct Benchmark: Sendable {
             // Sequential execution
             (finalValue, timings) = try await runSequential(operation)
         }
-        
+
         // Track memory after
         let memoryAfter = configuration.trackMemory ? MemoryInfo.current() : nil
         let memoryInfo = MemoryInfo.delta(from: memoryBefore, to: memoryAfter)
-        
+
         // Calculate statistics
         let statistics = timings.count > 1 ? Statistics(timings: timings) : nil
-        
+
         // Create result
         let timing = Timing(
             total: timings.reduce(0, +),
@@ -186,7 +185,7 @@ public struct Benchmark: Sendable {
             min: timings.min() ?? 0,
             max: timings.max() ?? 0
         )
-        
+
         let result = Result(
             value: finalValue,
             timing: timing,
@@ -199,67 +198,67 @@ public struct Benchmark: Sendable {
                 concurrentTasks: configuration.concurrentTasks
             )
         )
-        
+
         // Output results
         if !configuration.quiet {
             print(Formatter.format(result, as: configuration.outputFormat))
         }
-        
+
         return result
     }
-    
+
     // MARK: - Private Methods
-    
+
     private func runSequential<T: Sendable>(
         _ operation: @escaping @Sendable () async throws -> T
     ) async throws -> (T, [TimeInterval]) {
         var timings: [TimeInterval] = []
         timings.reserveCapacity(configuration.iterations)
-        
+
         var lastValue: T?
-        
+
         for _ in 0..<configuration.iterations {
             let (value, duration) = try await time(operation)
             lastValue = value
             timings.append(duration)
         }
-        
+
         return (lastValue!, timings)
     }
-    
+
     private func runConcurrent<T: Sendable>(
         _ operation: @escaping @Sendable () async throws -> T
     ) async throws -> (T, [TimeInterval]) {
         let iterationsPerTask = configuration.iterations / configuration.concurrentTasks
         let remainder = configuration.iterations % configuration.concurrentTasks
-        
+
         return try await withThrowingTaskGroup(of: (T, [TimeInterval]).self) { group in
             for taskIndex in 0..<configuration.concurrentTasks {
                 let taskIterations = iterationsPerTask + (taskIndex < remainder ? 1 : 0)
-                
+
                 group.addTask {
                     var timings: [TimeInterval] = []
                     timings.reserveCapacity(taskIterations)
                     var lastValue: T?
-                    
+
                     for _ in 0..<taskIterations {
                         let (value, duration) = try await time(operation)
                         lastValue = value
                         timings.append(duration)
                     }
-                    
+
                     return (lastValue!, timings)
                 }
             }
-            
+
             var allTimings: [TimeInterval] = []
             var finalValue: T?
-            
+
             for try await (value, timings) in group {
                 finalValue = value
                 allTimings.append(contentsOf: timings)
             }
-            
+
             return (finalValue!, allTimings)
         }
     }
@@ -276,7 +275,7 @@ public extension Benchmark {
         let result = try await measure(name, operation)
         return result.value
     }
-    
+
     /// Run a benchmark with automatic pretty printing.
     static func profile<T: Sendable>(
         _ name: String,
