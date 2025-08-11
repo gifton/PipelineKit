@@ -52,17 +52,31 @@ public struct ObjectPoolConfiguration: Sendable {
         trackStatistics: Bool = true,
         enableMemoryPressureHandling: Bool = true
     ) {
+        // Validate configuration before assignment
+        guard maxSize > 0 else {
+            fatalError("ObjectPoolConfiguration: maxSize must be positive, got \(maxSize)")
+        }
+        
+        let calculatedHighWaterMark = highWaterMark ?? Int(Double(maxSize) * 0.8)
+        let calculatedLowWaterMark = lowWaterMark ?? Int(Double(maxSize) * 0.2)
+        
+        guard calculatedHighWaterMark <= maxSize else {
+            fatalError("ObjectPoolConfiguration: highWaterMark (\(calculatedHighWaterMark)) must not exceed maxSize (\(maxSize))")
+        }
+        
+        guard calculatedLowWaterMark <= calculatedHighWaterMark else {
+            fatalError("ObjectPoolConfiguration: lowWaterMark (\(calculatedLowWaterMark)) must not exceed highWaterMark (\(calculatedHighWaterMark))")
+        }
+        
+        guard calculatedLowWaterMark >= 0 else {
+            fatalError("ObjectPoolConfiguration: lowWaterMark must be non-negative, got \(calculatedLowWaterMark)")
+        }
+        
         self.maxSize = maxSize
-        self.highWaterMark = highWaterMark ?? Int(Double(maxSize) * 0.8)
-        self.lowWaterMark = lowWaterMark ?? Int(Double(maxSize) * 0.2)
+        self.highWaterMark = calculatedHighWaterMark
+        self.lowWaterMark = calculatedLowWaterMark
         self.trackStatistics = trackStatistics
         self.enableMemoryPressureHandling = enableMemoryPressureHandling
-
-        // Validate configuration
-        assert(maxSize > 0, "Pool size must be positive")
-        assert(self.highWaterMark <= maxSize, "High water mark must not exceed max size")
-        assert(self.lowWaterMark <= self.highWaterMark, "Low water mark must not exceed high water mark")
-        assert(self.lowWaterMark >= 0, "Low water mark must be non-negative")
     }
 
     /// Default configuration with reasonable settings.

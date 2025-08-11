@@ -58,8 +58,8 @@ public struct MetricValue: Sendable, Hashable, Codable {
 
 // MARK: - ExpressibleByFloatLiteral
 
-public extension MetricValue: ExpressibleByFloatLiteral {
-    init(floatLiteral value: Double) {
+extension MetricValue: ExpressibleByFloatLiteral {
+    public init(floatLiteral value: Double) {
         self.value = value
         self.unit = nil
     }
@@ -67,8 +67,8 @@ public extension MetricValue: ExpressibleByFloatLiteral {
 
 // MARK: - ExpressibleByIntegerLiteral
 
-public extension MetricValue: ExpressibleByIntegerLiteral {
-    init(integerLiteral value: Int) {
+extension MetricValue: ExpressibleByIntegerLiteral {
+    public init(integerLiteral value: Int) {
         self.value = Double(value)
         self.unit = nil
     }
@@ -76,8 +76,8 @@ public extension MetricValue: ExpressibleByIntegerLiteral {
 
 // MARK: - CustomStringConvertible
 
-public extension MetricValue: CustomStringConvertible {
-    var description: String {
+extension MetricValue: CustomStringConvertible {
+    public var description: String {
         if let unit = unit {
             return "\(value)\(unit.rawValue)"
         }
@@ -87,8 +87,8 @@ public extension MetricValue: CustomStringConvertible {
 
 // MARK: - Comparable
 
-public extension MetricValue: Comparable {
-    static func < (lhs: MetricValue, rhs: MetricValue) -> Bool {
+extension MetricValue: Comparable {
+    public static func < (lhs: MetricValue, rhs: MetricValue) -> Bool {
         // Try to convert to same unit for comparison
         if let lhsUnit = lhs.unit, let rhsUnit = rhs.unit, lhsUnit != rhsUnit {
             if let converted = rhs.converted(to: lhsUnit) {

@@ -7,6 +7,19 @@ import OSLog
 #endif
 import PipelineKitCore
 
+/// Security audit event types.
+public enum SecurityAuditEvent: Sendable {
+    case encryption(commandType: String, fieldsEncrypted: [String])
+    case decryption(commandType: String, fieldsDecrypted: [String])
+    case keyRotation(oldVersion: String, newVersion: String)
+    case accessDenied(reason: String)
+}
+
+/// Protocol for audit logging systems.
+public protocol AuditLogger: Sendable {
+    func log(_ event: SecurityAuditEvent) async
+}
+
 /// A comprehensive audit logging system for tracking command execution.
 ///
 /// Provides:
@@ -19,14 +32,14 @@ import PipelineKitCore
 ///
 /// Example:
 /// ```swift
-/// let logger = AuditLogger(
+/// let logger = DefaultAuditLogger(
 ///     destination: .file(url: logsURL),
 ///     privacyLevel: .masked
 /// )
 /// 
 /// let middleware = AuditLoggingMiddleware(logger: logger)
 /// ```
-public actor AuditLogger {
+public actor DefaultAuditLogger: AuditLogger {
     private let destination: LogDestination
     private let privacyLevel: PrivacyLevel
     private let encoder = JSONEncoder()
@@ -73,6 +86,23 @@ public actor AuditLogger {
     
     /// The configured time interval for automatic flush.
     nonisolated public var configuredFlushInterval: TimeInterval { flushInterval }
+    
+    /// Logs a security audit event.
+    ///
+    /// - Parameter event: The security event to log
+    public func log(_ event: SecurityAuditEvent) async {
+        // Convert security event to audit entry
+        let entry = AuditEntry(
+            id: UUID(),
+            timestamp: Date(),
+            commandType: "SecurityEvent",
+            userId: "system",
+            duration: 0,
+            status: .success,
+            commandData: ["event": String(describing: event) as any Sendable]
+        )
+        await log(entry)
+    }
     
     /// Logs a command execution audit entry.
     ///
@@ -169,10 +199,21 @@ public actor AuditLogger {
             return entry
             
         case .masked:
-            var sanitized = entry
-            sanitized.userId = maskUserId(entry.userId)
-            sanitized.metadata = maskMetadata(entry.metadata)
-            return sanitized
+            return AuditEntry(
+                id: entry.id,
+                timestamp: entry.timestamp,
+                commandType: entry.commandType,
+                userId: entry.userId.map(maskUserId),
+                sessionId: entry.sessionId,
+                ipAddress: entry.ipAddress,
+                userAgent: entry.userAgent,
+                duration: entry.duration,
+                status: entry.status,
+                commandData: entry.commandData.map(maskMetadata),
+                contextMetadata: entry.contextMetadata.map(maskMetadata),
+                result: entry.result.map(maskMetadata),
+                error: entry.error
+            )
             
         case .minimal:
             return AuditEntry(
@@ -180,10 +221,8 @@ public actor AuditLogger {
                 timestamp: entry.timestamp,
                 commandType: entry.commandType,
                 userId: "anonymous",
-                success: entry.success,
                 duration: entry.duration,
-                errorType: entry.errorType,
-                metadata: [:]
+                status: entry.status
             )
         }
     }
@@ -195,14 +234,18 @@ public actor AuditLogger {
         return "\(prefix)***\(suffix)"
     }
     
-    private func maskMetadata(_ metadata: [String: String]) -> [String: String] {
+    private func maskMetadata(_ metadata: [String: any Sendable]) -> [String: any Sendable] {
         metadata.mapValues { value in
-            if value.count <= 8 {
-                return String(repeating: "*", count: value.count)
+            if let stringValue = value as? String {
+                if stringValue.count <= 8 {
+                    return String(repeating: "*", count: stringValue.count) as any Sendable
+                } else {
+                    let prefix = stringValue.prefix(3)
+                    let suffix = stringValue.suffix(3)
+                    return "\(prefix)***\(suffix)" as any Sendable
+                }
             } else {
-                let prefix = value.prefix(3)
-                let suffix = value.suffix(3)
-                return "\(prefix)***\(suffix)"
+                return "[MASKED]" as any Sendable
             }
         }
     }
@@ -269,8 +312,11 @@ public actor AuditLogger {
             if let commandType = criteria.commandType, entry.commandType != commandType {
                 return false
             }
-            if let success = criteria.success, entry.success != success {
-                return false
+            if let success = criteria.success {
+                let entrySuccess = entry.status == .success
+                if entrySuccess != success {
+                    return false
+                }
             }
             return true
         }
@@ -301,37 +347,7 @@ public enum PrivacyLevel: Sendable {
     case minimal
 }
 
-/// An audit log entry.
-public struct AuditEntry: Codable, Sendable {
-    public let id: UUID
-    public let timestamp: Date
-    public let commandType: String
-    public var userId: String
-    public let success: Bool
-    public let duration: TimeInterval
-    public let errorType: String?
-    public var metadata: [String: String]
-    
-    public init(
-        id: UUID = UUID(),
-        timestamp: Date = Date(),
-        commandType: String,
-        userId: String,
-        success: Bool,
-        duration: TimeInterval,
-        errorType: String? = nil,
-        metadata: [String: String] = [:]
-    ) {
-        self.id = id
-        self.timestamp = timestamp
-        self.commandType = commandType
-        self.userId = userId
-        self.success = success
-        self.duration = duration
-        self.errorType = errorType
-        self.metadata = metadata
-    }
-}
+// AuditEntry is now defined in AuditLoggingMiddleware.swift to avoid duplication
 
 /// Criteria for querying audit logs.
 public struct AuditQueryCriteria: Sendable {
@@ -362,70 +378,7 @@ public struct AuditQueryCriteria: Sendable {
 /// ```swift
 /// let logger = AuditLogger(destination: .console)
 /// let middleware = AuditLoggingMiddleware(logger: logger)
-/// 
-/// pipeline.use(middleware)
-/// ```
-public struct AuditLoggingMiddleware: Middleware {
-    public let priority: ExecutionPriority = .postProcessing
-    private let auditLogger: AuditLogger
-    private let metadataExtractor: @Sendable (any Command, CommandMetadata) async -> [String: String]
-    
-    nonisolated(unsafe) public static var recommendedOrder: ExecutionPriority { .postProcessing }
-    
-    /// Creates audit logging middleware.
-    ///
-    /// - Parameters:
-    ///   - logger: The audit logger to use
-    ///   - metadataExtractor: Function to extract additional metadata
-    public init(
-        logger: AuditLogger,
-        metadataExtractor: @escaping @Sendable (any Command, CommandMetadata) async -> [String: String] = { _, _ in [:] }
-    ) {
-        self.auditLogger = logger
-        self.metadataExtractor = metadataExtractor
-    }
-    
-    public func execute<T: Command>(
-        _ command: T,
-        context: CommandContext,
-        next: @Sendable (T, CommandContext) async throws -> T.Result
-    ) async throws -> T.Result {
-        let startTime = Date()
-        let metadata = context.commandMetadata
-        let commandType = String(describing: T.self)
-        let userId = (metadata as? DefaultCommandMetadata)?.userId ?? "anonymous"
-        let extraMetadata = await metadataExtractor(command, metadata)
-        
-        do {
-            let result = try await next(command, context)
-            
-            let entry = AuditEntry(
-                commandType: commandType,
-                userId: userId,
-                success: true,
-                duration: Date().timeIntervalSince(startTime),
-                metadata: extraMetadata
-            )
-            
-            await auditLogger.log(entry)
-            
-            return result
-        } catch {
-            let entry = AuditEntry(
-                commandType: commandType,
-                userId: userId,
-                success: false,
-                duration: Date().timeIntervalSince(startTime),
-                errorType: String(describing: type(of: error)),
-                metadata: extraMetadata
-            )
-            
-            await auditLogger.log(entry)
-            
-            throw error
-        }
-    }
-}
+// AuditLoggingMiddleware is now defined in Middleware/Audit/AuditLoggingMiddleware.swift
 
 /// Statistics from audit logs.
 public struct AuditStatistics: Sendable {
@@ -446,10 +399,10 @@ public struct AuditStatistics: Sendable {
     public static func calculate(from entries: [AuditEntry]) -> AuditStatistics {
         return autoreleasepool {
             let totalCommands = entries.count
-            let successCount = entries.filter { $0.success }.count
-            let failureCount = totalCommands - successCount
+            let successCount = entries.filter { $0.status == .success }.count
+            let failureCount = entries.filter { $0.status == .failure }.count
             
-            let totalDuration = entries.reduce(0.0) { $0 + $1.duration }
+            let totalDuration = entries.reduce(0.0) { $0 + ($1.duration ?? 0) }
             let averageDuration = totalCommands > 0 ? totalDuration / Double(totalCommands) : 0
             
             var commandCounts: [String: Int] = [:]
@@ -458,9 +411,12 @@ public struct AuditStatistics: Sendable {
             
             for entry in entries {
                 commandCounts[entry.commandType, default: 0] += 1
-                userActivity[entry.userId, default: 0] += 1
+                if let userId = entry.userId {
+                    userActivity[userId, default: 0] += 1
+                }
                 
-                if let errorType = entry.errorType {
+                if entry.status == .failure, let error = entry.error {
+                    let errorType = error["type"] as? String ?? "Unknown"
                     errorCounts[errorType, default: 0] += 1
                 }
             }

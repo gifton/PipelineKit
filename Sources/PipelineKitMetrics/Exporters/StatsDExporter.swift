@@ -120,7 +120,6 @@ public actor StatsDExporter: MetricExporter {
             if let formatted = formatMetric(metric) {
                 await appendToBuffer(formatted)
                 metricsTotal += 1
-                }
             }
         }
     }
@@ -413,7 +412,7 @@ public actor StatsDExporter: MetricExporter {
         }
         #endif
     }
-
+    
     private func handleNetworkError(_ error: Error) async {
         networkErrorsTotal += 1
         // For UDP, we just log and continue - it's fire-and-forget
@@ -443,7 +442,7 @@ public actor StatsDExporter: MetricExporter {
 
     // MARK: - Statistics
 
-    public func getStats() -> StatsDStats {
+    public func getStats() async -> StatsDStats {
         StatsDStats(
             packetsTotal: packetsTotal,
             metricsTotal: metricsTotal,
@@ -454,7 +453,7 @@ public actor StatsDExporter: MetricExporter {
     }
 }
 
-// MARK: - Statistics
+// MARK: - Statistics (moved outside actor)
 
 public struct StatsDStats: Sendable {
     public let packetsTotal: Int

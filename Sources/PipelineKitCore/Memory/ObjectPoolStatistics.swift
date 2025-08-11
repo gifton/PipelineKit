@@ -13,6 +13,9 @@ public struct ObjectPoolStatistics: Sendable {
 
     /// Number of objects currently in use (checked out).
     public let currentlyInUse: Int
+    
+    /// Maximum pool size configured for this pool.
+    public let maxSize: Int
 
     /// Total number of acquire operations.
     public let totalAcquisitions: Int
@@ -46,6 +49,7 @@ public struct ObjectPoolStatistics: Sendable {
         totalAllocated: Int = 0,
         currentlyAvailable: Int = 0,
         currentlyInUse: Int = 0,
+        maxSize: Int = 0,
         totalAcquisitions: Int = 0,
         totalReleases: Int = 0,
         hits: Int = 0,
@@ -57,6 +61,7 @@ public struct ObjectPoolStatistics: Sendable {
         self.totalAllocated = totalAllocated
         self.currentlyAvailable = currentlyAvailable
         self.currentlyInUse = currentlyInUse
+        self.maxSize = maxSize
         self.totalAcquisitions = totalAcquisitions
         self.totalReleases = totalReleases
         self.hits = hits
@@ -78,6 +83,7 @@ struct MutablePoolStatistics {
     var totalAllocated: Int = 0
     var currentlyAvailable: Int = 0
     var currentlyInUse: Int = 0
+    var maxSize: Int = 0
     var totalAcquisitions: Int = 0
     var totalReleases: Int = 0
     var hits: Int = 0
@@ -91,6 +97,7 @@ struct MutablePoolStatistics {
             totalAllocated: totalAllocated,
             currentlyAvailable: currentlyAvailable,
             currentlyInUse: currentlyInUse,
+            maxSize: maxSize,
             totalAcquisitions: totalAcquisitions,
             totalReleases: totalReleases,
             hits: hits,

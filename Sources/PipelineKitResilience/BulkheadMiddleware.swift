@@ -257,8 +257,6 @@ public struct BulkheadMiddleware: Middleware {
                 }
 
                 return try await next(command, context)
-                await metrics.recordTimeout()
-                throw error
             }
 
         case let .fallback(fallbackProvider):

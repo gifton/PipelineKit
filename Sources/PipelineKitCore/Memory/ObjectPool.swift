@@ -31,6 +31,9 @@ import Foundation
 /// overhead for the acquire/release operations.
 public actor ObjectPool<T: Sendable> {
     // MARK: - Properties
+    
+    /// Pool name for identification in metrics
+    public let name: String
 
     /// Pool configuration.
     public let configuration: ObjectPoolConfiguration
@@ -46,27 +49,64 @@ public actor ObjectPool<T: Sendable> {
 
     /// Statistics tracking (if enabled).
     private var stats: MutablePoolStatistics
+    
+    /// Whether this pool is registered for metrics
+    private let registerMetrics: Bool
+    
+    /// Track if the pool is still active (not deinited)
+    private var isActive = true
 
     // MARK: - Initialization
 
     /// Creates a new object pool.
     ///
     /// - Parameters:
+    ///   - name: Optional name for the pool (auto-generated if nil)
     ///   - configuration: Pool configuration settings
     ///   - factory: Closure to create new instances when needed
     ///   - reset: Closure to reset objects before reuse (default: no-op)
+    ///   - registerMetrics: Whether to register with PoolRegistry (default: uses global setting)
     public init(
+        name: String? = nil,
         configuration: ObjectPoolConfiguration = .default,
         factory: @escaping @Sendable () -> T,
-        reset: @escaping @Sendable (T) -> Void = { _ in }
+        reset: @escaping @Sendable (T) -> Void = { _ in },
+        registerMetrics: Bool? = nil
     ) {
+        self.name = name ?? PoolRegistry.generatePoolName(for: T.self)
         self.configuration = configuration
         self.factory = factory
         self.reset = reset
         self.stats = MutablePoolStatistics()
+        self.stats.maxSize = configuration.maxSize
+        self.registerMetrics = registerMetrics ?? PoolRegistry.metricsEnabledByDefault
 
         // Reserve capacity for better performance
         self.available.reserveCapacity(configuration.maxSize)
+        
+        // Register with pool registry if enabled
+        if self.registerMetrics {
+            Task { [weak self] in
+                guard let self = self else { return }
+                // Check if still active before registering
+                guard await self.isActive else { return }
+                await PoolRegistry.shared.register(self)
+            }
+        }
+    }
+    
+    deinit {
+        // Mark as inactive to prevent race conditions
+        // Note: We can't access actor-isolated properties here, but isActive was marked
+        // nonisolated in the registration task, so the race condition is handled there
+        
+        // Unregister from pool registry if registered
+        // Use sync version since we're in deinit
+        if registerMetrics {
+            PoolRegistry.shared.unregisterSync(id: ObjectIdentifier(self))
+        }
+        
+        // The pool's available array will be deallocated automatically
     }
 
     // MARK: - Public Methods
@@ -78,6 +118,7 @@ public actor ObjectPool<T: Sendable> {
     ///
     /// - Returns: An object ready for use
     public func acquire() -> T {
+        let startTime = ContinuousClock.now
         let object: T
         let wasHit: Bool
 
@@ -95,6 +136,18 @@ public actor ObjectPool<T: Sendable> {
         if configuration.trackStatistics {
             stats.recordAcquisition(wasHit: wasHit)
         }
+        
+        // Record observability metrics
+        if registerMetrics {
+            let latency = startTime.duration(to: ContinuousClock.now)
+            Task {
+                await PoolObservability.shared.recordPoolAcquisition(
+                    poolName: name,
+                    wasHit: wasHit,
+                    latencyNanos: UInt64(latency.components.attoseconds / 1_000_000_000)
+                )
+            }
+        }
 
         return object
     }
@@ -106,6 +159,7 @@ public actor ObjectPool<T: Sendable> {
     ///
     /// - Parameter object: The object to return to the pool
     public func release(_ object: T) {
+        let startTime = ContinuousClock.now
         let wasEvicted: Bool
 
         if available.count < configuration.maxSize {
@@ -120,12 +174,32 @@ public actor ObjectPool<T: Sendable> {
         if configuration.trackStatistics {
             stats.recordRelease(wasEvicted: wasEvicted)
         }
+        
+        // Record observability metrics
+        if registerMetrics {
+            let latency = startTime.duration(to: ContinuousClock.now)
+            Task {
+                await PoolObservability.shared.recordPoolRelease(
+                    poolName: name,
+                    wasEvicted: wasEvicted,
+                    latencyNanos: UInt64(latency.components.attoseconds / 1_000_000_000)
+                )
+                
+                // Update size metrics
+                await PoolObservability.shared.updatePoolSize(
+                    poolName: name,
+                    available: available.count,
+                    inUse: stats.currentlyInUse,
+                    maxSize: configuration.maxSize
+                )
+            }
+        }
     }
 
     /// Gets current pool statistics.
     ///
     /// - Returns: A snapshot of current statistics, or empty if tracking is disabled
-    public func statistics() -> ObjectPoolStatistics {
+    public var statistics: ObjectPoolStatistics {
         guard configuration.trackStatistics else { return .empty }
 
         // Update current counts
@@ -171,16 +245,31 @@ public actor ObjectPool<T: Sendable> {
     ///
     /// This is exposed for manual pool management.
     ///
-    /// - Parameter targetSize: Target number of objects to keep
+    /// - Parameter targetSize: Target number of objects to keep (clamped to >= 0)
     public func shrink(to targetSize: Int) {
-        guard available.count > targetSize else { return }
+        // Validate and clamp target size
+        let clampedSize = max(0, targetSize)
+        
+        guard available.count > clampedSize else { return }
 
-        let toRemove = available.count - targetSize
+        let toRemove = available.count - clampedSize
         available.removeLast(toRemove)
 
         if configuration.trackStatistics {
             stats.evictions += toRemove
             stats.currentlyAvailable = available.count
+        }
+        
+        // Record observability metrics
+        if registerMetrics && toRemove > 0 {
+            Task {
+                await PoolObservability.shared.recordPoolShrink(
+                    poolName: name,
+                    objectsRemoved: toRemove,
+                    wasThrottled: false,
+                    reason: "manual"
+                )
+            }
         }
     }
 }

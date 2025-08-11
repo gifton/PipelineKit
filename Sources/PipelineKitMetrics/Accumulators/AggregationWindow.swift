@@ -236,31 +236,16 @@ public actor WindowedAccumulator<A: MetricAccumulator> {
             return accumulator.snapshot()
         }
 
-        // Special handling for BasicStatsAccumulator - the most common case
-        guard A.self == BasicStatsAccumulator.self else {
-            // For non-BasicStats accumulators, fall back to regular accumulator
-            // TODO: Implement protocol-based conversion for other types
-            return accumulator.snapshot()
+        // Use protocol-based conversion if the snapshot type supports it
+        if let convertibleType = A.Snapshot.self as? DecayConvertible.Type {
+            // Convert using the protocol method
+            let converted = convertibleType.fromDecay(decay)
+            // Safe force cast because we know it's the right type
+            return converted as! A.Snapshot
         }
 
-        // Convert ExponentialDecayAccumulator.Snapshot to BasicStatsAccumulator.Snapshot
-        // Use effectiveWeight for more accurate sum approximation
-        let snapshot = BasicStatsAccumulator.Snapshot(
-            count: decay.count,
-            sum: decay.ewma * decay.effectiveWeight, // Use effective weight, not count
-            min: decay.min,
-            max: decay.max,
-            lastValue: decay.lastValue,
-            lastTimestamp: decay.lastTimestamp,
-            firstValue: nil,  // Not tracked in decay accumulator
-            firstTimestamp: nil  // Not tracked in decay accumulator
-        )
-
-        // Safe cast since we've already verified the type
-        guard let typedSnapshot = snapshot as? A.Snapshot else {
-            fatalError("Snapshot type mismatch for decay accumulator")
-        }
-        return typedSnapshot
+        // Fall back to regular accumulator for types that don't support conversion
+        return accumulator.snapshot()
     }
 }
 

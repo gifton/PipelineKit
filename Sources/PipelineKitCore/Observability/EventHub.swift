@@ -149,7 +149,7 @@ public actor EventHub: EventEmitter {
         cleanupTask = Task {
             while !Task.isCancelled {
                 try? await Task.sleep(nanoseconds: UInt64(cleanupInterval * 1_000_000_000))
-                await performCleanup()
+                performCleanup()
             }
         }
     }

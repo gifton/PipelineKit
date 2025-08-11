@@ -205,6 +205,10 @@ public actor MiddlewareChainOptimizer {
                 canThrow = true
             case .postProcessing, .errorHandling:
                 contextReaders += 1
+            case .monitoring:
+                // Monitoring typically reads context and may modify for audit
+                contextReaders += 1
+                contextModifiers += 1
             case .observability:
                 contextReaders += 1
             case .custom:

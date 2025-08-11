@@ -151,7 +151,7 @@ public struct CompressionMiddleware: Middleware {
                 originalSize = payload.count
 
                 do {
-                    let compressed = try await compressor.compress(payload)
+                    let compressed = try compressor.compress(payload)
                     compressedSize = compressed.count
                     compressible.setCompressedPayload(compressed, algorithm: configuration.algorithm)
 
@@ -234,7 +234,7 @@ public struct CompressionMiddleware: Middleware {
         }
 
         let originalSize = payload.count
-        let compressed = try await compressor.compress(payload)
+        let compressed = try compressor.compress(payload)
         let compressedSize = compressed.count
 
         var compressedResult = result
@@ -322,12 +322,14 @@ public protocol CompressibleResult {
 
 private actor PayloadCompressor {
     private let configuration: CompressionMiddleware.Configuration
+    nonisolated let algorithm: compression_algorithm
 
     init(configuration: CompressionMiddleware.Configuration) {
         self.configuration = configuration
+        self.algorithm = configuration.algorithm.algorithm
     }
 
-    func compress(_ data: Data) throws -> Data {
+    nonisolated func compress(_ data: Data) throws -> Data {
         let destinationBuffer = UnsafeMutablePointer<UInt8>.allocate(capacity: data.count)
         defer { destinationBuffer.deallocate() }
 
@@ -341,7 +343,7 @@ private actor PayloadCompressor {
                 baseAddress,
                 data.count,
                 nil,
-                configuration.algorithm.algorithm
+                algorithm
             )
         }
 
@@ -352,7 +354,7 @@ private actor PayloadCompressor {
         return Data(bytes: destinationBuffer, count: compressedSize)
     }
 
-    func decompress(_ data: Data, originalSize: Int? = nil) throws -> Data {
+    nonisolated func decompress(_ data: Data, originalSize: Int? = nil) throws -> Data {
         let bufferSize = originalSize ?? data.count * 4
         let destinationBuffer = UnsafeMutablePointer<UInt8>.allocate(capacity: bufferSize)
         defer { destinationBuffer.deallocate() }
@@ -367,7 +369,7 @@ private actor PayloadCompressor {
                 baseAddress,
                 data.count,
                 nil,
-                configuration.algorithm.algorithm
+                algorithm
             )
         }
 
@@ -440,6 +442,6 @@ public extension CompressionMiddleware {
         let compressor = PayloadCompressor(
             configuration: Configuration(algorithm: algorithm)
         )
-        return try await compressor.decompress(data, originalSize: originalSize)
+        return try compressor.decompress(data, originalSize: originalSize)
     }
 }

@@ -278,14 +278,29 @@ public actor OTLPExporter: MetricExporter {
     }
 
     private func compress(_ data: Data) throws -> Data {
-        // TODO: Implement cross-platform compression
-        // For now, disable compression on non-Apple platforms
-        #if canImport(Foundation) && !os(Linux)
-        return try (data as NSData).compressed(using: .zlib) as Data
-        #else
-        // Return uncompressed data on Linux until we add SwiftNIO dependency
-        return data
-        #endif
+        // Skip compression for small payloads
+        guard data.count >= CompressionConfig.minimumSizeThreshold else {
+            return data
+        }
+        
+        // Use platform-specific compressor
+        let compressor = CompressionUtility.createCompressor()
+        
+        do {
+            let compressed = try compressor.compress(data)
+            
+            // Debug assertion to verify gzip format
+            assert(compressed.count >= 2 && compressed[0] == 0x1f && compressed[1] == 0x8b,
+                   "Invalid gzip magic bytes in compressed data")
+            
+            return compressed
+        } catch CompressionError.belowThreshold {
+            // This shouldn't happen due to our guard above, but handle gracefully
+            return data
+        } catch {
+            // Re-throw compression errors
+            throw error
+        }
     }
 
     private func parsePartialSuccess(from data: Data) throws -> OTLPPartialSuccess? {

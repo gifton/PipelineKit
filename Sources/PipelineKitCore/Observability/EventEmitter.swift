@@ -125,24 +125,24 @@ public extension PipelineEvent {
     /// Common event names
     enum Name {
         // Command events
-        static let commandStarted = "command.started"
-        static let commandCompleted = "command.completed"
-        static let commandFailed = "command.failed"
+        public static let commandStarted = "command.started"
+        public static let commandCompleted = "command.completed"
+        public static let commandFailed = "command.failed"
 
         // Middleware events
-        static let middlewareExecuting = "middleware.executing"
-        static let middlewareCompleted = "middleware.completed"
-        static let middlewareFailed = "middleware.failed"
-        static let middlewareTimeout = "middleware.timeout"
-        static let middlewareRetry = "middleware.retry"
-        static let middlewareRateLimited = "middleware.rate_limited"
-        static let middlewareCircuitOpen = "middleware.circuit_open"
-        static let middlewareBackpressure = "middleware.backpressure"
+        public static let middlewareExecuting = "middleware.executing"
+        public static let middlewareCompleted = "middleware.completed"
+        public static let middlewareFailed = "middleware.failed"
+        public static let middlewareTimeout = "middleware.timeout"
+        public static let middlewareRetry = "middleware.retry"
+        public static let middlewareRateLimited = "middleware.rate_limited"
+        public static let middlewareCircuitOpen = "middleware.circuit_open"
+        public static let middlewareBackpressure = "middleware.backpressure"
 
         // Pipeline events
-        static let pipelineStarted = "pipeline.started"
-        static let pipelineCompleted = "pipeline.completed"
-        static let pipelineFailed = "pipeline.failed"
+        public static let pipelineStarted = "pipeline.started"
+        public static let pipelineCompleted = "pipeline.completed"
+        public static let pipelineFailed = "pipeline.failed"
     }
 }
 

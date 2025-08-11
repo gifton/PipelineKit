@@ -25,6 +25,9 @@ public enum ExecutionPriority: Int, Sendable, CaseIterable {
     /// Pre-processing (transformation, decompression)
     case preProcessing = 300
     
+    /// Monitoring and audit logging
+    case monitoring = 350
+    
     /// Main business logic processing
     case processing = 400
     
@@ -81,6 +84,8 @@ public extension ExecutionPriority {
             return "Resilience"
         case .preProcessing:
             return "Pre-Processing"
+        case .monitoring:
+            return "Monitoring"
         case .processing:
             return "Processing"
         case .postProcessing:

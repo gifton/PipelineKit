@@ -232,8 +232,8 @@ public extension CommandContext {
 
 // MARK: - Debugging
 
-public extension CommandContext: CustomDebugStringConvertible {
-    var debugDescription: String {
+extension CommandContext: CustomDebugStringConvertible {
+    public var debugDescription: String {
         let contents = storage.withLock { dict in
             dict.map { key, value in
                 "\(key): \(value)"

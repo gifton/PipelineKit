@@ -1,0 +1,84 @@
+name: Cross-Platform Compression Tests
+
+on:
+  push:
+    branches: [ main, develop, feature/* ]
+    paths:
+      - 'Sources/PipelineKitMetrics/**'
+      - 'Tests/PipelineKitMetricsTests/**'
+      - 'Package.swift'
+      - '.github/workflows/compression-tests.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'Sources/PipelineKitMetrics/**'
+      - 'Tests/PipelineKitMetricsTests/**'
+      - 'Package.swift'
+
+jobs:
+  test-macos:
+    name: Test on macOS
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Swift
+        uses: swift-actions/setup-swift@v2
+        with:
+          swift-version: '5.9'
+      
+      - name: Build
+        run: swift build --target PipelineKitMetrics
+        
+      - name: Run Compression Tests
+        run: swift test --filter CompressionTests
+        
+      - name: Run OTLP Tests
+        run: swift test --filter OTLPExporterTests
+      
+  test-linux:
+    name: Test on Linux
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Build Docker Image
+        run: docker build -f Dockerfile.test -t pipelinekit-test .
+      
+      - name: Run Compression Tests
+        run: docker run --rm pipelinekit-test swift test --filter CompressionTests
+        
+      - name: Verify Gzip Format
+        run: |
+          docker run --rm pipelinekit-test swift test --filter CompressionUtilityTests/testCompressKnownVector
+      
+  integration-test:
+    name: OTLP Integration Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Start OTLP Collector
+        run: docker-compose -f docker-compose.test.yml up -d otel-collector
+        
+      - name: Wait for Collector
+        run: |
+          for i in {1..30}; do
+            if curl -f http://localhost:13133/ 2>/dev/null; then
+              echo "Collector is ready"
+              break
+            fi
+            echo "Waiting for collector... ($i/30)"
+            sleep 2
+          done
+      
+      - name: Run Integration Tests
+        run: docker-compose -f docker-compose.test.yml run --rm test-runner
+        
+      - name: Collect Logs
+        if: failure()
+        run: docker-compose -f docker-compose.test.yml logs
+        
+      - name: Cleanup
+        if: always()
+        run: docker-compose -f docker-compose.test.yml down -v
