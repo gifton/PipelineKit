@@ -1,5 +1,6 @@
 import XCTest
-@testable import PipelineKit
+@testable import PipelineKitSecurity
+@testable import PipelineKitCore
 import PipelineKitTestSupport
 
 final class AuthorizationMiddlewareTests: XCTestCase {
@@ -20,7 +21,7 @@ final class AuthorizationMiddlewareTests: XCTestCase {
         let context = CommandContext()
         
         // Set authenticated user
-        await context.set("admin-user", for: "authUserId")
+        context.metadata["authUserId"] = "admin-user"
         
         let handlerExecutedBox = Box(value: false)
         
@@ -46,7 +47,7 @@ final class AuthorizationMiddlewareTests: XCTestCase {
         
         let command = AuthzTestCommand(value: "test")
         let context = CommandContext()
-        await context.set("regular-user", for: "authUserId")
+        context.metadata["authUserId"] = "regular-user"
         
         // When/Then
         do {
@@ -113,7 +114,7 @@ final class AuthorizationMiddlewareTests: XCTestCase {
         
         // Test editor (has both roles)
         let editorContext = CommandContext()
-        await editorContext.set("editor", for: "authUserId")
+        editorContext.metadata["authUserId"] = "editor"
         
         let editorResult = try await middleware.execute(command, context: editorContext) { cmd, _ in
             cmd.value
@@ -122,7 +123,7 @@ final class AuthorizationMiddlewareTests: XCTestCase {
         
         // Test reader (missing write role)
         let readerContext = CommandContext()
-        await readerContext.set("reader", for: "authUserId")
+        readerContext.metadata["authUserId"] = "reader"
         
         do {
             _ = try await middleware.execute(command, context: readerContext) { _, _ in
@@ -153,7 +154,7 @@ final class AuthorizationMiddlewareTests: XCTestCase {
         
         let command = AuthzTestCommand(value: "test")
         let context = CommandContext()
-        await context.set("user123-premium", for: "authUserId")
+        context.metadata["authUserId"] = "user123-premium"
         
         // When
         let result = try await middleware.execute(command, context: context) { cmd, _ in
@@ -190,7 +191,7 @@ final class AuthorizationMiddlewareTests: XCTestCase {
                 let command = AuthzTestCommand(value: "test-\(i)")
                 let context = CommandContext()
                 let userId = i.isMultiple(of: 2) ? "valid-user-\(i)" : "invalid-user-\(i)"
-                await context.set(userId, for: "authUserId")
+                context.metadata["authUserId"] = userId
                 
                 do {
                     return try await middleware.execute(command, context: context) { cmd, _ in

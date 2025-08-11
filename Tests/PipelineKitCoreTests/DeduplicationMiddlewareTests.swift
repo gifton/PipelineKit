@@ -1,5 +1,5 @@
 import XCTest
-@testable import PipelineKit
+@testable import PipelineKitCore
 import PipelineKitTestSupport
 
 // MARK: - DeduplicationMiddleware Tests (Commented Out - Feature Not Implemented Yet)

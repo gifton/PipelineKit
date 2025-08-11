@@ -1,5 +1,6 @@
 import XCTest
-@testable import PipelineKit
+@testable import PipelineKitSecurity
+@testable import PipelineKitCore
 import PipelineKitTestSupport
 
 final class ValidationTests: XCTestCase {
@@ -103,7 +104,7 @@ final class ValidationTests: XCTestCase {
     
     func testValidationMiddleware() async throws {
         let bus = CommandBus()
-        try await bus.addMiddleware(PipelineKit.ValidationMiddleware())
+        try await bus.addMiddleware(ValidationMiddleware())
         
         struct TestHandler: CommandHandler {
             typealias CommandType = CreateUserCommand

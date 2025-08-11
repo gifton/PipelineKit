@@ -1,6 +1,6 @@
 import XCTest
 import Foundation
-@testable import PipelineKit
+@testable import PipelineKitCore
 import PipelineKitTestSupport
 
 final class SimpleCancellationTests: XCTestCase {

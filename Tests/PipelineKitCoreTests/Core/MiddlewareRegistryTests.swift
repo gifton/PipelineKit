@@ -1,5 +1,5 @@
 import XCTest
-@testable import PipelineKit
+@testable import PipelineKitCore
 import PipelineKitTestSupport
 
 // NOTE: MiddlewareRegistry has been removed in the refactoring

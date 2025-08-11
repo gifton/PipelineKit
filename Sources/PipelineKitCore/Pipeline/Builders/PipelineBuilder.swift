@@ -205,32 +205,8 @@ public actor PipelineBuilder<T: Command, H: CommandHandler> where H.CommandType 
             try await pipeline.addMiddlewares(middlewares)
         }
         
-        // Apply optimization if enabled
-        if enableOptimization {
-            await applyOptimization(to: pipeline)
-        }
+        // Optimization is now handled automatically inside StandardPipeline
         
         return pipeline
-    }
-    
-    /// Applies middleware chain optimization to the pipeline.
-    private func applyOptimization(to pipeline: StandardPipeline<T, H>) async {
-        let optimizer = MiddlewareChainOptimizer()
-        
-        // Get the appropriate middleware list
-        let middlewareToOptimize: [any Middleware]
-        if useOrderedMiddleware {
-            let orderedMiddleware = orderBuilder.build()
-            middlewareToOptimize = orderedMiddleware.map { $0.0 }
-        } else {
-            middlewareToOptimize = middlewares
-        }
-        
-        let optimizedChain = await optimizer.optimize(
-            middleware: middlewareToOptimize,
-            handler: handler
-        )
-        
-        await pipeline.setOptimizationMetadata(optimizedChain)
     }
 }

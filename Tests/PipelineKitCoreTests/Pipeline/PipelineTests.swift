@@ -1,5 +1,5 @@
 import XCTest
-@testable import PipelineKit
+@testable import PipelineKitCore
 import PipelineKitTestSupport
 
 final class PipelineTests: XCTestCase {
@@ -170,7 +170,7 @@ final class PipelineTests: XCTestCase {
                 context: CommandContext,
                 next: @Sendable (T, CommandContext) async throws -> T.Result
             ) async throws -> T.Result {
-                await context.set(value, for: "test_context_key")
+                context.metadata["test_context_key"] = value
                 return try await next(command, context)
             }
         }
@@ -184,7 +184,7 @@ final class PipelineTests: XCTestCase {
                 context: CommandContext,
                 next: @Sendable (T, CommandContext) async throws -> T.Result
             ) async throws -> T.Result {
-                let value: String? = await context.get(String.self, for: "test_context_key")
+                let value: String? = (context.metadata["test_context_key"] as? String)
                 if value != expectedValue {
                     throw TestError.validationFailed
                 }
@@ -207,7 +207,7 @@ final class PipelineTests: XCTestCase {
         XCTAssertEqual(result, "CONTEXT-TEST")
         
         // Verify context still has the value after execution
-        let finalValue: String? = await context.get(String.self, for: "test_context_key")
+        let finalValue: String? = (context.metadata["test_context_key"] as? String)
         XCTAssertEqual(finalValue, "test-value")
     }
 }

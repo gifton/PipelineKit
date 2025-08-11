@@ -1,5 +1,5 @@
 import XCTest
-@testable import PipelineKit
+@testable import PipelineKitCore
 import PipelineKitTestSupport
 
 /// Integration tests for object pool system

@@ -4,3 +4,4 @@
 @_exported import PipelineKitMetrics
 @_exported import PipelineKitResilience
 @_exported import PipelineKitCaching
+@_exported import PipelineKitCompression

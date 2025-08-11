@@ -53,14 +53,10 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: Pipeline where H.C
     /// Optional back-pressure semaphore for concurrency control.
     private let semaphore: BackPressureAsyncSemaphore?
     
-    /// Optional optimization metadata from MiddlewareChainOptimizer.
-    public var optimizationMetadata: MiddlewareChainOptimizer.OptimizedChain?
+    /// Pre-optimized middleware chain for better performance.
+    private var optimizedChain: OptimizedMiddlewareChain?
     
     // Context pooling removed for performance - direct allocation is faster
-    
-    /// Pre-compiled middleware chain for performance optimization.
-    /// This is invalidated and rebuilt when middleware changes.
-    private var compiledChain: (@Sendable (C, CommandContext) async throws -> C.Result)?
     
     /// Creates a new pipeline with the specified handler.
     ///
@@ -144,8 +140,8 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: Pipeline where H.C
         }
         middlewares.append(middleware)
         sortMiddlewareByPriority()
-        // Invalidate compiled chain
-        compiledChain = nil
+        // Invalidate optimizer
+        optimizedChain = nil
     }
     
     /// Adds multiple middleware to the pipeline at once.
@@ -160,8 +156,8 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: Pipeline where H.C
         }
         middlewares.append(contentsOf: newMiddlewares)
         sortMiddlewareByPriority()
-        // Invalidate compiled chain
-        compiledChain = nil
+        // Invalidate optimizer
+        optimizedChain = nil
     }
     
     /// Removes all instances of a specific middleware type.
@@ -172,16 +168,16 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: Pipeline where H.C
     public func removeMiddleware<M: Middleware>(ofType type: M.Type) -> Int {
         let initialCount = middlewares.count
         middlewares.removeAll { $0 is M }
-        // Invalidate compiled chain
-        compiledChain = nil
+        // Invalidate optimizer
+        optimizedChain = nil
         return initialCount - middlewares.count
     }
     
     /// Removes all middleware from the pipeline.
     public func clearMiddlewares() {
         middlewares.removeAll()
-        // Invalidate compiled chain
-        compiledChain = nil
+        // Invalidate optimizer
+        optimizedChain = nil
     }
     
     /// Executes a command through the middleware pipeline.
@@ -248,13 +244,9 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: Pipeline where H.C
         // Always initialize context first
         initializeContextIfNeeded(context)
         
-        // Check if we have an optimized fast path executor
-        if let optimizedChain = optimizationMetadata,
-           let fastPathExecutor = optimizedChain.fastPathExecutor {
-            // Use the optimized fast path executor
-            return try await fastPathExecutor.execute(command, context: context) { cmd in
-                try await self.handler.handle(cmd)
-            }
+        // Use optimized chain if available or create it
+        if optimizedChain == nil && !middlewares.isEmpty {
+            optimizedChain = OptimizedMiddlewareChain(middleware: Array(middlewares))
         }
         
         // Fast path: No middleware
@@ -262,29 +254,15 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: Pipeline where H.C
             return try await handler.handle(command)
         }
         
-        // Fast path: Single middleware
-        if middlewares.count == 1 {
-            let middleware = middlewares[0]
-            // Check for cancellation before executing single middleware
-            try Task.checkCancellation(context: "Pipeline execution cancelled before middleware")
-            return try await middleware.execute(command, context: context) { cmd, _ in
-                // Check for cancellation before handler
-                try Task.checkCancellation(context: "Pipeline execution cancelled before handler")
-                return try await self.handler.handle(cmd)
+        // Use the optimized chain for execution
+        if let chain = optimizedChain {
+            return try await chain.execute(command, context: context) { cmd, _ in
+                try await self.handler.handle(cmd)
             }
         }
         
-        // Multiple middleware: Use pre-compiled chain
-        if compiledChain == nil {
-            compileMiddlewareChain()
-        }
-        
-        guard let chain = compiledChain else {
-            // Fallback to direct handler execution if no chain could be compiled
-            return try await handler.handle(command)
-        }
-        
-        return try await chain(command, context)
+        // Fallback to direct handler execution if no chain available
+        return try await handler.handle(command)
     }
     
     /// Initializes standard context values if not already set.
@@ -322,43 +300,8 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: Pipeline where H.C
     /// Sorts middleware by priority (lower values execute first)
     private func sortMiddlewareByPriority() {
         middlewares.sort { $0.priority.rawValue < $1.priority.rawValue }
-        // Invalidate compiled chain when order changes
-        compiledChain = nil
     }
     
-    /// Pre-compiles the middleware chain for optimal performance.
-    /// This method builds the nested closure structure once and caches it.
-    private func compileMiddlewareChain() {
-        // Start with the handler as the final step
-        var chain: @Sendable (C, CommandContext) async throws -> C.Result = { [handler] cmd, _ in
-            // Check for cancellation before executing handler
-            try Task.checkCancellation(context: "Pipeline execution cancelled before handler")
-            return try await handler.handle(cmd)
-        }
-        
-        // Build the chain in reverse order
-        for i in stride(from: middlewares.count - 1, through: 0, by: -1) {
-            let middleware = middlewares[i]
-            let nextChain = chain
-            
-            chain = { cmd, ctx in
-                // Check for cancellation before each middleware
-                try Task.checkCancellation(context: "Pipeline execution cancelled at middleware: \(String(describing: type(of: middleware)))")
-                return try await middleware.execute(cmd, context: ctx, next: nextChain)
-            }
-        }
-        
-        // Store the compiled chain
-        compiledChain = chain
-    }
-    
-    // MARK: - Internal Methods
-    
-    /// Sets optimization metadata from the MiddlewareChainOptimizer.
-    /// This is called by PipelineBuilder when optimization is enabled.
-    internal func setOptimizationMetadata(_ metadata: MiddlewareChainOptimizer.OptimizedChain) {
-        self.optimizationMetadata = metadata
-    }
 }
 
 // MARK: - Type-Erased Pipeline Support

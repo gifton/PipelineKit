@@ -1,5 +1,5 @@
 import XCTest
-@testable import PipelineKit
+@testable import PipelineKitCore
 import PipelineKitTestSupport
 
 // DISABLED: AsyncSemaphore tests are temporarily disabled due to Swift compiler issues

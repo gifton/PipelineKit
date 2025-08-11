@@ -1,5 +1,6 @@
 import XCTest
-@testable import PipelineKit
+@testable import PipelineKitSecurity
+@testable import PipelineKitCore
 import PipelineKitTestSupport
 
 final class SanitizationTests: XCTestCase {

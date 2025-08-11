@@ -1,5 +1,5 @@
 import XCTest
-@testable import PipelineKit
+@testable import PipelineKitCore
 import PipelineKitTestSupport
 
 final class CommandTests: XCTestCase {
@@ -63,11 +63,11 @@ final class CommandTests: XCTestCase {
         let context = CommandContext.test()
         
         // Set values using string keys
-        await context.set("customValue", for: "test_custom_value")
-        await context.set(42, for: "test_number")
+        context.metadata["test_custom_value"] = "customValue"
+        context.metadata["test_number"] = 42
         
-        let customValue = await context.get(String.self, for: "test_custom_value")
-        let numberValue = await context.get(Int.self, for: "test_number")
+        let customValue = (context.metadata["test_custom_value"] as? String)
+        let numberValue = (context.metadata["test_number"] as? Int)
         
         XCTAssertEqual(customValue, "customValue")
         XCTAssertEqual(numberValue, 42)

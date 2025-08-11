@@ -323,13 +323,22 @@ final class BulkheadMiddlewareTests: XCTestCase {
     func testRejectionHandler() async throws {
         // Given
         let expectation = XCTestExpectation(description: "Rejection handler called")
-        var rejectedCommand: (any Command)?
+        actor CommandTracker {
+            var rejectedCommand: (any Command)?
+            func setRejected(_ cmd: any Command) {
+                rejectedCommand = cmd
+            }
+            func getRejected() -> (any Command)? {
+                return rejectedCommand
+            }
+        }
+        let tracker = CommandTracker()
 
         let middleware = BulkheadMiddleware(
             configuration: BulkheadMiddleware.Configuration(
                 maxConcurrency: 1,
                 rejectionHandler: { command, context in
-                    rejectedCommand = command
+                    Task { await tracker.setRejected(command) }
                     expectation.fulfill()
                 }
             )
@@ -358,6 +367,7 @@ final class BulkheadMiddlewareTests: XCTestCase {
 
         // Then
         await fulfillment(of: [expectation], timeout: 1.0)
+        let rejectedCommand = await tracker.getRejected()
         XCTAssertNotNil(rejectedCommand)
         XCTAssertTrue(rejectedCommand is FastCommand)
 

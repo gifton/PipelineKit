@@ -1,6 +1,7 @@
 import XCTest
 import Foundation
-@testable import PipelineKit
+@testable import PipelineKitResilience
+@testable import PipelineKitCore
 import PipelineKitTestSupport
 
 final class BackPressureMiddlewareTests: XCTestCase {
@@ -418,9 +419,9 @@ private actor ExecutionTracker {
 }
 
 // Timeout helper
-private func withTimeout<T>(
+private func withTimeout<T: Sendable>(
     seconds: TimeInterval,
-    operation: @escaping () async throws -> T
+    operation: @escaping @Sendable () async throws -> T
 ) async throws -> T {
     try await withThrowingTaskGroup(of: T.self) { group in
         group.addTask {

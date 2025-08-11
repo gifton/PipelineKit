@@ -1,6 +1,7 @@
 import XCTest
 import CryptoKit
-@testable import PipelineKit
+@testable import PipelineKitSecurity
+@testable import PipelineKitCore
 @testable import PipelineKitSecurity
 import PipelineKitTestSupport
 

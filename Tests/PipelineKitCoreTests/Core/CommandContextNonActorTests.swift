@@ -1,5 +1,6 @@
 import XCTest
 @testable import PipelineKitCore
+@testable import PipelineKitResilience
 import PipelineKitTestSupport
 
 final class CommandContextNonActorTests: XCTestCase {

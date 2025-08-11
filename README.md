@@ -53,20 +53,25 @@ dependencies: [
 
 PipelineKit is organized into functional modules for better separation of concerns:
 
-- **PipelineKitCore**: Core protocols, types, and basic functionality
+- **PipelineKitCore**: Core protocols, types, memory management, and observability features
 - **PipelineKitResilience**: Circuit breakers, retry mechanisms, rate limiting, back pressure
-- **PipelineKitObservability**: Logging, metrics, tracing, and monitoring
+- **PipelineKitMetrics**: Metrics collection, accumulators, and exporters
 - **PipelineKitSecurity**: Authentication, authorization, validation, encryption
 - **PipelineKitCaching**: Various caching strategies and middleware
-- **PipelineKit**: Umbrella module that re-exports all functionality
+- **PipelineKitCompression**: Compression middleware for data optimization
+- **PipelineKit**: Umbrella module that re-exports core functionality
+
+> **Note**: The codebase also contains PipelineKitMiddleware which is currently being refactored and will be populated in future releases.
 
 #### Using Individual Modules
 
 For minimal dependencies, import only what you need:
 
 ```swift
-import PipelineKitCore      // Just core types
-import PipelineKitResilience // Just resilience patterns
+import PipelineKitCore       // Core types and observability
+import PipelineKitResilience  // Resilience patterns
+import PipelineKitMetrics     // Metrics collection
+import PipelineKitCompression // Compression middleware
 ```
 
 #### Using Everything
@@ -74,7 +79,7 @@ import PipelineKitResilience // Just resilience patterns
 For convenience, import the umbrella module:
 
 ```swift
-import PipelineKit // All modules
+import PipelineKit // All production modules
 ```
 
 ### Basic Usage
@@ -959,11 +964,11 @@ let strategy = RateLimitStrategy.adaptive(baseRate: 100) {
 
 ## 🔍 Observability
 
-PipelineKit provides comprehensive observability features for monitoring, debugging, and understanding your command execution:
+PipelineKit provides comprehensive observability features through PipelineKitCore for monitoring, debugging, and understanding your command execution:
 
 ### Pipeline Observer Protocol
 
-Implement custom observers to track pipeline execution:
+Observability features are built into PipelineKitCore. Implement custom observers to track pipeline execution:
 
 ```swift
 class MetricsObserver: PipelineObserver {
@@ -1286,13 +1291,14 @@ PipelineKit has minimal dependencies for security:
 ```
 
 **Current Dependencies:**
-- `swift-syntax` (510.0.3) - Apple's official macro implementation
+- `swift-atomics` (1.2.0+) - Apple's lock-free atomic operations
+- `swift-docc-plugin` (1.3.0+) - Apple's documentation generation
 
 All dependencies are:
-- ✅ Pinned to exact versions
+- ✅ From Apple's official repositories
 - ✅ Regularly audited for vulnerabilities
-- ✅ From trusted sources
 - ✅ License compatible (Apache-2.0)
+- ✅ Minimal and security-focused
 
 See [DEPENDENCIES.md](DEPENDENCIES.md) for full policy.
 

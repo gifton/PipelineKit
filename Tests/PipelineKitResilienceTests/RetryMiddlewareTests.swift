@@ -6,7 +6,7 @@ final class RetryMiddlewareTests: XCTestCase {
 
     // MARK: - Test Commands
 
-    class FlakeyCommand: Command {
+    final class FlakeyCommand: Command, @unchecked Sendable {
         typealias Result = String
 
         private var attemptCount = 0
@@ -131,7 +131,7 @@ final class RetryMiddlewareTests: XCTestCase {
         let middleware = RetryMiddleware(
             configuration: RetryMiddleware.Configuration(
                 maxAttempts: 3,
-                strategy: .linear(increment: increment)
+                strategy: .linear(baseDelay: increment, maxDelay: increment * 10)
             )
         )
 
@@ -158,7 +158,7 @@ final class RetryMiddlewareTests: XCTestCase {
         let middleware = RetryMiddleware(
             configuration: RetryMiddleware.Configuration(
                 maxAttempts: 3,
-                strategy: .constant(delay: delay)
+                strategy: .fixed(delay: delay)
             )
         )
 
@@ -181,12 +181,22 @@ final class RetryMiddlewareTests: XCTestCase {
 
     func testCustomBackoff() async throws {
         // Given
-        var delaysCalled: [Int] = []
+        actor DelayTracker {
+            var delays: [Int] = []
+            func add(_ attempt: Int) {
+                delays.append(attempt)
+            }
+            func getDelays() -> [Int] {
+                return delays
+            }
+        }
+        
+        let tracker = DelayTracker()
         let middleware = RetryMiddleware(
             configuration: RetryMiddleware.Configuration(
                 maxAttempts: 3,
                 strategy: .custom { attempt in
-                    delaysCalled.append(attempt)
+                    Task { await tracker.add(attempt) }
                     return 0.01 * Double(attempt)
                 }
             )
@@ -201,6 +211,7 @@ final class RetryMiddlewareTests: XCTestCase {
         }
 
         // Then
+        let delaysCalled = await tracker.getDelays()
         XCTAssertEqual(delaysCalled, [1, 2])
     }
 
@@ -209,7 +220,8 @@ final class RetryMiddlewareTests: XCTestCase {
         let middleware = RetryMiddleware(
             configuration: RetryMiddleware.Configuration(
                 maxAttempts: 3,
-                retryableErrors: { error in
+                retryableErrors: [.temporaryFailure],
+                errorEvaluator: { error in
                     if case TestError.temporaryFailure = error {
                         return true
                     }
@@ -238,7 +250,7 @@ final class RetryMiddlewareTests: XCTestCase {
         } catch {
             // Should fail immediately without retries
             let context = CommandContext()
-            _ = try? await middleware.execute(nonRetryableCommand, context: context) { _, _ in }
+            _ = try? await middleware.execute(nonRetryableCommand, context: context) { _, _ in "never reached" }
             XCTAssertNil(context.metadata["retryAttempts"])
         }
     }
@@ -248,8 +260,7 @@ final class RetryMiddlewareTests: XCTestCase {
         let middleware = RetryMiddleware(
             configuration: RetryMiddleware.Configuration(
                 maxAttempts: 3,
-                strategy: .exponential(baseDelay: 0.01, maxDelay: 1.0),
-                jitterFactor: 0.5
+                strategy: .exponentialJitter(baseDelay: 0.01, maxDelay: 1.0)
             )
         )
 
@@ -274,6 +285,7 @@ final class RetryMiddlewareTests: XCTestCase {
         XCTAssertGreaterThan(uniqueTimes.count, 1)
     }
 
+    /* // TODO: onRetry callback removed from API
     func testOnRetryCallback() async throws {
         // Given
         let expectation = XCTestExpectation(description: "onRetry called")
@@ -305,6 +317,7 @@ final class RetryMiddlewareTests: XCTestCase {
         XCTAssertEqual(retryAttempts, [1, 2])
         XCTAssertEqual(retryErrors.count, 2)
     }
+    */
 
     func testSuccessOnFirstAttempt() async throws {
         // Given
@@ -327,7 +340,7 @@ final class RetryMiddlewareTests: XCTestCase {
         let middleware = RetryMiddleware(
             configuration: RetryMiddleware.Configuration(
                 maxAttempts: 3,
-                emitMetrics: true
+                emitEvents: true
             )
         )
 
@@ -345,6 +358,7 @@ final class RetryMiddlewareTests: XCTestCase {
         XCTAssertEqual(context.metrics["retry.succeeded"] as? Bool, true)
     }
 
+    /* // TODO: CircuitBreaker integration removed from API
     func testCircuitBreakerIntegration() async throws {
         // Given
         let middleware = RetryMiddleware(
@@ -378,5 +392,6 @@ final class RetryMiddlewareTests: XCTestCase {
             XCTAssertLessThan(duration, 0.01) // Should fail fast
         }
     }
+    */
 }
 
