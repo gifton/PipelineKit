@@ -9,8 +9,8 @@ import PipelineKitCore
 /// 
 /// Example:
 /// ```swift
-/// let bus = CommandBus()
-/// await bus.addMiddleware(SanitizationMiddleware())
+/// let pipeline = DynamicPipeline()
+/// await pipeline.addMiddleware(SanitizationMiddleware())
 /// ```
 /// 
 /// For proper security, use with priority ordering:

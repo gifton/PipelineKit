@@ -323,13 +323,15 @@ public struct BulkheadMiddleware: Middleware {
         }
 
         if configuration.emitMetrics {
-            context.emitMiddlewareEvent(
-                "middleware.bulkhead_rejected",
-                middleware: "BulkheadMiddleware",
-                properties: [
-                    "commandType": String(describing: type(of: command))
-                ]
-            )
+            // TODO: Re-enable when PipelineEvent is available
+
+            // context.emitMiddlewareEvent(
+                // "middleware.bulkhead_rejected",
+                // middleware: "BulkheadMiddleware",
+                // properties: [
+                    // "commandType": String(describing: type(of: command))
+                // ]
+            // )
         }
     }
 

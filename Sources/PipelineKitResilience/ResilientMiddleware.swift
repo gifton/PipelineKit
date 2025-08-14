@@ -55,13 +55,14 @@ public final class ResilientMiddleware: Middleware, @unchecked Sendable {
         // Check circuit breaker first
         if let breaker = circuitBreaker {
             guard await breaker.allowRequest() else {
-                context.emitMiddlewareEvent(
-                    PipelineEvent.Name.middlewareCircuitOpen,
-                    middleware: "ResilientMiddleware",
-                    properties: [
-                        "commandType": String(describing: type(of: command))
-                    ]
-                )
+                // TODO: Re-enable when PipelineEvent is available
+                // context.emitMiddlewareEvent(
+                //     PipelineEvent.Name.middlewareCircuitOpen,
+                //     middleware: "ResilientMiddleware",
+                //     properties: [
+                //         "commandType": String(describing: type(of: command))
+                //     ]
+                // )
                 throw PipelineError.resilience(reason: .circuitBreakerOpen)
             }
         }
@@ -73,13 +74,14 @@ public final class ResilientMiddleware: Middleware, @unchecked Sendable {
             if let breaker = circuitBreaker {
                 await breaker.recordSuccess()
                 
-                context.emitMiddlewareEvent(
-                    "middleware.circuit_breaker.success",
-                    middleware: "ResilientMiddleware",
-                    properties: [
-                        "commandType": String(describing: type(of: command))
-                    ]
-                )
+                // TODO: Re-enable when PipelineEvent is available
+                // context.emitMiddlewareEvent(
+                //     "middleware.circuit_breaker.success",
+                //     middleware: "ResilientMiddleware",
+                //     properties: [
+                //         "commandType": String(describing: type(of: command))
+                //     ]
+                // )
             }
             
             return result
@@ -88,15 +90,16 @@ public final class ResilientMiddleware: Middleware, @unchecked Sendable {
             if let breaker = circuitBreaker {
                 await breaker.recordFailure()
                 
-                context.emitMiddlewareEvent(
-                    "middleware.circuit_breaker.failure",
-                    middleware: "ResilientMiddleware",
-                    properties: [
-                        "commandType": String(describing: type(of: command)),
-                        "errorType": String(describing: type(of: error)),
-                        "errorMessage": error.localizedDescription
-                    ]
-                )
+                // TODO: Re-enable when PipelineEvent is available
+                // context.emitMiddlewareEvent(
+                //     "middleware.circuit_breaker.failure",
+                //     middleware: "ResilientMiddleware",
+                //     properties: [
+                //         "commandType": String(describing: type(of: command)),
+                //         "errorType": String(describing: type(of: error)),
+                //         "errorMessage": error.localizedDescription
+                //     ]
+                // )
             }
             throw error
         }
@@ -116,31 +119,33 @@ public final class ResilientMiddleware: Middleware, @unchecked Sendable {
             do {
                 // Emit retry attempt event for attempts > 1
                 if attempt > 1 {
-                    context.emitMiddlewareEvent(
-                        PipelineEvent.Name.middlewareRetry,
-                        middleware: "ResilientMiddleware",
-                        properties: [
-                            "commandType": String(describing: type(of: command)),
-                            "attempt": attempt,
-                            "maxAttempts": retryPolicy.maxAttempts
-                        ]
-                    )
+                    // TODO: Re-enable when PipelineEvent is available
+                    // context.emitMiddlewareEvent(
+                    //     PipelineEvent.Name.middlewareRetry,
+                    //     middleware: "ResilientMiddleware",
+                    //     properties: [
+                    //         "commandType": String(describing: type(of: command)),
+                    //         "attempt": attempt,
+                    //         "maxAttempts": retryPolicy.maxAttempts
+                    //     ]
+                    // )
                 }
                 
                 return try await next(command, context)
             } catch {
                 lastError = error
                 
-                context.emitMiddlewareEvent(
-                    "middleware.retry_failed",
-                    middleware: "ResilientMiddleware",
-                    properties: [
-                        "commandType": String(describing: type(of: command)),
-                        "attempt": attempt,
-                        "errorType": String(describing: type(of: error)),
-                        "errorMessage": error.localizedDescription
-                    ]
-                )
+                // TODO: Re-enable when PipelineEvent is available
+                // context.emitMiddlewareEvent(
+                //     "middleware.retry_failed",
+                //     middleware: "ResilientMiddleware",
+                //     properties: [
+                //         "commandType": String(describing: type(of: command)),
+                //         "attempt": attempt,
+                //         "errorType": String(describing: type(of: error)),
+                //         "errorMessage": error.localizedDescription
+                //     ]
+                // )
                 
                 // Check if we should retry
                 let recoveryContext = ErrorRecoveryContext(
@@ -154,16 +159,17 @@ public final class ResilientMiddleware: Middleware, @unchecked Sendable {
                 guard !recoveryContext.isFinalAttempt && retryPolicy.shouldRetry(error) else {
                     // Emit exhausted event if we're done retrying
                     if recoveryContext.isFinalAttempt {
-                        context.emitMiddlewareEvent(
-                            "middleware.retry_exhausted",
-                            middleware: "ResilientMiddleware",
-                            properties: [
-                                "commandType": String(describing: type(of: command)),
-                                "attempts": retryPolicy.maxAttempts,
-                                "errorType": String(describing: type(of: error)),
-                                "errorMessage": error.localizedDescription
-                            ]
-                        )
+                        // TODO: Re-enable when PipelineEvent is available
+                        // context.emitMiddlewareEvent(
+                        //     "middleware.retry_exhausted",
+                        //     middleware: "ResilientMiddleware",
+                        //     properties: [
+                        //         "commandType": String(describing: type(of: command)),
+                        //         "attempts": retryPolicy.maxAttempts,
+                        //         "errorType": String(describing: type(of: error)),
+                        //         "errorMessage": error.localizedDescription
+                        //     ]
+                        // )
                     }
                     throw error
                 }

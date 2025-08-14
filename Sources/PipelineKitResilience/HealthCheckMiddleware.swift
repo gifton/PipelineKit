@@ -241,14 +241,17 @@ public struct HealthCheckMiddleware: Middleware {
     ) async {
         guard configuration.emitMetrics else { return }
 
-        context.emitMiddlewareEvent(
-            "middleware.health_check_blocked",
-            middleware: "HealthCheckMiddleware",
-            properties: [
-                "commandType": commandType,
-                "serviceName": serviceName
-            ]
-        )
+        // TODO: Re-enable when PipelineEvent is available
+
+
+        // context.emitMiddlewareEvent(
+            // "middleware.health_check_blocked",
+            // middleware: "HealthCheckMiddleware",
+            // properties: [
+                // "commandType": commandType,
+                // "serviceName": serviceName
+            // ]
+        // )
     }
 
     private func emitExecutionMetrics(
@@ -265,16 +268,19 @@ public struct HealthCheckMiddleware: Middleware {
         context.metrics["health.success"] = success
         context.metrics["health.duration"] = duration
 
-        context.emitMiddlewareEvent(
-            "middleware.health_check_execution",
-            middleware: "HealthCheckMiddleware",
-            properties: [
-                "serviceName": serviceName,
-                "success": success,
-                "duration": duration,
-                "healthState": healthState.rawValue
-            ]
-        )
+        // TODO: Re-enable when PipelineEvent is available
+
+
+        // context.emitMiddlewareEvent(
+            // "middleware.health_check_execution",
+            // middleware: "HealthCheckMiddleware",
+            // properties: [
+                // "serviceName": serviceName,
+                // "success": success,
+                // "duration": duration,
+                // "healthState": healthState.rawValue
+            // ]
+        // )
     }
 }
 

@@ -36,7 +36,7 @@ PipelineKit provides a robust foundation for implementing the Command pattern wi
 ### Architecture Patterns
 
 - <doc:ChoosingArchitecture>
-- ``CommandBus``
+- ``DynamicPipeline``
 - ``Pipeline``
 
 ### Error Handling

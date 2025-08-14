@@ -260,15 +260,16 @@ public struct RetryMiddleware: Middleware {
     ) async {
         guard configuration.emitEvents else { return }
 
-        context.emitMiddlewareEvent(
-            PipelineEvent.Name.middlewareRetry,
-            middleware: "RetryMiddleware",
-            properties: [
-                "commandType": commandType,
-                "attempt": attempt,
-                "maxAttempts": configuration.maxAttempts
-            ]
-        )
+        // TODO: Re-enable when PipelineEvent is available
+        // context.emitMiddlewareEvent(
+            // PipelineEvent.Name.middlewareRetry,
+            // middleware: "RetryMiddleware",
+            // properties: [
+                // "commandType": commandType,
+                // "attempt": attempt,
+                // "maxAttempts": configuration.maxAttempts
+            // ]
+        // )
     }
 
     private func emitRetryDelay(
@@ -280,17 +281,18 @@ public struct RetryMiddleware: Middleware {
     ) async {
         guard configuration.emitEvents else { return }
 
-        context.emitMiddlewareEvent(
-            "middleware.retry_delay",
-            middleware: "RetryMiddleware",
-            properties: [
-                "commandType": commandType,
-                "attempt": attempt,
-                "delay": delay,
-                "errorType": String(describing: type(of: error)),
-                "errorMessage": error.localizedDescription
-            ]
-        )
+        // TODO: Re-enable when PipelineEvent is available
+        // context.emitMiddlewareEvent(
+            // "middleware.retry_delay",
+            // middleware: "RetryMiddleware",
+            // properties: [
+                // "commandType": commandType,
+                // "attempt": attempt,
+                // "delay": delay,
+                // "errorType": String(describing: type(of: error)),
+                // "errorMessage": error.localizedDescription
+            // ]
+        // )
     }
 
     private func emitRetrySuccess(
@@ -300,15 +302,16 @@ public struct RetryMiddleware: Middleware {
     ) async {
         guard configuration.emitEvents else { return }
 
-        context.emitMiddlewareEvent(
-            "middleware.retry_success",
-            middleware: "RetryMiddleware",
-            properties: [
-                "commandType": commandType,
-                "attempts": attempts,
-                "finalAttempt": attempts
-            ]
-        )
+        // TODO: Re-enable when PipelineEvent is available
+        // context.emitMiddlewareEvent(
+            // "middleware.retry_success",
+            // middleware: "RetryMiddleware",
+            // properties: [
+                // "commandType": commandType,
+                // "attempts": attempts,
+                // "finalAttempt": attempts
+            // ]
+        // )
     }
 
     private func emitRetryExhausted(
@@ -319,16 +322,17 @@ public struct RetryMiddleware: Middleware {
     ) async {
         guard configuration.emitEvents else { return }
 
-        context.emitMiddlewareEvent(
-            "middleware.retry_exhausted",
-            middleware: "RetryMiddleware",
-            properties: [
-                "commandType": commandType,
-                "attempts": attempts,
-                "errorType": String(describing: type(of: error)),
-                "errorMessage": error.localizedDescription
-            ]
-        )
+        // TODO: Re-enable when PipelineEvent is available
+        // context.emitMiddlewareEvent(
+            // "middleware.retry_exhausted",
+            // middleware: "RetryMiddleware",
+            // properties: [
+                // "commandType": commandType,
+                // "attempts": attempts,
+                // "errorType": String(describing: type(of: error)),
+                // "errorMessage": error.localizedDescription
+            // ]
+        // )
     }
 
     private func emitMaxTimeExceeded(
@@ -338,14 +342,15 @@ public struct RetryMiddleware: Middleware {
     ) async {
         guard configuration.emitEvents else { return }
 
-        context.emitMiddlewareEvent(
-            "middleware.retry_max_time_exceeded",
-            middleware: "RetryMiddleware",
-            properties: [
-                "commandType": commandType,
-                "attempts": attempts
-            ]
-        )
+        // TODO: Re-enable when PipelineEvent is available
+        // context.emitMiddlewareEvent(
+            // "middleware.retry_max_time_exceeded",
+            // middleware: "RetryMiddleware",
+            // properties: [
+                // "commandType": commandType,
+                // "attempts": attempts
+            // ]
+        // )
     }
 }
 

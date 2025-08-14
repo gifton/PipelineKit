@@ -36,8 +36,8 @@ let package = Package(
             targets: ["PipelineKitMetrics"]
         ),
         .library(
-            name: "PipelineKitCaching",
-            targets: ["PipelineKitCaching"]
+            name: "PipelineKitStorage",
+            targets: ["PipelineKitStorage"]
         ),
         .library(
             name: "PipelineKitCompression",
@@ -95,7 +95,7 @@ let package = Package(
                 "PipelineKitSecurity",
                 "PipelineKitResilience",
                 "PipelineKitMetrics",
-                "PipelineKitCaching",
+                "PipelineKitStorage",
                 "PipelineKitCompression"
             ],
             swiftSettings: [
@@ -168,8 +168,8 @@ let package = Package(
         ),
         // Caching module tests
         .testTarget(
-            name: "PipelineKitCachingTests",
-            dependencies: ["PipelineKitCaching", "PipelineKitTestSupport"],
+            name: "PipelineKitStorageTests",
+            dependencies: ["PipelineKitStorage", "PipelineKitTestSupport"],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency"),
                 .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
@@ -254,10 +254,13 @@ let package = Package(
             ]
         ),
         
-        // Caching module - Various caching strategies
+        // Storage module - Memory management and caching combined
         .target(
-            name: "PipelineKitCaching",
-            dependencies: ["PipelineKitCore"],
+            name: "PipelineKitStorage",
+            dependencies: [
+                "PipelineKitCore",
+                .product(name: "Atomics", package: "swift-atomics")
+            ],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency"),
                 .enableExperimentalFeature("AccessLevelOnImport"),

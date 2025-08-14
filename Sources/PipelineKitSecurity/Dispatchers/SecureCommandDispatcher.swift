@@ -7,7 +7,7 @@ import os.log
 
 /// A security-focused command dispatcher with built-in protection mechanisms.
 /// 
-/// The `SecureCommandDispatcher` wraps a `CommandBus` and adds security features:
+/// The `SecureCommandDispatcher` wraps a `DynamicPipeline` and adds security features:
 /// - Sophisticated rate limiting with multiple strategies
 /// - Circuit breaker pattern for failure protection
 /// - Sanitized error messages to prevent information leakage
@@ -18,12 +18,12 @@ import os.log
 /// 
 /// Example:
 /// ```swift
-/// let bus = CommandBus()
+/// let pipeline = DynamicPipeline()
 /// let rateLimiter = RateLimiter(
 ///     strategy: .tokenBucket(capacity: 100, refillRate: 10),
 ///     scope: .perUser
 /// )
-/// let dispatcher = SecureCommandDispatcher(bus: bus, rateLimiter: rateLimiter)
+/// let dispatcher = SecureCommandDispatcher(pipeline: pipeline, rateLimiter: rateLimiter)
 /// 
 /// // Dispatch commands with automatic rate limiting
 /// let result = try await dispatcher.dispatch(
@@ -32,7 +32,7 @@ import os.log
 /// )
 /// ```
 public actor SecureCommandDispatcher {
-    private let bus: CommandBus
+    private let pipeline: DynamicPipeline
     #if canImport(os)
     private let logger = Logger(subsystem: "PipelineKit", category: "SecureDispatcher")
     #endif
@@ -42,15 +42,15 @@ public actor SecureCommandDispatcher {
     /// Creates a secure dispatcher wrapping the given command bus.
     /// 
     /// - Parameters:
-    ///   - bus: The command bus to wrap with security features
+    ///   - pipeline: The dynamic pipeline to wrap with security features
     ///   - rateLimiter: Optional rate limiter for DoS protection
     ///   - circuitBreaker: Optional circuit breaker for failure protection
     public init(
-        bus: CommandBus,
+        pipeline: DynamicPipeline,
         rateLimiter: RateLimiter? = nil,
         circuitBreaker: CircuitBreaker? = nil
     ) {
-        self.bus = bus
+        self.pipeline = pipeline
         self.rateLimiter = rateLimiter
         self.circuitBreaker = circuitBreaker
     }
@@ -110,7 +110,7 @@ public actor SecureCommandDispatcher {
 #endif
         
         do {
-            let result = try await bus.send(command, context: CommandContext(metadata: executionMetadata))
+            let result = try await pipeline.send(command, context: CommandContext(metadata: executionMetadata))
             #if canImport(os)
             logger.debug("Command executed successfully: \(commandType, privacy: .public)")
 #endif

@@ -1,6 +1,6 @@
-# Choosing Between CommandBus and Pipeline
+# Choosing Between DynamicPipeline and Pipeline
 
-Learn when to use CommandBus for centralized routing versus Pipeline for direct execution.
+Learn when to use DynamicPipeline for centralized routing versus Pipeline for direct execution.
 
 ## Overview
 
@@ -30,19 +30,19 @@ let user = try await pipeline.execute(CreateUserCommand(email: "user@example.com
 - Explicit handler binding
 - Independent middleware configuration
 
-### CommandBus: Centralized Routing
+### DynamicPipeline: Centralized Routing
 
-CommandBus provides a single entry point for multiple command types with dynamic routing:
+DynamicPipeline provides a single entry point for multiple command types with dynamic routing:
 
 ```swift
-// One bus handles multiple command types
-let bus = CommandBus()
-await bus.register(CreateUserCommand.self, handler: CreateUserHandler())
-await bus.register(UpdateUserCommand.self, handler: UpdateUserHandler())
-await bus.register(DeleteUserCommand.self, handler: DeleteUserHandler())
+// One pipeline handles multiple command types
+let pipeline = DynamicPipeline()
+await pipeline.register(CreateUserCommand.self, handler: CreateUserHandler())
+await pipeline.register(UpdateUserCommand.self, handler: UpdateUserHandler())
+await pipeline.register(DeleteUserCommand.self, handler: DeleteUserHandler())
 
 // Dynamic routing based on command type
-let result = try await bus.send(command) // Any registered command
+let result = try await pipeline.send(command) // Any registered command
 ```
 
 **Key Characteristics:**
@@ -76,7 +76,7 @@ let result = try await bus.send(command) // Any registered command
 - No hidden abstractions
 - Predictable behavior
 
-### Use CommandBus When:
+### Use DynamicPipeline When:
 
 ✅ **Building API gateways**
 - Single entry point for multiple operations
@@ -129,28 +129,28 @@ class UserService {
 }
 ```
 
-### API Gateway (CommandBus)
+### API Gateway (DynamicPipeline)
 
 ```swift
 // Centralized command routing for all services
 class APIGateway {
-    private let bus = CommandBus()
+    private let pipeline = DynamicPipeline()
     
     init() async {
         // Register all service handlers
-        await bus.register(PaymentCommand.self, handler: PaymentHandler())
-        await bus.register(GetUserCommand.self, handler: UserHandler())
-        await bus.register(OrderCommand.self, handler: OrderHandler())
+        await pipeline.register(PaymentCommand.self, handler: PaymentHandler())
+        await pipeline.register(GetUserCommand.self, handler: UserHandler())
+        await pipeline.register(OrderCommand.self, handler: OrderHandler())
         
         // Apply cross-cutting concerns to all
-        await bus.addMiddleware(AuthenticationMiddleware())
-        await bus.addMiddleware(LoggingMiddleware())
-        await bus.addMiddleware(RateLimitingMiddleware())
+        await pipeline.addMiddleware(AuthenticationMiddleware())
+        await pipeline.addMiddleware(LoggingMiddleware())
+        await pipeline.addMiddleware(RateLimitingMiddleware())
     }
     
     // Single method handles all command types
     func handle<T: Command>(_ command: T) async throws -> T.Result {
-        return try await bus.send(command)
+        return try await pipeline.send(command)
     }
 }
 ```
@@ -166,17 +166,17 @@ class InternalServices {
     let userPipeline = PipelineBuilder(handler: UserHandler()).build()
 }
 
-// Expose via CommandBus for external API
+// Expose via DynamicPipeline for external API
 class PublicAPI {
-    private let bus = CommandBus()
+    private let pipeline = DynamicPipeline()
     private let services = InternalServices()
     
     init() async {
-        // Wrap pipelines in bus for unified access
-        await bus.register(PaymentCommand.self) { command in
+        // Wrap pipelines in dynamic pipeline for unified access
+        await pipeline.register(PaymentCommand.self) { command in
             try await services.paymentPipeline.execute(command)
         }
-        await bus.register(GetUserCommand.self) { command in
+        await pipeline.register(GetUserCommand.self) { command in
             try await services.userPipeline.execute(command)
         }
     }
@@ -187,20 +187,20 @@ class PublicAPI {
 
 ### Execution Overhead
 - **Pipeline**: ~0.006ms per command (baseline)
-- **CommandBus**: ~0.008ms per command (+33% overhead)
+- **DynamicPipeline**: ~0.008ms per command (+33% overhead)
 
 ### Memory Usage
 - **Pipeline**: Handler + middleware array per pipeline
-- **CommandBus**: Additional routing table + handler registry
+- **DynamicPipeline**: Additional routing table + handler registry
 
 ### Scalability
 - **Pipeline**: Linear with number of command types
-- **CommandBus**: Constant regardless of command types
+- **DynamicPipeline**: Constant regardless of command types
 
 
 ## Summary
 
 - Use **Pipeline** for dedicated, high-performance command processing
-- Use **CommandBus** for centralized routing and dynamic dispatch
+- Use **DynamicPipeline** for centralized routing and dynamic dispatch
 - Both patterns can coexist in the same application
 - Choose based on your specific architectural needs

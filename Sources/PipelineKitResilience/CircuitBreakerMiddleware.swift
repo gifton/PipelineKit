@@ -212,27 +212,33 @@ public struct CircuitBreakerMiddleware: Middleware {
     ) async {
         guard configuration.emitEvents else { return }
 
-        context.emitMiddlewareEvent(
-            "middleware.circuit_breaker_state_changed",
-            middleware: "CircuitBreakerMiddleware",
-            properties: [
-                "commandType": commandType,
-                "oldState": String(describing: oldState),
-                "newState": String(describing: newState)
-            ]
-        )
+        // TODO: Re-enable when PipelineEvent is available
+
+
+        // context.emitMiddlewareEvent(
+            // "middleware.circuit_breaker_state_changed",
+            // middleware: "CircuitBreakerMiddleware",
+            // properties: [
+                // "commandType": commandType,
+                // "oldState": String(describing: oldState),
+                // "newState": String(describing: newState)
+            // ]
+        // )
     }
 
     private func emitCircuitOpen(commandType: String, context: CommandContext) async {
         guard configuration.emitEvents else { return }
 
-        context.emitMiddlewareEvent(
-            PipelineEvent.Name.middlewareCircuitOpen,
-            middleware: "CircuitBreakerMiddleware",
-            properties: [
-                "commandType": commandType
-            ]
-        )
+        // TODO: Re-enable when PipelineEvent is available
+
+
+        // context.emitMiddlewareEvent(
+            // PipelineEvent.Name.middlewareCircuitOpen,
+            // middleware: "CircuitBreakerMiddleware",
+            // properties: [
+                // "commandType": commandType
+            // ]
+        // )
     }
 }
 

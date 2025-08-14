@@ -206,14 +206,16 @@ public struct PartitionedBulkheadMiddleware: Middleware {
             await partitionManager.recordRejection(partition: effectiveKey)
 
             if configuration.emitMetrics {
-                context.emitMiddlewareEvent(
-                    "middleware.partitioned_bulkhead_rejected",
-                    middleware: "PartitionedBulkheadMiddleware",
-                    properties: [
-                        "commandType": String(describing: type(of: command)),
-                        "partition": effectiveKey
-                    ]
-                )
+                // TODO: Re-enable when PipelineEvent is available
+
+                // context.emitMiddlewareEvent(
+                    // "middleware.partitioned_bulkhead_rejected",
+                    // middleware: "PartitionedBulkheadMiddleware",
+                    // properties: [
+                        // "commandType": String(describing: type(of: command)),
+                        // "partition": effectiveKey
+                    // ]
+                // )
             }
 
             throw PipelineError.bulkheadRejected(
@@ -274,18 +276,21 @@ public struct PartitionedBulkheadMiddleware: Middleware {
             context.metrics["bulkhead.queueTime"] = queueTime
         }
 
-        context.emitMiddlewareEvent(
-            "middleware.partitioned_bulkhead_execution",
-            middleware: "PartitionedBulkheadMiddleware",
-            properties: [
-                "partition": metrics.partitionKey,
-                "wasBorrowed": metrics.wasBorrowed,
-                "borrowedFrom": metrics.borrowedFrom ?? "",
-                "wasQueued": metrics.wasQueued,
-                "queueTime": metrics.queueTime ?? 0,
-                "duration": duration
-            ]
-        )
+        // TODO: Re-enable when PipelineEvent is available
+
+
+        // context.emitMiddlewareEvent(
+            // "middleware.partitioned_bulkhead_execution",
+            // middleware: "PartitionedBulkheadMiddleware",
+            // properties: [
+                // "partition": metrics.partitionKey,
+                // "wasBorrowed": metrics.wasBorrowed,
+                // "borrowedFrom": metrics.borrowedFrom ?? "",
+                // "wasQueued": metrics.wasQueued,
+                // "queueTime": metrics.queueTime ?? 0,
+                // "duration": duration
+            // ]
+        // )
     }
 }
 

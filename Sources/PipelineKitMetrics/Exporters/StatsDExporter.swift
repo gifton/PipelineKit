@@ -1,487 +1,468 @@
 import Foundation
-import PipelineKitCore
 #if canImport(Network)
 import Network
 #endif
 
-/// StatsD exporter for sending metrics to StatsD-compatible servers.
+/// Production-ready StatsD exporter with Swift 6 concurrency support.
 ///
-/// Supports both vanilla StatsD and DogStatsD (with tags) formats.
-/// Uses UDP for fire-and-forget metric delivery with automatic batching.
-public actor StatsDExporter: MetricExporter {
-    // MARK: - Configuration
-
+/// Features:
+/// - Swift 6 strict concurrency compliant
+/// - Connection state management with proper lifecycle
+/// - Error handling and reporting
+/// - Metric batching for efficiency
+/// - Automatic reconnection on failure
+public actor StatsDExporter: MetricRecorder {
+    /// Configuration for the exporter.
     public struct Configuration: Sendable {
-        /// StatsD server hostname.
         public let host: String
-
-        /// StatsD server port.
         public let port: Int
-
-        /// Optional prefix for all metric names.
         public let prefix: String?
-
-        /// Global tags to append to all metrics (DogStatsD only).
         public let globalTags: [String: String]
-
-        /// Sample rate for metrics (0.0 to 1.0).
-        public let sampleRate: Double
-
-        /// Maximum UDP packet size in bytes.
-        public let maxPacketSize: Int
-
-        /// How often to flush buffered metrics.
+        public let maxBatchSize: Int
         public let flushInterval: TimeInterval
-
-        /// StatsD format variant.
-        public let format: Format
-
-        public enum Format: Sendable {
-            case vanilla        // Original StatsD (no tags)
-            case dogStatsD      // DataDog StatsD (with tags)
-        }
-
+        
+        // Sampling configuration
+        public let sampleRate: Double  // Global default (0.0-1.0)
+        public let sampleRatesByType: [String: Double]  // Per-type overrides
+        public let criticalPatterns: [String]  // Never sample these patterns
+        
+        // Aggregation configuration
+        public let aggregation: AggregationConfiguration
+        
         public init(
             host: String = "localhost",
             port: Int = 8125,
             prefix: String? = nil,
             globalTags: [String: String] = [:],
+            maxBatchSize: Int = 20,
+            flushInterval: TimeInterval = 0.1,
             sampleRate: Double = 1.0,
-            maxPacketSize: Int = 1432,  // Safe for internet MTU
-            flushInterval: TimeInterval = 1.0,
-            format: Format = .dogStatsD
+            sampleRatesByType: [String: Double] = [:],
+            criticalPatterns: [String] = ["error", "timeout", "failure", "fatal", "panic"],
+            aggregation: AggregationConfiguration = AggregationConfiguration()
         ) {
             self.host = host
             self.port = port
             self.prefix = prefix
             self.globalTags = globalTags
-            self.sampleRate = min(1.0, max(0.0, sampleRate))
-            self.maxPacketSize = maxPacketSize
+            self.maxBatchSize = maxBatchSize
             self.flushInterval = flushInterval
-            self.format = format
+            
+            // Clamp sample rate to valid range
+            self.sampleRate = max(0.0, min(1.0, sampleRate))
+            
+            // Clamp per-type rates
+            self.sampleRatesByType = sampleRatesByType.mapValues { max(0.0, min(1.0, $0)) }
+            
+            self.criticalPatterns = criticalPatterns
+            self.aggregation = aggregation
         }
-
+        
         public static let `default` = Configuration()
     }
-
-    // MARK: - Properties
-
-    private let configuration: Configuration
-    private var buffer: String = ""
-    private var bufferSize: Int = 0
-    private var flushTask: Task<Void, Never>?
-
+    
     #if canImport(Network)
-    private var connection: NWConnection?
-    private let queue = DispatchQueue(label: "statsd.exporter.queue")
-    private var connectionState: ConnectionState = .notStarted
-    #endif
-
+    /// Connection state machine
     private enum ConnectionState {
-        case notStarted
+        case disconnected
         case connecting
-        case ready
-        case failed
+        case connected(NWConnection)
+        case failed(Error)
     }
-
-    // Self-instrumentation
-    private var packetsTotal: Int = 0
-    private var metricsTotal: Int = 0
-    private var droppedMetricsTotal: Int = 0
-    private var networkErrorsTotal: Int = 0
-
-    // MARK: - Initialization
-
+    #endif
+    
+    private let configuration: Configuration
+    
+    #if canImport(Network)
+    private var connectionState = ConnectionState.disconnected
+    private var connectionContinuation: CheckedContinuation<Void, Never>?
+    #endif
+    
+    // Batching support
+    private var buffer: [String] = []
+    private var flushTask: Task<Void, Never>?
+    
+    // Aggregation support
+    private let aggregator: MetricAggregator?
+    
+    // Error handling
+    private var errorHandler: (@Sendable (Error) -> Void)?
+    
+    /// Sets the error handler.
+    public func setErrorHandler(_ handler: @escaping @Sendable (Error) -> Void) {
+        self.errorHandler = handler
+    }
+    
+    /// Creates a new StatsD exporter.
     public init(configuration: Configuration = .default) {
         self.configuration = configuration
-        // Lazy initialization - connection will be created on first use
-        Task {
-            await startFlushTimer()
+        
+        // Initialize aggregator if enabled
+        if configuration.aggregation.enabled {
+            self.aggregator = MetricAggregator(configuration: configuration.aggregation)
+        } else {
+            self.aggregator = nil
         }
     }
-
+    
+    // MARK: - Sampling Logic
+    
+    /// Stable hash function for deterministic sampling across program runs.
+    /// Uses DJB2 algorithm - simple, fast, and good distribution.
+    nonisolated private func stableHash(_ string: String) -> UInt64 {
+        var hash: UInt64 = 5381
+        for byte in string.utf8 {
+            hash = ((hash &<< 5) &+ hash) &+ UInt64(byte)  // hash * 33 + byte
+        }
+        return hash
+    }
+    
+    /// Determines if a metric should be sampled and at what rate.
+    nonisolated private func shouldSample(_ snapshot: MetricSnapshot) -> (sample: Bool, rate: Double) {
+        // Check critical patterns first - never sample these
+        let nameLower = snapshot.name.lowercased()
+        for pattern in configuration.criticalPatterns {
+            if nameLower.contains(pattern) {
+                return (true, 1.0)  // Always keep critical metrics
+            }
+        }
+        
+        // Get effective sample rate (type-specific or global)
+        let rate = configuration.sampleRatesByType[snapshot.type] ?? configuration.sampleRate
+        
+        // If rate is 1.0, always sample
+        guard rate < 1.0 else { return (true, 1.0) }
+        
+        // Deterministic sampling using stable hash
+        // This ensures consistent sampling across program runs
+        let hash = stableHash(snapshot.name)
+        let normalizedHash = Double(hash) / Double(UInt64.max)
+        let shouldSample = normalizedHash < rate
+        
+        return (shouldSample, rate)
+    }
+    
     deinit {
-        flushTask?.cancel()
         #if canImport(Network)
-        connection?.cancel()
+        // Clean up connection on deinit
+        if case .connected(let connection) = connectionState {
+            connection.cancel()
+        }
         #endif
-    }
-
-    // MARK: - MetricExporter Protocol
-
-    public func export(_ metrics: [MetricSnapshot]) async throws {
-        guard !metrics.isEmpty else { return }
-
-        // Ensure connection is ready (lazy initialization)
-        await ensureConnection()
-
-        for metric in metrics where shouldSample(metric) {
-            // Apply sampling per metric type
-            if let formatted = formatMetric(metric) {
-                await appendToBuffer(formatted)
-                metricsTotal += 1
-            }
-        }
-    }
-
-    private func shouldSample(_ metric: MetricSnapshot) -> Bool {
-        guard configuration.sampleRate < 1.0 else { return true }
-
-        // For counters and vanilla format, always send with sample rate annotation
-        // For other types in DogStatsD, apply client-side sampling
-        if configuration.format == .vanilla || metric.type.lowercased() == "counter" {
-            return true  // Send all, let server scale
-        } else {
-            return Double.random(in: 0..<1) < configuration.sampleRate
-        }
-    }
-
-    public func flush() async throws {
-        await flushBuffer()
-    }
-
-    public func shutdown() async {
         flushTask?.cancel()
-        await flushBuffer()
-        #if canImport(Network)
-        connection?.cancel()
-        #endif
     }
-
-    // MARK: - Format Generation
-
-    private func formatMetric(_ metric: MetricSnapshot) -> String? {
-        // Check for invalid values
-        guard metric.value.isFinite else {
-            droppedMetricsTotal += 1
-            return nil  // Drop NaN or Inf values
-        }
-        // Build metric name with optional prefix
-        let metricName = configuration.prefix.map { "\($0).\(metric.name)" } ?? metric.name
-
-        // Map metric type to StatsD type code
-        let typeCode: String
-        switch metric.type.lowercased() {
-        case "counter":
-            typeCode = "c"
-        case "gauge":
-            typeCode = "g"
-        case "histogram":
-            typeCode = "h"
-        case "timer", "timing":
-            typeCode = "ms"
-        default:
-            typeCode = "g"  // Default to gauge
-        }
-
-        // Format value (handle special cases)
-        let valueStr: String
-        if typeCode == "ms" && metric.unit == "seconds" {
-            // Convert seconds to milliseconds for timer metrics, with rounding
-            valueStr = String(Int(round(metric.value * 1000)))
+    
+    /// Records a metric snapshot.
+    public func record(_ snapshot: MetricSnapshot) async {
+        // Check if we should sample this metric
+        let (shouldSample, rate) = self.shouldSample(snapshot)
+        guard shouldSample else { return }  // Drop if not sampled
+        
+        // If aggregation is enabled, aggregate instead of sending immediately
+        if let aggregator = aggregator {
+            // Note: Counter scaling happens inside aggregator for pre-scaled values
+            let success = await aggregator.aggregate(snapshot, sampleRate: rate)
+            if !success {
+                // Buffer full, force flush and retry
+                await flushAggregatedMetrics()
+                _ = await aggregator.aggregate(snapshot, sampleRate: rate)
+            }
         } else {
-            // Improved number formatting to preserve precision
-            valueStr = formatNumber(metric.value)
-        }
-
-        // Build base metric string
-        var result = "\(escapeMetricName(metricName)):\(valueStr)|\(typeCode)"
-
-        // Add sample rate for counters and vanilla format
-        if configuration.sampleRate < 1.0 {
-            let shouldAnnotate = configuration.format == .vanilla || metric.type.lowercased() == "counter"
-            if shouldAnnotate {
-                result += "|@\(configuration.sampleRate)"
+            // Original path: scale and send immediately
+            var adjustedSnapshot = snapshot
+            if snapshot.type == "counter" && rate < 1.0 {
+                // Use default value of 1.0 if value is nil (standard counter increment)
+                let effectiveValue = snapshot.value ?? 1.0
+                adjustedSnapshot = MetricSnapshot(
+                    name: snapshot.name,
+                    type: snapshot.type,
+                    value: effectiveValue / rate,  // Scale up to compensate for sampling
+                    timestamp: snapshot.timestamp,
+                    tags: snapshot.tags,
+                    unit: snapshot.unit
+                )
             }
+            
+            let line = formatMetric(adjustedSnapshot, sampleRate: rate)
+            await bufferMetric(line)
         }
-
-        // Add tags (DogStatsD format only)
-        if configuration.format == .dogStatsD {
-            let tags = mergeTags(metric.tags, with: configuration.globalTags)
-            if !tags.isEmpty {
-                let tagString = tags
-                    .sorted(by: { $0.key < $1.key })
-                    .map { "\(escapeTagKey($0.key)):\(escapeTagValue($0.value))" }
-                    .joined(separator: ",")
-                result += "|#\(tagString)"
-            }
+    }
+    
+    /// Formats a metric in StatsD format (pure function - can be nonisolated).
+    nonisolated private func formatMetric(_ snapshot: MetricSnapshot, sampleRate: Double = 1.0) -> String {
+        var name = sanitizeMetricName(snapshot.name)
+        if let prefix = configuration.prefix {
+            name = "\(prefix).\(name)"
         }
-
-        return result
+        
+        let value = snapshot.value ?? 1.0
+        let typeChar = statsdType(for: snapshot.type)
+        
+        // Build base metric line
+        var line = "\(name):\(value)|\(typeChar)"
+        
+        // Add sample rate if sampling is active
+        if sampleRate < 1.0 {
+            line += "|@\(sampleRate)"
+        }
+        
+        // Add tags (DogStatsD format)
+        let allTags = mergeTags(configuration.globalTags, snapshot.tags)
+        if !allTags.isEmpty {
+            let tagString = allTags
+                .sorted { $0.key < $1.key }
+                .map { "\($0.key):\($0.value)" }
+                .joined(separator: ",")
+            line += "|#\(tagString)"
+        }
+        
+        return line
     }
-
-    // Character sets for escaping
-    private let metricNameReserved = CharacterSet(charactersIn: ":|@#\n\r ")
-    private let tagReserved = CharacterSet(charactersIn: ":,|=\n\r ")
-
-    private func sanitize(_ string: String, reserved: CharacterSet) -> String {
-        String(string.unicodeScalars.map { reserved.contains($0) ? "_" : Character($0) })
+    
+    /// Sanitizes metric names for StatsD compatibility.
+    nonisolated private func sanitizeMetricName(_ name: String) -> String {
+        name.replacingOccurrences(of: " ", with: "_")
+            .replacingOccurrences(of: ":", with: "_")
+            .replacingOccurrences(of: "|", with: "_")
+            .replacingOccurrences(of: "@", with: "_")
+            .replacingOccurrences(of: "#", with: "_")
     }
-
-    private func escapeMetricName(_ name: String) -> String {
-        sanitize(name, reserved: metricNameReserved)
+    
+    /// Gets the StatsD type character.
+    nonisolated private func statsdType(for type: String) -> String {
+        #if DEBUG
+        let validTypes = ["counter", "gauge", "timer", "histogram"]
+        if !validTypes.contains(type) {
+            print("[MetricsExporter] Warning: Unknown metric type '\(type)', defaulting to gauge")
+        }
+        #endif
+        
+        switch type {
+        case "counter": return "c"
+        case "gauge": return "g"
+        case "timer": return "ms"
+        case "histogram": return "h"
+        default: return "g"
+        }
     }
-
-    private func escapeTagKey(_ key: String) -> String {
-        sanitize(key, reserved: tagReserved)
-    }
-
-    private func escapeTagValue(_ value: String) -> String {
-        sanitize(value, reserved: tagReserved)
-    }
-
-    private func mergeTags(_ metricTags: [String: String], with globalTags: [String: String]) -> [String: String] {
-        var merged = globalTags
-        for (key, value) in metricTags {
-            merged[key] = value  // Metric tags override global tags
+    
+    /// Merges two tag dictionaries.
+    nonisolated private func mergeTags(_ base: [String: String], _ additional: [String: String]) -> [String: String] {
+        var merged = base
+        for (key, value) in additional {
+            merged[key] = value
         }
         return merged
     }
-
-    // MARK: - Buffering
-
-    private func appendToBuffer(_ metric: String) async {
-        let metricSize = metric.utf8.count + 1  // +1 for newline
-
-        // Handle oversized single metric
-        if metricSize >= configuration.maxPacketSize {
-            // Send directly, bypassing buffer
-            await sendPacket(metric)
-            return
-        }
-
-        // Check if adding this metric would exceed packet size
-        if bufferSize + metricSize > configuration.maxPacketSize {
-            await flushBuffer()
-        }
-
-        // Add metric to buffer
-        if !buffer.isEmpty {
-            buffer += "\n"
-            bufferSize += 1
-        }
-        buffer += metric
-        bufferSize += metric.utf8.count
-
-        // Flush if we're at the limit
-        if bufferSize >= configuration.maxPacketSize {
-            await flushBuffer()
+    
+    /// Buffers a metric line for batched sending.
+    private func bufferMetric(_ line: String) async {
+        buffer.append(line)
+        
+        if buffer.count >= configuration.maxBatchSize {
+            await flush()
+        } else if flushTask == nil {
+            // Start flush timer
+            flushTask = Task { [weak self] in
+                guard let self = self else { return }
+                try? await Task.sleep(for: .seconds(configuration.flushInterval))
+                await self.flush()
+            }
         }
     }
-
-    private func flushBuffer() async {
+    
+    /// Flushes buffered metrics.
+    private func flush() async {
         guard !buffer.isEmpty else { return }
-
-        let packet = buffer
-        buffer = ""
-        bufferSize = 0
-
-        await sendPacket(packet)
+        
+        let batch = buffer.joined(separator: "\n")
+        buffer.removeAll(keepingCapacity: true)
+        flushTask?.cancel()
+        flushTask = nil
+        
+        await send(batch)
     }
-
-    // MARK: - Private Helpers
-
-    private func formatNumber(_ value: Double) -> String {
-        // Handle special cases
-        if value == 0 { return "0" }
-        if value.truncatingRemainder(dividingBy: 1) == 0 && abs(value) < 1e9 {
-            // Integer value - no decimal point needed
-            return String(Int(value))
-        }
-
-        // For very small or very large numbers, use appropriate precision
-        let absValue = abs(value)
-        if absValue < 1e-6 || absValue >= 1e9 {
-            // Use scientific notation for extreme values
-            return String(format: "%.6e", value)
-        } else if absValue < 0.001 {
-            // Small numbers need more decimal places
-            return String(format: "%.9f", value).trimmingTrailingZeros()
-        } else if absValue < 1 {
-            // Normal small numbers
-            return String(format: "%.6f", value).trimmingTrailingZeros()
-        } else {
-            // Normal numbers
-            return String(format: "%.3f", value).trimmingTrailingZeros()
-        }
-    }
-
-    // MARK: - Network
-
-    private func ensureConnection() async {
+    
+    /// Sends data via UDP.
+    private func send(_ data: String) async {
         #if canImport(Network)
-        switch connectionState {
-        case .ready:
-            return  // Already connected
-        case .connecting:
-            // Wait for connection to complete
-            var attempts = 0
-            while connectionState == .connecting && attempts < 50 {
-                try? await Task.sleep(nanoseconds: 100_000_000)  // 100ms
-                attempts += 1
+        do {
+            try await ensureConnection()
+            
+            guard let messageData = data.data(using: .utf8) else {
+                reportError(MetricsError.invalidData("Failed to encode metric data"))
+                return
             }
-        case .notStarted, .failed:
-            await setupConnection()
-        }
-        #endif
-    }
-
-    private func setupConnection() async {
-        #if canImport(Network)
-        let endpoint = NWEndpoint.hostPort(
-            host: NWEndpoint.Host(configuration.host),
-            port: NWEndpoint.Port(integerLiteral: UInt16(configuration.port))
-        )
-
-        let params = NWParameters.udp
-        params.allowLocalEndpointReuse = true
-
-        connection = NWConnection(to: endpoint, using: params)
-
-        connectionState = .connecting
-
-        connection?.stateUpdateHandler = { [weak self] state in
-            guard let self = self else { return }
-            Task {
-                await self.handleConnectionStateChange(state)
-            }
-        }
-
-        connection?.start(queue: queue)
-        #endif
-    }
-
-    private func sendPacket(_ packet: String) async {
-        #if canImport(Network)
-        guard let connection = connection else {
-            droppedMetricsTotal += packet.components(separatedBy: "\n").count
-            return
-        }
-
-        guard let data = packet.data(using: .utf8) else {
-            droppedMetricsTotal += packet.components(separatedBy: "\n").count
-            return
-        }
-
-        let metricCount = packet.components(separatedBy: "\n").count
-
-        await withCheckedContinuation { continuation in
-            connection.send(content: data, completion: .contentProcessed { [weak self] error in
-                guard let self = self else {
-                    continuation.resume()
-                    return
-                }
-                Task {
+            
+            if case .connected(let connection) = connectionState {
+                connection.send(content: messageData, completion: .contentProcessed { [weak self] error in
                     if let error = error {
-                        await self.handleNetworkError(error)
-                        await self.incrementDroppedMetrics(metricCount)
-                    } else {
-                        await self.incrementPacketCount()
+                        Task { [weak self] in
+                            await self?.handleSendError(error)
+                        }
                     }
-                }
-                continuation.resume()
-            })
-        }
-        #else
-        // Fallback for platforms without Network framework
-        // In production, you might use BSD sockets here
-        droppedMetricsTotal += packet.components(separatedBy: "\n").count
-        #endif
-    }
-
-    private func handleConnectionStateChange(_ state: NWConnection.State) async {
-        #if canImport(Network)
-        switch state {
-        case .ready:
-            connectionState = .ready
-        case .failed(let error):
-            connectionState = .failed
-            await handleNetworkError(error)
-            // Schedule reconnection without recursion
-            Task {
-                try? await Task.sleep(nanoseconds: 5_000_000_000)  // 5 seconds
-                if connectionState == .failed {
-                    connectionState = .notStarted
-                    // Next export() call will trigger reconnection
-                }
+                })
             }
-        case .preparing:
-            connectionState = .connecting
-        default:
-            break
+        } catch {
+            reportError(error)
         }
         #endif
     }
     
-    private func handleNetworkError(_ error: Error) async {
-        networkErrorsTotal += 1
-        // For UDP, we just log and continue - it's fire-and-forget
-        // In production, you might want to log this error
-    }
-
-    private func incrementPacketCount() async {
-        packetsTotal += 1
-    }
-
-    private func incrementDroppedMetrics(_ count: Int) async {
-        droppedMetricsTotal += count
-    }
-
-    // MARK: - Timer
-
-    private func startFlushTimer() {
-        flushTask = Task { [weak self] in
-            while !Task.isCancelled {
-                guard let self = self else { break }
-                try? await Task.sleep(nanoseconds: UInt64(self.configuration.flushInterval * 1_000_000_000))
-                await self.ensureConnection()  // Ensure connection before flushing
-                await self.flushBuffer()
+    #if canImport(Network)
+    /// Ensures connection is established.
+    private func ensureConnection() async throws {
+        switch connectionState {
+        case .connected:
+            return // Already connected
+            
+        case .connecting:
+            // Wait for connection to complete
+            await withCheckedContinuation { continuation in
+                self.connectionContinuation = continuation
             }
+            
+        case .disconnected, .failed:
+            try await connect()
         }
     }
-
-    // MARK: - Statistics
-
-    public func getStats() async -> StatsDStats {
-        StatsDStats(
-            packetsTotal: packetsTotal,
-            metricsTotal: metricsTotal,
-            droppedMetricsTotal: droppedMetricsTotal,
-            networkErrorsTotal: networkErrorsTotal,
-            currentBufferSize: bufferSize
-        )
+    
+    /// Establishes a new connection.
+    private func connect() async throws {
+        connectionState = .connecting
+        
+        let host = NWEndpoint.Host(configuration.host)
+        let port = NWEndpoint.Port(integerLiteral: UInt16(configuration.port))
+        let connection = NWConnection(host: host, port: port, using: .udp)
+        
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            connection.stateUpdateHandler = { [weak self] state in
+                Task { [weak self] in
+                    await self?.handleConnectionStateChange(state, connection: connection)
+                }
+            }
+            
+            connection.start(queue: .global())
+            continuation.resume()
+        }
+    }
+    
+    /// Handles connection state changes.
+    private func handleConnectionStateChange(_ state: NWConnection.State, connection: NWConnection) async {
+        switch state {
+        case .ready:
+            connectionState = .connected(connection)
+            connectionContinuation?.resume()
+            connectionContinuation = nil
+            
+        case .failed(let error):
+            connectionState = .failed(error)
+            connectionContinuation?.resume()
+            connectionContinuation = nil
+            reportError(MetricsError.connectionFailed(error))
+            
+        case .cancelled:
+            connectionState = .disconnected
+            connectionContinuation?.resume()
+            connectionContinuation = nil
+            
+        default:
+            break // Ignore other states
+        }
+    }
+    
+    /// Handles send errors.
+    private func handleSendError(_ error: NWError) async {
+        connectionState = .disconnected
+        reportError(MetricsError.sendFailed(error.localizedDescription))
+    }
+    #endif
+    
+    /// Reports an error through the configured handler.
+    private func reportError(_ error: Error) {
+        errorHandler?(error)
+        #if DEBUG
+        print("[MetricsExporter] Error: \(error)")
+        #endif
+    }
+    
+    /// Batch sends multiple metrics.
+    public func recordBatch(_ snapshots: [MetricSnapshot]) async {
+        for snapshot in snapshots {
+            await record(snapshot)
+        }
+    }
+    
+    /// Forces a flush of buffered metrics.
+    public func forceFlush() async {
+        // Flush aggregated metrics first if enabled
+        if aggregator != nil {
+            await flushAggregatedMetrics()
+        }
+        await flush()
+    }
+    
+    /// Flushes aggregated metrics from the aggregator.
+    private func flushAggregatedMetrics() async {
+        guard let aggregator = aggregator else { return }
+        
+        let aggregatedMetrics = await aggregator.forceFlush()
+        for (snapshot, sampleRate) in aggregatedMetrics {
+            let line = formatMetric(snapshot, sampleRate: sampleRate)
+            await bufferMetric(line)
+        }
     }
 }
 
-// MARK: - Statistics (moved outside actor)
+// MARK: - Convenience Methods
 
-public struct StatsDStats: Sendable {
-    public let packetsTotal: Int
-    public let metricsTotal: Int
-    public let droppedMetricsTotal: Int
-    public let networkErrorsTotal: Int
-    public let currentBufferSize: Int
+public extension StatsDExporter {
+    /// Records a counter metric.
+    func counter(_ name: String, value: Double = 1.0, tags: [String: String] = [:]) async {
+        await record(MetricSnapshot.counter(name, value: value, tags: tags))
+    }
+    
+    /// Records a gauge metric.
+    func gauge(_ name: String, value: Double, tags: [String: String] = [:]) async {
+        await record(MetricSnapshot.gauge(name, value: value, tags: tags))
+    }
+    
+    /// Records a timer metric.
+    func timer(_ name: String, duration: TimeInterval, tags: [String: String] = [:]) async {
+        await record(MetricSnapshot.timer(name, duration: duration, tags: tags))
+    }
+    
+    /// Times a block of code using ContinuousClock for accuracy.
+    func time<T: Sendable>(_ name: String, tags: [String: String] = [:], block: () async throws -> T) async rethrows -> T {
+        let start = ContinuousClock.now
+        let result = try await block()
+        let elapsed = ContinuousClock.now - start
+        let duration = Double(elapsed.components.seconds) + 
+                       Double(elapsed.components.attoseconds) / 1e18
+        await timer(name, duration: duration, tags: tags)
+        return result
+    }
 }
 
-// MARK: - String Extension
+// MARK: - Error Types
 
-private extension String {
-    func trimmingTrailingZeros() -> String {
-        // Only trim if there's a decimal point
-        guard contains(".") else { return self }
-
-        var result = self
-
-        // Remove trailing zeros
-        while result.hasSuffix("0") && result.contains(".") {
-            result.removeLast()
+/// Errors that can occur in metrics export.
+public enum MetricsError: Error, LocalizedError {
+    case connectionFailed(Error)
+    case sendFailed(String)
+    case invalidData(String)
+    case configurationError(String)
+    
+    public var errorDescription: String? {
+        switch self {
+        case .connectionFailed(let error):
+            return "Failed to connect to StatsD: \(error.localizedDescription)"
+        case .sendFailed(let message):
+            return "Failed to send metrics: \(message)"
+        case .invalidData(let message):
+            return "Invalid metric data: \(message)"
+        case .configurationError(let message):
+            return "Configuration error: \(message)"
         }
-
-        // Remove trailing decimal point if all decimals were zeros
-        if result.hasSuffix(".") {
-            result.removeLast()
-        }
-
-        return result.isEmpty ? "0" : result  // swiftlint:disable:this colon
     }
 }
