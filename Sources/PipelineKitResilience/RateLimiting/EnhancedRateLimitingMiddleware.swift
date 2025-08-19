@@ -64,21 +64,21 @@ public struct EnhancedRateLimitingMiddleware: Middleware {
         let priority = await priorityExtractor(command, context)
 
         // Store priority in context for the rate limiter to use
-        context.metadata["rateLimitPriority"] = priority.rawValue
+        await context.setMetadata("rateLimitPriority", value: priority.rawValue)
 
         guard try await limiter.allowRequest(identifier: identifier, cost: cost) else {
             let status = await limiter.getStatus(identifier: identifier)
 
             // Store rate limit info in context
-            context.metadata["rateLimitExceeded"] = true
-            context.metadata["rateLimitIdentifier"] = identifier
-            context.metadata["rateLimitPriority"] = priority.rawValue
-            context.metadata["rateLimitStatus"] = [
+            await context.setMetadata("rateLimitExceeded", value: true)
+            await context.setMetadata("rateLimitIdentifier", value: identifier)
+            await context.setMetadata("rateLimitPriority", value: priority.rawValue)
+            await context.setMetadata("rateLimitStatus", value: [
                 "limit": status.limit,
                 "remaining": status.remaining,
                 "resetAt": status.resetAt,
                 "retryAfter": status.resetAt.timeIntervalSinceNow
-            ] as [String: any Sendable]
+            ] as [String: any Sendable])
 
             throw PipelineError.rateLimitExceeded(
                 limit: status.limit,
@@ -88,8 +88,9 @@ public struct EnhancedRateLimitingMiddleware: Middleware {
         }
 
         // Track successful rate limit checks
-        let currentChecks = (context.metrics["rateLimitChecks"] as? Int) ?? 0
-        context.metrics["rateLimitChecks"] = currentChecks + 1
+        let currentMetrics = await context.getMetadata()
+        let currentChecks = (currentMetrics["rateLimitChecks"] as? Int) ?? 0
+        await context.setMetadata("rateLimitChecks", value: currentChecks + 1)
 
         return try await next(command, context)
     }

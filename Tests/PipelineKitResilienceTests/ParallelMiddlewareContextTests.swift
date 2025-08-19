@@ -35,26 +35,26 @@ final class ParallelMiddlewareContextTests: XCTestCase {
             next: @Sendable (T, CommandContext) async throws -> T.Result
         ) async throws -> T.Result {
             // Read current counter
-            let currentCount: Int = (context.metadata[TestKeys.counter] as? Int) ?? 0
+            let currentCount: Int = (await context.getMetadata()[TestKeys.counter] as? Int) ?? 0
             
             // Add message
-            var messages: [String] = (context.metadata[TestKeys.messages] as? [String]) ?? []
+            var messages: [String] = (await context.getMetadata()[TestKeys.messages] as? [String]) ?? []
             messages.append("Middleware \(id) started with count: \(currentCount)")
-            context.metadata[TestKeys.messages] = messages
+            await context.setMetadata(TestKeys.messages, value: messages)
             
             // Record thread info
-            context.metadata[TestKeys.threadID] = "\(id)-\(UUID().uuidString)"
+            await context.setMetadata(TestKeys.threadID, value: "\(id)-\(UUID().uuidString)")
             
             // Simulate some work
             try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
             
             // Increment counter
-            context.metadata[TestKeys.counter] = currentCount + 1
+            await context.setMetadata(TestKeys.counter, value: currentCount + 1)
             
             // Add completion message
-            messages = (context.metadata[TestKeys.messages] as? [String]) ?? []
+            messages = (await context.getMetadata()[TestKeys.messages] as? [String]) ?? []
             messages.append("Middleware \(id) completed")
-            context.metadata[TestKeys.messages] = messages
+            await context.setMetadata(TestKeys.messages, value: messages)
             
             // Don't call next for side effects
             throw ParallelExecutionError.middlewareShouldNotCallNext
@@ -78,7 +78,7 @@ final class ParallelMiddlewareContextTests: XCTestCase {
         
         let command = TestCommand(id: "test")
         let context = CommandContext()
-        context.metadata[TestKeys.counter] = 0
+        await context.setMetadata(TestKeys.counter, value: 0)
         
         // When: We execute in parallel
         let result = try await wrapper.execute(command, context: context) { _, _ in
@@ -87,9 +87,9 @@ final class ParallelMiddlewareContextTests: XCTestCase {
         
         // Then: The original context is unchanged (isolation works)
         XCTAssertEqual(result, "completed")
-        let counter: Int? = (context.metadata[TestKeys.counter] as? Int)
-        let messages: [String]? = (context.metadata[TestKeys.messages] as? [String])
-        let threadID: String? = (context.metadata[TestKeys.threadID] as? String)
+        let counter: Int? = (await context.getMetadata()[TestKeys.counter] as? Int)
+        let messages: [String]? = (await context.getMetadata()[TestKeys.messages] as? [String])
+        let threadID: String? = (await context.getMetadata()[TestKeys.threadID] as? String)
         XCTAssertEqual(counter, 0, "Original context should be unchanged")
         XCTAssertNil(messages, "Original context should have no messages")
         XCTAssertNil(threadID, "Original context should have no thread ID")
@@ -110,7 +110,7 @@ final class ParallelMiddlewareContextTests: XCTestCase {
         
         let command = TestCommand(id: "test")
         let context = CommandContext()
-        context.metadata[TestKeys.counter] = 0
+        await context.setMetadata(TestKeys.counter, value: 0)
         
         // When: We execute with merging
         let result = try await wrapper.execute(command, context: context) { _, _ in
@@ -121,15 +121,15 @@ final class ParallelMiddlewareContextTests: XCTestCase {
         XCTAssertEqual(result, "completed")
         
         // Counter should have been incremented by one of the middleware (last merge wins)
-        let finalCount: Int = (context.metadata[TestKeys.counter] as? Int) ?? 0
+        let finalCount: Int = (await context.getMetadata()[TestKeys.counter] as? Int) ?? 0
         XCTAssertEqual(finalCount, 1, "Counter should be incremented")
         
         // Messages from all middleware should be present (arrays get replaced)
-        let messages: [String] = (context.metadata[TestKeys.messages] as? [String]) ?? []
+        let messages: [String] = (await context.getMetadata()[TestKeys.messages] as? [String]) ?? []
         XCTAssertTrue(messages.count >= 2, "Should have messages from at least one middleware")
         
         // Thread ID from one of the middleware
-        let threadID: String? = (context.metadata[TestKeys.threadID] as? String)
+        let threadID: String? = (await context.getMetadata()[TestKeys.threadID] as? String)
         XCTAssertNotNil(threadID)
     }
     
@@ -149,13 +149,13 @@ final class ParallelMiddlewareContextTests: XCTestCase {
                 next: @Sendable (T, CommandContext) async throws -> T.Result
             ) async throws -> T.Result {
                 // Each middleware tries to set and check its own value
-                context.metadata[TestKeys.threadID] = id
+                await context.setMetadata(TestKeys.threadID, value: id)
                 
                 // Small delay to ensure concurrent execution
                 try await Task.sleep(nanoseconds: 10_000_000) // 10ms
                 
                 // Check if our value is still there
-                let currentValue: String? = (context.metadata[TestKeys.threadID] as? String)
+                let currentValue: String? = (await context.getMetadata()[TestKeys.threadID] as? String)
                 if currentValue != id {
                     throw TestError.contextInterference(
                         expected: id,
@@ -200,7 +200,7 @@ final class ParallelMiddlewareContextTests: XCTestCase {
                 next: @Sendable (T, CommandContext) async throws -> T.Result
             ) async throws -> T.Result {
                 // Set validation result
-                context.metadata[TestKeys.threadID] = "\(validationKey)-validated"
+                await context.setMetadata(TestKeys.threadID, value: "\(validationKey)-validated")
                 
                 // Simulate validation
                 if validationKey == requiredValue {
@@ -228,7 +228,7 @@ final class ParallelMiddlewareContextTests: XCTestCase {
         
         // Then: Original context is unchanged (isolation)
         XCTAssertEqual(result, "valid")
-        let threadID: String? = (context.metadata[TestKeys.threadID] as? String)
+        let threadID: String? = (await context.getMetadata()[TestKeys.threadID] as? String)
         XCTAssertNil(threadID)
     }
     
@@ -238,8 +238,8 @@ final class ParallelMiddlewareContextTests: XCTestCase {
         // Given: A context with multiple values
         let context = CommandContext()
         for i in 0..<100 {
-            context.metadata["string_key_\(i)"] = "value-\(i)"
-            context.metadata["int_key_\(i)"] = i
+            await context.setMetadata("string_key_\(i)", value: "value-\(i)")
+            await context.setMetadata("int_key_\(i)", value: i)
         }
         
         // When/Then: Measure forking performance
@@ -297,7 +297,7 @@ final class ParallelMiddlewareContextTests: XCTestCase {
             next: @Sendable (T, CommandContext) async throws -> T.Result
         ) async throws -> T.Result {
             // Just record execution
-            context.metadata["lightweight_middleware_\(id)"] = "executed-\(id)"
+            await context.setMetadata("lightweight_middleware_\(id)", value: "executed-\(id)")
             throw ParallelExecutionError.middlewareShouldNotCallNext
         }
     }

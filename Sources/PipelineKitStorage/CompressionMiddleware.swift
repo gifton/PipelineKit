@@ -117,12 +117,12 @@ public struct CompressionMiddleware: Middleware {
                     compressionApplied = true
                     
                     // Store compression metadata
-                    context.metadata["compression.applied"] = true
-                    context.metadata["compression.algorithm"] = algorithm.rawValue
-                    context.metadata["compression.level"] = compressionLevel.rawValue
-                    context.metadata["compression.originalSize"] = dataToCompress.count
-                    context.metadata["compression.compressedSize"] = compressedData.count
-                    context.metadata["compression.ratio"] = Double(dataToCompress.count) / Double(compressedData.count)
+                    await context.setMetadata("compression.applied", value: true)
+                    await context.setMetadata("compression.algorithm", value: algorithm.rawValue)
+                    await context.setMetadata("compression.level", value: compressionLevel.rawValue)
+                    await context.setMetadata("compression.originalSize", value: dataToCompress.count)
+                    await context.setMetadata("compression.compressedSize", value: compressedData.count)
+                    await context.setMetadata("compression.ratio", value: Double(dataToCompress.count) / Double(compressedData.count))
                     
                     if trackStatistics {
                         await updateStatistics(
@@ -134,8 +134,8 @@ public struct CompressionMiddleware: Middleware {
                 }
             } catch {
                 // Log compression failure but continue with uncompressed data
-                context.metadata["compression.failed"] = true
-                context.metadata["compression.error"] = error.localizedDescription
+                await context.setMetadata("compression.failed", value: true)
+                await context.setMetadata("compression.error", value: error.localizedDescription)
             }
         }
         
@@ -146,7 +146,7 @@ public struct CompressionMiddleware: Middleware {
         var processedResult = result
         if compressionApplied {
             // Mark that decompression may be needed
-            context.metadata["compression.needsDecompression"] = true
+            await context.setMetadata("compression.needsDecompression", value: true)
         }
         
         // Try to compress the result if it supports compression
@@ -167,15 +167,15 @@ public struct CompressionMiddleware: Middleware {
                     processedResult = compressibleResult.withCompressedData(compressedData) as! T.Result
                     
                     // Store result compression metadata
-                    context.metadata["compression.resultApplied"] = true
-                    context.metadata["compression.resultOriginalSize"] = dataToCompress.count
-                    context.metadata["compression.resultCompressedSize"] = compressedData.count
-                    context.metadata["compression.resultRatio"] = Double(dataToCompress.count) / Double(compressedData.count)
+                    await context.setMetadata("compression.resultApplied", value: true)
+                    await context.setMetadata("compression.resultOriginalSize", value: dataToCompress.count)
+                    await context.setMetadata("compression.resultCompressedSize", value: compressedData.count)
+                    await context.setMetadata("compression.resultRatio", value: Double(dataToCompress.count) / Double(compressedData.count))
                 }
             } catch {
                 // Log compression failure but return uncompressed result
-                context.metadata["compression.resultFailed"] = true
-                context.metadata["compression.resultError"] = error.localizedDescription
+                await context.setMetadata("compression.resultFailed", value: true)
+                await context.setMetadata("compression.resultError", value: error.localizedDescription)
             }
         }
         
@@ -186,7 +186,8 @@ public struct CompressionMiddleware: Middleware {
     
     private func shouldCompressCommand<T: Command>(_ command: T, context: CommandContext) async -> Bool {
         // Check if compression is disabled in context
-        if let disabled = context.metadata["compression.disabled"] as? Bool, disabled {
+        let metadata = await context.getMetadata()
+        if let disabled = metadata["compression.disabled"] as? Bool, disabled {
             return false
         }
         

@@ -87,11 +87,11 @@ public struct AuthenticationMiddleware: Middleware {
         context: CommandContext,
         next: @escaping @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
-        let metadata = context.commandMetadata
+        let metadata = await context.commandMetadata
         let userId = try await authenticate(metadata.userId)
 
         // Store authenticated user in context
-        context.metadata["authUserId"] = userId
+        await context.setMetadata("authUserId", value: userId)
 
         return try await next(command, context)
     }

@@ -21,7 +21,7 @@ final class AuthorizationMiddlewareTests: XCTestCase {
         let context = CommandContext()
         
         // Set authenticated user
-        context.metadata["authUserId"] = "admin-user"
+        await context.setMetadata("authUserId", value: "admin-user")
         
         let handlerExecutedBox = Box(value: false)
         
@@ -47,7 +47,7 @@ final class AuthorizationMiddlewareTests: XCTestCase {
         
         let command = AuthzTestCommand(value: "test")
         let context = CommandContext()
-        context.metadata["authUserId"] = "regular-user"
+        await context.setMetadata("authUserId", value: "regular-user")
         
         // When/Then
         do {
@@ -114,7 +114,7 @@ final class AuthorizationMiddlewareTests: XCTestCase {
         
         // Test editor (has both roles)
         let editorContext = CommandContext()
-        editorContext.metadata["authUserId"] = "editor"
+        await editorContext.setMetadata("authUserId", value: "editor")
         
         let editorResult = try await middleware.execute(command, context: editorContext) { cmd, _ in
             cmd.value
@@ -123,7 +123,7 @@ final class AuthorizationMiddlewareTests: XCTestCase {
         
         // Test reader (missing write role)
         let readerContext = CommandContext()
-        readerContext.metadata["authUserId"] = "reader"
+        await readerContext.setMetadata("authUserId", value: "reader")
         
         do {
             _ = try await middleware.execute(command, context: readerContext) { _, _ in
@@ -154,7 +154,7 @@ final class AuthorizationMiddlewareTests: XCTestCase {
         
         let command = AuthzTestCommand(value: "test")
         let context = CommandContext()
-        context.metadata["authUserId"] = "user123-premium"
+        await context.setMetadata("authUserId", value: "user123-premium")
         
         // When
         let result = try await middleware.execute(command, context: context) { cmd, _ in
@@ -191,7 +191,7 @@ final class AuthorizationMiddlewareTests: XCTestCase {
                 let command = AuthzTestCommand(value: "test-\(i)")
                 let context = CommandContext()
                 let userId = i.isMultiple(of: 2) ? "valid-user-\(i)" : "invalid-user-\(i)"
-                context.metadata["authUserId"] = userId
+                await context.setMetadata("authUserId", value: userId)
                 
                 do {
                     return try await middleware.execute(command, context: context) { cmd, _ in

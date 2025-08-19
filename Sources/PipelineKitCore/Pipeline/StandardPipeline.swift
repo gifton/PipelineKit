@@ -237,7 +237,7 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: Pipeline where H.C
     /// Executes the command with context support.
     private func executeWithContext(_ command: C, context: CommandContext) async throws -> C.Result {
         // Always initialize context first
-        initializeContextIfNeeded(context)
+        await initializeContextIfNeeded(context)
         
         // Fast path: No middleware
         if middlewares.isEmpty {
@@ -249,12 +249,12 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: Pipeline where H.C
     }
     
     /// Initializes standard context values if not already set.
-    private func initializeContextIfNeeded(_ context: CommandContext) {
-        if context.requestID == nil {
-            context.requestID = UUID().uuidString
+    private func initializeContextIfNeeded(_ context: CommandContext) async {
+        if await context.getRequestID() == nil {
+            await context.setRequestID(UUID().uuidString)
         }
-        if context.metadata["requestStartTime"] == nil {
-            context.metadata["requestStartTime"] = Date()
+        if await context.getMetadata("requestStartTime") == nil {
+            await context.setMetadata("requestStartTime", value: Date())
         }
     }
     

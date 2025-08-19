@@ -321,7 +321,7 @@ public struct BulkheadMiddleware: Middleware {
     ) async throws -> T.Result {
         // For tagged isolation, we could maintain separate semaphores per tag
         // This is a simplified implementation
-        context.metadata["bulkheadTag"] = tag
+        await context.setMetadata("bulkheadTag", value: tag)
 
         return try await executeSemaphoreIsolation(
             command,
@@ -359,10 +359,10 @@ public struct BulkheadMiddleware: Middleware {
         let duration = Date().timeIntervalSince(startTime)
         let stats = await metrics.getStats()
 
-        context.metrics["bulkhead.duration"] = duration
-        context.metrics["bulkhead.wasQueued"] = wasQueued
-        context.metrics["bulkhead.activeCount"] = stats.activeExecutions
-        context.metrics["bulkhead.queuedCount"] = stats.queuedCommands
+        await context.setMetadata("bulkhead.duration", value: duration)
+        await context.setMetadata("bulkhead.wasQueued", value: wasQueued)
+        await context.setMetadata("bulkhead.activeCount", value: stats.activeExecutions)
+        await context.setMetadata("bulkhead.queuedCount", value: stats.queuedCommands)
 
 // //         await context.emitCustomEvent(
 // //             "bulkhead_execution",

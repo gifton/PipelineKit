@@ -13,25 +13,30 @@ import PipelineKitCore
 public extension CommandContext {
     /// The event emitter for this context
     var eventEmitter: EventEmitter? {
-        get { self[ContextKeys.eventEmitter] }
-        set { self[ContextKeys.eventEmitter] = newValue }
+        get async { await self.get(ContextKeys.eventEmitter) }
+    }
+    
+    /// Sets the event emitter for this context
+    func setEventEmitter(_ emitter: EventEmitter?) async {
+        await self.set(ContextKeys.eventEmitter, value: emitter)
     }
 
     /// Emits an event through the context's event emitter.
     ///
-    /// This method is synchronous and non-blocking. If no emitter is set,
+    /// This method is now async due to actor isolation. If no emitter is set,
     /// the event is silently discarded.
     ///
     /// - Parameters:
     ///   - name: The event name
     ///   - properties: Additional event properties
-    func emitEvent(_ name: String, properties: [String: any Sendable] = [:]) {
-        guard let emitter = eventEmitter else { return }
+    func emitEvent(_ name: String, properties: [String: any Sendable] = [:]) async {
+        guard let emitter = await eventEmitter else { return }
 
+        let correlationId = await correlationID ?? commandMetadata.correlationId ?? commandMetadata.id.uuidString
         let event = PipelineEvent(
             name: name,
             properties: properties,
-            correlationID: correlationID ?? commandMetadata.correlationId ?? commandMetadata.id.uuidString
+            correlationID: correlationId
         )
 
         emitter.emit(event)
@@ -42,16 +47,16 @@ public extension CommandContext {
     /// - Parameters:
     ///   - commandType: The type name of the command
     ///   - properties: Additional properties
-    func emitCommandStarted(type commandType: String, properties: [String: any Sendable] = [:]) {
+    func emitCommandStarted(type commandType: String, properties: [String: any Sendable] = [:]) async {
         var props = properties
         props["commandType"] = commandType
         props["commandID"] = commandMetadata.id.uuidString
 
-        if let userId = userID {
+        if let userId = await userID {
             props["userID"] = userId
         }
 
-        emitEvent(PipelineEvent.Name.commandStarted, properties: props)
+        await emitEvent(PipelineEvent.Name.commandStarted, properties: props)
     }
 
     /// Emits a command completed event.
@@ -64,18 +69,18 @@ public extension CommandContext {
         type commandType: String,
         duration: TimeInterval? = nil,
         properties: [String: any Sendable] = [:]
-    ) {
+    ) async {
         var props = properties
         props["commandType"] = commandType
         props["commandID"] = commandMetadata.id.uuidString
 
         if let duration = duration {
             props["duration"] = duration
-        } else if let startTime = startTime {
+        } else if let startTime = await startTime {
             props["duration"] = Date().timeIntervalSince(startTime)
         }
 
-        emitEvent(PipelineEvent.Name.commandCompleted, properties: props)
+        await emitEvent(PipelineEvent.Name.commandCompleted, properties: props)
     }
 
     /// Emits a command failed event.
@@ -88,18 +93,18 @@ public extension CommandContext {
         type commandType: String,
         error: Error,
         properties: [String: any Sendable] = [:]
-    ) {
+    ) async {
         var props = properties
         props["commandType"] = commandType
         props["commandID"] = commandMetadata.id.uuidString
         props["errorType"] = String(describing: type(of: error))
         props["errorMessage"] = error.localizedDescription
 
-        if let startTime = startTime {
+        if let startTime = await startTime {
             props["duration"] = Date().timeIntervalSince(startTime)
         }
 
-        emitEvent(PipelineEvent.Name.commandFailed, properties: props)
+        await emitEvent(PipelineEvent.Name.commandFailed, properties: props)
     }
 
     /// Emits a middleware event.
@@ -112,12 +117,12 @@ public extension CommandContext {
         _ name: String,
         middleware: String,
         properties: [String: any Sendable] = [:]
-    ) {
+    ) async {
         var props = properties
         props["middleware"] = middleware
         props["commandID"] = commandMetadata.id.uuidString
 
-        emitEvent(name, properties: props)
+        await emitEvent(name, properties: props)
     }
 }
 
@@ -140,9 +145,9 @@ public extension CommandContext {
     static func withEmitter(
         _ emitter: EventEmitter,
         metadata: CommandMetadata? = nil
-    ) -> CommandContext {
+    ) async -> CommandContext {
         let context = CommandContext(metadata: metadata ?? DefaultCommandMetadata())
-        context.eventEmitter = emitter
+        await context.setEventEmitter(emitter)
         return context
     }
 
@@ -150,9 +155,9 @@ public extension CommandContext {
     ///
     /// - Parameter emitter: The event emitter to set
     /// - Returns: A new context with the emitter configured
-    func withEmitter(_ emitter: EventEmitter) -> CommandContext {
-        let newContext = self.fork()
-        newContext.eventEmitter = emitter
+    func withEmitter(_ emitter: EventEmitter) async -> CommandContext {
+        let newContext = await self.fork()
+        await newContext.setEventEmitter(emitter)
         return newContext
     }
 }

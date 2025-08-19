@@ -38,7 +38,7 @@ public struct CachedMiddleware<M: Middleware>: Middleware where M: Sendable {
         next: @escaping @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
         // Generate cache key
-        let key = keyGenerator.generateKey(
+        let key = await keyGenerator.generateKey(
             for: command,
             context: context,
             middleware: String(describing: type(of: wrapped))
@@ -66,7 +66,7 @@ public protocol CacheKeyGenerator: Sendable {
         for command: T,
         context: CommandContext,
         middleware: String
-    ) -> String
+    ) async -> String
 }
 
 /// Default cache key generator using command type and parameters
@@ -77,7 +77,7 @@ public struct DefaultCacheKeyGenerator: CacheKeyGenerator {
         for command: T,
         context: CommandContext,
         middleware: String
-    ) -> String {
+    ) async -> String {
         // Create key from middleware name and command type
         var components = [
             "mw",
@@ -91,7 +91,8 @@ public struct DefaultCacheKeyGenerator: CacheKeyGenerator {
         }
         
         // Add user context if available
-        if let userId = context.commandMetadata.userId {
+        let metadata = await context.commandMetadata
+        if let userId = metadata.userId {
             components.append("u:\(userId)")
         }
         
@@ -255,7 +256,7 @@ public struct ConditionalCachedMiddleware<M: Middleware>: Middleware where M: Se
         }
         
         // Use caching logic
-        let key = generateKey(for: command, context: context)
+        let key = await generateKey(for: command, context: context)
         
         if let cached = await cache.get(key: key, type: T.Result.self) {
             return cached
@@ -267,8 +268,9 @@ public struct ConditionalCachedMiddleware<M: Middleware>: Middleware where M: Se
         return result
     }
     
-    private func generateKey<T: Command>(for command: T, context: CommandContext) -> String {
-        return "conditional:\(type(of: wrapped)):\(type(of: command)):\(context.commandMetadata.correlationId ?? "none")"
+    private func generateKey<T: Command>(for command: T, context: CommandContext) async -> String {
+        let metadata = await context.commandMetadata
+        return "conditional:\(type(of: wrapped)):\(type(of: command)):\(metadata.correlationId ?? "none")"
     }
 }
 

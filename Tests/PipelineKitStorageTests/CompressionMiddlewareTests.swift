@@ -77,10 +77,11 @@ final class CompressionMiddlewareTests: XCTestCase {
         // Test handler
         let handler: @Sendable (DataProcessingCommand, CommandContext) async throws -> ProcessingResult = { cmd, ctx in
             // Verify compression was applied
-            if let applied = ctx.metadata["compression.applied"] as? Bool, applied {
-                XCTAssertEqual(ctx.metadata["compression.algorithm"] as? String, "zlib")
-                XCTAssertNotNil(ctx.metadata["compression.originalSize"])
-                XCTAssertNotNil(ctx.metadata["compression.compressedSize"])
+            let metadata = await ctx.getMetadata()
+            if let applied = metadata["compression.applied"] as? Bool, applied {
+                XCTAssertEqual(metadata["compression.algorithm"] as? String, "zlib")
+                XCTAssertNotNil(metadata["compression.originalSize"])
+                XCTAssertNotNil(metadata["compression.compressedSize"])
                 
                 // Verify operation was marked as compressed
                 XCTAssertTrue(cmd.operation.contains("compressed"))
@@ -120,7 +121,8 @@ final class CompressionMiddlewareTests: XCTestCase {
         // Test handler
         let handler: @Sendable (DataProcessingCommand, CommandContext) async throws -> ProcessingResult = { cmd, ctx in
             // Verify compression was NOT applied
-            XCTAssertNil(ctx.metadata["compression.applied"])
+            let metadata = await ctx.getMetadata()
+            XCTAssertNil(metadata["compression.applied"])
             XCTAssertFalse(cmd.operation.contains("compressed"))
             
             return ProcessingResult(processedData: cmd.data, success: true)

@@ -134,13 +134,13 @@ public struct HealthCheckMiddleware: Middleware {
         next: @escaping @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
         let startTime = Date()
-        let serviceName = extractServiceName(from: command, context: context)
+        let serviceName = await extractServiceName(from: command, context: context)
 
         // Check if service is healthy
         let healthState = await healthMonitor.getHealthState(for: serviceName)
 
         // Store health state in context
-        context.metadata["serviceHealth"] = healthState.rawValue
+        await context.setMetadata("serviceHealth", value: healthState.rawValue)
 
         // Block if configured and service is unhealthy
         if configuration.blockUnhealthyServices && healthState == .unhealthy {
@@ -219,14 +219,15 @@ public struct HealthCheckMiddleware: Middleware {
 
     // MARK: - Private Methods
 
-    private func extractServiceName(from command: any Command, context: CommandContext) -> String {
+    private func extractServiceName(from command: any Command, context: CommandContext) async -> String {
         // Check if command implements ServiceIdentifiable
         if let serviceCommand = command as? ServiceIdentifiable {
             return serviceCommand.serviceName
         }
 
         // Check context for service name
-        if let serviceName = context.metadata["serviceName"] as? String {
+        let metadata = await context.getMetadata()
+        if let serviceName = metadata["serviceName"] as? String {
             return serviceName
         }
 
@@ -263,10 +264,10 @@ public struct HealthCheckMiddleware: Middleware {
     ) async {
         guard configuration.emitMetrics else { return }
 
-        context.metrics["health.service"] = serviceName
-        context.metrics["health.state"] = healthState.rawValue
-        context.metrics["health.success"] = success
-        context.metrics["health.duration"] = duration
+        await context.setMetadata("health.service", value: serviceName)
+        await context.setMetadata("health.state", value: healthState.rawValue)
+        await context.setMetadata("health.success", value: success)
+        await context.setMetadata("health.duration", value: duration)
 
         // TODO: Re-enable when PipelineEvent is available
 

@@ -297,7 +297,8 @@ final class RetryMiddlewareTests: XCTestCase {
             // Should fail immediately without retries
             let context = CommandContext()
             _ = try? await middleware.execute(nonRetryableCommand, context: context) { _, _ in "never reached" }
-            XCTAssertNil(context.metadata["retryAttempts"])
+            let metadata = await context.getMetadata()
+            XCTAssertNil(metadata["retryAttempts"])
         }
     }
 
@@ -384,7 +385,8 @@ final class RetryMiddlewareTests: XCTestCase {
 
         // Then
         XCTAssertEqual(result, "Success")
-        XCTAssertNil(context.metadata["retryAttempts"])
+        let metadata = await context.getMetadata()
+        XCTAssertNil(metadata["retryAttempts"])
     }
 
     func testMetricsEmission() async throws {

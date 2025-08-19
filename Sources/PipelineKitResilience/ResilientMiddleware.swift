@@ -51,7 +51,7 @@ public final class ResilientMiddleware: Middleware, @unchecked Sendable {
     ) async throws -> T.Result {
         var lastError: Error?
         let startTime = Date()
-        let metadata = context.commandMetadata
+        let metadata = await context.commandMetadata
         _ = (metadata as? DefaultCommandMetadata)?.userId ?? "unknown"
         
         for attempt in 1...retryPolicy.maxAttempts {

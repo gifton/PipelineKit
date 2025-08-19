@@ -324,10 +324,11 @@ final class BulkheadMiddlewareTests: XCTestCase {
         try await Task.sleep(nanoseconds: 10_000_000) // 10ms
 
         // Then - check metrics
-        XCTAssertNotNil(context.metrics["bulkhead.duration"])
-        XCTAssertEqual(context.metrics["bulkhead.wasQueued"] as? Bool, false)
-        XCTAssertNotNil(context.metrics["bulkhead.activeCount"])
-        XCTAssertNotNil(context.metrics["bulkhead.queuedCount"])
+        let metrics = await context.getMetadata()
+        XCTAssertNotNil(metrics["bulkhead.duration"])
+        XCTAssertEqual(metrics["bulkhead.wasQueued"] as? Bool, false)
+        XCTAssertNotNil(metrics["bulkhead.activeCount"])
+        XCTAssertNotNil(metrics["bulkhead.queuedCount"])
     }
 
     func testRejectionHandler() async throws {

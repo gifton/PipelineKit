@@ -15,68 +15,22 @@ struct TestResult: Sendable {
     let message: String
 }
 
-// Mock audit logger for testing
-actor MockAuditLogger: AuditLogger {
-    private(set) var loggedEvents: [SecurityAuditEvent] = []
-    private(set) var loggedEntries: [AuditEntry] = []
-    
-    func log(_ event: SecurityAuditEvent) async {
-        loggedEvents.append(event)
-    }
-    
-    // Override the extension method to capture AuditEvent
-    func log(_ event: AuditEvent) async {
-        switch event {
-        case .commandStarted(let entry),
-             .commandCompleted(let entry),
-             .commandFailed(let entry):
-            loggedEntries.append(entry)
-        case .securityEvent(let secEvent):
-            loggedEvents.append(secEvent)
-        }
-    }
-    
-    func logCommandStarted(_ entry: AuditEntry) async {
-        loggedEntries.append(entry)
-    }
-    
-    func logCommandCompleted(_ entry: AuditEntry) async {
-        loggedEntries.append(entry)
-    }
-    
-    func logCommandFailed(_ entry: AuditEntry) async {
-        loggedEntries.append(entry)
-    }
-    
-    func getLoggedEvents() async -> [SecurityAuditEvent] {
-        return loggedEvents
-    }
-    
-    func getLoggedEntries() async -> [AuditEntry] {
-        return loggedEntries
-    }
-}
-
 final class AuditLoggingMiddlewareTests: XCTestCase {
     
     func testAuditLoggingSuccess() async throws {
-        // Create mock logger
-        let mockLogger = MockAuditLogger()
+        // Create in-memory logger
+        let logger = InMemoryAuditLogger()
         
         // Create middleware
-        let middleware = AuditLoggingMiddleware(
-            logger: mockLogger,
-            detailLevel: .full,
-            includeResults: true
-        )
+        let middleware = AuditLoggingMiddleware(logger: logger)
         
         // Create test command
         let command = TestCommand(id: "test-123", action: "create")
         
-        // Create context
+        // Create context with user info
         let context = CommandContext()
-        context.metadata["authUserId"] = "user-456"
-        context.metadata["sessionId"] = "session-789"
+        await context.setMetadata("authUserId", value: "user-456")
+        await context.setMetadata("sessionId", value: "session-789")
         
         // Test handler
         let handler: @Sendable (TestCommand, CommandContext) async throws -> TestResult = { _, _ in
@@ -92,43 +46,41 @@ final class AuditLoggingMiddlewareTests: XCTestCase {
         XCTAssertTrue(result.success)
         XCTAssertEqual(result.message, "Created successfully")
         
-        // Verify audit entries were logged
-        let entries = await mockLogger.getLoggedEntries()
-        XCTAssertGreaterThanOrEqual(entries.count, 2) // Start and complete events
+        // Verify audit events were logged
+        let events = await logger.allEvents()
+        XCTAssertEqual(events.count, 2, "Should have start and complete events")
         
-        // Verify first entry (command started)
-        if entries.count > 0 {
-            let startEntry = entries[0]
-            XCTAssertEqual(startEntry.commandType, "TestCommand")
-            XCTAssertEqual(startEntry.userId, "user-456")
-            XCTAssertEqual(startEntry.sessionId, "session-789")
-        }
+        // Verify start event
+        let commandEvents = await logger.commandEvents()
+        XCTAssertEqual(commandEvents.count, 2)
         
-        // Verify last entry (command completed)
-        if entries.count > 1 {
-            let completeEntry = entries[entries.count - 1]
-            XCTAssertEqual(completeEntry.status, .success)
-            XCTAssertNotNil(completeEntry.duration)
-            XCTAssertGreaterThan(completeEntry.duration ?? 0, 0)
-        }
+        let startEvent = commandEvents[0]
+        XCTAssertEqual(startEvent.phase, .started)
+        XCTAssertEqual(startEvent.commandType, "TestCommand")
+        XCTAssertEqual(startEvent.userId, "user-456")
+        XCTAssertEqual(startEvent.sessionId, "session-789")
+        
+        // Verify complete event
+        let completeEvent = commandEvents[1]
+        XCTAssertEqual(completeEvent.phase, .completed)
+        XCTAssertEqual(completeEvent.commandType, "TestCommand")
+        XCTAssertNotNil(completeEvent.duration)
+        XCTAssertGreaterThan(completeEvent.duration ?? 0, 0)
     }
     
     func testAuditLoggingFailure() async throws {
-        // Create mock logger
-        let mockLogger = MockAuditLogger()
+        // Create in-memory logger
+        let logger = InMemoryAuditLogger()
         
         // Create middleware
-        let middleware = AuditLoggingMiddleware(
-            logger: mockLogger,
-            detailLevel: .standard
-        )
+        let middleware = AuditLoggingMiddleware(logger: logger)
         
         // Create test command
         let command = TestCommand(id: "test-fail", action: "delete")
         
         // Create context
         let context = CommandContext()
-        context.metadata["authUserId"] = "admin"
+        await context.setMetadata("authUserId", value: "admin")
         
         // Test handler that throws error
         let handler: @Sendable (TestCommand, CommandContext) async throws -> TestResult = { _, _ in
@@ -146,80 +98,204 @@ final class AuditLoggingMiddlewareTests: XCTestCase {
             XCTAssertEqual((error as NSError).code, 404)
         }
         
-        // Verify audit entries were logged
-        let entries = await mockLogger.getLoggedEntries()
-        XCTAssertGreaterThanOrEqual(entries.count, 2) // Start and failed events
+        // Verify audit events were logged
+        let events = await logger.commandEvents()
+        XCTAssertEqual(events.count, 2, "Should have start and failed events")
         
         // Verify failure was logged
-        if let failEntry = entries.last {
-            XCTAssertEqual(failEntry.status, .failure)
-            XCTAssertNotNil(failEntry.error)
-        }
+        let failedEvent = events[1]
+        XCTAssertEqual(failedEvent.phase, .failed)
+        XCTAssertNotNil(failedEvent.error)
+        XCTAssertTrue(failedEvent.error?.contains("404") ?? false)
     }
     
-    func testNDJSONFormat() async throws {
-        // Create temp directory for test
-        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
-        defer {
-            try? FileManager.default.removeItem(at: tempDir)
-        }
+    func testTraceContextPropagation() async throws {
+        // Create logger
+        let logger = InMemoryAuditLogger()
+        let middleware = AuditLoggingMiddleware(logger: logger)
         
-        // Create file logger
-        let fileLogger = FileAuditLogger(directory: tempDir.path)
+        // Create trace context
+        let traceContext = TraceContext(
+            traceId: UUID(),
+            spanId: UUID(),
+            userId: "trace-user",
+            sessionId: "trace-session"
+        )
         
-        // Log multiple entries
-        for i in 0..<3 {
-            let entry = AuditEntry(
-                id: UUID(),
-                timestamp: Date(),
-                commandType: "TestCommand",
-                userId: "user-\(i)",
-                status: .success
-            )
-            await fileLogger.logCommandCompleted(entry)
-        }
-        
-        // Read the log file
-        let files = try FileManager.default.contentsOfDirectory(at: tempDir, includingPropertiesForKeys: nil)
-        XCTAssertFalse(files.isEmpty, "Should have created audit log file")
-        
-        if let logFile = files.first(where: { $0.pathExtension == "ndjson" }) {
-            let content = try String(contentsOf: logFile)
-            let lines = content.split(separator: "\n")
+        // Execute with trace context
+        await AuditContext.withValue(traceContext) {
+            let command = TestCommand(id: "trace-test", action: "read")
+            let context = CommandContext()
             
-            // Verify ND-JSON format (each line is valid JSON)
-            for line in lines where !line.isEmpty {
-                let data = Data(line.utf8)
-                XCTAssertNoThrow(try JSONSerialization.jsonObject(with: data))
+            let handler: @Sendable (TestCommand, CommandContext) async throws -> TestResult = { _, _ in
+                TestResult(success: true, message: "OK")
             }
             
-            // Should have 3 entries
-            XCTAssertEqual(lines.filter { !$0.isEmpty }.count, 3)
-        } else {
-            XCTFail("No audit log file found")
+            _ = try? await middleware.execute(command, context: context, next: handler)
+        }
+        
+        // Verify trace context was included in events
+        let events = await logger.commandEventsWithMetadata()
+        XCTAssertFalse(events.isEmpty)
+        
+        for testableEvent in events {
+            let metadata = testableEvent.metadata
+            XCTAssertEqual(metadata["traceId"] as? String, traceContext.traceId.uuidString)
+            XCTAssertEqual(metadata["spanId"] as? String, traceContext.spanId.uuidString)
         }
     }
     
-    func testPrivacyLevels() async throws {
-        // Test minimal privacy level
-        let minimalLogger = DefaultAuditLogger(
-            destination: .console,
-            privacyLevel: .minimal
-        )
+    func testInMemoryLoggerCapacity() async throws {
+        // Create logger with limited capacity
+        let logger = InMemoryAuditLogger(maxEvents: 3)
         
-        // Test entry sanitization
-        let entry = AuditEntry(
-            id: UUID(),
-            timestamp: Date(),
+        // Log more events than capacity
+        for i in 0..<5 {
+            await logger.log(GenericAuditEvent(
+                eventType: "test.\(i)",
+                metadata: ["index": i]
+            ))
+        }
+        
+        // Should only have last 3 events
+        let events = await logger.allEvents()
+        XCTAssertEqual(events.count, 3)
+        
+        // Should be events 2, 3, 4 (0 and 1 were dropped)
+        XCTAssertEqual(events[0].eventType, "test.2")
+        XCTAssertEqual(events[1].eventType, "test.3")
+        XCTAssertEqual(events[2].eventType, "test.4")
+        
+        // Check dropped count
+        let droppedCount = await logger.droppedEventsCount
+        XCTAssertEqual(droppedCount, 2)
+    }
+    
+    func testConsoleLoggerFormatting() async throws {
+        // This test verifies formatting but doesn't capture stdout
+        let logger = ConsoleAuditLogger(verbose: true)
+        
+        let event = CommandLifecycleEvent(
+            phase: .completed,
             commandType: "TestCommand",
-            userId: "user@example.com",
-            sessionId: "session-12345",
-            commandData: ["password": "secret123" as any Sendable]
+            commandId: UUID(),
+            userId: "test-user",
+            duration: 1.234
         )
         
-        // The sanitization should anonymize user ID and remove sensitive data
-        // This would be tested more thoroughly in a real implementation
-        XCTAssertNotNil(minimalLogger)
+        // Just verify it doesn't crash
+        await logger.log(event)
+        
+        // For production logger
+        let prodLogger = ConsoleAuditLogger.production
+        await prodLogger.log(event)
+        
+        // For development logger
+        let devLogger = ConsoleAuditLogger.development
+        await devLogger.log(event)
+        
+        XCTAssertTrue(true, "Console loggers should not crash")
+    }
+    
+    func testSecurityAuditEvent() async throws {
+        let logger = InMemoryAuditLogger()
+        
+        // Log various security events
+        await logger.log(SecurityAuditEvent(
+            action: .encryption,
+            resource: "user.password",
+            principal: "system"
+        ))
+        
+        await logger.log(SecurityAuditEvent(
+            action: .accessDenied,
+            resource: "/admin/users",
+            principal: "guest",
+            details: ["reason": "Insufficient privileges" as any Sendable]
+        ))
+        
+        await logger.log(SecurityAuditEvent(
+            action: .keyRotation,
+            details: [
+                "oldKeyId": "key-v1" as any Sendable,
+                "newKeyId": "key-v2" as any Sendable
+            ]
+        ))
+        
+        // Verify events
+        let securityEvents = await logger.securityEvents()
+        XCTAssertEqual(securityEvents.count, 3)
+        
+        // Check event types
+        XCTAssertEqual(securityEvents[0].eventType, "security.encryption")
+        XCTAssertEqual(securityEvents[1].eventType, "security.accessDenied")
+        XCTAssertEqual(securityEvents[2].eventType, "security.keyRotation")
+        
+        // Check metadata
+        XCTAssertEqual(securityEvents[1].metadata["reason"] as? String, "Insufficient privileges")
+    }
+    
+    func testEventQuerying() async throws {
+        let logger = InMemoryAuditLogger()
+        
+        // Log various events
+        let cmd1 = CommandLifecycleEvent(phase: .started, commandType: "CreateUser")
+        let cmd2 = CommandLifecycleEvent(phase: .completed, commandType: "CreateUser")
+        let cmd3 = CommandLifecycleEvent(phase: .started, commandType: "DeleteUser")
+        let sec1 = SecurityAuditEvent(action: .encryption)
+        
+        await logger.log(cmd1)
+        await logger.log(cmd2)
+        await logger.log(cmd3)
+        await logger.log(sec1)
+        
+        // Test various query methods
+        let allEvents = await logger.allEvents()
+        XCTAssertEqual(allEvents.count, 4)
+        
+        let createUserEvents = await logger.commandEvents(forType: "CreateUser")
+        XCTAssertEqual(createUserEvents.count, 2)
+        
+        let startedEvents = await logger.events { event in
+            event.eventType.contains("started")
+        }
+        XCTAssertEqual(startedEvents.count, 2)
+        
+        let lastCommand = await logger.lastCommandEvent()
+        XCTAssertEqual(lastCommand?.commandType, "DeleteUser")
+        
+        let lastSecurity = await logger.lastSecurityEvent()
+        XCTAssertEqual(lastSecurity?.action, .encryption)
+    }
+    
+    func testHealthStream() async throws {
+        let logger = InMemoryAuditLogger(maxEvents: 2)
+        
+        // Start monitoring health
+        let healthTask = Task {
+            var healthEvents: [LoggerHealthEvent] = []
+            for await event in logger.health {
+                healthEvents.append(event)
+                if healthEvents.count >= 2 {
+                    break
+                }
+            }
+            return healthEvents
+        }
+        
+        // Trigger health events by exceeding capacity
+        for i in 0..<12 {
+            await logger.log(GenericAuditEvent(eventType: "test.\(i)"))
+        }
+        
+        // Clear to trigger recovery
+        await logger.clear()
+        
+        // Cancel health monitoring
+        healthTask.cancel()
+        
+        // The health stream should have reported dropped events
+        let droppedCount = await logger.droppedEventsCount
+        XCTAssertEqual(droppedCount, 0, "Should be reset after clear")
     }
 }

@@ -19,9 +19,7 @@ import PipelineKitCore
 ///
 /// ```swift
 /// let auditMiddleware = AuditLoggingMiddleware(
-///     logger: FileAuditLogger(directory: "/var/log/audit"),
-///     detailLevel: .full,
-///     includeResults: true
+///     logger: ConsoleAuditLogger.production
 /// )
 ///
 /// let pipeline = StandardPipeline(
@@ -41,7 +39,7 @@ import PipelineKitCore
 /// - Note: This middleware has `.monitoring` priority to capture events
 ///   after authentication/authorization but before main processing.
 ///
-/// - SeeAlso: `AuditLogger`, `AuditEntry`, `Middleware`
+/// - SeeAlso: `AuditLogger`, `CommandLifecycleEvent`, `Middleware`
 public struct AuditLoggingMiddleware: Middleware {
     /// Priority ensures audit logging happens at the right time.
     public let priority: ExecutionPriority = .monitoring
@@ -49,38 +47,11 @@ public struct AuditLoggingMiddleware: Middleware {
     /// The audit logger implementation.
     private let logger: any AuditLogger
     
-    /// Level of detail to include in audit logs.
-    private let detailLevel: AuditDetailLevel
-    
-    /// Whether to include command results in audit logs.
-    private let includeResults: Bool
-    
-    /// Whether to include sensitive data in logs.
-    private let includeSensitiveData: Bool
-    
-    /// Fields to redact from audit logs.
-    private let redactedFields: Set<String>
-    
     /// Creates a new audit logging middleware.
     ///
-    /// - Parameters:
-    ///   - logger: The audit logger implementation
-    ///   - detailLevel: How much detail to include in logs
-    ///   - includeResults: Whether to log command results
-    ///   - includeSensitiveData: Whether to include potentially sensitive data
-    ///   - redactedFields: Field names to redact from logs
-    public init(
-        logger: any AuditLogger,
-        detailLevel: AuditDetailLevel = .standard,
-        includeResults: Bool = false,
-        includeSensitiveData: Bool = false,
-        redactedFields: Set<String> = ["password", "token", "secret", "key", "ssn", "creditCard"]
-    ) {
+    /// - Parameter logger: The audit logger implementation to use
+    public init(logger: any AuditLogger) {
         self.logger = logger
-        self.detailLevel = detailLevel
-        self.includeResults = includeResults
-        self.includeSensitiveData = includeSensitiveData
-        self.redactedFields = redactedFields
     }
     
     /// Executes audit logging around command processing.
@@ -100,348 +71,116 @@ public struct AuditLoggingMiddleware: Middleware {
     ) async throws -> T.Result {
         let startTime = Date()
         let commandId = UUID()
+        let commandType = String(describing: type(of: command))
         
-        // Create initial audit entry
-        let entry = AuditEntry(
-            id: commandId,
-            timestamp: startTime,
-            commandType: String(describing: type(of: command)),
-            userId: context.metadata["authUserId"] as? String,
-            sessionId: context.metadata["sessionId"] as? String,
-            ipAddress: context.metadata["ipAddress"] as? String,
-            userAgent: context.metadata["userAgent"] as? String,
-            commandData: detailLevel.includesCommandData ? sanitizeCommand(command) : nil,
-            contextMetadata: detailLevel.includesContext ? sanitizeContext(context) : nil
-        )
+        // Extract user and session info from context
+        let metadata = await context.getMetadata()
+        let userId = metadata["authUserId"] as? String
+        let sessionId = metadata["sessionId"] as? String
         
-        // Log command start
-        await logger.log(.commandStarted(entry))
-        
-        do {
-            // Execute command
-            let result = try await next(command, context)
+        // Check if we already have a trace context
+        if AuditContext.current != nil {
+            // Already in a trace context, just execute
+            // Log command start
+            let startEvent = CommandLifecycleEvent(
+                phase: .started,
+                commandType: commandType,
+                commandId: commandId,
+                userId: userId,
+                sessionId: sessionId
+            )
+            await logger.log(startEvent)
             
-            // Log successful completion
-            let duration = Date().timeIntervalSince(startTime)
-            var completedEntry = entry
-            completedEntry.duration = duration
-            completedEntry.status = .success
-            
-            if includeResults && detailLevel.includesResults {
-                completedEntry.result = sanitizeResult(result)
+            do {
+                // Execute command
+                let result = try await next(command, context)
+                
+                // Log successful completion
+                let duration = Date().timeIntervalSince(startTime)
+                let completeEvent = CommandLifecycleEvent(
+                    phase: .completed,
+                    commandType: commandType,
+                    commandId: commandId,
+                    userId: userId,
+                    sessionId: sessionId,
+                    duration: duration
+                )
+                await logger.log(completeEvent)
+                
+                return result
+                
+            } catch {
+                // Log failure
+                let duration = Date().timeIntervalSince(startTime)
+                let failedEvent = CommandLifecycleEvent(
+                    phase: .failed,
+                    commandType: commandType,
+                    commandId: commandId,
+                    userId: userId,
+                    sessionId: sessionId,
+                    duration: duration,
+                    error: String(describing: error)
+                )
+                await logger.log(failedEvent)
+                
+                throw error
             }
+        } else {
+            // Create a new trace context
+            let traceContext = TraceContext(
+                traceId: UUID(),
+                spanId: commandId,
+                userId: userId,
+                sessionId: sessionId
+            )
             
-            await logger.log(.commandCompleted(completedEntry))
-            
-            return result
-            
-        } catch {
-            // Log failure
-            let duration = Date().timeIntervalSince(startTime)
-            var failedEntry = entry
-            failedEntry.duration = duration
-            failedEntry.status = .failure
-            failedEntry.error = sanitizeError(error)
-            
-            await logger.log(.commandFailed(failedEntry))
-            
-            throw error
-        }
-    }
-    
-    // MARK: - Private Methods
-    
-    private func sanitizeCommand<T: Command>(_ command: T) -> [String: any Sendable] {
-        // Convert command to dictionary representation
-        // In production, this would use reflection or Codable
-        var data: [String: any Sendable] = [
-            "type": String(describing: type(of: command))
-        ]
-        
-        // Add command properties if available
-        // Note: MetadataProviding protocol was removed in Core simplification
-        // Commands that need metadata should implement their own pattern
-        
-        return redactSensitiveFields(data)
-    }
-    
-    private func sanitizeContext(_ context: CommandContext) -> [String: any Sendable] {
-        var metadata: [String: any Sendable] = [:]
-        
-        // Convert from [String: any Sendable] to [String: Any]
-        for (key, value) in context.metadata {
-            metadata[key] = value
-        }
-        
-        // Remove sensitive context data if configured
-        if !includeSensitiveData {
-            for field in redactedFields {
-                metadata[field] = "[REDACTED]"
-            }
-        }
-        
-        return metadata
-    }
-    
-    private func sanitizeResult<T>(_ result: T) -> [String: any Sendable] {
-        // Convert result to safe representation
-        var data: [String: any Sendable] = [
-            "type": String(describing: type(of: result))
-        ]
-        
-        // Add result properties if available
-        // Note: MetadataProviding protocol was removed in Core simplification
-        
-        return redactSensitiveFields(data)
-    }
-    
-    private func sanitizeError(_ error: Error) -> [String: any Sendable] {
-        return [
-            "type": String(describing: type(of: error)),
-            "description": error.localizedDescription,
-            "domain": (error as NSError).domain,
-            "code": (error as NSError).code
-        ]
-    }
-    
-    private func redactSensitiveFields(_ data: [String: any Sendable]) -> [String: any Sendable] {
-        var sanitized = data
-        
-        for field in redactedFields {
-            if sanitized[field] != nil {
-                sanitized[field] = "[REDACTED]"
-            }
-        }
-        
-        return sanitized
-    }
-}
-
-// MARK: - Supporting Types
-
-/// Level of detail for audit logging.
-public enum AuditDetailLevel: Sendable {
-    /// Minimal logging (command type and outcome only)
-    case minimal
-    
-    /// Standard logging (includes user and basic metadata)
-    case standard
-    
-    /// Full logging (includes command data and context)
-    case full
-    
-    /// Custom configuration
-    case custom(includesCommandData: Bool, includesContext: Bool, includesResults: Bool)
-    
-    var includesCommandData: Bool {
-        switch self {
-        case .minimal: return false
-        case .standard: return false
-        case .full: return true
-        case .custom(let includes, _, _): return includes
-        }
-    }
-    
-    var includesContext: Bool {
-        switch self {
-        case .minimal: return false
-        case .standard: return true
-        case .full: return true
-        case .custom(_, let includes, _): return includes
-        }
-    }
-    
-    var includesResults: Bool {
-        switch self {
-        case .minimal: return false
-        case .standard: return false
-        case .full: return true
-        case .custom(_, _, let includes): return includes
-        }
-    }
-}
-
-/// An audit log entry.
-public struct AuditEntry: Sendable, Codable {
-    public let id: UUID
-    public let timestamp: Date
-    public let commandType: String
-    public let userId: String?
-    public let sessionId: String?
-    public let ipAddress: String?
-    public let userAgent: String?
-    public var duration: TimeInterval?
-    public var status: ExecutionStatus?
-    public var commandData: [String: any Sendable]?
-    public var contextMetadata: [String: any Sendable]?
-    public var result: [String: any Sendable]?
-    public var error: [String: any Sendable]?
-    
-    public enum ExecutionStatus: String, Codable, Sendable {
-        case started
-        case success
-        case failure
-    }
-    
-    // Custom Codable implementation to handle Any types
-    enum CodingKeys: String, CodingKey {
-        case id, timestamp, commandType, userId, sessionId
-        case ipAddress, userAgent, duration, status
-    }
-    
-    public init(
-        id: UUID,
-        timestamp: Date,
-        commandType: String,
-        userId: String? = nil,
-        sessionId: String? = nil,
-        ipAddress: String? = nil,
-        userAgent: String? = nil,
-        duration: TimeInterval? = nil,
-        status: ExecutionStatus? = nil,
-        commandData: [String: any Sendable]? = nil,
-        contextMetadata: [String: any Sendable]? = nil,
-        result: [String: any Sendable]? = nil,
-        error: [String: any Sendable]? = nil
-    ) {
-        self.id = id
-        self.timestamp = timestamp
-        self.commandType = commandType
-        self.userId = userId
-        self.sessionId = sessionId
-        self.ipAddress = ipAddress
-        self.userAgent = userAgent
-        self.duration = duration
-        self.status = status
-        self.commandData = commandData
-        self.contextMetadata = contextMetadata
-        self.result = result
-        self.error = error
-    }
-}
-
-// SecurityAuditEvent is defined in AuditLogger.swift
-
-/// Audit event types.
-public enum AuditEvent: Sendable {
-    case commandStarted(AuditEntry)
-    case commandCompleted(AuditEntry)
-    case commandFailed(AuditEntry)
-    case securityEvent(SecurityAuditEvent)
-}
-
-/// Default implementations for audit logger protocol.
-public extension AuditLogger {
-    // Default implementation that delegates to specific methods
-    func log(_ event: AuditEvent) async {
-        switch event {
-        case .commandStarted(let entry):
-            await logCommandStarted(entry)
-        case .commandCompleted(let entry):
-            await logCommandCompleted(entry)
-        case .commandFailed(let entry):
-            await logCommandFailed(entry)
-        case .securityEvent(let event):
-            await log(event)
-        }
-    }
-    
-    // Default no-op implementations for specific methods
-    func logCommandStarted(_ entry: AuditEntry) async {
-        // Default implementation - no-op
-    }
-    
-    func logCommandCompleted(_ entry: AuditEntry) async {
-        // Default implementation - no-op
-    }
-    
-    func logCommandFailed(_ entry: AuditEntry) async {
-        // Default implementation - no-op
-    }
-}
-
-
-// MARK: - File-based Audit Logger
-
-/// Simple file-based audit logger implementation.
-public actor FileAuditLogger: AuditLogger {
-    private let directory: URL
-    private let dateFormatter: ISO8601DateFormatter
-    
-    public init(directory: String) {
-        self.directory = URL(fileURLWithPath: directory)
-        self.dateFormatter = ISO8601DateFormatter()
-        
-        // Create directory if needed
-        try? FileManager.default.createDirectory(
-            at: self.directory,
-            withIntermediateDirectories: true
-        )
-    }
-    
-    public func log(_ event: SecurityAuditEvent) async {
-        let entry = createSecurityEntry(event)
-        await writeEntry(entry)
-    }
-    
-    public func logCommandStarted(_ entry: AuditEntry) async {
-        await writeEntry(entry)
-    }
-    
-    public func logCommandCompleted(_ entry: AuditEntry) async {
-        await writeEntry(entry)
-    }
-    
-    public func logCommandFailed(_ entry: AuditEntry) async {
-        await writeEntry(entry)
-    }
-    
-    private func writeEntry(_ entry: AuditEntry) async {
-        let filename = "\(dateFormatter.string(from: Date())).audit.ndjson"
-        let fileURL = directory.appendingPathComponent(filename)
-        
-        do {
-            let encoder = JSONEncoder()
-            encoder.dateEncodingStrategy = .iso8601
-            // For ND-JSON, we want compact single-line JSON
-            encoder.outputFormatting = [.sortedKeys]
-            
-            var data = try encoder.encode(entry)
-            // Add newline for ND-JSON format
-            data.append("\n".data(using: .utf8)!)
-            
-            if FileManager.default.fileExists(atPath: fileURL.path) {
-                // Append to existing file with proper error handling
-                let fileHandle = try FileHandle(forWritingTo: fileURL)
-                defer { 
-                    // Ensure file handle is always closed
-                    do {
-                        try fileHandle.close()
-                    } catch {
-                        // Log close error but don't propagate
-                        FileHandle.standardError.write("Failed to close audit log file: \(error)\n".data(using: .utf8)!)
-                    }
+            // Execute within the new trace context
+            return try await AuditContext.withValue(traceContext) {
+                // Log command start
+                let startEvent = CommandLifecycleEvent(
+                    phase: .started,
+                    commandType: commandType,
+                    commandId: commandId,
+                    userId: userId,
+                    sessionId: sessionId
+                )
+                await logger.log(startEvent)
+                
+                do {
+                    // Execute command
+                    let result = try await next(command, context)
+                    
+                    // Log successful completion
+                    let duration = Date().timeIntervalSince(startTime)
+                    let completeEvent = CommandLifecycleEvent(
+                        phase: .completed,
+                        commandType: commandType,
+                        commandId: commandId,
+                        userId: userId,
+                        sessionId: sessionId,
+                        duration: duration
+                    )
+                    await logger.log(completeEvent)
+                    
+                    return result
+                    
+                } catch {
+                    // Log failure
+                    let duration = Date().timeIntervalSince(startTime)
+                    let failedEvent = CommandLifecycleEvent(
+                        phase: .failed,
+                        commandType: commandType,
+                        commandId: commandId,
+                        userId: userId,
+                        sessionId: sessionId,
+                        duration: duration,
+                        error: String(describing: error)
+                    )
+                    await logger.log(failedEvent)
+                    
+                    throw error
                 }
-                try fileHandle.seekToEnd()
-                fileHandle.write(data)
-            } else {
-                // Create new file
-                try data.write(to: fileURL)
             }
-        } catch {
-            // Log to stderr as fallback
-            FileHandle.standardError.write("Audit logging failed: \(error)\n".data(using: .utf8)!)
         }
     }
-    
-    private func createSecurityEntry(_ event: SecurityAuditEvent) -> AuditEntry {
-        AuditEntry(
-            id: UUID(),
-            timestamp: Date(),
-            commandType: "SecurityEvent",
-            commandData: ["event": String(describing: event)]
-        )
-    }
 }
-
-// FileHandle extensions moved to avoid global state issues

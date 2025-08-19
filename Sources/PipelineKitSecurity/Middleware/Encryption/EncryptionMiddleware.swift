@@ -108,8 +108,8 @@ public struct EncryptionMiddleware: Middleware {
         guard let encryptable = command as? any EncryptableCommand else {
             // If not encryptable but we have sensitive fields configured, log warning
             if !sensitiveFields.isEmpty || encryptFullPayload {
-                context.metadata["encryption.skipped"] = true
-                context.metadata["encryption.reason"] = "Command does not support encryption"
+                await context.setMetadata("encryption.skipped", value: true)
+                await context.setMetadata("encryption.reason", value: "Command does not support encryption")
             }
             return command
         }
@@ -142,8 +142,8 @@ public struct EncryptionMiddleware: Middleware {
                 encryptedFields[fieldPath] = encrypted
             } catch {
                 // Log encryption failure and re-throw
-                context.metadata["encryption.failed"] = true
-                context.metadata["encryption.error"] = error.localizedDescription
+                await context.setMetadata("encryption.failed", value: true)
+                await context.setMetadata("encryption.error", value: error.localizedDescription)
                 throw EncryptionError.encryptionFailed("Failed to encrypt field \(fieldPath): \(error)")
             }
         }
@@ -152,15 +152,19 @@ public struct EncryptionMiddleware: Middleware {
         let encryptedCommand = encryptable.withEncryptedData(encryptedFields)
         
         // Mark encryption in context
-        context.metadata["encryption.applied"] = true
-        context.metadata["encryption.timestamp"] = Date()
-        context.metadata["encryption.fieldCount"] = encryptedFields.count
+        await context.setMetadata("encryption.applied", value: true)
+        await context.setMetadata("encryption.timestamp", value: Date())
+        await context.setMetadata("encryption.fieldCount", value: encryptedFields.count)
         
         // Log encryption for audit
-        if let auditLogger = context.metadata["auditLogger"] as? AuditLogger {
-            await auditLogger.log(.encryption(
-                commandType: String(describing: type(of: command)),
-                fieldsEncrypted: Array(encryptedFields.keys)
+        let metadata = await context.getMetadata()
+        if let auditLogger = metadata["auditLogger"] as? AuditLogger {
+            await auditLogger.log(SecurityAuditEvent(
+                action: .encryption,
+                resource: String(describing: type(of: command)),
+                details: [
+                    "fieldsEncrypted": Array(encryptedFields.keys) as any Sendable
+                ]
             ))
         }
         
@@ -185,8 +189,8 @@ public struct EncryptionMiddleware: Middleware {
                 decryptedFields[fieldPath] = decrypted
             } catch {
                 // Log decryption failure
-                context.metadata["decryption.failed"] = true
-                context.metadata["decryption.error"] = error.localizedDescription
+                await context.setMetadata("decryption.failed", value: true)
+                await context.setMetadata("decryption.error", value: error.localizedDescription)
                 
                 // Depending on configuration, we might want to fail or continue
                 if !allowPartialDecryption {
@@ -199,14 +203,18 @@ public struct EncryptionMiddleware: Middleware {
         let decryptedResult = decryptable.withDecryptedData(decryptedFields)
         
         // Mark decryption in context
-        context.metadata["encryption.decrypted"] = true
-        context.metadata["decryption.fieldCount"] = decryptedFields.count
+        await context.setMetadata("encryption.decrypted", value: true)
+        await context.setMetadata("decryption.fieldCount", value: decryptedFields.count)
         
         // Log decryption for audit
-        if let auditLogger = context.metadata["auditLogger"] as? AuditLogger {
-            await auditLogger.log(.decryption(
-                commandType: String(describing: type(of: result)),
-                fieldsDecrypted: Array(decryptedFields.keys)
+        let contextMetadata = await context.getMetadata()
+        if let auditLogger = contextMetadata["auditLogger"] as? AuditLogger {
+            await auditLogger.log(SecurityAuditEvent(
+                action: .decryption,
+                resource: String(describing: type(of: result)),
+                details: [
+                    "fieldsDecrypted": Array(decryptedFields.keys) as any Sendable
+                ]
             ))
         }
         

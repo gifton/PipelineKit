@@ -139,7 +139,7 @@ public struct PartitionedBulkheadMiddleware: Middleware {
             : configuration.defaultPartition
 
         // Store partition info in context
-        context.metadata["bulkheadPartition"] = effectiveKey
+        await context.setMetadata("bulkheadPartition", value: effectiveKey)
 
         // Try to acquire resources from partition
         let acquisition = try await partitionManager.acquire(
@@ -267,13 +267,13 @@ public struct PartitionedBulkheadMiddleware: Middleware {
         let duration = Date().timeIntervalSince(metrics.startTime)
         _ = await partitionManager.getStats(for: metrics.partitionKey)
 
-        context.metrics["bulkhead.partition"] = metrics.partitionKey
-        context.metrics["bulkhead.duration"] = duration
-        context.metrics["bulkhead.wasBorrowed"] = metrics.wasBorrowed
-        context.metrics["bulkhead.wasQueued"] = metrics.wasQueued
+        await context.setMetadata("bulkhead.partition", value: metrics.partitionKey)
+        await context.setMetadata("bulkhead.duration", value: duration)
+        await context.setMetadata("bulkhead.wasBorrowed", value: metrics.wasBorrowed)
+        await context.setMetadata("bulkhead.wasQueued", value: metrics.wasQueued)
 
         if let queueTime = metrics.queueTime {
-            context.metrics["bulkhead.queueTime"] = queueTime
+            await context.setMetadata("bulkhead.queueTime", value: queueTime)
         }
 
         // TODO: Re-enable when PipelineEvent is available

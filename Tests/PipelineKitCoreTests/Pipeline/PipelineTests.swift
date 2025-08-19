@@ -174,7 +174,7 @@ final class PipelineTests: XCTestCase {
                 context: CommandContext,
                 next: @Sendable (T, CommandContext) async throws -> T.Result
             ) async throws -> T.Result {
-                context.metadata["test_context_key"] = value
+                await context.setMetadata("test_context_key", value: value)
                 return try await next(command, context)
             }
         }
@@ -188,7 +188,8 @@ final class PipelineTests: XCTestCase {
                 context: CommandContext,
                 next: @Sendable (T, CommandContext) async throws -> T.Result
             ) async throws -> T.Result {
-                let value: String? = (context.metadata["test_context_key"] as? String)
+                let metadata = await context.getMetadata()
+                let value: String? = (metadata["test_context_key"] as? String)
                 if value != expectedValue {
                     throw TestError.validationFailed
                 }
@@ -211,7 +212,8 @@ final class PipelineTests: XCTestCase {
         XCTAssertEqual(result, "CONTEXT-TEST")
         
         // Verify context still has the value after execution
-        let finalValue: String? = (context.metadata["test_context_key"] as? String)
+        let metadata = await context.getMetadata()
+        let finalValue: String? = (metadata["test_context_key"] as? String)
         XCTAssertEqual(finalValue, "test-value")
     }
 }
