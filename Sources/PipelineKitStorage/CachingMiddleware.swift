@@ -78,7 +78,7 @@ public final class CachingMiddleware: Middleware, @unchecked Sendable {
     public func execute<T: Command>(
         _ command: T,
         context: CommandContext,
-        next: @Sendable (T, CommandContext) async throws -> T.Result
+        next: @escaping @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
         // Check if we should cache this command
         guard shouldCache(command) else {

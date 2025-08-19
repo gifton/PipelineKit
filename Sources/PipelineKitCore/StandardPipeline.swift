@@ -1,4 +1,8 @@
 import Foundation
+import os
+
+// Logger for pipeline warnings
+private let logger = Logger(subsystem: "PipelineKit", category: "Core")
 
 // Helper command for error cases
 private struct DummyCommand: Command {
@@ -50,8 +54,10 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: Pipeline where H.C
     /// Maximum allowed middleware depth to prevent infinite recursion.
     private let maxDepth: Int
     
-    /// Optional back-pressure semaphore for concurrency control.
-    private let semaphore: BackPressureAsyncSemaphore?
+    /// Optional semaphore for concurrency control.
+    /// Uses SimpleSemaphore by default. For advanced features, use
+    /// BackPressureAsyncSemaphore from PipelineKitResilience.
+    private let semaphore: SimpleSemaphore?
     
     // Optimization removed - direct middleware execution is sufficient
     
@@ -90,11 +96,7 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: Pipeline where H.C
         self.handler = handler
         self.useContext = useContext
         self.maxDepth = maxDepth
-        self.semaphore = BackPressureAsyncSemaphore(
-            maxConcurrency: maxConcurrency,
-            maxOutstanding: nil,
-            strategy: .suspend
-        )
+        self.semaphore = SimpleSemaphore(permits: maxConcurrency)
     }
     
     /// Creates a new pipeline with full back-pressure control.
@@ -115,12 +117,14 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: Pipeline where H.C
         self.maxDepth = maxDepth
         
         if let maxConcurrency = options.maxConcurrency {
-            self.semaphore = BackPressureAsyncSemaphore(
-                maxConcurrency: maxConcurrency,
-                maxOutstanding: options.maxOutstanding,
-                maxQueueMemory: options.maxQueueMemory,
-                strategy: options.backPressureStrategy
-            )
+            // Log warning if advanced options are provided
+            if options.maxQueueMemory != nil || options.maxOutstanding != nil {
+                logger.warning("SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features.")
+            }
+            if options.backPressureStrategy != .suspend {
+                logger.warning("SimpleSemaphore only supports suspend strategy. Use BackPressureAsyncSemaphore from PipelineKitResilience for other strategies.")
+            }
+            self.semaphore = SimpleSemaphore(permits: maxConcurrency)
         } else {
             self.semaphore = nil
         }
@@ -216,7 +220,7 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: Pipeline where H.C
         // Apply back-pressure control if configured
         let token: SemaphoreToken?
         if let semaphore = semaphore {
-            token = try await semaphore.acquire()
+            token = await semaphore.acquire()
         } else {
             token = nil
         }
@@ -292,8 +296,20 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: Pipeline where H.C
         for m in middleware.reversed() {
             let currentMiddleware = m
             let previousNext = next
-            next = { cmd, ctx in
-                try await currentMiddleware.execute(cmd, context: ctx, next: previousNext)
+            
+            // Apply NextGuard unless middleware opts out
+            let wrappedNext: @Sendable (C, CommandContext) async throws -> C.Result
+            if currentMiddleware is UnsafeMiddleware {
+                // Skip NextGuard for unsafe middleware
+                wrappedNext = previousNext
+            } else {
+                // Wrap with NextGuard for safety
+                let nextGuard = NextGuard<C>(previousNext, identifier: String(describing: type(of: currentMiddleware)))
+                wrappedNext = nextGuard.callAsFunction
+            }
+            
+            next = { (cmd: C, ctx: CommandContext) in
+                try await currentMiddleware.execute(cmd, context: ctx, next: wrappedNext)
             }
         }
         
@@ -311,7 +327,7 @@ public actor AnyStandardPipeline: Pipeline {
     private var middlewares: [any Middleware] = []
     private let executeHandler: @Sendable (Any, CommandContext) async throws -> Any
     private let maxDepth: Int
-    private let semaphore: BackPressureAsyncSemaphore?
+    private let semaphore: SimpleSemaphore?
     
     /// Creates a type-erased pipeline from a specific handler.
     public init<T: Command, H: CommandHandler>(
@@ -328,12 +344,14 @@ public actor AnyStandardPipeline: Pipeline {
         self.maxDepth = maxDepth
         
         if let maxConcurrency = options.maxConcurrency {
-            self.semaphore = BackPressureAsyncSemaphore(
-                maxConcurrency: maxConcurrency,
-                maxOutstanding: options.maxOutstanding,
-                maxQueueMemory: options.maxQueueMemory,
-                strategy: options.backPressureStrategy
-            )
+            // AnyStandardPipeline uses SimpleSemaphore
+            if options.maxQueueMemory != nil || options.maxOutstanding != nil {
+                logger.warning("SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features.")
+            }
+            if options.backPressureStrategy != .suspend {
+                logger.warning("SimpleSemaphore only supports suspend strategy. Use BackPressureAsyncSemaphore from PipelineKitResilience for other strategies.")
+            }
+            self.semaphore = SimpleSemaphore(permits: maxConcurrency)
         } else {
             self.semaphore = nil
         }
@@ -355,7 +373,7 @@ public actor AnyStandardPipeline: Pipeline {
         
         // Apply back-pressure if configured
         let token = if let semaphore = semaphore {
-            try await semaphore.acquire()
+            await semaphore.acquire()
         } else {
             nil as SemaphoreToken?
         }
@@ -382,11 +400,23 @@ public actor AnyStandardPipeline: Pipeline {
         var chain = finalHandler
         for i in stride(from: middlewares.count - 1, through: 0, by: -1) {
             let middleware = middlewares[i]
-            let next = chain
-            chain = { cmd, ctx in
+            let previousNext = chain
+            
+            // Apply NextGuard unless middleware opts out
+            let wrappedNext: @Sendable (T, CommandContext) async throws -> T.Result
+            if middleware is UnsafeMiddleware {
+                // Skip NextGuard for unsafe middleware
+                wrappedNext = previousNext
+            } else {
+                // Wrap with NextGuard for safety
+                let nextGuard = NextGuard<T>(previousNext, identifier: String(describing: type(of: middleware)))
+                wrappedNext = nextGuard.callAsFunction
+            }
+            
+            chain = { (cmd: T, ctx: CommandContext) in
                 // Check for cancellation before each middleware
                 try Task.checkCancellation(context: "Pipeline execution cancelled at middleware: \(String(describing: type(of: middleware)))")
-                return try await middleware.execute(cmd, context: ctx, next: next)
+                return try await middleware.execute(cmd, context: ctx, next: wrappedNext)
             }
         }
         

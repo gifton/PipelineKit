@@ -35,7 +35,7 @@ public struct CachedMiddleware<M: Middleware>: Middleware where M: Sendable {
     public func execute<T: Command>(
         _ command: T,
         context: CommandContext,
-        next: @Sendable (T, CommandContext) async throws -> T.Result
+        next: @escaping @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
         // Generate cache key
         let key = keyGenerator.generateKey(
@@ -244,7 +244,7 @@ public struct ConditionalCachedMiddleware<M: Middleware>: Middleware where M: Se
     public func execute<T: Command>(
         _ command: T,
         context: CommandContext,
-        next: @Sendable (T, CommandContext) async throws -> T.Result
+        next: @escaping @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
         // Check if we should cache this command
         let shouldCacheResult = await shouldCache(command, context)

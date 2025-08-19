@@ -167,10 +167,21 @@ public actor DynamicPipeline {
         }
 
         let chain = sortedMiddleware.reversed().reduce(finalHandler) { next, middleware in
-            return { cmd, ctx in
+            // Apply NextGuard unless middleware opts out
+            let wrappedNext: @Sendable (T, CommandContext) async throws -> T.Result
+            if middleware is UnsafeMiddleware {
+                // Skip NextGuard for unsafe middleware
+                wrappedNext = next
+            } else {
+                // Wrap with NextGuard for safety
+                let nextGuard = NextGuard<T>(next, identifier: String(describing: type(of: middleware)))
+                wrappedNext = nextGuard.callAsFunction
+            }
+            
+            return { (cmd: T, ctx: CommandContext) in
                 // Check for cancellation before each middleware
                 try Task.checkCancellation(context: "DynamicPipeline execution cancelled at middleware: \(String(describing: type(of: middleware)))")
-                return try await middleware.execute(cmd, context: ctx, next: next)
+                return try await middleware.execute(cmd, context: ctx, next: wrappedNext)
             }
         }
 
@@ -193,7 +204,7 @@ public actor DynamicPipeline {
                 return result
             } catch {
                 // If the error is a cancellation, propagate it immediately without retry
-                if error is CancellationError {
+                if error is CancellationError || (error as? PipelineError)?.isCancellation == true {
                     throw error
                 }
                 

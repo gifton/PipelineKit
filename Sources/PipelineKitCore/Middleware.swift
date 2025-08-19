@@ -88,7 +88,7 @@ public protocol Middleware: Sendable {
     func execute<T: Command>(
         _ command: T,
         context: CommandContext,
-        next: @Sendable (T, CommandContext) async throws -> T.Result
+        next: @escaping @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result
 }
 
@@ -98,4 +98,57 @@ public extension Middleware {
     ///
     /// - Note: Custom middleware should explicitly set priority when order matters.
     var priority: ExecutionPriority { .custom }
+}
+
+/// A marker protocol for middleware that opt out of automatic NextGuard safety.
+///
+/// ## WARNING: Use at Your Own Risk
+///
+/// Conforming to this protocol disables the automatic NextGuard wrapper that ensures
+/// `next` is called exactly once. You become fully responsible for:
+/// - Ensuring `next` is called exactly once (unless explicitly short-circuiting)
+/// - Managing the lifecycle of the `next` closure if stored
+/// - Preventing memory leaks from retain cycles
+/// - Avoiding duplicated side effects from multiple calls
+///
+/// ## When to Use
+///
+/// Only conform to `UnsafeMiddleware` when you need to:
+/// - Implement custom retry/replay logic
+/// - Build performance-critical middleware with guaranteed single execution
+/// - Create testing/debugging middleware that intentionally calls next multiple times
+/// - Provide your own safety mechanisms
+///
+/// ## Example
+///
+/// ```swift
+/// struct CustomRetryMiddleware: Middleware, UnsafeMiddleware {
+///     func execute<T: Command>(
+///         _ command: T,
+///         context: CommandContext,
+///         next: @escaping @Sendable (T, CommandContext) async throws -> T.Result
+///     ) async throws -> T.Result {
+///         // Custom logic that might call next multiple times
+///         var lastError: Error?
+///         for attempt in 1...3 {
+///             do {
+///                 return try await next(command, context)
+///             } catch {
+///                 lastError = error
+///                 if attempt < 3 {
+///                     try await Task.sleep(nanoseconds: UInt64(attempt) * 1_000_000_000)
+///                 }
+///             }
+///         }
+///         throw lastError ?? PipelineError.retryExhausted(attempts: 3, lastError: nil)
+///     }
+/// }
+/// ```
+///
+/// - Warning: Violations of the exactly-once guarantee can corrupt the pipeline state,
+///   cause memory leaks, undefined behavior, or duplicated side effects.
+///
+/// - SeeAlso: `Middleware`, `NextGuard`
+public protocol UnsafeMiddleware: Middleware {
+    // Marker protocol - no additional requirements
 }

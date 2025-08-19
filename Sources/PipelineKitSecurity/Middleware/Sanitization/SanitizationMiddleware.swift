@@ -29,7 +29,7 @@ public struct SanitizationMiddleware: Middleware {
     public func execute<T: Command>(
         _ command: T,
         context: CommandContext,
-        next: @Sendable (T, CommandContext) async throws -> T.Result
+        next: @escaping @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
         // All commands now have sanitize() via extension
         // The default implementation returns self, so this is safe

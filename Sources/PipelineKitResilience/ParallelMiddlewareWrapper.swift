@@ -74,7 +74,7 @@ public struct ParallelMiddlewareWrapper: Middleware, Sendable {
     public func execute<T: Command>(
         _ command: T,
         context: CommandContext,
-        next: @Sendable (T, CommandContext) async throws -> T.Result
+        next: @escaping @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
         // If no middleware, just call next
         guard !middlewares.isEmpty else {

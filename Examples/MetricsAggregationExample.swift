@@ -1,5 +1,5 @@
 import Foundation
-import PipelineKitMetrics
+import PipelineKitObservability
 
 /// Demonstrates metric aggregation to reduce network traffic.
 @main

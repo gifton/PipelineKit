@@ -19,73 +19,179 @@ import PipelineKitCore
 /// ```
 public struct CircuitBreakerMiddleware: Middleware {
     public let priority: ExecutionPriority = .resilience
-
-    // MARK: - State
-
-    /// The state of the circuit breaker
-    public enum State: String, Sendable {
-        case closed = "closed"
-        case open = "open"
-        case halfOpen = "half_open"
+    
+    // MARK: - Internal State Actor
+    
+    /// Thread-safe state management for the circuit breaker
+    private actor State {
+        enum CircuitState {
+            case closed
+            case open(until: Date)
+            case halfOpen
+        }
+        
+        private var state: CircuitState = .closed
+        private var failureCount: Int = 0
+        private var halfOpenSuccessCount: Int = 0
+        private var lastFailureTime: Date?
+        private var probeInProgress: Bool = false
+        private let configuration: Configuration
+        
+        init(configuration: Configuration) {
+            self.configuration = configuration
+        }
+        
+        /// Check if a request should be allowed
+        func allowRequest() -> Bool {
+            switch state {
+            case .closed:
+                // Reset failure count if enough time has passed
+                if let lastFailure = lastFailureTime,
+                   Date().timeIntervalSince(lastFailure) >= configuration.resetTimeout {
+                    failureCount = 0
+                    lastFailureTime = nil
+                }
+                return true
+                
+            case .open(let until):
+                if Date() >= until {
+                    // Transition to half-open
+                    state = .halfOpen
+                    halfOpenSuccessCount = 0
+                    probeInProgress = true
+                    return true
+                }
+                return false
+                
+            case .halfOpen:
+                // Only allow one probe request at a time
+                guard !probeInProgress else { return false }
+                probeInProgress = true
+                return true
+            }
+        }
+        
+        /// Record a successful request
+        func recordSuccess() {
+            switch state {
+            case .closed:
+                failureCount = 0
+                lastFailureTime = nil
+                
+            case .open:
+                // Shouldn't happen as requests are blocked when open
+                break
+                
+            case .halfOpen:
+                halfOpenSuccessCount += 1
+                probeInProgress = false
+                
+                if halfOpenSuccessCount >= configuration.halfOpenSuccessThreshold {
+                    // Transition to closed
+                    state = .closed
+                    failureCount = 0
+                    halfOpenSuccessCount = 0
+                    lastFailureTime = nil
+                }
+            }
+        }
+        
+        /// Record a failed request
+        func recordFailure() {
+            let now = Date()
+            
+            switch state {
+            case .closed:
+                // Reset count if timeout expired
+                if let lastFailure = lastFailureTime,
+                   now.timeIntervalSince(lastFailure) >= configuration.resetTimeout {
+                    failureCount = 0
+                }
+                
+                lastFailureTime = now
+                failureCount += 1
+                
+                if failureCount >= configuration.failureThreshold {
+                    state = .open(until: now.addingTimeInterval(configuration.recoveryTimeout))
+                }
+                
+            case .open:
+                // Update the timeout
+                state = .open(until: now.addingTimeInterval(configuration.recoveryTimeout))
+                
+            case .halfOpen:
+                // Single failure in half-open reopens the circuit
+                state = .open(until: now.addingTimeInterval(configuration.recoveryTimeout))
+                halfOpenSuccessCount = 0
+                probeInProgress = false
+            }
+        }
+        
+        /// Get current state for monitoring
+        func getCurrentState() -> String {
+            switch state {
+            case .closed: return "closed"
+            case .open: return "open"
+            case .halfOpen: return "half_open"
+            }
+        }
     }
-
+    
     // MARK: - Configuration
-
+    
     public struct Configuration: Sendable {
         /// Number of consecutive failures before opening the circuit
         public let failureThreshold: Int
-
+        
         /// Time to wait before attempting to close the circuit (seconds)
         public let recoveryTimeout: TimeInterval
-
+        
+        /// Time before resetting failure count in closed state
+        public let resetTimeout: TimeInterval
+        
         /// Number of successful requests in half-open state before closing
         public let halfOpenSuccessThreshold: Int
-
+        
         /// Types of errors that should trigger the circuit breaker
         public let triggeredByErrors: Set<CircuitBreakerError.ErrorType>
-
+        
         /// Whether to emit observability events
         public let emitEvents: Bool
-
+        
         /// Custom error evaluator
         public let errorEvaluator: (@Sendable (Error) -> Bool)?
-
+        
         public init(
             failureThreshold: Int = 5,
             recoveryTimeout: TimeInterval = 30.0,
+            resetTimeout: TimeInterval = 60.0,
             halfOpenSuccessThreshold: Int = 3,
-            triggeredByErrors: Set<CircuitBreakerError.ErrorType> = [.timeout, .networkError, .serverError],
+            triggeredByErrors: Set<CircuitBreakerError.ErrorType> = [.timeout, .networkError, .serverError, .unknown],
             emitEvents: Bool = true,
             errorEvaluator: (@Sendable (Error) -> Bool)? = nil
         ) {
-            self.failureThreshold = failureThreshold
-            self.recoveryTimeout = recoveryTimeout
-            self.halfOpenSuccessThreshold = halfOpenSuccessThreshold
+            self.failureThreshold = max(1, failureThreshold)
+            self.recoveryTimeout = max(0.1, recoveryTimeout)
+            self.resetTimeout = max(recoveryTimeout, resetTimeout)
+            self.halfOpenSuccessThreshold = max(1, halfOpenSuccessThreshold)
             self.triggeredByErrors = triggeredByErrors
             self.emitEvents = emitEvents
             self.errorEvaluator = errorEvaluator
         }
     }
-
+    
     // MARK: - Properties
-
+    
     private let configuration: Configuration
-    private let circuitBreaker: CircuitBreaker
-
+    private let state: State
+    
     // MARK: - Initialization
-
+    
     public init(configuration: Configuration = Configuration()) {
         self.configuration = configuration
-        self.circuitBreaker = CircuitBreaker(
-            configuration: (try? CircuitBreaker.Configuration(
-                failureThreshold: configuration.failureThreshold,
-                successThreshold: configuration.halfOpenSuccessThreshold,
-                timeout: configuration.recoveryTimeout,
-                resetTimeout: configuration.recoveryTimeout * 2 // Use 2x recovery timeout for reset
-            )) ?? CircuitBreaker.Configuration.default
-        )
+        self.state = State(configuration: configuration)
     }
-
+    
     public init(
         failureThreshold: Int = 5,
         recoveryTimeout: TimeInterval = 30.0,
@@ -99,81 +205,61 @@ public struct CircuitBreakerMiddleware: Middleware {
             )
         )
     }
-
+    
     // MARK: - Middleware Implementation
-
+    
     public func execute<T: Command>(
         _ command: T,
         context: CommandContext,
-        next: @Sendable (T, CommandContext) async throws -> T.Result
+        next: @escaping @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
         let commandType = String(describing: type(of: command))
-
+        
         // Check if request is allowed
-        guard await circuitBreaker.allowRequest() else {
+        guard await state.allowRequest() else {
             // Circuit is open - fail fast
-            await emitCircuitOpen(commandType: commandType, context: context)
-            throw CircuitBreakerError.circuitOpen
+            throw PipelineError.middlewareError(
+                middleware: "CircuitBreakerMiddleware",
+                message: "Circuit breaker is open - request rejected",
+                context: PipelineError.ErrorContext(
+                    commandType: commandType,
+                    middlewareType: "CircuitBreakerMiddleware",
+                    additionalInfo: ["state": "open"]
+                )
+            )
         }
-
-        // Get current state for monitoring
-        let previousState = mapCoreStateToMiddlewareState(await circuitBreaker.getState())
-
+        
         do {
             // Execute the command
             let result = try await next(command, context)
-
+            
             // Record success
-            await circuitBreaker.recordSuccess()
-
-            // Check if state changed
-            let newState = mapCoreStateToMiddlewareState(await circuitBreaker.getState())
-            if previousState != newState {
-                await emitStateChange(commandType: commandType, oldState: previousState, newState: newState, context: context)
-            }
-
+            await state.recordSuccess()
+            
             return result
         } catch {
             // Check if error should trigger circuit breaker
             if shouldTriggerCircuit(for: error) {
-                await circuitBreaker.recordFailure()
-
-                // Check if state changed
-                let coreState = await circuitBreaker.getState()
-                let newState = mapCoreStateToMiddlewareState(coreState)
-                if previousState != newState {
-                    await emitStateChange(commandType: commandType, oldState: previousState, newState: newState, context: context)
-                }
+                await state.recordFailure()
             }
-
+            
             throw error
         }
     }
-
+    
     // MARK: - Private Methods
-
-    private func mapCoreStateToMiddlewareState(_ coreState: CircuitBreaker.State) -> State {
-        switch coreState {
-        case .closed:
-            return .closed
-        case .open:
-            return .open
-        case .halfOpen:
-            return .halfOpen
-        }
-    }
-
+    
     private func shouldTriggerCircuit(for error: Error) -> Bool {
         // Check custom evaluator first
         if let evaluator = configuration.errorEvaluator {
             return evaluator(error)
         }
-
+        
         // Check standard error types
         if let circuitError = error as? CircuitBreakerError {
             return configuration.triggeredByErrors.contains(circuitError.errorType)
         }
-
+        
         // Map common errors to circuit breaker error types
         switch error {
         case is CancellationError:
@@ -185,10 +271,11 @@ public struct CircuitBreakerMiddleware: Middleware {
             if error.localizedDescription.lowercased().contains("timeout") {
                 return configuration.triggeredByErrors.contains(.timeout)
             }
+            // For any unknown error, check if .unknown is in triggered errors
             return configuration.triggeredByErrors.contains(.unknown)
         }
     }
-
+    
     private func shouldTriggerForURLError(_ error: URLError) -> Bool {
         switch error.code {
         case .timedOut:
@@ -201,67 +288,27 @@ public struct CircuitBreakerMiddleware: Middleware {
             return configuration.triggeredByErrors.contains(.networkError)
         }
     }
-
-    // MARK: - Observability Events
-
-    private func emitStateChange(
-        commandType: String,
-        oldState: State,
-        newState: State,
-        context: CommandContext
-    ) async {
-        guard configuration.emitEvents else { return }
-
-        // TODO: Re-enable when PipelineEvent is available
-
-
-        // context.emitMiddlewareEvent(
-            // "middleware.circuit_breaker_state_changed",
-            // middleware: "CircuitBreakerMiddleware",
-            // properties: [
-                // "commandType": commandType,
-                // "oldState": String(describing: oldState),
-                // "newState": String(describing: newState)
-            // ]
-        // )
-    }
-
-    private func emitCircuitOpen(commandType: String, context: CommandContext) async {
-        guard configuration.emitEvents else { return }
-
-        // TODO: Re-enable when PipelineEvent is available
-
-
-        // context.emitMiddlewareEvent(
-            // PipelineEvent.Name.middlewareCircuitOpen,
-            // middleware: "CircuitBreakerMiddleware",
-            // properties: [
-                // "commandType": commandType
-            // ]
-        // )
-    }
 }
-
 
 // MARK: - Circuit Breaker Errors
 
 /// Errors specific to circuit breaker functionality
 public struct CircuitBreakerError: Error, LocalizedError {
-    public enum ErrorType: String, Sendable {
+    public enum ErrorType: String, Sendable, CaseIterable {
         case timeout
         case networkError
         case serverError
         case unknown
     }
-
+    
     public let errorType: ErrorType
     public let message: String
-
+    
     public static let circuitOpen = CircuitBreakerError(
         errorType: .unknown,
         message: "Circuit breaker is open - request rejected"
     )
-
+    
     public var errorDescription: String? {
         return message
     }
@@ -277,11 +324,11 @@ public extension CircuitBreakerMiddleware {
                 failureThreshold: 5,
                 recoveryTimeout: 30.0,
                 halfOpenSuccessThreshold: 3,
-                triggeredByErrors: [.timeout, .networkError, .serverError]
+                triggeredByErrors: [.timeout, .networkError, .serverError, .unknown]
             )
         )
     }
-
+    
     /// Creates a circuit breaker optimized for database operations
     static func forDatabaseOperations() -> CircuitBreakerMiddleware {
         CircuitBreakerMiddleware(
@@ -289,11 +336,11 @@ public extension CircuitBreakerMiddleware {
                 failureThreshold: 3,
                 recoveryTimeout: 60.0,
                 halfOpenSuccessThreshold: 2,
-                triggeredByErrors: [.timeout, .serverError]
+                triggeredByErrors: [.timeout, .serverError, .unknown]
             )
         )
     }
-
+    
     /// Creates a circuit breaker with aggressive settings for critical services
     static func aggressive() -> CircuitBreakerMiddleware {
         CircuitBreakerMiddleware(

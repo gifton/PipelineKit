@@ -42,9 +42,15 @@ final class BulkheadMiddlewareTests: XCTestCase {
     // MARK: - Tests
 
     func testConcurrencyLimiting() async throws {
-        // Given
+        // Given - Need to enable queueing for all commands to succeed
         let maxConcurrency = 2
-        let middleware = BulkheadMiddleware(maxConcurrency: maxConcurrency)
+        let middleware = BulkheadMiddleware(
+            configuration: BulkheadMiddleware.Configuration(
+                maxConcurrency: maxConcurrency,
+                maxQueueSize: 2,  // Allow 2 commands to queue
+                rejectionPolicy: .queue
+            )
+        )
 
         let commandDuration: TimeInterval = 0.1
         let commands = (0..<4).map { SlowCommand(id: $0, duration: commandDuration) }
@@ -302,6 +308,7 @@ final class BulkheadMiddlewareTests: XCTestCase {
             configuration: BulkheadMiddleware.Configuration(
                 maxConcurrency: 2,
                 maxQueueSize: 1,
+                rejectionPolicy: .queue,  // Need queue policy for proper metrics
                 emitMetrics: true
             )
         )
@@ -312,6 +319,9 @@ final class BulkheadMiddlewareTests: XCTestCase {
         _ = try await middleware.execute(FastCommand(id: 1), context: context) { cmd, _ in
             try await cmd.execute()
         }
+
+        // Give time for metrics to be emitted
+        try await Task.sleep(nanoseconds: 10_000_000) // 10ms
 
         // Then - check metrics
         XCTAssertNotNil(context.metrics["bulkhead.duration"])
@@ -380,7 +390,8 @@ final class BulkheadMiddlewareTests: XCTestCase {
         let middleware = BulkheadMiddleware(
             configuration: BulkheadMiddleware.Configuration(
                 maxConcurrency: 10,
-                maxQueueSize: 20
+                maxQueueSize: 90,  // Need to queue up to 90 commands for 100 total
+                rejectionPolicy: .queue
             )
         )
 

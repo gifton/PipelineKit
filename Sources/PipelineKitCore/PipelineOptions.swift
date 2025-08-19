@@ -101,7 +101,7 @@ public struct PipelineOptions: Sendable {
 
 /// Strategies for handling back-pressure when pipeline capacity is exceeded.
 @frozen
-public enum BackPressureStrategy: Sendable {
+public enum BackPressureStrategy: Sendable, Equatable {
     /// Suspend the producer until capacity becomes available.
     /// This provides flow control by naturally slowing down producers.
     case suspend

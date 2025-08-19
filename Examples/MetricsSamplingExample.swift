@@ -1,5 +1,5 @@
 import Foundation
-import PipelineKitMetrics
+import PipelineKitObservability
 
 /// Example demonstrating metric sampling for high-volume scenarios
 @main

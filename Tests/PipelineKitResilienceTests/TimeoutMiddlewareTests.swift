@@ -26,12 +26,12 @@ final class TimeoutMiddlewareTests: XCTestCase {
     // Slow middleware for testing timeouts
     private struct SlowMiddleware: Middleware {
         let delay: TimeInterval
-        let priority: ExecutionPriority = .custom
+        let priority: ExecutionPriority = .postProcessing  // Higher priority number than resilience
         
         func execute<T: Command>(
             _ command: T,
             context: CommandContext,
-            next: @Sendable (T, CommandContext) async throws -> T.Result
+            next: @escaping @Sendable (T, CommandContext) async throws -> T.Result
         ) async throws -> T.Result {
             try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
             return try await next(command, context)
@@ -47,8 +47,8 @@ final class TimeoutMiddlewareTests: XCTestCase {
         
         let handler = TestHandler()
         let pipeline = StandardPipeline(handler: handler)
-        try await pipeline.addMiddleware(slowMiddleware)
         try await pipeline.addMiddleware(timeoutMiddleware)
+        try await pipeline.addMiddleware(slowMiddleware)
         
         let context = CommandContext.test()
         let command = TestCommand(value: "test")
@@ -140,8 +140,8 @@ final class TimeoutMiddlewareTests: XCTestCase {
         
         let handler = TimeoutHandler()
         let pipeline = StandardPipeline(handler: handler)
-        try await pipeline.addMiddleware(slowMiddleware)
         try await pipeline.addMiddleware(timeoutMiddleware)
+        try await pipeline.addMiddleware(slowMiddleware)
         
         let context = CommandContext.test()
         let command = TimeoutCommand(value: "specific")

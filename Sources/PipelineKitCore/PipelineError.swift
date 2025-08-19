@@ -117,10 +117,27 @@ public enum PipelineError: Error, Sendable, LocalizedError {
     /// Back pressure and capacity management errors
     case backPressure(reason: BackPressureReason)
     
+    /// Command was rejected by bulkhead middleware
+    case bulkheadRejected(reason: String)
+    
+    /// Command timed out in bulkhead queue
+    case bulkheadTimeout(timeout: TimeInterval, queueTime: TimeInterval)
+    
     // MARK: - Simulation
     
     /// Simulation and stress testing errors
     case simulation(reason: SimulationReason)
+    
+    // MARK: - NextGuard Safety Errors
+    
+    /// Next closure was called multiple times
+    case nextAlreadyCalled
+    
+    /// Next closure is currently executing (concurrent call attempt)
+    case nextCurrentlyExecuting
+    
+    /// Next closure was never called (debug only)
+    case nextNeverCalled
     
     // MARK: - Generic Wrapped Error
     
@@ -411,8 +428,23 @@ public enum PipelineError: Error, Sendable, LocalizedError {
         case .backPressure(let reason):
             return backPressureReasonDescription(reason)
             
+        case .bulkheadRejected(let reason):
+            return "Bulkhead rejected: \(reason)"
+            
+        case let .bulkheadTimeout(timeout, queueTime):
+            return "Bulkhead timeout after \(queueTime)s (limit: \(timeout)s)"
+            
         case .simulation(let reason):
             return simulationReasonDescription(reason)
+            
+        case .nextAlreadyCalled:
+            return "Middleware next() closure was called multiple times (must be called exactly once)"
+            
+        case .nextCurrentlyExecuting:
+            return "Middleware next() closure is currently executing (concurrent calls not allowed)"
+            
+        case .nextNeverCalled:
+            return "Middleware completed without calling next() closure"
             
         case let .wrapped(error, context):
             if let context = context {
@@ -711,6 +743,16 @@ public extension PipelineError {
                 return true
             }
             return false
+        default:
+            return false
+        }
+    }
+    
+    /// Whether this error represents a cancellation
+    var isCancellation: Bool {
+        switch self {
+        case .cancelled:
+            return true
         default:
             return false
         }

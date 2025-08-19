@@ -46,14 +46,14 @@ final class CircuitBreakerMiddlewareTests: XCTestCase {
 
     private func createMiddleware(
         failureThreshold: Int = 3,
-        resetTimeout: TimeInterval = 5.0,
-        halfOpenMaxAttempts: Int = 1
+        recoveryTimeout: TimeInterval = 5.0,
+        halfOpenSuccessThreshold: Int = 1
     ) -> CircuitBreakerMiddleware {
         CircuitBreakerMiddleware(
             configuration: CircuitBreakerMiddleware.Configuration(
                 failureThreshold: failureThreshold,
-                resetTimeout: resetTimeout,
-                halfOpenMaxAttempts: halfOpenMaxAttempts
+                recoveryTimeout: recoveryTimeout,
+                halfOpenSuccessThreshold: halfOpenSuccessThreshold
             )
         )
     }
@@ -61,160 +61,175 @@ final class CircuitBreakerMiddlewareTests: XCTestCase {
     // MARK: - Tests
 
     func testInitialClosedState() async throws {
-        // Given
+        // Given - Circuit breaker should allow requests initially
         let middleware = createMiddleware()
         let command = SuccessCommand()
         let context = CommandContext()
 
-        // When
+        // When - Execute a successful command
         let result = try await middleware.execute(command, context: context) { cmd, _ in
             try await cmd.execute()
         }
 
-        // Then
-        XCTAssertEqual(result, "Success")
-        let state = await middleware.getState()
-        XCTAssertEqual(state, .closed)
+        // Then - Request should pass through successfully
+        XCTAssertEqual(result, "Success", "Circuit breaker should allow requests in initial state")
     }
 
-    func testTransitionToOpenStateAfterFailures() async throws {
-        // Given
+    func testCircuitOpensAfterFailureThreshold() async throws {
+        // Given - Circuit breaker with low threshold
         let middleware = createMiddleware(failureThreshold: 3)
         let failingCommand = FailingCommand()
+        let successCommand = SuccessCommand()
         let context = CommandContext()
 
-        // When - cause failures
-        for i in 0..<3 {
+        // When - Cause failures up to threshold
+        for _ in 0..<3 {
             do {
                 _ = try await middleware.execute(failingCommand, context: context) { cmd, _ in
                     try await cmd.execute()
                 }
                 XCTFail("Expected failure")
             } catch {
-                // Expected
-                if i < 2 {
-                    let state = await middleware.getState()
-                    XCTAssertEqual(state, .closed)
-                }
+                // Expected - command should fail normally
             }
         }
 
-        // Then - circuit should be open
-        let state = await middleware.getState()
-        XCTAssertEqual(state, .open)
-
-        // Subsequent calls should fail fast
+        // Then - Circuit should now reject even successful commands (fail fast)
         do {
-            _ = try await middleware.execute(SuccessCommand(), context: context) { cmd, _ in
+            _ = try await middleware.execute(successCommand, context: context) { cmd, _ in
                 try await cmd.execute()
             }
-            XCTFail("Expected circuit open error")
+            XCTFail("Circuit breaker should reject requests after reaching failure threshold")
         } catch {
-            // Verify it's a circuit breaker error
+            // Expected - circuit breaker should reject all requests when open
             if case PipelineError.middlewareError(let middleware, _, _) = error {
-                XCTAssertEqual(middleware, "CircuitBreakerMiddleware")
+                XCTAssertEqual(middleware, "CircuitBreakerMiddleware", "Error should come from CircuitBreakerMiddleware")
             } else {
-                XCTFail("Unexpected error type: \(error)")
+                XCTFail("Expected PipelineError.middlewareError, got: \(error)")
             }
         }
     }
 
-    func testTransitionToHalfOpenAfterTimeout() async throws {
-        // Given
-        let resetTimeout: TimeInterval = 0.1 // Short timeout for testing
+    func testCircuitAllowsRequestAfterRecoveryTimeout() async throws {
+        // Given - Circuit breaker with short recovery timeout
+        let recoveryTimeout: TimeInterval = 0.1
         let middleware = createMiddleware(
             failureThreshold: 2,
-            resetTimeout: resetTimeout
+            recoveryTimeout: recoveryTimeout
         )
         let failingCommand = FailingCommand()
+        let successCommand = SuccessCommand()
         let context = CommandContext()
 
-        // When - cause circuit to open
+        // When - Open the circuit
         for _ in 0..<2 {
             try? await middleware.execute(failingCommand, context: context) { cmd, _ in
                 try await cmd.execute()
             }
         }
 
-        // Verify open state
-        var state = await middleware.getState()
-        XCTAssertEqual(state, .open)
+        // Verify circuit is open (blocks requests)
+        do {
+            _ = try await middleware.execute(successCommand, context: context) { cmd, _ in
+                try await cmd.execute()
+            }
+            XCTFail("Should block requests when open")
+        } catch {
+            // Expected - circuit is open
+        }
 
-        // Wait for reset timeout
-        try await Task.sleep(nanoseconds: UInt64((resetTimeout + 0.05) * 1_000_000_000))
+        // Wait for recovery timeout
+        try await Task.sleep(nanoseconds: UInt64((recoveryTimeout + 0.05) * 1_000_000_000))
 
-        // Then - should transition to half-open on next call
-        let successCommand = SuccessCommand()
+        // Then - Circuit should allow a test request (half-open behavior)
         let result = try await middleware.execute(successCommand, context: context) { cmd, _ in
             try await cmd.execute()
         }
 
-        XCTAssertEqual(result, "Success")
-        state = await middleware.getState()
-        XCTAssertEqual(state, .closed) // Success in half-open closes circuit
+        XCTAssertEqual(result, "Success", "Circuit should allow test request after recovery timeout")
     }
 
-    func testHalfOpenToClosedTransition() async throws {
-        // Given
+    func testCircuitReclosesAfterSuccessfulRecovery() async throws {
+        // Given - Circuit that requires 2 successful requests to close
         let middleware = createMiddleware(
             failureThreshold: 2,
-            resetTimeout: 0.1,
-            halfOpenMaxAttempts: 2
+            recoveryTimeout: 0.1,
+            halfOpenSuccessThreshold: 2
         )
+        let context = CommandContext()
 
         // Open the circuit
         for _ in 0..<2 {
-            try? await middleware.execute(FailingCommand(), context: CommandContext()) { cmd, _ in
+            try? await middleware.execute(FailingCommand(), context: context) { cmd, _ in
                 try await cmd.execute()
             }
         }
 
-        // Wait for half-open
+        // Wait for recovery timeout
         try await Task.sleep(nanoseconds: 150_000_000)
 
-        // When - succeed in half-open state
-        for _ in 0..<2 {
-            _ = try await middleware.execute(SuccessCommand(), context: CommandContext()) { cmd, _ in
+        // When - Succeed multiple times in half-open state
+        for i in 0..<2 {
+            let result = try await middleware.execute(SuccessCommand(), context: context) { cmd, _ in
                 try await cmd.execute()
             }
+            XCTAssertEqual(result, "Success", "Request \(i+1) should succeed in half-open")
         }
 
-        // Then - circuit should close
-        let state = await middleware.getState()
-        XCTAssertEqual(state, .closed)
+        // Then - Circuit should be fully closed (accept all requests)
+        for i in 0..<3 {
+            let result = try await middleware.execute(SuccessCommand(), context: context) { cmd, _ in
+                try await cmd.execute()
+            }
+            XCTAssertEqual(result, "Success", "Circuit should be closed, request \(i+1) should succeed")
+        }
     }
 
-    func testHalfOpenBackToOpenOnFailure() async throws {
-        // Given
+    func testCircuitReopensOnFailureDuringRecovery() async throws {
+        // Given - Circuit breaker in recovery
         let middleware = createMiddleware(
             failureThreshold: 2,
-            resetTimeout: 0.1
+            recoveryTimeout: 0.1
         )
+        let context = CommandContext()
 
         // Open the circuit
         for _ in 0..<2 {
-            try? await middleware.execute(FailingCommand(), context: CommandContext()) { cmd, _ in
+            try? await middleware.execute(FailingCommand(), context: context) { cmd, _ in
                 try await cmd.execute()
             }
         }
 
-        // Wait for half-open
+        // Wait for recovery timeout
         try await Task.sleep(nanoseconds: 150_000_000)
 
-        // When - fail in half-open state
+        // When - First request after timeout fails (half-open test)
         do {
-            _ = try await middleware.execute(FailingCommand(), context: CommandContext()) { cmd, _ in
+            _ = try await middleware.execute(FailingCommand(), context: context) { cmd, _ in
                 try await cmd.execute()
             }
+            XCTFail("Failing command should fail")
         } catch {
-            // Expected
+            // Expected - command fails
         }
 
-        // Then - circuit should reopen
-        let state = await middleware.getState()
-        XCTAssertEqual(state, .open)
+        // Then - Circuit should immediately reject requests again (reopened)
+        do {
+            _ = try await middleware.execute(SuccessCommand(), context: context) { cmd, _ in
+                try await cmd.execute()
+            }
+            XCTFail("Circuit should be open again after failure in half-open")
+        } catch {
+            // Expected - circuit breaker blocks request
+            if case PipelineError.middlewareError(let name, _, _) = error {
+                XCTAssertEqual(name, "CircuitBreakerMiddleware")
+            }
+        }
     }
 
+    // Configuration API changed - successThreshold and sampleSize no longer exist
+    // This test needs redesign if those features return
+    /*
     func testSuccessRateThreshold() async throws {
         // Given
         let middleware = CircuitBreakerMiddleware(
@@ -242,7 +257,11 @@ final class CircuitBreakerMiddlewareTests: XCTestCase {
         let state = await middleware.getState()
         XCTAssertEqual(state, .closed)
     }
+    */
 
+    // Configuration API changed - failureHandler no longer exists
+    // This test needs redesign if failure callback feature returns
+    /*
     func testCustomFailureHandler() async throws {
         // Given
         let expectation = XCTestExpectation(description: "Failure handler called")
@@ -271,7 +290,11 @@ final class CircuitBreakerMiddlewareTests: XCTestCase {
         await fulfillment(of: [expectation], timeout: 1.0)
         XCTAssertNotNil(handledError)
     }
+    */
 
+    // Configuration API changed - stateChangeHandler and resetTimeout no longer exist
+    // This test needs redesign if state change notifications return
+    /*
     func testStateChangeHandler() async throws {
         // Given
         let expectation = XCTestExpectation(description: "State change handler called")
@@ -309,7 +332,11 @@ final class CircuitBreakerMiddlewareTests: XCTestCase {
         XCTAssertEqual(stateChanges[0].0, .closed)
         XCTAssertEqual(stateChanges[0].1, .open)
     }
+    */
 
+    // API changed - getMetrics() method no longer exists
+    // This test needs redesign if metrics exposure returns
+    /*
     func testMetricsTracking() async throws {
         // Given
         let middleware = createMiddleware()
@@ -331,6 +358,7 @@ final class CircuitBreakerMiddlewareTests: XCTestCase {
         XCTAssertEqual(metrics.totalCount, 2)
         XCTAssertEqual(metrics.successRate, 0.5)
     }
+    */
 
     func testConcurrentAccess() async throws {
         // Given
@@ -341,14 +369,29 @@ final class CircuitBreakerMiddlewareTests: XCTestCase {
         await withTaskGroup(of: Bool.self) { group in
             for i in 0..<iterations {
                 group.addTask {
-                    let command = i % 3 == 0 ? FailingCommand() : SuccessCommand()
-                    do {
-                        _ = try await middleware.execute(command, context: CommandContext()) { cmd, _ in
-                            try await cmd.execute()
+                    // Handle command types separately to avoid type inference issues
+                    if i % 3 == 0 {
+                        // Execute failing command
+                        let command = FailingCommand()
+                        do {
+                            _ = try await middleware.execute(command, context: CommandContext()) { cmd, _ in
+                                try await cmd.execute()
+                            }
+                            return true
+                        } catch {
+                            return false
                         }
-                        return true
-                    } catch {
-                        return false
+                    } else {
+                        // Execute success command
+                        let command = SuccessCommand()
+                        do {
+                            _ = try await middleware.execute(command, context: CommandContext()) { cmd, _ in
+                                try await cmd.execute()
+                            }
+                            return true
+                        } catch {
+                            return false
+                        }
                     }
                 }
             }
@@ -363,12 +406,15 @@ final class CircuitBreakerMiddlewareTests: XCTestCase {
                 }
             }
 
-            // Then - verify counts are consistent
-            let metrics = await middleware.getMetrics()
-            XCTAssertEqual(metrics.totalCount, successes + failures)
+            // Then - verify we got results from all iterations
+            XCTAssertEqual(successes + failures, iterations, "All concurrent tasks should complete")
+            // Can't verify exact counts without metrics API, but circuit should handle concurrent access
         }
     }
 
+    // Configuration API changed - fallbackProvider no longer exists
+    // This test needs redesign if fallback feature returns
+    /*
     func testFallbackBehavior() async throws {
         // Given
         let middleware = CircuitBreakerMiddleware(
@@ -392,5 +438,6 @@ final class CircuitBreakerMiddlewareTests: XCTestCase {
 
         XCTAssertEqual(result, "Fallback response")
     }
+    */
 }
 

@@ -1,5 +1,6 @@
 import XCTest
 @testable import PipelineKitCore
+import PipelineKitSecurity
 import PipelineKitTestSupport
 
 // Test context keys
@@ -202,6 +203,8 @@ final class StandardPipelineContextTests: XCTestCase {
         }
     }
     
+    // MetricsMiddleware was removed during modularization
+    /*
     func testMetricsCollection() async throws {
         let pipeline = StandardPipeline(handler: CalculateHandler())
         
@@ -218,6 +221,7 @@ final class StandardPipelineContextTests: XCTestCase {
         let metadata = context.commandMetadata
         XCTAssertNotNil(metadata)
     }
+    */
     
     func testContextInitialValues() async throws {
         struct ContextInspectorMiddleware: Middleware {

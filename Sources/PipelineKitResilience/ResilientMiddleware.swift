@@ -1,114 +1,53 @@
 import Foundation
 import PipelineKitCore
 
-/// Middleware that provides resilience patterns including retry and circuit breaker
+/// Middleware that provides retry functionality with configurable policies
 ///
-/// ## Design Decision: @unchecked Sendable for Optional Actor Property
+/// Note: Circuit breaker functionality has been moved to CircuitBreakerMiddleware.
+/// For combined retry and circuit breaker behavior, compose both middlewares in your pipeline.
+///
+/// ## Design Decision: @unchecked Sendable
 ///
 /// This class uses `@unchecked Sendable` for the following reasons:
 ///
-/// 1. **Optional Actor Type**: The stored property `circuitBreaker: CircuitBreaker?` is an
-///    optional reference to an actor. While actors are inherently Sendable, Swift's type
-///    system sometimes has issues with optional actor references in class contexts.
-///
-/// 2. **All Properties Are Safe**:
+/// 1. **All Properties Are Safe**:
 ///    - `retryPolicy`: RetryPolicy struct that conforms to Sendable
-///    - `circuitBreaker`: Optional CircuitBreaker actor (actors are implicitly Sendable)
 ///    - `name`: String (inherently Sendable)
 ///
-/// 3. **Immutable Design**: All properties are `let` constants, preventing any mutations
+/// 2. **Immutable Design**: All properties are `let` constants, preventing any mutations
 ///    after initialization and ensuring thread safety.
 ///
-/// 4. **Actor Isolation**: CircuitBreaker is an actor, providing its own synchronization
-///    and thread safety guarantees through Swift's actor model.
-///
-/// This appears to be a Swift compiler limitation with optional actor references rather
-/// than an actual thread safety concern. All components are genuinely thread-safe.
-///
 /// Thread Safety: This type is thread-safe because all properties are immutable let constants.
-/// The CircuitBreaker is an actor providing its own synchronization. The RetryPolicy is a
-/// Sendable struct, and the name is a String (inherently Sendable).
-/// Invariant: All properties must be initialized with thread-safe values. The CircuitBreaker
-/// actor provides isolation, and the RetryPolicy must conform to Sendable. No mutable state
-/// exists after initialization.
+/// The RetryPolicy is a Sendable struct, and the name is a String (inherently Sendable).
 public final class ResilientMiddleware: Middleware, @unchecked Sendable {
     public let priority: ExecutionPriority = .errorHandling
     private let retryPolicy: RetryPolicy
-    private let circuitBreaker: CircuitBreaker?
+    // Circuit breaker functionality now available via CircuitBreakerMiddleware
     private let name: String
     
     public init(
         name: String,
-        retryPolicy: RetryPolicy = .default,
-        circuitBreaker: CircuitBreaker? = nil
+        retryPolicy: RetryPolicy = .default
     ) {
         self.name = name
         self.retryPolicy = retryPolicy
-        self.circuitBreaker = circuitBreaker
     }
     
     public func execute<T: Command>(
         _ command: T,
         context: CommandContext,
-        next: @Sendable (T, CommandContext) async throws -> T.Result
+        next: @escaping @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
-        // Check circuit breaker first
-        if let breaker = circuitBreaker {
-            guard await breaker.allowRequest() else {
-                // TODO: Re-enable when PipelineEvent is available
-                // context.emitMiddlewareEvent(
-                //     PipelineEvent.Name.middlewareCircuitOpen,
-                //     middleware: "ResilientMiddleware",
-                //     properties: [
-                //         "commandType": String(describing: type(of: command))
-                //     ]
-                // )
-                throw PipelineError.resilience(reason: .circuitBreakerOpen)
-            }
-        }
+        // Circuit breaker functionality removed - use CircuitBreakerMiddleware instead
+        // This middleware now focuses solely on retry logic
         
-        do {
-            let result = try await executeWithRetry(command, context: context, next: next)
-            
-            // Record success
-            if let breaker = circuitBreaker {
-                await breaker.recordSuccess()
-                
-                // TODO: Re-enable when PipelineEvent is available
-                // context.emitMiddlewareEvent(
-                //     "middleware.circuit_breaker.success",
-                //     middleware: "ResilientMiddleware",
-                //     properties: [
-                //         "commandType": String(describing: type(of: command))
-                //     ]
-                // )
-            }
-            
-            return result
-        } catch {
-            // Record failure
-            if let breaker = circuitBreaker {
-                await breaker.recordFailure()
-                
-                // TODO: Re-enable when PipelineEvent is available
-                // context.emitMiddlewareEvent(
-                //     "middleware.circuit_breaker.failure",
-                //     middleware: "ResilientMiddleware",
-                //     properties: [
-                //         "commandType": String(describing: type(of: command)),
-                //         "errorType": String(describing: type(of: error)),
-                //         "errorMessage": error.localizedDescription
-                //     ]
-                // )
-            }
-            throw error
-        }
+        return try await executeWithRetry(command, context: context, next: next)
     }
     
     private func executeWithRetry<T: Command>(
         _ command: T,
         context: CommandContext,
-        next: @Sendable (T, CommandContext) async throws -> T.Result
+        next: @escaping @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
         var lastError: Error?
         let startTime = Date()

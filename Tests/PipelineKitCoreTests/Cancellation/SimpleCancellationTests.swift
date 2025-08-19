@@ -107,9 +107,9 @@ final class SimpleCancellationTests: XCTestCase {
         }
     }
     
-    // MARK: - CommandBus Cancellation Tests
+    // MARK: - DynamicPipeline Cancellation Tests
     
-    func testCommandBusRetryStopsOnCancellation() async throws {
+    func testDynamicPipelineRetryStopsOnCancellation() async throws {
         struct TestCommand: Command {
             typealias Result = String
         }
@@ -124,10 +124,10 @@ final class SimpleCancellationTests: XCTestCase {
             }
         }
         
-        let commandBus = CommandBus()
+        let dynamicPipeline = DynamicPipeline()
         let handler = FailingHandler()
         
-        try await commandBus.register(TestCommand.self, handler: handler)
+        try await dynamicPipeline.register(TestCommand.self, handler: handler)
         
         let retryPolicy = RetryPolicy(
             maxAttempts: 5,
@@ -136,7 +136,7 @@ final class SimpleCancellationTests: XCTestCase {
         )
         
         let task = Task {
-            try await commandBus.send(TestCommand(), retryPolicy: retryPolicy)
+            try await dynamicPipeline.send(TestCommand(), retryPolicy: retryPolicy)
         }
         
         // Give time for first attempt
@@ -147,15 +147,18 @@ final class SimpleCancellationTests: XCTestCase {
         
         do {
             _ = try await task.value
-            XCTFail("Expected CancellationError")
+            XCTFail("Expected cancellation error")
         } catch is CancellationError {
             // Expected - retry should stop on cancellation
+        } catch let error as PipelineError {
+            // Also accept PipelineError.cancelled
+            XCTAssertTrue(error.isCancellation, "Expected cancellation error, got \(error)")
         } catch {
-            XCTFail("Expected CancellationError, got \(error)")
+            XCTFail("Expected cancellation error, got \(error)")
         }
     }
     
-    func testCommandBusDoesNotRetryOnCancellationError() async throws {
+    func testDynamicPipelineDoesNotRetryOnCancellationError() async throws {
         struct TestCommand: Command {
             typealias Result = String
         }
@@ -170,10 +173,10 @@ final class SimpleCancellationTests: XCTestCase {
             }
         }
         
-        let commandBus = CommandBus()
+        let dynamicPipeline = DynamicPipeline()
         let handler = CancellingHandler()
         
-        try await commandBus.register(TestCommand.self, handler: handler)
+        try await dynamicPipeline.register(TestCommand.self, handler: handler)
         
         let retryPolicy = RetryPolicy(
             maxAttempts: 3,
@@ -182,14 +185,15 @@ final class SimpleCancellationTests: XCTestCase {
         )
         
         do {
-            _ = try await commandBus.send(TestCommand(), retryPolicy: retryPolicy)
+            _ = try await dynamicPipeline.send(TestCommand(), retryPolicy: retryPolicy)
             XCTFail("Expected CancellationError")
         } catch {
-            // Check if it's a CancellationError
-            let errorString = String(describing: error)
-            XCTAssertTrue(errorString.contains("CancellationError") || error is CancellationError,
-                         "Expected CancellationError, got \(error)")
-            XCTAssertEqual(handler.attemptCount, 1, "Should only attempt once for CancellationError")
+            // Check if it's a cancellation error (either type)
+            let isCancellation = error is CancellationError || 
+                                (error as? PipelineError)?.isCancellation == true
+            XCTAssertTrue(isCancellation,
+                         "Expected cancellation error, got \(error)")
+            XCTAssertEqual(handler.attemptCount, 1, "Should only attempt once for cancellation errors")
         }
     }
     
@@ -197,7 +201,7 @@ final class SimpleCancellationTests: XCTestCase {
     
     func testCancellationPropagatesThroughEntireStack() async throws {
         // This tests cancellation through the entire stack:
-        // CommandBus -> Pipeline -> Middleware -> Handler
+        // DynamicPipeline -> Middleware -> Handler
         
         struct SlowCommand: Command {
             typealias Result = String
@@ -227,14 +231,14 @@ final class SimpleCancellationTests: XCTestCase {
             }
         }
         
-        let commandBus = CommandBus()
+        let dynamicPipeline = DynamicPipeline()
         let handler = SlowHandler()
         
-        try await commandBus.register(SlowCommand.self, handler: handler)
-        try await commandBus.addMiddleware(SlowMiddleware())
+        try await dynamicPipeline.register(SlowCommand.self, handler: handler)
+        try await dynamicPipeline.addMiddleware(SlowMiddleware())
         
         let task = Task {
-            try await commandBus.send(SlowCommand())
+            try await dynamicPipeline.send(SlowCommand())
         }
         
         // Give time for execution to start

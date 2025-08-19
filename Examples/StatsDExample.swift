@@ -1,7 +1,7 @@
 #!/usr/bin/env swift
 
 import Foundation
-import PipelineKitMetrics
+import PipelineKitObservability
 
 // Example: Using the StatsD Exporter
 

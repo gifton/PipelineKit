@@ -60,7 +60,7 @@ public actor ActorTestMiddleware: Middleware {
     public nonisolated func execute<T: Command>(
         _ command: T,
         context: CommandContext,
-        next: @Sendable (T, CommandContext) async throws -> T.Result
+        next: @escaping @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
         // Update state on actor
         await recordExecution(command, context: context)

@@ -92,7 +92,10 @@ public struct TimeoutMiddleware: Middleware {
 
     public init(defaultTimeout: TimeInterval) {
         self.init(
-            configuration: Configuration(defaultTimeout: defaultTimeout)
+            configuration: Configuration(
+                defaultTimeout: defaultTimeout,
+                gracePeriod: 0  // No grace period by default for simple timeout
+            )
         )
     }
 
@@ -101,7 +104,7 @@ public struct TimeoutMiddleware: Middleware {
     public func execute<T: Command>(
         _ command: T,
         context: CommandContext,
-        next: @Sendable (T, CommandContext) async throws -> T.Result
+        next: @escaping @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
         let commandType = String(describing: type(of: command))
         let timeout = resolveTimeout(for: command, commandType: commandType)
@@ -110,20 +113,15 @@ public struct TimeoutMiddleware: Middleware {
         // Update state
         _ = await stateTracker.transition(to: .executing)
 
-        // Use withoutActuallyEscaping to enable timeout enforcement
-        // This is necessary because the middleware protocol defines `next` as non-escaping,
-        // but we need to pass it to our timeout utility which requires @escaping.
-        // The closure never escapes the dynamic extent of this call, preserving safety.
-        return try await withoutActuallyEscaping(next) { escapingNext in
-            try await executeWithTimeout(
-                command: command,
-                commandType: commandType,
-                context: context,
-                timeout: timeout,
-                startTime: startTime,
-                next: escapingNext
-            )
-        }
+        // Now that next is @escaping, we can pass it directly to our timeout utility
+        return try await executeWithTimeout(
+            command: command,
+            commandType: commandType,
+            context: context,
+            timeout: timeout,
+            startTime: startTime,
+            next: next
+        )
     }
 
     // MARK: - Private Methods
@@ -224,7 +222,17 @@ public struct TimeoutMiddleware: Middleware {
                 )
 
                 await handleTimeout(command: command, context: context, timeoutContext: timeoutContext)
-                throw PipelineError.timeoutWithContext(timeoutContext)
+                throw PipelineError.timeout(
+                    duration: duration,
+                    context: PipelineError.ErrorContext(
+                        commandType: commandType,
+                        middlewareType: "TimeoutMiddleware",
+                        additionalInfo: [
+                            "actualDuration": String(actualDuration),
+                            "gracePeriod": String(configuration.gracePeriod)
+                        ]
+                    )
+                )
 
             case let .gracePeriodExpired(_, gracePeriod, totalDuration):
                 let timeoutContext = TimeoutContext(
@@ -238,7 +246,18 @@ public struct TimeoutMiddleware: Middleware {
                 )
 
                 await handleTimeout(command: command, context: context, timeoutContext: timeoutContext)
-                throw PipelineError.timeoutWithContext(timeoutContext)
+                throw PipelineError.timeout(
+                    duration: timeout,
+                    context: PipelineError.ErrorContext(
+                        commandType: commandType,
+                        middlewareType: "TimeoutMiddleware",
+                        additionalInfo: [
+                            "actualDuration": String(totalDuration),
+                            "gracePeriod": String(gracePeriod),
+                            "gracePeriodUsed": "true"
+                        ]
+                    )
+                )
 
             case .noResult:
                 throw PipelineError.executionFailed(

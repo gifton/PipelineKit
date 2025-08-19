@@ -109,13 +109,17 @@ public struct BulkheadMiddleware: Middleware {
     }
 
     private let configuration: Configuration
-    private let semaphore: AsyncSemaphore
+    private let semaphore: BackPressureSemaphore
     private let queuedCommands: QueuedCommands
     private let metrics: BulkheadMetricsTracker
 
     public init(configuration: Configuration) {
         self.configuration = configuration
-        self.semaphore = AsyncSemaphore(value: configuration.maxConcurrency)
+        self.semaphore = BackPressureSemaphore(
+            maxConcurrency: configuration.maxConcurrency,
+            maxOutstanding: configuration.maxConcurrency + configuration.maxQueueSize,
+            strategy: .suspend
+        )
         self.queuedCommands = QueuedCommands(maxSize: configuration.maxQueueSize)
         self.metrics = BulkheadMetricsTracker()
     }
@@ -139,7 +143,7 @@ public struct BulkheadMiddleware: Middleware {
     public func execute<T: Command>(
         _ command: T,
         context: CommandContext,
-        next: @Sendable (T, CommandContext) async throws -> T.Result
+        next: @escaping @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
         let startTime = Date()
 
@@ -181,18 +185,18 @@ public struct BulkheadMiddleware: Middleware {
     private func executeSemaphoreIsolation<T: Command>(
         _ command: T,
         context: CommandContext,
-        next: @Sendable (T, CommandContext) async throws -> T.Result,
+        next: @escaping @Sendable (T, CommandContext) async throws -> T.Result,
         startTime: Date
     ) async throws -> T.Result {
         // Try to acquire semaphore immediately
-        let acquired = await semaphore.tryWait()
+        let token = await semaphore.tryAcquire()
 
-        if acquired {
+        if let token = token {
             // Execute immediately
             await metrics.recordExecution()
             defer {
+                _ = token // Token auto-releases when it goes out of scope
                 Task {
-                    await semaphore.signal()
                     await emitMetrics(context: context, startTime: startTime, wasQueued: false)
                 }
             }
@@ -224,8 +228,10 @@ public struct BulkheadMiddleware: Middleware {
 
             do {
                 // Wait with timeout if configured
+                let queueToken: SemaphoreToken
                 if let timeout = configuration.queueTimeout {
-                    try await withThrowingTaskGroup(of: Void.self) { group in
+                    // Try to acquire with timeout
+                    let result = try await withThrowingTaskGroup(of: SemaphoreToken?.self) { group in
                         group.addTask {
                             try await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
                             throw PipelineError.bulkheadTimeout(
@@ -235,14 +241,22 @@ public struct BulkheadMiddleware: Middleware {
                         }
 
                         group.addTask {
-                            await self.semaphore.wait()
+                            try await self.semaphore.acquire()
                         }
 
-                        try await group.next()
+                        let token = try await group.next()
                         group.cancelAll()
+                        return token
                     }
+                    guard let token = result, let unwrappedToken = token else {
+                        throw PipelineError.bulkheadTimeout(
+                            timeout: timeout,
+                            queueTime: Date().timeIntervalSince(queueStartTime)
+                        )
+                    }
+                    queueToken = unwrappedToken
                 } else {
-                    await semaphore.wait()
+                    queueToken = try await semaphore.acquire()
                 }
 
                 // Execute after waiting
@@ -250,8 +264,8 @@ public struct BulkheadMiddleware: Middleware {
                 await metrics.recordQueueTime(Date().timeIntervalSince(queueStartTime))
 
                 defer {
+                    _ = queueToken // Token auto-releases when it goes out of scope
                     Task {
-                        await semaphore.signal()
                         await emitMetrics(context: context, startTime: startTime, wasQueued: true)
                     }
                 }
@@ -282,7 +296,7 @@ public struct BulkheadMiddleware: Middleware {
     private func executeTaskGroupIsolation<T: Command>(
         _ command: T,
         context: CommandContext,
-        next: @Sendable (T, CommandContext) async throws -> T.Result,
+        next: @escaping @Sendable (T, CommandContext) async throws -> T.Result,
         priority: TaskPriority?,
         startTime: Date
     ) async throws -> T.Result {
@@ -301,7 +315,7 @@ public struct BulkheadMiddleware: Middleware {
     private func executeTaggedIsolation<T: Command>(
         _ command: T,
         context: CommandContext,
-        next: @Sendable (T, CommandContext) async throws -> T.Result,
+        next: @escaping @Sendable (T, CommandContext) async throws -> T.Result,
         tag: String,
         startTime: Date
     ) async throws -> T.Result {
@@ -365,44 +379,6 @@ public struct BulkheadMiddleware: Middleware {
 }
 
 // MARK: - Supporting Types
-
-/// Thread-safe semaphore for async contexts
-private actor AsyncSemaphore {
-    private var value: Int
-    private var waiters: [CheckedContinuation<Void, Never>] = []
-
-    init(value: Int) {
-        self.value = value
-    }
-
-    func wait() async {
-        if value > 0 {
-            value -= 1
-            return
-        }
-
-        await withCheckedContinuation { continuation in
-            waiters.append(continuation)
-        }
-    }
-
-    func tryWait() -> Bool {
-        if value > 0 {
-            value -= 1
-            return true
-        }
-        return false
-    }
-
-    func signal() {
-        if let waiter = waiters.first {
-            waiters.removeFirst()
-            waiter.resume()
-        } else {
-            value += 1
-        }
-    }
-}
 
 /// Queue management for commands
 private actor QueuedCommands {

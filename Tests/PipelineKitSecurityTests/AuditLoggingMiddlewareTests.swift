@@ -24,6 +24,18 @@ actor MockAuditLogger: AuditLogger {
         loggedEvents.append(event)
     }
     
+    // Override the extension method to capture AuditEvent
+    func log(_ event: AuditEvent) async {
+        switch event {
+        case .commandStarted(let entry),
+             .commandCompleted(let entry),
+             .commandFailed(let entry):
+            loggedEntries.append(entry)
+        case .securityEvent(let secEvent):
+            loggedEvents.append(secEvent)
+        }
+    }
+    
     func logCommandStarted(_ entry: AuditEntry) async {
         loggedEntries.append(entry)
     }

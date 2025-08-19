@@ -210,15 +210,81 @@ public final class CommandContext: Sendable {
 // MARK: - Fork Support
 
 public extension CommandContext {
-    /// Creates a new context with a copy of this context's storage.
+    /// Creates a new context with a shallow copy of this context's storage.
     ///
-    /// The new context has its own storage dictionary, so modifications to either
-    /// context do not affect the other. However, note that the values themselves
-    /// are shallow-copied - if they contain reference types, those references
-    /// are shared.
+    /// ## Shallow Copy Behavior
     ///
-    /// - Returns: A new context with copied storage
-    /// - Note: Values must have value semantics or be immutable for true isolation
+    /// This method creates a new `CommandContext` with its own storage dictionary,
+    /// preventing modifications from affecting the original context. However, the
+    /// copy is **shallow**: while the dictionary structure is duplicated, the
+    /// `AnySendable` values themselves are shared between contexts.
+    ///
+    /// ### What This Means:
+    /// - **Value types** (String, Int, structs) are effectively copied due to Swift's
+    ///   value semantics
+    /// - **Reference types** (classes, actors) are shared between both contexts
+    /// - **Collections** containing reference types will share those references
+    ///
+    /// ## Design Rationale
+    ///
+    /// This shallow copy design is intentional for the Core module:
+    /// 1. **Simplicity**: Avoids complex reflection or protocol requirements
+    /// 2. **Performance**: Minimal overhead for the common case
+    /// 3. **Flexibility**: Users control copy semantics through their type choices
+    /// 4. **Swift Alignment**: Matches Swift's standard copy behavior
+    ///
+    /// ## Implementing Deep Copy
+    ///
+    /// Users requiring true deep copy have several options:
+    ///
+    /// ### Option 1: Selective Copying
+    /// ```swift
+    /// let newContext = CommandContext(metadata: oldContext.commandMetadata)
+    /// newContext.userID = oldContext.userID  // Value type - copied
+    /// newContext[.session] = oldContext[.session]?.deepCopy()  // Custom deep copy
+    /// ```
+    ///
+    /// ### Option 2: Copy Protocol
+    /// ```swift
+    /// protocol ContextCopyable: Sendable {
+    ///     func contextCopy() -> Self
+    /// }
+    ///
+    /// extension MyCustomType: ContextCopyable {
+    ///     func contextCopy() -> MyCustomType {
+    ///         // Return deep copy of self
+    ///     }
+    /// }
+    ///
+    /// // Usage
+    /// let forked = context.fork()
+    /// if let custom = context[.customData] as? ContextCopyable {
+    ///     forked[.customData] = custom.contextCopy()
+    /// }
+    /// ```
+    ///
+    /// ### Option 3: Factory Method
+    /// ```swift
+    /// extension CommandContext {
+    ///     static func deepCopy(from original: CommandContext) -> CommandContext {
+    ///         let new = CommandContext(metadata: original.commandMetadata)
+    ///         // Implement domain-specific copying logic
+    ///         // Copy only what your application needs
+    ///         return new
+    ///     }
+    /// }
+    /// ```
+    ///
+    /// ## Why Not Built-in Deep Copy?
+    ///
+    /// True deep copy is not provided because:
+    /// - Swift lacks a universal copy protocol
+    /// - Type erasure (AnySendable) prevents generic deep copying
+    /// - Different domains have different copying requirements
+    /// - Many context values (loggers, services) should be shared, not copied
+    ///
+    /// - Returns: A new context with shallow-copied storage
+    /// - Complexity: O(n) where n is the number of stored values
     func fork() -> CommandContext {
         let newContext = CommandContext(metadata: commandMetadata)
         

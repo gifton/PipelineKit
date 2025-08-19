@@ -101,9 +101,6 @@ final class SanitizationTests: XCTestCase {
     }
     
     func testSanitizationMiddleware() async throws {
-        let bus = CommandBus()
-        try await bus.addMiddleware(SanitizationMiddleware())
-        
         struct TestHandler: CommandHandler {
             typealias CommandType = CreatePostCommand
             
@@ -112,7 +109,8 @@ final class SanitizationTests: XCTestCase {
             }
         }
         
-        try await bus.register(CreatePostCommand.self, handler: TestHandler())
+        let pipeline = StandardPipeline(handler: TestHandler())
+        try await pipeline.addMiddleware(SanitizationMiddleware())
         
         // Test command sanitization
         let command = CreatePostCommand(
@@ -121,7 +119,7 @@ final class SanitizationTests: XCTestCase {
             tags: "This is a very long list of tags that should be truncated to fit within the limit"
         )
         
-        let result = try await bus.send(command)
+        let result = try await pipeline.execute(command)
         
         // Verify the command was processed
         XCTAssertEqual(result, "Post created: My Post")

@@ -7,6 +7,7 @@
 
 import Foundation
 import PipelineKitCore
+import PipelineKitObservability
 
 /// An event emitter that captures events for testing.
 ///

@@ -89,7 +89,7 @@ public struct EncryptionMiddleware: Middleware {
     public func execute<T: Command>(
         _ command: T,
         context: CommandContext,
-        next: @Sendable (T, CommandContext) async throws -> T.Result
+        next: @escaping @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
         // Encrypt sensitive data in command if needed
         let processedCommand = try await encryptCommand(command, context: context)

@@ -218,7 +218,7 @@ public final class TestMiddleware: Middleware, @unchecked Sendable {
     public func execute<T: Command>(
         _ command: T,
         context: CommandContext,
-        next: @Sendable (T, CommandContext) async throws -> T.Result
+        next: @escaping @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
         executionCount += 1
         lastCommand = command
@@ -260,7 +260,7 @@ public final class TestFailingMiddleware: Middleware, @unchecked Sendable {
     public func execute<T: Command>(
         _ command: T,
         context: CommandContext,
-        next: @Sendable (T, CommandContext) async throws -> T.Result
+        next: @escaping @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
         throw error
     }

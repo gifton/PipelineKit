@@ -1,7 +1,7 @@
 #!/usr/bin/env swift
 
 import Foundation
-import PipelineKitMetrics
+import PipelineKitObservability
 
 // Type-Safe Metrics Example
 // Demonstrates the compile-time safety and ergonomics of the new metric system

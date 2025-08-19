@@ -131,7 +131,7 @@ public struct HealthCheckMiddleware: Middleware {
     public func execute<T: Command>(
         _ command: T,
         context: CommandContext,
-        next: @Sendable (T, CommandContext) async throws -> T.Result
+        next: @escaping @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
         let startTime = Date()
         let serviceName = extractServiceName(from: command, context: context)

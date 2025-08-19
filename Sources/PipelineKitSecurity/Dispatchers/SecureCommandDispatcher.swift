@@ -37,22 +37,22 @@ public actor SecureCommandDispatcher {
     private let logger = Logger(subsystem: "PipelineKit", category: "SecureDispatcher")
     #endif
     private let rateLimiter: RateLimiter?
-    private let circuitBreaker: CircuitBreaker?
+    // Circuit breaker functionality now available via CircuitBreakerMiddleware
     
     /// Creates a secure dispatcher wrapping the given command bus.
     /// 
     /// - Parameters:
     ///   - pipeline: The dynamic pipeline to wrap with security features
     ///   - rateLimiter: Optional rate limiter for DoS protection
-    ///   - circuitBreaker: Optional circuit breaker for failure protection
+    /// 
+    /// Note: Circuit breaker functionality is now available via CircuitBreakerMiddleware.
+    /// Add it to your pipeline for circuit breaking behavior.
     public init(
         pipeline: DynamicPipeline,
-        rateLimiter: RateLimiter? = nil,
-        circuitBreaker: CircuitBreaker? = nil
+        rateLimiter: RateLimiter? = nil
     ) {
         self.pipeline = pipeline
         self.rateLimiter = rateLimiter
-        self.circuitBreaker = circuitBreaker
     }
     
     /// Dispatches a command with security protections.
@@ -73,15 +73,7 @@ public actor SecureCommandDispatcher {
         let commandType = String(describing: T.self)
         let executionMetadata = metadata ?? DefaultCommandMetadata()
         
-        // Check circuit breaker first
-        if let breaker = circuitBreaker {
-            guard await breaker.allowRequest() else {
-                #if canImport(os)
-                logger.warning("Circuit breaker open for command: \(commandType, privacy: .public)")
-#endif
-                throw PipelineError.circuitBreakerOpen(resetTime: nil)
-            }
-        }
+        // Note: Circuit breaker functionality now available via CircuitBreakerMiddleware
         
         // Apply rate limiting
         if let limiter = rateLimiter {
@@ -115,21 +107,11 @@ public actor SecureCommandDispatcher {
             logger.debug("Command executed successfully: \(commandType, privacy: .public)")
 #endif
             
-            // Record success for circuit breaker
-            if let breaker = circuitBreaker {
-                await breaker.recordSuccess()
-            }
-            
             return result
         } catch {
             #if canImport(os)
             logger.error("Command execution failed: \(commandType, privacy: .public)")
 #endif
-            
-            // Record failure for circuit breaker
-            if let breaker = circuitBreaker {
-                await breaker.recordFailure()
-            }
             
             throw PipelineError.executionFailed(
                 message: sanitizeError(error),
@@ -190,11 +172,4 @@ public actor SecureCommandDispatcher {
         return await limiter.getStatus(identifier: "\(userId):\(commandType)")
     }
     
-    /// Gets the current circuit breaker state.
-    /// 
-    /// - Returns: The circuit breaker state, if configured
-    public func getCircuitBreakerState() async -> CircuitBreaker.State? {
-        guard let breaker = circuitBreaker else { return nil }
-        return await breaker.getState()
-    }
 }

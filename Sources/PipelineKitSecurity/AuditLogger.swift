@@ -18,6 +18,12 @@ public enum SecurityAuditEvent: Sendable {
 /// Protocol for audit logging systems.
 public protocol AuditLogger: Sendable {
     func log(_ event: SecurityAuditEvent) async
+    
+    // Protocol requirements to enable dynamic dispatch for testing
+    func log(_ event: AuditEvent) async
+    func logCommandStarted(_ entry: AuditEntry) async
+    func logCommandCompleted(_ entry: AuditEntry) async
+    func logCommandFailed(_ entry: AuditEntry) async
 }
 
 /// A comprehensive audit logging system for tracking command execution.
@@ -131,11 +137,7 @@ public actor DefaultAuditLogger: AuditLogger {
                     for entry in buffer {
                         if let data = try? encoder.encode(entry),
                            let string = String(data: data, encoding: .utf8) {
-                            if #available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *) {
-                                PipelineLogger.security.info("AUDIT: \(string)")
-                            } else {
-                                os_log("AUDIT: %{public}@", log: .default, type: .info, string)
-                            }
+                            os_log("AUDIT: %{public}@", log: .default, type: .info, string)
                         }
                     }
                 }

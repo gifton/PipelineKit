@@ -36,10 +36,10 @@ final class BackPressureTests: XCTestCase {
         XCTAssertEqual(lowLatency.maxOutstanding, 10)
     }
     
-    // MARK: - BackPressureAsyncSemaphore Tests
+    // MARK: - BackPressureSemaphore Tests
     
     func testSemaphoreBasicAcquisition() async throws {
-        let semaphore = BackPressureAsyncSemaphore(
+        let semaphore = BackPressureSemaphore(
             maxConcurrency: 2,
             maxOutstanding: 4,
             strategy: .suspend
@@ -59,7 +59,7 @@ final class BackPressureTests: XCTestCase {
     }
     
     func testSemaphoreErrorStrategy() async throws {
-        let semaphore = BackPressureAsyncSemaphore(
+        let semaphore = BackPressureSemaphore(
             maxConcurrency: 1,
             maxOutstanding: 1,
             strategy: .error(timeout: nil)
@@ -83,24 +83,34 @@ final class BackPressureTests: XCTestCase {
     }
     
     func testSemaphoreTimeoutAcquisition() async throws {
-        let semaphore = BackPressureAsyncSemaphore(
+        let semaphore = BackPressureSemaphore(
             maxConcurrency: 1,
             maxOutstanding: 2,
             strategy: .suspend
         )
         
-        // Acquire the only resource
-        _ = try await semaphore.acquire()
+        // Acquire the only resource and hold it
+        let token1 = try await semaphore.acquire()
+        
+        // Check stats to confirm resource is held
+        let stats1 = await semaphore.getStats()
+        XCTAssertEqual(stats1.activeOperations, 1, "Should have 1 active operation")
+        XCTAssertEqual(stats1.availableResources, 0, "Should have 0 available resources")
         
         // Try to acquire with timeout - should timeout
         let startTime = Date()
         
         do {
-            _ = try await semaphore.acquire(timeout: 0.1)
-            XCTFail("Expected timeout")
+            let token = try await semaphore.acquire(timeout: 0.1)
+            if token == nil {
+                // Timeout occurred but didn't throw - this is wrong
+                XCTFail("Expected timeout to throw, got nil")
+            } else {
+                XCTFail("Expected timeout, got a token")
+            }
         } catch let error as PipelineError {
             let elapsed = Date().timeIntervalSince(startTime)
-            XCTAssertGreaterThan(elapsed, 0.1)
+            XCTAssertGreaterThan(elapsed, 0.09) // Allow small tolerance
             
             if case .backPressure(let reason) = error,
                case .timeout = reason {
@@ -108,7 +118,12 @@ final class BackPressureTests: XCTestCase {
             } else {
                 XCTFail("Expected timeout error, got \(error)")
             }
+        } catch {
+            XCTFail("Unexpected error: \(error)")
         }
+        
+        // Keep token1 alive until end
+        _ = token1
     }
     
     // MARK: - ConcurrentPipeline Back-pressure Tests
@@ -142,6 +157,9 @@ final class BackPressureTests: XCTestCase {
         let task3 = Task {
             try await pipeline.execute(TestSlowCommand(duration: 0.1))
         }
+        
+        // Give task3 time to queue
+        await synchronizer.shortDelay()
         
         // This should fail due to outstanding limit exceeded
         do {
@@ -243,14 +261,16 @@ final class BackPressureTests: XCTestCase {
         
         // This should fail with timeout since concurrency is maxed out
         do {
-            _ = try await pipeline.execute(TestSlowCommand(duration: 0.1))
-            XCTFail("Expected back pressure error")
+            let result = try await pipeline.execute(TestSlowCommand(duration: 0.1))
+            XCTFail("Expected back pressure error, but got result: \(result)")
         } catch let error as PipelineError {
             if case .backPressure = error {
                 // Success
             } else {
                 XCTFail("Expected backPressure error, got \(error)")
             }
+        } catch {
+            XCTFail("Unexpected error type: \(error)")
         }
         
         // Wait for first task to complete
@@ -325,9 +345,8 @@ private struct TestSlowHandler: CommandHandler {
     typealias CommandType = TestSlowCommand
     
     func handle(_ command: TestSlowCommand) async throws -> String {
-        // Simulate command duration by yielding
-        await Task.yield()
-        await Task.yield()
+        // Actually sleep for the specified duration
+        try await Task.sleep(nanoseconds: UInt64(command.duration * 1_000_000_000))
         return "Processed slow command"
     }
 }

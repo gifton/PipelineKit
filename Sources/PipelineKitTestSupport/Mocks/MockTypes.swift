@@ -40,7 +40,7 @@ public final class MockAuthenticationMiddleware: Middleware, Sendable {
     public func execute<T: Command>(
         _ command: T,
         context: CommandContext,
-        next: @Sendable (T, CommandContext) async throws -> T.Result
+        next: @escaping @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
         // Simple authentication check
         guard context.commandMetadata.userId != nil else {
@@ -58,7 +58,7 @@ public final class MockValidationMiddleware: Middleware, Sendable {
     public func execute<T: Command>(
         _ command: T,
         context: CommandContext,
-        next: @Sendable (T, CommandContext) async throws -> T.Result
+        next: @escaping @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
         // Simple validation
         if let mockCommand = command as? MockCommand {
@@ -99,7 +99,7 @@ public final class MockLoggingMiddleware: Middleware, @unchecked Sendable {
     public func execute<T: Command>(
         _ command: T,
         context: CommandContext,
-        next: @Sendable (T, CommandContext) async throws -> T.Result
+        next: @escaping @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
         let commandName = String(describing: type(of: command))
         lock.withLock {
@@ -138,7 +138,7 @@ public final class MockMetricsMiddleware: Middleware, @unchecked Sendable {
     public func execute<T: Command>(
         _ command: T,
         context: CommandContext,
-        next: @Sendable (T, CommandContext) async throws -> T.Result
+        next: @escaping @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
         let start = Date()
         let result = try await next(command, context)

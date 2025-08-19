@@ -29,7 +29,7 @@ public struct ValidationMiddleware: Middleware {
     public func execute<T: Command>(
         _ command: T,
         context: CommandContext,
-        next: @Sendable (T, CommandContext) async throws -> T.Result
+        next: @escaping @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
         // All commands now have validate() as a protocol requirement
         // with a default implementation that does nothing

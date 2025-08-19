@@ -32,16 +32,12 @@ let package = Package(
             targets: ["PipelineKitResilience"]
         ),
         .library(
-            name: "PipelineKitMetrics",
-            targets: ["PipelineKitMetrics"]
-        ),
-        .library(
             name: "PipelineKitStorage",
             targets: ["PipelineKitStorage"]
         ),
         .library(
-            name: "PipelineKitCompression",
-            targets: ["PipelineKitCompression"]
+            name: "PipelineKitObservability",
+            targets: ["PipelineKitObservability"]
         ),
         // Benchmark support library
         .library(
@@ -57,18 +53,6 @@ let package = Package(
         .plugin(
             name: "test-unit",
             targets: ["TestUnitCommand"]
-        ),
-        .plugin(
-            name: "test-stress",
-            targets: ["TestStressCommand"]
-        ),
-        .plugin(
-            name: "test-stress-tsan",
-            targets: ["TestStressTSANCommand"]
-        ),
-        .plugin(
-            name: "test-integration",
-            targets: ["TestIntegrationCommand"]
         ),
         .plugin(
             name: "benchmark",
@@ -94,9 +78,8 @@ let package = Package(
                 "PipelineKitCore",
                 "PipelineKitSecurity",
                 "PipelineKitResilience",
-                "PipelineKitMetrics",
-                "PipelineKitStorage",
-                "PipelineKitCompression"
+                "PipelineKitObservability",
+                "PipelineKitStorage"
             ],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency"),
@@ -113,17 +96,6 @@ let package = Package(
                 .enableExperimentalFeature("StrictConcurrency")
             ]
         ),
-        // TODO: StressTesting needs refactoring to remove PipelineKitObservability dependencies
-        // .target(
-        //     name: "StressTesting",
-        //     dependencies: [
-        //         "PipelineKit",
-        //         .product(name: "Atomics", package: "swift-atomics")
-        //     ],
-        //     swiftSettings: [
-        //         .enableExperimentalFeature("StrictConcurrency")
-        //     ]
-        // ),
         // Unified benchmark executable
         .executableTarget(
             name: "Benchmarks",
@@ -157,10 +129,10 @@ let package = Package(
                 .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
             ]
         ),
-        // Metrics module tests
+        // Observability module tests
         .testTarget(
-            name: "PipelineKitMetricsTests",
-            dependencies: ["PipelineKitMetrics", "PipelineKitTestSupport"],
+            name: "PipelineKitObservabilityTests",
+            dependencies: ["PipelineKitObservability", "PipelineKitTestSupport"],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency"),
                 .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
@@ -175,31 +147,6 @@ let package = Package(
                 .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
             ]
         ),
-        // Integration tests - tests that span multiple modules
-        .testTarget(
-            name: "PipelineKitIntegrationTests",
-            dependencies: ["PipelineKit", "PipelineKitTestSupport"],
-            swiftSettings: [
-                .enableExperimentalFeature("StrictConcurrency"),
-                .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
-            ]
-        ),
-        // TODO: Re-enable after StressTesting refactoring
-        // .testTarget(
-        //     name: "StressTestCore",
-        //     dependencies: ["PipelineKit", "PipelineKitTestSupport", "StressTesting"],
-        //     swiftSettings: [
-        //         .enableExperimentalFeature("StrictConcurrency")
-        //     ]
-        // ),
-        // TODO: Re-enable after StressTesting refactoring
-        // .testTarget(
-        //     name: "StressTestIntegration",
-        //     dependencies: ["PipelineKit", "PipelineKitTestSupport", "StressTesting"],
-        //     swiftSettings: [
-        //         .enableExperimentalFeature("StrictConcurrency")
-        //     ]
-        // ),
         
         // MARK: - Modular Targets
         
@@ -209,7 +156,6 @@ let package = Package(
             dependencies: [
                 .product(name: "Atomics", package: "swift-atomics")
             ],
-            exclude: ["Documentation"],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency"),
                 .enableExperimentalFeature("AccessLevelOnImport"),
@@ -231,7 +177,7 @@ let package = Package(
         // Resilience module - Circuit breakers, retry, rate limiting
         .target(
             name: "PipelineKitResilience",
-            dependencies: ["PipelineKitCore", "PipelineKitMetrics"],
+            dependencies: ["PipelineKitCore", "PipelineKitObservability"],
             exclude: ["Documentation"],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency"),
@@ -240,9 +186,9 @@ let package = Package(
             ]
         ),
         
-        // Metrics module - Type-safe metrics with accumulators
+        // Observability module - Unified events and metrics system
         .target(
-            name: "PipelineKitMetrics",
+            name: "PipelineKitObservability",
             dependencies: [
                 "PipelineKitCore",
                 .product(name: "Atomics", package: "swift-atomics")
@@ -261,17 +207,6 @@ let package = Package(
                 "PipelineKitCore",
                 .product(name: "Atomics", package: "swift-atomics")
             ],
-            swiftSettings: [
-                .enableExperimentalFeature("StrictConcurrency"),
-                .enableExperimentalFeature("AccessLevelOnImport"),
-                .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
-            ]
-        ),
-        
-        // Compression module - Compression middleware
-        .target(
-            name: "PipelineKitCompression",
-            dependencies: ["PipelineKitCore"],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency"),
                 .enableExperimentalFeature("AccessLevelOnImport"),
@@ -300,32 +235,6 @@ let package = Package(
             )
         ),
         
-        // Plugin for running stress tests
-        .plugin(
-            name: "TestStressCommand",
-            capability: .command(
-                intent: .custom(verb: "test-stress", description: "Run stress tests"),
-                permissions: []
-            )
-        ),
-        
-        // Plugin for running stress tests with Thread Sanitizer
-        .plugin(
-            name: "TestStressTSANCommand",
-            capability: .command(
-                intent: .custom(verb: "test-stress-tsan", description: "Run stress tests with Thread Sanitizer"),
-                permissions: []
-            )
-        ),
-        
-        // Plugin for running integration tests
-        .plugin(
-            name: "TestIntegrationCommand",
-            capability: .command(
-                intent: .custom(verb: "test-integration", description: "Run integration tests only"),
-                permissions: []
-            )
-        ),
         
         // Plugin for running benchmarks
         .plugin(
@@ -354,7 +263,8 @@ let package = Package(
 //    - Audit logging
 //    - Security policies
 //
-// 3. **Metrics** (Sources/PipelineKitMetrics/)
+// 3. **Observability** (Sources/PipelineKitObservability/)
+//    - Event-driven observability
 //    - Type-safe metric recording
 //    - Statistical accumulators
 //    - Prometheus exporter

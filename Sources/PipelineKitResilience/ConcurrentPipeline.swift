@@ -42,7 +42,7 @@ public actor ConcurrentPipeline: Pipeline {
     private var pipelines: [ObjectIdentifier: any Pipeline] = [:]
     
     /// Back-pressure aware semaphore to control concurrency and queue limits.
-    private let semaphore: BackPressureAsyncSemaphore
+    private let semaphore: BackPressureSemaphore
     
     /// Configuration options for this pipeline.
     public let options: PipelineOptions
@@ -52,7 +52,7 @@ public actor ConcurrentPipeline: Pipeline {
     /// - Parameter options: Configuration options including concurrency limits and back-pressure strategy.
     public init(options: PipelineOptions = PipelineOptions()) {
         self.options = options
-        self.semaphore = BackPressureAsyncSemaphore(
+        self.semaphore = BackPressureSemaphore(
             maxConcurrency: options.maxConcurrency ?? 10,
             maxOutstanding: options.maxOutstanding,
             maxQueueMemory: options.maxQueueMemory,

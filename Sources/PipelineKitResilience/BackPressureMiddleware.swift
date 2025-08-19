@@ -1,12 +1,14 @@
 import Foundation
 import PipelineKitCore
+import Atomics
 
 /// Middleware that enforces back-pressure limits on command execution
 public actor BackPressureMiddleware: Middleware {
     public let priority: ExecutionPriority = .preProcessing
     
-    private let semaphore: BackPressureAsyncSemaphore
+    private let semaphore: BackPressureSemaphore
     private let options: PipelineOptions
+    private let totalProcessedCount = ManagedAtomic<Int>(0)
     
     public init(
         maxConcurrency: Int,
@@ -22,7 +24,7 @@ public actor BackPressureMiddleware: Middleware {
             backPressureStrategy: strategy
         )
         
-        self.semaphore = BackPressureAsyncSemaphore(
+        self.semaphore = BackPressureSemaphore(
             maxConcurrency: maxConcurrency,
             maxOutstanding: maxOutstanding ?? (maxConcurrency * 5),
             maxQueueMemory: maxQueueMemory,
@@ -33,12 +35,26 @@ public actor BackPressureMiddleware: Middleware {
     public nonisolated func execute<T: Command>(
         _ command: T,
         context: CommandContext,
-        next: @Sendable (T, CommandContext) async throws -> T.Result
+        next: @escaping @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
-        // Acquire semaphore token
-        let token = try await semaphore.acquire(
-            estimatedSize: MemoryLayout<T>.size
-        )
+        // Acquire semaphore token, using timeout if error strategy specifies one
+        let token: SemaphoreToken
+        
+        if case .error(let timeout?) = options.backPressureStrategy {
+            // Use timeout-based acquisition for error strategy with timeout
+            guard let acquiredToken = try await semaphore.acquire(
+                timeout: timeout,
+                estimatedSize: MemoryLayout<T>.size
+            ) else {
+                throw PipelineError.backPressure(reason: .timeout(duration: timeout))
+            }
+            token = acquiredToken
+        } else {
+            // Normal acquisition
+            token = try await semaphore.acquire(
+                estimatedSize: MemoryLayout<T>.size
+            )
+        }
         
         defer {
             // Token auto-releases when it goes out of scope
@@ -46,7 +62,12 @@ public actor BackPressureMiddleware: Middleware {
         }
         
         // Execute command with back-pressure protection
-        return try await next(command, context)
+        let result = try await next(command, context)
+        
+        // Increment counter after successful execution
+        totalProcessedCount.wrappingIncrement(ordering: .relaxed)
+        
+        return result
     }
     
     /// Execute with custom estimated size for memory-based back-pressure
@@ -54,12 +75,26 @@ public actor BackPressureMiddleware: Middleware {
         _ command: T,
         context: CommandContext,
         estimatedSize: Int,
-        next: @Sendable (T, CommandContext) async throws -> T.Result
+        next: @escaping @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
-        // Acquire semaphore token with custom size
-        let token = try await semaphore.acquire(
-            estimatedSize: estimatedSize
-        )
+        // Acquire semaphore token, using timeout if error strategy specifies one
+        let token: SemaphoreToken
+        
+        if case .error(let timeout?) = options.backPressureStrategy {
+            // Use timeout-based acquisition for error strategy with timeout
+            guard let acquiredToken = try await semaphore.acquire(
+                timeout: timeout,
+                estimatedSize: estimatedSize
+            ) else {
+                throw PipelineError.backPressure(reason: .timeout(duration: timeout))
+            }
+            token = acquiredToken
+        } else {
+            // Normal acquisition
+            token = try await semaphore.acquire(
+                estimatedSize: estimatedSize
+            )
+        }
         
         defer {
             // Token auto-releases when it goes out of scope
@@ -67,7 +102,12 @@ public actor BackPressureMiddleware: Middleware {
         }
         
         // Execute command with back-pressure protection
-        return try await next(command, context)
+        let result = try await next(command, context)
+        
+        // Increment counter after successful execution
+        totalProcessedCount.wrappingIncrement(ordering: .relaxed)
+        
+        return result
     }
     
     // MARK: - Statistics
@@ -79,7 +119,7 @@ public actor BackPressureMiddleware: Middleware {
             maxOutstanding: options.maxOutstanding ?? 0,
             currentConcurrency: semaphoreStats.activeOperations,
             queuedRequests: semaphoreStats.queuedOperations,
-            totalProcessed: 0, // Would need to track this
+            totalProcessed: totalProcessedCount.load(ordering: .relaxed),
             activeOperations: semaphoreStats.activeOperations
         )
     }
@@ -88,7 +128,9 @@ public actor BackPressureMiddleware: Middleware {
         let health = await semaphore.healthCheck()
         return BackPressureHealth(
             isHealthy: health.isHealthy,
-            queueUtilization: health.queueUtilization
+            queueUtilization: health.queueUtilization,
+            memoryUtilization: health.memoryUtilization,
+            oldestWaiterAge: health.oldestWaiterAge
         )
     }
     
@@ -132,6 +174,8 @@ public struct BackPressureStats: Sendable {
 public struct BackPressureHealth: Sendable {
     public let isHealthy: Bool
     public let queueUtilization: Double
+    public let memoryUtilization: Double
+    public let oldestWaiterAge: TimeInterval
 }
 
 public struct RateLimit: Sendable {

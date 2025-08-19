@@ -96,7 +96,7 @@ public struct AuditLoggingMiddleware: Middleware {
     public func execute<T: Command>(
         _ command: T,
         context: CommandContext,
-        next: @Sendable (T, CommandContext) async throws -> T.Result
+        next: @escaping @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
         let startTime = Date()
         let commandId = UUID()
@@ -159,11 +159,8 @@ public struct AuditLoggingMiddleware: Middleware {
         ]
         
         // Add command properties if available
-        if let metadata = command as? MetadataProviding {
-            for (key, value) in metadata.metadata {
-                data[key] = value
-            }
-        }
+        // Note: MetadataProviding protocol was removed in Core simplification
+        // Commands that need metadata should implement their own pattern
         
         return redactSensitiveFields(data)
     }
@@ -193,11 +190,7 @@ public struct AuditLoggingMiddleware: Middleware {
         ]
         
         // Add result properties if available
-        if let metadata = result as? MetadataProviding {
-            for (key, value) in metadata.metadata {
-                data[key] = value
-            }
-        }
+        // Note: MetadataProviding protocol was removed in Core simplification
         
         return redactSensitiveFields(data)
     }
@@ -337,8 +330,9 @@ public enum AuditEvent: Sendable {
     case securityEvent(SecurityAuditEvent)
 }
 
-/// Extended audit logger protocol.
+/// Default implementations for audit logger protocol.
 public extension AuditLogger {
+    // Default implementation that delegates to specific methods
     func log(_ event: AuditEvent) async {
         switch event {
         case .commandStarted(let entry):
@@ -352,16 +346,17 @@ public extension AuditLogger {
         }
     }
     
+    // Default no-op implementations for specific methods
     func logCommandStarted(_ entry: AuditEntry) async {
-        // Default implementation
+        // Default implementation - no-op
     }
     
     func logCommandCompleted(_ entry: AuditEntry) async {
-        // Default implementation
+        // Default implementation - no-op
     }
     
     func logCommandFailed(_ entry: AuditEntry) async {
-        // Default implementation
+        // Default implementation - no-op
     }
 }
 

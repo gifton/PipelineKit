@@ -103,9 +103,6 @@ final class ValidationTests: XCTestCase {
     }
     
     func testValidationMiddleware() async throws {
-        let bus = CommandBus()
-        try await bus.addMiddleware(ValidationMiddleware())
-        
         struct TestHandler: CommandHandler {
             typealias CommandType = CreateUserCommand
             
@@ -114,7 +111,8 @@ final class ValidationTests: XCTestCase {
             }
         }
         
-        try await bus.register(CreateUserCommand.self, handler: TestHandler())
+        let pipeline = StandardPipeline(handler: TestHandler())
+        try await pipeline.addMiddleware(ValidationMiddleware())
         
         // Test valid command
         let validCommand = CreateUserCommand(
@@ -123,7 +121,7 @@ final class ValidationTests: XCTestCase {
             username: "john_doe"
         )
         
-        let result = try await bus.send(validCommand)
+        let result = try await pipeline.execute(validCommand)
         XCTAssertEqual(result, "User created: john_doe")
         
         // Test invalid command
@@ -134,7 +132,7 @@ final class ValidationTests: XCTestCase {
         )
         
         do {
-            _ = try await bus.send(invalidCommand)
+            _ = try await pipeline.execute(invalidCommand)
             XCTFail("Expected validation error")
         } catch {
             XCTAssertTrue(error is PipelineError)

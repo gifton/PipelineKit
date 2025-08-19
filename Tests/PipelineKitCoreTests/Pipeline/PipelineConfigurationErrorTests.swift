@@ -1,6 +1,6 @@
 import XCTest
 @testable import PipelineKitCore
-@testable import PipelineKitMetrics
+@testable import PipelineKitObservability
 import PipelineKitTestSupport
 
 final class PipelineConfigurationErrorTests: XCTestCase {
@@ -202,11 +202,10 @@ final class PipelineConfigurationErrorTests: XCTestCase {
     
     // MARK: - Helper Types
     
-    private struct TestMetricsCollector: MetricsCollector {
-        func recordCounter(_ name: String, value: Double, tags: [String: String]) async {}
-        func recordGauge(_ name: String, value: Double, tags: [String: String]) async {}
-        func recordHistogram(_ name: String, value: Double, tags: [String: String]) async {}
-        func recordTimer(_ name: String, duration: TimeInterval, tags: [String: String]) async {}
+    private struct TestMetricsCollector: MetricRecorder {
+        func record(_ metric: MetricSnapshot) async {
+            // No-op for testing
+        }
     }
     
     private actor RecursiveMiddleware: Middleware {

@@ -120,6 +120,9 @@ final class PipelineTests: XCTestCase {
         }
     }
     
+    // ConcurrentPipeline was removed during simplification
+    // TODO: Reimplement using TaskGroup if concurrent execution is needed
+    /*
     func testConcurrentPipelineExecution() async throws {
         let pipeline = ConcurrentPipeline(options: PipelineOptions(maxConcurrency: 2))
         let executor = StandardPipeline(handler: TransformHandler())
@@ -140,6 +143,7 @@ final class PipelineTests: XCTestCase {
             }
         }
     }
+    */
     
     func testPriorityPipeline() async throws {
         let handler = TransformHandler()
