@@ -6,7 +6,7 @@
 //
 
 import Foundation
-import PipelineKitCore
+import PipelineKit
 
 // MARK: - Test Errors
 

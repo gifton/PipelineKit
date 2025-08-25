@@ -1,5 +1,5 @@
 import Foundation
-import PipelineKitCore
+import PipelineKit
 
 /// Middleware that handles authentication for command execution.
 ///

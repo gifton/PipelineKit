@@ -62,9 +62,10 @@ final class ContextCopyableTests: XCTestCase {
         
         // Manual deep copy
         let forked = await context.fork()
-        if let originalSession = await context.get(TestContextKeys.session) as? ContextCopyable {
-            await forked.set(TestContextKeys.session, value: originalSession.contextCopy() as? UserSession)
-        }
+        await forked.set(
+            TestContextKeys.session,
+            value: await context.get(TestContextKeys.session)?.contextCopy() as? UserSession
+        )
         
         // Different instances
         let forkedSession = await forked.get(TestContextKeys.session)
@@ -118,9 +119,12 @@ final class ContextCopyableTests: XCTestCase {
         let forked = await context.fork()
         
         // Deep copy only session1
-        if let s1 = await context.get(TestContextKeys.session) as? ContextCopyable {
-            await forked.set(TestContextKeys.session, value: s1.contextCopy() as? UserSession)
-        }
+        await forked.set(
+            TestContextKeys.session,
+            value: await context
+                .get(TestContextKeys.session)?
+                .contextCopy() as? UserSession
+        )
         // session2 remains shared
         
         let forkedSession1 = await forked.get(TestContextKeys.session)

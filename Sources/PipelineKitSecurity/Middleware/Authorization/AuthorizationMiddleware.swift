@@ -1,5 +1,5 @@
 import Foundation
-import PipelineKitCore
+import PipelineKit
 
 /// Authorization middleware with role-based access control.
 public struct AuthorizationMiddleware: Middleware {

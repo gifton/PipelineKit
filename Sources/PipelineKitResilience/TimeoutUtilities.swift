@@ -12,7 +12,7 @@ import Foundation
 ///   - operation: The async operation to execute with timeout enforcement
 /// - Returns: The result of the operation if it completes before timeout
 /// - Throws: `TimeoutError` if the operation times out, or any error from the operation
-internal func withTimeout<T: Sendable>(
+public func withTimeout<T: Sendable>(
     _ seconds: TimeInterval,
     operation: @escaping @Sendable () async throws -> T
 ) async throws -> T {

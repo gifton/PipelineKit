@@ -1,5 +1,5 @@
 import Foundation
-import PipelineKitCore
+import PipelineKit
 
 /// A high-performance async semaphore with back-pressure control and automatic resource management.
 /// 

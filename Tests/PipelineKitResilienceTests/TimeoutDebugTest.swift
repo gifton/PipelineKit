@@ -1,6 +1,7 @@
 import XCTest
 @testable import PipelineKitCore
 @testable import PipelineKitResilience
+import PipelineKit
 
 final class TimeoutDebugTest: XCTestCase {
     // Test command

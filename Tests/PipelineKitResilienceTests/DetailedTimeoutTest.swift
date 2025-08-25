@@ -1,6 +1,7 @@
 import XCTest
 @testable import PipelineKitCore
 @testable import PipelineKitResilience
+import PipelineKit
 
 final class DetailedTimeoutTest: XCTestCase {
     // Test command
@@ -48,7 +49,7 @@ final class DetailedTimeoutTest: XCTestCase {
                 let elapsed = Date().timeIntervalSince(start)
                 print("  [TimeoutMiddleware] Completed in \(elapsed)s")
                 return result
-            } catch let error as TimeoutError {
+            } catch is TimeoutError {
                 let elapsed = Date().timeIntervalSince(start)
                 print("  [TimeoutMiddleware] Timed out after \(elapsed)s")
                 throw PipelineError.timeout(duration: timeout, context: nil)

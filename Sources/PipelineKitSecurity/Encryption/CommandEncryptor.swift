@@ -1,5 +1,5 @@
 import Foundation
-import PipelineKitCore
+import PipelineKit
 import CryptoKit
 
 /// Manages encryption keys and operations for command encryption.

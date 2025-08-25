@@ -1,4 +1,5 @@
 import Foundation
+import PipelineKit
 import PipelineKitCore
 
 /// Advanced bulkhead middleware with partition-based isolation.
@@ -206,16 +207,14 @@ public struct PartitionedBulkheadMiddleware: Middleware {
             await partitionManager.recordRejection(partition: effectiveKey)
 
             if configuration.emitMetrics {
-                // TODO: Re-enable when PipelineEvent is available
-
-                // context.emitMiddlewareEvent(
-                    // "middleware.partitioned_bulkhead_rejected",
-                    // middleware: "PartitionedBulkheadMiddleware",
-                    // properties: [
-                        // "commandType": String(describing: type(of: command)),
-                        // "partition": effectiveKey
-                    // ]
-                // )
+                await context.emitMiddlewareEvent(
+                    "middleware.partitioned_bulkhead_rejected",
+                    middleware: "PartitionedBulkheadMiddleware",
+                    properties: [
+                        "commandType": String(describing: type(of: command)),
+                        "partition": effectiveKey
+                    ]
+                )
             }
 
             throw PipelineError.bulkheadRejected(
@@ -276,21 +275,18 @@ public struct PartitionedBulkheadMiddleware: Middleware {
             await context.setMetadata("bulkhead.queueTime", value: queueTime)
         }
 
-        // TODO: Re-enable when PipelineEvent is available
-
-
-        // context.emitMiddlewareEvent(
-            // "middleware.partitioned_bulkhead_execution",
-            // middleware: "PartitionedBulkheadMiddleware",
-            // properties: [
-                // "partition": metrics.partitionKey,
-                // "wasBorrowed": metrics.wasBorrowed,
-                // "borrowedFrom": metrics.borrowedFrom ?? "",
-                // "wasQueued": metrics.wasQueued,
-                // "queueTime": metrics.queueTime ?? 0,
-                // "duration": duration
-            // ]
-        // )
+        await context.emitMiddlewareEvent(
+            "middleware.partitioned_bulkhead_execution",
+            middleware: "PartitionedBulkheadMiddleware",
+            properties: [
+                "partition": metrics.partitionKey as any Sendable,
+                "wasBorrowed": metrics.wasBorrowed as any Sendable,
+                "borrowedFrom": (metrics.borrowedFrom ?? "") as any Sendable,
+                "wasQueued": metrics.wasQueued as any Sendable,
+                "queueTime": (metrics.queueTime ?? 0) as any Sendable,
+                "duration": duration as any Sendable
+            ]
+        )
     }
 }
 

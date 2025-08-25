@@ -47,7 +47,7 @@ final class InMemoryKeyStoreTests: XCTestCase {
         }
         
         // Verify final state
-        for (identifier, key) in testKeys {
+        for (identifier, _) in testKeys {
             let storedKey = await store.key(for: identifier)
             XCTAssertNotNil(storedKey, "Key \(identifier) should be stored")
         }
@@ -99,6 +99,7 @@ final class InMemoryKeyStoreTests: XCTestCase {
         let currentKey = await store.currentKey
         XCTAssertNotNil(currentKey, "Should have a current key after concurrent operations")
     }
+
     
     func testRaceConditionOnSameKey() async throws {
         let store = InMemoryKeyStore()
@@ -107,7 +108,7 @@ final class InMemoryKeyStoreTests: XCTestCase {
         
         // Multiple tasks trying to update the same key
         await withTaskGroup(of: Void.self) { group in
-            for i in 0..<iterations {
+            (0..<iterations).forEach { _ in
                 group.addTask {
                     let key = SymmetricKey(size: .bits256)
                     await store.store(key: key, identifier: keyIdentifier)

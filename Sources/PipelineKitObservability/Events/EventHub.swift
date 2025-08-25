@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import PipelineKitCore
 
 /// Protocol for components that want to receive events.
 public protocol EventSubscriber: AnyObject, Sendable {
@@ -99,6 +100,11 @@ public actor EventHub: EventEmitter {
         Task { [weak self] in
             await self?.deliverEvent(event)
         }
+    }
+    
+    /// Async version of emit to conform to EventEmitter protocol
+    public func emit(_ event: PipelineEvent) async {
+        await deliverEvent(event)
     }
 
     // MARK: - Subscription Management

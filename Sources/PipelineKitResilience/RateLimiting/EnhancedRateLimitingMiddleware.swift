@@ -1,5 +1,5 @@
 import Foundation
-import PipelineKitCore
+import PipelineKit
 
 /// Enhanced rate limiting middleware with support for priority-based strategies.
 ///

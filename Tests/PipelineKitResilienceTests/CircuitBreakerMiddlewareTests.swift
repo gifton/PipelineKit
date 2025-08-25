@@ -123,7 +123,7 @@ final class CircuitBreakerMiddlewareTests: XCTestCase {
 
         // When - Open the circuit
         for _ in 0..<2 {
-            try? await middleware.execute(failingCommand, context: context) { cmd, _ in
+            _ = try? await middleware.execute(failingCommand, context: context) { cmd, _ in
                 try await cmd.execute()
             }
         }
@@ -160,7 +160,7 @@ final class CircuitBreakerMiddlewareTests: XCTestCase {
 
         // Open the circuit
         for _ in 0..<2 {
-            try? await middleware.execute(FailingCommand(), context: context) { cmd, _ in
+            _ = try? await middleware.execute(FailingCommand(), context: context) { cmd, _ in
                 try await cmd.execute()
             }
         }
@@ -195,7 +195,7 @@ final class CircuitBreakerMiddlewareTests: XCTestCase {
 
         // Open the circuit
         for _ in 0..<2 {
-            try? await middleware.execute(FailingCommand(), context: context) { cmd, _ in
+            _ = try? await middleware.execute(FailingCommand(), context: context) { cmd, _ in
                 try await cmd.execute()
             }
         }

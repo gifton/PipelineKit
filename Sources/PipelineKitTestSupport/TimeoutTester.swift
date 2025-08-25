@@ -1,5 +1,5 @@
 import Foundation
-import PipelineKitCore
+import PipelineKit
 
 /// Test utility for validating timeout behavior
 /// Provides controlled timeout scenarios for testing

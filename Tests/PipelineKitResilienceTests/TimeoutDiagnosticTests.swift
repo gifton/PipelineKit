@@ -1,6 +1,7 @@
 import XCTest
 @testable import PipelineKitCore
 @testable import PipelineKitResilience
+import PipelineKit
 
 final class TimeoutDiagnosticTests: XCTestCase {
     
@@ -183,17 +184,17 @@ final class TimeoutDiagnosticTests: XCTestCase {
         let start = Date()
         
         do {
-            let result = try await pipeline.execute(command, context: CommandContext())
+            _ = try await pipeline.execute(command, context: CommandContext())
+            XCTFail("Should have timed out")
+        } catch let error as PipelineError {
             let elapsed = Date().timeIntervalSince(start)
-            print("Execution completed in \(elapsed)s with result: \(result)")
-            
-            // Slow middleware runs BEFORE timeout middleware wraps it
-            // So it will complete its full delay before timeout even starts
-            XCTAssertGreaterThan(elapsed, 0.09, "Should have taken full slow middleware time")
-        } catch {
-            let elapsed = Date().timeIntervalSince(start)
-            print("Failed after \(elapsed)s with error: \(error)")
-            XCTFail("Should not have timed out when slow middleware runs before timeout")
+            print("Timed out after \(elapsed)s with error: \(error)")
+            if case .timeout = error {
+                // ✅ Success - timeout correctly enforced on wrapped operations
+                XCTAssertLessThan(elapsed, 0.08, "Should timeout at ~50ms, not wait for full 100ms")
+            } else {
+                XCTFail("Wrong error type: \(error)")
+            }
         }
     }
     

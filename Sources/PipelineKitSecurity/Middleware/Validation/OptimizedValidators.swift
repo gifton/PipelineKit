@@ -1,5 +1,5 @@
 import Foundation
-import PipelineKitCore
+import PipelineKit
 
 /// Optimized validators with pre-compiled regex patterns
 public enum OptimizedValidators {

@@ -1,4 +1,5 @@
 import Foundation
+import PipelineKit
 import PipelineKitCore
 
 /// Middleware that provides retry functionality with configurable policies
@@ -58,33 +59,31 @@ public final class ResilientMiddleware: Middleware, @unchecked Sendable {
             do {
                 // Emit retry attempt event for attempts > 1
                 if attempt > 1 {
-                    // TODO: Re-enable when PipelineEvent is available
-                    // context.emitMiddlewareEvent(
-                    //     PipelineEvent.Name.middlewareRetry,
-                    //     middleware: "ResilientMiddleware",
-                    //     properties: [
-                    //         "commandType": String(describing: type(of: command)),
-                    //         "attempt": attempt,
-                    //         "maxAttempts": retryPolicy.maxAttempts
-                    //     ]
-                    // )
+                    await context.emitMiddlewareEvent(
+                        PipelineEvent.Name.resilienceRetryAttempt,
+                        middleware: "ResilientMiddleware",
+                        properties: [
+                            "commandType": String(describing: type(of: command)),
+                            "attempt": attempt,
+                            "maxAttempts": retryPolicy.maxAttempts
+                        ]
+                    )
                 }
                 
                 return try await next(command, context)
             } catch {
                 lastError = error
                 
-                // TODO: Re-enable when PipelineEvent is available
-                // context.emitMiddlewareEvent(
-                //     "middleware.retry_failed",
-                //     middleware: "ResilientMiddleware",
-                //     properties: [
-                //         "commandType": String(describing: type(of: command)),
-                //         "attempt": attempt,
-                //         "errorType": String(describing: type(of: error)),
-                //         "errorMessage": error.localizedDescription
-                //     ]
-                // )
+                await context.emitMiddlewareEvent(
+                    "middleware.retry_failed",
+                    middleware: "ResilientMiddleware",
+                    properties: [
+                        "commandType": String(describing: type(of: command)),
+                        "attempt": attempt,
+                        "errorType": String(describing: type(of: error)),
+                        "errorMessage": error.localizedDescription
+                    ]
+                )
                 
                 // Check if we should retry
                 let recoveryContext = ErrorRecoveryContext(
@@ -98,17 +97,16 @@ public final class ResilientMiddleware: Middleware, @unchecked Sendable {
                 guard !recoveryContext.isFinalAttempt && retryPolicy.shouldRetry(error) else {
                     // Emit exhausted event if we're done retrying
                     if recoveryContext.isFinalAttempt {
-                        // TODO: Re-enable when PipelineEvent is available
-                        // context.emitMiddlewareEvent(
-                        //     "middleware.retry_exhausted",
-                        //     middleware: "ResilientMiddleware",
-                        //     properties: [
-                        //         "commandType": String(describing: type(of: command)),
-                        //         "attempts": retryPolicy.maxAttempts,
-                        //         "errorType": String(describing: type(of: error)),
-                        //         "errorMessage": error.localizedDescription
-                        //     ]
-                        // )
+                        await context.emitMiddlewareEvent(
+                            PipelineEvent.Name.resilienceFailed,
+                            middleware: "ResilientMiddleware",
+                            properties: [
+                                "commandType": String(describing: type(of: command)),
+                                "attempts": retryPolicy.maxAttempts,
+                                "errorType": String(describing: type(of: error)),
+                                "errorMessage": error.localizedDescription
+                            ]
+                        )
                     }
                     throw error
                 }

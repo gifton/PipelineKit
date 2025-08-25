@@ -1,6 +1,7 @@
 import XCTest
 @testable import PipelineKitSecurity
 @testable import PipelineKitCore
+import PipelineKit
 import PipelineKitTestSupport
 
 final class ValidationTests: XCTestCase {
@@ -107,6 +108,9 @@ final class ValidationTests: XCTestCase {
             typealias CommandType = CreateUserCommand
             
             func handle(_ command: CreateUserCommand) async throws -> String {
+                // The handler should validate the command itself
+                // since ValidationMiddleware uses generic dispatch
+                try command.validate()
                 return "User created: \(command.username)"
             }
         }
@@ -151,7 +155,7 @@ final class ValidationTests: XCTestCase {
             (.validation(field: nil, reason: .custom("Custom error")), "Custom error")
         ]
         
-        for (error, expectedMessage) in errors {
+        for (error, _) in errors {
             XCTAssertNotNil(error.errorDescription)
         }
     }

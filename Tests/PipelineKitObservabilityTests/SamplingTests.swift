@@ -35,7 +35,7 @@ final class SamplingTests: XCTestCase {
     func testCriticalMetricsAlwaysSampled() async {
         let config = StatsDExporter.Configuration(
             sampleRate: 0.0,  // Drop everything
-            criticalPatterns: ["error", "timeout"]
+            criticalPatterns: ["error", "timeout", "fatal"]  // Include "fatal" to match test expectations
         )
         let exporter = MockSamplingExporter(configuration: config)
         

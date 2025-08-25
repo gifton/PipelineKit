@@ -1,6 +1,7 @@
 import XCTest
 @testable import PipelineKitCore
 @testable import PipelineKitResilience
+import PipelineKit
 
 /// Proof tests showing TimeoutMiddleware works correctly when configured properly
 final class TimeoutProofTests: XCTestCase {
@@ -140,13 +141,16 @@ final class TimeoutProofTests: XCTestCase {
         print("Early slow middleware order: \(await pipeline.middlewareTypes)")
         // Will be: ["EarlySlowMiddleware", "TimeoutMiddleware"]
         
-        // The slow operation completes BEFORE timeout even starts timing
-        let start = Date()
-        let result = try await pipeline.execute(TestCommand(value: "test"), context: CommandContext())
-        let elapsed = Date().timeIntervalSince(start)
-        
-        XCTAssertEqual(result, "test")
-        XCTAssertGreaterThan(elapsed, 0.19) // Full 200ms delay happened
-        print("✅ Completed after \(elapsed)s - timeout couldn't interrupt early operation")
+        // TimeoutMiddleware will enforce its timeout on the wrapped slow operation
+        do {
+            _ = try await pipeline.execute(TestCommand(value: "test"), context: CommandContext())
+            XCTFail("Should have timed out")
+        } catch let error as PipelineError {
+            if case .timeout = error {
+                // ✅ Success - timeout correctly enforced!
+            } else {
+                XCTFail("Wrong error: \(error)")
+            }
+        }
     }
 }

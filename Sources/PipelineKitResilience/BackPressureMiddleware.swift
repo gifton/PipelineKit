@@ -1,6 +1,7 @@
 import Foundation
-import PipelineKitCore
+import PipelineKit
 import Atomics
+import _ResilienceFoundation
 
 /// Middleware that enforces back-pressure limits on command execution
 public actor BackPressureMiddleware: Middleware {
@@ -178,12 +179,3 @@ public struct BackPressureHealth: Sendable {
     public let oldestWaiterAge: TimeInterval
 }
 
-public struct RateLimit: Sendable {
-    public let maxRequests: Int
-    public let window: TimeInterval
-    
-    public init(maxRequests: Int, window: TimeInterval) {
-        self.maxRequests = maxRequests
-        self.window = window
-    }
-}

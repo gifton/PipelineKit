@@ -40,7 +40,7 @@ public enum Metrics {
             criticalPatterns: criticalPatterns
         )
         
-        let newExporter = StatsDExporter(configuration: config)
+        let newExporter = await StatsDExporter(configuration: config)
         
         // Set up error handling
         if let handler = errorHandler {
@@ -97,12 +97,21 @@ public enum Metrics {
         block: () async throws -> T
     ) async rethrows -> T {
         let start = ContinuousClock.now
-        let result = try await block()
-        let elapsed = ContinuousClock.now - start
-        let duration = Double(elapsed.components.seconds) + 
-                       Double(elapsed.components.attoseconds) / 1e18
-        await timer(name, duration: duration, tags: tags)
-        return result
+        do {
+            let result = try await block()
+            let elapsed = ContinuousClock.now - start
+            let duration = Double(elapsed.components.seconds) + 
+                           Double(elapsed.components.attoseconds) / 1e18
+            await timer(name, duration: duration, tags: tags)
+            return result
+        } catch {
+            // Record timer even on error
+            let elapsed = ContinuousClock.now - start
+            let duration = Double(elapsed.components.seconds) + 
+                           Double(elapsed.components.attoseconds) / 1e18
+            await timer(name, duration: duration, tags: tags)
+            throw error
+        }
     }
     
     /// Disables metrics export (useful for testing).

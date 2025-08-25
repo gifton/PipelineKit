@@ -1,5 +1,5 @@
 import Foundation
-import PipelineKitCore
+import PipelineKit
 
 /// Service protocol for encrypting and decrypting data
 public protocol EncryptionService: Sendable {

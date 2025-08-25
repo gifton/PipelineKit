@@ -1,5 +1,5 @@
 import Foundation
-import PipelineKitCore
+import PipelineKit
 
 /// Middleware that enforces rate limiting on command execution.
 ///

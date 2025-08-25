@@ -1,6 +1,6 @@
 import Foundation
 import XCTest
-import PipelineKitCore
+import PipelineKit
 
 /// Test pipeline for unit testing with recording and mocking capabilities
 public actor TestPipeline: Pipeline {
@@ -254,7 +254,7 @@ public extension XCTestCase {
         _ pipeline: any Pipeline,
         command: T,
         metadata: CommandMetadata = DefaultCommandMetadata(),
-        file: StaticString = #file,
+        file: StaticString = #filePath,
         line: UInt = #line
     ) async {
         do {
@@ -271,7 +271,7 @@ public extension XCTestCase {
         command: T,
         metadata: CommandMetadata = DefaultCommandMetadata(),
         withError expectedError: Error? = nil,
-        file: StaticString = #file,
+        file: StaticString = #filePath,
         line: UInt = #line
     ) async {
         do {
@@ -296,7 +296,7 @@ public extension XCTestCase {
         command: T,
         metadata: CommandMetadata = DefaultCommandMetadata(),
         within duration: TimeInterval,
-        file: StaticString = #file,
+        file: StaticString = #filePath,
         line: UInt = #line
     ) async {
         let startTime = Date()

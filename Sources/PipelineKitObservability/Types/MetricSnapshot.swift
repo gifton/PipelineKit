@@ -83,7 +83,7 @@ public extension MetricSnapshot {
         MetricSnapshot(
             name: name,
             type: "timer",
-            value: duration, // Already in the expected unit
+            value: duration * 1000, // Convert seconds to milliseconds
             tags: tags,
             unit: "ms"
         )

@@ -262,8 +262,9 @@ final class CommandValidatorTests: XCTestCase {
         let unicodeEmail = "user@例え.jp"
         let unicodeText = "Hello 世界"
         
-        // Email validation should handle unicode domains
-        XCTAssertNoThrow(try CommandValidator.validateEmail(unicodeEmail))
+        // Email validation rejects unicode domains (only ASCII allowed in domains)
+        XCTAssertThrowsError(try CommandValidator.validateEmail(unicodeEmail), 
+                            "Unicode domains are not supported")
         
         // Length validation should count characters correctly
         XCTAssertNoThrow(

@@ -1,5 +1,5 @@
 import Foundation
-import PipelineKitCore
+import PipelineKit
 import PipelineKitResilience
 #if canImport(os)
 import os.log

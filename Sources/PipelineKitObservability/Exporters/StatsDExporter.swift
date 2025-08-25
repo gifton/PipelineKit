@@ -7,7 +7,7 @@ import Network
 ///
 /// Features:
 /// - Swift 6 strict concurrency compliant
-/// - Connection state management with proper lifecycle
+/// - Transport abstraction for flexible backend support
 /// - Error handling and reporting
 /// - Metric batching for efficiency
 /// - Automatic reconnection on failure
@@ -29,6 +29,10 @@ public actor StatsDExporter: MetricRecorder {
         // Aggregation configuration
         public let aggregation: AggregationConfiguration
         
+        // Transport configuration
+        public let useTransport: Bool  // Enable new transport layer
+        public let transportTimeout: TimeInterval
+        
         public init(
             host: String = "localhost",
             port: Int = 8125,
@@ -39,7 +43,9 @@ public actor StatsDExporter: MetricRecorder {
             sampleRate: Double = 1.0,
             sampleRatesByType: [String: Double] = [:],
             criticalPatterns: [String] = ["error", "timeout", "failure", "fatal", "panic"],
-            aggregation: AggregationConfiguration = AggregationConfiguration()
+            aggregation: AggregationConfiguration = AggregationConfiguration(),
+            useTransport: Bool = false,  // Default to legacy for backward compatibility
+            transportTimeout: TimeInterval = 1.0
         ) {
             self.host = host
             self.port = port
@@ -56,13 +62,15 @@ public actor StatsDExporter: MetricRecorder {
             
             self.criticalPatterns = criticalPatterns
             self.aggregation = aggregation
+            self.useTransport = useTransport
+            self.transportTimeout = transportTimeout
         }
         
         public static let `default` = Configuration()
     }
     
     #if canImport(Network)
-    /// Connection state machine
+    /// Connection state machine (legacy)
     private enum ConnectionState {
         case disconnected
         case connecting
@@ -73,7 +81,11 @@ public actor StatsDExporter: MetricRecorder {
     
     private let configuration: Configuration
     
+    // Transport layer (new)
+    private var transport: (any MetricsTransport)?
+    
     #if canImport(Network)
+    // Legacy connection handling
     private var connectionState = ConnectionState.disconnected
     private var connectionContinuation: CheckedContinuation<Void, Never>?
     #endif
@@ -93,7 +105,32 @@ public actor StatsDExporter: MetricRecorder {
         self.errorHandler = handler
     }
     
-    /// Creates a new StatsD exporter.
+    /// Creates a new StatsD exporter with optional transport.
+    public init(configuration: Configuration = .default, transport: (any MetricsTransport)? = nil) async {
+        self.configuration = configuration
+        
+        // Initialize aggregator if enabled
+        if configuration.aggregation.enabled {
+            self.aggregator = MetricAggregator(configuration: configuration.aggregation)
+        } else {
+            self.aggregator = nil
+        }
+        
+        // Set up transport
+        if let providedTransport = transport {
+            self.transport = providedTransport
+        } else if configuration.useTransport {
+            // Create default UDP transport
+            let udpConfig = UDPTransport.Configuration(
+                host: configuration.host,
+                port: configuration.port,
+                timeout: configuration.transportTimeout
+            )
+            self.transport = try? await UDPTransport(configuration: udpConfig)
+        }
+    }
+    
+    /// Creates a new StatsD exporter (backward compatibility).
     public init(configuration: Configuration = .default) {
         self.configuration = configuration
         
@@ -103,6 +140,9 @@ public actor StatsDExporter: MetricRecorder {
         } else {
             self.aggregator = nil
         }
+        
+        // No transport in sync init (use legacy path)
+        self.transport = nil
     }
     
     // MARK: - Sampling Logic
@@ -275,16 +315,40 @@ public actor StatsDExporter: MetricRecorder {
     private func flush() async {
         guard !buffer.isEmpty else { return }
         
-        let batch = buffer.joined(separator: "\n")
+        let batch = buffer
         buffer.removeAll(keepingCapacity: true)
         flushTask?.cancel()
         flushTask = nil
         
-        await send(batch)
+        // Use transport if available, otherwise legacy
+        if transport != nil {
+            await sendViaTransport(batch)
+        } else {
+            let data = batch.joined(separator: "\n")
+            await sendLegacy(data)
+        }
     }
     
-    /// Sends data via UDP.
-    private func send(_ data: String) async {
+    /// Sends metrics via transport layer.
+    private func sendViaTransport(_ lines: [String]) async {
+        guard let transport = transport else { return }
+        
+        do {
+            // Convert each line to Data
+            let packets = lines.compactMap { $0.data(using: .utf8) }
+            
+            if packets.count == 1 {
+                try await transport.send(packets[0])
+            } else if !packets.isEmpty {
+                try await transport.sendBatch(packets)
+            }
+        } catch {
+            reportError(error)
+        }
+    }
+    
+    /// Sends data via UDP (legacy).
+    private func sendLegacy(_ data: String) async {
         #if canImport(Network)
         do {
             try await ensureConnection()
@@ -411,6 +475,20 @@ public actor StatsDExporter: MetricRecorder {
             let line = formatMetric(snapshot, sampleRate: sampleRate)
             await bufferMetric(line)
         }
+    }
+}
+
+// MARK: - Test Support
+
+public extension StatsDExporter {
+    /// Creates an exporter with a mock transport for testing.
+    static func withMockTransport(
+        configuration: Configuration = .default,
+        mockConfig: MockTransport.Configuration = MockTransport.Configuration()
+    ) async -> (StatsDExporter, MockTransport) {
+        let mockTransport = try! await MockTransport(configuration: mockConfig)
+        let exporter = await StatsDExporter(configuration: configuration, transport: mockTransport)
+        return (exporter, mockTransport)
     }
 }
 

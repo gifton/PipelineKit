@@ -1,5 +1,5 @@
 import Foundation
-import PipelineKitCore
+import PipelineKit
 
 /// Test utility for synchronizing async operations in tests
 /// Provides utilities for controlled timing and sequencing of concurrent operations

@@ -1,6 +1,6 @@
 import Foundation
 import CryptoKit
-import PipelineKitCore
+import PipelineKit
 
 /// Standard AES-GCM encryption service
 struct StandardEncryptionService: EncryptionService {

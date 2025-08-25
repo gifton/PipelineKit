@@ -1,5 +1,5 @@
 import Foundation
-import PipelineKitCore
+import PipelineKit
 
 /// Middleware that implements the Circuit Breaker pattern to prevent cascading failures
 ///
@@ -208,6 +208,7 @@ public struct CircuitBreakerMiddleware: Middleware {
     
     // MARK: - Middleware Implementation
     
+    @discardableResult
     public func execute<T: Command>(
         _ command: T,
         context: CommandContext,

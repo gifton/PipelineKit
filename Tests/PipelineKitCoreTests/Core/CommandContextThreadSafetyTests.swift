@@ -1,5 +1,6 @@
 import XCTest
 @testable import PipelineKitCore
+import PipelineKit
 import PipelineKitTestSupport
 
 final class CommandContextThreadSafetyTests: XCTestCase {
@@ -302,9 +303,6 @@ final class CommandContextThreadSafetyTests: XCTestCase {
         XCTAssertNotNil(finalID)
     }
 
-    // snapshot() method returns [String: Any] which isn't Sendable
-    // TODO: Update test if snapshot returns a Sendable type
-    /*
     func testStorageSnapshotConsistency() async throws {
         let context = CommandContext()
         let iterations = 50
@@ -315,7 +313,7 @@ final class CommandContextThreadSafetyTests: XCTestCase {
         }
 
         // Take snapshots while modifying
-        await withTaskGroup(of: [String: Any].self) { group in
+        await withTaskGroup(of: [String: any Sendable].self) { group in
             // Writers
             for i in 0..<iterations {
                 group.addTask {
@@ -327,11 +325,11 @@ final class CommandContextThreadSafetyTests: XCTestCase {
             // Snapshot readers
             for _ in 0..<5 {
                 group.addTask {
-                    return context.snapshot()
+                    return await context.snapshot()
                 }
             }
 
-            var snapshots: [[String: Any]] = []
+            var snapshots: [[String: any Sendable]] = []
             for await snapshot in group {
                 if !snapshot.isEmpty {
                     snapshots.append(snapshot)
@@ -343,7 +341,8 @@ final class CommandContextThreadSafetyTests: XCTestCase {
                 XCTAssertGreaterThan(snapshot.count, 0)
                 // Each value should be either original or updated
                 for (key, value) in snapshot {
-                    if let stringValue = value as? String {
+                    if let wrapper = value as? AnySendable,
+                       let stringValue = wrapper.get(String.self) {
                         XCTAssertTrue(
                             stringValue.hasPrefix("value-") || stringValue.hasPrefix("updated-"),
                             "Unexpected value: \(stringValue)"
@@ -353,30 +352,29 @@ final class CommandContextThreadSafetyTests: XCTestCase {
             }
         }
     }
-    */
 
-    // TODO: Update this test when EventEmitter is implemented
-    // func testConcurrentCustomEventEmission() async throws {
-    //     let context = CommandContext()
-    //     let iterations = 50
-    //
-    //     await withTaskGroup(of: Void.self) { group in
-    //         for i in 0..<iterations {
-    //             group.addTask {
-    //                 await context.emitCustomEvent(
-    //                     "test.event.\(i)",
-    //                     properties: [
-    //                         "index": i,
-    //                         "timestamp": Date()
-    //                     ]
-    //                 )
-    //             }
-    //         }
-    //     }
-    //
-    //     // No crash = success for thread safety
-    //     // The events are fire-and-forget, so we can't easily verify them
-    //     XCTAssertTrue(true, "Concurrent event emission completed without crashes")
-    // }
+    func testConcurrentCustomEventEmission() async throws {
+        let context = CommandContext()
+        let iterations = 50
+
+        await withTaskGroup(of: Void.self) { group in
+            for i in 0..<iterations {
+                group.addTask {
+                    await context.emitMiddlewareEvent(
+                        "test.event.\(i)",
+                        middleware: "TestMiddleware",
+                        properties: [
+                            "index": i,
+                            "timestamp": Date()
+                        ]
+                    )
+                }
+            }
+        }
+
+        // No crash = success for thread safety
+        // The events are fire-and-forget, so we can't easily verify them
+        XCTAssertTrue(true, "Concurrent event emission completed without crashes")
+    }
 }
 

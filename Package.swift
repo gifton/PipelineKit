@@ -32,8 +32,12 @@ let package = Package(
             targets: ["PipelineKitResilience"]
         ),
         .library(
-            name: "PipelineKitStorage",
-            targets: ["PipelineKitStorage"]
+            name: "PipelineKitCache",
+            targets: ["PipelineKitCache"]
+        ),
+        .library(
+            name: "PipelineKitPooling",
+            targets: ["PipelineKitPooling"]
         ),
         .library(
             name: "PipelineKitObservability",
@@ -73,13 +77,8 @@ let package = Package(
         .target(
             name: "PipelineKit",
             dependencies: [
-                .product(name: "Atomics", package: "swift-atomics"),
-                // Re-export all modular libraries
                 "PipelineKitCore",
-                "PipelineKitSecurity",
-                "PipelineKitResilience",
-                "PipelineKitObservability",
-                "PipelineKitStorage"
+                .product(name: "Atomics", package: "swift-atomics")
             ],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency"),
@@ -91,7 +90,7 @@ let package = Package(
         ),
         .target(
             name: "PipelineKitTestSupport",
-            dependencies: ["PipelineKit"],
+            dependencies: ["PipelineKit", "PipelineKitSecurity"],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency")
             ]
@@ -99,13 +98,34 @@ let package = Package(
         // Unified benchmark executable
         .executableTarget(
             name: "Benchmarks",
-            dependencies: ["PipelineKit", "PipelineKitBenchmark"],
+            dependencies: [
+                "PipelineKit",
+                "PipelineKitBenchmark",
+                "PipelineKitCache",
+                "PipelineKitPooling",
+                "PipelineKitResilience",
+                
+            ],
             path: "Sources/Benchmarks"
         ),
-        // Core module tests
+        // Core module tests - Tests for PipelineKitCore foundation types
         .testTarget(
             name: "PipelineKitCoreTests",
-            dependencies: ["PipelineKitCore", "PipelineKitTestSupport"],
+            dependencies: [
+                "PipelineKitCore",
+                "PipelineKitTestSupport",
+                "PipelineKitResilience",
+                "PipelineKitObservability"
+            ],
+            swiftSettings: [
+                .enableExperimentalFeature("StrictConcurrency"),
+                .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
+            ]
+        ),
+        // PipelineKit tests - Tests for higher-level pipeline features
+        .testTarget(
+            name: "PipelineKitTests",
+            dependencies: ["PipelineKit", "PipelineKitTestSupport"],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency"),
                 .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
@@ -138,10 +158,19 @@ let package = Package(
                 .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
             ]
         ),
-        // Caching module tests
+        // Cache module tests
         .testTarget(
-            name: "PipelineKitStorageTests",
-            dependencies: ["PipelineKitStorage", "PipelineKitTestSupport"],
+            name: "PipelineKitCacheTests",
+            dependencies: ["PipelineKitCache", "PipelineKitTestSupport"],
+            swiftSettings: [
+                .enableExperimentalFeature("StrictConcurrency"),
+                .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
+            ]
+        ),
+        // Pooling module tests
+        .testTarget(
+            name: "PipelineKitPoolingTests",
+            dependencies: ["PipelineKitPooling", "PipelineKitTestSupport"],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency"),
                 .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
@@ -163,10 +192,10 @@ let package = Package(
             ]
         ),
         
-        // Security module - Depends on Core
+        // Security module - Depends on Kit
         .target(
             name: "PipelineKitSecurity",
-            dependencies: ["PipelineKitCore", "PipelineKitResilience"],
+            dependencies: ["PipelineKit", "PipelineKitResilience"],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency"),
                 .enableExperimentalFeature("AccessLevelOnImport"),
@@ -175,10 +204,111 @@ let package = Package(
         ),
         
         // Resilience module - Circuit breakers, retry, rate limiting
+        // Internal targets for parallel compilation
+        .target(
+            name: "_ResilienceFoundation",
+            dependencies: [
+                "PipelineKit",
+                .product(name: "Atomics", package: "swift-atomics")
+            ],
+            path: "Sources/PipelineKitResilience",
+            sources: [
+                "RateLimit.swift",
+                "Semaphore/AsyncSemaphore.swift",
+                "Semaphore/BackPressureSemaphore.swift",
+                "Semaphore/PriorityHeap.swift"
+            ],
+            swiftSettings: [
+                .enableExperimentalFeature("StrictConcurrency"),
+                .enableExperimentalFeature("AccessLevelOnImport"),
+                .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
+            ]
+        ),
+        .target(
+            name: "_ResilienceCore",
+            dependencies: [
+                "PipelineKit",
+                "_ResilienceFoundation",
+                "PipelineKitObservability"
+            ],
+            path: "Sources/PipelineKitResilience",
+            sources: [
+                "RetryMiddleware.swift",
+                "BackPressureMiddleware.swift",
+                "ResilientMiddleware.swift",
+                "TimeoutMiddleware.swift",
+                "TimeoutComponents.swift",
+                "TimeoutUtilities.swift",
+                "ConcurrentPipeline.swift",
+                "ParallelMiddlewareWrapper.swift"
+            ],
+            swiftSettings: [
+                .enableExperimentalFeature("StrictConcurrency"),
+                .enableExperimentalFeature("AccessLevelOnImport"),
+                .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
+            ]
+        ),
+        .target(
+            name: "_RateLimiting",
+            dependencies: [
+                "PipelineKit",
+                "_ResilienceFoundation"
+            ],
+            path: "Sources/PipelineKitResilience/RateLimiting",
+            swiftSettings: [
+                .enableExperimentalFeature("StrictConcurrency"),
+                .enableExperimentalFeature("AccessLevelOnImport"),
+                .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
+            ]
+        ),
+        .target(
+            name: "_CircuitBreaker",
+            dependencies: [
+                "PipelineKit",
+                "_ResilienceFoundation"
+            ],
+            path: "Sources/PipelineKitResilience",
+            sources: [
+                "CircuitBreakerMiddleware.swift",
+                "BulkheadMiddleware.swift",
+                "PartitionedBulkheadMiddleware.swift",
+                "HealthCheckMiddleware.swift"
+            ],
+            swiftSettings: [
+                .enableExperimentalFeature("StrictConcurrency"),
+                .enableExperimentalFeature("AccessLevelOnImport"),
+                .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
+            ]
+        ),
+        // Public umbrella target
         .target(
             name: "PipelineKitResilience",
-            dependencies: ["PipelineKitCore", "PipelineKitObservability"],
-            exclude: ["Documentation"],
+            dependencies: [
+                "_ResilienceFoundation",
+                "_ResilienceCore",
+                "_RateLimiting",
+                "_CircuitBreaker"
+            ],
+            path: "Sources/PipelineKitResilience",
+            exclude: [
+                "Documentation",
+                "RateLimit.swift",
+                "Semaphore",
+                "RetryMiddleware.swift",
+                "BackPressureMiddleware.swift",
+                "ResilientMiddleware.swift",
+                "TimeoutMiddleware.swift",
+                "TimeoutComponents.swift",
+                "TimeoutUtilities.swift",
+                "ConcurrentPipeline.swift",
+                "ParallelMiddlewareWrapper.swift",
+                "RateLimiting",
+                "CircuitBreakerMiddleware.swift",
+                "BulkheadMiddleware.swift",
+                "PartitionedBulkheadMiddleware.swift",
+                "HealthCheckMiddleware.swift"
+            ],
+            sources: ["PipelineKitResilience.swift"],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency"),
                 .enableExperimentalFeature("AccessLevelOnImport"),
@@ -190,7 +320,7 @@ let package = Package(
         .target(
             name: "PipelineKitObservability",
             dependencies: [
-                "PipelineKitCore",
+                "PipelineKit",
                 .product(name: "Atomics", package: "swift-atomics")
             ],
             swiftSettings: [
@@ -200,11 +330,26 @@ let package = Package(
             ]
         ),
         
-        // Storage module - Memory management and caching combined
+        // Cache module - Caching middleware and protocols
         .target(
-            name: "PipelineKitStorage",
+            name: "PipelineKitCache",
+            dependencies: [
+                "PipelineKit",
+                "PipelineKitCore"
+            ],
+            swiftSettings: [
+                .enableExperimentalFeature("StrictConcurrency"),
+                .enableExperimentalFeature("AccessLevelOnImport"),
+                .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
+            ]
+        ),
+        
+        // Pooling module - Object pooling and resource management
+        .target(
+            name: "PipelineKitPooling",
             dependencies: [
                 "PipelineKitCore",
+                "PipelineKitResilience",
                 .product(name: "Atomics", package: "swift-atomics")
             ],
             swiftSettings: [

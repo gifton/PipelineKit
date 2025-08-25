@@ -1,5 +1,7 @@
 import Foundation
+import PipelineKit
 import PipelineKitCore
+import _ResilienceFoundation
 /// Middleware that implements the Bulkhead pattern for resource isolation.
 ///
 /// The Bulkhead pattern prevents a failure in one part of the system from
@@ -337,15 +339,13 @@ public struct BulkheadMiddleware: Middleware {
         }
 
         if configuration.emitMetrics {
-            // TODO: Re-enable when PipelineEvent is available
-
-            // context.emitMiddlewareEvent(
-                // "middleware.bulkhead_rejected",
-                // middleware: "BulkheadMiddleware",
-                // properties: [
-                    // "commandType": String(describing: type(of: command))
-                // ]
-            // )
+            await context.emitMiddlewareEvent(
+                PipelineEvent.Name.bulkheadRejected,
+                middleware: "BulkheadMiddleware",
+                properties: [
+                    "commandType": String(describing: type(of: command))
+                ]
+            )
         }
     }
 

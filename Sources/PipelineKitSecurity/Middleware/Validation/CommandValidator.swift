@@ -1,5 +1,5 @@
 import Foundation
-import PipelineKitCore
+import PipelineKit
 
 /// A validator that performs common validation checks.
 public struct CommandValidator: Sendable {

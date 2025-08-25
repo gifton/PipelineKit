@@ -171,7 +171,7 @@ actor MetricAggregator {
                 let sleepTime = configuration.flushInterval * (1.0 + jitter)
                 
                 try? await Task.sleep(for: .seconds(sleepTime))
-                await self.flush()
+                _ = await self.flush()
             }
         }
         

@@ -1,5 +1,5 @@
 import Foundation
-import PipelineKitCore
+import PipelineKit
 
 /// Errors specific to parallel execution
 public enum ParallelExecutionError: Error, Equatable {

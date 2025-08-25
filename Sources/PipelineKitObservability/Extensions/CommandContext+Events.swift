@@ -13,12 +13,12 @@ import PipelineKitCore
 public extension CommandContext {
     /// The event emitter for this context
     var eventEmitter: EventEmitter? {
-        get async { await self.get(ContextKeys.eventEmitter) }
+        get { self.get(ContextKeys.eventEmitter) }
     }
     
     /// Sets the event emitter for this context
-    func setEventEmitter(_ emitter: EventEmitter?) async {
-        await self.set(ContextKeys.eventEmitter, value: emitter)
+    func setEventEmitter(_ emitter: EventEmitter?) {
+        self.set(ContextKeys.eventEmitter, value: emitter)
     }
 
     /// Emits an event through the context's event emitter.
@@ -30,7 +30,7 @@ public extension CommandContext {
     ///   - name: The event name
     ///   - properties: Additional event properties
     func emitEvent(_ name: String, properties: [String: any Sendable] = [:]) async {
-        guard let emitter = await eventEmitter else { return }
+        guard let emitter = eventEmitter else { return }
 
         let correlationId = await correlationID ?? commandMetadata.correlationId ?? commandMetadata.id.uuidString
         let event = PipelineEvent(
@@ -39,7 +39,7 @@ public extension CommandContext {
             correlationID: correlationId
         )
 
-        emitter.emit(event)
+        await emitter.emit(event)
     }
 
     /// Emits a command started event.
@@ -107,23 +107,7 @@ public extension CommandContext {
         await emitEvent(PipelineEvent.Name.commandFailed, properties: props)
     }
 
-    /// Emits a middleware event.
-    ///
-    /// - Parameters:
-    ///   - name: The event name (use PipelineEvent.Name constants)
-    ///   - middleware: The middleware type name
-    ///   - properties: Additional properties
-    func emitMiddlewareEvent(
-        _ name: String,
-        middleware: String,
-        properties: [String: any Sendable] = [:]
-    ) async {
-        var props = properties
-        props["middleware"] = middleware
-        props["commandID"] = commandMetadata.id.uuidString
-
-        await emitEvent(name, properties: props)
-    }
+    // Note: emitMiddlewareEvent is now defined in PipelineKitCore/Context/CommandContext+Events.swift
 }
 
 // MARK: - Context Keys

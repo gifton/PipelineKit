@@ -1,5 +1,5 @@
 import Foundation
-import PipelineKitCore
+import PipelineKit
 import CryptoKit
 
 /// Middleware that handles encryption and decryption of sensitive data in commands.

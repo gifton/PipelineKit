@@ -347,44 +347,33 @@ private enum PermanentError: Error {
     case unrecoverable
 }
 
-// TODO: Re-enable when EventEmitter is implemented
-// private actor TestEventCollector: PipelineObserver {
-//     private var events: [(name: String, properties: [String: Sendable])] = []
-//     private var continuations: [CheckedContinuation<Void, Never>] = []
-//     
-//     func getEvents() -> [(name: String, properties: [String: Sendable])] {
-//         events
-//     }
-//     
-//     func waitForEvents(count: Int) async {
-//         while events.count < count {
-//             await withCheckedContinuation { continuation in
-//                 continuations.append(continuation)
-//             }
-//         }
-//     }
-//     
-//     private func notifyWaiters() {
-//         let waiters = continuations
-//         continuations.removeAll()
-//         for continuation in waiters {
-//             continuation.resume()
-//         }
-//     }
-//     
-//     // PipelineObserver conformance
-//     func pipelineWillExecute<T: Command>(_ command: T, metadata: CommandMetadata, pipelineType: String) async {}
-//     func pipelineDidExecute<T: Command>(_ command: T, result: T.Result, metadata: CommandMetadata, pipelineType: String, duration: TimeInterval) async {}
-//     func pipelineDidFail<T: Command>(_ command: T, error: Error, metadata: CommandMetadata, pipelineType: String, duration: TimeInterval) async {}
-//     func middlewareWillExecute(_ middlewareName: String, order: Int, correlationId: String) async {}
-//     func middlewareDidExecute(_ middlewareName: String, order: Int, correlationId: String, duration: TimeInterval) async {}
-//     func middlewareDidFail(_ middlewareName: String, order: Int, correlationId: String, error: Error, duration: TimeInterval) async {}
-//     func handlerWillExecute<T: Command>(_ command: T, handlerType: String, correlationId: String) async {}
-//     func handlerDidExecute<T: Command>(_ command: T, result: T.Result, handlerType: String, correlationId: String, duration: TimeInterval) async {}
-//     func handlerDidFail<T: Command>(_ command: T, error: Error, handlerType: String, correlationId: String, duration: TimeInterval) async {}
-//     
-//     func customEvent(_ eventName: String, properties: [String: Sendable], correlationId: String) async {
-//         events.append((name: eventName, properties: properties))
-//         notifyWaiters()
-//     }
-// }
+private actor TestEventCollector: PipelineObserver {
+    private var events: [PipelineEvent] = []
+    private var continuations: [CheckedContinuation<Void, Never>] = []
+    
+    func getEvents() -> [PipelineEvent] {
+        events
+    }
+    
+    func waitForEvents(count: Int) async {
+        while events.count < count {
+            await withCheckedContinuation { continuation in
+                continuations.append(continuation)
+            }
+        }
+    }
+    
+    private func notifyWaiters() {
+        let waiters = continuations
+        continuations.removeAll()
+        for continuation in waiters {
+            continuation.resume()
+        }
+    }
+    
+    // PipelineObserver conformance
+    func handleEvent(_ event: PipelineEvent) async {
+        events.append(event)
+        notifyWaiters()
+    }
+}

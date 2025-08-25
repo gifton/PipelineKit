@@ -6,7 +6,7 @@
 //
 
 import Foundation
-import PipelineKitCore
+import PipelineKit
 
 /// Common test context keys for use across test suites
 public enum TestContextKeys {

@@ -1,5 +1,6 @@
 import Foundation
-import PipelineKitCore
+import PipelineKit
+import _ResilienceFoundation
 
 
 /// A thread-safe pipeline manager that supports concurrent command execution with back-pressure control.

@@ -1,4 +1,5 @@
 import Foundation
+import PipelineKit
 import PipelineKitCore
 
 /// A comprehensive timeout middleware that both tracks and enforces time limits on command execution.
@@ -56,8 +57,7 @@ public struct TimeoutMiddleware: Middleware {
         public let cancelOnTimeout: Bool
 
         /// Metrics collector for detailed timeout tracking
-        // TODO: Re-enable when MetricsCollector is available
-        // public let metricsCollector: (any MetricsCollector)?
+        public let metricsCollector: (any MetricsCollector)?
 
         public init(
             defaultTimeout: TimeInterval = 30.0,
@@ -67,8 +67,8 @@ public struct TimeoutMiddleware: Middleware {
             timeoutResolver: (@Sendable (any Command) -> TimeInterval?)? = nil,
             timeoutHandler: (@Sendable (any Command, TimeoutContext) async -> Void)? = nil,
             emitEvents: Bool = true,
-            cancelOnTimeout: Bool = true
-            // metricsCollector: (any MetricsCollector)? = nil
+            cancelOnTimeout: Bool = true,
+            metricsCollector: (any MetricsCollector)? = nil
         ) {
             self.defaultTimeout = defaultTimeout
             self.commandTimeouts = commandTimeouts
@@ -78,7 +78,7 @@ public struct TimeoutMiddleware: Middleware {
             self.timeoutHandler = timeoutHandler
             self.emitEvents = emitEvents
             self.cancelOnTimeout = cancelOnTimeout
-            // self.metricsCollector = metricsCollector
+            self.metricsCollector = metricsCollector
         }
     }
 
@@ -101,6 +101,7 @@ public struct TimeoutMiddleware: Middleware {
 
     // MARK: - Middleware Implementation
 
+    @discardableResult
     public func execute<T: Command>(
         _ command: T,
         context: CommandContext,
@@ -150,17 +151,15 @@ public struct TimeoutMiddleware: Middleware {
 
                         // Emit grace period event
                         if configuration.emitEvents {
-                            // TODO: Re-enable when PipelineEvent is available
-
-                            // context.emitMiddlewareEvent(
-                                // "middleware.timeout_grace_period",
-                                // middleware: "TimeoutMiddleware",
-                                // properties: [
-                                    // "commandType": commandType,
-                                    // "timeout": timeout,
-                                    // "gracePeriod": configuration.gracePeriod
-                                // ]
-                            // )
+                            await context.emitMiddlewareEvent(
+                                "middleware.timeout_grace_period",
+                                middleware: "TimeoutMiddleware",
+                                properties: [
+                                    "commandType": commandType,
+                                    "timeout": timeout,
+                                    "gracePeriod": configuration.gracePeriod
+                                ]
+                            )
                         }
                     }
                 )

@@ -229,7 +229,7 @@ final class BackPressureMiddlewareTests: XCTestCase {
         let synchronizer = self.synchronizer // Capture before TaskGroup
         
         await withTaskGroup(of: Result<String, Error>.self) { group in
-            for i in 0..<10 {
+            (0..<10).forEach { _ in
                 group.addTask {
                     let command = BPTestCommand(value: String(repeating: "x", count: 200)) // ~200 bytes
                     let context = CommandContext()

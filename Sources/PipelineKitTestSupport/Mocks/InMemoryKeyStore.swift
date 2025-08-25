@@ -1,5 +1,5 @@
 import Foundation
-import PipelineKitSecurity
+@testable import PipelineKitSecurity
 import CryptoKit
 
 /// Simple in-memory key store implementation for testing.

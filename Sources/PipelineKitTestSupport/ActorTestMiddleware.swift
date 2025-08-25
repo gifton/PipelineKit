@@ -1,5 +1,5 @@
 import Foundation
-import PipelineKitCore
+import PipelineKit
 
 /// Actor-based test middleware for thread-safe testing.
 ///

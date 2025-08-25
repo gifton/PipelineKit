@@ -281,7 +281,7 @@ final class RetryMiddlewareTests: XCTestCase {
             failuresBeforeSuccess: 2,
             error: TestError.temporaryFailure
         )
-        let result = try await middleware.execute(retryableCommand, context: CommandContext()) { cmd, _ in
+        try await middleware.execute(retryableCommand, context: CommandContext()) { cmd, _ in
             try await cmd.execute()
         }
         XCTAssertEqual(retryableCommand.attempts, 3)
@@ -317,7 +317,7 @@ final class RetryMiddlewareTests: XCTestCase {
             )
         )
 
-        let command = FlakeyCommand(failuresBeforeSuccess: 2)
+//        let command = FlakeyCommand(failuresBeforeSuccess: 2)
 
         // When - run multiple times to test jitter variation
         var executionTimes: [TimeInterval] = []

@@ -8,6 +8,7 @@ public actor TestCounter {
     public init() {}
     
     /// Increment the counter and return the new value
+    @discardableResult
     public func increment() -> Int {
         value += 1
         values.append(value)

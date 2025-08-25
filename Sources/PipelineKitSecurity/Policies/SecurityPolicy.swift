@@ -1,5 +1,5 @@
 import Foundation
-import PipelineKitCore
+import PipelineKit
 
 /// Protocol for commands that support security validation
 public protocol SecurityValidatable {

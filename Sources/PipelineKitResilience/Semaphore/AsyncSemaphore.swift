@@ -1,5 +1,5 @@
 import Foundation
-import PipelineKitCore  // For PipelineError
+import PipelineKit  // For PipelineError
 
 /// An async-safe counting semaphore for controlling concurrent access to resources.
 ///
@@ -120,15 +120,23 @@ public actor AsyncSemaphore {
         }
         
         // Slow path: need to wait
+        // Use a final class to capture the waiter ID for the cancellation handler
+        final class WaiterIdBox: @unchecked Sendable {
+            var id: UUID?
+        }
+        let waiterIdBox = WaiterIdBox()
+        
         try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
                 let waiter = Waiter(continuation: .regular(continuation))
+                waiterIdBox.id = waiter.id
                 waiters.append(waiter)
                 waiterLookup[waiter.id] = waiter
             }
-        } onCancel: {
+        } onCancel: { [weak self, waiterIdBox] in
+            guard let waiterId = waiterIdBox.id else { return }
             Task { @Sendable [weak self] in
-                await self?.handleCancellation()
+                await self?.handleCancellationForWaiter(waiterId: waiterId)
             }
         }
     }
@@ -154,9 +162,16 @@ public actor AsyncSemaphore {
         }
         
         // Slow path: need to wait with timeout
+        // Use a final class to capture the waiter ID for the cancellation handler
+        final class WaiterIdBox: @unchecked Sendable {
+            var id: UUID?
+        }
+        let waiterIdBox = WaiterIdBox()
+        
         return await withTaskCancellationHandler {
             await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
                 let waiter = Waiter(continuation: .timeout(continuation))
+                waiterIdBox.id = waiter.id
                 
                 // Create timeout task
                 let timeoutTask = Task { [weak self, waiterId = waiter.id] in
@@ -170,10 +185,11 @@ public actor AsyncSemaphore {
                 waiters.append(waiter)
                 waiterLookup[waiter.id] = waiter
             }
-        } onCancel: { [weak self] in
-            // Handle task cancellation
-            Task { [weak self] in
-                await self?.handleCancellation()
+        } onCancel: { [weak self, waiterIdBox] in
+            // Handle task cancellation for specific waiter
+            guard let waiterId = waiterIdBox.id else { return }
+            Task { @Sendable [weak self] in
+                await self?.handleCancellationForWaiter(waiterId: waiterId)
             }
         }
     }
@@ -215,18 +231,15 @@ public actor AsyncSemaphore {
         }
     }
     
-    /// Handles task cancellation
+    /// Handles task cancellation - DEPRECATED: This method has a critical bug
+    /// where it releases ALL waiters when ANY task cancels. Use handleCancellationForWaiter instead.
+    /// Keeping for reference but should not be called.
+    @available(*, deprecated, message: "This method has a critical bug. Use handleCancellationForWaiter instead.")
     private func handleCancellation() {
-        // Resume all waiting tasks with cancellation error
-        let currentWaiters = waiters
-        waiters.removeAll()
-        waiterLookup.removeAll()
-        
-        // Resume each waiter with cancelled result
-        for waiter in currentWaiters {
-            waiter.cancelTimeout()
-            _ = waiter.tryResume(with: .cancelled)
-        }
+        // BUG: This releases ALL waiters when ANY task cancels!
+        // This is the root cause of test hangs and cascade failures.
+        // DO NOT USE THIS METHOD.
+        fatalError("handleCancellation() should not be called - use handleCancellationForWaiter(waiterId:)")
     }
     
     /// Handles cancellation for a specific waiter
@@ -239,13 +252,16 @@ public actor AsyncSemaphore {
             waiterLookup.removeValue(forKey: waiterId)
             if let index = waiters.firstIndex(where: { $0.id == waiterId }) {
                 waiters.remove(at: index)
+                // NOTE: We do NOT restore resources here because the waiter
+                // never actually acquired a resource - it was just waiting in line.
+                // Resources are only consumed when wait() returns successfully.
             }
             waiter.cancelTimeout()
         }
     }
     
     /// Gets the current number of available resources (for testing)
-    internal func availableResourcesCount() -> Int {
+    public func availableResourcesCount() -> Int {
         availableResources
     }
     

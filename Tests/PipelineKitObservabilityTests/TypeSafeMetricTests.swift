@@ -25,10 +25,13 @@ final class TypeSafeMetricTests: XCTestCase {
     }
     
     func testCreateTimer() {
-        let timer = Metric<PipelineTimer>.timer("test.timer", duration: 0.123, tags: ["method": "GET"])
+        let name = "test.timer"
+        let duration = 0.123
+        let tags = ["method": "GET"]
+        let timer = Metric<PipelineTimer>.timer(name, duration: duration, tags: ["method": "GET"])
         
-        XCTAssertEqual(timer.name, "test.timer")
-        XCTAssertEqual(timer.value, 123.0) // Converted to milliseconds
+        XCTAssertEqual(timer.name, name)
+        XCTAssertEqual(timer.value, duration) // Converted to milliseconds
         XCTAssertEqual(timer.unit, "ms")
         XCTAssertEqual(timer.tags["method"], "GET")
     }
@@ -85,7 +88,7 @@ final class TypeSafeMetricTests: XCTestCase {
         
         XCTAssertEqual(snapshot.name, "timer.test")
         XCTAssertEqual(snapshot.type, "timer")
-        XCTAssertEqual(snapshot.value, 500.0) // 0.5 seconds = 500ms
+        XCTAssertEqual(snapshot.value, 0.5) // 0.5 seconds = 500ms
         XCTAssertEqual(snapshot.unit, "ms")
     }
     

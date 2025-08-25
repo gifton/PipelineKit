@@ -1,6 +1,7 @@
 import XCTest
 @testable import PipelineKitResilience
 @testable import PipelineKitCore
+import PipelineKit
 import PipelineKitTestSupport
 
 final class BackPressureTests: XCTestCase {

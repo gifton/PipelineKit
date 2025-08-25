@@ -129,7 +129,8 @@ public actor ObservabilitySystem {
             globalTags: globalTags
         )
         
-        statsdExporter = StatsDExporter(configuration: config)
+        // Using async init with transport
+        statsdExporter = await StatsDExporter(configuration: config)
         
         if let exporter = statsdExporter {
             // Bridge metrics to StatsD
@@ -214,9 +215,9 @@ public extension CommandContext {
     /// This provides the most natural integration - the context
     /// automatically has observability capabilities.
     var observability: ObservabilitySystem? {
-        get async {
+        get {
             // Check if we already have one
-            if let _ = await eventEmitter as? EventHub {
+            if let _ = eventEmitter as? EventHub {
                 // Try to find the associated system
                 // For now, we'll need to store it separately
                 return nil
@@ -239,7 +240,7 @@ public extension CommandContext {
         _ config: ObservabilitySystem.Configuration = .development
     ) async {
         let system = await ObservabilitySystem(configuration: config)
-        await self.setEventEmitter(system.eventHub)
+        self.setEventEmitter(system.eventHub)
     }
     
     /// Records a metric through the context's observability system.
@@ -250,7 +251,7 @@ public extension CommandContext {
     /// ```
     func recordMetric(_ snapshot: MetricSnapshot) async {
         // If we have a metrics-capable event emitter, use it
-        if let hub = await eventEmitter as? EventHub {
+        if let hub = eventEmitter as? EventHub {
             // The hub should have a metrics bridge subscribed
             // For now, we emit a synthetic event that will be converted
             let event = PipelineEvent(
@@ -263,7 +264,7 @@ public extension CommandContext {
                 ],
                 correlationID: await correlationID ?? commandMetadata.correlationId ?? UUID().uuidString
             )
-            hub.emit(event)
+            await hub.emit(event)
         }
     }
 }

@@ -109,7 +109,8 @@ final class AggregationTests: XCTestCase {
         XCTAssertEqual(results.count, 3)  // Each timer value sent separately
         
         let values = results.map { $0.snapshot.value! }.sorted()
-        XCTAssertEqual(values, [100.0, 150.0, 200.0])
+        // Timer values are converted to milliseconds
+        XCTAssertEqual(values, [100000.0, 150000.0, 200000.0])
     }
     
     func testMaxMetricsLimit() async {
@@ -197,8 +198,8 @@ final class AggregationTests: XCTestCase {
         XCTAssertEqual(results2.count, 0)
     }
     
-    func testIntegrationWithExporter() async {
-        // Test the full integration
+    func testIntegrationWithExporter() async throws {
+        // Use mock transport to avoid network operations
         let config = StatsDExporter.Configuration(
             aggregation: AggregationConfiguration(
                 enabled: true,
@@ -206,7 +207,7 @@ final class AggregationTests: XCTestCase {
             )
         )
         
-        let exporter = StatsDExporter(configuration: config)
+        let (exporter, mockTransport) = await StatsDExporter.withMockTransport(configuration: config)
         
         // Record multiple counters
         await exporter.counter("requests", value: 1.0)
@@ -220,8 +221,18 @@ final class AggregationTests: XCTestCase {
         // Force flush would trigger aggregation flush
         await exporter.forceFlush()
         
-        // In a real test, we'd verify the sent packets
-        // For now, just ensure no crashes
-        XCTAssertTrue(true)
+        // Verify metrics were sent
+        let sentMetrics = await mockTransport.getMetricsAsStrings()
+        XCTAssertEqual(sentMetrics.count, 2, "Should have 2 aggregated metrics")
+        
+        // Verify counter was aggregated (should be 6.0 = 1+2+3)
+        let counterMetric = sentMetrics.first { $0.contains("requests") }
+        XCTAssertNotNil(counterMetric)
+        XCTAssertTrue(counterMetric?.contains("6.0") ?? false, "Counter should be aggregated to 6.0")
+        
+        // Verify gauge keeps latest value (75.0)
+        let gaugeMetric = sentMetrics.first { $0.contains("cpu.usage") }
+        XCTAssertNotNil(gaugeMetric)
+        XCTAssertTrue(gaugeMetric?.contains("75.0") ?? false, "Gauge should keep latest value of 75.0")
     }
 }

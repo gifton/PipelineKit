@@ -368,9 +368,9 @@ public extension EventHub {
     func connectMetrics(
         _ recorder: any MetricRecorder,
         config: MetricsGenerationConfig = .default
-    ) async {
+    ) {
         let bridge = MetricsEventBridge(recorder: recorder, config: config)
-        await subscribe(bridge)
+        subscribe(bridge)
     }
 }
 

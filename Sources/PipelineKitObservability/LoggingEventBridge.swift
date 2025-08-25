@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import PipelineKitCore
 
 /// Bridges LoggingEmitter to work as an EventSubscriber.
 public final class LoggingEventBridge: EventSubscriber {

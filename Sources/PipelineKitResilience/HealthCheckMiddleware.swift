@@ -1,4 +1,5 @@
 import Foundation
+import PipelineKit
 import PipelineKitCore
 
 /// Middleware that provides health check monitoring for services.
@@ -242,17 +243,14 @@ public struct HealthCheckMiddleware: Middleware {
     ) async {
         guard configuration.emitMetrics else { return }
 
-        // TODO: Re-enable when PipelineEvent is available
-
-
-        // context.emitMiddlewareEvent(
-            // "middleware.health_check_blocked",
-            // middleware: "HealthCheckMiddleware",
-            // properties: [
-                // "commandType": commandType,
-                // "serviceName": serviceName
-            // ]
-        // )
+        await context.emitMiddlewareEvent(
+            "middleware.health_check_blocked",
+            middleware: "HealthCheckMiddleware",
+            properties: [
+                "commandType": commandType,
+                "serviceName": serviceName
+            ]
+        )
     }
 
     private func emitExecutionMetrics(
@@ -269,19 +267,16 @@ public struct HealthCheckMiddleware: Middleware {
         await context.setMetadata("health.success", value: success)
         await context.setMetadata("health.duration", value: duration)
 
-        // TODO: Re-enable when PipelineEvent is available
-
-
-        // context.emitMiddlewareEvent(
-            // "middleware.health_check_execution",
-            // middleware: "HealthCheckMiddleware",
-            // properties: [
-                // "serviceName": serviceName,
-                // "success": success,
-                // "duration": duration,
-                // "healthState": healthState.rawValue
-            // ]
-        // )
+        await context.emitMiddlewareEvent(
+            "middleware.health_check_execution",
+            middleware: "HealthCheckMiddleware",
+            properties: [
+                "serviceName": serviceName,
+                "success": success,
+                "duration": duration,
+                "healthState": healthState.rawValue
+            ]
+        )
     }
 }
 

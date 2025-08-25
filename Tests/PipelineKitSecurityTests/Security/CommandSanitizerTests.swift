@@ -122,10 +122,11 @@ final class CommandSanitizerTests: XCTestCase {
         let inputs = [
             ("O'Brien", "O''Brien"),
             ("Line1\nLine2", "Line1\\nLine2"),
-            ("Tab\there", "Tab\\rhere"),
+            ("Tab\there", "Tab\there"),  // Tab is not escaped by sanitizeSQL
             ("Quote\"Test", "Quote\\\"Test"),
             ("Back\\slash", "Back\\\\slash"),
-            ("Null\0Char", "Null\\0Char")
+            ("Null\0Char", "Null\\0Char"),
+            ("Carriage\rReturn", "Carriage\\rReturn")  // Test \r separately
         ]
         
         // When/Then
