@@ -159,6 +159,8 @@ actor PaymentService {
 // - extension PaymentService: Pipeline conformance
 ```
 
+// test
+
 ### Direct Pipeline vs CommandBus Examples
 
 #### Direct Pipeline - Type-Safe, Direct Execution
