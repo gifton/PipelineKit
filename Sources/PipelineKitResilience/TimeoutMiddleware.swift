@@ -336,7 +336,7 @@ public struct TimeoutMiddleware: Middleware {
         timeout: TimeInterval,
         context: CommandContext
     ) async {
-        let percentage = (duration / timeout) * 100
+        let _ = (duration / timeout) * 100 // percentage - will be used when events are re-enabled
 
         if configuration.emitEvents {
             // TODO: Re-enable when PipelineEvent is available

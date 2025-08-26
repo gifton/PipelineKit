@@ -44,7 +44,7 @@ public actor StatsDExporter: MetricRecorder {
             sampleRatesByType: [String: Double] = [:],
             criticalPatterns: [String] = ["error", "timeout", "failure", "fatal", "panic"],
             aggregation: AggregationConfiguration = AggregationConfiguration(),
-            useTransport: Bool = false,  // Default to legacy for backward compatibility
+            useTransport: Bool = false,
             transportTimeout: TimeInterval = 1.0
         ) {
             self.host = host
@@ -130,7 +130,7 @@ public actor StatsDExporter: MetricRecorder {
         }
     }
     
-    /// Creates a new StatsD exporter (backward compatibility).
+    /// Creates a new StatsD exporter.
     public init(configuration: Configuration = .default) {
         self.configuration = configuration
         

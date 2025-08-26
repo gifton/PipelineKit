@@ -2,8 +2,47 @@ import Foundation
 
 /// Global memory pressure detector singleton.
 ///
-/// This singleton coordinates memory pressure detection across all object pools
-/// and other memory-sensitive components in the pipeline system.
+/// Coordinates memory pressure detection across all object pools and memory-sensitive
+/// components. Automatically triggers cleanup handlers when memory usage exceeds
+/// configurable thresholds, helping prevent out-of-memory conditions.
+/// 
+/// ## Overview
+/// 
+/// The detector monitors system memory usage and notifies registered handlers when
+/// pressure thresholds are crossed. This enables proactive memory management by
+/// allowing components to release cached resources before the system runs out of memory.
+/// 
+/// ## Usage
+/// 
+/// ```swift
+/// // Start monitoring on app launch
+/// await MemoryPressureDetector.shared.startMonitoring()
+/// 
+/// // Register cleanup handler for a cache
+/// let handlerId = await MemoryPressureDetector.shared.register { 
+///     await myCache.evictLeastRecentlyUsed(count: 100)
+/// }
+/// 
+/// // Unregister when no longer needed
+/// await MemoryPressureDetector.shared.unregister(id: handlerId)
+/// ```
+/// 
+/// ## Thresholds
+/// 
+/// The detector uses adaptive thresholds based on device memory:
+/// - **High watermark**: 15% of physical memory - triggers cleanup
+/// - **Low watermark**: 5% of physical memory - resumes normal operation
+/// 
+/// These percentages ensure appropriate behavior across devices with different
+/// memory capacities, from resource-constrained devices to high-memory servers.
+/// 
+/// ## Performance Considerations
+/// 
+/// - Monitoring has minimal overhead (periodic memory checks)
+/// - Handlers are called asynchronously to avoid blocking
+/// - Multiple handlers are executed concurrently for faster cleanup
+/// 
+/// - SeeAlso: `MemoryPressureResponder`, `ObjectPool`
 public actor MemoryPressureDetector {
     /// Shared instance
     public static let shared = MemoryPressureDetector()

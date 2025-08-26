@@ -27,6 +27,9 @@ jobs:
       with:
         swift-version: ${{ matrix.swift }}
     
+    - name: Install jemalloc
+      run: brew install jemalloc
+    
     - name: Get swift version
       run: swift --version
       
@@ -50,6 +53,9 @@ jobs:
       uses: swift-actions/setup-swift@v2.3.0
       with:
         swift-version: ${{ matrix.swift }}
+    
+    - name: Install jemalloc
+      run: brew install jemalloc
       
     - name: Run unit tests
       run: swift package test-unit --enable-code-coverage
@@ -110,6 +116,9 @@ jobs:
       uses: swift-actions/setup-swift@v2.3.0
       with:
         swift-version: ${{ matrix.swift }}
+    
+    - name: Install jemalloc
+      run: brew install jemalloc
       
     - name: Run integration tests
       run: swift package test-integration
@@ -172,6 +181,9 @@ jobs:
       uses: swift-actions/setup-swift@v2.3.0
       with:
         swift-version: ${{ env.SWIFT_VERSION }}
+    
+    - name: Install jemalloc
+      run: brew install jemalloc
         
     - name: Build documentation
       run: |

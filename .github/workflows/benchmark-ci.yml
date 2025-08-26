@@ -40,6 +40,9 @@ jobs:
         with:
           swift-version: ${{ env.SWIFT_VERSION }}
       
+      - name: Install jemalloc
+        run: brew install jemalloc
+      
       - name: Cache Swift Package Manager
         uses: actions/cache@v4
         with:

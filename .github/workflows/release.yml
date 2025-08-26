@@ -46,6 +46,9 @@ jobs:
       with:
         swift-version: ${{ env.SWIFT_VERSION }}
     
+      
+      - name: Install jemalloc
+        run: brew install jemalloc
     - name: Build
       run: swift build -c release -v
       
@@ -118,6 +121,9 @@ jobs:
       with:
         swift-version: ${{ env.SWIFT_VERSION }}
         
+      
+      - name: Install jemalloc
+        run: brew install jemalloc
     - name: Build documentation
       run: |
         swift package generate-documentation \

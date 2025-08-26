@@ -28,6 +28,9 @@ jobs:
       with:
         swift-version: ${{ matrix.swift }}
     
+    - name: Install jemalloc
+      run: brew install jemalloc
+    
     # Ubuntu uses Docker container instead of setup action
     
     - name: Run stress tests with TSAN
@@ -54,6 +57,9 @@ jobs:
       uses: swift-actions/setup-swift@v2.3.0
       with:
         swift-version: ${{ env.SWIFT_VERSION }}
+    
+    - name: Install jemalloc
+      run: brew install jemalloc
     
     - name: Run all stress tests
       run: |
