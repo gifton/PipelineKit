@@ -1,5 +1,5 @@
 import XCTest
-import CryptoKit
+@preconcurrency import CryptoKit
 @testable import PipelineKitSecurity
 @testable import PipelineKitCore
 import PipelineKitTestSupport
