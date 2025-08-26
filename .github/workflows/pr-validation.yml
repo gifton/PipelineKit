@@ -81,9 +81,7 @@ jobs:
           swift-version: '6.0'
       
       
-      - name: Install jemalloc
-        run: brew install jemalloc
-      - name: Identify Changed Modules
+    # jemalloc installation removed - benchmarks configured to not require it      - name: Identify Changed Modules
         id: changes
         run: |
           # Identify which modules changed

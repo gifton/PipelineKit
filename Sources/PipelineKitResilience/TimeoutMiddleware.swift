@@ -179,19 +179,18 @@ public struct TimeoutMiddleware: Middleware {
             // Handle grace period recovery
             if currentState == .gracePeriod && configuration.gracePeriod > 0 {
                 // Record recovery metrics - we were in grace period
-                // TODO: Re-enable when MetricsCollector is available
-        // if let collector = configuration.metricsCollector {
-                    // await collector.recordCounter(
-                        // "pipeline.timeout.grace_recovery",
-                        // value: 1,
-                        // tags: ["command": commandType]
-                    // )
-                    // await collector.recordTimer(
-                        // "pipeline.timeout.grace_duration",
-                        // duration: duration - timeout,
-                        // tags: ["command": commandType]
-                    // )
-                // }
+                if let collector = configuration.metricsCollector {
+                    await collector.recordCounter(
+                        "pipeline.timeout.grace_recovery",
+                        value: 1,
+                        tags: ["command": commandType]
+                    )
+                    await collector.recordTimer(
+                        "pipeline.timeout.grace_duration",
+                        duration: duration - timeout,
+                        tags: ["command": commandType]
+                    )
+                }
             } else if duration > timeout * 0.9 {
                 // Check for near-timeout warning
                 await emitNearTimeout(
@@ -290,23 +289,22 @@ public struct TimeoutMiddleware: Middleware {
         }
 
         // Record timeout metrics
-        // TODO: Re-enable when MetricsCollector is available
-        // if let collector = configuration.metricsCollector {
-            // await collector.recordCounter(
-                // "pipeline.timeout.exceeded",
-                // value: 1,
-                // tags: [
-                    // "command": timeoutContext.commandType,
-                    // "reason": timeoutContext.reason.rawValue,
-                    // "grace_used": String(timeoutContext.gracePeriodUsed)
-                // ]
-            // )
-            // await collector.recordTimer(
-                // "pipeline.timeout.duration",
-                // duration: timeoutContext.actualDuration,
-                // tags: ["command": timeoutContext.commandType]
-            // )
-        // }
+        if let collector = configuration.metricsCollector {
+            await collector.recordCounter(
+                "pipeline.timeout.exceeded",
+                value: 1,
+                tags: [
+                    "command": timeoutContext.commandType,
+                    "reason": timeoutContext.reason.rawValue,
+                    "grace_used": String(timeoutContext.gracePeriodUsed)
+                ]
+            )
+            await collector.recordTimer(
+                "pipeline.timeout.duration",
+                duration: timeoutContext.actualDuration,
+                tags: ["command": timeoutContext.commandType]
+            )
+        }
     }
 
     private func resolveTimeout<T: Command>(for command: T, commandType: String) -> TimeInterval {
@@ -336,55 +334,50 @@ public struct TimeoutMiddleware: Middleware {
         timeout: TimeInterval,
         context: CommandContext
     ) async {
-        let _ = (duration / timeout) * 100 // percentage - will be used when events are re-enabled
+        let percentage = (duration / timeout) * 100
 
         if configuration.emitEvents {
-            // TODO: Re-enable when PipelineEvent is available
-
-            // context.emitMiddlewareEvent(
-                // "middleware.near_timeout",
-                // middleware: "TimeoutMiddleware",
-                // properties: [
-                    // "commandType": commandType,
-                    // "duration": duration,
-                    // "timeout": timeout,
-                    // "percentage": percentage
-                // ]
-            // )
+            await context.emitMiddlewareEvent(
+                "middleware.near_timeout",
+                middleware: "TimeoutMiddleware",
+                properties: [
+                    "commandType": commandType,
+                    "duration": duration,
+                    "timeout": timeout,
+                    "percentage": percentage
+                ]
+            )
         }
 
         // Record near-timeout metrics
-        // TODO: Re-enable when MetricsCollector is available
-        // if let collector = configuration.metricsCollector {
-            // await collector.recordCounter(
-                // "pipeline.timeout.near_timeout",
-                // value: 1,
-                // tags: [
-                    // "command": commandType,
-                    // "percentage_bucket": String(Int(percentage / 10) * 10)
-                // ]
-            // )
-        // }
+        if let collector = configuration.metricsCollector {
+            await collector.recordCounter(
+                "pipeline.timeout.near_timeout",
+                value: 1,
+                tags: [
+                    "command": commandType,
+                    "percentage_bucket": String(Int(percentage / 10) * 10)
+                ]
+            )
+        }
     }
 
     private func emitTimeoutEvent(
         timeoutContext: TimeoutContext,
         context: CommandContext
     ) async {
-        // TODO: Re-enable when PipelineEvent is available
-
-        // context.emitMiddlewareEvent(
-            // PipelineEvent.Name.middlewareTimeout,
-            // middleware: "TimeoutMiddleware",
-            // properties: [
-                // "commandType": timeoutContext.commandType,
-                // "timeoutDuration": timeoutContext.timeoutDuration,
-                // "actualDuration": timeoutContext.actualDuration,
-                // "gracePeriod": timeoutContext.gracePeriod,
-                // "gracePeriodUsed": timeoutContext.gracePeriodUsed,
-                // "reason": timeoutContext.reason.rawValue
-            // ]
-        // )
+        await context.emitMiddlewareEvent(
+            PipelineEvent.Name.middlewareTimeout,
+            middleware: "TimeoutMiddleware",
+            properties: [
+                "commandType": timeoutContext.commandType,
+                "timeoutDuration": timeoutContext.timeoutDuration,
+                "actualDuration": timeoutContext.actualDuration,
+                "gracePeriod": timeoutContext.gracePeriod,
+                "gracePeriodUsed": timeoutContext.gracePeriodUsed,
+                "reason": timeoutContext.reason.rawValue
+            ]
+        )
 
         // Metrics recording is handled in handleTimeout method
     }
@@ -436,17 +429,16 @@ public extension TimeoutMiddleware {
         )
     }
 
-    // TODO: Re-enable when MetricsCollector is available
-    // /// Creates a timeout middleware with metrics collection
-    // init(
-    //     defaultTimeout: TimeInterval = 30.0,
-    //     metricsCollector: any MetricsCollector
-    // ) {
-    //     self.init(
-    //         configuration: Configuration(
-    //             defaultTimeout: defaultTimeout,
-    //             metricsCollector: metricsCollector
-    //         )
-    //     )
-    // }
+    /// Creates a timeout middleware with metrics collection
+    init(
+        defaultTimeout: TimeInterval = 30.0,
+        metricsCollector: any MetricsCollector
+    ) {
+        self.init(
+            configuration: Configuration(
+                defaultTimeout: defaultTimeout,
+                metricsCollector: metricsCollector
+            )
+        )
+    }
 }

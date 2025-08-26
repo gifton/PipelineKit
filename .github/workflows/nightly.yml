@@ -27,9 +27,7 @@ jobs:
           swift-version: '6.0'
       
       
-      - name: Install jemalloc
-        run: brew install jemalloc
-      - name: Full Test Suite
+    # jemalloc installation removed - benchmarks configured to not require it      - name: Full Test Suite
         run: |
           swift test --parallel --enable-code-coverage
       
@@ -58,9 +56,7 @@ jobs:
           swift-version: ${{ matrix.swift }}
       
       
-      - name: Install jemalloc
-        run: brew install jemalloc
-      - name: Build with Swift ${{ matrix.swift }}
+    # jemalloc installation removed - benchmarks configured to not require it      - name: Build with Swift ${{ matrix.swift }}
         run: swift build
         continue-on-error: ${{ matrix.swift == '5.10' }}
 
@@ -76,9 +72,7 @@ jobs:
           swift-version: '6.0'
       
       
-      - name: Install jemalloc
-        run: brew install jemalloc
-      - name: Build for Testing
+    # jemalloc installation removed - benchmarks configured to not require it      - name: Build for Testing
         run: swift build --configuration debug
       
       - name: Run with Leak Detection
@@ -105,9 +99,7 @@ jobs:
           swift-version: '6.0'
       
       
-      - name: Install jemalloc
-        run: brew install jemalloc
-      - name: Run Benchmarks
+    # jemalloc installation removed - benchmarks configured to not require it      - name: Run Benchmarks
         run: |
           swift build --configuration release --product Benchmarks
           .build/release/Benchmarks --format json > current-benchmarks.json

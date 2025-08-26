@@ -27,8 +27,7 @@ jobs:
       with:
         swift-version: ${{ matrix.swift }}
     
-    - name: Install jemalloc
-      run: brew install jemalloc
+    # jemalloc installation removed - benchmarks configured to not require it
     
     - name: Get swift version
       run: swift --version
@@ -54,8 +53,7 @@ jobs:
       with:
         swift-version: ${{ matrix.swift }}
     
-    - name: Install jemalloc
-      run: brew install jemalloc
+    # jemalloc installation removed - benchmarks configured to not require it
       
     - name: Run unit tests
       run: swift package test-unit --enable-code-coverage
@@ -117,8 +115,7 @@ jobs:
       with:
         swift-version: ${{ matrix.swift }}
     
-    - name: Install jemalloc
-      run: brew install jemalloc
+    # jemalloc installation removed - benchmarks configured to not require it
       
     - name: Run integration tests
       run: swift package test-integration
@@ -182,8 +179,7 @@ jobs:
       with:
         swift-version: ${{ env.SWIFT_VERSION }}
     
-    - name: Install jemalloc
-      run: brew install jemalloc
+    # jemalloc installation removed - benchmarks configured to not require it
         
     - name: Build documentation
       run: |

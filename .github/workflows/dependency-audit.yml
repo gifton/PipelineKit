@@ -24,9 +24,7 @@ jobs:
         swift-version: '6.0'
     
       
-      - name: Install jemalloc
-        run: brew install jemalloc
-    - name: Cache Swift packages
+    # jemalloc installation removed - benchmarks configured to not require it    - name: Cache Swift packages
       uses: actions/cache@v4
       with:
         path: .build

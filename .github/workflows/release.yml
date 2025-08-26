@@ -47,9 +47,7 @@ jobs:
         swift-version: ${{ env.SWIFT_VERSION }}
     
       
-      - name: Install jemalloc
-        run: brew install jemalloc
-    - name: Build
+    # jemalloc installation removed - benchmarks configured to not require it    - name: Build
       run: swift build -c release -v
       
     - name: Test
@@ -122,9 +120,7 @@ jobs:
         swift-version: ${{ env.SWIFT_VERSION }}
         
       
-      - name: Install jemalloc
-        run: brew install jemalloc
-    - name: Build documentation
+    # jemalloc installation removed - benchmarks configured to not require it    - name: Build documentation
       run: |
         swift package generate-documentation \
           --target PipelineKit \

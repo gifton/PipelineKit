@@ -28,9 +28,7 @@ jobs:
           swift-version: '6.0'
       
       
-      - name: Install jemalloc
-        run: brew install jemalloc
-      - name: Build
+    # jemalloc installation removed - benchmarks configured to not require it      - name: Build
         run: swift build --target PipelineKitMetrics
         
       - name: Run Compression Tests

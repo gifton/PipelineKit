@@ -78,7 +78,16 @@ struct PipelineKitBenchmarks {
         config.maxIterations = 100_000
         config.warmupIterations = 100
         config.scalingFactor = .kilo
-        config.metrics = [.cpuTotal, .wallClock, .mallocCountTotal, .throughput]
+        
+        // Disable malloc statistics to avoid jemalloc dependency issues in CI
+        // jemalloc is not consistently available across all CI environments
+        config.metrics = [
+            .cpuTotal,
+            .wallClock,
+            .throughput,
+            .peakMemoryResident
+            // .mallocCountTotal - Disabled: requires jemalloc
+        ]
         
         // MARK: Pipeline Benchmarks
         
