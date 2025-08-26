@@ -1,4 +1,5 @@
 import Foundation
+@preconcurrency import Darwin
 import PipelineKitCore
 #if canImport(os)
 import os
