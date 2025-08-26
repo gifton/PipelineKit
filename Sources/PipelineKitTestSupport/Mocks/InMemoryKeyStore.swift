@@ -1,19 +1,19 @@
 import Foundation
 import PipelineKitSecurity
-import CryptoKit
+@preconcurrency import CryptoKit
 
 /// Simple in-memory key store implementation for testing.
 ///
 /// **Thread Safety**: This actor provides guaranteed thread safety through Swift's actor isolation.
 /// All methods are actor-isolated, ensuring exclusive access to internal state without manual locking.
 public actor InMemoryKeyStore: KeyStore {
-    private var keys: [String: SymmetricKey] = [:]
+    private var keys: [String: SendableSymmetricKey] = [:]
     private var keyDates: [String: Date] = [:]
     private var _currentKeyIdentifier: String?
     
     public init() {}
     
-    public var currentKey: SymmetricKey? {
+    public var currentKey: SendableSymmetricKey? {
         guard let identifier = _currentKeyIdentifier else { return nil }
         return keys[identifier]
     }
@@ -22,13 +22,13 @@ public actor InMemoryKeyStore: KeyStore {
         _currentKeyIdentifier
     }
     
-    public func store(key: SymmetricKey, identifier: String) {
+    public func store(key: SendableSymmetricKey, identifier: String) {
         keys[identifier] = key
         keyDates[identifier] = Date()
         _currentKeyIdentifier = identifier
     }
     
-    public func key(for identifier: String) -> SymmetricKey? {
+    public func key(for identifier: String) -> SendableSymmetricKey? {
         keys[identifier]
     }
     

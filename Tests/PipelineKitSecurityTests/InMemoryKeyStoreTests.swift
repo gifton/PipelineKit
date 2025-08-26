@@ -1,5 +1,5 @@
 import XCTest
-import CryptoKit
+@preconcurrency import CryptoKit
 @testable import PipelineKitSecurity
 @testable import PipelineKitTestSupport
 
@@ -11,7 +11,7 @@ final class InMemoryKeyStoreTests: XCTestCase {
         
         // Generate test keys
         let testKeys = (0..<keyCount).map { i in
-            (identifier: "key-\(i)", key: SymmetricKey(size: .bits256))
+            (identifier: "key-\(i)", key: SendableSymmetricKey(size: .bits256))
         }
         
         // Track expected state

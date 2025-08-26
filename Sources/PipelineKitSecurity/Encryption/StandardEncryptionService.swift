@@ -1,9 +1,12 @@
 import Foundation
-import CryptoKit
+@preconcurrency import CryptoKit
 import PipelineKit
 
 /// Standard AES-GCM encryption service
-struct StandardEncryptionService: EncryptionService {
+/// 
+/// Note: Uses @unchecked Sendable because SymmetricKey from CryptoKit isn't marked
+/// as Sendable but is actually safe to use across actors as it's immutable.
+struct StandardEncryptionService: EncryptionService, @unchecked Sendable {
     private let key: SymmetricKey
     
     init(key: SymmetricKey? = nil) {

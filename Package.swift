@@ -66,7 +66,7 @@ let package = Package(
         // package-benchmark 1.4.0 - Official Swift benchmarking framework
         // Security: No known vulnerabilities
         // License: Apache-2.0
-        .package(url: "https://github.com/ordo-one/package-benchmark", from: "1.4.0")
+        .package(url: "https://github.com/ordo-one/package-benchmark", exact: "1.29.3")
     ],
     targets: [
         .target(

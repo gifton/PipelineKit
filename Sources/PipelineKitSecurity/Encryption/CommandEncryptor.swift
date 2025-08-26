@@ -1,6 +1,6 @@
 import Foundation
 import PipelineKit
-import CryptoKit
+@preconcurrency import CryptoKit
 
 /// Manages encryption keys and operations for command encryption.
 ///
@@ -14,7 +14,7 @@ import CryptoKit
 /// let decrypted = try encryptor.decrypt(encrypted)
 /// ```
 public actor CommandEncryptor {
-    private var currentKey: SymmetricKey
+    private var currentKey: SendableSymmetricKey
     private var keyRotationInterval: TimeInterval
     private var lastKeyRotation: Date
     private let keyStore: KeyStore
@@ -36,7 +36,7 @@ public actor CommandEncryptor {
         if let existingKey = await keyStore.currentKey {
             self.currentKey = existingKey
         } else {
-            self.currentKey = SymmetricKey(size: .bits256)
+            self.currentKey = SendableSymmetricKey(size: .bits256)
             await keyStore.store(key: currentKey, identifier: UUID().uuidString)
         }
     }
@@ -54,7 +54,7 @@ public actor CommandEncryptor {
             options: .sortedKeys
         )
         
-        let sealed = try AES.GCM.seal(sensitiveData, using: currentKey)
+        let sealed = try AES.GCM.seal(sensitiveData, using: currentKey.key)
         
         guard let combinedData = sealed.combined else {
             throw PipelineError.encryption(reason: .encryptionFailed("Failed to create sealed box"))
@@ -79,7 +79,7 @@ public actor CommandEncryptor {
         }
         
         let sealedBox = try AES.GCM.SealedBox(combined: encrypted.encryptedData)
-        let decryptedData = try AES.GCM.open(sealedBox, using: key)
+        let decryptedData = try AES.GCM.open(sealedBox, using: key.key)
         
         let fields = try JSONSerialization.jsonObject(
             with: decryptedData,
@@ -94,7 +94,7 @@ public actor CommandEncryptor {
     
     /// Forces a key rotation.
     public func rotateKey() async {
-        let newKey = SymmetricKey(size: .bits256)
+        let newKey = SendableSymmetricKey(size: .bits256)
         let identifier = UUID().uuidString
         
         await keyStore.store(key: newKey, identifier: identifier)
@@ -133,19 +133,34 @@ public struct EncryptedCommand<T: Command>: Sendable {
     }
 }
 
+/// Sendable wrapper for SymmetricKey to work with Swift 6 strict concurrency.
+/// CryptoKit's SymmetricKey is not Sendable, but it's actually safe to send
+/// between actors as it's an immutable value type.
+public struct SendableSymmetricKey: @unchecked Sendable {
+    public let key: SymmetricKey
+    
+    public init(_ key: SymmetricKey) {
+        self.key = key
+    }
+    
+    public init(size: SymmetricKeySize) {
+        self.key = SymmetricKey(size: size)
+    }
+}
+
 /// Protocol for key storage implementations.
 public protocol KeyStore: Sendable {
     /// Current encryption key
-    var currentKey: SymmetricKey? { get async }
+    var currentKey: SendableSymmetricKey? { get async }
     
     /// Current key identifier
     var currentKeyIdentifier: String? { get async }
     
     /// Retrieve a key by identifier
-    func key(for identifier: String) async -> SymmetricKey?
+    func key(for identifier: String) async -> SendableSymmetricKey?
     
     /// Store a key with identifier
-    func store(key: SymmetricKey, identifier: String) async
+    func store(key: SendableSymmetricKey, identifier: String) async
     
     /// Remove expired keys
     func removeExpiredKeys(before date: Date) async
