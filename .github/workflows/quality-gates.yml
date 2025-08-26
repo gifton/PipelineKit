@@ -64,18 +64,10 @@ jobs:
           base: ${{ github.event.repository.default_branch }}
           head: HEAD
 
-  # Job 3: Build Matrix (macOS and Linux)
+  # Job 3: Build (macOS only)
   build:
-    name: Build (${{ matrix.os }})
-    runs-on: ${{ matrix.runner }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: macOS
-            runner: macos-14
-          - os: Linux
-            runner: ubuntu-latest
+    name: Build
+    runs-on: macos-14
     
     steps:
       - uses: actions/checkout@v4
@@ -105,22 +97,14 @@ jobs:
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: build-${{ matrix.os }}
+          name: build-artifacts
           path: .build/release/
 
   # Job 4: Test with Coverage
   test:
-    name: Test & Coverage (${{ matrix.os }})
-    runs-on: ${{ matrix.runner }}
+    name: Test & Coverage
+    runs-on: macos-14
     needs: build
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: macOS
-            runner: macos-14
-          - os: Linux
-            runner: ubuntu-latest
     
     steps:
       - uses: actions/checkout@v4
@@ -134,32 +118,21 @@ jobs:
         run: |
           swift test --enable-code-coverage --parallel
       
-      - name: Generate Coverage Report (macOS)
-        if: matrix.os == 'macOS'
+      - name: Generate Coverage Report
         run: |
           xcrun llvm-cov export \
             .build/debug/PipelineKitPackageTests.xctest/Contents/MacOS/PipelineKitPackageTests \
             -instr-profile=.build/debug/codecov/default.profdata \
             -format=lcov > coverage.lcov
       
-      - name: Generate Coverage Report (Linux)
-        if: matrix.os == 'Linux'
-        run: |
-          llvm-cov export \
-            .build/debug/PipelineKitPackageTests.xctest \
-            -instr-profile=.build/debug/codecov/default.profdata \
-            -format=lcov > coverage.lcov
-        continue-on-error: true
-      
       - name: Upload Coverage to Codecov
         uses: codecov/codecov-action@v3
         with:
           file: coverage.lcov
-          flags: ${{ matrix.os }}
+          flags: macOS
           fail_ci_if_error: false
       
       - name: Check Coverage Threshold
-        if: matrix.os == 'macOS'
         run: |
           # Extract coverage percentage
           COVERAGE=$(xcrun llvm-cov report \

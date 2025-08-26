@@ -12,7 +12,7 @@ jobs:
   # Quick validation checks
   quick-check:
     name: Quick Validation
-    runs-on: ubuntu-latest
+    runs-on: macos-14
     if: github.event.pull_request.draft == false
     steps:
       - uses: actions/checkout@v4
@@ -50,7 +50,7 @@ jobs:
   # Check for merge conflicts
   conflict-check:
     name: Merge Conflict Check
-    runs-on: ubuntu-latest
+    runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
         with:
@@ -130,7 +130,7 @@ jobs:
   # Label PR automatically
   auto-label:
     name: Auto Label
-    runs-on: ubuntu-latest
+    runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
         with:
@@ -196,7 +196,7 @@ jobs:
   # Required status check
   pr-status:
     name: PR Status Check
-    runs-on: ubuntu-latest
+    runs-on: macos-14
     needs: [quick-check, conflict-check, smart-test]
     if: always()
     steps:

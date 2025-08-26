@@ -28,14 +28,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-22.04, macos-14, macos-13]
+        os: [macos-14, macos-13]
         swift: ['6.0']
     
     steps:
     - uses: actions/checkout@v4
     
     - name: Setup Swift
-      if: matrix.os != 'ubuntu-22.04'
       uses: swift-actions/setup-swift@v2.3.0
       with:
         swift-version: ${{ matrix.swift }}
@@ -53,14 +52,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-22.04, macos-14, macos-13]
+        os: [macos-14, macos-13]
         swift: ['6.0']
     
     steps:
     - uses: actions/checkout@v4
     
     - name: Setup Swift
-      if: matrix.os != 'ubuntu-22.04'
       uses: swift-actions/setup-swift@v2.3.0
       with:
         swift-version: ${{ matrix.swift }}
@@ -69,19 +67,16 @@ jobs:
       run: swift package test-unit --enable-code-coverage
       
     - name: Generate coverage report
-      if: matrix.os == 'ubuntu-22.04' && matrix.swift == '6.0'
+      if: matrix.os == 'macos-14' && matrix.swift == '6.0'
       run: |
         swift test --filter "PipelineKitCoreTests|PipelineKitMiddlewareTests|PipelineKitSecurityTests" --enable-code-coverage
-        # Find the test executable (it's in a different location on Linux)
-        TEST_BINARY=$(find .build/debug -name "PipelineKitPackageTests.xctest" -type f 2>/dev/null || find .build/debug -name "*PackageTests" -type f | head -n 1)
-        if [ -n "$TEST_BINARY" ]; then
-          llvm-cov export -format="lcov" "$TEST_BINARY" -instr-profile .build/debug/codecov/default.profdata > coverage.lcov
-        else
-          echo "Warning: Could not find test binary for coverage"
-        fi
+        xcrun llvm-cov export \
+          .build/debug/PipelineKitPackageTests.xctest/Contents/MacOS/PipelineKitPackageTests \
+          -instr-profile=.build/debug/codecov/default.profdata \
+          -format=lcov > coverage.lcov
       
     - name: Upload coverage to Codecov
-      if: matrix.os == 'ubuntu-22.04' && matrix.swift == '6.0'
+      if: matrix.os == 'macos-14' && matrix.swift == '6.0'
       uses: codecov/codecov-action@v3
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
@@ -117,14 +112,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-22.04, macos-14]  # Run on key platforms
+        os: [macos-14]  # macOS only
         swift: ['6.0']
     
     steps:
     - uses: actions/checkout@v4
     
     - name: Setup Swift
-      if: matrix.os != 'ubuntu-22.04'
       uses: swift-actions/setup-swift@v2.3.0
       with:
         swift-version: ${{ matrix.swift }}

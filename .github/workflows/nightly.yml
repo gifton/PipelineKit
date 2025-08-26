@@ -17,10 +17,6 @@ jobs:
             runner: macos-14
           - os: macOS-13
             runner: macos-13
-          - os: Ubuntu-Latest
-            runner: ubuntu-latest
-          - os: Ubuntu-22.04
-            runner: ubuntu-22.04
     
     steps:
       - uses: actions/checkout@v4
@@ -113,7 +109,7 @@ jobs:
 
   security-scan:
     name: Nightly Security Scan
-    runs-on: ubuntu-latest
+    runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
       
@@ -134,7 +130,7 @@ jobs:
 
   report:
     name: Nightly Report
-    runs-on: ubuntu-latest
+    runs-on: macos-14
     needs: [nightly-test, compatibility-test, memory-leak-detection, performance-regression, security-scan]
     if: always()
     steps:

@@ -16,7 +16,7 @@ env:
 jobs:
   integration-tests:
     name: Integration Tests (Docker)
-    runs-on: ubuntu-22.04
+    runs-on: macos-14
     container:
       image: swift:5.10-jammy
     

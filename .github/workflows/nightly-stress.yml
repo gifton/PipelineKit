@@ -16,14 +16,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-14, ubuntu-22.04]
+        os: [macos-14, macos-14]
         swift: ['5.10']
     
     steps:
     - uses: actions/checkout@v4
     
     - name: Setup Swift
-      if: matrix.os != 'ubuntu-22.04'
+      if: matrix.os != 'macos-14'
       uses: swift-actions/setup-swift@v2.3.0
       with:
         swift-version: ${{ matrix.swift }}
@@ -82,7 +82,7 @@ jobs:
     name: Notify on Failures
     needs: [stress-tests-tsan, comprehensive-stress]
     if: failure()
-    runs-on: ubuntu-22.04
+    runs-on: macos-14
     
     steps:
     - name: Create issue for failures

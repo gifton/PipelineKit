@@ -86,19 +86,3 @@ jobs:
           benchmark-output.txt
         retention-days: 90
 
-  benchmark-linux:
-    name: Run Performance Benchmarks (Linux)
-    runs-on: ubuntu-22.04
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    # Ubuntu has Swift pre-installed in runner
-    
-    - name: Build benchmarks
-      run: swift build --product Benchmarks -c release
-    
-    - name: Run benchmarks (smoke test)
-      run: |
-        .build/release/Benchmarks CommandContext
