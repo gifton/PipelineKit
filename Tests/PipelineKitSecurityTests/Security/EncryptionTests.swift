@@ -2,7 +2,6 @@ import XCTest
 import CryptoKit
 @testable import PipelineKitSecurity
 @testable import PipelineKitCore
-@testable import PipelineKitSecurity
 import PipelineKitTestSupport
 
 final class EncryptionTests: XCTestCase {

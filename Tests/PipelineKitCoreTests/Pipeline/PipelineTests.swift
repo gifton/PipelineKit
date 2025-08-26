@@ -3,7 +3,6 @@ import XCTest
 import PipelineKitTestSupport
 
 final class PipelineTests: XCTestCase {
-    
     // MARK: - Test Types
     
     private struct TestCommand: Command {
@@ -45,7 +44,9 @@ final class PipelineTests: XCTestCase {
             // Transform string results
             if let stringResult = result as? String {
                 let transformed = transform(stringResult)
-                return transformed as! T.Result
+                if let typedResult = transformed as? T.Result {
+                    return typedResult
+                }
             }
             
             return result
@@ -60,8 +61,9 @@ final class PipelineTests: XCTestCase {
             func execute<T: Command>(_ command: T, context: CommandContext) async throws -> T.Result {
                 // In a real pipeline, this would call through to a handler
                 // For testing, just return a dummy result
-                if let testCommand = command as? TestCommand {
-                    return try await testCommand.execute() as! T.Result
+                if let testCommand = command as? TestCommand,
+                   let result = try await testCommand.execute() as? T.Result {
+                    return result
                 }
                 fatalError("Unsupported command type")
             }
@@ -134,15 +136,15 @@ final class PipelineTests: XCTestCase {
             TestMiddleware(id: "1", transform: { $0 }, priority: .postProcessing),  // 500
             TestMiddleware(id: "2", transform: { $0 }, priority: .authentication),  // 100
             TestMiddleware(id: "3", transform: { $0 }, priority: .validation),      // 200
-            TestMiddleware(id: "4", transform: { $0 }, priority: .processing),      // 400
+            TestMiddleware(id: "4", transform: { $0 }, priority: .processing)      // 400
         ]
         
         let sorted = middlewares.sorted { $0.priority.rawValue < $1.priority.rawValue }
         
-        XCTAssertEqual((sorted[0] as! TestMiddleware).id, "2") // authentication (100)
-        XCTAssertEqual((sorted[1] as! TestMiddleware).id, "3") // validation (200)
-        XCTAssertEqual((sorted[2] as! TestMiddleware).id, "4") // processing (400)
-        XCTAssertEqual((sorted[3] as! TestMiddleware).id, "1") // postProcessing (500)
+        XCTAssertEqual((sorted[0] as? TestMiddleware)?.id, "2") // authentication (100)
+        XCTAssertEqual((sorted[1] as? TestMiddleware)?.id, "3") // validation (200)
+        XCTAssertEqual((sorted[2] as? TestMiddleware)?.id, "4") // processing (400)
+        XCTAssertEqual((sorted[3] as? TestMiddleware)?.id, "1") // postProcessing (500)
     }
     
     // MARK: - Error Handling Tests
@@ -284,8 +286,13 @@ final class PipelineTests: XCTestCase {
                     let command = TestCommand(value: "test\(i)")
                     let context = CommandContext()
                     
-                    return try! await middleware.execute(command, context: context) { cmd, _ in
-                        try! await cmd.execute()
+                    do {
+                        return try await middleware.execute(command, context: context) { cmd, _ in
+                            try await cmd.execute()
+                        }
+                    } catch {
+                        XCTFail("Unexpected error in concurrent execution: \(error)")
+                        return "error"
                     }
                 }
             }

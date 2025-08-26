@@ -171,5 +171,4 @@ public actor SecureCommandDispatcher {
         guard let limiter = rateLimiter else { return nil }
         return await limiter.getStatus(identifier: "\(userId):\(commandType)")
     }
-    
 }

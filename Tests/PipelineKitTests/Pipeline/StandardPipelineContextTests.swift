@@ -7,7 +7,7 @@ import PipelineKitTestSupport
 // Test context keys
 private enum TestKeys {
     static let customValue = "custom_value"
-    static let multiplier = "multiplier" 
+    static let multiplier = "multiplier"
     static let accumulator = "accumulator"
 }
 

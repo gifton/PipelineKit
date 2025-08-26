@@ -4,10 +4,9 @@ import PipelineKitCore
 import Atomics
 
 final class ObjectPoolTests: XCTestCase {
-    
     // MARK: - Test Types
     
-    struct TestObject: Sendable {
+    private struct TestObject: Sendable {
         let id: Int
         var value: String
         var resetCount: Int = 0
@@ -174,7 +173,7 @@ final class ObjectPoolTests: XCTestCase {
         // Acquire and track hits/misses
         let obj1 = try await pool.acquire()
         await pool.release(obj1)
-        let _ = try await pool.acquire() // Should be a hit
+        _ = try await pool.acquire() // Should be a hit
         
         let stats = await pool.statistics
         XCTAssertEqual(stats.totalAcquisitions, 2)

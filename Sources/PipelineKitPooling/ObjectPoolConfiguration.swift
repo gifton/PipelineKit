@@ -95,17 +95,41 @@ public struct ObjectPoolConfiguration: Sendable {
     }
 
     /// Default configuration with reasonable settings.
-    public static let `default` = try! ObjectPoolConfiguration()
+    public static let `default`: ObjectPoolConfiguration = {
+        do {
+            return try ObjectPoolConfiguration()
+        } catch {
+            fatalError("Failed to create default ObjectPoolConfiguration: \(error)")
+        }
+    }()
 
     /// Small pool configuration (maxSize: 10).
-    public static let small = try! ObjectPoolConfiguration(maxSize: 10)
+    public static let small: ObjectPoolConfiguration = {
+        do {
+            return try ObjectPoolConfiguration(maxSize: 10)
+        } catch {
+            fatalError("Failed to create small ObjectPoolConfiguration: \(error)")
+        }
+    }()
 
     /// Large pool configuration (maxSize: 1000).
-    public static let large = try! ObjectPoolConfiguration(maxSize: 1000)
+    public static let large: ObjectPoolConfiguration = {
+        do {
+            return try ObjectPoolConfiguration(maxSize: 1000)
+        } catch {
+            fatalError("Failed to create large ObjectPoolConfiguration: \(error)")
+        }
+    }()
 
     /// Performance-optimized configuration with statistics disabled.
-    public static let performance = try! ObjectPoolConfiguration(
-        maxSize: 100,
-        trackStatistics: false
-    )
+    public static let performance: ObjectPoolConfiguration = {
+        do {
+            return try ObjectPoolConfiguration(
+                maxSize: 100,
+                trackStatistics: false
+            )
+        } catch {
+            fatalError("Failed to create performance ObjectPoolConfiguration: \(error)")
+        }
+    }()
 }

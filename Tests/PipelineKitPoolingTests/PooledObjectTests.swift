@@ -3,8 +3,7 @@ import XCTest
 import PipelineKitCore
 
 final class PooledObjectTests: XCTestCase {
-    
-    struct TestItem: Sendable {
+    private struct TestItem: Sendable {
         let id: Int
         var isReset: Bool = false
     }
@@ -19,7 +18,7 @@ final class PooledObjectTests: XCTestCase {
         
         // Create pooled object in scope
         do {
-            let _ = try await pool.acquirePooled()
+            _ = try await pool.acquirePooled()
             // Object should auto-return when leaving scope
         }
         

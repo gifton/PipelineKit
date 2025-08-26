@@ -53,7 +53,6 @@ struct ProcessingResult: Sendable, CompressibleResult {
 }
 
 final class CompressionMiddlewareTests: XCTestCase {
-    
     func testCompressionMiddleware() async throws {
         // Create middleware
         let middleware = CompressionMiddleware(

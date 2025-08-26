@@ -73,8 +73,9 @@ public struct Statistics: Sendable {
         self.count = timings.count
 
         // Basic statistics
-        self.min = sorted.first!
-        self.max = sorted.last!
+        // We already checked !timings.isEmpty, so first and last must exist
+        self.min = sorted.first ?? 0
+        self.max = sorted.last ?? 0
         self.range = max - min
 
         // Mean

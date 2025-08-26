@@ -4,7 +4,6 @@ import XCTest
 import PipelineKitTestSupport
 
 final class SecurityPolicyMiddlewareTests: XCTestCase {
-    
     // MARK: - Test Commands
     
     private struct ValidCommand: Command, SecurityValidatable {
@@ -396,8 +395,13 @@ final class SecurityPolicyMiddlewareTests: XCTestCase {
                     let command = ValidCommand(text: "Concurrent test \(i)")
                     let context = CommandContext()
                     
-                    return try! await middleware.execute(command, context: context) { cmd, _ in
-                        try! await cmd.execute()
+                    do {
+                        return try await middleware.execute(command, context: context) { cmd, _ in
+                            try await cmd.execute()
+                        }
+                    } catch {
+                        XCTFail("Unexpected error in concurrent validation: \(error)")
+                        return "error"
                     }
                 }
             }

@@ -4,7 +4,6 @@ import XCTest
 
 /// Compile-time tests to ensure TimeoutMiddleware maintains proper constraints
 final class TimeoutMiddlewareCompileTests: XCTestCase {
-
     /// Test that the middleware protocol's `next` parameter is non-escaping.
     /// This test will fail to compile if the protocol changes to use @escaping.
     func testNextParameterIsNonEscaping() {
@@ -54,7 +53,7 @@ final class TimeoutMiddlewareCompileTests: XCTestCase {
     func testClosureMemoryLayout() async throws {
         let middleware = TimeoutMiddleware(defaultTimeout: 1.0)
 
-        try await middleware.execute(DummyCommand(), context: CommandContext()) { cmd, ctx in
+        try await middleware.execute(DummyCommand(), context: CommandContext()) { cmd, _ in
             // Closures in Swift have a fixed memory layout size
             // Even non-escaping closures have a size (typically 16 bytes on 64-bit)
             let size = MemoryLayout.size(ofValue: { try await cmd.execute() })
@@ -81,4 +80,3 @@ private struct DummyHandler: CommandHandler {
         return try await command.execute()
     }
 }
-

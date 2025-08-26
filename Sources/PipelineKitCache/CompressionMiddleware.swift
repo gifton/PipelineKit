@@ -102,7 +102,6 @@ public struct CompressionMiddleware: Middleware {
         if let compressible = command as? any CompressibleCommand,
            compressible.estimatedSize >= minimumSize,
            let dataToCompress = compressible.dataToCompress {
-            
             do {
                 // Compress the data
                 let compressedData = try CompressionUtility.compress(
@@ -113,7 +112,10 @@ public struct CompressionMiddleware: Middleware {
                 
                 // Only use compressed version if it's actually smaller
                 if compressedData.count < dataToCompress.count {
-                    processedCommand = compressible.withCompressedData(compressedData) as! T
+                    guard let typedCommand = compressible.withCompressedData(compressedData) as? T else {
+                        throw CompressionError.compressionFailed("Failed to cast compressed command to type \(T.self)")
+                    }
+                    processedCommand = typedCommand
                     compressionApplied = true
                     
                     // Store compression metadata
@@ -153,7 +155,6 @@ public struct CompressionMiddleware: Middleware {
         if let compressibleResult = result as? CompressibleResult,
            compressibleResult.estimatedSize >= minimumSize,
            let dataToCompress = compressibleResult.dataToCompress {
-            
             do {
                 // Compress the result data
                 let compressedData = try CompressionUtility.compress(
@@ -164,7 +165,10 @@ public struct CompressionMiddleware: Middleware {
                 
                 // Only use compressed version if it's actually smaller
                 if compressedData.count < dataToCompress.count {
-                    processedResult = compressibleResult.withCompressedData(compressedData) as! T.Result
+                    guard let typedResult = compressibleResult.withCompressedData(compressedData) as? T.Result else {
+                        throw CompressionError.compressionFailed("Failed to cast compressed result to type \(T.Result.self)")
+                    }
+                    processedResult = typedResult
                     
                     // Store result compression metadata
                     await context.setMetadata("compression.resultApplied", value: true)
@@ -239,19 +243,19 @@ public struct CompressionMiddleware: Middleware {
 /// Available compression algorithms.
 public enum CompressionAlgorithm: String, Sendable, CaseIterable {
     /// Zlib compression (good balance).
-    case zlib = "zlib"
+    case zlib
     
     /// Apple's LZFSE (optimized for Apple platforms).
-    case lzfse = "lzfse"
+    case lzfse
     
     /// LZ4 (very fast, moderate compression).
-    case lz4 = "lz4"
+    case lz4
     
     /// Gzip compression (widely compatible).
-    case gzip = "gzip"
+    case gzip
     
     /// Brotli (best compression, slower).
-    case brotli = "brotli"
+    case brotli
     
     /// The Foundation Compression algorithm type.
     var foundationAlgorithm: compression_algorithm {

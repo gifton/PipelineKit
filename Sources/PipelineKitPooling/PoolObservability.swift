@@ -378,12 +378,27 @@ private final class Histogram: @unchecked Sendable {
         let sum = sorted.reduce(0, +)
         let mean = sum / Double(count)
         
+        guard let minValue = sorted.first,
+              let maxValue = sorted.last else {
+            // This should never happen since we already checked !values.isEmpty
+            return HistogramStats(
+                count: 0,
+                sum: 0,
+                mean: 0,
+                min: 0,
+                max: 0,
+                p50: 0,
+                p95: 0,
+                p99: 0
+            )
+        }
+        
         return HistogramStats(
             count: count,
             sum: sum,
             mean: mean,
-            min: sorted.first!,
-            max: sorted.last!,
+            min: minValue,
+            max: maxValue,
             p50: percentile(sorted, 0.5),
             p95: percentile(sorted, 0.95),
             p99: percentile(sorted, 0.99)

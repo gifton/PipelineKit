@@ -3,10 +3,9 @@ import PipelineKitCore
 @testable import PipelineKitResilience
 
 final class RetryMiddlewareTests: XCTestCase {
-
     // MARK: - Test Commands
 
-    final class FlakeyCommand: Command, @unchecked Sendable {
+    private final class FlakeyCommand: Command, @unchecked Sendable {
         typealias Result = String
 
         private var attemptCount = 0
@@ -31,7 +30,7 @@ final class RetryMiddlewareTests: XCTestCase {
         }
     }
 
-    struct AlwaysFailingCommand: Command {
+    private struct AlwaysFailingCommand: Command {
         typealias Result = String
         let error: Error
 
@@ -44,7 +43,7 @@ final class RetryMiddlewareTests: XCTestCase {
         }
     }
 
-    struct SuccessCommand: Command {
+    private struct SuccessCommand: Command {
         typealias Result = String
 
         func execute() async throws -> String {
@@ -52,7 +51,7 @@ final class RetryMiddlewareTests: XCTestCase {
         }
     }
 
-    enum TestError: Error {
+    private enum TestError: Error {
         case temporaryFailure
         case permanentFailure
         case networkError
@@ -457,4 +456,3 @@ final class RetryMiddlewareTests: XCTestCase {
     }
     */
 }
-

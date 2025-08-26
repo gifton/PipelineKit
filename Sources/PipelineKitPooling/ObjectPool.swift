@@ -310,9 +310,18 @@ public extension ObjectPool {
     ///   - maxSize: Maximum number of objects to pool
     ///   - factory: Closure to create new instances
     init(maxSize: Int, factory: @escaping @Sendable () -> T) {
-        self.init(
-            configuration: try! ObjectPoolConfiguration(maxSize: maxSize),
-            factory: factory
-        )
+        do {
+            try self.init(
+                configuration: ObjectPoolConfiguration(maxSize: maxSize),
+                factory: factory
+            )
+        } catch {
+            // Fall back to a default configuration if validation fails
+            // This should rarely happen since we're using valid maxSize
+            self.init(
+                configuration: ObjectPoolConfiguration.default,
+                factory: factory
+            )
+        }
     }
 }

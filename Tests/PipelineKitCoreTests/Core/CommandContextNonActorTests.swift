@@ -5,7 +5,6 @@ import PipelineKit
 import PipelineKitTestSupport
 
 final class CommandContextNonActorTests: XCTestCase {
-    
     func testContextIsNoLongerActor() async {
         // This test verifies that CommandContext uses the new API
         let metadata = TestCommandMetadata(

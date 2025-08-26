@@ -3,12 +3,11 @@ import XCTest
 import Foundation
 
 final class MetricsFacadeTests: XCTestCase {
-    
     override func setUp() async throws {
         // Reset to defaults before each test
         Metrics.storage = MetricsStorage()
         // Use NoOpRecorder for test setup to avoid network issues
-        Metrics.exporter = NoOpRecorder()  
+        Metrics.exporter = NoOpRecorder()
         Metrics.errorHandler = nil
     }
     

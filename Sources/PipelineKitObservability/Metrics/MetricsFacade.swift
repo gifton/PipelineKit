@@ -100,14 +100,14 @@ public enum Metrics {
         do {
             let result = try await block()
             let elapsed = ContinuousClock.now - start
-            let duration = Double(elapsed.components.seconds) + 
+            let duration = Double(elapsed.components.seconds) +
                            Double(elapsed.components.attoseconds) / 1e18
             await timer(name, duration: duration, tags: tags)
             return result
         } catch {
             // Record timer even on error
             let elapsed = ContinuousClock.now - start
-            let duration = Double(elapsed.components.seconds) + 
+            let duration = Double(elapsed.components.seconds) +
                            Double(elapsed.components.attoseconds) / 1e18
             await timer(name, duration: duration, tags: tags)
             throw error

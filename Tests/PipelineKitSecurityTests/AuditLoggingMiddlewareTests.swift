@@ -16,7 +16,6 @@ struct TestResult: Sendable {
 }
 
 final class AuditLoggingMiddlewareTests: XCTestCase {
-    
     func testAuditLoggingSuccess() async throws {
         // Create in-memory logger
         let logger = InMemoryAuditLogger()

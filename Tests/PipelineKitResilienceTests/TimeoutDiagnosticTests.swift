@@ -4,7 +4,6 @@ import XCTest
 import PipelineKit
 
 final class TimeoutDiagnosticTests: XCTestCase {
-    
     // Test command
     private struct TestCommand: Command {
         typealias Result = String

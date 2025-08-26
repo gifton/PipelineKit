@@ -41,4 +41,3 @@ public protocol ContextCopyable: Sendable {
     /// - Returns: A deep copy of this value
     func contextCopy() -> Self
 }
-

@@ -168,7 +168,10 @@ public struct EncryptionMiddleware: Middleware {
             ))
         }
         
-        return encryptedCommand as! T
+        guard let typedCommand = encryptedCommand as? T else {
+            throw EncryptionError.encryptionFailed("Failed to cast encrypted command to type \(T.self)")
+        }
+        return typedCommand
     }
     
     private func decryptResult<T>(_ result: T, context: CommandContext) async throws -> T {
@@ -218,7 +221,10 @@ public struct EncryptionMiddleware: Middleware {
             ))
         }
         
-        return decryptedResult as! T
+        guard let typedResult = decryptedResult as? T else {
+            throw EncryptionError.decryptionFailed("Failed to cast decrypted result to type \(T.self)")
+        }
+        return typedResult
     }
 }
 

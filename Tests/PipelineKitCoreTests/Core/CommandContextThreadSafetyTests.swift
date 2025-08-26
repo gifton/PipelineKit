@@ -4,7 +4,6 @@ import PipelineKit
 import PipelineKitTestSupport
 
 final class CommandContextThreadSafetyTests: XCTestCase {
-
     // MARK: - Basic Thread Safety Tests
 
     func testConcurrentStorageAccess() async throws {
@@ -377,4 +376,3 @@ final class CommandContextThreadSafetyTests: XCTestCase {
         XCTAssertTrue(true, "Concurrent event emission completed without crashes")
     }
 }
-

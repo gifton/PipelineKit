@@ -270,7 +270,7 @@ public actor PoolMetricsCollector {
         #endif
         
         // Collect current snapshot to understand pool state
-        let _ = await collectSnapshot()
+        _ = await collectSnapshot()
         
         // Send memory pressure alert
         await sendAlert(.memoryPressure(pressureLevel))

@@ -2,7 +2,6 @@ import XCTest
 @testable import PipelineKitPooling
 
 final class ObjectPoolConfigurationTests: XCTestCase {
-    
     // MARK: - Valid Configurations
     
     func testDefaultConfiguration() throws {
@@ -197,7 +196,7 @@ final class ObjectPoolConfigurationTests: XCTestCase {
         
         // Should be able to pass across actor boundaries
         Task {
-            let _ = config
+            _ = config
         }
         
         // Configuration should be immutable

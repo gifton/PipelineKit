@@ -3,7 +3,6 @@ import XCTest
 import PipelineKitCore
 
 final class PoolAnalysisTests: XCTestCase {
-    
     // MARK: - Basic Analysis Creation
     
     func testPoolAnalysisCreation() {

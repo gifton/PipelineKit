@@ -2,9 +2,8 @@ import XCTest
 @testable import PipelineKitCore
 
 final class ContextCopyableTests: XCTestCase {
-    
     // Example reference type that implements ContextCopyable
-    final class UserSession: ContextCopyable, @unchecked Sendable {
+    private final class UserSession: ContextCopyable, @unchecked Sendable {
         var id: String
         var permissions: Set<String>
         var loginTime: Date
@@ -25,7 +24,7 @@ final class ContextCopyableTests: XCTestCase {
     }
     
     // Define test context keys
-    struct TestContextKeys {
+    private struct TestContextKeys {
         static let session = ContextKey<UserSession>("test.session")
         static let counter = ContextKey<Int>("test.counter")
         static let name = ContextKey<String>("test.name")

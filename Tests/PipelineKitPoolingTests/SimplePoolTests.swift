@@ -4,8 +4,7 @@ import PipelineKitCore
 
 /// Simplified tests to get basic coverage working
 final class SimplePoolTests: XCTestCase {
-    
-    struct TestItem: Sendable {
+    private struct TestItem: Sendable {
         let id: Int
     }
     
@@ -117,7 +116,7 @@ final class SimplePoolTests: XCTestCase {
         
         let item1 = try await pool.acquire()
         await pool.release(item1)
-        let _ = try await pool.acquire()
+        _ = try await pool.acquire()
         
         let stats = await pool.statistics
         XCTAssertEqual(stats.totalAcquisitions, 2)

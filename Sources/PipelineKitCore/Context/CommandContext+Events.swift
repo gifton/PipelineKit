@@ -48,7 +48,7 @@ extension CommandContext {
         properties: [String: T]
     ) async {
         // Use request ID as correlation ID, or generate one
-        let correlationID = (await getRequestID()) ?? UUID().uuidString
+        let correlationID = getRequestID() ?? UUID().uuidString
         // Convert typed properties to Any Sendable
         var allProperties: [String: any Sendable] = properties
         allProperties["middleware"] = middleware

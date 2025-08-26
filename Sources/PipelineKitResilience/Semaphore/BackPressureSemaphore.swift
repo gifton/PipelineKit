@@ -234,7 +234,7 @@ public actor BackPressureSemaphore {
             case .dropOldest:
                 if let oldest = waiters.first {
                     waiters.removeFirst()
-                    oldest.continuation.resume(throwing: 
+                    oldest.continuation.resume(throwing:
                         PipelineError.backPressure(reason: .commandDropped(
                             reason: "Dropped to make room"
                         ))
@@ -281,7 +281,7 @@ public actor BackPressureSemaphore {
         let now = Date()
         waiters.removeAll { waiter in
             if waiter.enqueuedAt.timeIntervalSince(now) > waiterTimeout {
-                waiter.continuation.resume(throwing: 
+                waiter.continuation.resume(throwing:
                     PipelineError.backPressure(reason: .timeout(duration: waiterTimeout))
                 )
                 return true
@@ -308,8 +308,8 @@ public actor BackPressureSemaphore {
     public func healthCheck() -> SemaphoreHealth {
         let stats = getStats()
         let queueUtilization = Double(stats.queuedOperations) / Double(maxOutstanding)
-        let memoryUtilization = maxQueueMemory.map { 
-            Double(stats.queueMemoryUsage) / Double($0) 
+        let memoryUtilization = maxQueueMemory.map {
+            Double(stats.queueMemoryUsage) / Double($0)
         } ?? 0
         
         let isHealthy = (stats.oldestWaiterAge ?? 0) < 60 &&

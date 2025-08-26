@@ -3,7 +3,6 @@ import XCTest
 import PipelineKitTestSupport
 
 final class MiddlewareTests: XCTestCase {
-    
     // MARK: - Test Types
     
     private struct TestCommand: Command {
@@ -31,8 +30,9 @@ final class MiddlewareTests: XCTestCase {
         ) async throws -> T.Result {
             let result = try await next(command, context)
             
-            if let stringResult = result as? String {
-                return transform(stringResult) as! T.Result
+            if let stringResult = result as? String,
+               let transformed = transform(stringResult) as? T.Result {
+                return transformed
             }
             
             return result
@@ -235,9 +235,11 @@ final class MiddlewareTests: XCTestCase {
                 if condition(command) {
                     // Apply middleware logic
                     let result = try await next(command, context)
-                    if var stringResult = result as? String {
-                        stringResult = "PROCESSED: " + stringResult
-                        return stringResult as! T.Result
+                    if let stringResult = result as? String {
+                        let processed = "PROCESSED: " + stringResult
+                        if let typedResult = processed as? T.Result {
+                            return typedResult
+                        }
                     }
                     return result
                 } else {

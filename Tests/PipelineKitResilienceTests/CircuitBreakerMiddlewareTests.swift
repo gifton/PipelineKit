@@ -3,17 +3,16 @@ import PipelineKitCore
 @testable import PipelineKitResilience
 
 final class CircuitBreakerMiddlewareTests: XCTestCase {
-
     // MARK: - Test Commands
 
-    struct SuccessCommand: Command {
+    private struct SuccessCommand: Command {
         typealias Result = String
         func execute() async throws -> String {
             "Success"
         }
     }
 
-    struct FailingCommand: Command {
+    private struct FailingCommand: Command {
         typealias Result = String
         let error: Error
 
@@ -26,7 +25,7 @@ final class CircuitBreakerMiddlewareTests: XCTestCase {
         }
     }
 
-    struct SlowCommand: Command {
+    private struct SlowCommand: Command {
         typealias Result = String
         let duration: TimeInterval
 
@@ -36,7 +35,7 @@ final class CircuitBreakerMiddlewareTests: XCTestCase {
         }
     }
 
-    enum TestError: Error {
+    private enum TestError: Error {
         case expectedFailure
         case networkError
         case timeoutError
@@ -173,7 +172,7 @@ final class CircuitBreakerMiddlewareTests: XCTestCase {
             let result = try await middleware.execute(SuccessCommand(), context: context) { cmd, _ in
                 try await cmd.execute()
             }
-            XCTAssertEqual(result, "Success", "Request \(i+1) should succeed in half-open")
+            XCTAssertEqual(result, "Success", "Request \(i + 1) should succeed in half-open")
         }
 
         // Then - Circuit should be fully closed (accept all requests)
@@ -181,7 +180,7 @@ final class CircuitBreakerMiddlewareTests: XCTestCase {
             let result = try await middleware.execute(SuccessCommand(), context: context) { cmd, _ in
                 try await cmd.execute()
             }
-            XCTAssertEqual(result, "Success", "Circuit should be closed, request \(i+1) should succeed")
+            XCTAssertEqual(result, "Success", "Circuit should be closed, request \(i + 1) should succeed")
         }
     }
 
@@ -440,4 +439,3 @@ final class CircuitBreakerMiddlewareTests: XCTestCase {
     }
     */
 }
-

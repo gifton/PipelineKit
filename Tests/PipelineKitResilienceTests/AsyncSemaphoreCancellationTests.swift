@@ -6,7 +6,6 @@ import PipelineKitTestSupport
 /// These tests verify the fix for the critical bug where cancelling one task
 /// would release ALL waiting tasks.
 final class AsyncSemaphoreCancellationTests: XCTestCase {
-    
     // MARK: - Single Task Cancellation
     
     func testSingleTaskCancellationDoesNotAffectOthers() async throws {

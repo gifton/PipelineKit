@@ -2,7 +2,6 @@ import XCTest
 @testable import PipelineKitObservability
 
 final class AggregationTests: XCTestCase {
-    
     func testCanonicalTagOrdering() async {
         // Test that tags are canonicalized for consistent hashing
         let tags1 = ["env": "prod", "region": "us-east", "service": "api"]

@@ -3,7 +3,6 @@ import XCTest
 import PipelineKitTestSupport
 
 final class CommandContextTests: XCTestCase {
-    
     // MARK: - Basic Operations
     
     func testContextCreation() async throws {
@@ -17,7 +16,7 @@ final class CommandContextTests: XCTestCase {
         // Metadata dictionary might be empty initially (it's a separate storage)
         let metadata = await context.getMetadata()
         // Metadata is stored separately from other context values
-        XCTAssertTrue(metadata.isEmpty || metadata.count >= 0, "Metadata dictionary initialized")
+        XCTAssertTrue(metadata.isEmpty || metadata.isEmpty, "Metadata dictionary initialized")
     }
     
     func testContextWithMetadata() async throws {
@@ -220,7 +219,7 @@ final class CommandContextTests: XCTestCase {
         // The snapshot contains the raw storage, which may have nested structure
         // Metadata is stored under ContextKeys.metadata, metrics under ContextKeys.metrics
         // Just verify we have some data in the snapshot
-        XCTAssertTrue(snapshot.count > 0, "Snapshot should contain data")
+        XCTAssertTrue(!snapshot.isEmpty, "Snapshot should contain data")
         
         // Verify we can retrieve our values back through the context
         let retrievedMetadata = await context.getMetadata()

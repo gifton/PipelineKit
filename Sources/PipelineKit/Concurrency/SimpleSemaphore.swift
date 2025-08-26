@@ -15,7 +15,7 @@ import PipelineKitCore
 /// // Use resource...
 /// token.release() // Or let it auto-release
 /// ```
-public actor SimpleSemaphore: Sendable {
+public actor SimpleSemaphore {
     /// Available permits for resource acquisition.
     private var permits: Int
     

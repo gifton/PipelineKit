@@ -3,7 +3,6 @@ import XCTest
 import Foundation
 
 final class TypeSafeMetricTests: XCTestCase {
-    
     // MARK: - Metric Creation Tests
     
     func testCreateCounter() {

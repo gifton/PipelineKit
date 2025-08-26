@@ -93,9 +93,9 @@ actor MetricAggregator {
     /// - Returns: Whether aggregation succeeded (false = buffer full)
     func aggregate(_ snapshot: MetricSnapshot, sampleRate: Double) async -> Bool {
         // Check limits
-        guard buffer.count < configuration.maxUniqueMetrics || 
+        guard buffer.count < configuration.maxUniqueMetrics ||
               buffer.keys.contains(MetricKey(name: snapshot.name, tags: snapshot.tags)) else {
-            await emitWarningOnce("aggregation_keys_limit", 
+            await emitWarningOnce("aggregation_keys_limit",
                                  "Aggregation buffer reached \(configuration.maxUniqueMetrics) unique keys")
             return false
         }

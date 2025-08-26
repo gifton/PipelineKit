@@ -1,5 +1,10 @@
 import Foundation
 
+/// Benchmark-related errors
+public enum BenchmarkError: Error {
+    case noIterationsExecuted
+}
+
 /// A high-performance benchmarking framework with zero-overhead abstractions.
 public struct Benchmark: Sendable {
     // MARK: - Types
@@ -223,7 +228,10 @@ public struct Benchmark: Sendable {
             timings.append(duration)
         }
 
-        return (lastValue!, timings)
+        guard let finalValue = lastValue else {
+            throw BenchmarkError.noIterationsExecuted
+        }
+        return (finalValue, timings)
     }
 
     private func runConcurrent<T: Sendable>(
@@ -247,7 +255,10 @@ public struct Benchmark: Sendable {
                         timings.append(duration)
                     }
 
-                    return (lastValue!, timings)
+                    guard let finalValue = lastValue else {
+                        throw BenchmarkError.noIterationsExecuted
+                    }
+                    return (finalValue, timings)
                 }
             }
 
@@ -259,7 +270,10 @@ public struct Benchmark: Sendable {
                 allTimings.append(contentsOf: timings)
             }
 
-            return (finalValue!, allTimings)
+            guard let result = finalValue else {
+                throw BenchmarkError.noIterationsExecuted
+            }
+            return (result, allTimings)
         }
     }
 }

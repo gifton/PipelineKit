@@ -190,7 +190,7 @@ final class SimpleCancellationTests: XCTestCase {
             XCTFail("Expected CancellationError")
         } catch {
             // Check if it's a cancellation error (either type)
-            let isCancellation = error is CancellationError || 
+            let isCancellation = error is CancellationError ||
                                 (error as? PipelineError)?.isCancellation == true
             XCTAssertTrue(isCancellation,
                          "Expected cancellation error, got \(error)")

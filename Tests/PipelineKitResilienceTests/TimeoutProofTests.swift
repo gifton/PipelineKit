@@ -5,7 +5,6 @@ import PipelineKit
 
 /// Proof tests showing TimeoutMiddleware works correctly when configured properly
 final class TimeoutProofTests: XCTestCase {
-    
     private struct TestCommand: Command {
         typealias Result = String
         let value: String

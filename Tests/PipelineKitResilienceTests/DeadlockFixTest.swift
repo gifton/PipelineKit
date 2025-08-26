@@ -3,7 +3,6 @@ import XCTest
 @testable import PipelineKitCore
 
 final class DeadlockFixTest: XCTestCase {
-    
     /// Test that verifies the lost wakeup bug is fixed
     func testNoDeadlockWithConcurrentQueueing() async throws {
         // Given - Aggressive settings to trigger the race condition

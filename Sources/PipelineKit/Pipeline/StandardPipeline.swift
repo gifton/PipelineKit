@@ -317,7 +317,6 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: Pipeline where H.C
         // Execute the chain
         return try await next(command, context)
     }
-    
 }
 
 // MARK: - Type-Erased Pipeline Support

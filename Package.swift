@@ -391,34 +391,3 @@ let package = Package(
         ),
     ]
 )
-
-// MARK: - Module Structure Documentation
-//
-// PipelineKit is logically organized into four modules:
-//
-// 1. **Core** (Sources/PipelineKit/Core/, Pipeline/, Bus/)
-//    - Essential protocols and types
-//    - Pipeline implementations
-//    - Command bus functionality
-//    - Basic middleware
-//
-// 2. **Security** (Sources/PipelineKit/Security/, Middleware/Authentication/, Middleware/Authorization/)
-//    - Authentication and authorization
-//    - Encryption services
-//    - Audit logging
-//    - Security policies
-//
-// 3. **Observability** (Sources/PipelineKitObservability/)
-//    - Event-driven observability
-//    - Type-safe metric recording
-//    - Statistical accumulators
-//    - Prometheus exporter
-//    - Visualization tools
-//
-// 4. **Extensions** (Sources/PipelineKit/Resilience/, Testing/, Middleware/*)
-//    - Caching middleware
-//    - Rate limiting
-//    - Resilience patterns
-//    - Testing utilities
-//
-// Future versions may split these into separate Swift packages for better modularity.

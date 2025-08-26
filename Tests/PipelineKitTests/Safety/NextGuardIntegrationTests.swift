@@ -3,7 +3,6 @@ import XCTest
 @testable import PipelineKitCore
 
 final class NextGuardIntegrationTests: XCTestCase {
-    
     // MARK: - Test Types
     
     private struct TestCommand: Command {

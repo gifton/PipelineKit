@@ -3,7 +3,6 @@ import XCTest
 import Foundation
 
 final class SamplingTests: XCTestCase {
-    
     // MARK: - Configuration Tests
     
     func testSamplingConfiguration() {
@@ -69,7 +68,7 @@ final class SamplingTests: XCTestCase {
         let recorded = await exporter.getRecordedMetrics()
         
         // Should either always sample or never sample (deterministic)
-        XCTAssertTrue(recorded.count == 0 || recorded.count == 10)
+        XCTAssertTrue(recorded.isEmpty || recorded.count == 10)
     }
     
     func testDifferentMetricsDifferentDecisions() async {
@@ -228,7 +227,7 @@ final class SamplingTests: XCTestCase {
         for (name, metrics) in groupedByName {
             // Each unique metric name should appear the same number of times
             // (either all 10 times if sampled, or 0 times if not)
-            if metrics.count > 0 {
+            if !metrics.isEmpty {
                 XCTAssertEqual(metrics.count, 10, "Metric \(name) should be consistently sampled")
             }
         }

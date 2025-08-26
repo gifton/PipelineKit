@@ -108,7 +108,6 @@ public struct AuditLoggingMiddleware: Middleware {
                 await logger.log(completeEvent)
                 
                 return result
-                
             } catch {
                 // Log failure
                 let duration = Date().timeIntervalSince(startTime)
@@ -163,7 +162,6 @@ public struct AuditLoggingMiddleware: Middleware {
                     await logger.log(completeEvent)
                     
                     return result
-                    
                 } catch {
                     // Log failure
                     let duration = Date().timeIntervalSince(startTime)

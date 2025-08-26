@@ -5,7 +5,6 @@ import XCTest
 
 /// Phase 4 Validation Tests - Comprehensive integration testing
 final class Phase4ValidationTests: XCTestCase {
-    
     // MARK: - Test Types
     
     private struct TestCommand: Command {
@@ -308,7 +307,6 @@ final class Phase4ValidationTests: XCTestCase {
 // MARK: - Concurrency Tests
 
 extension Phase4ValidationTests {
-    
     func testHighConcurrency() async throws {
         // Test with many concurrent requests
         let pipeline = StandardPipeline(handler: TestHandler())

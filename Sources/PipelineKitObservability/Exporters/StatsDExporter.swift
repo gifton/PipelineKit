@@ -485,10 +485,15 @@ public extension StatsDExporter {
     static func withMockTransport(
         configuration: Configuration = .default,
         mockConfig: MockTransport.Configuration = MockTransport.Configuration()
-    ) async -> (StatsDExporter, MockTransport) {
-        let mockTransport = try! await MockTransport(configuration: mockConfig)
-        let exporter = await StatsDExporter(configuration: configuration, transport: mockTransport)
-        return (exporter, mockTransport)
+    ) async -> (StatsDExporter, MockTransport)? {
+        do {
+            let mockTransport = try await MockTransport(configuration: mockConfig)
+            let exporter = await StatsDExporter(configuration: configuration, transport: mockTransport)
+            return (exporter, mockTransport)
+        } catch {
+            print("Failed to create mock transport: \(error)")
+            return nil
+        }
     }
 }
 
@@ -515,7 +520,7 @@ public extension StatsDExporter {
         let start = ContinuousClock.now
         let result = try await block()
         let elapsed = ContinuousClock.now - start
-        let duration = Double(elapsed.components.seconds) + 
+        let duration = Double(elapsed.components.seconds) +
                        Double(elapsed.components.attoseconds) / 1e18
         await timer(name, duration: duration, tags: tags)
         return result

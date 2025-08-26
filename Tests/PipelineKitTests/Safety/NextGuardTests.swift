@@ -4,7 +4,6 @@ import XCTest
 import Atomics
 
 final class NextGuardTests: XCTestCase {
-    
     // MARK: - Test Types
     
     private struct TestCommand: Command {

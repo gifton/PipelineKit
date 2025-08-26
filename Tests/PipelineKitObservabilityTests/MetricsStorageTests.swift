@@ -3,7 +3,6 @@ import XCTest
 import Foundation
 
 final class MetricsStorageTests: XCTestCase {
-    
     // MARK: - Basic Operations
     
     func testRecordAndRetrieve() async {

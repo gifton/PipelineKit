@@ -3,10 +3,9 @@ import PipelineKitCore
 @testable import PipelineKitResilience
 
 final class BulkheadMiddlewareTests: XCTestCase {
-
     // MARK: - Test Commands
 
-    struct SlowCommand: Command {
+    private struct SlowCommand: Command {
         typealias Result = String
         let id: Int
         let duration: TimeInterval
@@ -17,7 +16,7 @@ final class BulkheadMiddlewareTests: XCTestCase {
         }
     }
 
-    struct FastCommand: Command {
+    private struct FastCommand: Command {
         typealias Result = String
         let id: Int
 
@@ -26,7 +25,7 @@ final class BulkheadMiddlewareTests: XCTestCase {
         }
     }
 
-    struct FailingCommand: Command {
+    private struct FailingCommand: Command {
         typealias Result = String
 
         func execute() async throws -> String {
@@ -34,7 +33,7 @@ final class BulkheadMiddlewareTests: XCTestCase {
         }
     }
 
-    enum TestError: Error {
+    private enum TestError: Error {
         case expectedFailure
         case timeout
     }
@@ -268,7 +267,7 @@ final class BulkheadMiddlewareTests: XCTestCase {
         let middleware = BulkheadMiddleware(
             configuration: BulkheadMiddleware.Configuration(
                 maxConcurrency: 1,
-                rejectionPolicy: .custom(handler: { command in
+                rejectionPolicy: .custom(handler: { _ in
                     customResponse
                 })
             )
@@ -348,7 +347,7 @@ final class BulkheadMiddlewareTests: XCTestCase {
         let middleware = BulkheadMiddleware(
             configuration: BulkheadMiddleware.Configuration(
                 maxConcurrency: 1,
-                rejectionHandler: { command, context in
+                rejectionHandler: { command, _ in
                     Task { await tracker.setRejected(command) }
                     expectation.fulfill()
                 }
@@ -440,4 +439,3 @@ final class BulkheadMiddlewareTests: XCTestCase {
         XCTAssertEqual(failureCount, 0)
     }
 }
-

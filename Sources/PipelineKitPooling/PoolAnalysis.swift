@@ -46,19 +46,19 @@ public struct PoolAnalysis: Sendable {
 /// Detected usage patterns for pools
 public enum UsagePattern: String, Sendable {
     /// Consistent, predictable usage
-    case steady = "steady"
+    case steady
     
     /// Periodic spikes in usage
-    case bursty = "bursty"
+    case bursty
     
     /// Increasing trend in usage
-    case growing = "growing"
+    case growing
     
     /// Decreasing trend in usage
-    case declining = "declining"
+    case declining
     
     /// Unpredictable or insufficient data
-    case unknown = "unknown"
+    case unknown
 }
 
 /// Intelligent shrinking calculator
@@ -204,10 +204,9 @@ public extension PoolMetricsCollector {
     private func calculateAllocationVelocity(
         _ data: [(timestamp: Date, stats: ObjectPoolStatistics)]
     ) -> Double {
-        guard data.count >= 2 else { return 0.0 }
-        
-        let first = data.first!
-        let last = data.last!
+        guard data.count >= 2,
+              let first = data.first,
+              let last = data.last else { return 0.0 }
         
         let allocationDelta = Double(last.stats.totalAllocated - first.stats.totalAllocated)
         let timeDelta = last.timestamp.timeIntervalSince(first.timestamp)

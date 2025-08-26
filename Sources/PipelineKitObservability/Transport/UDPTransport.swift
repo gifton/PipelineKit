@@ -190,7 +190,9 @@ public actor UDPTransport: MetricsTransport {
                 throw TransportError.timeout
             }
             
-            let result = try await group.next()!
+            guard let result = try await group.next() else {
+                throw TransportError.timeout
+            }
             group.cancelAll()
             return result
         }

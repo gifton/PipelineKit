@@ -15,7 +15,6 @@ public actor MemoryPressureDetector {
     private var isMonitoring = false
     
     private init() {
-        // **ultrathink**: Configure memory thresholds based on system memory
         // Using adaptive thresholds ensures proper behavior across different devices
         let totalMemory = ProcessInfo.processInfo.physicalMemory
         let highWaterMark = Int(Double(totalMemory) * 0.15) // 15% of total memory

@@ -6,7 +6,6 @@ import Network
 #endif
 
 final class StatsDExporterTests: XCTestCase {
-    
     // MARK: - Configuration Tests
     
     func testDefaultConfiguration() {
@@ -132,7 +131,7 @@ final class StatsDExporterTests: XCTestCase {
         )
         let (exporter, _) = await StatsDExporter.withMockTransport(mockConfig: mockConfig)
         
-        await exporter.setErrorHandler { error in
+        await exporter.setErrorHandler { _ in
             // Verify we got an error
             expectation.fulfill()
         }
