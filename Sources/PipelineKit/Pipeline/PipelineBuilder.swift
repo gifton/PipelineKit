@@ -20,15 +20,15 @@ import PipelineKitCore
 ///
 /// // Build a pipeline with middleware
 /// let builder = PipelineBuilder(handler: handler)
-/// _ = await builder.with(LoggingMiddleware())
-/// _ = await builder.with(ValidationMiddleware()) 
-/// _ = await builder.with(AuthorizationMiddleware())
-/// _ = await builder.withMaxDepth(50)
+/// await builder.with(LoggingMiddleware())
+/// await builder.with(ValidationMiddleware())
+/// await builder.with(AuthorizationMiddleware())
+/// await builder.withMaxDepth(50)
 /// let pipeline = try await builder.build()
 ///
 /// // Or add multiple middleware at once
 /// let builder = PipelineBuilder(handler: handler)
-/// _ = await builder.with([
+/// await builder.with([
 ///     LoggingMiddleware(),
 ///     ValidationMiddleware(),
 ///     AuthorizationMiddleware()
