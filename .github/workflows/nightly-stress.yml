@@ -7,7 +7,7 @@ on:
   workflow_dispatch:  # Allow manual triggering
 
 env:
-  SWIFT_VERSION: '5.10'
+  SWIFT_VERSION: '6.0'
 
 jobs:
   stress-tests-tsan:
@@ -17,7 +17,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [macos-14, macos-14]
-        swift: ['5.10']
+        swift: ['6.0']
     
     steps:
     - uses: actions/checkout@v4

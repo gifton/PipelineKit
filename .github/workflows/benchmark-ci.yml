@@ -20,7 +20,7 @@ on:
         default: false
 
 env:
-  SWIFT_VERSION: '5.10'
+  SWIFT_VERSION: '6.0'
   BENCHMARK_TIMEOUT: '600' # 10 minutes max for all benchmarks
 
 jobs:
@@ -36,7 +36,7 @@ jobs:
           fetch-depth: 0 # Need full history for baseline comparison
       
       - name: Setup Swift
-        uses: swift-actions/setup-swift@v2
+        uses: swift-actions/setup-swift@v2.3.0
         with:
           swift-version: ${{ env.SWIFT_VERSION }}
       
