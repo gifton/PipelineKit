@@ -14,6 +14,9 @@ on:
       - 'Sources/PipelineKitMetrics/**'
       - 'Tests/PipelineKitMetricsTests/**'
       - 'Package.swift'
+env:
+  BENCHMARK_DISABLE_JEMALLOC: '1'  # Disable jemalloc dependency in swift-benchmark
+
 
 jobs:
   test-macos:

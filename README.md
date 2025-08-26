@@ -1267,14 +1267,16 @@ For more information about stress testing, see the [PipelineKitStressTest README
 PipelineKit includes comprehensive performance benchmarks:
 
 ```bash
-# Quick benchmarks
-swift run PipelineKitBenchmarks --quick
+# Using the benchmark plugin (recommended)
+swift package benchmark run --filter "Pipeline"
 
-# Full benchmark suite
-swift run PipelineKitBenchmarks
+# Alternative command-line options
+BENCHMARK_DISABLE_JEMALLOC=1 swift package benchmark run --quick
 
-# Specific benchmarks
-swift run PipelineKitBenchmarks BackPressure
+# For CI environments where jemalloc is not available
+export BENCHMARK_DISABLE_JEMALLOC=1
+swift package benchmark list
+swift package benchmark run --filter "BackPressure"
 ```
 
 For detailed benchmark information, see [Benchmarks Documentation](docs/benchmarks.md).

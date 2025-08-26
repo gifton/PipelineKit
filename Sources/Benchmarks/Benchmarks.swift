@@ -81,12 +81,13 @@ struct PipelineKitBenchmarks {
         
         // Disable malloc statistics to avoid jemalloc dependency issues in CI
         // jemalloc is not consistently available across all CI environments
+        // Note: jemalloc is disabled at the package level via BENCHMARK_DISABLE_JEMALLOC=1
         config.metrics = [
             .cpuTotal,
             .wallClock,
             .throughput,
             .peakMemoryResident
-            // .mallocCountTotal - Disabled: requires jemalloc
+            // .mallocCountTotal - Disabled: requires jemalloc (disabled at package level)
         ]
         
         // MARK: Pipeline Benchmarks

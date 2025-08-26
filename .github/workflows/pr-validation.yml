@@ -3,6 +3,9 @@ name: PR Validation
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
+env:
+  BENCHMARK_DISABLE_JEMALLOC: '1'  # Disable jemalloc dependency in swift-benchmark
+
 
 concurrency:
   group: pr-${{ github.event.pull_request.number }}

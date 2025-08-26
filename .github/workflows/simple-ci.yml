@@ -5,6 +5,9 @@ on:
     branches: [ main, develop, simplification ]
   pull_request:
     branches: [ main ]
+env:
+  BENCHMARK_DISABLE_JEMALLOC: '1'  # Disable jemalloc dependency in swift-benchmark
+
 
 jobs:
   test:

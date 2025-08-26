@@ -4,6 +4,9 @@ on:
   schedule:
     - cron: '0 2 * * *'  # Run at 2 AM UTC daily
   workflow_dispatch:
+env:
+  BENCHMARK_DISABLE_JEMALLOC: '1'  # Disable jemalloc dependency in swift-benchmark
+
 
 jobs:
   nightly-test:

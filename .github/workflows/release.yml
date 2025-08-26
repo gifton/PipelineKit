@@ -6,6 +6,7 @@ on:
       - 'v*'
 
 env:
+  BENCHMARK_DISABLE_JEMALLOC: '1'  # Disable jemalloc dependency in swift-benchmark
   SWIFT_VERSION: '6.0'
 
 jobs:

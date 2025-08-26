@@ -50,11 +50,15 @@ jobs:
             ${{ runner.os }}-spm-
       
       - name: Build Benchmarks
+        env:
+          BENCHMARK_DISABLE_JEMALLOC: 1
         run: |
           swift build -c release --target Benchmarks
       
       - name: Run Benchmarks
         id: run_benchmarks
+        env:
+          BENCHMARK_DISABLE_JEMALLOC: 1
         run: |
           echo "Running PipelineKit benchmarks..."
           swift package --allow-writing-to-package-directory benchmark \

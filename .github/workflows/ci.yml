@@ -8,6 +8,7 @@ on:
 
 env:
   SWIFT_VERSION: '6.0'
+  BENCHMARK_DISABLE_JEMALLOC: '1'  # Disable jemalloc dependency in swift-benchmark
 
 jobs:
   build:
@@ -160,6 +161,8 @@ jobs:
         swift-version: ${{ env.SWIFT_VERSION }}
     
     - name: Run benchmarks
+      env:
+        BENCHMARK_DISABLE_JEMALLOC: 1
       run: swift package benchmark --quick
       
     - name: Upload benchmark results

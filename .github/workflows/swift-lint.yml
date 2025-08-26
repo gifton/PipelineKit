@@ -5,6 +5,9 @@ on:
     paths:
       - '**/*.swift'
       - '.swiftlint.yml'
+env:
+  BENCHMARK_DISABLE_JEMALLOC: '1'  # Disable jemalloc dependency in swift-benchmark
+
 
 jobs:
   lint:

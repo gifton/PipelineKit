@@ -52,6 +52,11 @@ struct BenchmarkCommand: CommandPlugin {
         buildProcess.arguments = ["build", "--product", "PipelineKitBenchmarks", "-c", buildConfiguration]
         buildProcess.currentDirectoryURL = context.package.directoryURL
         
+        // Disable jemalloc to avoid CI dependency issues
+        var environment = ProcessInfo.processInfo.environment
+        environment["BENCHMARK_DISABLE_JEMALLOC"] = "1"
+        buildProcess.environment = environment
+        
         if verbose {
             buildProcess.arguments?.append("-v")
         }
@@ -86,6 +91,7 @@ struct BenchmarkCommand: CommandPlugin {
         benchmarkProcess.executableURL = benchmarkURL
         benchmarkProcess.arguments = benchmarkArgs
         benchmarkProcess.currentDirectoryURL = context.package.directoryURL
+        benchmarkProcess.environment = environment
         
         // Capture output for potential analysis
         let outputPipe = Pipe()
