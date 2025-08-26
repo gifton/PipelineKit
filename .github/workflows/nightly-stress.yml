@@ -1,0 +1,108 @@
+name: Nightly Stress Tests
+
+on:
+  schedule:
+    # Run at 2 AM UTC every night
+    - cron: '0 2 * * *'
+  workflow_dispatch:  # Allow manual triggering
+
+env:
+  SWIFT_VERSION: '5.10'
+
+jobs:
+  stress-tests-tsan:
+    name: Stress Tests with Thread Sanitizer
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-14, macos-14]
+        swift: ['5.10']
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Swift
+      if: matrix.os != 'macos-14'
+      uses: swift-actions/setup-swift@v2.3.0
+      with:
+        swift-version: ${{ matrix.swift }}
+    
+    # Ubuntu uses Docker container instead of setup action
+    
+    - name: Run stress tests with TSAN
+      run: swift package test-stress-tsan
+      timeout-minutes: 60  # TSAN tests are much slower
+      
+    - name: Upload TSAN results
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: tsan-results-${{ matrix.os }}
+        path: |
+          .build/
+          *.log
+
+  comprehensive-stress:
+    name: Comprehensive Stress Tests
+    runs-on: macos-14  # Use latest macOS for best performance
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Swift
+      uses: swift-actions/setup-swift@v2.3.0
+      with:
+        swift-version: ${{ env.SWIFT_VERSION }}
+    
+    - name: Run all stress tests
+      run: |
+        echo "Running standard stress tests..."
+        swift package test-stress
+        
+        echo "Running integration stress tests..."
+        swift package test-integration
+      timeout-minutes: 90
+    
+    - name: Generate performance report
+      if: always()
+      run: |
+        echo "## Stress Test Report - $(date)" > stress-report.md
+        echo "### Test Duration" >> stress-report.md
+        echo "Completed at: $(date)" >> stress-report.md
+        
+    - name: Upload stress test report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: stress-test-report
+        path: stress-report.md
+
+  notify-failures:
+    name: Notify on Failures
+    needs: [stress-tests-tsan, comprehensive-stress]
+    if: failure()
+    runs-on: macos-14
+    
+    steps:
+    - name: Create issue for failures
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const date = new Date().toISOString().split('T')[0];
+          const title = `Nightly Stress Test Failure - ${date}`;
+          const body = `The nightly stress tests failed on ${date}. 
+          
+          Please check the [workflow run](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}) for details.
+          
+          Failed jobs:
+          - Check TSAN results for thread safety issues
+          - Review stress test logs for performance regressions`;
+          
+          github.rest.issues.create({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            title: title,
+            body: body,
+            labels: ['automated', 'test-failure', 'stress-test']
+          });

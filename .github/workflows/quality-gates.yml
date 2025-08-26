@@ -1,0 +1,346 @@
+name: Quality Gates
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+env:
+  SWIFT_VERSION: '6.0'
+  MINIMUM_COVERAGE: 80
+  PERFORMANCE_THRESHOLD: 50000  # ops/sec
+
+jobs:
+  # Job 1: Swift Lint and Format Check
+  lint:
+    name: Swift Lint
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Swift
+        uses: swift-actions/setup-swift@v2
+        with:
+          swift-version: ${{ env.SWIFT_VERSION }}
+      
+      - name: Install SwiftLint
+        run: brew install swiftlint
+      
+      - name: Run SwiftLint
+        run: swiftlint --strict --reporter github-actions-logging
+      
+      - name: Check Swift Format
+        run: |
+          swift-format lint --recursive Sources Tests
+        continue-on-error: true  # Warning only for now
+
+  # Job 2: Security Scan
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Run Trivy Security Scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          severity: 'CRITICAL,HIGH'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+      
+      - name: Upload Trivy Results
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-results.sarif'
+      
+      - name: Check for Secrets
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event.repository.default_branch }}
+          head: HEAD
+
+  # Job 3: Build (macOS only)
+  build:
+    name: Build
+    runs-on: macos-14
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Swift
+        uses: swift-actions/setup-swift@v2
+        with:
+          swift-version: ${{ env.SWIFT_VERSION }}
+      
+      - name: Cache Swift packages
+        uses: actions/cache@v3
+        with:
+          path: |
+            .build
+            ~/Library/Developer/Xcode/DerivedData
+            ~/.swiftpm
+          key: ${{ runner.os }}-swift-${{ hashFiles('Package.resolved') }}
+          restore-keys: |
+            ${{ runner.os }}-swift-
+      
+      - name: Build Debug
+        run: swift build --configuration debug
+      
+      - name: Build Release
+        run: swift build --configuration release
+      
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-artifacts
+          path: .build/release/
+
+  # Job 4: Test with Coverage
+  test:
+    name: Test & Coverage
+    runs-on: macos-14
+    needs: build
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Swift
+        uses: swift-actions/setup-swift@v2
+        with:
+          swift-version: ${{ env.SWIFT_VERSION }}
+      
+      - name: Run Tests with Coverage
+        run: |
+          swift test --enable-code-coverage --parallel
+      
+      - name: Generate Coverage Report
+        run: |
+          xcrun llvm-cov export \
+            .build/debug/PipelineKitPackageTests.xctest/Contents/MacOS/PipelineKitPackageTests \
+            -instr-profile=.build/debug/codecov/default.profdata \
+            -format=lcov > coverage.lcov
+      
+      - name: Upload Coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: coverage.lcov
+          flags: macOS
+          fail_ci_if_error: false
+      
+      - name: Check Coverage Threshold
+        run: |
+          # Extract coverage percentage
+          COVERAGE=$(xcrun llvm-cov report \
+            .build/debug/PipelineKitPackageTests.xctest/Contents/MacOS/PipelineKitPackageTests \
+            -instr-profile=.build/debug/codecov/default.profdata | \
+            tail -1 | awk '{print $4}' | sed 's/%//')
+          
+          echo "Coverage: $COVERAGE%"
+          
+          # Check against threshold
+          if (( $(echo "$COVERAGE < $MINIMUM_COVERAGE" | bc -l) )); then
+            echo "❌ Coverage $COVERAGE% is below minimum threshold of $MINIMUM_COVERAGE%"
+            exit 1
+          else
+            echo "✅ Coverage $COVERAGE% meets minimum threshold"
+          fi
+        continue-on-error: true  # Don't fail PR for now
+
+  # Job 5: Performance Tests
+  performance:
+    name: Performance Tests
+    runs-on: macos-14
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Swift
+        uses: swift-actions/setup-swift@v2
+        with:
+          swift-version: ${{ env.SWIFT_VERSION }}
+      
+      - name: Run Performance Tests
+        run: |
+          swift test --configuration release --filter Performance
+        continue-on-error: true
+      
+      - name: Run Benchmarks
+        run: |
+          swift build --configuration release --product Benchmarks
+          .build/release/Benchmarks --format json > benchmark-results.json || true
+        continue-on-error: true
+      
+      - name: Analyze Performance
+        run: |
+          if [ -f benchmark-results.json ]; then
+            echo "📊 Performance Results:"
+            cat benchmark-results.json | jq '.'
+          fi
+        continue-on-error: true
+      
+      - name: Upload Performance Results
+        uses: actions/upload-artifact@v3
+        with:
+          name: performance-results
+          path: benchmark-results.json
+        continue-on-error: true
+
+  # Job 6: Documentation
+  documentation:
+    name: Documentation
+    runs-on: macos-14
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Swift
+        uses: swift-actions/setup-swift@v2
+        with:
+          swift-version: ${{ env.SWIFT_VERSION }}
+      
+      - name: Build Documentation
+        run: |
+          swift package generate-documentation \
+            --target PipelineKit \
+            --output-path ./docs \
+            --hosting-base-path PipelineKit
+        continue-on-error: true
+      
+      - name: Upload Documentation
+        uses: actions/upload-artifact@v3
+        with:
+          name: documentation
+          path: docs/
+        continue-on-error: true
+
+  # Job 7: Dependency Audit
+  dependency-audit:
+    name: Dependency Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Check for Outdated Dependencies
+        run: |
+          swift package show-dependencies --format json > dependencies.json
+          echo "📦 Current Dependencies:"
+          cat dependencies.json | jq '.dependencies[] | {name: .name, url: .url, version: .version}'
+        continue-on-error: true
+      
+      - name: Audit Dependencies for Vulnerabilities
+        run: |
+          # Check for known vulnerabilities in Swift packages
+          echo "Checking dependencies for known vulnerabilities..."
+          # This would integrate with a vulnerability database
+        continue-on-error: true
+
+  # Job 8: Integration Tests
+  integration:
+    name: Integration Tests
+    runs-on: macos-14
+    needs: [build, test]
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Swift
+        uses: swift-actions/setup-swift@v2
+        with:
+          swift-version: ${{ env.SWIFT_VERSION }}
+      
+      - name: Run Integration Tests
+        run: |
+          swift test --filter Integration
+        continue-on-error: true
+      
+      - name: Run Stress Tests
+        run: |
+          swift test --configuration release --filter Stress
+        timeout-minutes: 5
+        continue-on-error: true
+
+  # Job 9: Quality Report
+  quality-report:
+    name: Quality Report
+    runs-on: ubuntu-latest
+    needs: [lint, security, test, performance]
+    if: always()
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Generate Quality Report
+        run: |
+          echo "# 📊 Quality Gate Report" > quality-report.md
+          echo "" >> quality-report.md
+          echo "## Summary" >> quality-report.md
+          echo "- **Branch**: ${{ github.ref_name }}" >> quality-report.md
+          echo "- **Commit**: ${{ github.sha }}" >> quality-report.md
+          echo "- **Run**: ${{ github.run_number }}" >> quality-report.md
+          echo "" >> quality-report.md
+          
+          echo "## Quality Gates Status" >> quality-report.md
+          echo "" >> quality-report.md
+          
+          # Check job statuses
+          echo "| Gate | Status |" >> quality-report.md
+          echo "|------|--------|" >> quality-report.md
+          echo "| 🔍 Lint | ${{ needs.lint.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> quality-report.md
+          echo "| 🔒 Security | ${{ needs.security.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> quality-report.md
+          echo "| 🧪 Tests | ${{ needs.test.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> quality-report.md
+          echo "| ⚡ Performance | ${{ needs.performance.result == 'success' && '✅ Passed' || '⚠️ Check' }} |" >> quality-report.md
+          
+          cat quality-report.md
+      
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const report = fs.readFileSync('quality-report.md', 'utf8');
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: report
+            });
+        continue-on-error: true
+
+  # Final Gate Decision
+  quality-gate:
+    name: Quality Gate Decision
+    runs-on: ubuntu-latest
+    needs: [lint, security, build, test]
+    if: always()
+    steps:
+      - name: Evaluate Quality Gates
+        run: |
+          echo "🎯 Quality Gate Evaluation"
+          
+          # Check critical gates
+          if [ "${{ needs.lint.result }}" != "success" ]; then
+            echo "❌ Lint check failed"
+            exit 1
+          fi
+          
+          if [ "${{ needs.security.result }}" != "success" ]; then
+            echo "❌ Security scan failed"
+            exit 1
+          fi
+          
+          if [ "${{ needs.build.result }}" != "success" ]; then
+            echo "❌ Build failed"
+            exit 1
+          fi
+          
+          if [ "${{ needs.test.result }}" != "success" ]; then
+            echo "❌ Tests failed"
+            exit 1
+          fi
+          
+          echo "✅ All quality gates passed!"

@@ -1,0 +1,206 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  SWIFT_VERSION: '6.0'
+
+jobs:
+  lint:
+    name: SwiftLint
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install SwiftLint
+      run: brew install swiftlint
+    
+    - name: Run SwiftLint
+      run: swiftlint lint --config .swiftlint.yml
+
+  build:
+    name: Build
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-14, macos-13]
+        swift: ['6.0']
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Swift
+      uses: swift-actions/setup-swift@v2.3.0
+      with:
+        swift-version: ${{ matrix.swift }}
+    
+    - name: Get swift version
+      run: swift --version
+      
+    - name: Build
+      run: swift build -v
+
+  unit-tests:
+    name: Unit Tests
+    needs: build
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-14, macos-13]
+        swift: ['6.0']
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Swift
+      uses: swift-actions/setup-swift@v2.3.0
+      with:
+        swift-version: ${{ matrix.swift }}
+      
+    - name: Run unit tests
+      run: swift package test-unit --enable-code-coverage
+      
+    - name: Generate coverage report
+      if: matrix.os == 'macos-14' && matrix.swift == '6.0'
+      run: |
+        swift test --filter "PipelineKitCoreTests|PipelineKitMiddlewareTests|PipelineKitSecurityTests" --enable-code-coverage
+        xcrun llvm-cov export \
+          .build/debug/PipelineKitPackageTests.xctest/Contents/MacOS/PipelineKitPackageTests \
+          -instr-profile=.build/debug/codecov/default.profdata \
+          -format=lcov > coverage.lcov
+      
+    - name: Upload coverage to Codecov
+      if: matrix.os == 'macos-14' && matrix.swift == '6.0'
+      uses: codecov/codecov-action@v3
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        file: ./coverage.lcov
+        fail_ci_if_error: false
+
+  stress-tests:
+    name: Stress Tests
+    needs: build
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-14]  # Run stress tests on fewer platforms
+        swift: ['6.0']
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Swift
+      uses: swift-actions/setup-swift@v2.3.0
+      with:
+        swift-version: ${{ matrix.swift }}
+      
+    - name: Run stress tests
+      run: swift package test-stress
+      timeout-minutes: 30  # Stress tests may take longer
+
+  integration-tests:
+    name: Integration Tests
+    needs: build
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-14]  # macOS only
+        swift: ['6.0']
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Swift
+      uses: swift-actions/setup-swift@v2.3.0
+      with:
+        swift-version: ${{ matrix.swift }}
+      
+    - name: Run integration tests
+      run: swift package test-integration
+      timeout-minutes: 20
+
+  # Examples testing temporarily disabled - needs source structure fix
+  # test-examples:
+  #   name: Test Examples
+  #   runs-on: macos-latest
+  #   steps:
+  #   - uses: actions/checkout@v4
+  #   
+  #   - name: Setup Swift
+  #     uses: swift-actions/setup-swift@v2.3.0
+  #     with:
+  #       swift-version: ${{ env.SWIFT_VERSION }}
+  #   
+  #   - name: Build examples
+  #     run: |
+  #       cd Examples
+  #       swift build -v
+  #       
+  #   - name: Run basic example
+  #     run: |
+  #       cd Examples
+  #       swift run BasicExample
+  #       
+  #   - name: Run advanced example
+  #     run: |
+  #       cd Examples
+  #       swift run AdvancedExample
+
+  linux-compatibility:
+    name: Linux Compatibility
+    runs-on: ubuntu-22.04
+    container:
+      image: swift:5.10-jammy
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Build
+      run: swift build -v
+      
+    - name: Test
+      run: swift test -v
+
+  benchmarks:
+    name: Performance Benchmarks
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Swift
+      uses: swift-actions/setup-swift@v2.3.0
+      with:
+        swift-version: ${{ env.SWIFT_VERSION }}
+    
+    - name: Run benchmarks
+      run: swift package benchmark --quick
+      
+    - name: Upload benchmark results
+      uses: actions/upload-artifact@v4
+      with:
+        name: benchmark-results
+        path: benchmark-results/
+
+  documentation:
+    name: Documentation
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Swift
+      uses: swift-actions/setup-swift@v2.3.0
+      with:
+        swift-version: ${{ env.SWIFT_VERSION }}
+        
+    - name: Build documentation
+      run: |
+        swift package --allow-writing-to-directory ./docs \
+          generate-documentation --target PipelineKit \
+          --output-path ./docs

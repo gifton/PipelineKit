@@ -1,9 +1,242 @@
+# macOS
 .DS_Store
-/.build
-/Packages
+.AppleDouble
+.LSOverride
+Icon
+._*
+.Spotlight-V100
+.Trashes
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Xcode
+## User settings
 xcuserdata/
+*.xcuserstate
+
+## Build generated
+build/
 DerivedData/
-.swiftpm/configuration/registries.json
-.swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+*.xccheckout
+*.moved-aside
+*.xcscmblueprint
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+## Playgrounds
+timeline.xctimeline
+playground.xcworkspace
+
+## Obj-C/Swift specific
+*.hmap
+
+## App packaging
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Swift Package Manager
+.build/
+.swiftpm/
+# Package.resolved is tracked for reproducible builds
+/*.xcodeproj
 .netrc
-venv
+.swiftpm/config/registries.json
+.swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
+.swiftpm/xcode/xcuserdata/
+.swiftpm/xcode/xcshareddata/
+Index/
+/Packages
+# DO NOT ignore Package.resolved - needed for reproducible CI builds
+
+# CocoaPods
+Pods/
+
+# Carthage
+Carthage/Build/
+Carthage/Checkouts
+
+# Accio dependency management
+Dependencies/
+.accio/
+
+# fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output
+
+# Code Injection
+iOSInjectionProject/
+
+# Development Tools
+## IDEs and Editors
+.idea/
+.vscode/
+.nova/
+*.swp
+*.swo
+*~
+*.sublime-project
+*.sublime-workspace
+
+## AI Assistants
+.claude/
+.cursor/
+.zen/
+.mcp/
+.assistant/
+.ai-config/
+.github/copilot/
+# AI assistant instructions (optional - remove if you want to track these)
+CLAUDE.md
+**/CLAUDE.md
+
+# Python (for any scripts)
+venv/
+.venv/
+env/
+.env/
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Temporary analysis scripts
+analyze_*.py
+analyze_*.sh
+*_analysis.py
+*_analysis.sh
+swiftlint_*.py
+swiftlint_*.sh
+
+# Testing and Coverage
+.coverage
+*.lcov
+coverage/
+# Note: CI generates coverage.lcov but it's temporary and shouldn't be committed
+.tox/
+.pytest_cache/
+.phpunit.result.cache
+htmlcov/
+*.cover
+.hypothesis/
+
+# Documentation
+docs/_build/
+docs/.doctrees/
+site/
+.mkdocs/
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+*.bak
+*.cache
+*.orig
+.cache/
+tmp/
+temp/
+
+# Build outputs
+build_output.txt
+test_output.txt
+*.o
+*.so
+*.dylib
+*.exe
+*.dll
+*.out
+
+# Benchmarking
+benchmark-results/
+*.bench
+benchmark-baseline.json
+.benchmarks/
+# Note: CI uploads benchmark-results/ as artifacts but they shouldn't be committed
+
+# Security
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.cert
+*.p12
+secrets/
+credentials/
+
+# Development artifacts
+## Planning documents
+*_IMPLEMENTATION_PLAN.md
+*_PERFORMANCE_RESULTS.md
+PHASE*_*.md
+implementation-notes.md
+refactoring-plan.md
+phase-*.md
+*-plan.md
+*-notes.md
+*-implementation.md
+*-refactor.md
+*-migration.md
+TODO.txt
+NOTES.md
+
+## Personal/Development files
+devdocs/
+personal-notes/
+scratch/
+experiments/
+
+## Future tracking (internal use)
+FUTURE_IMPROVEMENTS.md
+
+# OS generated files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Archives
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.rar
+*.7z
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Package manager directories (other than Swift)
+node_modules/
+jspm_packages/
+bower_components/
+
+# Optional: Comment out if you want to track these
+*.xcworkspace
+!default.xcworkspace
+xcshareddata/
+/jul-24-impl-plan.txt
+benchmarks/
+/.build2

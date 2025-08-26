@@ -6,6 +6,7 @@
 
 A comprehensive, security-first Command-Pipeline architecture framework for Swift, featuring full concurrency support, robust middleware chains, enterprise-grade security features, and Swift macro support for simplified pipeline creation.
 
+
 ## 🌟 Features
 
 ### Core Architecture
@@ -44,8 +45,41 @@ Add PipelineKit to your `Package.swift`:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/yourorg/PipelineKit", from: "1.0.0")
+    .package(url: "https://github.com/yourorg/PipelineKit", branch: "main")
 ]
+```
+
+### Module Structure
+
+PipelineKit is organized into functional modules for better separation of concerns:
+
+- **PipelineKitCore**: Core protocols, types, memory management, and observability features
+- **PipelineKitResilience**: Circuit breakers, retry mechanisms, rate limiting, back pressure
+- **PipelineKitMetrics**: Metrics collection, accumulators, and exporters
+- **PipelineKitSecurity**: Authentication, authorization, validation, encryption
+- **PipelineKitCaching**: Various caching strategies and middleware
+- **PipelineKitCompression**: Compression middleware for data optimization
+- **PipelineKit**: Umbrella module that re-exports core functionality
+
+> **Note**: The codebase also contains PipelineKitMiddleware which is currently being refactored and will be populated in future releases.
+
+#### Using Individual Modules
+
+For minimal dependencies, import only what you need:
+
+```swift
+import PipelineKitCore       // Core types and observability
+import PipelineKitResilience  // Resilience patterns
+import PipelineKitMetrics     // Metrics collection
+import PipelineKitCompression // Compression middleware
+```
+
+#### Using Everything
+
+For convenience, import the umbrella module:
+
+```swift
+import PipelineKit // All production modules
 ```
 
 ### Basic Usage
@@ -72,10 +106,11 @@ struct CreateUserHandler: CommandHandler {
 }
 
 // Option 1: Direct Pipeline Usage (No CommandBus Required)
-let pipeline = DefaultPipeline(handler: CreateUserHandler())
+let pipeline = StandardPipeline(handler: CreateUserHandler())
+let context = CommandContext(metadata: StandardCommandMetadata())
 let user = try await pipeline.execute(
     CreateUserCommand(email: "user@example.com", username: "johndoe"),
-    metadata: DefaultCommandMetadata()
+    context: context
 )
 
 // Option 2: CommandBus for Centralized Routing
@@ -93,9 +128,10 @@ actor UserService {
 }
 
 let service = UserService()
+let context = CommandContext(metadata: StandardCommandMetadata())
 let user = try await service.execute(
     CreateUserCommand(email: "user@example.com", username: "johndoe"),
-    metadata: DefaultCommandMetadata()
+    context: context
 )
 ```
 
@@ -146,9 +182,10 @@ let secureBuilder = SecurePipelineBuilder()
 let pipeline = secureBuilder.build()
 
 // Direct execution - no CommandBus needed
+let context = CommandContext(metadata: StandardCommandMetadata(userId: "user123"))
 let result = try await pipeline.execute(
     command,
-    metadata: DefaultCommandMetadata(userId: "user123")
+    context: context
 )
 ```
 
@@ -183,7 +220,7 @@ let payment = try await bus.send(PaymentCommand(amount: 99.99))
 ### 1. Command with Validation
 
 ```swift
-struct PaymentCommand: Command, ValidatableCommand {
+struct PaymentCommand: Command {
     let amount: Double
     let cardNumber: String
     let email: String
@@ -201,7 +238,7 @@ struct PaymentCommand: Command, ValidatableCommand {
 ### 2. Encrypted Sensitive Data
 
 ```swift
-struct PaymentCommand: Command, EncryptableCommand {
+struct PaymentCommand: Command {
     var cardNumber: String
     var cvv: String
     let amount: Double
@@ -241,7 +278,7 @@ struct MetricsKey: ContextKey {
 }
 
 // Create context-aware middleware
-struct AuthenticationMiddleware: ContextAwareMiddleware {
+struct AuthenticationMiddleware: Middleware {
     func execute<T: Command>(
         _ command: T,
         context: CommandContext,
@@ -315,8 +352,9 @@ PipelineKit offers flexible architecture options:
 **Direct Pipeline Usage** - Execute commands through pipelines without CommandBus:
 ```swift
 // Create pipeline with middleware
-let pipeline = DefaultPipeline(handler: PaymentHandler())
-let payment = try await pipeline.execute(paymentCommand, metadata: metadata)
+let pipeline = StandardPipeline(handler: PaymentHandler())
+let context = CommandContext(metadata: StandardCommandMetadata())
+let payment = try await pipeline.execute(paymentCommand, context: context)
 
 // Benefits: Direct execution, explicit control, type safety
 // Use when: Single command type, simple routing, performance critical
@@ -356,6 +394,8 @@ Request → Validation → Authorization → Rate Limiting → Business Logic �
 
 ### Thread Safety & Actor Isolation
 
+PipelineKit is designed for safe concurrent execution with **zero strict concurrency warnings** in Swift 5.10. All commands and results must conform to `Sendable`, ensuring thread safety across async boundaries.
+
 PipelineKit uses Swift's actor model for guaranteed thread safety in critical components:
 
 ```swift
@@ -365,11 +405,11 @@ await builder.with(ValidationMiddleware())
 await builder.with(AuthorizationMiddleware())
 let pipeline = await builder.build()
 
-// CommandBus builder with actor isolation
-let busBuilder = CommandBusBuilder()
-await busBuilder.register(CreateUserHandler(), for: CreateUserCommand.self)
-await busBuilder.enableCircuitBreaker(threshold: 5, timeout: 30)
-let bus = await busBuilder.build()
+// CommandBus with actor isolation
+let bus = CommandBus()
+await bus.register(CreateUserCommand.self, handler: CreateUserHandler())
+await bus.register(UpdateUserCommand.self, handler: UpdateUserHandler())
+// Circuit breaker functionality available via middleware
 
 // Security components use actors for thread-safe operations
 let keyStore = InMemoryKeyStore()  // Actor-based key storage
@@ -381,6 +421,8 @@ All actor-based components ensure:
 - ✅ Safe sharing across async boundaries
 - ✅ Predictable state management
 - ✅ Compile-time safety guarantees
+
+For detailed information about our concurrency model, Sendable conformance, and Swift 6 roadmap, see [docs/CONCURRENCY.md](docs/CONCURRENCY.md).
 
 ## 🔧 Pipeline Types
 
@@ -922,11 +964,11 @@ let strategy = RateLimitStrategy.adaptive(baseRate: 100) {
 
 ## 🔍 Observability
 
-PipelineKit provides comprehensive observability features for monitoring, debugging, and understanding your command execution:
+PipelineKit provides comprehensive observability features through PipelineKitCore for monitoring, debugging, and understanding your command execution:
 
 ### Pipeline Observer Protocol
 
-Implement custom observers to track pipeline execution:
+Observability features are built into PipelineKitCore. Implement custom observers to track pipeline execution:
 
 ```swift
 class MetricsObserver: PipelineObserver {
@@ -1202,6 +1244,39 @@ Run tests:
 swift test
 ```
 
+### Stress Testing
+
+PipelineKit includes a comprehensive stress testing framework in a separate package. The stress tests validate performance, concurrency, and resource handling under extreme conditions.
+
+To run stress tests:
+
+```bash
+cd Scripts
+./run-stress-tests.sh
+
+# With Thread Sanitizer
+./run-stress-tests.sh --tsan
+```
+
+For more information about stress testing, see the [PipelineKitStressTest README](PipelineKitStressTest/README.md).
+
+### Performance Benchmarks
+
+PipelineKit includes comprehensive performance benchmarks:
+
+```bash
+# Quick benchmarks
+swift run PipelineKitBenchmarks --quick
+
+# Full benchmark suite
+swift run PipelineKitBenchmarks
+
+# Specific benchmarks
+swift run PipelineKitBenchmarks BackPressure
+```
+
+For detailed benchmark information, see [Benchmarks Documentation](docs/benchmarks.md).
+
 ## 🔒 Security & Dependencies
 
 ### Dependency Management
@@ -1209,21 +1284,21 @@ swift test
 PipelineKit has minimal dependencies for security:
 
 ```bash
-# Audit dependencies
-./Scripts/dependency-audit.sh
+# Audit dependencies - runs automatically on CI
+# Check .github/workflows/dependency-audit.yml
 
-# Generate SBOM (Software Bill of Materials)
-./Scripts/generate-sbom.sh
+# SBOM is generated automatically during dependency audit
 ```
 
 **Current Dependencies:**
-- `swift-syntax` (510.0.3) - Apple's official macro implementation
+- `swift-atomics` (1.2.0+) - Apple's lock-free atomic operations
+- `swift-docc-plugin` (1.3.0+) - Apple's documentation generation
 
 All dependencies are:
-- ✅ Pinned to exact versions
+- ✅ From Apple's official repositories
 - ✅ Regularly audited for vulnerabilities
-- ✅ From trusted sources
 - ✅ License compatible (Apache-2.0)
+- ✅ Minimal and security-focused
 
 See [DEPENDENCIES.md](DEPENDENCIES.md) for full policy.
 
