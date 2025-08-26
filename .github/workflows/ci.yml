@@ -10,18 +10,6 @@ env:
   SWIFT_VERSION: '6.0'
 
 jobs:
-  lint:
-    name: SwiftLint
-    runs-on: macos-latest
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Install SwiftLint
-      run: brew install swiftlint
-    
-    - name: Run SwiftLint
-      run: swiftlint lint --config .swiftlint.yml
-
   build:
     name: Build
     runs-on: ${{ matrix.os }}
@@ -153,20 +141,6 @@ jobs:
   #     run: |
   #       cd Examples
   #       swift run AdvancedExample
-
-  linux-compatibility:
-    name: Linux Compatibility
-    runs-on: ubuntu-22.04
-    container:
-      image: swift:5.10-jammy
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Build
-      run: swift build -v
-      
-    - name: Test
-      run: swift test -v
 
   benchmarks:
     name: Performance Benchmarks

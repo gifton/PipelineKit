@@ -231,17 +231,6 @@ public actor AsyncSemaphore {
         }
     }
     
-    /// Handles task cancellation - DEPRECATED: This method has a critical bug
-    /// where it releases ALL waiters when ANY task cancels. Use handleCancellationForWaiter instead.
-    /// Keeping for reference but should not be called.
-    @available(*, deprecated, message: "This method has a critical bug. Use handleCancellationForWaiter instead.")
-    private func handleCancellation() {
-        // BUG: This releases ALL waiters when ANY task cancels!
-        // This is the root cause of test hangs and cascade failures.
-        // DO NOT USE THIS METHOD.
-        fatalError("handleCancellation() should not be called - use handleCancellationForWaiter(waiterId:)")
-    }
-    
     /// Handles cancellation for a specific waiter
     private func handleCancellationForWaiter(waiterId: UUID) {
         guard let waiter = waiterLookup[waiterId] else { return }

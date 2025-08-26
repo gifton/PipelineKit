@@ -13,30 +13,7 @@ env:
   PERFORMANCE_THRESHOLD: 50000  # ops/sec
 
 jobs:
-  # Job 1: Swift Lint and Format Check
-  lint:
-    name: Swift Lint
-    runs-on: macos-14
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Setup Swift
-        uses: swift-actions/setup-swift@v2.3.0
-        with:
-          swift-version: ${{ env.SWIFT_VERSION }}
-      
-      - name: Install SwiftLint
-        run: brew install swiftlint
-      
-      - name: Run SwiftLint
-        run: swiftlint --strict --reporter github-actions-logging
-      
-      - name: Check Swift Format
-        run: |
-          swift-format lint --recursive Sources Tests
-        continue-on-error: true  # Warning only for now
-
-  # Job 2: Security Scan
+  # Job 1: Security Scan
   security:
     name: Security Scan
     runs-on: ubuntu-latest
@@ -267,7 +244,7 @@ jobs:
   quality-report:
     name: Quality Report
     runs-on: ubuntu-latest
-    needs: [lint, security, test, performance]
+    needs: [security, test, performance]
     if: always()
     steps:
       - uses: actions/checkout@v4
@@ -288,7 +265,7 @@ jobs:
           # Check job statuses
           echo "| Gate | Status |" >> quality-report.md
           echo "|------|--------|" >> quality-report.md
-          echo "| 🔍 Lint | ${{ needs.lint.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> quality-report.md
+          # Lint check removed - handled by separate swift-lint.yml workflow
           echo "| 🔒 Security | ${{ needs.security.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> quality-report.md
           echo "| 🧪 Tests | ${{ needs.test.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> quality-report.md
           echo "| ⚡ Performance | ${{ needs.performance.result == 'success' && '✅ Passed' || '⚠️ Check' }} |" >> quality-report.md
@@ -315,7 +292,7 @@ jobs:
   quality-gate:
     name: Quality Gate Decision
     runs-on: ubuntu-latest
-    needs: [lint, security, build, test]
+    needs: [security, build, test]
     if: always()
     steps:
       - name: Evaluate Quality Gates
@@ -323,10 +300,7 @@ jobs:
           echo "🎯 Quality Gate Evaluation"
           
           # Check critical gates
-          if [ "${{ needs.lint.result }}" != "success" ]; then
-            echo "❌ Lint check failed"
-            exit 1
-          fi
+          # Lint check removed - handled by separate swift-lint.yml workflow
           
           if [ "${{ needs.security.result }}" != "success" ]; then
             echo "❌ Security scan failed"
