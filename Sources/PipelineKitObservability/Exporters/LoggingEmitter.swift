@@ -7,7 +7,7 @@
 
 import Foundation
 import PipelineKitCore
-import os
+@preconcurrency import os
 
 /// An event emitter that logs events to the system logger.
 ///

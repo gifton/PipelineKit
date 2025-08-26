@@ -1,5 +1,5 @@
 import Foundation
-import os
+@preconcurrency import os
 import PipelineKitCore
 
 // Logger for pipeline warnings
