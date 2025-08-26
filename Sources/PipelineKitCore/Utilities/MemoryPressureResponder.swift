@@ -8,7 +8,6 @@ import UIKit
 /// This component monitors system memory conditions and automatically
 /// adjusts object pools to prevent excessive memory usage during pressure.
 public actor MemoryPressureResponder {
-    nonisolated(unsafe) private static let currentTaskPort: mach_port_t = mach_task_self_
     /// Closure type for memory pressure callbacks
     public typealias Handler = @Sendable () async -> Void
     
@@ -167,7 +166,7 @@ public actor MemoryPressureResponder {
         let result = withUnsafeMutablePointer(to: &info) {
             $0.withMemoryRebound(to: integer_t.self, capacity: 1) {
                 task_info(
-                    Self.currentTaskPort,
+                    mach_task_self_,
                     task_flavor_t(MACH_TASK_BASIC_INFO),
                     $0,
                     &count
@@ -195,7 +194,7 @@ public actor MemoryPressureResponder {
         let result = withUnsafeMutablePointer(to: &info) {
             $0.withMemoryRebound(to: integer_t.self, capacity: 1) {
                 task_info(
-                    Self.currentTaskPort,
+                    mach_task_self_,
                     task_flavor_t(MACH_TASK_BASIC_INFO),
                     $0,
                     &count

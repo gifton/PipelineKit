@@ -9,8 +9,6 @@ import os
 /// This component provides hooks for tracking pool efficiency, memory usage,
 /// and performance regressions in production environments.
 public actor PoolMetricsCollector {
-    nonisolated(unsafe) private static let currentTaskPort: mach_port_t = mach_task_self_
-    
     /// Metric collection interval in seconds
     private let collectionInterval: TimeInterval
 
@@ -319,7 +317,7 @@ public actor PoolMetricsCollector {
         let result = withUnsafeMutablePointer(to: &info) {
             $0.withMemoryRebound(to: integer_t.self, capacity: 1) {
                 task_info(
-                    Self.currentTaskPort,
+                    mach_task_self_,
                     task_flavor_t(MACH_TASK_BASIC_INFO),
                     $0,
                     &count
