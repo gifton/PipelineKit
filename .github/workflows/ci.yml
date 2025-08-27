@@ -163,7 +163,7 @@ jobs:
     - name: Run benchmarks
       env:
         BENCHMARK_DISABLE_JEMALLOC: 1
-      run: swift package benchmark --quick
+      run: swift package benchmark
       
     - name: Upload benchmark results
       uses: actions/upload-artifact@v4

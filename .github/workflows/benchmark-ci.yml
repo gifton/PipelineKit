@@ -21,7 +21,7 @@ on:
 
 env:
   SWIFT_VERSION: '6.0'
-  BENCHMARK_TIMEOUT: '600' # 10 minutes max for all benchmarks
+  BENCHMARK_DISABLE_JEMALLOC: '1'  # Disable jemalloc dependency in swift-benchmark
 
 jobs:
   run-benchmarks:
@@ -63,8 +63,7 @@ jobs:
           echo "Running PipelineKit benchmarks..."
           swift package --allow-writing-to-package-directory benchmark \
             --format text \
-            --path benchmark-results.txt \
-            --timeout ${{ env.BENCHMARK_TIMEOUT }}
+            --path benchmark-results.txt
           
           # Also save a copy for artifact upload
           cp benchmark-results.txt benchmark-results-${{ github.sha }}.txt
