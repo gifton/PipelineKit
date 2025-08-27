@@ -212,8 +212,8 @@ final class EncryptionTests: XCTestCase {
     func testInMemoryKeyStore() async {
         let store = InMemoryKeyStore()
         
-        let key1 = SymmetricKey(size: .bits256)
-        let key2 = SymmetricKey(size: .bits256)
+        let key1 = SendableSymmetricKey(size: .bits256)
+        let key2 = SendableSymmetricKey(size: .bits256)
         
         await store.store(key: key1, identifier: "key1")
         let currentId1 = await store.currentKeyIdentifier
@@ -239,9 +239,9 @@ final class EncryptionTests: XCTestCase {
     func testKeyStoreExpiration() async {
         let store = InMemoryKeyStore()
         
-        let key1 = SymmetricKey(size: .bits256)
-        let key2 = SymmetricKey(size: .bits256)
-        let key3 = SymmetricKey(size: .bits256)
+        let key1 = SendableSymmetricKey(size: .bits256)
+        let key2 = SendableSymmetricKey(size: .bits256)
+        let key3 = SendableSymmetricKey(size: .bits256)
         
         await store.store(key: key1, identifier: "key1")
         try? await Task.sleep(nanoseconds: 50_000_000) // 50ms
