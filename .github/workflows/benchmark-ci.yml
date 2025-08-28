@@ -53,7 +53,8 @@ jobs:
         env:
           BENCHMARK_DISABLE_JEMALLOC: 1
         run: |
-          swift build -c release --target Benchmarks
+          cd Benchmarks
+          swift build -c release
       
       - name: Run Benchmarks
         id: run_benchmarks
@@ -64,29 +65,30 @@ jobs:
         run: |
           echo "Running PipelineKit benchmarks..."
           
-          # Run benchmarks with the benchmark plugin
-          # Note: The benchmarks may take time to complete in CI environment
+          # Run benchmarks using the new structure
+          cd Benchmarks
+          
           echo "Starting benchmark execution..."
           
-          # Use timeout to prevent hanging
-          timeout 300 swift package --allow-writing-to-package-directory \
-            benchmark run \
+          # Run core benchmarks (most important)
+          timeout 120 swift package benchmark run \
+            --target PipelineKitCoreBenchmarks \
             --format text \
-            --no-progress \
-            > benchmark-results.txt 2>&1 || {
+            > ../benchmark-results.txt 2>&1 || {
               EXIT_CODE=$?
               if [ $EXIT_CODE -eq 124 ]; then
-                echo "Benchmarks timed out after 5 minutes" >> benchmark-results.txt
+                echo "Benchmarks timed out after 2 minutes" >> ../benchmark-results.txt
               else
-                echo "Benchmark execution failed with code: $EXIT_CODE" >> benchmark-results.txt
+                echo "Benchmark execution failed with code: $EXIT_CODE" >> ../benchmark-results.txt
               fi
           }
           
-          # Check if we got meaningful output
-          if ! grep -q "Benchmark" benchmark-results.txt 2>/dev/null; then
-            echo "" >> benchmark-results.txt
-            echo "Note: Benchmarks may not have produced results. This is a known issue being investigated." >> benchmark-results.txt
-            echo "Build and compilation succeeded, but benchmark execution did not complete normally." >> benchmark-results.txt
+          # Move back to root for artifact handling
+          cd ..
+          
+          # Ensure we have some output
+          if [ ! -s benchmark-results.txt ]; then
+            echo "No benchmark output captured" > benchmark-results.txt
           fi
           
           # Display results for logging

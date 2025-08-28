@@ -206,7 +206,10 @@ final class AggregationTests: XCTestCase {
             )
         )
         
-        let (exporter, mockTransport) = await StatsDExporter.withMockTransport(configuration: config)
+        guard let (exporter, mockTransport) = await StatsDExporter.withMockTransport(configuration: config) else {
+            XCTFail("Failed to create mock transport")
+            return
+        }
         
         // Record multiple counters
         await exporter.counter("requests", value: 1.0)

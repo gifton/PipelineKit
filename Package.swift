@@ -63,10 +63,6 @@ let package = Package(
         // Security: No known vulnerabilities
         // License: Apache-2.0
         .package(url: "https://github.com/apple/swift-docc-plugin", from: "1.3.0"),
-        // package-benchmark 1.4.0 - Official Swift benchmarking framework
-        // Security: No known vulnerabilities
-        // License: Apache-2.0
-        .package(url: "https://github.com/ordo-one/package-benchmark", exact: "1.29.3")
     ],
     targets: [
         .target(
@@ -88,26 +84,6 @@ let package = Package(
             dependencies: ["PipelineKit", "PipelineKitSecurity"],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency")
-            ]
-        ),
-        // Unified benchmark executable using swift-benchmark
-        .executableTarget(
-            name: "Benchmarks",
-            dependencies: [
-                "PipelineKit",
-                "PipelineKitCache",
-                "PipelineKitPooling",
-                "PipelineKitResilience",
-                .product(name: "Benchmark", package: "package-benchmark")
-            ],
-            path: "Sources/Benchmarks",
-            swiftSettings: [
-                .enableExperimentalFeature("StrictConcurrency"),
-                .enableExperimentalFeature("AccessLevelOnImport"),
-                .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
-            ],
-            plugins: [
-                .plugin(name: "BenchmarkPlugin", package: "package-benchmark")
             ]
         ),
         // Core module tests - Tests for PipelineKitCore foundation types
@@ -173,6 +149,24 @@ let package = Package(
         .testTarget(
             name: "PipelineKitPoolingTests",
             dependencies: ["PipelineKitPooling", "PipelineKitTestSupport"],
+            swiftSettings: [
+                .enableExperimentalFeature("StrictConcurrency"),
+                .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
+            ]
+        ),
+        
+        // Performance test suite - XCTest based benchmarks
+        .testTarget(
+            name: "PipelineKitPerformanceTests",
+            dependencies: [
+                "PipelineKitCore",
+                "PipelineKitResilience", 
+                "PipelineKitSecurity",
+                "PipelineKitCache",
+                "PipelineKitPooling",
+                "PipelineKitObservability",
+                "PipelineKitTestSupport"
+            ],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency"),
                 .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
