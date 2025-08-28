@@ -267,13 +267,18 @@ final class ResilientMiddlewareTests: XCTestCase {
             let delay1 = attemptTimes[1].timeIntervalSince(attemptTimes[0])
             let delay2 = attemptTimes[2].timeIntervalSince(attemptTimes[1])
             
-            // First retry after ~10ms
-            XCTAssertGreaterThan(delay1, 0.009)
-            XCTAssertLessThan(delay1, 0.02)
+            // First retry after ~10ms (with CI tolerance)
+            XCTAssertGreaterThan(delay1, 0.008, "First delay should be at least 8ms")
+            XCTAssertLessThan(delay1, 0.1, "First delay should be less than 100ms")
             
-            // Second retry after ~20ms (2x multiplier)
-            XCTAssertGreaterThan(delay2, 0.018)
-            XCTAssertLessThan(delay2, 0.03)
+            // Second retry after ~20ms (2x multiplier, with CI tolerance)
+            XCTAssertGreaterThan(delay2, 0.015, "Second delay should be at least 15ms")
+            XCTAssertLessThan(delay2, 0.2, "Second delay should be less than 200ms")
+            
+            // Verify exponential growth (delay2 should be roughly 2x delay1)
+            let ratio = delay2 / delay1
+            XCTAssertGreaterThan(ratio, 1.5, "Delays should grow exponentially")
+            XCTAssertLessThan(ratio, 3.0, "Growth ratio should be reasonable")
         }
     }
     

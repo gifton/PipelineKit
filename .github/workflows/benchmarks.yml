@@ -68,16 +68,34 @@ jobs:
           const fs = require('fs');
           const output = fs.readFileSync('benchmark-output.txt', 'utf8');
           
-          // Check if tests passed
-          const passed = output.includes('Test Suite') && output.includes('passed');
+          // Check if tests passed - look for actual test case results
+          const testCasesPassed = (output.match(/Test Case .* passed/g) || []).length;
+          const testCasesFailed = (output.match(/Test Case .* failed/g) || []).length;
+          const passed = testCasesFailed === 0 && testCasesPassed > 0;
           const emoji = passed ? '✅' : '⚠️';
           const title = passed ? 'Performance Tests Passed' : 'Performance Tests Need Review';
+          
+          const summary = `## ${emoji} ${title}
+          
+**Test Results:**
+- Passed: ${testCasesPassed} ✅
+- Failed: ${testCasesFailed} ${testCasesFailed > 0 ? '❌' : ''}
+
+<details>
+<summary>Performance Test Output</summary>
+
+\`\`\`
+${output.substring(0, 50000)}
+\`\`\`
+</details>
+
+Please review the performance impact of your changes.`;
           
           github.rest.issues.createComment({
             issue_number: context.issue.number,
             owner: context.repo.owner,
             repo: context.repo.repo,
-            body: `## ${emoji} ${title}\n\n<details>\n<summary>Performance Test Results</summary>\n\n\`\`\`\n${output}\n\`\`\`\n</details>\n\nPlease review the performance impact of your changes.`
+            body: summary
           });
     
     - name: Upload results

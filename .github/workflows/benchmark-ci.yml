@@ -86,14 +86,15 @@ jobs:
       - name: Process Results
         id: process_results
         run: |
-          # Extract test counts
-          TEST_COUNT=$(grep -c "Test Case.*passed\|failed" benchmark-results.txt || echo "0")
-          PASSED_COUNT=$(grep -c "Test Case.*passed" benchmark-results.txt || echo "0")
-          FAILED_COUNT=$(grep -c "Test Case.*failed" benchmark-results.txt || echo "0")
+          # Extract test counts - look for the actual test case lines
+          TEST_COUNT=$(grep -c "Test Case .* \(passed\|failed\)" benchmark-results.txt || echo "0")
+          PASSED_COUNT=$(grep -c "Test Case .* passed" benchmark-results.txt || echo "0")
+          FAILED_COUNT=$(grep -c "Test Case .* failed" benchmark-results.txt || echo "0")
           
-          echo "test_count=$TEST_COUNT" >> $GITHUB_OUTPUT
-          echo "passed_count=$PASSED_COUNT" >> $GITHUB_OUTPUT
-          echo "failed_count=$FAILED_COUNT" >> $GITHUB_OUTPUT
+          # Write to GitHub output with proper formatting
+          echo "test_count=${TEST_COUNT}" >> $GITHUB_OUTPUT
+          echo "passed_count=${PASSED_COUNT}" >> $GITHUB_OUTPUT
+          echo "failed_count=${FAILED_COUNT}" >> $GITHUB_OUTPUT
           
           # Create summary
           {
