@@ -15,9 +15,6 @@ on:
         required: false
         type: boolean
         default: false
-env:
-  BENCHMARK_DISABLE_JEMALLOC: '1'  # Disable jemalloc dependency in swift-benchmark
-
 
 jobs:
   benchmark:
@@ -36,7 +33,6 @@ jobs:
       with:
         swift-version: '6.0'
     
-    # jemalloc installation removed - benchmarks configured to not require it    
     - name: Cache Swift packages
       uses: actions/cache@v4
       with:
@@ -47,38 +43,41 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-swift-
     
-    - name: Build benchmarks
-      run: swift build --product Benchmarks -c release
+    - name: Build performance tests
+      run: swift build --target PipelineKitPerformanceTests -c release
     
-    # Baseline functionality not yet implemented in benchmark executable
-    
-    - name: Run benchmarks (quick mode for PRs)
+    - name: Run performance tests (quick mode for PRs)
       if: github.event_name == 'pull_request'
+      env:
+        CI: true
       run: |
-        .build/release/Benchmarks --quick > benchmark-output.txt 2>&1 || true
+        swift test -c release --filter PerformanceTests > benchmark-output.txt 2>&1 || true
         cat benchmark-output.txt
     
-    - name: Run benchmarks (full mode for main)
+    - name: Run performance tests (full mode for main)
       if: github.event_name != 'pull_request'
       run: |
-        .build/release/Benchmarks > benchmark-output.txt 2>&1 || true
+        swift test -c release --filter PerformanceTests > benchmark-output.txt 2>&1 || true
         cat benchmark-output.txt
     
-    # Baseline functionality not yet implemented in benchmark executable
-    
     - name: Comment PR with results
-      if: github.event_name == 'pull_request' && failure()
+      if: github.event_name == 'pull_request' && always()
       uses: actions/github-script@v7
       with:
         script: |
           const fs = require('fs');
           const output = fs.readFileSync('benchmark-output.txt', 'utf8');
           
+          // Check if tests passed
+          const passed = output.includes('Test Suite') && output.includes('passed');
+          const emoji = passed ? '✅' : '⚠️';
+          const title = passed ? 'Performance Tests Passed' : 'Performance Tests Need Review';
+          
           github.rest.issues.createComment({
             issue_number: context.issue.number,
             owner: context.repo.owner,
             repo: context.repo.repo,
-            body: `## ⚠️ Performance Regression Detected\n\n\`\`\`\n${output}\n\`\`\`\n\nPlease review the performance impact of your changes.`
+            body: `## ${emoji} ${title}\n\n<details>\n<summary>Performance Test Results</summary>\n\n\`\`\`\n${output}\n\`\`\`\n</details>\n\nPlease review the performance impact of your changes.`
           });
     
     - name: Upload results
@@ -89,4 +88,3 @@ jobs:
         path: |
           benchmark-output.txt
         retention-days: 90
-

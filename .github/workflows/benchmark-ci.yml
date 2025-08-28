@@ -5,12 +5,14 @@ on:
     branches: [ main, develop ]
     paths:
       - 'Sources/**'
+      - 'Tests/PipelineKitPerformanceTests/**'
       - 'Package.swift'
       - '.github/workflows/benchmark-ci.yml'
   push:
     branches: [ main ]
     paths:
       - 'Sources/**'
+      - 'Tests/PipelineKitPerformanceTests/**'
       - 'Package.swift'
   workflow_dispatch:
     inputs:
@@ -21,11 +23,10 @@ on:
 
 env:
   SWIFT_VERSION: '6.0'
-  BENCHMARK_DISABLE_JEMALLOC: '1'  # Disable jemalloc dependency in swift-benchmark
 
 jobs:
   run-benchmarks:
-    name: Run Benchmarks
+    name: Run Performance Tests
     runs-on: macos-latest
     timeout-minutes: 30
     
@@ -40,7 +41,6 @@ jobs:
         with:
           swift-version: ${{ env.SWIFT_VERSION }}
       
-    # jemalloc installation removed - benchmarks configured to not require it      
       - name: Cache Swift Package Manager
         uses: actions/cache@v4
         with:
@@ -49,280 +49,127 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-spm-
       
-      - name: Build Benchmarks
-        env:
-          BENCHMARK_DISABLE_JEMALLOC: 1
+      - name: Build Performance Tests
         run: |
-          cd Benchmarks
-          swift build -c release
+          swift build --target PipelineKitPerformanceTests -c release
       
-      - name: Run Benchmarks
+      - name: Run Performance Tests
         id: run_benchmarks
         env:
-          BENCHMARK_DISABLE_JEMALLOC: 1
           CI: true
         timeout-minutes: 10
         run: |
-          echo "Running PipelineKit benchmarks..."
+          echo "Running PipelineKit performance tests..."
           
-          # Run benchmarks using the new structure
-          cd Benchmarks
-          
-          echo "Starting benchmark execution..."
-          
-          # Run core benchmarks (most important)
-          timeout 120 swift package benchmark run \
-            --target PipelineKitCoreBenchmarks \
-            --format text \
-            > ../benchmark-results.txt 2>&1 || {
+          # Run performance tests using XCTest
+          swift test -c release --filter PerformanceTests > benchmark-results.txt 2>&1 || {
               EXIT_CODE=$?
-              if [ $EXIT_CODE -eq 124 ]; then
-                echo "Benchmarks timed out after 2 minutes" >> ../benchmark-results.txt
-              else
-                echo "Benchmark execution failed with code: $EXIT_CODE" >> ../benchmark-results.txt
-              fi
+              echo "Performance tests failed with code: $EXIT_CODE" >> benchmark-results.txt
           }
-          
-          # Move back to root for artifact handling
-          cd ..
           
           # Ensure we have some output
           if [ ! -s benchmark-results.txt ]; then
-            echo "No benchmark output captured" > benchmark-results.txt
+            echo "No performance test output captured" > benchmark-results.txt
           fi
           
           # Display results for logging
-          echo "Benchmark Results:"
-          head -100 benchmark-results.txt || echo "No benchmark results to display"
+          echo "Performance Test Results:"
+          head -100 benchmark-results.txt || echo "No test results to display"
           
-          # Ensure file exists for artifact upload
-          if [ ! -f benchmark-results.txt ]; then
-            echo "No benchmark results generated" > benchmark-results.txt
-          fi
-          
-          # Also save a copy for artifact upload
-          cp benchmark-results.txt benchmark-results-${{ github.sha }}.txt
-      
-      - name: Upload Benchmark Results
-        uses: actions/upload-artifact@v4
-        with:
-          name: benchmark-results-${{ github.sha }}
-          path: |
-            benchmark-results.txt
-            benchmark-results-${{ github.sha }}.txt
-          retention-days: 30
-      
-      - name: Display Results Summary
-        run: |
-          echo "## Benchmark Results Summary"
-          echo "```"
-          head -50 benchmark-results.txt
-          echo "```"
-          echo ""
-          echo "Full results available in artifacts."
-
-  compare-baseline:
-    name: Compare Against Baseline
-    runs-on: macos-latest
-    needs: run-benchmarks
-    if: github.event_name == 'pull_request'
-    
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      
-      - name: Download Current Results
-        uses: actions/download-artifact@v4
-        with:
-          name: benchmark-results-${{ github.sha }}
-      
-      - name: Fetch Base Branch Baseline
-        run: |
-          # Try to get baseline from base branch
-          BASE_BRANCH="${{ github.base_ref }}"
-          BASELINE_FILE=".benchmarks/baseline-${BASE_BRANCH}.txt"
-          
-          if git show origin/${BASE_BRANCH}:${BASELINE_FILE} > baseline.txt 2>/dev/null; then
-            echo "✅ Found baseline for ${BASE_BRANCH}"
+          # Check for test failures
+          if grep -q "failed" benchmark-results.txt; then
+            echo "performance_status=failed" >> $GITHUB_OUTPUT
           else
-            echo "⚠️  No baseline found for ${BASE_BRANCH}, skipping comparison"
-            echo "NO_BASELINE=true" >> $GITHUB_ENV
-            exit 0
+            echo "performance_status=passed" >> $GITHUB_OUTPUT
           fi
       
-      - name: Run Regression Check
-        if: env.NO_BASELINE != 'true'
-        id: regression_check
+      - name: Process Results
+        id: process_results
         run: |
-          # Create regression check script inline
-          cat > check-regression.sh << 'EOF'
-          #!/bin/bash
+          # Extract test counts
+          TEST_COUNT=$(grep -c "Test Case.*passed\|failed" benchmark-results.txt || echo "0")
+          PASSED_COUNT=$(grep -c "Test Case.*passed" benchmark-results.txt || echo "0")
+          FAILED_COUNT=$(grep -c "Test Case.*failed" benchmark-results.txt || echo "0")
           
-          BASELINE_FILE="$1"
-          CURRENT_FILE="$2"
-          THRESHOLD=30  # 30% regression threshold
+          echo "test_count=$TEST_COUNT" >> $GITHUB_OUTPUT
+          echo "passed_count=$PASSED_COUNT" >> $GITHUB_OUTPUT
+          echo "failed_count=$FAILED_COUNT" >> $GITHUB_OUTPUT
           
-          echo "Comparing benchmark results..."
-          echo "Baseline: $BASELINE_FILE"
-          echo "Current: $CURRENT_FILE"
-          echo ""
-          
-          FAILED=0
-          
-          # Extract benchmark names and times
-          # Format expected: "BenchmarkName: X.Xμs avg, Y ops/sec"
-          while IFS= read -r line; do
-            if [[ $line =~ ^([A-Za-z.]+):\ ([0-9.]+)(μs|ms|s)\ avg ]]; then
-              BENCH_NAME="${BASH_REMATCH[1]}"
-              CURRENT_TIME="${BASH_REMATCH[2]}"
-              CURRENT_UNIT="${BASH_REMATCH[3]}"
-              
-              # Convert to microseconds for comparison
-              case $CURRENT_UNIT in
-                ms) CURRENT_TIME=$(echo "$CURRENT_TIME * 1000" | bc -l) ;;
-                s)  CURRENT_TIME=$(echo "$CURRENT_TIME * 1000000" | bc -l) ;;
-              esac
-              
-              # Find baseline time
-              BASELINE_LINE=$(grep "^$BENCH_NAME:" "$BASELINE_FILE" 2>/dev/null)
-              if [[ $BASELINE_LINE =~ ([0-9.]+)(μs|ms|s)\ avg ]]; then
-                BASELINE_TIME="${BASH_REMATCH[1]}"
-                BASELINE_UNIT="${BASH_REMATCH[2]}"
-                
-                # Convert baseline to microseconds
-                case $BASELINE_UNIT in
-                  ms) BASELINE_TIME=$(echo "$BASELINE_TIME * 1000" | bc -l) ;;
-                  s)  BASELINE_TIME=$(echo "$BASELINE_TIME * 1000000" | bc -l) ;;
-                esac
-                
-                # Calculate percentage change
-                if (( $(echo "$BASELINE_TIME > 0" | bc -l) )); then
-                  CHANGE=$(echo "scale=2; (($CURRENT_TIME - $BASELINE_TIME) / $BASELINE_TIME) * 100" | bc -l)
-                  
-                  # Check if regression exceeds threshold
-                  if (( $(echo "$CHANGE > $THRESHOLD" | bc -l) )); then
-                    echo "❌ REGRESSION: $BENCH_NAME degraded by ${CHANGE}% (threshold: ${THRESHOLD}%)"
-                    echo "   Baseline: ${BASELINE_TIME}μs -> Current: ${CURRENT_TIME}μs"
-                    FAILED=1
-                  elif (( $(echo "$CHANGE < -10" | bc -l) )); then
-                    echo "✅ IMPROVEMENT: $BENCH_NAME improved by ${CHANGE}%"
-                  else
-                    echo "✓ $BENCH_NAME: ${CHANGE}% change (within threshold)"
-                  fi
-                fi
-              else
-                echo "⚠️  No baseline found for $BENCH_NAME"
-              fi
-            fi
-          done < "$CURRENT_FILE"
-          
-          echo ""
-          if [ $FAILED -eq 1 ]; then
-            echo "❌ Benchmark regression detected!"
-            exit 1
-          else
-            echo "✅ All benchmarks within acceptable range"
-          fi
-          EOF
-          
-          chmod +x check-regression.sh
-          ./check-regression.sh baseline.txt benchmark-results.txt | tee regression-report.txt
-          
-          # Save exit code
-          echo "REGRESSION_STATUS=$?" >> $GITHUB_ENV
+          # Create summary
+          {
+            echo "## Performance Test Summary"
+            echo ""
+            echo "- Total Tests: $TEST_COUNT"
+            echo "- Passed: $PASSED_COUNT ✅"
+            echo "- Failed: $FAILED_COUNT ❌"
+            echo ""
+            echo "### Test Categories:"
+            echo "- Pipeline Performance Tests"
+            echo "- CommandContext Performance Tests"
+            echo "- BackPressure Performance Tests"
+            echo ""
+            echo "<details>"
+            echo "<summary>Full Test Output</summary>"
+            echo ""
+            echo '```'
+            cat benchmark-results.txt | head -500
+            echo '```'
+            echo "</details>"
+          } > benchmark-summary.md
       
-      - name: Post PR Comment
-        if: env.NO_BASELINE != 'true'
+      - name: Comment PR Results
+        if: github.event_name == 'pull_request'
         uses: actions/github-script@v7
         with:
           script: |
             const fs = require('fs');
-            const report = fs.readFileSync('regression-report.txt', 'utf8');
-            const status = process.env.REGRESSION_STATUS === '0' ? '✅' : '❌';
+            const summary = fs.readFileSync('benchmark-summary.md', 'utf8');
             
-            const body = `## ${status} Benchmark Results
-            
-            <details>
-            <summary>Benchmark Comparison Report</summary>
-            
-            \`\`\`
-            ${report}
-            \`\`\`
-            
-            </details>
-            
-            ---
-            *Threshold: 30% regression tolerance*
-            *Runner: ${{ runner.os }} ${{ runner.arch }}*
-            *Commit: ${{ github.sha }}*`;
-            
-            github.rest.issues.createComment({
+            // Find and update existing comment or create new one
+            const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
-              body: body
             });
+            
+            const botComment = comments.find(comment => 
+              comment.user.type === 'Bot' && 
+              comment.body.includes('Performance Test Summary')
+            );
+            
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: summary
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: summary
+              });
+            }
       
-      - name: Fail if Regression Detected
-        if: env.REGRESSION_STATUS == '1'
+      - name: Upload Results Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-test-results-${{ github.sha }}
+          path: |
+            benchmark-results.txt
+            benchmark-summary.md
+          retention-days: 30
+      
+      - name: Check Test Status
+        if: steps.run_benchmarks.outputs.performance_status == 'failed'
         run: |
-          echo "❌ Benchmark regression exceeds 30% threshold"
+          echo "❌ Performance tests failed. Please review the results above."
           exit 1
-
-  update-baseline:
-    name: Update Baseline
-    runs-on: macos-latest
-    needs: run-benchmarks
-    if: |
-      github.event_name == 'push' && 
-      github.ref == 'refs/heads/main' ||
-      (github.event_name == 'workflow_dispatch' && github.event.inputs.update_baseline == 'true')
-    
-    permissions:
-      contents: write
-    
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
       
-      - name: Download Benchmark Results
-        uses: actions/download-artifact@v4
-        with:
-          name: benchmark-results-${{ github.sha }}
-      
-      - name: Update Baseline
+      - name: Success Message
+        if: steps.run_benchmarks.outputs.performance_status == 'passed'
         run: |
-          # Create benchmarks directory if it doesn't exist
-          mkdir -p .benchmarks
-          
-          # Update baseline for main branch
-          cp benchmark-results.txt .benchmarks/baseline-main.txt
-          
-          # Also save timestamped version for history
-          cp benchmark-results.txt ".benchmarks/baseline-main-$(date +%Y%m%d-%H%M%S).txt"
-          
-          echo "✅ Baseline updated for main branch"
-      
-      - name: Commit and Push Baseline
-        run: |
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
-          
-          git add .benchmarks/baseline-main.txt
-          
-          if git diff --staged --quiet; then
-            echo "No changes to baseline"
-          else
-            git commit -m "Update benchmark baseline for main branch
-            
-            Automated update from benchmark CI run.
-            Commit: ${{ github.sha }}
-            Date: $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
-            
-            git push
-            echo "✅ Baseline committed and pushed"
-          fi
+          echo "✅ All performance tests passed successfully!"
