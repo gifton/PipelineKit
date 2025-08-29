@@ -15,8 +15,6 @@ public enum Metrics {
     nonisolated(unsafe) public static var errorHandler: (@Sendable (Error) -> Void)?
     
     /// Configures the metrics system with a new exporter.
-    ///
-    /// This actually replaces the static exporter, fixing the configuration issue.
     public static func configure(
         host: String = "localhost",
         port: Int = 8125,

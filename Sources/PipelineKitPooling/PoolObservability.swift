@@ -1,7 +1,7 @@
 import Foundation
 import PipelineKitCore
 #if canImport(os)
-import os
+@preconcurrency import os
 #endif
 
 /// Runtime observability metrics for object pools.

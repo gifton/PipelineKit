@@ -5,6 +5,9 @@ on:
     branches: [ main, develop, simplification ]
   pull_request:
     branches: [ main ]
+env:
+  BENCHMARK_DISABLE_JEMALLOC: '1'  # Disable jemalloc dependency in swift-benchmark
+
 
 jobs:
   test:
@@ -19,6 +22,7 @@ jobs:
       with:
         swift-version: '6.0'
     
+    # jemalloc installation removed - benchmarks configured to not require it    
     - name: Show Swift version
       run: swift --version
     
@@ -27,7 +31,7 @@ jobs:
     
     - name: Run Tests
       run: |
-        swift test --parallel
+        swift test
     
     - name: Test Summary
       if: always()

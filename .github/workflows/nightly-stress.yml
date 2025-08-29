@@ -7,7 +7,8 @@ on:
   workflow_dispatch:  # Allow manual triggering
 
 env:
-  SWIFT_VERSION: '5.10'
+  BENCHMARK_DISABLE_JEMALLOC: '1'  # Disable jemalloc dependency in swift-benchmark
+  SWIFT_VERSION: '6.0'
 
 jobs:
   stress-tests-tsan:
@@ -17,7 +18,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [macos-14, macos-14]
-        swift: ['5.10']
+        swift: ['6.0']
     
     steps:
     - uses: actions/checkout@v4
@@ -28,6 +29,7 @@ jobs:
       with:
         swift-version: ${{ matrix.swift }}
     
+    # jemalloc installation removed - benchmarks configured to not require it    
     # Ubuntu uses Docker container instead of setup action
     
     - name: Run stress tests with TSAN
@@ -55,6 +57,7 @@ jobs:
       with:
         swift-version: ${{ env.SWIFT_VERSION }}
     
+    # jemalloc installation removed - benchmarks configured to not require it    
     - name: Run all stress tests
       run: |
         echo "Running standard stress tests..."

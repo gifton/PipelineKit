@@ -8,12 +8,12 @@ struct TestUnitCommand: CommandPlugin {
         let swiftExec = try context.tool(named: "swift").url
         
         // Print header
-        print("🧪 Running Unit Tests (Core, Middleware, Security)")
+        print("🧪 Running Unit Tests")
         print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
         print("")
         
-        // Build arguments for swift test - run core unit tests
-        var args = ["test", "--filter", "PipelineKitCoreTests|PipelineKitMiddlewareTests|PipelineKitSecurityTests"]
+        // Build arguments for swift test - run all unit tests except integration
+        var args = ["test", "--filter", "PipelineKitCoreTests|PipelineKitTests|PipelineKitSecurityTests|PipelineKitResilienceTests|PipelineKitCacheTests|PipelineKitPoolingTests|PipelineKitObservabilityTests"]
         
         // Add parallel flag unless explicitly disabled
         if !arguments.contains("--disable-parallel") {

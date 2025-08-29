@@ -5,6 +5,9 @@ on:
     paths:
       - '**/*.swift'
       - '.swiftlint.yml'
+env:
+  BENCHMARK_DISABLE_JEMALLOC: '1'  # Disable jemalloc dependency in swift-benchmark
+
 
 jobs:
   lint:
@@ -43,7 +46,7 @@ jobs:
         
     - name: SwiftLint Report
       if: failure()
-      uses: actions/github-script@v6
+      uses: actions/github-script@v7
       with:
         script: |
           const fs = require('fs');

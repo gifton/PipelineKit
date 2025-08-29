@@ -5,22 +5,57 @@ import PipelineKit
 /// 
 /// This middleware automatically sanitizes any command by calling its
 /// sanitize() method, providing a security layer that cleans
-/// potentially dangerous input data.
+/// potentially dangerous input data such as:
+/// - HTML/JavaScript injection attempts
+/// - SQL injection patterns  
+/// - Path traversal sequences
+/// - Control characters
+/// - Excessive whitespace
 /// 
-/// Example:
-/// ```swift
-/// let pipeline = DynamicPipeline()
-/// await pipeline.addMiddleware(SanitizationMiddleware())
-/// ```
+/// ## What Sanitization Does
 /// 
-/// For proper security, use with priority ordering:
+/// The default sanitization (via Command extension) returns the command unchanged.
+/// Commands that need sanitization should override the `sanitize()` method to:
+/// - Strip or escape HTML tags
+/// - Remove script content
+/// - Normalize Unicode characters
+/// - Trim excessive whitespace
+/// - Validate and clean file paths
+/// 
+/// ## Usage Examples
+/// 
 /// ```swift
-/// let pipeline = AnyStandardPipeline(handler: handler)
-/// try await pipeline.addMiddleware(
-///     SanitizationMiddleware(),
-///     priority: ExecutionPriority.preProcessing.rawValue
+/// // Basic usage with standard pipeline
+/// let pipeline = StandardPipeline(
+///     handler: handler,
+///     middleware: [
+///         SanitizationMiddleware(),
+///         AuthenticationMiddleware(...),
+///         // other middleware
+///     ]
 /// )
+/// 
+/// // Custom command with sanitization
+/// struct CreatePostCommand: Command {
+///     let title: String
+///     let content: String
+///     
+///     func sanitize() throws -> Self {
+///         CreatePostCommand(
+///             title: title.trimmingCharacters(in: .whitespacesAndNewlines)
+///                          .replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression),
+///             content: content.replacingOccurrences(of: "<script[^>]*>.*?</script>", with: "", options: .regularExpression)
+///         )
+///     }
+/// }
 /// ```
+/// 
+/// ## Security Best Practices
+/// 
+/// - Place SanitizationMiddleware early in the pipeline (before processing)
+/// - Combine with validation middleware for defense in depth
+/// - Log sanitization events for security auditing
+/// - Consider using allow-lists rather than deny-lists for input validation
 public struct SanitizationMiddleware: Middleware {
     public let priority: ExecutionPriority = .preProcessing
     

@@ -1,4 +1,5 @@
 import Foundation
+@preconcurrency import Darwin
 
 /// A memory profiler for tracking allocations and analyzing memory usage patterns.
 ///

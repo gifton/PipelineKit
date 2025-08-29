@@ -1,4 +1,5 @@
 @preconcurrency import Foundation
+@preconcurrency import Darwin
 #if canImport(UIKit)
 import UIKit
 #endif

@@ -1,7 +1,8 @@
 import Foundation
+@preconcurrency import Darwin
 import PipelineKitCore
 #if canImport(os)
-import os
+@preconcurrency import os
 #endif
 
 /// Collects and reports metrics from object pools for production monitoring.

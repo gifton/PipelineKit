@@ -1,190 +1,180 @@
-# PipelineKit Benchmarks
+# PipelineKit Performance Testing
 
 ## Overview
 
-PipelineKit includes a comprehensive benchmark suite to measure and track performance across different components. The benchmarks help ensure that performance doesn't regress and identify optimization opportunities.
+PipelineKit includes comprehensive performance tests using XCTest's built-in performance testing framework. These tests help ensure that performance doesn't regress and identify optimization opportunities.
 
-## Running Benchmarks
+## Architecture
 
-### Quick Mode
+Performance tests are located in the `Tests/PipelineKitPerformanceTests` target and use XCTest's `measure` API to capture performance metrics.
 
-Run benchmarks with fewer iterations for quick validation:
+### Test Organization
 
-```bash
-swift run PipelineKitBenchmarks --quick
-```
+- **PipelinePerformanceTests**: Core pipeline execution benchmarks
+- **CommandContextPerformanceTests**: Context metadata operation benchmarks  
+- **BackPressurePerformanceTests**: Concurrency control and semaphore benchmarks
+- **PerformanceTestConfiguration**: Shared configuration for CI-aware test settings
 
-### Full Mode
+## Running Performance Tests
 
-Run comprehensive benchmarks with more iterations:
+### Quick Test Run
 
-```bash
-swift run PipelineKitBenchmarks
-```
-
-### Specific Benchmarks
-
-Run benchmarks matching a pattern:
+Run all performance tests:
 
 ```bash
-# Run all BackPressure benchmarks
-swift run PipelineKitBenchmarks BackPressure
-
-# Run specific benchmark
-swift run PipelineKitBenchmarks --benchmark BackPressure-Uncontended
+swift test --filter PerformanceTests
 ```
 
-### Help
+### Release Mode (Recommended)
 
-View all available options:
+For accurate performance metrics, run in release mode:
 
 ```bash
-swift run PipelineKitBenchmarks --help
+swift test -c release --filter PerformanceTests
 ```
 
-## Available Benchmarks
+### Specific Test Categories
 
-### BackPressure Benchmarks
+```bash
+# Run only pipeline performance tests
+swift test --filter PipelinePerformanceTests
 
-- **BackPressure-Uncontended**: Tests uncontended fast path performance
-- **BackPressure-TryAcquire**: Tests tryAcquire performance
-- **BackPressure-Contention**: Tests performance under contention (mild and heavy)
-- **BackPressure-Cancellation**: Tests cancellation performance
-- **BackPressure-Memory**: Tests memory pressure handling
+# Run only BackPressure tests
+swift test --filter BackPressurePerformanceTests
 
-### Core Benchmarks
-
-- **CommandContext**: Tests CommandContext creation, storage, and forking
-- **Pipeline**: Tests pipeline execution with and without middleware
-
-## Benchmark Architecture
-
-### Infrastructure
-
-The benchmark suite uses a protocol-based architecture:
-
-```swift
-protocol Benchmark {
-    var name: String { get }
-    var description: String { get }
-    func run() async throws
-}
+# Run a specific test
+swift test --filter testSimplePipelineExecutionPerformance
 ```
 
-### BenchmarkRunner
+### CI Mode
 
-The `BenchmarkRunner` class manages benchmark execution and result collection:
+Use the CI-optimized script for automated testing:
 
-```swift
-let runner = BenchmarkRunner()
-runner.register(MyBenchmark())
-try await runner.run(quick: true)
+```bash
+./Scripts/run-performance-tests-ci.sh
 ```
 
-### Result Reporting
+### Full Performance Suite
 
-Results include:
-- Duration
-- Operations count
-- Throughput (operations per second)
-- Average latency
+Use the comprehensive script with baseline support:
 
-## Adding New Benchmarks
+```bash
+./Scripts/run-performance-tests.sh [options]
 
-To add a new benchmark:
-
-1. Create a struct conforming to the `Benchmark` protocol
-2. Implement the required properties and `run()` method
-3. Register it in `main.swift`
-
-Example:
-
-```swift
-struct MyBenchmark: Benchmark {
-    let name = "MyComponent"
-    let description = "Tests MyComponent performance"
-    
-    func run() async throws {
-        let runner = BenchmarkRunner()
-        
-        _ = try await runner.measure(name: "Operation", iterations: 10_000) {
-            // Benchmark code here
-        }
-    }
-}
+Options:
+  --debug              Run tests in debug configuration (default: release)
+  --filter <pattern>   Filter tests by name pattern
+  --baseline <name>    Name for baseline comparison
+  --compare            Compare against baseline
+  --update-baseline    Update the baseline with current results
+  --help               Show help message
 ```
+
+## Available Performance Tests
+
+### Pipeline Performance
+
+- **testSimplePipelineExecutionPerformance**: Baseline pipeline execution without middleware
+- **testPipelineWithSingleMiddlewarePerformance**: Pipeline with one middleware component
+- **testPipelineWithMultipleMiddlewarePerformance**: Pipeline with multiple middleware (5 components)
+- **testConcurrentPipelineExecutionPerformance**: Concurrent pipeline execution (1000 operations)
+
+### CommandContext Performance
+
+- **testSetMetadataPerformance**: Metadata write operations (10,000 operations)
+- **testGetMetadataPerformance**: Metadata read operations (10,000 reads)
+- **testMixedMetadataOperationsPerformance**: Mixed read/write operations
+- **testConcurrentMetadataAccessPerformance**: Concurrent access patterns
+- **testContextCreationPerformance**: Context initialization overhead
+- **testLargeContextPerformance**: Performance with large metadata sets
+
+### BackPressure Performance
+
+- **testUncontendedAcquirePerformance**: Fast path acquisition without contention
+- **testTryAcquirePerformance**: Non-blocking acquisition attempts
+- **testContendedAccessPerformance**: Performance under contention
+- **testHighConcurrencyPerformance**: High concurrency scenarios (1000 concurrent tasks)
+- **testFailedAcquirePerformance**: Failed acquisition attempts
+- **testMemoryPressureWithManyTokens**: Memory usage with many tokens
+
+## Metrics Captured
+
+XCTest performance tests capture the following metrics:
+
+- **XCTClockMetric**: Wall clock time
+- **XCTCPUMetric**: CPU usage and cycles
+- **XCTMemoryMetric**: Memory allocations and peak usage
+- **XCTStorageMetric**: Disk I/O operations
 
 ## CI Integration
 
-Benchmarks are automatically run in CI:
+Performance tests are automatically adjusted for CI environments:
 
-- On push to main branch
-- On pull requests (quick mode)
-- Daily scheduled runs (full mode)
+- Reduced iteration counts for faster execution
+- Adjusted timeouts for reliability
+- Streamlined metrics collection
+- Environment detection via `CI` environment variable
 
-See `.github/workflows/benchmarks.yml` for configuration.
+## Performance Guidelines
 
-## Performance Goals
+### Writing New Performance Tests
 
-### BackPressure
-- Uncontended operations: < 1μs latency
-- High throughput under contention
-- Efficient cancellation handling
-- Memory pressure correctly enforced
+1. Extend `XCTestCase` or `PerformanceTestCase` for shared configuration
+2. Use `measure` with appropriate metrics:
+   ```swift
+   measure(metrics: [XCTClockMetric(), XCTMemoryMetric()]) {
+       // Performance-critical code here
+   }
+   ```
+3. Use expectations for async operations
+4. Consider CI vs local environment differences
 
-### CommandContext
-- Context creation: < 100ns
-- Value storage/retrieval: < 50ns per operation
-- Fork operation: < 500ns
+### Best Practices
 
-### Pipeline
-- Empty pipeline overhead: < 100ns
-- Per-middleware overhead: < 50ns
+- Run performance tests in release mode for accurate metrics
+- Use consistent operation counts for comparable results
+- Warm up caches before measuring when appropriate
+- Isolate the code being measured
+- Account for system variability with multiple iterations
 
-## Baseline Comparison
+## Interpreting Results
 
-The benchmark suite supports baseline comparison to detect regressions:
+XCTest provides detailed performance metrics in the test output:
 
-```bash
-# Save current results as baseline
-swift run PipelineKitBenchmarks --save-baseline
+- **Average**: Mean execution time across iterations
+- **Relative Standard Deviation**: Consistency of measurements
+- **Maximum**: Worst-case performance
+- **Minimum**: Best-case performance
 
-# Compare against baseline
-swift run PipelineKitBenchmarks --compare-baseline
-```
+Results can be viewed in:
+- Terminal output when running tests
+- Xcode's Report Navigator for detailed analysis
+- CI logs for automated testing
 
-Baselines are stored in `.benchmarks/` directory.
+## Baseline Comparisons
 
-## Best Practices
+While XCTest supports baseline comparisons in Xcode, for CI environments we rely on:
 
-1. **Warm-up**: Allow for warm-up iterations to stabilize performance
-2. **Multiple Runs**: Run benchmarks multiple times to ensure consistency
-3. **Isolation**: Run benchmarks on a quiet system without other heavy processes
-4. **Release Mode**: Always benchmark in release configuration
-5. **Statistical Analysis**: Use percentiles (p50, p90, p99) rather than just averages
+1. Consistent test environments
+2. Statistical analysis of results
+3. Tracking metrics over time in CI dashboards
 
 ## Troubleshooting
 
-### High Variance
+### Tests Running Slowly
 
-If benchmark results show high variance:
-- Increase iteration count
-- Ensure system is not under load
-- Check for thermal throttling
-- Disable CPU frequency scaling
+- Ensure you're running in release mode: `-c release`
+- Check if `CI` environment variable is set for reduced iterations
+- Verify system isn't under heavy load
 
-### Unexpected Results
+### Inconsistent Results
 
-If benchmarks show unexpected performance:
-- Verify release build configuration
-- Check for debug assertions
-- Profile with Instruments
-- Review recent code changes
+- Increase iteration count for more stable averages
+- Close other applications to reduce system noise
+- Use `PerformanceTestConfiguration` for consistent settings
 
-## Future Improvements
+### Memory Issues
 
-- [ ] Add memory allocation tracking
-- [ ] Implement regression detection
-- [ ] Add JSON/CSV export
-- [ ] Create performance dashboard
-- [ ] Add comparison visualization
+- Monitor with XCTMemoryMetric
+- Check for retain cycles in test setup
+- Ensure proper cleanup in test teardown

@@ -14,12 +14,14 @@ import Foundation
 /// context[userIDKey] = "user123"
 /// let id: String? = context[userIDKey]  // Type-safe access
 /// ```
+@frozen
 public struct ContextKey<Value: Sendable>: Hashable, Sendable {
     /// The string name of the key
     public let name: String
 
     /// Creates a new context key with the specified name.
     /// - Parameter name: The unique name for this key
+    @inlinable
     public init(_ name: String) {
         self.name = name
     }
@@ -108,6 +110,7 @@ public extension ContextKey {
     /// let temperatureKey = ContextKey.custom("temperature", Double.self)
     /// context[temperatureKey] = 98.6
     /// ```
+    @inlinable
     static func custom<T: Sendable>(_ name: String, _ type: T.Type) -> ContextKey<T> {
         ContextKey<T>(name)
     }

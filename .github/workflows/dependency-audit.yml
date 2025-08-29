@@ -9,6 +9,9 @@ on:
       - 'Package.swift'
       - 'Package.resolved'
   workflow_dispatch:
+env:
+  BENCHMARK_DISABLE_JEMALLOC: '1'  # Disable jemalloc dependency in swift-benchmark
+
 
 jobs:
   audit:
@@ -23,7 +26,8 @@ jobs:
       with:
         swift-version: '6.0'
     
-    - name: Cache Swift packages
+      
+    # jemalloc installation removed - benchmarks configured to not require it    - name: Cache Swift packages
       uses: actions/cache@v4
       with:
         path: .build

@@ -14,20 +14,24 @@ on:
       - 'Sources/PipelineKitMetrics/**'
       - 'Tests/PipelineKitMetricsTests/**'
       - 'Package.swift'
+env:
+  BENCHMARK_DISABLE_JEMALLOC: '1'  # Disable jemalloc dependency in swift-benchmark
+
 
 jobs:
   test-macos:
     name: Test on macOS
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       
       - name: Setup Swift
-        uses: swift-actions/setup-swift@v2
+        uses: swift-actions/setup-swift@v2.3.0
         with:
-          swift-version: '5.9'
+          swift-version: '6.0'
       
-      - name: Build
+      
+    # jemalloc installation removed - benchmarks configured to not require it      - name: Build
         run: swift build --target PipelineKitMetrics
         
       - name: Run Compression Tests
@@ -40,7 +44,7 @@ jobs:
     name: Test on Linux
     runs-on: macos-14
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       
       - name: Build Docker Image
         run: docker build -f Dockerfile.test -t pipelinekit-test .
@@ -56,7 +60,7 @@ jobs:
     name: OTLP Integration Test
     runs-on: macos-14
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       
       - name: Start OTLP Collector
         run: docker-compose -f docker-compose.test.yml up -d otel-collector

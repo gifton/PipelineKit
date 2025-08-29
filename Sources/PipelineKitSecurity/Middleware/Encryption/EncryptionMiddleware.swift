@@ -1,6 +1,6 @@
 import Foundation
 import PipelineKit
-import CryptoKit
+@preconcurrency import CryptoKit
 
 /// Middleware that handles encryption and decryption of sensitive data in commands.
 ///
