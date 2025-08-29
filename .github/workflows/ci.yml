@@ -58,7 +58,7 @@ jobs:
       
     - name: Run unit tests
       run: |
-        # Use the test-unit plugin or fall back to direct swift test
+        # Use the test-unit plugin or fall back to direct swift test (without --parallel due to hanging issues)
         swift package plugin test-unit --enable-code-coverage || \
         swift test --filter "PipelineKitCoreTests|PipelineKitTests|PipelineKitSecurityTests|PipelineKitResilienceTests|PipelineKitCacheTests|PipelineKitPoolingTests|PipelineKitObservabilityTests" --enable-code-coverage
       
@@ -99,9 +99,9 @@ jobs:
       
     - name: Run stress tests
       run: |
-        # Run resilience tests with higher parallelism as stress tests
+        # Run resilience tests as stress tests (without --parallel due to hanging issues)
         # These tests include timeout, backpressure, and concurrent execution tests
-        swift test --filter "PipelineKitResilienceTests" --parallel
+        swift test --filter "PipelineKitResilienceTests"
       timeout-minutes: 30  # Stress tests may take longer
 
   # Integration tests are currently disabled - test files exist but aren't configured in Package.swift

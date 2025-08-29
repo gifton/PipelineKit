@@ -31,7 +31,7 @@ jobs:
     
     - name: Run Tests
       run: |
-        swift test --parallel
+        swift test
     
     - name: Test Summary
       if: always()
