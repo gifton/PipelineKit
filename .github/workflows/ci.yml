@@ -64,8 +64,12 @@ jobs:
     - name: Generate coverage report
       if: matrix.os == 'macos-14' && matrix.swift == '6.0'
       run: |
-        swift test --filter "PipelineKitCoreTests|PipelineKitTests|PipelineKitSecurityTests" --enable-code-coverage
-        xcrun llvm-cov export \
+        # Find the Swift toolchain's llvm-cov
+        TOOLCHAIN_BIN=$(swift -print-target-info | grep '"runtimeResourcePath"' | cut -d '"' -f 4 | sed 's|/lib/swift$|/bin|')
+        LLVM_COV="${TOOLCHAIN_BIN}/llvm-cov"
+        
+        # Use the same llvm-cov version as the Swift compiler
+        $LLVM_COV export \
           .build/debug/PipelineKitPackageTests.xctest/Contents/MacOS/PipelineKitPackageTests \
           -instr-profile=.build/debug/codecov/default.profdata \
           -format=lcov > coverage.lcov
