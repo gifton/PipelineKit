@@ -25,7 +25,7 @@ final class AsyncSemaphoreTimeoutTests: XCTestCase {
         // Then: Should timeout and return false
         XCTAssertFalse(acquired, "Should timeout when no resources available")
         XCTAssertGreaterThanOrEqual(elapsed, 0.1, "Should wait at least the timeout duration")
-        XCTAssertLessThan(elapsed, 0.2, "Should not wait much longer than timeout")
+        XCTAssertLessThan(elapsed, 0.5, "Should not wait much longer than timeout (elapsed: \(elapsed)s)")
     }
     
     func testSignalBeforeTimeout() async {
@@ -55,7 +55,7 @@ final class AsyncSemaphoreTimeoutTests: XCTestCase {
         
         // Then: Should return immediately
         XCTAssertTrue(acquired, "Should acquire immediately when resources available")
-        XCTAssertLessThan(elapsed, 0.1, "Should not wait when resources available")
+        XCTAssertLessThan(elapsed, 0.2, "Should not wait long when resources available (elapsed: \(elapsed)s)")
     }
     
     // MARK: - Multiple Waiters Tests

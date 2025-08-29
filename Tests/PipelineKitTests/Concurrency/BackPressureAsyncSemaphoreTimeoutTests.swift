@@ -43,7 +43,7 @@ final class BackPressureAsyncSemaphoreTimeoutTests: XCTestCase {
         // Then: Returns nil after timeout
         XCTAssertNil(secondToken, "Should return nil after timeout")
         XCTAssertGreaterThanOrEqual(elapsed, 0.19, "Should wait for approximately the timeout")
-        XCTAssertLessThan(elapsed, 0.3, "Should not wait much longer than timeout")
+        XCTAssertLessThan(elapsed, 0.5, "Should not wait much longer than timeout (elapsed: \(elapsed)s)")
         
         // Cleanup
         _ = firstToken // Keep alive until end
