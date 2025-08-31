@@ -36,15 +36,20 @@ jobs:
       
       - name: Run Tests with Coverage
         run: |
-          swift test --enable-code-coverage --parallel
+          # Note: --parallel removed due to test hanging issues
+          swift test --enable-code-coverage
       
       - name: Generate Coverage Reports
         run: |
+          # Find the Swift toolchain's llvm-cov to match the compiler version
+          TOOLCHAIN_BIN=$(swift -print-target-info | grep '"runtimeResourcePath"' | cut -d '"' -f 4 | sed 's|/lib/swift$|/bin|')
+          LLVM_COV="${TOOLCHAIN_BIN}/llvm-cov"
+          
           # Generate LCOV report
           PROFDATA=$(find .build -name 'default.profdata' | head -n 1)
           BINARY=$(find .build -name 'PipelineKitPackageTests.xctest' -type d | head -n 1)/Contents/MacOS/PipelineKitPackageTests
           
-          xcrun llvm-cov export \
+          $LLVM_COV export \
             "$BINARY" \
             -instr-profile="$PROFDATA" \
             -format=lcov \
@@ -52,7 +57,7 @@ jobs:
             > coverage.lcov
           
           # Generate JSON for parsing
-          xcrun llvm-cov export \
+          $LLVM_COV export \
             "$BINARY" \
             -instr-profile="$PROFDATA" \
             -format=json \
@@ -60,7 +65,7 @@ jobs:
             > coverage.json
           
           # Generate HTML report
-          xcrun llvm-cov show \
+          $LLVM_COV show \
             "$BINARY" \
             -instr-profile="$PROFDATA" \
             -format=html \
@@ -70,8 +75,12 @@ jobs:
       - name: Extract Coverage Metrics
         id: coverage
         run: |
+          # Find the Swift toolchain's llvm-cov
+          TOOLCHAIN_BIN=$(swift -print-target-info | grep '"runtimeResourcePath"' | cut -d '"' -f 4 | sed 's|/lib/swift$|/bin|')
+          LLVM_COV="${TOOLCHAIN_BIN}/llvm-cov"
+          
           # Extract total coverage
-          TOTAL=$(xcrun llvm-cov report \
+          TOTAL=$($LLVM_COV report \
             $(find .build -name 'PipelineKitPackageTests.xctest' -type d | head -n 1)/Contents/MacOS/PipelineKitPackageTests \
             -instr-profile=$(find .build -name 'default.profdata' | head -n 1) \
             -ignore-filename-regex=".build|Tests" | \

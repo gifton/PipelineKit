@@ -96,11 +96,16 @@ jobs:
     # jemalloc installation removed - benchmarks configured to not require it      
       - name: Run Tests with Coverage
         run: |
-          swift test --enable-code-coverage --parallel
+          # Note: --parallel removed due to test hanging issues
+          swift test --enable-code-coverage
       
       - name: Generate Coverage Report
         run: |
-          xcrun llvm-cov export \
+          # Find the Swift toolchain's llvm-cov to match the compiler version
+          TOOLCHAIN_BIN=$(swift -print-target-info | grep '"runtimeResourcePath"' | cut -d '"' -f 4 | sed 's|/lib/swift$|/bin|')
+          LLVM_COV="${TOOLCHAIN_BIN}/llvm-cov"
+          
+          $LLVM_COV export \
             .build/debug/PipelineKitPackageTests.xctest/Contents/MacOS/PipelineKitPackageTests \
             -instr-profile=.build/debug/codecov/default.profdata \
             -format=lcov > coverage.lcov
@@ -114,8 +119,12 @@ jobs:
       
       - name: Check Coverage Threshold
         run: |
+          # Find the Swift toolchain's llvm-cov
+          TOOLCHAIN_BIN=$(swift -print-target-info | grep '"runtimeResourcePath"' | cut -d '"' -f 4 | sed 's|/lib/swift$|/bin|')
+          LLVM_COV="${TOOLCHAIN_BIN}/llvm-cov"
+          
           # Extract coverage percentage
-          COVERAGE=$(xcrun llvm-cov report \
+          COVERAGE=$($LLVM_COV report \
             .build/debug/PipelineKitPackageTests.xctest/Contents/MacOS/PipelineKitPackageTests \
             -instr-profile=.build/debug/codecov/default.profdata | \
             tail -1 | awk '{print $4}' | sed 's/%//')
