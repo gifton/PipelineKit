@@ -98,6 +98,9 @@ public enum ContextKeys {
 
     /// Key for rate limit remaining
     public static let rateLimitRemaining = ContextKey<Int>("rateLimitRemaining")
+    
+    /// Key for cancellation reason
+    public static let cancellationReason = ContextKey<CancellationReason>("cancellationReason")
 }
 
 // MARK: - Convenience Factory Methods

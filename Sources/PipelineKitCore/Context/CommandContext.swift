@@ -279,6 +279,26 @@ public actor CommandContext {
         await updates(self)
     }
     
+    // MARK: - Cancellation Support
+    
+    /// Marks this context as cancelled with the specified reason.
+    /// - Parameter reason: The reason for cancellation
+    public func markAsCancelled(reason: CancellationReason) {
+        storage[ContextKeys.cancellationReason.name] = AnySendable(reason)
+    }
+    
+    /// Gets the cancellation reason if the context has been cancelled.
+    /// - Returns: The cancellation reason, or nil if not cancelled
+    public func getCancellationReason() -> CancellationReason? {
+        get(ContextKeys.cancellationReason)
+    }
+    
+    /// Checks if this context has been marked as cancelled.
+    /// - Returns: true if the context has been cancelled
+    public var isCancelled: Bool {
+        getCancellationReason() != nil
+    }
+    
     // MARK: - Fork Support
     
     /// Creates a new context with a copy of this context's storage.

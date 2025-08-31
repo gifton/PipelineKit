@@ -104,18 +104,34 @@ public final class NextGuard<T: Command>: Sendable {
     #if DEBUG
     /// Debug-only check that next was called before deallocation
     deinit {
+        // Check if warnings are enabled
+        guard NextGuardConfiguration.shared.emitWarnings else { return }
+        
         let finalState = state.load(ordering: .relaxed)
         if finalState == 0 {
-            // Check if we're in a cancelled task context
-            // If the task is cancelled, it's acceptable for next not to be called
+            // Check if task was cancelled
             if Task.isCancelled {
-                // Cancellation is acceptable - middleware may not call next when cancelled
-                return
+                return // Cancellation is acceptable
+            }
+            
+            // Check for timeout heuristics
+            let isLikelyTimedOut = identifier?.contains("Timeout") == true ||
+                                   identifier?.contains("Slow") == true
+            
+            if isLikelyTimedOut && NextGuardConfiguration.shared.suppressTimeoutWarnings {
+                return // Suppress timeout-related warnings if configured
             }
             
             let id = identifier ?? "unknown"
-            // Use print instead of assertionFailure during development to avoid crashes
-            print("⚠️ WARNING: NextGuard(\(id)) deallocated without calling next() - middleware must call next exactly once (unless cancelled)")
+            let message = "⚠️ WARNING: NextGuard(\(id)) deallocated without calling next() - middleware must call next exactly once (unless cancelled)"
+            
+            // Use custom handler if provided, otherwise print
+            if let handler = NextGuardConfiguration.shared.warningHandler {
+                handler(message)
+            } else {
+                print(message)
+            }
+            
             #if false
             assertionFailure(
                 "NextGuard(\(id)) deallocated without calling next() - " +

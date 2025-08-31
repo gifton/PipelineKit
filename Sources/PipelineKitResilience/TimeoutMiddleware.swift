@@ -219,6 +219,12 @@ public struct TimeoutMiddleware: Middleware {
                     metadata: [:]
                 )
 
+                // Mark context as cancelled due to timeout
+                await context.markAsCancelled(reason: .timeout(
+                    duration: duration,
+                    gracePeriod: configuration.gracePeriod
+                ))
+                
                 await handleTimeout(command: command, context: context, timeoutContext: timeoutContext)
                 throw PipelineError.timeout(
                     duration: duration,
@@ -243,6 +249,12 @@ public struct TimeoutMiddleware: Middleware {
                     metadata: [:]
                 )
 
+                // Mark context as cancelled due to timeout
+                await context.markAsCancelled(reason: .timeout(
+                    duration: timeout,
+                    gracePeriod: gracePeriod
+                ))
+                
                 await handleTimeout(command: command, context: context, timeoutContext: timeoutContext)
                 throw PipelineError.timeout(
                     duration: timeout,

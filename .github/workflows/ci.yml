@@ -9,6 +9,8 @@ on:
 env:
   SWIFT_VERSION: '6.0'
   BENCHMARK_DISABLE_JEMALLOC: '1'  # Disable jemalloc dependency in swift-benchmark
+  # NextGuard already suppresses timeout warnings by default, but we can be explicit
+  # PIPELINEKIT_DISABLE_NEXTGUARD_WARNINGS: '1'  # Uncomment if you want to disable all warnings in CI
 
 jobs:
   build:
