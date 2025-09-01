@@ -1,0 +1,28 @@
+name: 'Setup SPM Cache'
+description: 'Standardized Swift Package Manager caching configuration'
+inputs:
+  cache-key-prefix:
+    description: 'Prefix for cache key (e.g., "test", "build", "docs")'
+    required: false
+    default: 'spm'
+  swift-version:
+    description: 'Swift version for cache key'
+    required: false
+    default: ''
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Cache SPM Dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          .build
+          ~/.swiftpm
+          ~/Library/Caches/org.swift.swiftpm
+        key: ${{ runner.os }}-${{ inputs.cache-key-prefix }}-${{ inputs.swift-version }}-${{ hashFiles('**/Package.resolved') }}-${{ hashFiles('**/Package.swift') }}
+        restore-keys: |
+          ${{ runner.os }}-${{ inputs.cache-key-prefix }}-${{ inputs.swift-version }}-${{ hashFiles('**/Package.resolved') }}-
+          ${{ runner.os }}-${{ inputs.cache-key-prefix }}-${{ inputs.swift-version }}-
+          ${{ runner.os }}-${{ inputs.cache-key-prefix }}-
+          ${{ runner.os }}-spm-

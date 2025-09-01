@@ -4,14 +4,23 @@ on:
   schedule:
     - cron: '0 2 * * *'  # Run at 2 AM UTC daily
   workflow_dispatch:
-env:
-  BENCHMARK_DISABLE_JEMALLOC: '1'  # Disable jemalloc dependency in swift-benchmark
 
+env:
+  SWIFT_VERSION: '6.0'
+
+permissions:
+  contents: read
+  checks: write
+
+concurrency:
+  group: nightly-${{ github.ref }}
+  cancel-in-progress: false  # Don't cancel nightly builds
 
 jobs:
   nightly-test:
-    name: Nightly Test Suite
+    name: Nightly Test Suite (${{ matrix.os }})
     runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
@@ -27,154 +36,188 @@ jobs:
       - name: Setup Swift
         uses: swift-actions/setup-swift@v2
         with:
-          swift-version: '6.0'
+          swift-version: ${{ env.SWIFT_VERSION }}
       
+      - name: Cache SPM
+        uses: actions/cache@v4
+        with:
+          path: |
+            .build
+            ~/.swiftpm
+          key: ${{ runner.os }}-spm-${{ hashFiles('Package.resolved') }}
+          restore-keys: |
+            ${{ runner.os }}-spm-
       
-    # jemalloc installation removed - benchmarks configured to not require it      - name: Full Test Suite
+      - name: Full Test Suite
         run: |
-          swift test --parallel --enable-code-coverage
+          swift test --enable-code-coverage
       
       - name: Stress Tests
         run: |
           # Run tests multiple times to catch flaky tests
           for i in {1..5}; do
             echo "🔄 Test iteration $i/5"
-            swift test --configuration release --parallel
+            swift test --configuration release
           done
         timeout-minutes: 30
 
   compatibility-test:
     name: Swift Compatibility
     runs-on: macos-14
+    timeout-minutes: 30
     strategy:
       matrix:
-        swift: ['5.10', '6.0']
+        swift-version: ['5.9', '6.0']
     
     steps:
       - uses: actions/checkout@v4
       
-      - name: Setup Swift ${{ matrix.swift }}
+      - name: Setup Swift ${{ matrix.swift-version }}
         uses: swift-actions/setup-swift@v2
         with:
-          swift-version: ${{ matrix.swift }}
+          swift-version: ${{ matrix.swift-version }}
       
+      - name: Cache SPM
+        uses: actions/cache@v4
+        with:
+          path: |
+            .build
+            ~/.swiftpm
+          key: ${{ runner.os }}-swift-${{ matrix.swift-version }}-${{ hashFiles('Package.resolved') }}
+          restore-keys: |
+            ${{ runner.os }}-swift-${{ matrix.swift-version }}-
       
-    # jemalloc installation removed - benchmarks configured to not require it      - name: Build with Swift ${{ matrix.swift }}
+      - name: Build
         run: swift build
-        continue-on-error: ${{ matrix.swift == '5.10' }}
+      
+      - name: Test
+        run: swift test
 
-  memory-leak-detection:
-    name: Memory Leak Detection
+  linux-test:
+    name: Linux Test
+    runs-on: ubuntu-latest
+    container: swift:${{ matrix.swift-version }}
+    timeout-minutes: 30
+    strategy:
+      matrix:
+        swift-version: ['6.0', '5.10']
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Cache SPM
+        uses: actions/cache@v4
+        with:
+          path: |
+            .build
+            ~/.swiftpm
+          key: linux-swift-${{ matrix.swift-version }}-${{ hashFiles('Package.resolved') }}
+          restore-keys: |
+            linux-swift-${{ matrix.swift-version }}-
+      
+      - name: Build
+        run: swift build
+      
+      - name: Test
+        run: swift test
+
+  memory-test:
+    name: Memory & Leak Tests
     runs-on: macos-14
+    timeout-minutes: 30
+    
     steps:
       - uses: actions/checkout@v4
       
       - name: Setup Swift
         uses: swift-actions/setup-swift@v2
         with:
-          swift-version: '6.0'
+          swift-version: ${{ env.SWIFT_VERSION }}
       
+      - name: Cache SPM
+        uses: actions/cache@v4
+        with:
+          path: |
+            .build
+            ~/.swiftpm
+          key: ${{ runner.os }}-spm-${{ hashFiles('Package.resolved') }}
+          restore-keys: |
+            ${{ runner.os }}-spm-
       
-    # jemalloc installation removed - benchmarks configured to not require it      - name: Build for Testing
-        run: swift build --configuration debug
+      - name: Build with Address Sanitizer
+        run: swift build --sanitize=address
       
-      - name: Run with Leak Detection
-        run: |
-          export MallocStackLogging=1
-          swift test --configuration debug --filter Memory
-        continue-on-error: true
+      - name: Run Tests with Address Sanitizer
+        run: swift test --sanitize=address
+        continue-on-error: true  # Don't fail for now
       
-      - name: Analyze with Instruments
-        run: |
-          # Would use Instruments for leak detection on macOS
-          echo "Leak detection would run here with Instruments"
-        continue-on-error: true
+      - name: Build with Thread Sanitizer
+        run: swift build --sanitize=thread
+      
+      - name: Run Tests with Thread Sanitizer
+        run: swift test --sanitize=thread
+        continue-on-error: true  # Don't fail for now
 
-  performance-regression:
-    name: Performance Regression
+  extended-benchmarks:
+    name: Extended Benchmarks
     runs-on: macos-14
+    timeout-minutes: 60
+    
     steps:
       - uses: actions/checkout@v4
       
       - name: Setup Swift
         uses: swift-actions/setup-swift@v2
         with:
-          swift-version: '6.0'
+          swift-version: ${{ env.SWIFT_VERSION }}
       
-      
-    # jemalloc installation removed - benchmarks configured to not require it      - name: Run Benchmarks
-        run: |
-          swift build --configuration release --product Benchmarks
-          .build/release/Benchmarks --format json > current-benchmarks.json
-        continue-on-error: true
-      
-      - name: Compare with Baseline
-        run: |
-          # Would compare with stored baseline
-          echo "Performance comparison would happen here"
-        continue-on-error: true
-
-  security-scan:
-    name: Nightly Security Scan
-    runs-on: macos-14
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Run Comprehensive Security Scan
-        uses: aquasecurity/trivy-action@master
+      - name: Cache SPM
+        uses: actions/cache@v4
         with:
-          scan-type: 'fs'
-          scan-ref: '.'
-          severity: 'UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL'
-          format: 'sarif'
-          output: 'trivy-results.sarif'
+          path: |
+            .build
+            ~/.swiftpm
+          key: ${{ runner.os }}-spm-${{ hashFiles('Package.resolved') }}
+          restore-keys: |
+            ${{ runner.os }}-spm-
       
-      - name: SAST Scan
+      - name: Build Performance Tests
+        run: swift build --configuration release --target PipelineKitPerformanceTests
+      
+      - name: Run Extended Performance Tests
         run: |
-          # Static Application Security Testing
-          echo "SAST scan would run here"
-        continue-on-error: true
+          # Run full performance test suite
+          swift test --configuration release --filter "PipelineKitPerformanceTests" || {
+            EXIT_CODE=$?
+            echo "Performance tests completed with status: $EXIT_CODE"
+          }
+      
+      - name: Upload Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-benchmark-results
+          path: |
+            benchmark-results/
+            .benchmarkBaselines/
+          if-no-files-found: ignore
+          retention-days: 30
 
   report:
     name: Nightly Report
-    runs-on: macos-14
-    needs: [nightly-test, compatibility-test, memory-leak-detection, performance-regression, security-scan]
+    runs-on: ubuntu-latest
+    needs: [nightly-test, compatibility-test, linux-test, memory-test, extended-benchmarks]
     if: always()
+    
     steps:
       - name: Generate Report
         run: |
-          echo "# 🌙 Nightly Build Report" > nightly-report.md
-          echo "" >> nightly-report.md
-          echo "**Date**: $(date -u +"%Y-%m-%d")" >> nightly-report.md
-          echo "**Run**: ${{ github.run_number }}" >> nightly-report.md
-          echo "" >> nightly-report.md
-          
-          echo "## Test Results" >> nightly-report.md
-          echo "- Full Test Suite: ${{ needs.nightly-test.result }}" >> nightly-report.md
-          echo "- Compatibility: ${{ needs.compatibility-test.result }}" >> nightly-report.md
-          echo "- Memory Leaks: ${{ needs.memory-leak-detection.result }}" >> nightly-report.md
-          echo "- Performance: ${{ needs.performance-regression.result }}" >> nightly-report.md
-          echo "- Security: ${{ needs.security-scan.result }}" >> nightly-report.md
-          
-          cat nightly-report.md
-      
-      - name: Create Issue if Failed
-        if: failure()
-        uses: actions/github-script@v6
-        with:
-          script: |
-            const title = `🚨 Nightly Build Failed - ${new Date().toISOString().split('T')[0]}`;
-            const body = `The nightly build failed. Please investigate.
-            
-            **Run**: [#${{ github.run_number }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
-            
-            Check the workflow for details.`;
-            
-            github.rest.issues.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: title,
-              body: body,
-              labels: ['bug', 'ci/cd', 'nightly']
-            });
-        continue-on-error: true
+          echo "# Nightly Build Report"
+          echo "Date: $(date)"
+          echo ""
+          echo "## Results:"
+          echo "- Nightly Tests: ${{ needs.nightly-test.result }}"
+          echo "- Compatibility: ${{ needs.compatibility-test.result }}"
+          echo "- Linux: ${{ needs.linux-test.result }}"
+          echo "- Memory Tests: ${{ needs.memory-test.result }}"
+          echo "- Benchmarks: ${{ needs.extended-benchmarks.result }}"

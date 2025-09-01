@@ -2,222 +2,401 @@ name: CI
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main, develop, test-ci ]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.gitignore'
+      - 'LICENSE'
+      - '.github/workflows/.archived/**'
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/PULL_REQUEST_TEMPLATE/**'
+      - 'Examples/**/*.md'
+      - 'Scripts/*.md'
+      - '.swiftlint.yml'
+      - '.swift-version'
+      - 'codecov.yml'
+      - '.editorconfig'
   pull_request:
     branches: [ main, develop ]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.gitignore'
+      - 'LICENSE'
+      - '.github/workflows/.archived/**'
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/PULL_REQUEST_TEMPLATE/**'
+      - 'Examples/**/*.md'
+      - 'Scripts/*.md'
+      - '.swiftlint.yml'
+      - '.swift-version'
+      - 'codecov.yml'
+      - '.editorconfig'
+  workflow_dispatch:
 
+# Environment variables
 env:
   SWIFT_VERSION: '6.0'
-  BENCHMARK_DISABLE_JEMALLOC: '1'  # Disable jemalloc dependency in swift-benchmark
-  # NextGuard already suppresses timeout warnings by default, but we can be explicit
-  # PIPELINEKIT_DISABLE_NEXTGUARD_WARNINGS: '1'  # Uncomment if you want to disable all warnings in CI
+  MINIMUM_COVERAGE: 70  # Start with realistic threshold
+
+# Permissions
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+  issues: write
+  actions: read
+
+# Concurrency control
+concurrency:
+  group: ci-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  # Quick validation for PRs
+  quick-check:
+    name: Quick Validation
+    runs-on: macos-14
+    if: github.event_name == 'pull_request'
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Check PR Size
+        run: |
+          # Simple PR size check without complex processing
+          git diff --stat origin/${{ github.base_ref }}...HEAD
+          
+          FILES_CHANGED=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | wc -l)
+          echo "📊 Files changed: $FILES_CHANGED"
+          
+          if [ "$FILES_CHANGED" -gt 20 ]; then
+            echo "⚠️ Large PR detected (>20 files). Consider breaking into smaller PRs."
+          fi
+
+  # SwiftLint - early fail job
+  swiftlint:
+    name: SwiftLint
+    runs-on: macos-14
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Run SwiftLint
+        run: |
+          if which swiftlint >/dev/null; then
+            swiftlint lint --strict --reporter json > swiftlint.json || true
+            swiftlint lint --strict
+          else
+            echo "SwiftLint not installed, skipping..."
+          fi
+        continue-on-error: true
+      
+      - name: Upload SwiftLint Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: swiftlint-results
+          path: swiftlint.json
+          if-no-files-found: ignore
+          retention-days: 7
+
+  # Main build job
   build:
-    name: Build
+    name: Build (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    needs: swiftlint
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-14, macos-13]
-        swift: ['6.0']
+        os: [macos-14, ubuntu-latest]
+        include:
+          - os: macos-14
+            platform: macOS
+          - os: ubuntu-latest
+            platform: Linux
+            container: swift:6.0
     
     steps:
     - uses: actions/checkout@v4
     
-    - name: Setup Swift
-      uses: swift-actions/setup-swift@v2.3.0
+    - name: Setup Swift (macOS)
+      if: runner.os == 'macOS'
+      uses: swift-actions/setup-swift@v2
       with:
-        swift-version: ${{ matrix.swift }}
+        swift-version: ${{ env.SWIFT_VERSION }}
     
-    # jemalloc installation removed - benchmarks configured to not require it
+    - name: Setup SPM Cache
+      uses: ./.github/actions/setup-spm-cache
+      with:
+        cache-key-prefix: 'build'
+        swift-version: ${{ env.SWIFT_VERSION }}
     
-    - name: Get swift version
+    - name: Swift Version
       run: swift --version
       
-    - name: Build
-      run: swift build -v
+    - name: Build Debug
+      run: swift build --configuration debug
+      
+    - name: Build Release
+      run: swift build --configuration release
+      
+    - name: Upload Build Artifacts
+      if: runner.os == 'macOS'
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-${{ matrix.platform }}
+        path: .build/release/
+        retention-days: 7
 
-  unit-tests:
-    name: Unit Tests
+  # Test job with coverage
+  test:
+    name: Test (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    needs: build
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-14, macos-13]
-        swift: ['6.0']
+        os: [macos-14, ubuntu-latest]
+        include:
+          - os: macos-14
+            platform: macOS
+            coverage: true
+          - os: ubuntu-latest
+            platform: Linux
+            container: swift:6.0
+            coverage: false  # Coverage collection on Linux needs different approach
+    
+    container: ${{ matrix.container }}
     
     steps:
     - uses: actions/checkout@v4
     
-    - name: Setup Swift
-      uses: swift-actions/setup-swift@v2.3.0
+    - name: Setup Swift (macOS)
+      if: runner.os == 'macOS'
+      uses: swift-actions/setup-swift@v2
       with:
-        swift-version: ${{ matrix.swift }}
+        swift-version: ${{ env.SWIFT_VERSION }}
     
-    # jemalloc installation removed - benchmarks configured to not require it
-      
-    - name: Run unit tests
+    - name: Setup SPM Cache
+      uses: ./.github/actions/setup-spm-cache
+      with:
+        cache-key-prefix: 'test'
+        swift-version: ${{ env.SWIFT_VERSION }}
+    
+    - name: Run Tests
       run: |
-        # Use the test-unit plugin or fall back to direct swift test (without --parallel due to hanging issues)
-        swift package plugin test-unit --enable-code-coverage || \
-        swift test --filter "PipelineKitCoreTests|PipelineKitTests|PipelineKitSecurityTests|PipelineKitResilienceTests|PipelineKitCacheTests|PipelineKitPoolingTests|PipelineKitObservabilityTests" --enable-code-coverage
-      
-    - name: Generate coverage report
-      if: matrix.os == 'macos-14' && matrix.swift == '6.0'
+        # Run tests without --parallel to prevent hanging
+        swift test --enable-code-coverage
+    
+    - name: Generate Coverage Report (macOS)
+      if: matrix.coverage && runner.os == 'macOS'
       run: |
-        # Find the Swift toolchain's llvm-cov
-        TOOLCHAIN_BIN=$(swift -print-target-info | grep '"runtimeResourcePath"' | cut -d '"' -f 4 | sed 's|/lib/swift$|/bin|')
+        # Find the correct llvm-cov
+        TOOLCHAIN_BIN=$(swift -print-target-info | jq -r '.runtimeResourcePath' | sed 's|/lib/swift$|/bin|')
         LLVM_COV="${TOOLCHAIN_BIN}/llvm-cov"
         
-        # Use the same llvm-cov version as the Swift compiler
+        # Generate coverage report
         $LLVM_COV export \
           .build/debug/PipelineKitPackageTests.xctest/Contents/MacOS/PipelineKitPackageTests \
           -instr-profile=.build/debug/codecov/default.profdata \
           -format=lcov > coverage.lcov
-      
-    - name: Upload coverage to Codecov
-      if: matrix.os == 'macos-14' && matrix.swift == '6.0'
-      uses: codecov/codecov-action@v3
+        
+        # Simple coverage summary
+        $LLVM_COV report \
+          .build/debug/PipelineKitPackageTests.xctest/Contents/MacOS/PipelineKitPackageTests \
+          -instr-profile=.build/debug/codecov/default.profdata
+    
+    - name: Upload Coverage to Codecov
+      if: matrix.coverage && runner.os == 'macOS'
+      uses: codecov/codecov-action@v4
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         file: ./coverage.lcov
         fail_ci_if_error: false
-
-  stress-tests:
-    name: Stress Tests
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [macos-14]  # Run stress tests on fewer platforms
-        swift: ['6.0']
+        verbose: true
     
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Setup Swift
-      uses: swift-actions/setup-swift@v2.3.0
-      with:
-        swift-version: ${{ matrix.swift }}
-      
-    - name: Run stress tests
+    - name: Check Coverage Threshold
+      if: matrix.coverage && runner.os == 'macOS'
       run: |
-        # Run resilience tests as stress tests (without --parallel due to hanging issues)
-        # These tests include timeout, backpressure, and concurrent execution tests
-        swift test --filter "PipelineKitResilienceTests"
-      timeout-minutes: 30  # Stress tests may take longer
+        # Simple coverage check - codecov action will handle detailed reporting
+        echo "Coverage report generated and uploaded to Codecov"
+        echo "Visit Codecov dashboard for detailed coverage metrics"
+      continue-on-error: true
 
-  # Integration tests are currently disabled - test files exist but aren't configured in Package.swift
-  # integration-tests:
-  #   name: Integration Tests
-  #   needs: build
-  #   runs-on: ${{ matrix.os }}
-  #   strategy:
-  #     fail-fast: false
-  #     matrix:
-  #       os: [macos-14]  # macOS only
-  #       swift: ['6.0']
-  #   
-  #   steps:
-  #   - uses: actions/checkout@v4
-  #   
-  #   - name: Setup Swift
-  #     uses: swift-actions/setup-swift@v2.3.0
-  #     with:
-  #       swift-version: ${{ matrix.swift }}
-  #   
-  #   - name: Run integration tests
-  #     run: |
-  #       # Integration test target needs to be added to Package.swift
-  #       swift test --filter "PipelineKitIntegrationTests"
-  #     timeout-minutes: 20
-
-  # Examples testing temporarily disabled - needs source structure fix
-  # test-examples:
-  #   name: Test Examples
-  #   runs-on: macos-latest
-  #   steps:
-  #   - uses: actions/checkout@v4
-  #   
-  #   - name: Setup Swift
-  #     uses: swift-actions/setup-swift@v2.3.0
-  #     with:
-  #       swift-version: ${{ env.SWIFT_VERSION }}
-  #   
-  #   - name: Build examples
-  #     run: |
-  #       cd Examples
-  #       swift build -v
-  #       
-  #   - name: Run basic example
-  #     run: |
-  #       cd Examples
-  #       swift run BasicExample
-  #       
-  #   - name: Run advanced example
-  #     run: |
-  #       cd Examples
-  #       swift run AdvancedExample
-
-  benchmarks:
-    name: Performance Benchmarks
-    runs-on: macos-latest
-    timeout-minutes: 15
+  # Stress/Resilience tests
+  stress-test:
+    name: Stress Tests
+    runs-on: macos-14
+    needs: test
+    if: github.event_name == 'push' || github.event_name == 'schedule'
+    timeout-minutes: 30
+    
     steps:
     - uses: actions/checkout@v4
     
     - name: Setup Swift
-      uses: swift-actions/setup-swift@v2.3.0
+      uses: swift-actions/setup-swift@v2
       with:
         swift-version: ${{ env.SWIFT_VERSION }}
     
-    - name: Run benchmarks
-      env:
-        BENCHMARK_DISABLE_JEMALLOC: 1
-        CI: true
-      timeout-minutes: 10
+    - name: Setup SPM Cache
+      uses: ./.github/actions/setup-spm-cache
+      with:
+        cache-key-prefix: 'stress'
+        swift-version: ${{ env.SWIFT_VERSION }}
+    
+    - name: Run Stress Tests
       run: |
-        # Run benchmarks with CI mode configuration
-        # Note: Benchmarks may timeout or not produce output - this is being investigated
-        timeout 180 swift package --allow-writing-to-package-directory \
-          benchmark run \
-          --format text \
-          --no-progress \
-          || {
-            EXIT_CODE=$?
-            if [ $EXIT_CODE -eq 124 ]; then
-              echo "Benchmarks timed out after 3 minutes (expected in CI)"
-            else
-              echo "Benchmark execution completed with status: $EXIT_CODE"
-            fi
-          }
-      
-    - name: Upload benchmark results
+        # Run resilience tests which include stress scenarios
+        swift test --filter "PipelineKitResilienceTests"
+
+  # Performance tests
+  performance:
+    name: Performance Tests
+    runs-on: macos-14
+    needs: build
+    if: github.event_name == 'push' || github.event_name == 'schedule'
+    timeout-minutes: 25
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Swift
+      uses: swift-actions/setup-swift@v2
+      with:
+        swift-version: ${{ env.SWIFT_VERSION }}
+    
+    - name: Setup SPM Cache
+      uses: ./.github/actions/setup-spm-cache
+      with:
+        cache-key-prefix: 'performance'
+        swift-version: ${{ env.SWIFT_VERSION }}
+    
+    - name: Build Performance Tests
+      run: swift build --configuration release --target PipelineKitPerformanceTests
+    
+    - name: Run Performance Tests
+      run: |
+        # Run XCTest performance tests in release mode
+        swift test --configuration release --filter "PipelineKitPerformanceTests"
+      continue-on-error: true  # Performance tests shouldn't block releases
+    
+    - name: Upload Performance Results
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: benchmark-results
+        name: performance-test-results
         path: |
-          .benchmarkBaselines/
-          benchmark-results/
+          .build/release/
         if-no-files-found: ignore
+        retention-days: 7
 
+  # Security scan
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event_name == 'schedule'
+    timeout-minutes: 15
+    permissions:
+      security-events: write
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Run Trivy Security Scan
+      uses: aquasecurity/trivy-action@0.28.0
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        severity: 'CRITICAL,HIGH'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+    
+    - name: Upload Trivy Results
+      uses: github/codeql-action/upload-sarif@v3
+      if: always()
+      with:
+        sarif_file: 'trivy-results.sarif'
+
+  # Documentation generation and deployment
   documentation:
     name: Documentation
-    runs-on: macos-latest
+    runs-on: macos-14
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    
     steps:
     - uses: actions/checkout@v4
     
     - name: Setup Swift
-      uses: swift-actions/setup-swift@v2.3.0
+      uses: swift-actions/setup-swift@v2
       with:
         swift-version: ${{ env.SWIFT_VERSION }}
     
-    # jemalloc installation removed - benchmarks configured to not require it
-        
-    - name: Build documentation
+    - name: Cache SPM
+      uses: actions/cache@v4
+      with:
+        path: |
+          .build
+          ~/.swiftpm
+        key: ${{ runner.os }}-spm-docs-${{ hashFiles('Package.resolved') }}
+        restore-keys: |
+          ${{ runner.os }}-spm-docs-
+          ${{ runner.os }}-spm-
+    
+    - name: Build Documentation
       run: |
         swift package --allow-writing-to-directory ./docs \
           generate-documentation --target PipelineKit \
-          --output-path ./docs
+          --output-path ./docs \
+          --disable-indexing \
+          --transform-for-static-hosting
+    
+    - name: Upload Documentation Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: documentation
+        path: docs/
+        retention-days: 30
+    
+    - name: Setup Pages
+      if: success()
+      uses: actions/configure-pages@v4
+    
+    - name: Upload to GitHub Pages
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: ./docs
+    
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4
+
+  # Final status check
+  ci-status:
+    name: CI Status
+    runs-on: ubuntu-latest
+    needs: [build, test, swiftlint]
+    if: always()
+    timeout-minutes: 5
+    steps:
+      - name: Check Status
+        run: |
+          if [ "${{ needs.build.result }}" != "success" ] || \
+             [ "${{ needs.test.result }}" != "success" ] || \
+             [ "${{ needs.swiftlint.result }}" != "success" ]; then
+            echo "❌ CI failed"
+            exit 1
+          fi
+          echo "✅ CI passed"

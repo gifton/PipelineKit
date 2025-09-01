@@ -6,8 +6,16 @@ on:
       - 'v*'
 
 env:
-  BENCHMARK_DISABLE_JEMALLOC: '1'  # Disable jemalloc dependency in swift-benchmark
   SWIFT_VERSION: '6.0'
+
+permissions:
+  contents: write  # Need write for releases
+  packages: write
+  checks: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false  # Don't cancel releases
 
 jobs:
   validate-tag:
@@ -43,7 +51,7 @@ jobs:
     - uses: actions/checkout@v4
     
     - name: Setup Swift
-      uses: swift-actions/setup-swift@v2.3.0
+      uses: swift-actions/setup-swift@v2
       with:
         swift-version: ${{ env.SWIFT_VERSION }}
     
@@ -116,7 +124,7 @@ jobs:
     - uses: actions/checkout@v4
     
     - name: Setup Swift
-      uses: swift-actions/setup-swift@v2.3.0
+      uses: swift-actions/setup-swift@v2
       with:
         swift-version: ${{ env.SWIFT_VERSION }}
         
