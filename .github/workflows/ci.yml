@@ -39,6 +39,10 @@ on:
 env:
   SWIFT_VERSION: '6.0'
   MINIMUM_COVERAGE: 70  # Start with realistic threshold
+  # Gradual enforcement flags (set to 'true' to enforce)
+  ENFORCE_SWIFTLINT: 'false'  # Week 1: warn only
+  ENFORCE_COVERAGE: 'false'   # Week 2: after baseline
+  ENFORCE_PERFORMANCE: 'false' # Week 3: after optimization
 
 # Permissions
 permissions:
@@ -57,7 +61,7 @@ jobs:
   # Quick validation for PRs
   quick-check:
     name: Quick Validation
-    runs-on: macos-14
+    runs-on: ubuntu-latest  # Much faster queue times
     if: github.event_name == 'pull_request'
     timeout-minutes: 5
     steps:
@@ -80,7 +84,7 @@ jobs:
   # SwiftLint - early fail job
   swiftlint:
     name: SwiftLint
-    runs-on: macos-14
+    runs-on: macos-14  # Keep on macOS for native SwiftLint
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
@@ -89,11 +93,22 @@ jobs:
         run: |
           if which swiftlint >/dev/null; then
             swiftlint lint --strict --reporter json > swiftlint.json || true
-            swiftlint lint --strict
+            
+            # Run SwiftLint and capture exit code
+            swiftlint lint --strict || LINT_EXIT=$?
+            
+            # Conditional enforcement based on environment variable
+            if [ "${{ env.ENFORCE_SWIFTLINT }}" = "true" ] && [ "${LINT_EXIT:-0}" -ne 0 ]; then
+              echo "❌ SwiftLint violations found (enforcement enabled)"
+              exit 1
+            elif [ "${LINT_EXIT:-0}" -ne 0 ]; then
+              echo "⚠️ SwiftLint violations found (enforcement disabled - will be enforced soon)"
+            else
+              echo "✅ SwiftLint passed"
+            fi
           else
             echo "SwiftLint not installed, skipping..."
           fi
-        continue-on-error: true
       
       - name: Upload SwiftLint Results
         if: always()
@@ -223,11 +238,34 @@ jobs:
     
     - name: Check Coverage Threshold
       if: matrix.coverage && runner.os == 'macOS'
+      id: coverage_check
       run: |
-        # Simple coverage check - codecov action will handle detailed reporting
-        echo "Coverage report generated and uploaded to Codecov"
-        echo "Visit Codecov dashboard for detailed coverage metrics"
-      continue-on-error: true
+        # Extract coverage percentage from lcov report
+        if [ -f coverage.lcov ]; then
+          TOTAL_LINES=$(grep -o 'LF:[0-9]*' coverage.lcov | awk -F: '{sum+=$2} END {print sum}')
+          HIT_LINES=$(grep -o 'LH:[0-9]*' coverage.lcov | awk -F: '{sum+=$2} END {print sum}')
+          
+          if [ "$TOTAL_LINES" -gt 0 ]; then
+            COVERAGE=$((HIT_LINES * 100 / TOTAL_LINES))
+            echo "coverage=$COVERAGE" >> $GITHUB_OUTPUT
+            
+            # Check against threshold
+            if [ "$COVERAGE" -lt "${{ env.MINIMUM_COVERAGE }}" ]; then
+              if [ "${{ env.ENFORCE_COVERAGE }}" = "true" ]; then
+                echo "❌ Coverage ${COVERAGE}% is below threshold of ${{ env.MINIMUM_COVERAGE }}% (enforcement enabled)"
+                exit 1
+              else
+                echo "⚠️ Coverage ${COVERAGE}% is below threshold of ${{ env.MINIMUM_COVERAGE }}% (enforcement disabled - will be enforced soon)"
+              fi
+            else
+              echo "✅ Coverage ${COVERAGE}% meets threshold of ${{ env.MINIMUM_COVERAGE }}%"
+            fi
+          else
+            echo "⚠️ Could not calculate coverage"
+          fi
+        else
+          echo "⚠️ Coverage report not found"
+        fi
 
   # Stress/Resilience tests
   stress-test:
@@ -284,8 +322,17 @@ jobs:
     - name: Run Performance Tests
       run: |
         # Run XCTest performance tests in release mode
-        swift test --configuration release --filter "PipelineKitPerformanceTests"
-      continue-on-error: true  # Performance tests shouldn't block releases
+        swift test --configuration release --filter "PipelineKitPerformanceTests" || PERF_EXIT=$?
+        
+        # Conditional enforcement based on environment variable
+        if [ "${{ env.ENFORCE_PERFORMANCE }}" = "true" ] && [ "${PERF_EXIT:-0}" -ne 0 ]; then
+          echo "❌ Performance tests failed (enforcement enabled)"
+          exit 1
+        elif [ "${PERF_EXIT:-0}" -ne 0 ]; then
+          echo "⚠️ Performance tests failed (enforcement disabled - will be enforced soon)"
+        else
+          echo "✅ Performance tests passed"
+        fi
     
     - name: Upload Performance Results
       if: always()

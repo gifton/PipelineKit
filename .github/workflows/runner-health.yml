@@ -1,0 +1,47 @@
+name: Runner Health Check
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '*/30 * * * *'  # Every 30 minutes
+
+jobs:
+  check-runners:
+    name: Check Runner Availability
+    strategy:
+      matrix:
+        runner: [ubuntu-latest, macos-14, macos-13, windows-latest]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 2
+    
+    steps:
+      - name: Runner Info
+        run: |
+          echo "Runner: ${{ matrix.runner }}"
+          echo "Time to start: $(date)"
+          echo "OS: ${{ runner.os }}"
+          echo "Architecture: ${{ runner.arch }}"
+          
+      - name: Quick Performance Check
+        run: |
+          # Simple CPU check
+          if [[ "${{ runner.os }}" == "macOS" ]]; then
+            sysctl -n machdep.cpu.brand_string
+            sysctl -n hw.memsize
+          elif [[ "${{ runner.os }}" == "Linux" ]]; then
+            lscpu | grep "Model name" || true
+            free -h || true
+          fi
+          
+  report:
+    name: Runner Report
+    runs-on: ubuntu-latest
+    needs: check-runners
+    if: always()
+    steps:
+      - name: Summary
+        run: |
+          echo "## Runner Availability Report"
+          echo "Timestamp: $(date)"
+          echo ""
+          echo "If any runners consistently fail or timeout, consider switching critical jobs to more available runner types."
