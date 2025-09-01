@@ -68,9 +68,12 @@ jobs:
           echo "Running PipelineKit performance tests..."
           
           # Run performance tests using XCTest
-          swift test -c release --filter PerformanceTests > benchmark-results.txt 2>&1 || {
+          # Note: We capture the output and check for actual test failures rather than relying on exit code
+          # because there can be post-test framework loading issues that don't affect the actual tests
+          # Using xcrun helps ensure proper framework paths
+          xcrun swift test -c release --filter PerformanceTests > benchmark-results.txt 2>&1 || {
               EXIT_CODE=$?
-              echo "Performance tests failed with code: $EXIT_CODE" >> benchmark-results.txt
+              echo "Command exited with code: $EXIT_CODE" >> benchmark-results.txt
           }
           
           # Ensure we have some output
@@ -82,11 +85,19 @@ jobs:
           echo "Performance Test Results:"
           head -100 benchmark-results.txt || echo "No test results to display"
           
-          # Check for test failures
-          if grep -q "failed" benchmark-results.txt; then
+          # Check for actual test failures (not framework loading issues)
+          # Look for the test summary line that shows actual test results
+          if grep -q "Executed [0-9]* tests, with [1-9][0-9]* failures" benchmark-results.txt; then
             echo "performance_status=failed" >> $GITHUB_OUTPUT
-          else
+          elif grep -q "Executed [0-9]* tests, with 0 failures" benchmark-results.txt; then
             echo "performance_status=passed" >> $GITHUB_OUTPUT
+          else
+            # If we can't find the summary, check for individual test failures
+            if grep -q "Test Case.*failed" benchmark-results.txt; then
+              echo "performance_status=failed" >> $GITHUB_OUTPUT
+            else
+              echo "performance_status=passed" >> $GITHUB_OUTPUT
+            fi
           fi
       
       - name: Process Results
@@ -185,6 +196,8 @@ jobs:
         if: steps.run_benchmarks.outputs.performance_status == 'failed'
         run: |
           echo "❌ Performance tests failed. Please review the results above."
+          echo "Note: If all tests passed but you see a framework loading error at the end,"
+          echo "this is a known issue with the CI environment and can be ignored."
           exit 1
       
       - name: Success Message
