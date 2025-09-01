@@ -102,7 +102,7 @@ jobs:
             if echo "$file" | grep -q "Sources/PipelineKitSecurity"; then
               SECURITY_CHANGED=true
             fi
-            if echo "$file" | grep -q "Sources/PipelineKitResilience"; then
+            if echo "$file" | grep -qE "Sources/PipelineKitResilience"; then
               RESILIENCE_CHANGED=true
             fi
             if echo "$file" | grep -q "Sources/PipelineKitObservability"; then

@@ -207,13 +207,7 @@ let package = Package(
                 "PipelineKit",
                 .product(name: "Atomics", package: "swift-atomics")
             ],
-            path: "Sources/PipelineKitResilience",
-            sources: [
-                "RateLimit.swift",
-                "Semaphore/AsyncSemaphore.swift",
-                "Semaphore/BackPressureSemaphore.swift",
-                "Semaphore/PriorityHeap.swift"
-            ],
+            path: "Sources/PipelineKitResilienceFoundation",
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency"),
                 .enableExperimentalFeature("AccessLevelOnImport"),
@@ -227,17 +221,7 @@ let package = Package(
                 "_ResilienceFoundation",
                 "PipelineKitObservability"
             ],
-            path: "Sources/PipelineKitResilience",
-            sources: [
-                "RetryMiddleware.swift",
-                "BackPressureMiddleware.swift",
-                "ResilientMiddleware.swift",
-                "TimeoutMiddleware.swift",
-                "TimeoutComponents.swift",
-                "TimeoutUtilities.swift",
-                "ConcurrentPipeline.swift",
-                "ParallelMiddlewareWrapper.swift"
-            ],
+            path: "Sources/PipelineKitResilienceCore",
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency"),
                 .enableExperimentalFeature("AccessLevelOnImport"),
@@ -250,7 +234,7 @@ let package = Package(
                 "PipelineKit",
                 "_ResilienceFoundation"
             ],
-            path: "Sources/PipelineKitResilience/RateLimiting",
+            path: "Sources/PipelineKitResilienceRateLimiting",
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency"),
                 .enableExperimentalFeature("AccessLevelOnImport"),
@@ -263,13 +247,7 @@ let package = Package(
                 "PipelineKit",
                 "_ResilienceFoundation"
             ],
-            path: "Sources/PipelineKitResilience",
-            sources: [
-                "CircuitBreakerMiddleware.swift",
-                "BulkheadMiddleware.swift",
-                "PartitionedBulkheadMiddleware.swift",
-                "HealthCheckMiddleware.swift"
-            ],
+            path: "Sources/PipelineKitResilienceCircuitBreaker",
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency"),
                 .enableExperimentalFeature("AccessLevelOnImport"),
@@ -286,25 +264,6 @@ let package = Package(
                 "_CircuitBreaker"
             ],
             path: "Sources/PipelineKitResilience",
-            exclude: [
-                "Documentation",
-                "RateLimit.swift",
-                "Semaphore",
-                "RetryMiddleware.swift",
-                "BackPressureMiddleware.swift",
-                "ResilientMiddleware.swift",
-                "TimeoutMiddleware.swift",
-                "TimeoutComponents.swift",
-                "TimeoutUtilities.swift",
-                "ConcurrentPipeline.swift",
-                "ParallelMiddlewareWrapper.swift",
-                "RateLimiting",
-                "CircuitBreakerMiddleware.swift",
-                "BulkheadMiddleware.swift",
-                "PartitionedBulkheadMiddleware.swift",
-                "HealthCheckMiddleware.swift"
-            ],
-            sources: ["PipelineKitResilience.swift"],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency"),
                 .enableExperimentalFeature("AccessLevelOnImport"),
