@@ -466,15 +466,42 @@ jobs:
     - name: Fix Documentation Filenames for Artifacts
       run: |
         # GitHub Actions artifacts don't allow certain characters in filenames
-        # Replace problematic characters in filenames
-        find ./docs -type f -name "*[:\"<>|*?\r\n]*" | while IFS= read -r file; do
-          # Replace problematic characters with underscores
-          newfile=$(echo "$file" | sed 's/[:"<>|*?]/_/g')
-          if [ "$file" != "$newfile" ]; then
-            mv "$file" "$newfile"
-            echo "Renamed: $(basename "$file") -> $(basename "$newfile")"
-          fi
-        done
+        # Swift-DocC creates directories with method signatures containing colons
+        # We need to rename both directories and files, starting with the deepest level
+        
+        # Function to safely rename paths with problematic characters
+        rename_problematic_paths() {
+          # Find all directories and files with problematic characters, sorted by depth (deepest first)
+          find ./docs \( -type d -o -type f \) \( -name "*:*" -o -name "*\"*" -o -name "*<*" -o -name "*>*" -o -name "*|*" -o -name "*\**" -o -name "*\?*" \) -print0 | \
+          sort -zr | \
+          while IFS= read -r -d '' item; do
+            # Skip if item no longer exists (may have been moved by parent rename)
+            [ ! -e "$item" ] && continue
+            
+            # Generate new name by replacing problematic characters
+            newitem=$(echo "$item" | sed 's/[:"<>|*?]/_/g')
+            
+            if [ "$item" != "$newitem" ]; then
+              # Ensure target directory exists
+              target_dir=$(dirname "$newitem")
+              mkdir -p "$target_dir" 2>/dev/null || true
+              
+              # Rename the item
+              if mv "$item" "$newitem" 2>/dev/null; then
+                if [ -d "$newitem" ]; then
+                  echo "Renamed directory: $(basename "$item") -> $(basename "$newitem")"
+                else
+                  echo "Renamed file: $(basename "$item") -> $(basename "$newitem")"
+                fi
+              else
+                echo "Warning: Failed to rename $item"
+              fi
+            fi
+          done
+        }
+        
+        # Execute the renaming function
+        rename_problematic_paths
     
     - name: Upload Documentation Artifact
       uses: actions/upload-artifact@v4
