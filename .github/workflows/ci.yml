@@ -451,6 +451,19 @@ jobs:
           --disable-indexing \
           --transform-for-static-hosting
     
+    - name: Fix Documentation Filenames for Artifacts
+      run: |
+        # GitHub Actions artifacts don't allow certain characters in filenames
+        # Replace problematic characters in filenames
+        find ./docs -type f -name "*[:\"<>|*?\r\n]*" | while IFS= read -r file; do
+          # Replace problematic characters with underscores
+          newfile=$(echo "$file" | sed 's/[:"<>|*?]/_/g')
+          if [ "$file" != "$newfile" ]; then
+            mv "$file" "$newfile"
+            echo "Renamed: $(basename "$file") -> $(basename "$newfile")"
+          fi
+        done
+    
     - name: Upload Documentation Artifact
       uses: actions/upload-artifact@v4
       with:
