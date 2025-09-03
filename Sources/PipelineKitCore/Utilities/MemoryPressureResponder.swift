@@ -1,5 +1,9 @@
 @preconcurrency import Foundation
+#if os(Linux)
+@preconcurrency import Glibc
+#else
 @preconcurrency import Darwin
+#endif
 #if canImport(UIKit)
 import UIKit
 #endif

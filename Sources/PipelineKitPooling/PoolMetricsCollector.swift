@@ -1,5 +1,9 @@
 import Foundation
+#if os(Linux)
+@preconcurrency import Glibc
+#else
 @preconcurrency import Darwin
+#endif
 import PipelineKitCore
 #if canImport(os)
 @preconcurrency import os

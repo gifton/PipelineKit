@@ -1,5 +1,9 @@
 import Foundation
+#if os(Linux)
+@preconcurrency import Glibc
+#else
 @preconcurrency import Darwin
+#endif
 
 /// A memory profiler for tracking allocations and analyzing memory usage patterns.
 ///
