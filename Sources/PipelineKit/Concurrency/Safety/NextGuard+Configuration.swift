@@ -8,14 +8,11 @@ public extension NextGuard {
         /// Emit all warnings (default)
         case all
         
-        /// Suppress timeout-related warnings only
-        case suppressTimeouts
-        
         /// Disable all warnings
         case disabled
         
         /// Custom configuration
-        case custom(emitWarnings: Bool, suppressTimeouts: Bool)
+        case custom(emitWarnings: Bool)
     }
     
     /// Sets the warning mode for NextGuard
@@ -24,18 +21,12 @@ public extension NextGuard {
         switch mode {
         case .all:
             NextGuardConfiguration.shared.emitWarnings = true
-            NextGuardConfiguration.shared.suppressTimeoutWarnings = false
-            
-        case .suppressTimeouts:
-            NextGuardConfiguration.shared.emitWarnings = true
-            NextGuardConfiguration.shared.suppressTimeoutWarnings = true
             
         case .disabled:
             NextGuardConfiguration.shared.emitWarnings = false
             
-        case .custom(let emit, let suppressTimeouts):
+        case .custom(let emit):
             NextGuardConfiguration.shared.emitWarnings = emit
-            NextGuardConfiguration.shared.suppressTimeoutWarnings = suppressTimeouts
         }
     }
     
@@ -55,7 +46,6 @@ public extension NextGuard {
     /// Resets to default configuration
     static func resetConfiguration() {
         NextGuardConfiguration.shared.emitWarnings = true
-        NextGuardConfiguration.shared.suppressTimeoutWarnings = true
         NextGuardConfiguration.shared.warningHandler = nil
     }
 }

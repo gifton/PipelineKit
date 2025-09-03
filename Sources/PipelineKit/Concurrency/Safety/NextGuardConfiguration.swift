@@ -12,8 +12,7 @@ public final class NextGuardConfiguration: @unchecked Sendable {
     /// Whether to emit warnings when middleware doesn't call next()
     public var emitWarnings: Bool = true
     
-    /// Whether to emit warnings for timeout scenarios (when heuristics suggest timeout)
-    public var suppressTimeoutWarnings: Bool = true
+    // Removed timeout-specific suppression; use per-middleware suppression instead
     
     /// Custom warning handler - allows users to integrate with their logging system
     public var warningHandler: (@Sendable (String) -> Void)? = nil
@@ -42,10 +41,6 @@ extension NextGuardConfiguration {
             shared.emitWarnings = false
         }
         
-        // Check for test environment
-        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
-            // In tests, suppress timeout warnings by default
-            shared.suppressTimeoutWarnings = true
-        }
+        // No special test behavior required beyond global emitWarnings
     }
 }

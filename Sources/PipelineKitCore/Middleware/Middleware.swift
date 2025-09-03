@@ -152,3 +152,13 @@ public extension Middleware {
 public protocol UnsafeMiddleware: Middleware {
     // Marker protocol - no additional requirements
 }
+
+/// A marker protocol for middleware that want to suppress NextGuard deinit warnings.
+///
+/// Conform when middleware may intentionally not call `next` under normal,
+/// non-error conditions and the lack of a call should not surface as a debug warning
+/// (for example, caching or fast-path short-circuiting). This affects only debug
+/// deinit warnings; it does not change NextGuard's runtime safety checks.
+public protocol NextGuardWarningSuppressing: Middleware {
+    // Marker protocol - no additional requirements
+}

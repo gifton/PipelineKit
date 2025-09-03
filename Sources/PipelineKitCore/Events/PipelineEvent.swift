@@ -12,7 +12,7 @@ import Atomics
 ///
 /// Events provide observability into the pipeline's execution flow,
 /// allowing monitoring, debugging, and metrics collection.
-public struct PipelineEvent: Sendable, Equatable {
+public struct PipelineEvent: Sendable {
     /// The name/type of the event (e.g., "command.started", "middleware.timeout")
     public let name: String
     

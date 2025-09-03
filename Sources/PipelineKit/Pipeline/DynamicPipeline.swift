@@ -77,6 +77,33 @@ public actor DynamicPipeline {
         await handlerRegistry.register(commandType, handler: handler)
     }
 
+    /// Registers a handler only if none exists for the given command type.
+    /// - Throws: PipelineError.pipelineNotConfigured if a handler is already registered
+    public func registerOnce<T: Command, H: CommandHandler>(
+        _ commandType: T.Type,
+        handler: H
+    ) async throws where H.CommandType == T, H.CommandType.Result == T.Result {
+        let inserted = await handlerRegistry.insertIfAbsent(commandType, handler: handler)
+        if !inserted {
+            throw PipelineError.pipelineNotConfigured(
+                reason: "Handler already registered for \(String(describing: T.self))"
+            )
+        }
+    }
+
+    /// Replaces the handler for a command type; returns whether a previous handler existed.
+    public func replace<T: Command, H: CommandHandler>(
+        _ commandType: T.Type,
+        with handler: H
+    ) async -> Bool where H.CommandType == T, H.CommandType.Result == T.Result {
+        await handlerRegistry.replace(commandType, with: handler)
+    }
+
+    /// Unregisters any handler for the given command type; returns whether one was removed.
+    public func unregister<T: Command>(_ commandType: T.Type) async -> Bool {
+        await handlerRegistry.removeHandler(for: commandType) != nil
+    }
+
     /// Adds a single middleware to the command bus.
     ///
     /// Middleware are executed in the order they are added. Each middleware

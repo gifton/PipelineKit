@@ -263,6 +263,20 @@ public actor CommandContext {
         
         return result
     }
+
+    /// Creates a raw snapshot returning internal AnySendable wrappers.
+    /// - Returns: A dictionary containing all context values without unwrapping
+    public func snapshotRaw() -> [String: AnySendable] {
+        var result: [String: AnySendable] = storage
+        let metadataDict: [String: any Sendable] = [
+            "id": commandMetadata.id.uuidString,
+            "timestamp": commandMetadata.timestamp,
+            "userId": commandMetadata.userId ?? "",
+            "correlationId": commandMetadata.correlationId ?? ""
+        ]
+        result["commandMetadata"] = AnySendable(metadataDict)
+        return result
+    }
     
     /// Checks if a key exists in the context.
     /// - Parameter key: The context key to check

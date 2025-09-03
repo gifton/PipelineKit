@@ -33,6 +33,9 @@ public final class NextGuard<T: Command>: Sendable {
     /// Optional identifier for debugging
     private let identifier: String?
     
+    /// Whether to suppress deinit warnings when `next` was never called
+    private let suppressDeinitWarning: Bool
+    
     /// Creates a new NextGuard wrapping the given next closure.
     ///
     /// - Parameters:
@@ -40,10 +43,12 @@ public final class NextGuard<T: Command>: Sendable {
     ///   - identifier: Optional identifier for debugging
     public init(
         _ next: @escaping @Sendable (T, CommandContext) async throws -> T.Result,
-        identifier: String? = nil
+        identifier: String? = nil,
+        suppressDeinitWarning: Bool = false
     ) {
         self.next = next
         self.identifier = identifier
+        self.suppressDeinitWarning = suppressDeinitWarning
     }
     
     /// Executes the guarded next closure, ensuring single execution.
@@ -113,13 +118,9 @@ public final class NextGuard<T: Command>: Sendable {
             if Task.isCancelled {
                 return // Cancellation is acceptable
             }
-            
-            // Check for timeout heuristics
-            let isLikelyTimedOut = identifier?.contains("Timeout") == true ||
-                                   identifier?.contains("Slow") == true
-            
-            if isLikelyTimedOut && NextGuardConfiguration.shared.suppressTimeoutWarnings {
-                return // Suppress timeout-related warnings if configured
+            // Respect per-instance suppression
+            if suppressDeinitWarning {
+                return
             }
             
             let id = identifier ?? "unknown"

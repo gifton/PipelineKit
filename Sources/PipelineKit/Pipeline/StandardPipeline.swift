@@ -280,36 +280,16 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: Pipeline where H.C
     
     /// Executes a command through a chain of middleware
     private func executeWithMiddleware(_ command: C, context: CommandContext) async throws -> C.Result {
-        // Build the middleware chain
-        var next: @Sendable (C, CommandContext) async throws -> C.Result = { cmd, _ in
+        // Build the middleware chain (no cancellation checks here to preserve existing behavior)
+        let final: @Sendable (C, CommandContext) async throws -> C.Result = { cmd, _ in
             try await self.handler.handle(cmd)
         }
-        
-        // Wrap each middleware in reverse order without copying the collection
-        if !middlewares.isEmpty {
-            for i in stride(from: middlewares.count - 1, through: 0, by: -1) {
-                let currentMiddleware = middlewares[i]
-                let previousNext = next
-                
-                // Apply NextGuard unless middleware opts out
-                let wrappedNext: @Sendable (C, CommandContext) async throws -> C.Result
-                if currentMiddleware is UnsafeMiddleware {
-                    // Skip NextGuard for unsafe middleware
-                    wrappedNext = previousNext
-                } else {
-                    // Wrap with NextGuard for safety
-                    let nextGuard = NextGuard<C>(previousNext, identifier: String(describing: type(of: currentMiddleware)))
-                    wrappedNext = nextGuard.callAsFunction
-                }
-                
-                next = { (cmd: C, ctx: CommandContext) in
-                    try await currentMiddleware.execute(cmd, context: ctx, next: wrappedNext)
-                }
-            }
-        }
-        
-        // Execute the chain
-        return try await next(command, context)
+        let chain = MiddlewareChainBuilder.build(
+            middlewares: middlewares,
+            insertCancellationChecks: false,
+            final: final
+        )
+        return try await chain(command, context)
     }
 }
 
@@ -391,30 +371,12 @@ public actor AnyStandardPipeline: Pipeline {
             return typedResult
         }
         
-        // Build chain without creating reversed array
-        var chain = finalHandler
-        for i in stride(from: middlewares.count - 1, through: 0, by: -1) {
-            let middleware = middlewares[i]
-            let previousNext = chain
-            
-            // Apply NextGuard unless middleware opts out
-            let wrappedNext: @Sendable (T, CommandContext) async throws -> T.Result
-            if middleware is UnsafeMiddleware {
-                // Skip NextGuard for unsafe middleware
-                wrappedNext = previousNext
-            } else {
-                // Wrap with NextGuard for safety
-                let nextGuard = NextGuard<T>(previousNext, identifier: String(describing: type(of: middleware)))
-                wrappedNext = nextGuard.callAsFunction
-            }
-            
-            chain = { (cmd: T, ctx: CommandContext) in
-                // Check for cancellation before each middleware
-                try Task.checkCancellation(context: "Pipeline execution cancelled at middleware: \(String(describing: type(of: middleware)))")
-                return try await middleware.execute(cmd, context: ctx, next: wrappedNext)
-            }
-        }
-        
+        // Build chain using shared builder with cancellation checks
+        let chain = MiddlewareChainBuilder.build(
+            middlewares: middlewares,
+            insertCancellationChecks: true,
+            final: finalHandler
+        )
         return try await chain(command, context)
     }
     

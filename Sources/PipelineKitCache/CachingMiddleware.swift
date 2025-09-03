@@ -48,7 +48,7 @@ import PipelineKit
 /// The cache protocol requires Sendable conformance, and all closures are marked @Sendable.
 /// Invariant: All properties must be initialized with thread-safe values. The Cache protocol
 /// enforces Sendable conformance for any concrete implementation.
-public final class CachingMiddleware: Middleware, @unchecked Sendable {
+public final class CachingMiddleware: Middleware, NextGuardWarningSuppressing, @unchecked Sendable {
     public let priority: ExecutionPriority = .postProcessing // Caching happens after main processing
     
     private let cache: any Cache
