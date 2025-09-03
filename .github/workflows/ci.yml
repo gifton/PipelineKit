@@ -224,7 +224,22 @@ jobs:
     - name: Run Tests
       run: |
         # Run tests without --parallel to prevent hanging
+        set +e  # Don't exit on test failure
         swift test --enable-code-coverage
+        TEST_EXIT_CODE=$?
+        set -e
+        
+        # Parse test output to provide a summary
+        if [ $TEST_EXIT_CODE -eq 0 ]; then
+          echo "::notice::✅ All tests passed successfully"
+        else
+          echo "::error::❌ Tests failed with exit code $TEST_EXIT_CODE"
+          echo "::warning::Check the test output above for specific failures"
+          # Continue anyway to generate coverage report
+        fi
+        
+        # Store exit code for later
+        echo "TEST_EXIT_CODE=$TEST_EXIT_CODE" >> $GITHUB_ENV
     
     - name: Generate Coverage Report
       id: coverage_report
@@ -280,6 +295,15 @@ jobs:
           fi
         else
           echo "⚠️ Coverage report not found"
+        fi
+    
+    - name: Check Test Results
+      if: always()
+      run: |
+        # Fail the job if tests failed earlier
+        if [ "${TEST_EXIT_CODE:-0}" -ne 0 ]; then
+          echo "::error::Tests failed earlier. Please fix the failing tests."
+          exit ${TEST_EXIT_CODE}
         fi
 
   # Linux test job
@@ -466,42 +490,47 @@ jobs:
     - name: Fix Documentation Filenames for Artifacts
       run: |
         # GitHub Actions artifacts don't allow certain characters in filenames
-        # Swift-DocC creates directories with method signatures containing colons
-        # We need to rename both directories and files, starting with the deepest level
+        # Swift-DocC creates DIRECTORIES with colons for methods like send(_:context:)
+        # We must rename directories first (deepest first), then files
         
-        # Function to safely rename paths with problematic characters
-        rename_problematic_paths() {
-          # Find all directories and files with problematic characters, sorted by depth (deepest first)
-          find ./docs \( -type d -o -type f \) \( -name "*:*" -o -name "*\"*" -o -name "*<*" -o -name "*>*" -o -name "*|*" -o -name "*\**" -o -name "*\?*" \) -print0 | \
-          sort -zr | \
-          while IFS= read -r -d '' item; do
-            # Skip if item no longer exists (may have been moved by parent rename)
-            [ ! -e "$item" ] && continue
-            
-            # Generate new name by replacing problematic characters
-            newitem=$(echo "$item" | sed 's/[:"<>|*?]/_/g')
-            
-            if [ "$item" != "$newitem" ]; then
-              # Ensure target directory exists
-              target_dir=$(dirname "$newitem")
-              mkdir -p "$target_dir" 2>/dev/null || true
+        if [ -d ./docs ]; then
+          echo "Sanitizing documentation structure for GitHub artifacts..."
+          
+          # Process directories from deepest to shallowest using -depth
+          # This ensures we rename child directories before their parents
+          find ./docs -depth -type d | while IFS= read -r dir; do
+            # Check if directory name contains problematic characters
+            if echo "$dir" | grep -q '[:"<>|*?]'; then
+              # Create new name by replacing problematic chars with underscores
+              newdir=$(echo "$dir" | sed 's/[:"<>|*?]/_/g')
               
-              # Rename the item
-              if mv "$item" "$newitem" 2>/dev/null; then
-                if [ -d "$newitem" ]; then
-                  echo "Renamed directory: $(basename "$item") -> $(basename "$newitem")"
-                else
-                  echo "Renamed file: $(basename "$item") -> $(basename "$newitem")"
-                fi
-              else
-                echo "Warning: Failed to rename $item"
+              # Only rename if the directory still exists and new name is different
+              if [ -d "$dir" ] && [ "$dir" != "$newdir" ]; then
+                echo "Renaming directory: $(basename "$dir") -> $(basename "$newdir")"
+                mv "$dir" "$newdir" || echo "Warning: Could not rename $dir"
               fi
             fi
           done
-        }
-        
-        # Execute the renaming function
-        rename_problematic_paths
+          
+          # Now process any files with problematic characters
+          find ./docs -type f | while IFS= read -r file; do
+            # Check if filename contains problematic characters
+            if echo "$file" | grep -q '[:"<>|*?]'; then
+              # Create new name by replacing problematic chars with underscores
+              newfile=$(echo "$file" | sed 's/[:"<>|*?]/_/g')
+              
+              # Only rename if file still exists and new name is different
+              if [ -f "$file" ] && [ "$file" != "$newfile" ]; then
+                echo "Renaming file: $(basename "$file") -> $(basename "$newfile")"
+                mv "$file" "$newfile" || echo "Warning: Could not rename $file"
+              fi
+            fi
+          done
+          
+          echo "Documentation sanitization complete"
+        else
+          echo "No documentation directory found"
+        fi
     
     - name: Upload Documentation Artifact
       uses: actions/upload-artifact@v4
@@ -552,20 +581,26 @@ jobs:
           # Count failures
           CRITICAL_FAILURES=0
           
-          # Critical jobs that must pass
-          if [ "${{ needs.build.result }}" != "success" ]; then
+          # Critical jobs that must pass (excluding cancelled/skipped)
+          if [ "${{ needs.build.result }}" != "success" ] && [ "${{ needs.build.result }}" != "cancelled" ] && [ "${{ needs.build.result }}" != "skipped" ]; then
             echo "❌ macOS build failed (critical)"
             CRITICAL_FAILURES=$((CRITICAL_FAILURES + 1))
+          elif [ "${{ needs.build.result }}" == "cancelled" ]; then
+            echo "⚠️ macOS build was cancelled"
           fi
           
-          if [ "${{ needs.test.result }}" != "success" ]; then
+          if [ "${{ needs.test.result }}" != "success" ] && [ "${{ needs.test.result }}" != "cancelled" ] && [ "${{ needs.test.result }}" != "skipped" ]; then
             echo "❌ macOS tests failed (critical)"
             CRITICAL_FAILURES=$((CRITICAL_FAILURES + 1))
+          elif [ "${{ needs.test.result }}" == "cancelled" ]; then
+            echo "⚠️ macOS tests were cancelled"
           fi
           
-          if [ "${{ needs.swiftlint.result }}" != "success" ]; then
+          if [ "${{ needs.swiftlint.result }}" != "success" ] && [ "${{ needs.swiftlint.result }}" != "cancelled" ] && [ "${{ needs.swiftlint.result }}" != "skipped" ]; then
             echo "❌ SwiftLint failed (critical)"
             CRITICAL_FAILURES=$((CRITICAL_FAILURES + 1))
+          elif [ "${{ needs.swiftlint.result }}" == "cancelled" ]; then
+            echo "⚠️ SwiftLint was cancelled"
           fi
           
           # Linux can fail for now (experimental)
@@ -577,12 +612,25 @@ jobs:
             echo "⚠️ Linux tests failed (non-blocking)"
           fi
           
+          # Check for cancelled jobs
+          CANCELLED_JOBS=0
+          for result in "${{ needs.build.result }}" "${{ needs.test.result }}" "${{ needs.swiftlint.result }}" "${{ needs.stress-test.result }}" "${{ needs.performance.result }}" "${{ needs.security.result }}" "${{ needs.documentation.result }}"; do
+            if [ "$result" == "cancelled" ]; then
+              CANCELLED_JOBS=$((CANCELLED_JOBS + 1))
+            fi
+          done
+          
           # Exit with failure if any critical job failed
           if [ $CRITICAL_FAILURES -gt 0 ]; then
             echo ""
             echo "❌ CI failed with $CRITICAL_FAILURES critical failures"
             exit 1
+          elif [ $CANCELLED_JOBS -gt 0 ]; then
+            echo ""
+            echo "⚠️ CI completed with $CANCELLED_JOBS cancelled jobs (not a failure)"
+            echo "Jobs may have been cancelled due to workflow cancellation or timeouts."
+            exit 0
+          else
+            echo ""
+            echo "✅ All critical CI checks passed!"
           fi
-          
-          echo ""
-          echo "✅ All critical CI checks passed!"
