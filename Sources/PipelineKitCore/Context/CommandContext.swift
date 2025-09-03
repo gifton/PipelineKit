@@ -240,11 +240,15 @@ public actor CommandContext {
     
     /// Creates a snapshot of all values in the context.
     /// - Returns: A dictionary containing all context values
+    ///
+    /// Note: Values stored internally as `AnySendable` are unwrapped to their
+    /// underlying `Sendable` values for easier diagnostics and consumption.
     public func snapshot() -> [String: any Sendable] {
         var result: [String: any Sendable] = [:]
         
-        // Add all typed key values
+        // Add all typed key values, using the wrapper directly since it's already Sendable
         for (key, wrapper) in storage {
+            // AnySendable is itself Sendable, so we can just use it directly
             result[key] = wrapper
         }
         

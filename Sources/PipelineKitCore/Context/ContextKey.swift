@@ -79,6 +79,9 @@ public enum ContextKeys {
 
     // MARK: Observability
 
+    /// Key for event emitter
+    public static let eventEmitter = ContextKey<EventEmitter>("eventEmitter")
+    
     /// Key for log level
     public static let logLevel = ContextKey<String>("logLevel")
 

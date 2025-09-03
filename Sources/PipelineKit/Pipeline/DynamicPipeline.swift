@@ -73,8 +73,8 @@ public actor DynamicPipeline {
     public func register<T: Command, H: CommandHandler>(
         _ commandType: T.Type,
         handler: H
-    ) async throws where H.CommandType == T, H.CommandType.Result == T.Result {
-        try await handlerRegistry.register(commandType, handler: handler)
+    ) async where H.CommandType == T, H.CommandType.Result == T.Result {
+        await handlerRegistry.register(commandType, handler: handler)
     }
 
     /// Adds a single middleware to the command bus.
@@ -162,10 +162,17 @@ public actor DynamicPipeline {
             return try await handler.handle(cmd)
         }
 
-        // Sort middleware by priority (lower values execute first)
-        let sortedMiddleware = middlewares.sorted { first, second in
-            return first.priority.rawValue < second.priority.rawValue
-        }
+        // Sort middleware by priority (lower values execute first),
+        // preserving insertion order for equal priorities
+        let sortedMiddleware: [any Middleware] = middlewares
+            .enumerated()
+            .sorted { lhs, rhs in
+                let lp = lhs.element.priority.rawValue
+                let rp = rhs.element.priority.rawValue
+                if lp != rp { return lp < rp }
+                return lhs.offset < rhs.offset
+            }
+            .map { $0.element }
 
         let chain = sortedMiddleware.reversed().reduce(finalHandler) { next, middleware in
             // Apply NextGuard unless middleware opts out

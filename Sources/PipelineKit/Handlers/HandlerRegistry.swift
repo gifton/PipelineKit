@@ -41,7 +41,7 @@ actor HandlerRegistry {
     func register<T: Command, H: CommandHandler>(
         _ commandType: T.Type,
         handler: H
-    ) async throws where H.CommandType == T {
+    ) async where H.CommandType == T {
         let key = ObjectIdentifier(commandType)
         handlers[key] = AnyCommandHandler(handler)
     }

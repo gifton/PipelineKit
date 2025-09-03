@@ -20,9 +20,7 @@ public actor SimpleSemaphore {
     private var permits: Int
     
     /// Queue of waiters for permits with their IDs for cancellation.
-    /// Tracks both the waiter ID and whether they've been cancelled.
-    private var waiters: [(id: UUID, continuation: CheckedContinuation<Void, Never>)] = []
-    private var cancelledWaiters: Set<UUID> = []
+    private var waiters: [(id: UUID, continuation: CheckedContinuation<SemaphoreToken, Error>)] = []
     
     /// Creates a simple semaphore with the specified number of permits.
     ///
@@ -42,7 +40,9 @@ public actor SimpleSemaphore {
     ///         BackPressureAsyncSemaphore from PipelineKitResilience.
     ///
     /// - Returns: A token representing the acquired permit.
-    public func acquire() async -> SemaphoreToken {
+    /// - Throws: `CancellationError` if the task is cancelled while waiting.
+    public func acquire() async throws -> SemaphoreToken {
+        // Fast path: permit immediately available
         if permits > 0 {
             permits -= 1
             return SemaphoreToken { [weak self] in
@@ -50,20 +50,15 @@ public actor SimpleSemaphore {
             }
         }
         
-        // Wait for a permit to become available with cancellation support
+        // Slow path: wait for a permit with proper cancellation support
         let waiterID = UUID()
         
-        return await withTaskCancellationHandler {
-            await withCheckedContinuation { continuation in
+        return try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { continuation in
                 waiters.append((id: waiterID, continuation: continuation))
             }
-            
-            // Permit was granted by a release
-            return SemaphoreToken { [weak self] in
-                Task { await self?._release() }
-            }
         } onCancel: {
-            Task { await self.removeWaiter(waiterID) }
+            Task { await self.cancelWaiter(waiterID) }
         }
     }
     
@@ -81,25 +76,27 @@ public actor SimpleSemaphore {
     
     /// Releases a permit back to the semaphore.
     private func _release() {
-        // Skip cancelled waiters
-        while let waiter = waiters.first {
+        // Try to find a waiter to grant the permit to
+        if let waiter = waiters.first {
             waiters.removeFirst()
-            if !cancelledWaiters.contains(waiter.id) {
-                // Grant permit to non-cancelled waiting task
-                cancelledWaiters.remove(waiter.id)
-                waiter.continuation.resume()
-                return
+            // Grant permit to waiting task
+            let token = SemaphoreToken { [weak self] in
+                Task { await self?._release() }
             }
-            // Remove cancelled waiter and continue
-            cancelledWaiters.remove(waiter.id)
+            waiter.continuation.resume(returning: token)
+        } else {
+            // No waiters, return permit to pool
+            permits += 1
         }
-        // No waiters, return permit to pool
-        permits += 1
     }
     
-    /// Marks a waiter as cancelled when their task is cancelled.
-    private func removeWaiter(_ waiterID: UUID) {
-        cancelledWaiters.insert(waiterID)
+    /// Cancels a waiting task and properly resumes its continuation.
+    private func cancelWaiter(_ waiterID: UUID) {
+        // Find and remove the waiter, then resume with cancellation error
+        if let index = waiters.firstIndex(where: { $0.id == waiterID }) {
+            let waiter = waiters.remove(at: index)
+            waiter.continuation.resume(throwing: CancellationError())
+        }
     }
     
     /// Gets the current number of available permits.
