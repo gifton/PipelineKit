@@ -1,9 +1,10 @@
 import Foundation
-@preconcurrency import os
+import Logging
 import PipelineKitCore
+// Logging shim is available in this module
 
-// Logger for pipeline warnings
-private let logger = Logger(subsystem: "PipelineKit", category: "Core")
+// SwiftLog logger for pipeline warnings
+private let slog = PipelineKitLogger.core
 
 //
 // Note: An old private DummyCommand used for early experiments was removed
@@ -106,10 +107,10 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: Pipeline where H.C
         if let maxConcurrency = options.maxConcurrency {
             // Log warning if advanced options are provided
             if options.maxQueueMemory != nil || options.maxOutstanding != nil {
-                logger.warning("SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features.")
+                slog.warning("SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features.")
             }
             if options.backPressureStrategy != .suspend {
-                logger.warning("SimpleSemaphore only supports suspend strategy. Use BackPressureAsyncSemaphore from PipelineKitResilience for other strategies.")
+                slog.warning("SimpleSemaphore only supports suspend strategy. Use BackPressureAsyncSemaphore from PipelineKitResilience for other strategies.")
             }
             self.semaphore = SimpleSemaphore(permits: maxConcurrency)
         } else {
@@ -320,10 +321,10 @@ public actor AnyStandardPipeline: Pipeline {
         if let maxConcurrency = options.maxConcurrency {
             // AnyStandardPipeline uses SimpleSemaphore
             if options.maxQueueMemory != nil || options.maxOutstanding != nil {
-                logger.warning("SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features.")
+                slog.warning("SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features.")
             }
             if options.backPressureStrategy != .suspend {
-                logger.warning("SimpleSemaphore only supports suspend strategy. Use BackPressureAsyncSemaphore from PipelineKitResilience for other strategies.")
+                slog.warning("SimpleSemaphore only supports suspend strategy. Use BackPressureAsyncSemaphore from PipelineKitResilience for other strategies.")
             }
             self.semaphore = SimpleSemaphore(permits: maxConcurrency)
         } else {

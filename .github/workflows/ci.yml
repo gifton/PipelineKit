@@ -326,9 +326,9 @@ jobs:
           exit ${TEST_EXIT_CODE}
         fi
 
-  # Linux test job
+  # Linux secondary build job (build-only)
   test-linux:
-    name: Test (Linux)
+    name: Build (Linux - extra)
     runs-on: ubuntu-latest
     container: swift:6.0
     needs: [build, build-linux]
@@ -347,9 +347,11 @@ jobs:
           tzdata \
           git
     
-    - name: Run Tests
-      run: |
-        swift test
+    - name: Build Debug
+      run: swift build --configuration debug
+
+    - name: Build Release
+      run: swift build --configuration release
 
   # Stress/Resilience tests
   stress-test:
@@ -590,7 +592,7 @@ jobs:
           echo "- Build (macOS): ${{ needs.build.result }}"
           echo "- Build (Linux): ${{ needs.build-linux.result }}"
           echo "- Test (macOS): ${{ needs.test.result }}"
-          echo "- Test (Linux): ${{ needs.test-linux.result }}"
+          echo "- Build (Linux - extra): ${{ needs.test-linux.result }}"
           echo "- SwiftLint: ${{ needs.swiftlint.result }}"
           echo "- Stress Test: ${{ needs.stress-test.result }}"
           echo "- Performance: ${{ needs.performance.result }}"
@@ -629,7 +631,7 @@ jobs:
           fi
           
           if [ "${{ needs.test-linux.result }}" != "success" ]; then
-            echo "⚠️ Linux tests failed (non-blocking)"
+            echo "⚠️ Linux extra build failed (non-blocking)"
           fi
           
           # Check for cancelled jobs

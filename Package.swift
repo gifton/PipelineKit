@@ -59,6 +59,10 @@ let package = Package(
         // Security: No known vulnerabilities
         // License: Apache-2.0
         .package(url: "https://github.com/apple/swift-atomics.git", from: "1.2.0"),
+        // swift-log - Cross-platform logging facade
+        // Security: No known vulnerabilities
+        // License: Apache-2.0
+        .package(url: "https://github.com/apple/swift-log.git", from: "1.5.4"),
         // swift-docc-plugin 1.3.0 - For documentation generation
         // Security: No known vulnerabilities
         // License: Apache-2.0
@@ -69,7 +73,8 @@ let package = Package(
             name: "PipelineKit",
             dependencies: [
                 "PipelineKitCore",
-                .product(name: "Atomics", package: "swift-atomics")
+                .product(name: "Atomics", package: "swift-atomics"),
+                .product(name: "Logging", package: "swift-log")
             ],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency"),
