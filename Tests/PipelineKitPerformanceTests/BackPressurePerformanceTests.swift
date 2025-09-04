@@ -5,7 +5,6 @@ import PipelineKitTestSupport
 
 /// Performance tests for BackPressure mechanisms
 final class BackPressurePerformanceTests: XCTestCase {
-    
     // MARK: - Uncontended Acquire Performance
     
     func testUncontendedAcquirePerformance() throws {

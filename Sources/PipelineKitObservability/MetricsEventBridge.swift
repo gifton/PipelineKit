@@ -91,17 +91,14 @@ public final class MetricsEventBridge: EventSubscriber, Sendable {
         guard config.enabled else { return }
         
         // Check exclusion patterns first
-        for pattern in config.excludePatterns {
-            if event.name.contains(pattern) {
-                return
-            }
+        for pattern in config.excludePatterns where event.name.contains(pattern) {
+            return
         }
         
         // Check inclusion patterns if specified
         if !config.includePatterns.isEmpty {
             var included = false
-            for pattern in config.includePatterns {
-                if event.name.contains(pattern) {
+            for pattern in config.includePatterns where event.name.contains(pattern) {
                     included = true
                     break
                 }

@@ -24,7 +24,7 @@ final class ContextCopyableTests: XCTestCase {
     }
     
     // Define test context keys
-    private struct TestContextKeys {
+    private enum TestContextKeys {
         static let session = ContextKey<UserSession>("test.session")
         static let counter = ContextKey<Int>("test.counter")
         static let name = ContextKey<String>("test.name")

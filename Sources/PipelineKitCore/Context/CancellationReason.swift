@@ -30,7 +30,7 @@ public enum CancellationReason: Sendable, Equatable {
 extension CancellationReason: CustomStringConvertible {
     public var description: String {
         switch self {
-        case .timeout(let duration, let gracePeriod):
+        case let .timeout(duration, gracePeriod):
             if let gracePeriod = gracePeriod {
                 return "Timeout after \(duration)s (grace period: \(gracePeriod)s)"
             } else {

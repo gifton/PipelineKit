@@ -161,10 +161,8 @@ public actor StatsDExporter: MetricRecorder {
     nonisolated private func shouldSample(_ snapshot: MetricSnapshot) -> (sample: Bool, rate: Double) {
         // Check critical patterns first - never sample these
         let nameLower = snapshot.name.lowercased()
-        for pattern in configuration.criticalPatterns {
-            if nameLower.contains(pattern) {
-                return (true, 1.0)  // Always keep critical metrics
-            }
+        for pattern in configuration.criticalPatterns where nameLower.contains(pattern) {
+            return (true, 1.0)  // Always keep critical metrics
         }
         
         // Get effective sample rate (type-specific or global)

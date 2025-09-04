@@ -241,7 +241,7 @@ final class CircuitBreakerMiddlewareTests: XCTestCase {
 
         // When - mix of successes and failures
         for i in 0..<10 {
-            if i % 3 == 0 { // ~33% failure rate
+            if i.isMultiple(of: 3) { // ~33% failure rate
                 try? await middleware.execute(FailingCommand(), context: CommandContext()) { cmd, _ in
                     try await cmd.execute()
                 }
@@ -369,7 +369,7 @@ final class CircuitBreakerMiddlewareTests: XCTestCase {
             for i in 0..<iterations {
                 group.addTask {
                     // Handle command types separately to avoid type inference issues
-                    if i % 3 == 0 {
+                    if i.isMultiple(of: 3) {
                         // Execute failing command
                         let command = FailingCommand()
                         do {

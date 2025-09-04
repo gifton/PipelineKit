@@ -46,7 +46,7 @@ public enum PipelineKitObservability {
     public static let version = "1.0.0"
     
     /// Module capabilities
-    public struct Capabilities {
+    public enum Capabilities {
         public static let supportsEvents = true
         public static let supportsMetrics = true
         public static let supportsTracing = false // Future

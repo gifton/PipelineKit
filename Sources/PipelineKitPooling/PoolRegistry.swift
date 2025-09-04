@@ -38,7 +38,7 @@ public actor PoolRegistry {
     private init() {
         // Validate cleanup interval in debug builds only
         precondition(Self.cleanupInterval > 0,
-                    "PoolRegistry.cleanupInterval must be positive (got \(Self.cleanupInterval))")
+                     "PoolRegistry.cleanupInterval must be positive (got \(Self.cleanupInterval))")
         
         // Ensure a sane value even if precondition is stripped in release
         let safeInterval = max(Self.cleanupInterval, 1.0)

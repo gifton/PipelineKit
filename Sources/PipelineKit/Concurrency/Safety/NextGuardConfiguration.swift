@@ -15,7 +15,7 @@ public final class NextGuardConfiguration: @unchecked Sendable {
     // Removed timeout-specific suppression; use per-middleware suppression instead
     
     /// Custom warning handler - allows users to integrate with their logging system
-    public var warningHandler: (@Sendable (String) -> Void)? = nil
+    public var warningHandler: (@Sendable (String) -> Void)?
     
     private init() {}
     

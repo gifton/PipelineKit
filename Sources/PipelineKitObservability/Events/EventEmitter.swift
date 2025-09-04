@@ -69,8 +69,7 @@ public extension PipelineEvent {
 /// Uses relaxed memory ordering for performance since exact ordering
 /// between threads is not critical - we only need monotonic increase.
 public enum AtomicEventSequence {
-    @usableFromInline
-    internal static let counter = ManagedAtomic<UInt64>(0)
+    @usableFromInline internal static let counter = ManagedAtomic<UInt64>(0)
 
     /// Gets the next sequence number atomically.
     @inlinable

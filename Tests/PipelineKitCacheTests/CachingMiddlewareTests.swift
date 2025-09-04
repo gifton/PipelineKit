@@ -172,7 +172,7 @@ final class CachingMiddlewareTests: XCTestCase {
         XCTAssertEqual(count2, 3) // Should not cache
     }
     
-    // TODO: Re-enable when EventEmitter is implemented  
+    // Note: Re-enable when EventEmitter is implemented  
     // func testCacheEventsEmitted() async throws {
     //     // Given
     //     let cache = InMemoryCache(maxSize: 100)

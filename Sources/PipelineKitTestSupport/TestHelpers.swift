@@ -266,32 +266,31 @@ public final class TestFailingMiddleware: Middleware, @unchecked Sendable {
     }
 }
 
-/// ## Design Decision: @unchecked Sendable for Generic Context-Modifying Middleware
-///
-/// This test middleware uses `@unchecked Sendable` for the following reasons:
-///
-/// 1. **Generic Value Storage**: The stored `value: Key.Value` is constrained
-///    only by the ContextKey protocol, not by Sendable, preventing automatic
-///    Sendable inference.
-///
-/// 2. **Thread Safety Guarantee**: The value is immutable after initialization
-///    and only used to set context values, which are themselves thread-safe.
-///
-/// 3. **Alternative Considered**: Adding Sendable constraint to Key.Value would
-///    break existing tests and limit flexibility of context values in tests.
-///
-/// 4. **Thread Safety Invariant**: The stored value MUST be either:
-///    - A value type (struct/enum) with Sendable semantics
-///    - An immutable reference type
-///    - A type that's only accessed through CommandContext's thread-safe API
-///
-/// 5. **Context Safety**: CommandContext handles thread safety internally,
-///    so setting values through context.set() is always safe.
-///
-
-
 // MARK: - Test Utilities
+//
+// ## Design Decision: @unchecked Sendable for Generic Context-Modifying Middleware
+//
+// This test middleware uses `@unchecked Sendable` for the following reasons:
+//
+// 1. **Generic Value Storage**: The stored `value: Key.Value` is constrained
+//    only by the ContextKey protocol, not by Sendable, preventing automatic
+//    Sendable inference.
+//
+// 2. **Thread Safety Guarantee**: The value is immutable after initialization
+//    and only used to set context values, which are themselves thread-safe.
+//
+// 3. **Alternative Considered**: Adding Sendable constraint to Key.Value would
+//    break existing tests and limit flexibility of context values in tests.
+//
+// 4. **Thread Safety Invariant**: The stored value MUST be either:
+//    - A value type (struct/enum) with Sendable semantics
+//    - An immutable reference type
+//    - A type that's only accessed through CommandContext's thread-safe API
+//
+// 5. **Context Safety**: CommandContext handles thread safety internally,
+//    so setting values through context.set() is always safe.
 
+/// Test constants for common test values
 public enum TestConstants {
     public static let defaultUserId = "test-user-123"
     public static let defaultCorrelationId = "test-correlation-123"

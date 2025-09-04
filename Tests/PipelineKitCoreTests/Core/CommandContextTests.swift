@@ -16,7 +16,7 @@ final class CommandContextTests: XCTestCase {
         // Metadata dictionary might be empty initially (it's a separate storage)
         let metadata = await context.getMetadata()
         // Metadata is stored separately from other context values
-        XCTAssertTrue(metadata.isEmpty || metadata.isEmpty, "Metadata dictionary initialized")
+        XCTAssertTrue(metadata.isEmpty, "Metadata dictionary initialized")
     }
     
     func testContextWithMetadata() async throws {
@@ -46,7 +46,7 @@ final class CommandContextTests: XCTestCase {
         XCTAssertEqual(numberValue, 42)
         
         let boolValue = await context.getMetadata("bool") as? Bool
-        XCTAssertEqual(boolValue, true)
+        XCTAssertTrue(boolValue ?? false)
         
         let arrayValue = await context.getMetadata("array") as? [Int]
         XCTAssertEqual(arrayValue, [1, 2, 3])

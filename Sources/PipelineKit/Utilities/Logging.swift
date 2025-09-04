@@ -8,4 +8,3 @@ enum PipelineKitLogger {
     static let core = Logger(label: "PipelineKit.Core")
     static func make(category: String) -> Logger { Logger(label: "PipelineKit.\(category)") }
 }
-
