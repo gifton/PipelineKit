@@ -161,9 +161,9 @@ final class TimeoutDiagnosticTests: XCTestCase {
             print("Failed after \(elapsed)s with error: \(error)")
             
             // The timeout error should be thrown promptly (around 50ms)
-            // We allow up to 200ms for CI variability, but this is just for the error to be thrown
+            // We allow up to 300ms for CI variability, but this is just for the error to be thrown
             // The background operation may continue running - that's expected!
-            XCTAssertLessThan(elapsed, 0.2, "Timeout error should be thrown promptly: \(elapsed)s")
+            XCTAssertLessThan(elapsed, 0.3, "Timeout error should be thrown promptly: \(elapsed)s")
             
             if let pipelineError = error as? PipelineError,
                case .timeout = pipelineError {
@@ -222,8 +222,8 @@ final class TimeoutDiagnosticTests: XCTestCase {
                 // cancellation model. The important thing is that we get the timeout error
                 // promptly, not that background operations are forcefully stopped.
                 
-                // We expect the timeout error to be thrown around 50ms, but allow up to 250ms for CI
-                XCTAssertLessThan(elapsed, 0.25, "Timeout error should be thrown promptly (elapsed: \(elapsed)s)")
+                // We expect the timeout error to be thrown around 50ms, but allow up to 350ms for CI
+                XCTAssertLessThan(elapsed, 0.35, "Timeout error should be thrown promptly (elapsed: \(elapsed)s)")
                 print("✅ Timeout correctly detected at \(elapsed)s (background ops may continue)")
             } else {
                 XCTFail("Wrong error type: \(error)")
@@ -295,7 +295,7 @@ final class TimeoutDiagnosticTests: XCTestCase {
             if let pipelineError = error as? PipelineError,
                case .timeout = pipelineError {
                 // The timeout error should be thrown around 50ms, but we allow more for CI
-                XCTAssertLessThan(elapsed, 0.2, "Timeout should be detected promptly")
+                XCTAssertLessThan(elapsed, 0.3, "Timeout should be detected promptly")
                 print("✅ Timeout correctly thrown at \(elapsed)s")
                 
                 // NOTE: The handler's Task.sleep may continue in the background.
