@@ -1,8 +1,8 @@
-# NextGuard Timeout Detection Limitation
+# NextGuard: Deinit‑Time Warning Limitation
 
 ## Overview
 
-PipelineKit's `NextGuard` safety mechanism has a fundamental limitation when detecting timeout-based cancellations due to Swift's actor isolation and task cancellation model. This document describes the limitation, its impact, and why it exists.
+NextGuard enforces exactly‑once and non‑concurrent `next()` calls at runtime using atomics. In debug builds, it also emits a deinit‑time warning if `next()` was never called. Swift’s cancellation and actor isolation can make deinit timing nondeterministic in exceptional flows (e.g., timeouts). This affects only the warning signal, not runtime correctness.
 
 ## The Problem
 
@@ -18,7 +18,7 @@ When a timeout occurs in the pipeline:
 2. The middleware chain is immediately deallocated
 3. `NextGuard.deinit` runs **synchronously** to check if `next()` was called
 4. At this point, `Task.isCancelled` may not yet be `true` because cancellation is cooperative and asynchronous
-5. NextGuard incorrectly warns about middleware not calling `next()`
+5. A deinit‑time warning may be emitted even when the pipeline behaved correctly
 
 ### Why This Can't Be Easily Fixed
 
@@ -41,7 +41,7 @@ class NextGuard {
 }
 ```
 
-#### The Fundamental Race Condition
+#### The Deinit Timing Race
 ```
 Timeline of a timeout:
 T0: Timeout duration expires
@@ -52,30 +52,15 @@ T4: Task cancellation propagates (asynchronous)
 T5: Task.isCancelled becomes true (too late!)
 ```
 
-## Current Workaround
+## Recommended Approach
 
-We use a fragile string-matching heuristic:
+Instead of heuristics, PipelineKit uses explicit controls:
 
-```swift
-deinit {
-    if finalState == 0 {
-        // Check if task was cancelled (unreliable)
-        if Task.isCancelled {
-            return
-        }
-        
-        // Fallback: Check if identifier suggests timeout
-        let isLikelyTimedOut = identifier?.contains("Timeout") == true ||
-                               identifier?.contains("Slow") == true
-        
-        if isLikelyTimedOut {
-            return  // Suppress warning
-        }
-        
-        // Emit warning...
-    }
-}
-```
+1) Keep warnings enabled in development; they catch real bugs (missed/duplicate `next()` calls).
+
+2) For middleware that intentionally short‑circuits (e.g., cache hits), conform to `NextGuardWarningSuppressing` to suppress debug‑only deinit warnings for that middleware.
+
+3) In CI or specialized tests, temporarily disable warnings using `NextGuard.withoutWarnings { ... }` utilities or register a no‑op warning handler via `NextGuardConfiguration.setWarningHandler(_:)`.
 
 ## Impact Assessment
 
@@ -145,7 +130,7 @@ class CustomDeadlineMiddleware: Middleware {
 
 ## Is This Worth Fixing?
 
-### Arguments AGAINST Alternative Approaches
+### Arguments AGAINST Heuristics
 
 1. **It's a Swift limitation, not a PipelineKit bug**
    - This is a fundamental constraint of Swift's concurrency model
@@ -167,7 +152,7 @@ class CustomDeadlineMiddleware: Middleware {
    - Benefits are marginal (cleaner logs)
    - Could introduce new bugs
 
-### Arguments FOR Alternative Approaches
+### Arguments FOR the Current Approach
 
 1. **Professional polish**
    - False warnings look unprofessional
@@ -186,7 +171,7 @@ class CustomDeadlineMiddleware: Middleware {
 
 ## Recommendation
 
-### Current Status: **ACCEPTABLE LIMITATION**
+### Current Status: **Known Limitation (Debug‑Only Warning)**
 
 **This limitation is NOT worth extensive engineering effort to fix because:**
 
@@ -203,19 +188,23 @@ class CustomDeadlineMiddleware: Middleware {
 4. **Wait for Swift Evolution**: Monitor proposals for better cancellation handling
 5. **Re-evaluate periodically**: Revisit when Swift adds new concurrency features
 
-### Configuration Option
-
-Consider adding a configuration flag:
+### Configuration Options
 
 ```swift
-NextGuard.Configuration.suppressTimeoutWarnings = true  // Default for production
+// Enable/disable warnings globally
+NextGuardConfiguration.shared.emitWarnings = true
+
+// Route warnings to your logger
+NextGuardConfiguration.setWarningHandler { message in
+    logger.warning("[NextGuard] \(message)")
+}
 ```
 
 ## Conclusion
 
 This is a **legitimate limitation** imposed by Swift's concurrency model, not a design flaw in PipelineKit. The impact is primarily on developer experience rather than functionality. While frustrating, it's not severe enough to warrant complex workarounds that could introduce worse problems.
 
-**The pragmatic choice is to accept this limitation**, document it clearly, and wait for Swift's concurrency model to evolve.
+**The pragmatic choice is to accept this limitation** for deinit‑time warnings, use explicit suppression for legitimate short‑circuits, and keep runtime safety guarantees intact.
 
 ---
 

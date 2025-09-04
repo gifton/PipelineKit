@@ -28,12 +28,12 @@ struct GreetHandler: CommandHandler {
 @main
 struct BasicExample {
     static func main() async throws {
-        let pipeline = try await PipelineBuilder(handler: GreetHandler())
-            .build()
+        let builder = PipelineBuilder(handler: GreetHandler())
+        let pipeline = try await builder.build()
         
         let result = try await pipeline.execute(
             GreetCommand(name: "World"),
-            context: CommandContext(metadata: StandardCommandMetadata())
+            context: CommandContext(metadata: DefaultCommandMetadata())
         )
         
         print(result) // Output: Hello, World!
@@ -79,14 +79,8 @@ let pipeline = try await PipelineBuilder(handler: GreetHandler())
 Share data between middleware using context:
 
 ```swift
-// Define context keys
-struct RequestIDKey: ContextKey {
-    typealias Value = String
-}
-
-struct UserKey: ContextKey {
-    typealias Value = String
-}
+// Define context keys (use built‑ins where available)
+let userKey = ContextKey<String>("user")
 
 // Middleware that adds request ID
 struct RequestIDMiddleware: Middleware {
@@ -97,9 +91,9 @@ struct RequestIDMiddleware: Middleware {
         context: CommandContext,
         next: @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
-        // Add request ID to context
+        // Add request ID to context (built‑in key)
         let requestID = UUID().uuidString
-        context.set(requestID, for: RequestIDKey.self)
+        await context.set(ContextKeys.requestID, value: requestID)
         
         print("[Request \(requestID)] Started")
         return try await next(command, context)
@@ -118,8 +112,8 @@ struct AuditMiddleware: Middleware {
         let result = try await next(command, context)
         
         // Read from context
-        let requestID = context.get(RequestIDKey.self) ?? "unknown"
-        let user = context.get(UserKey.self) ?? "anonymous"
+        let requestID = await context.get(ContextKeys.requestID) ?? "unknown"
+        let user: String = await context.get(userKey) ?? "anonymous"
         
         print("[AUDIT] Request \(requestID) by user \(user) completed")
         
@@ -373,22 +367,23 @@ struct CreateOrderHandler: CommandHandler {
 struct OrderSystem {
     static func main() async throws {
         // Build pipeline with multiple middleware
-        let pipeline = try await PipelineBuilder(handler: CreateOrderHandler())
+        let builder = PipelineBuilder(handler: CreateOrderHandler())
             .with(RequestIDMiddleware())
             .with(ValidationMiddleware())
             .with(SimpleLoggingMiddleware())
             .with(ErrorHandlingMiddleware())
-            .build()
+        let pipeline = try await builder.build()
         
         // Create context with metadata
-        let metadata = StandardCommandMetadata(
+        let metadata = DefaultCommandMetadata(
             userId: "user123",
             correlationId: UUID().uuidString
         )
         let context = CommandContext(metadata: metadata)
         
         // Set additional context
-        context.set("user123", for: UserKey.self)
+        let userKey = ContextKey<String>("user")
+        await context.set(userKey, value: "user123")
         
         // Execute command
         let command = CreateOrderCommand(

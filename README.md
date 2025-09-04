@@ -402,7 +402,7 @@ Add to your `Package.swift`:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/yourusername/PipelineKit.git", from: "1.0.0")
+    .package(url: "https://github.com/gifton/PipelineKit.git", from: "1.0.0")
 ]
 ```
 
@@ -800,7 +800,7 @@ We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guid
 ### Development Setup
 
 ```bash
-git clone https://github.com/yourusername/PipelineKit.git
+git clone https://github.com/gifton/PipelineKit.git
 cd PipelineKit
 swift build
 swift test
