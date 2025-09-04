@@ -1,3 +1,4 @@
+#if canImport(Compression)
 import XCTest
 import PipelineKitCore
 import PipelineKitCache
@@ -184,3 +185,5 @@ final class CompressionMiddlewareTests: XCTestCase {
         XCTAssertEqual(decompressed, originalData)
     }
 }
+
+#endif // canImport(Compression)

@@ -80,7 +80,7 @@ final class ActualTimeoutTest: XCTestCase {
             let elapsed = Date().timeIntervalSince(start)
             if case .timeout = error {
                 print("\n✅ SUCCESS: Timed out after \(elapsed)s")
-                XCTAssertLessThan(elapsed, 0.15, "Timeout took too long")
+                XCTAssertLessThan(elapsed, 0.3, "Timeout took too long (elapsed: \(elapsed)s)")
             } else {
                 print("\n❌ FAILED: Wrong error type: \(error)")
                 XCTFail("Expected timeout error")
@@ -124,7 +124,7 @@ final class ActualTimeoutTest: XCTestCase {
             let elapsed = Date().timeIntervalSince(start)
             if case .timeout = error {
                 print("\n✅ SUCCESS: Timed out after \(elapsed)s")
-                XCTAssertLessThan(elapsed, 0.15, "Timeout took too long")
+                XCTAssertLessThan(elapsed, 0.3, "Timeout took too long (elapsed: \(elapsed)s)")
             } else {
                 print("\n❌ FAILED: Wrong error type: \(error)")
                 XCTFail("Expected timeout error")

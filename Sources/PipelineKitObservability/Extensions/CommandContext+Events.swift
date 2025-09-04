@@ -2,35 +2,25 @@
 //  CommandContext+Events.swift
 //  PipelineKit
 //
-//  Extends CommandContext with event emission capabilities
+//  Extends CommandContext with additional observability event helpers
 //
 
 import Foundation
 import PipelineKitCore
 
-// MARK: - Event Emission
+// MARK: - Event Emission Helpers
 
 public extension CommandContext {
-    /// The event emitter for this context
-    var eventEmitter: EventEmitter? {
-        get { self.get(ContextKeys.eventEmitter) }
-    }
-    
-    /// Sets the event emitter for this context
-    func setEventEmitter(_ emitter: EventEmitter?) {
-        self.set(ContextKeys.eventEmitter, value: emitter)
-    }
-
-    /// Emits an event through the context's event emitter.
+    /// Emits an event through the context's event emitter with automatic correlation ID.
     ///
-    /// This method is now async due to actor isolation. If no emitter is set,
-    /// the event is silently discarded.
+    /// This is a convenience wrapper that adds correlation ID handling on top of
+    /// the Core event emission functionality.
     ///
     /// - Parameters:
     ///   - name: The event name
     ///   - properties: Additional event properties
     func emitEvent(_ name: String, properties: [String: any Sendable] = [:]) async {
-        guard let emitter = eventEmitter else { return }
+        guard eventEmitter != nil else { return }
 
         let correlationId = await correlationID ?? commandMetadata.correlationId ?? commandMetadata.id.uuidString
         let event = PipelineEvent(
@@ -39,7 +29,7 @@ public extension CommandContext {
             correlationID: correlationId
         )
 
-        await emitter.emit(event)
+        await emitEvent(event)
     }
 
     /// Emits a command started event.
@@ -108,13 +98,6 @@ public extension CommandContext {
     }
 
     // Note: emitMiddlewareEvent is now defined in PipelineKitCore/Context/CommandContext+Events.swift
-}
-
-// MARK: - Context Keys
-
-public extension ContextKeys {
-    /// Key for storing the event emitter in context
-    static let eventEmitter = ContextKey<EventEmitter>("eventEmitter")
 }
 
 // MARK: - Builder Pattern Support

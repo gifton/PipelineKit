@@ -155,7 +155,7 @@ final class NextGuardIntegrationTests: XCTestCase {
     func testDynamicPipelineWithNextGuard() async throws {
         // Given
         let pipeline = DynamicPipeline()
-        try await pipeline.register(TestCommand.self, handler: TestHandler())
+        await pipeline.register(TestCommand.self, handler: TestHandler())
         try await pipeline.addMiddleware(DoubleCallMiddleware())
         
         // When/Then - Should throw on second call

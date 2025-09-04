@@ -1,15 +1,14 @@
 import Foundation
-import os
+import Logging
 import PipelineKitCore
+// Logging shim is available in this module
 
-// Logger for pipeline warnings
-private let logger = Logger(subsystem: "PipelineKit", category: "Core")
+// SwiftLog logger for pipeline warnings
+private let slog = PipelineKitLogger.core
 
-// Helper command for error cases
-private struct DummyCommand: Command {
-    typealias Result = Void
-    func execute() async throws {}
-}
+//
+// Note: An old private DummyCommand used for early experiments was removed
+// because it was unused and not part of the public API.
 
 /// The primary pipeline implementation for executing commands through middleware.
 ///
@@ -49,9 +48,6 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: Pipeline where H.C
     /// The handler that processes commands after all middleware.
     private let handler: H
     
-    /// Whether to always use context for execution, even with regular middleware.
-    private let useContext: Bool
-    
     /// Maximum allowed middleware depth to prevent infinite recursion.
     private let maxDepth: Int
     
@@ -68,15 +64,12 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: Pipeline where H.C
     ///
     /// - Parameters:
     ///   - handler: The command handler that will process commands after middleware
-    ///   - useContext: Whether to use context for all middleware execution (default: true)
     ///   - maxDepth: Maximum middleware depth (default: 100)
     public init(
         handler: H,
-        useContext: Bool = true,
         maxDepth: Int = 100
     ) {
         self.handler = handler
-        self.useContext = useContext
         self.maxDepth = maxDepth
         self.semaphore = nil
     }
@@ -86,16 +79,13 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: Pipeline where H.C
     /// - Parameters:
     ///   - handler: The command handler that will process commands after middleware
     ///   - maxConcurrency: Maximum number of concurrent executions
-    ///   - useContext: Whether to use context for all middleware execution (default: true)
     ///   - maxDepth: Maximum middleware depth (default: 100)
     public init(
         handler: H,
         maxConcurrency: Int,
-        useContext: Bool = true,
         maxDepth: Int = 100
     ) {
         self.handler = handler
-        self.useContext = useContext
         self.maxDepth = maxDepth
         self.semaphore = SimpleSemaphore(permits: maxConcurrency)
     }
@@ -105,25 +95,22 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: Pipeline where H.C
     /// - Parameters:
     ///   - handler: The command handler that will process commands after middleware
     ///   - options: Pipeline configuration options
-    ///   - useContext: Whether to use context for all middleware execution (default: true)
     ///   - maxDepth: Maximum middleware depth (default: 100)
     public init(
         handler: H,
         options: PipelineOptions,
-        useContext: Bool = true,
         maxDepth: Int = 100
     ) {
         self.handler = handler
-        self.useContext = useContext
         self.maxDepth = maxDepth
         
         if let maxConcurrency = options.maxConcurrency {
             // Log warning if advanced options are provided
             if options.maxQueueMemory != nil || options.maxOutstanding != nil {
-                logger.warning("SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features.")
+                slog.warning("SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features.")
             }
             if options.backPressureStrategy != .suspend {
-                logger.warning("SimpleSemaphore only supports suspend strategy. Use BackPressureAsyncSemaphore from PipelineKitResilience for other strategies.")
+                slog.warning("SimpleSemaphore only supports suspend strategy. Use BackPressureAsyncSemaphore from PipelineKitResilience for other strategies.")
             }
             self.semaphore = SimpleSemaphore(permits: maxConcurrency)
         } else {
@@ -219,15 +206,14 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: Pipeline where H.C
         try Task.checkCancellation(context: "Pipeline execution cancelled before start")
         
         // Apply back-pressure control if configured
-        let token: SemaphoreToken?
-        if let semaphore = semaphore {
-            token = await semaphore.acquire()
+        let token: SemaphoreToken? = if let semaphore = semaphore {
+            try await semaphore.acquire()
         } else {
-            token = nil
+            nil
         }
         
-        // Token automatically releases when it goes out of scope
-        defer { _ = token } // Keep token alive until end of scope
+        // Explicitly release the token at end of scope (idempotent)
+        defer { token?.release() }
         
         // Always use context since all middleware now uses context
         return try await executeWithContext(command, context: context)
@@ -245,8 +231,8 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: Pipeline where H.C
             return try await handler.handle(command)
         }
         
-        // Execute through middleware chain
-        return try await executeWithMiddleware(command, context: context, middleware: Array(middlewares))
+        // Execute through middleware chain without copying middleware array
+        return try await executeWithMiddleware(command, context: context)
     }
     
     /// Initializes standard context values if not already set.
@@ -281,41 +267,30 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: Pipeline where H.C
     
     // MARK: - Private Methods
     
-    /// Sorts middleware by priority (lower values execute first)
+    /// Sorts middleware by priority (lower values execute first),
+    /// preserving insertion order for equal priorities.
     private func sortMiddlewareByPriority() {
-        middlewares.sort { $0.priority.rawValue < $1.priority.rawValue }
+        let stabilized = middlewares.enumerated().sorted { lhs, rhs in
+            let lp = lhs.element.priority.rawValue
+            let rp = rhs.element.priority.rawValue
+            if lp != rp { return lp < rp }
+            return lhs.offset < rhs.offset
+        }
+        middlewares = ContiguousArray(stabilized.map { $0.element })
     }
     
     /// Executes a command through a chain of middleware
-    private func executeWithMiddleware(_ command: C, context: CommandContext, middleware: [any Middleware]) async throws -> C.Result {
-        // Build the middleware chain
-        var next: @Sendable (C, CommandContext) async throws -> C.Result = { cmd, _ in
+    private func executeWithMiddleware(_ command: C, context: CommandContext) async throws -> C.Result {
+        // Build the middleware chain (no cancellation checks here to preserve existing behavior)
+        let final: @Sendable (C, CommandContext) async throws -> C.Result = { cmd, _ in
             try await self.handler.handle(cmd)
         }
-        
-        // Wrap each middleware in reverse order
-        for m in middleware.reversed() {
-            let currentMiddleware = m
-            let previousNext = next
-            
-            // Apply NextGuard unless middleware opts out
-            let wrappedNext: @Sendable (C, CommandContext) async throws -> C.Result
-            if currentMiddleware is UnsafeMiddleware {
-                // Skip NextGuard for unsafe middleware
-                wrappedNext = previousNext
-            } else {
-                // Wrap with NextGuard for safety
-                let nextGuard = NextGuard<C>(previousNext, identifier: String(describing: type(of: currentMiddleware)))
-                wrappedNext = nextGuard.callAsFunction
-            }
-            
-            next = { (cmd: C, ctx: CommandContext) in
-                try await currentMiddleware.execute(cmd, context: ctx, next: wrappedNext)
-            }
-        }
-        
-        // Execute the chain
-        return try await next(command, context)
+        let chain = MiddlewareChainBuilder.build(
+            middlewares: middlewares,
+            insertCancellationChecks: false,
+            final: final
+        )
+        return try await chain(command, context)
     }
 }
 
@@ -346,10 +321,10 @@ public actor AnyStandardPipeline: Pipeline {
         if let maxConcurrency = options.maxConcurrency {
             // AnyStandardPipeline uses SimpleSemaphore
             if options.maxQueueMemory != nil || options.maxOutstanding != nil {
-                logger.warning("SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features.")
+                slog.warning("SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features.")
             }
             if options.backPressureStrategy != .suspend {
-                logger.warning("SimpleSemaphore only supports suspend strategy. Use BackPressureAsyncSemaphore from PipelineKitResilience for other strategies.")
+                slog.warning("SimpleSemaphore only supports suspend strategy. Use BackPressureAsyncSemaphore from PipelineKitResilience for other strategies.")
             }
             self.semaphore = SimpleSemaphore(permits: maxConcurrency)
         } else {
@@ -363,7 +338,14 @@ public actor AnyStandardPipeline: Pipeline {
             throw PipelineError.maxDepthExceeded(depth: middlewares.count + 1, max: maxDepth)
         }
         middlewares.append(middleware)
-        middlewares.sort { $0.priority.rawValue < $1.priority.rawValue }
+        // Stable sort by priority, preserving insertion order for equal priorities
+        let stabilized = middlewares.enumerated().sorted { lhs, rhs in
+            let lp = lhs.element.priority.rawValue
+            let rp = rhs.element.priority.rawValue
+            if lp != rp { return lp < rp }
+            return lhs.offset < rhs.offset
+        }
+        middlewares = stabilized.map { $0.element }
     }
     
     /// Executes a command through the pipeline.
@@ -373,18 +355,12 @@ public actor AnyStandardPipeline: Pipeline {
         
         // Apply back-pressure if configured
         let token = if let semaphore = semaphore {
-            await semaphore.acquire()
+            try await semaphore.acquire()
         } else {
             nil as SemaphoreToken?
         }
         
-        defer {
-            if let token = token {
-                Task {
-                    token.release()
-                }
-            }
-        }
+        defer { token?.release() }
         
         let finalHandler: @Sendable (T, CommandContext) async throws -> T.Result = { cmd, ctx in
             // Check for cancellation before handler
@@ -396,30 +372,12 @@ public actor AnyStandardPipeline: Pipeline {
             return typedResult
         }
         
-        // Build chain without creating reversed array
-        var chain = finalHandler
-        for i in stride(from: middlewares.count - 1, through: 0, by: -1) {
-            let middleware = middlewares[i]
-            let previousNext = chain
-            
-            // Apply NextGuard unless middleware opts out
-            let wrappedNext: @Sendable (T, CommandContext) async throws -> T.Result
-            if middleware is UnsafeMiddleware {
-                // Skip NextGuard for unsafe middleware
-                wrappedNext = previousNext
-            } else {
-                // Wrap with NextGuard for safety
-                let nextGuard = NextGuard<T>(previousNext, identifier: String(describing: type(of: middleware)))
-                wrappedNext = nextGuard.callAsFunction
-            }
-            
-            chain = { (cmd: T, ctx: CommandContext) in
-                // Check for cancellation before each middleware
-                try Task.checkCancellation(context: "Pipeline execution cancelled at middleware: \(String(describing: type(of: middleware)))")
-                return try await middleware.execute(cmd, context: ctx, next: wrappedNext)
-            }
-        }
-        
+        // Build chain using shared builder with cancellation checks
+        let chain = MiddlewareChainBuilder.build(
+            middlewares: middlewares,
+            insertCancellationChecks: true,
+            final: finalHandler
+        )
         return try await chain(command, context)
     }
     

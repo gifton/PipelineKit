@@ -1,0 +1,44 @@
+name: Simple CI
+
+on:
+  push:
+    branches: [ main, develop, simplification ]
+  pull_request:
+    branches: [ main ]
+env:
+  BENCHMARK_DISABLE_JEMALLOC: '1'  # Disable jemalloc dependency in swift-benchmark
+
+
+jobs:
+  test:
+    name: Test Suite
+    runs-on: macos-14
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Swift
+      uses: swift-actions/setup-swift@v2
+      with:
+        swift-version: '6.0'
+    
+    # jemalloc installation removed - benchmarks configured to not require it    
+    - name: Show Swift version
+      run: swift --version
+    
+    - name: Build
+      run: swift build
+    
+    - name: Run Tests
+      run: |
+        # Note: --parallel flag removed due to test hanging issues
+        # See: https://github.com/your-org/PipelineKit/issues/XXX
+        swift test
+    
+    - name: Test Summary
+      if: always()
+      run: |
+        echo "=== Test Execution Summary ==="
+        echo "Test files: $(find Tests -name '*.swift' | wc -l)"
+        echo "Test methods: $(grep -r 'func test' Tests --include='*.swift' | wc -l)"
+        echo "Source files: $(find Sources -name '*.swift' | wc -l)"

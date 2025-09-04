@@ -6,8 +6,8 @@
 //
 
 import Foundation
-import PipelineKit
-@testable import PipelineKitObservability
+import PipelineKitCore
+import PipelineKitObservability
 
 /// An event emitter that captures events for testing.
 ///
@@ -34,10 +34,8 @@ public final class CapturingEmitter: EventEmitter {
     public init() {}
 
     /// Emits an event by capturing it.
-    public func emit(_ event: PipelineEvent) {
-        Task {
-            await storage.capture(event)
-        }
+    public func emit(_ event: PipelineEvent) async {
+        await storage.capture(event)
     }
 
     /// Gets all captured events.

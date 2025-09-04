@@ -1,0 +1,54 @@
+name: Integration Tests
+
+on:
+  pull_request:
+    paths:
+      - 'Sources/**'
+      - 'Tests/**'
+      - '.github/workflows/integration-tests.yml'
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  BENCHMARK_DISABLE_JEMALLOC: '1'  # Disable jemalloc dependency in swift-benchmark
+  SWIFT_VERSION: '6.0'
+
+jobs:
+  integration-tests:
+    name: Integration Tests
+    runs-on: macos-14
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Swift
+      uses: swift-actions/setup-swift@v2.3.0
+      with:
+        swift-version: ${{ env.SWIFT_VERSION }}
+    
+    # jemalloc installation removed - benchmarks configured to not require it    
+    - name: Cache Swift packages
+      uses: actions/cache@v4
+      with:
+        path: .build
+        key: ${{ runner.os }}-spm-${{ hashFiles('**/Package.resolved') }}
+        restore-keys: |
+          ${{ runner.os }}-spm-
+    
+    - name: Build
+      run: swift build
+    
+    - name: Run Integration Tests
+      run: |
+        swift test --filter "IntegrationTests" --enable-test-discovery
+      env:
+        CI: true
+    
+    - name: Upload test results
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results
+        path: |
+          .build/testresults/

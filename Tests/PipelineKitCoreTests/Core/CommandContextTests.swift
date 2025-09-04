@@ -234,6 +234,8 @@ final class CommandContextTests: XCTestCase {
     
     func testEventEmission() async throws {
         let context = CommandContext()
+        let emitter = CapturingEmitter()
+        await context.setEventEmitter(emitter)
         
         // Emit an event
         await context.emitMiddlewareEvent(
@@ -242,15 +244,24 @@ final class CommandContextTests: XCTestCase {
             properties: ["key": "value"]
         )
         
-        // Verify event was recorded in metadata
-        let metadata = await context.getMetadata()
-        XCTAssertEqual(metadata["last.event"] as? String, "test.event")
-        XCTAssertNotNil(metadata["last.event.correlationID"])
-        XCTAssertNotNil(metadata["last.event.sequenceID"])
+        // Verify event was emitted
+        let events = await emitter.events
+        XCTAssertEqual(events.count, 1)
+        XCTAssertEqual(events.first?.name, "test.event")
+        XCTAssertNotNil(events.first?.correlationID)
+        XCTAssertNotNil(events.first?.sequenceID)
+        
+        // Check properties
+        if let props = events.first?.properties {
+            XCTAssertEqual(props["middleware"]?.get(String.self), "TestMiddleware")
+            XCTAssertEqual(props["key"]?.get(String.self), "value")
+        }
     }
     
     func testEventWithTypedProperties() async throws {
         let context = CommandContext()
+        let emitter = CapturingEmitter()
+        await context.setEventEmitter(emitter)
         
         await context.emitMiddlewareEvent(
             "test.typed",
@@ -258,8 +269,15 @@ final class CommandContextTests: XCTestCase {
             properties: ["count": 42, "rate": 3.14]
         )
         
-        let metadata = await context.getMetadata()
-        XCTAssertEqual(metadata["last.event"] as? String, "test.typed")
+        let events = await emitter.events
+        XCTAssertEqual(events.count, 1)
+        XCTAssertEqual(events.first?.name, "test.typed")
+        
+        // Check typed properties
+        if let props = events.first?.properties {
+            XCTAssertEqual(props["count"]?.get(Int.self), 42)
+            XCTAssertEqual(props["rate"]?.get(Double.self), 3.14)
+        }
     }
     
     // MARK: - Thread Safety Tests

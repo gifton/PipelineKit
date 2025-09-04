@@ -30,44 +30,31 @@ A thread-safe context object carries metadata and cross-cutting concerns through
 ### Basic Command
 ```swift
 public protocol Command: Sendable {
-    associatedtype Result
-    func execute() async throws -> Result
+    associatedtype Result: Sendable
 }
 ```
 
-### Command Extensions
+### CommandHandler
 ```swift
-// Validation support
-extension Command {
-    func validate() throws { }
-}
-
-// Sanitization support
-extension Command {
-    func sanitized() throws -> Self { }
-}
-
-// Security features
-extension Command {
-    var sensitiveFields: [String: Any] { [:] }
-    func updateSensitiveFields(_ fields: [String: Any]) { }
+public protocol CommandHandler: Sendable {
+    associatedtype CommandType: Command
+    func handle(_ command: CommandType) async throws -> CommandType.Result
 }
 ```
 
-### Example Command
+### Example Command + Handler
 ```swift
 struct CreateUserCommand: Command {
+    typealias Result = User
     let username: String
     let email: String
-    
-    func execute() async throws -> User {
-        // Implementation
-    }
-    
-    func validate() throws {
-        guard !username.isEmpty else {
-            throw PipelineError.validation(field: "username", reason: .empty)
-        }
+}
+
+final class CreateUserHandler: CommandHandler {
+    typealias CommandType = CreateUserCommand
+    func handle(_ command: CreateUserCommand) async throws -> User {
+        // Validate and implement
+        return User(username: command.username, email: command.email)
     }
 }
 ```
@@ -87,20 +74,22 @@ public protocol Middleware: Sendable {
 }
 ```
 
-### Execution Priorities
+### Execution Priorities (lower executes earlier)
 ```swift
-public enum ExecutionPriority: Int, Comparable, Sendable {
-    case authentication = 1000
-    case authorization = 900
-    case validation = 800
-    case rateLimit = 700
-    case custom = 500
-    case caching = 400
-    case errorHandling = 300
-    case postProcessing = 200
-    case monitoring = 100
+public enum ExecutionPriority: Int, Sendable, CaseIterable {
+    case authentication = 100
+    case validation = 200
+    case resilience = 250
+    case preProcessing = 300
+    case monitoring = 350
+    case processing = 400
+    case postProcessing = 500
+    case errorHandling = 600
+    case observability = 700
+    case custom = 1000
 }
 ```
+Equal priorities preserve insertion order (stable ordering).
 
 ### Built-in Middleware
 
@@ -121,21 +110,15 @@ let authzMiddleware = AuthorizationMiddleware(
 #### Validation
 ```swift
 let validationMiddleware = ValidationMiddleware()
-// Automatically calls command.validate()
 ```
 
 #### Rate Limiting
 ```swift
-let rateLimiter = RateLimitingMiddleware(
-    algorithm: .tokenBucket(
-        capacity: 100,
-        refillRate: 10,
-        refillInterval: .seconds(1)
-    ),
-    keyExtractor: { context in
-        context.commandMetadata.userId ?? "anonymous"
-    }
+let limiter = RateLimiter(
+    strategy: .tokenBucket(capacity: 100, refillRate: 10),
+    scope: .perUser
 )
+let rateLimitMiddleware = RateLimitingMiddleware(limiter: limiter)
 ```
 
 #### Caching
@@ -188,83 +171,77 @@ let performanceMiddleware = PerformanceMiddleware(
 
 ### Basic Pipeline
 ```swift
-let pipeline = PipelineBuilder()
-    .add(middleware: authenticationMiddleware)
-    .add(middleware: validationMiddleware)
-    .add(middleware: rateLimitingMiddleware)
-    .build()
+let pipeline = StandardPipeline(handler: CreateUserHandler())
+try pipeline.addMiddleware(AuthenticationMiddleware(...))
+try pipeline.addMiddleware(ValidationMiddleware())
 
-let dispatcher = CommandDispatcher(pipeline: pipeline)
-let result = try await dispatcher.dispatch(command, context: context)
+let result = try await pipeline.execute(
+    CreateUserCommand(username: "u", email: "e"),
+    context: CommandContext()
+)
 ```
 
-### DSL Pipeline Building
+### Builder (Fluent)
 ```swift
-let pipeline = buildPipeline {
-    // Authentication & Authorization
-    authenticationMiddleware
-    authorizationMiddleware
-    
-    // Validation & Security
-    validationMiddleware
-    sanitizationMiddleware
-    
-    // Rate Limiting
-    if config.enableRateLimiting {
-        rateLimitingMiddleware
-    }
-    
-    // Caching
-    cachingMiddleware
-    
-    // Resilience
-    resilientMiddleware
-    
-    // Monitoring
-    metricsMiddleware
-    performanceMiddleware
-}
+let builder = PipelineBuilder(handler: CreateUserHandler())
+    .with(AuthenticationMiddleware(...))
+    .with(ValidationMiddleware())
+let pipeline = try await builder.build()
 ```
 
-### Advanced Pipeline Configuration
+### Dynamic Routing
 ```swift
-let pipeline = PipelineBuilder()
-    .add(middlewares: [
-        auth,
-        validation,
-        rateLimit
-    ])
-    .add(group: securityGroup)
-    .configure { builder in
-        if isProduction {
-            builder.add(middleware: encryptionMiddleware)
-        }
-    }
-    .optimized() // Enable chain optimization
-    .build()
+let bus = DynamicPipeline()
+await bus.register(CreateUserCommand.self, handler: CreateUserHandler())
+let user = try await bus.send(CreateUserCommand(username: "u", email: "e"))
+```
+
+#### Registration Policy
+```swift
+// Replace-by-default (non-throwing)
+await bus.register(CreateUserCommand.self, handler: CreateUserHandler())
+
+// Register once (throws if a handler already exists)
+try await bus.registerOnce(CreateUserCommand.self, handler: CreateUserHandler())
+
+// Replace (returns whether a previous handler was replaced)
+let replaced = await bus.replace(CreateUserCommand.self, with: CreateUserHandler())
+
+// Unregister (returns whether a handler was removed)
+let removed = await bus.unregister(CreateUserCommand.self)
 ```
 
 ## Error Handling
 
-### Unified Error Type
+### Unified Error Type (selected cases)
 ```swift
 public enum PipelineError: Error, LocalizedError, Sendable {
-    // Validation errors
-    case validation(field: String, reason: ValidationReason)
-    
-    // Authorization errors
+    // Validation
+    case validation(field: String?, reason: ValidationReason)
+
+    // Authorization
     case authorization(reason: AuthorizationReason)
-    
-    // Rate limiting errors
-    case rateLimitExceeded(limit: Int, resetTime: Date?)
-    
-    // Execution errors
-    case executionFailed(message: String, context: [String: String]?)
-    
-    // Security errors
-    case securityPolicy(reason: SecurityPolicyReason)
-    
-    // And many more...
+
+    // Rate limiting
+    case rateLimitExceeded(limit: Int, resetTime: Date?, retryAfter: TimeInterval?)
+
+    // Execution / Middleware
+    case executionFailed(message: String, context: ErrorContext?)
+    case middlewareError(middleware: String, message: String, context: ErrorContext?)
+
+    // Timeout / Cancellation
+    case timeout(duration: TimeInterval, context: ErrorContext?)
+    case cancelled(context: String?)
+}
+
+public struct ErrorContext: Sendable {
+    public let commandType: String
+    public let middlewareType: String?
+    public let correlationId: String?
+    public let userId: String?
+    public let additionalInfo: [String: String]
+    public let timestamp: Date
+    public let stackTrace: [String]?
 }
 ```
 
@@ -282,53 +259,22 @@ public protocol ErrorRecovery: Sendable {
 
 ### Command Validation
 ```swift
-// Automatic validation via middleware
+// Validation via middleware
 let validationMiddleware = ValidationMiddleware()
-
-// Custom validators
-struct EmailCommand: Command {
-    let email: String
-    
-    func validate() throws {
-        guard OptimizedValidators.validateEmail(email) else {
-            throw PipelineError.validation(field: "email", reason: .invalidFormat)
-        }
-    }
-}
+try pipeline.addMiddleware(validationMiddleware)
 ```
 
 ### Input Sanitization
 ```swift
 let sanitizationMiddleware = SanitizationMiddleware()
-
-struct MessageCommand: Command {
-    var message: String
-    
-    func sanitized() throws -> Self {
-        var sanitized = self
-        sanitized.message = message
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .replacingOccurrences(of: "<script>", with: "")
-        return sanitized
-    }
-}
+try pipeline.addMiddleware(sanitizationMiddleware)
 ```
 
 ### Encryption
 ```swift
-let encryptionMiddleware = EncryptionMiddleware(
-    encryptionService: AESEncryptionService(key: encryptionKey)
-)
-
-// Commands can mark sensitive fields
-struct PaymentCommand: Command {
-    let cardNumber: String
-    let cvv: String
-    
-    var sensitiveFields: [String: Any] {
-        ["cardNumber": cardNumber, "cvv": cvv]
-    }
-}
+let encryptionService = StandardEncryptionService(keyStore: myKeyStore)
+let encryptionMiddleware = EncryptionMiddleware(encryptionService: encryptionService)
+try pipeline.addMiddleware(encryptionMiddleware)
 ```
 
 ### Security Policies
@@ -346,123 +292,98 @@ let securityMiddleware = SecurityPolicyMiddleware(policy: securityPolicy)
 
 ## Observability
 
-### Pipeline Flow Tracing
+Use `ObservabilitySystem` to connect events and metrics naturally.
+
 ```swift
-let flowTracer = PipelineFlowTracer()
+import PipelineKitObservability
 
-// Start tracing
-let flowId = flowTracer.startCommandFlow(command)
-
-// Get execution flow
-let flow = await flowTracer.getExecutionFlow(id: flowId)
-print("Critical path: \(flow.criticalPath)")
-print("Bottlenecks: \(flow.metrics.bottlenecks)")
-```
-
-### Event Emission
-```swift
-// Emit custom events from middleware
-await context.emitCustomEvent(
-    "payment.processed",
-    properties: [
-        "amount": "100.00",
-        "currency": "USD",
-        "method": "credit_card"
-    ]
+// Create unified system
+let observability = await ObservabilitySystem.production(
+    statsdHost: "metrics.internal",
+    statsdPort: 8125,
+    prefix: "myapp"
 )
-```
 
-### System Health Monitoring
-```swift
-let health = await flowTracer.getSystemHealth()
-print("Active flows: \(health.activeFlows)")
-print("Average execution time: \(health.averageExecutionTime)")
-print("Overall health: \(health.overallHealth)")
+// Configure context to emit events
+let context = CommandContext()
+await context.setEventEmitter(observability.eventHub)
+
+// Emit events explicitly
+await context.emitEvent("command.started", properties: [
+    "commandType": String(describing: CreateUserCommand.self)
+])
+await context.emitCommandCompleted(type: "CreateUser")
+
+// Record direct metrics
+await observability.recordCounter(name: "api.requests", value: 1)
+await observability.recordTimer(name: "db.query", duration: 0.050)
 ```
 
 ## Performance & Memory
 
 ### Object Pooling
 ```swift
-// Command context pooling
-let contextPool = CommandContextPool.shared
-let pooledContext = contextPool.borrow(metadata: metadata)
-// Context automatically returned when deallocated
+import PipelineKitPooling
 
-// Generic object pooling
-let bufferPool = BufferPool<Data>(capacity: 1000)
-let buffer = await bufferPool.acquire()
-// Use buffer...
-await bufferPool.release(buffer)
-```
+// Create a pool for expensive objects
+let pool = ObjectPool(
+    configuration: .default,
+    factory: { ExpensiveObject() },
+    reset: { $0.reset() }
+)
 
-### Middleware Chain Optimization
-```swift
-let optimizedPipeline = PipelineBuilder()
-    .add(middlewares: middlewares)
-    .optimized() // Enables fast-path execution
-    .build()
+let obj = try await pool.acquire()
+defer { await pool.release(obj) }
+// Use obj...
 ```
 
 ### Memory Pressure Handling
 ```swift
-// Automatic memory pressure response
-let pool = ObjectPool<ExpensiveObject>(
-    maxSize: 100,
-    highWaterMark: 80,
-    lowWaterMark: 20,
-    factory: { ExpensiveObject() }
-)
-// Pool automatically shrinks under memory pressure
+// Start monitoring once at app startup
+await MemoryPressureDetector.shared.startMonitoring()
+
+// Register a cleanup handler
+let handlerId = await MemoryPressureDetector.shared.register {
+    // Release cached resources
+    await pool.releaseUnused()
+}
 ```
 
 ## Testing Support
 
-### Test Helpers
+### Event Capture
 ```swift
-// Test command
-let command = TestCommand(value: "test", shouldFail: false)
+import PipelineKitTestSupport
 
-// Test context with metadata
-let context = CommandContext.test(
-    userId: "test-user",
-    correlationId: "test-correlation-123"
-)
+let emitter = CapturingEmitter()
+let context = CommandContext()
+await context.setEventEmitter(emitter)
 
-// Test middleware
-let testMiddleware = TestMiddleware()
-try await pipeline.execute(command, context: context)
-assert(testMiddleware.executionCount == 1)
+// Execute code that emits events
+// ...
+
+let events = await emitter.events
+XCTAssertGreaterThan(events.count, 0)
 ```
 
-### Mock Services
+### Middleware Testing
 ```swift
-// Mock metrics collector
-let mockMetrics = MockMetricsCollector()
-let middleware = MetricsMiddleware(collector: mockMetrics)
+import PipelineKitTestSupport
 
-// Verify metrics
-let recordedMetrics = mockMetrics.recordedMetrics
-assert(recordedMetrics.count == 1)
-```
+final class LoggingMiddleware: Middleware {
+    let priority = ExecutionPriority.postProcessing
+    func execute<T: Command>(
+        _ command: T,
+        context: CommandContext,
+        next: @Sendable (T, CommandContext) async throws -> T.Result
+    ) async throws -> T.Result {
+        return try await next(command, context)
+    }
+}
 
-### Performance Testing
-```swift
-// Stress testing support
-let scenario = BurstLoadScenario(
-    name: "API Load Test",
-    idleDuration: 10,
-    spikeDuration: 60,
-    recoveryDuration: 30
-)
-
-let runner = ScenarioRunner(
-    orchestrator: orchestrator,
-    safetyMonitor: safetyMonitor,
-    metricCollector: metricCollector
-)
-
-try await runner.run(scenario)
+let pipeline = StandardPipeline(handler: CreateUserHandler())
+try pipeline.addMiddleware(LoggingMiddleware())
+let _ = try await pipeline.execute(CreateUserCommand(username: "u", email: "e"), context: CommandContext())
 ```
 
 ## Thread Safety
@@ -473,4 +394,3 @@ All public APIs in PipelineKit are thread-safe and designed for concurrent use:
 - Middleware must be `Sendable`
 - Context propagation is thread-safe
 - All pools and caches use appropriate synchronization
-

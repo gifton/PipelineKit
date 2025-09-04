@@ -24,12 +24,12 @@ PipelineKit is designed for safe concurrent execution using Swift's modern concu
 We use `@unchecked Sendable` in specific, well-documented cases where we can guarantee thread safety through other means:
 
 #### 1. PooledObject<T: Sendable>
-**File**: `Sources/PipelineKitCore/Memory/PooledObject.swift`
+**File**: `Sources/PipelineKitPooling/PooledObject.swift`
 **Reason**: Uses `NSLock` to protect mutable `isReturned` state
 **Safety**: Lock ensures thread-safe access, T is constrained to Sendable
 
 #### 2. AnySendable
-**File**: `Sources/PipelineKitCore/Concurrency/AnySendable.swift`
+**File**: `Sources/PipelineKitCore/Commands/AnySendable.swift`
 **Reason**: Type-erased wrapper for heterogeneous Sendable storage
 **Safety**: Only accepts Sendable values, runtime assertion in debug builds
 
@@ -47,7 +47,9 @@ This design ensures thread safety through actor isolation while maintaining high
 
 ### Type Erasure
 
-We use `AnySendable` for type-erased storage in contexts like `CommandContext`. This allows heterogeneous storage while maintaining Swift 6 compliance through proper Sendable constraints.
+We use `AnySendable` for type‑erased storage in contexts like `CommandContext`. This allows heterogeneous storage while maintaining Swift 6 compliance through proper Sendable constraints.
+
+Note: `AnySendable` intentionally does not conform to `Equatable`/`Hashable`. Extract concrete values via `get(_:)` to compare or hash.
 
 ## Swift 6 Compliance
 
@@ -78,14 +80,11 @@ Our concurrency model prioritizes performance while maintaining safety:
 2. **Performance benchmarks**: Ensure no regression from safety features
 3. **Swift 6 CI**: Track compatibility (allowed to fail)
 
-## Migration Guide
+## Design Notes
 
-For users of PipelineKit:
-
-1. Ensure all custom `Command` types conform to `Sendable`
-2. Make command results `Sendable` (value types preferred)
-3. Use provided pool types based on your needs
-4. Report any concurrency warnings in your integration
+- All public APIs are designed for Swift 6 strict concurrency.
+- Avoid relying on deinit timing for correctness; warnings are debug‑only diagnostics.
+- Prefer actors and value types; use `@unchecked Sendable` sparingly and document why.
 
 ## Future Considerations
 

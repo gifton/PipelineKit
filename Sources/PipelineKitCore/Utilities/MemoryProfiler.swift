@@ -1,4 +1,9 @@
 import Foundation
+#if os(Linux)
+@preconcurrency import Glibc
+#else
+@preconcurrency import Darwin
+#endif
 
 /// A memory profiler for tracking allocations and analyzing memory usage patterns.
 ///
@@ -235,23 +240,28 @@ public actor MemoryProfiler {
     // MARK: - Private Helpers
     
     private func getCurrentMemoryInfo() -> (resident: UInt64, virtual: UInt64) {
+        #if canImport(Darwin)
         var info = mach_task_basic_info()
         var count = mach_msg_type_number_t(MemoryLayout<mach_task_basic_info>.size) / 4
-        
         let kerr: kern_return_t = withUnsafeMutablePointer(to: &info) {
             $0.withMemoryRebound(to: integer_t.self, capacity: 1) {
-                task_info(mach_task_self_,
-                          task_flavor_t(MACH_TASK_BASIC_INFO),
-                          $0,
-                          &count)
+                task_info(
+                    mach_task_self_,
+                    task_flavor_t(MACH_TASK_BASIC_INFO),
+                    $0,
+                    &count
+                )
             }
         }
-        
         if kerr == KERN_SUCCESS {
             return (resident: info.resident_size, virtual: info.virtual_size)
         } else {
             return (resident: 0, virtual: 0)
         }
+        #else
+        // Linux fallback: best-effort zeros (can be improved via /proc parsing)
+        return (resident: 0, virtual: 0)
+        #endif
     }
     
     private func generateRecommendations(

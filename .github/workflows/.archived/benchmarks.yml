@@ -1,0 +1,108 @@
+name: Performance Benchmarks
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Run benchmarks daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      save_baseline:
+        description: 'Save results as new baseline'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  benchmark:
+    name: Run Performance Benchmarks
+    runs-on: macos-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        # Need full history for baseline comparisons
+        fetch-depth: 0
+    
+    - name: Setup Swift
+      uses: swift-actions/setup-swift@v2.3.0
+      with:
+        swift-version: '6.0'
+    
+    - name: Cache Swift packages
+      uses: actions/cache@v4
+      with:
+        path: |
+          .build
+          ~/Library/Developer/Xcode/DerivedData
+        key: ${{ runner.os }}-swift-${{ hashFiles('Package.resolved') }}
+        restore-keys: |
+          ${{ runner.os }}-swift-
+    
+    - name: Build performance tests
+      run: swift build --target PipelineKitPerformanceTests -c release
+    
+    - name: Run performance tests (quick mode for PRs)
+      if: github.event_name == 'pull_request'
+      env:
+        CI: true
+      run: |
+        swift test -c release --filter PerformanceTests > benchmark-output.txt 2>&1 || true
+        cat benchmark-output.txt
+    
+    - name: Run performance tests (full mode for main)
+      if: github.event_name != 'pull_request'
+      run: |
+        swift test -c release --filter PerformanceTests > benchmark-output.txt 2>&1 || true
+        cat benchmark-output.txt
+    
+    - name: Comment PR with results
+      if: github.event_name == 'pull_request' && always()
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const output = fs.readFileSync('benchmark-output.txt', 'utf8');
+          
+          // Check if tests passed - look for actual test case results
+          const testCasesPassed = (output.match(/Test Case .* passed/g) || []).length;
+          const testCasesFailed = (output.match(/Test Case .* failed/g) || []).length;
+          const passed = testCasesFailed === 0 && testCasesPassed > 0;
+          const emoji = passed ? '✅' : '⚠️';
+          const title = passed ? 'Performance Tests Passed' : 'Performance Tests Need Review';
+          
+          const summary = `## ${emoji} ${title}
+          
+**Test Results:**
+- Passed: ${testCasesPassed} ✅
+- Failed: ${testCasesFailed} ${testCasesFailed > 0 ? '❌' : ''}
+
+<details>
+<summary>Performance Test Output</summary>
+
+\`\`\`
+${output.substring(0, 50000)}
+\`\`\`
+</details>
+
+Please review the performance impact of your changes.`;
+          
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: summary
+          });
+    
+    - name: Upload results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: benchmark-results-${{ github.sha }}
+        path: |
+          benchmark-output.txt
+        retention-days: 90

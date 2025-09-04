@@ -1,0 +1,193 @@
+name: Benchmark CI
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'Sources/**'
+      - 'Tests/PipelineKitPerformanceTests/**'
+      - 'Package.swift'
+      - '.github/workflows/benchmark-ci.yml'
+  push:
+    branches: [ main ]
+    paths:
+      - 'Sources/**'
+      - 'Tests/PipelineKitPerformanceTests/**'
+      - 'Package.swift'
+  workflow_dispatch:
+    inputs:
+      update_baseline:
+        description: 'Update baseline after run'
+        type: boolean
+        default: false
+
+env:
+  SWIFT_VERSION: '6.0'
+
+# Grant permissions for the GITHUB_TOKEN
+permissions:
+  contents: read
+  pull-requests: write  # Required to comment on PRs
+  issues: write        # Required to comment on issues
+
+jobs:
+  run-benchmarks:
+    name: Run Performance Tests
+    runs-on: macos-latest
+    timeout-minutes: 30
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Need full history for baseline comparison
+      
+      - name: Setup Swift
+        uses: swift-actions/setup-swift@v2.3.0
+        with:
+          swift-version: ${{ env.SWIFT_VERSION }}
+      
+      - name: Cache Swift Package Manager
+        uses: actions/cache@v4
+        with:
+          path: .build
+          key: ${{ runner.os }}-spm-${{ hashFiles('Package.resolved') }}
+          restore-keys: |
+            ${{ runner.os }}-spm-
+      
+      - name: Build Performance Tests
+        run: |
+          swift build --target PipelineKitPerformanceTests -c release
+      
+      - name: Run Performance Tests
+        id: run_benchmarks
+        env:
+          CI: true
+        timeout-minutes: 10
+        run: |
+          echo "Running PipelineKit performance tests..."
+          
+          # Run performance tests using XCTest
+          swift test -c release --filter PerformanceTests > benchmark-results.txt 2>&1 || {
+              EXIT_CODE=$?
+              echo "Performance tests failed with code: $EXIT_CODE" >> benchmark-results.txt
+          }
+          
+          # Ensure we have some output
+          if [ ! -s benchmark-results.txt ]; then
+            echo "No performance test output captured" > benchmark-results.txt
+          fi
+          
+          # Display results for logging
+          echo "Performance Test Results:"
+          head -100 benchmark-results.txt || echo "No test results to display"
+          
+          # Check for test failures
+          if grep -q "failed" benchmark-results.txt; then
+            echo "performance_status=failed" >> $GITHUB_OUTPUT
+          else
+            echo "performance_status=passed" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Process Results
+        id: process_results
+        run: |
+          # Extract test counts - look for the actual test case lines
+          TEST_COUNT=$(grep -c "Test Case .* \(passed\|failed\)" benchmark-results.txt 2>/dev/null || true)
+          PASSED_COUNT=$(grep -c "Test Case .* passed" benchmark-results.txt 2>/dev/null || true)
+          FAILED_COUNT=$(grep -c "Test Case .* failed" benchmark-results.txt 2>/dev/null || true)
+          
+          # Ensure we have numeric values
+          TEST_COUNT=${TEST_COUNT:-0}
+          PASSED_COUNT=${PASSED_COUNT:-0}
+          FAILED_COUNT=${FAILED_COUNT:-0}
+          
+          # Write to GitHub output with proper formatting
+          echo "test_count=${TEST_COUNT}" >> $GITHUB_OUTPUT
+          echo "passed_count=${PASSED_COUNT}" >> $GITHUB_OUTPUT
+          echo "failed_count=${FAILED_COUNT}" >> $GITHUB_OUTPUT
+          
+          # Create summary
+          {
+            echo "## Performance Test Summary"
+            echo ""
+            echo "- Total Tests: $TEST_COUNT"
+            echo "- Passed: $PASSED_COUNT ✅"
+            echo "- Failed: $FAILED_COUNT ❌"
+            echo ""
+            echo "### Test Categories:"
+            echo "- Pipeline Performance Tests"
+            echo "- CommandContext Performance Tests"
+            echo "- BackPressure Performance Tests"
+            echo ""
+            echo "<details>"
+            echo "<summary>Full Test Output</summary>"
+            echo ""
+            echo '```'
+            cat benchmark-results.txt | head -500
+            echo '```'
+            echo "</details>"
+          } > benchmark-summary.md
+      
+      - name: Display Results in Workflow Summary
+        if: always()
+        run: |
+          cat benchmark-summary.md >> $GITHUB_STEP_SUMMARY
+      
+      - name: Comment PR Results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        continue-on-error: true  # Don't fail the workflow if commenting fails
+        with:
+          script: |
+            const fs = require('fs');
+            const summary = fs.readFileSync('benchmark-summary.md', 'utf8');
+            
+            // Find and update existing comment or create new one
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            
+            const botComment = comments.find(comment => 
+              comment.user.type === 'Bot' && 
+              comment.body.includes('Performance Test Summary')
+            );
+            
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: summary
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: summary
+              });
+            }
+      
+      - name: Upload Results Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-test-results-${{ github.sha }}
+          path: |
+            benchmark-results.txt
+            benchmark-summary.md
+          retention-days: 30
+      
+      - name: Check Test Status
+        if: steps.run_benchmarks.outputs.performance_status == 'failed'
+        run: |
+          echo "❌ Performance tests failed. Please review the results above."
+          exit 1
+      
+      - name: Success Message
+        if: steps.run_benchmarks.outputs.performance_status == 'passed'
+        run: |
+          echo "✅ All performance tests passed successfully!"

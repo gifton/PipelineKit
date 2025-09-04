@@ -240,11 +240,15 @@ public actor CommandContext {
     
     /// Creates a snapshot of all values in the context.
     /// - Returns: A dictionary containing all context values
+    ///
+    /// Note: Values stored internally as `AnySendable` are unwrapped to their
+    /// underlying `Sendable` values for easier diagnostics and consumption.
     public func snapshot() -> [String: any Sendable] {
         var result: [String: any Sendable] = [:]
         
-        // Add all typed key values
+        // Add all typed key values, using the wrapper directly since it's already Sendable
         for (key, wrapper) in storage {
+            // AnySendable is itself Sendable, so we can just use it directly
             result[key] = wrapper
         }
         
@@ -257,6 +261,20 @@ public actor CommandContext {
         ]
         result["commandMetadata"] = metadataDict
         
+        return result
+    }
+
+    /// Creates a raw snapshot returning internal AnySendable wrappers.
+    /// - Returns: A dictionary containing all context values without unwrapping
+    public func snapshotRaw() -> [String: AnySendable] {
+        var result: [String: AnySendable] = storage
+        let metadataDict: [String: any Sendable] = [
+            "id": commandMetadata.id.uuidString,
+            "timestamp": commandMetadata.timestamp,
+            "userId": commandMetadata.userId ?? "",
+            "correlationId": commandMetadata.correlationId ?? ""
+        ]
+        result["commandMetadata"] = AnySendable(metadataDict)
         return result
     }
     
@@ -277,6 +295,26 @@ public actor CommandContext {
     /// - Parameter updates: A closure that performs updates
     public func update(_ updates: (CommandContext) async -> Void) async {
         await updates(self)
+    }
+    
+    // MARK: - Cancellation Support
+    
+    /// Marks this context as cancelled with the specified reason.
+    /// - Parameter reason: The reason for cancellation
+    public func markAsCancelled(reason: CancellationReason) {
+        storage[ContextKeys.cancellationReason.name] = AnySendable(reason)
+    }
+    
+    /// Gets the cancellation reason if the context has been cancelled.
+    /// - Returns: The cancellation reason, or nil if not cancelled
+    public func getCancellationReason() -> CancellationReason? {
+        get(ContextKeys.cancellationReason)
+    }
+    
+    /// Checks if this context has been marked as cancelled.
+    /// - Returns: true if the context has been cancelled
+    public var isCancelled: Bool {
+        getCancellationReason() != nil
     }
     
     // MARK: - Fork Support

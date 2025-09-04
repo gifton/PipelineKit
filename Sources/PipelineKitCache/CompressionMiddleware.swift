@@ -1,3 +1,4 @@
+#if canImport(Compression)
 import Foundation
 import PipelineKit
 import Compression
@@ -461,20 +462,6 @@ public final class CompressionUtility: Sendable {
             return .failure(.compressionFailed("Unknown error: \(error)"))
         }
     }
-    
-    /// Calculate compression ratio for data (legacy version for compatibility).
-    /// - Warning: This method swallows errors and returns 1.0 on failure. Use the Result-based version instead.
-    @available(*, deprecated, message: "Use compressionRatio that returns Result instead")
-    public static func compressionRatioOrDefault(
-        for data: Data,
-        using algorithm: CompressionAlgorithm,
-        level: CompressionLevel = .balanced
-    ) -> Double {
-        switch compressionRatio(for: data, using: algorithm, level: level) {
-        case .success(let ratio):
-            return ratio
-        case .failure:
-            return 1.0
-        }
-    }
 }
+
+#endif // canImport(Compression)

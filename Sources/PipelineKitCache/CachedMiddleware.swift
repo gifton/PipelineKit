@@ -5,7 +5,7 @@ import PipelineKit
 ///
 /// This wrapper is particularly useful for middleware that performs expensive
 /// computations or I/O operations that can be cached based on command parameters.
-public struct CachedMiddleware<M: Middleware>: Middleware where M: Sendable {
+public struct CachedMiddleware<M: Middleware>: Middleware, NextGuardWarningSuppressing where M: Sendable {
     private let wrapped: M
     private let cache: MiddlewareCache
     private let keyGenerator: CacheKeyGenerator
@@ -221,7 +221,7 @@ public extension Middleware {
 // MARK: - Conditional Caching
 
 /// Middleware wrapper that caches based on conditions
-public struct ConditionalCachedMiddleware<M: Middleware>: Middleware where M: Sendable {
+public struct ConditionalCachedMiddleware<M: Middleware>: Middleware, NextGuardWarningSuppressing where M: Sendable {
     private let wrapped: M
     private let cache: MiddlewareCache
     private let shouldCache: @Sendable (Any, CommandContext) async -> Bool

@@ -56,29 +56,9 @@ public struct AnySendable: @unchecked Sendable {
 
 // MARK: - Equatable
 
-extension AnySendable: Equatable {
-    public static func == (lhs: AnySendable, rhs: AnySendable) -> Bool {
-        // This is a best-effort equality check
-        // We can't guarantee semantic equality for all types
-        if let lhsEquatable = lhs._value as? any Equatable,
-           let rhsEquatable = rhs._value as? any Equatable {
-            return lhsEquatable.isEqual(rhsEquatable)
-        }
-        return false
-    }
-}
-
-// MARK: - Hashable
-
-extension AnySendable: Hashable {
-    public func hash(into hasher: inout Hasher) {
-        // Hash based on type and value if possible
-        hasher.combine(String(describing: type(of: _value)))
-        if let hashable = _value as? any Hashable {
-            hasher.combine(hashable)
-        }
-    }
-}
+// Note: Intentionally not Equatable/Hashable to avoid misleading semantics for
+// heterogeneous, type-erased values. Consumers should extract concrete values via
+// `get(_:)` and compare/hash them explicitly when needed.
 
 // MARK: - CustomStringConvertible
 
@@ -98,9 +78,4 @@ extension AnySendable: CustomDebugStringConvertible {
 
 // MARK: - Private Helpers
 
-private extension Equatable {
-    func isEqual(_ other: any Equatable) -> Bool {
-        guard let other = other as? Self else { return false }
-        return self == other
-    }
-}
+// (No Equatable/Hashable conformance by design)

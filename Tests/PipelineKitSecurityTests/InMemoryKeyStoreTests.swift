@@ -1,5 +1,5 @@
 import XCTest
-import CryptoKit
+@preconcurrency import CryptoKit
 @testable import PipelineKitSecurity
 @testable import PipelineKitTestSupport
 
@@ -11,7 +11,7 @@ final class InMemoryKeyStoreTests: XCTestCase {
         
         // Generate test keys
         let testKeys = (0..<keyCount).map { i in
-            (identifier: "key-\(i)", key: SymmetricKey(size: .bits256))
+            (identifier: "key-\(i)", key: SendableSymmetricKey(size: .bits256))
         }
         
         // Track expected state
@@ -64,7 +64,7 @@ final class InMemoryKeyStoreTests: XCTestCase {
         
         // Store initial keys
         for i in 0..<10 {
-            let key = SymmetricKey(size: .bits256)
+            let key = SendableSymmetricKey(size: .bits256)
             await store.store(key: key, identifier: "initial-\(i)")
         }
         
@@ -75,7 +75,7 @@ final class InMemoryKeyStoreTests: XCTestCase {
             // Concurrent stores of new keys
             for i in 0..<iterations {
                 group.addTask {
-                    let key = SymmetricKey(size: .bits256)
+                    let key = SendableSymmetricKey(size: .bits256)
                     await store.store(key: key, identifier: "new-\(i)")
                 }
             }
@@ -110,7 +110,7 @@ final class InMemoryKeyStoreTests: XCTestCase {
         await withTaskGroup(of: Void.self) { group in
             (0..<iterations).forEach { _ in
                 group.addTask {
-                    let key = SymmetricKey(size: .bits256)
+                    let key = SendableSymmetricKey(size: .bits256)
                     await store.store(key: key, identifier: keyIdentifier)
                 }
                 
@@ -135,12 +135,12 @@ final class InMemoryKeyStoreTests: XCTestCase {
         
         // Store keys that will be expired
         for i in 0..<20 {
-            let key = SymmetricKey(size: .bits256)
+            let key = SendableSymmetricKey(size: .bits256)
             await store.store(key: key, identifier: "expired-\(i)")
         }
         
         // Store current key that won't be expired
-        let currentKey = SymmetricKey(size: .bits256)
+        let currentKey = SendableSymmetricKey(size: .bits256)
         await store.store(key: currentKey, identifier: "current")
         
         let futureDate = Date().addingTimeInterval(1) // 1 second in future
@@ -180,14 +180,14 @@ final class InMemoryKeyStoreTests: XCTestCase {
         // This test verifies that actor isolation prevents data races
         let task1 = Task {
             for i in 0..<100 {
-                let key = SymmetricKey(size: .bits256)
+                let key = SendableSymmetricKey(size: .bits256)
                 await store.store(key: key, identifier: "task1-\(i)")
             }
         }
         
         let task2 = Task {
             for i in 0..<100 {
-                let key = SymmetricKey(size: .bits256)
+                let key = SendableSymmetricKey(size: .bits256)
                 await store.store(key: key, identifier: "task2-\(i)")
             }
         }

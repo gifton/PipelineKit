@@ -128,7 +128,7 @@ final class SimpleCancellationTests: XCTestCase {
         let dynamicPipeline = DynamicPipeline()
         let handler = FailingHandler()
         
-        try await dynamicPipeline.register(TestCommand.self, handler: handler)
+        await dynamicPipeline.register(TestCommand.self, handler: handler)
         
         let retryPolicy = RetryPolicy(
             maxAttempts: 5,
@@ -177,7 +177,7 @@ final class SimpleCancellationTests: XCTestCase {
         let dynamicPipeline = DynamicPipeline()
         let handler = CancellingHandler()
         
-        try await dynamicPipeline.register(TestCommand.self, handler: handler)
+        await dynamicPipeline.register(TestCommand.self, handler: handler)
         
         let retryPolicy = RetryPolicy(
             maxAttempts: 3,
@@ -235,7 +235,7 @@ final class SimpleCancellationTests: XCTestCase {
         let dynamicPipeline = DynamicPipeline()
         let handler = SlowHandler()
         
-        try await dynamicPipeline.register(SlowCommand.self, handler: handler)
+        await dynamicPipeline.register(SlowCommand.self, handler: handler)
         try await dynamicPipeline.addMiddleware(SlowMiddleware())
         
         let task = Task {

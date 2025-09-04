@@ -1,28 +1,34 @@
 import Foundation
 
-/// Extension to add event emission capabilities to CommandContext.
+/// Extension to add core event emission capabilities to CommandContext.
+///
+/// This provides the foundation for event emission in PipelineKit. 
+/// The actual emitter can be set using the eventEmitter context key.
 extension CommandContext {
-    /// Storage key for event observers
-    private static let observersKey = "pipeline.event.observers"
-    
-    /// Adds an event observer to this context.
-    public func addObserver(_ observer: any PipelineObserver) async {
-        // Since we can't store observers directly (not Sendable), 
-        // we'll need to use a different approach
-        // For now, we'll skip observer storage and just emit events
+    /// Gets the event emitter for this context.
+    public var eventEmitter: EventEmitter? {
+        get { self.get(ContextKeys.eventEmitter) }
     }
     
-    /// Removes all event observers.
-    public func clearObservers() async {
-        // No-op for now
+    /// Sets the event emitter for this context.
+    /// - Parameter emitter: The event emitter to use for this context
+    public func setEventEmitter(_ emitter: EventEmitter?) {
+        self.set(ContextKeys.eventEmitter, value: emitter)
     }
     
-    /// Emits a pipeline event to all registered observers.
+    /// Emits a pipeline event through the configured event emitter.
+    ///
+    /// If no emitter is configured, the event is silently discarded.
+    /// This allows event emission to be optional without requiring
+    /// conditional checks at every emission site.
+    ///
+    /// - Parameter event: The event to emit
     public func emitEvent(_ event: PipelineEvent) async {
-        // For now, just store the event in metadata for testing/debugging
-       setMetadata("last.event", value: event.name)
-       setMetadata("last.event.correlationID", value: event.correlationID)
-       setMetadata("last.event.sequenceID", value: event.sequenceID)
+        // Forward to the configured emitter if present
+        if let emitter = eventEmitter {
+            await emitter.emit(event)
+        }
+        // No fallback to metadata storage - clean separation of concerns
     }
     
     /// Convenience method to emit a middleware event.

@@ -16,7 +16,7 @@ PipelineKit supports multiple installation methods to fit your workflow.
 2. Go to **File** � **Add Package Dependencies...**
 3. Enter the repository URL:
    ```
-   https://github.com/yourusername/PipelineKit.git
+   https://github.com/gifton/PipelineKit.git
    ```
 4. Choose version requirements (e.g., "Up to Next Major" from 0.1.0)
 5. Click **Add Package**
@@ -27,19 +27,19 @@ PipelineKit supports multiple installation methods to fit your workflow.
 Add PipelineKit to your `Package.swift` manifest:
 
 ```swift
-// swift-tools-version:5.9
+// swift-tools-version: 6.0
 import PackageDescription
 
 let package = Package(
     name: "YourPackage",
     platforms: [
-        .macOS(.v13),
-        .iOS(.v16),
-        .tvOS(.v16),
-        .watchOS(.v9)
+        .macOS(.v14),
+        .iOS(.v17),
+        .tvOS(.v17),
+        .watchOS(.v10)
     ],
     dependencies: [
-        .package(url: "https://github.com/yourusername/PipelineKit.git", from: "0.1.0")
+        .package(url: "https://github.com/gifton/PipelineKit.git", from: "0.1.0")
     ],
     targets: [
         .target(
@@ -87,7 +87,7 @@ You can specify version requirements in several ways:
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/PipelineKit.git
+git clone https://github.com/gifton/PipelineKit.git
 cd PipelineKit
 
 # Build the package
@@ -130,7 +130,7 @@ pod 'PipelineKit', '~> 0.1.0'
 
 ```
 # Cartfile (Coming Soon)
-github "yourusername/PipelineKit" ~> 0.1.0
+github "gifton/PipelineKit" ~> 0.1.0
 ```
 
 ## Manual Installation
@@ -151,7 +151,7 @@ After installation, verify PipelineKit is working:
 import PipelineKit
 
 // Create a simple test
-let metadata = StandardCommandMetadata(userId: "test")
+let metadata = DefaultCommandMetadata(userId: "test")
 let context = CommandContext(metadata: metadata)
 print("PipelineKit installed successfully!")
 ```
@@ -176,7 +176,7 @@ Or in Xcode:
 
 ### Linux
 
-PipelineKit is fully compatible with Linux. Ensure you have Swift installed:
+PipelineKit builds on Linux. Ensure you have Swift installed. Some transports (e.g., UDP via Network framework) may require alternative backends on non‑Apple platforms:
 
 ```bash
 # Ubuntu

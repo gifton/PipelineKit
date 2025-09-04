@@ -41,9 +41,33 @@ actor HandlerRegistry {
     func register<T: Command, H: CommandHandler>(
         _ commandType: T.Type,
         handler: H
-    ) async throws where H.CommandType == T {
+    ) async where H.CommandType == T {
         let key = ObjectIdentifier(commandType)
         handlers[key] = AnyCommandHandler(handler)
+    }
+
+    /// Inserts a handler only if no handler is currently registered.
+    /// - Returns: true if inserted, false if a handler already existed
+    func insertIfAbsent<T: Command, H: CommandHandler>(
+        _ commandType: T.Type,
+        handler: H
+    ) async -> Bool where H.CommandType == T {
+        let key = ObjectIdentifier(commandType)
+        guard handlers[key] == nil else { return false }
+        handlers[key] = AnyCommandHandler(handler)
+        return true
+    }
+
+    /// Replaces the handler for a command type.
+    /// - Returns: true if a previous handler was replaced, false if none existed
+    @discardableResult
+    func replace<T: Command, H: CommandHandler>(
+        _ commandType: T.Type,
+        with handler: H
+    ) async -> Bool where H.CommandType == T {
+        let key = ObjectIdentifier(commandType)
+        let replaced = handlers.updateValue(AnyCommandHandler(handler), forKey: key) != nil
+        return replaced
     }
     
     /// Retrieves a handler for a specific command type.

@@ -1,4 +1,7 @@
 @preconcurrency import Foundation
+#if canImport(Darwin)
+@preconcurrency import Darwin
+#endif
 #if canImport(UIKit)
 import UIKit
 #endif
@@ -159,38 +162,21 @@ public actor MemoryPressureResponder {
     }
     
     private func getAvailableMemory() -> Int {
-        #if os(macOS)
-        var info = mach_task_basic_info()
-        var count = mach_msg_type_number_t(MemoryLayout<mach_task_basic_info>.size / MemoryLayout<natural_t>.size)
-        
-        let result = withUnsafeMutablePointer(to: &info) {
-            $0.withMemoryRebound(to: integer_t.self, capacity: 1) {
-                task_info(
-                    mach_task_self_,
-                    task_flavor_t(MACH_TASK_BASIC_INFO),
-                    $0,
-                    &count
-                )
-            }
-        }
-        
-        if result == KERN_SUCCESS {
-            // Return physical memory limit minus resident size
-            let limit = ProcessInfo.processInfo.physicalMemory
-            return Int(limit) - Int(info.resident_size)
-        }
-        #endif
-        
-        // Fallback: use ProcessInfo
         let totalMemory = ProcessInfo.processInfo.physicalMemory
-        let usedMemory = getMemoryUsage()
-        return Int(totalMemory) - usedMemory
+        #if canImport(Darwin)
+        let used = getMemoryUsageDarwin()
+        let available = Int(totalMemory) - used
+        return available > 0 ? available : 0
+        #else
+        // Best-effort fallback: unknown used memory, assume not under pressure
+        return Int(totalMemory)
+        #endif
     }
     
-    private func getMemoryUsage() -> Int {
+    #if canImport(Darwin)
+    private func getMemoryUsageDarwin() -> Int {
         var info = mach_task_basic_info()
         var count = mach_msg_type_number_t(MemoryLayout<mach_task_basic_info>.size / MemoryLayout<natural_t>.size)
-        
         let result = withUnsafeMutablePointer(to: &info) {
             $0.withMemoryRebound(to: integer_t.self, capacity: 1) {
                 task_info(
@@ -201,9 +187,9 @@ public actor MemoryPressureResponder {
                 )
             }
         }
-        
         return result == KERN_SUCCESS ? Int(info.resident_size) : 0
     }
+    #endif
 }
 
 /// Memory pressure levels.

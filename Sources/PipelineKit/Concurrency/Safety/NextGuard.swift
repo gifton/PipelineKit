@@ -33,6 +33,9 @@ public final class NextGuard<T: Command>: Sendable {
     /// Optional identifier for debugging
     private let identifier: String?
     
+    /// Whether to suppress deinit warnings when `next` was never called
+    private let suppressDeinitWarning: Bool
+    
     /// Creates a new NextGuard wrapping the given next closure.
     ///
     /// - Parameters:
@@ -40,10 +43,12 @@ public final class NextGuard<T: Command>: Sendable {
     ///   - identifier: Optional identifier for debugging
     public init(
         _ next: @escaping @Sendable (T, CommandContext) async throws -> T.Result,
-        identifier: String? = nil
+        identifier: String? = nil,
+        suppressDeinitWarning: Bool = false
     ) {
         self.next = next
         self.identifier = identifier
+        self.suppressDeinitWarning = suppressDeinitWarning
     }
     
     /// Executes the guarded next closure, ensuring single execution.
@@ -104,18 +109,30 @@ public final class NextGuard<T: Command>: Sendable {
     #if DEBUG
     /// Debug-only check that next was called before deallocation
     deinit {
+        // Check if warnings are enabled
+        guard NextGuardConfiguration.shared.emitWarnings else { return }
+        
         let finalState = state.load(ordering: .relaxed)
         if finalState == 0 {
-            // Check if we're in a cancelled task context
-            // If the task is cancelled, it's acceptable for next not to be called
+            // Check if task was cancelled
             if Task.isCancelled {
-                // Cancellation is acceptable - middleware may not call next when cancelled
+                return // Cancellation is acceptable
+            }
+            // Respect per-instance suppression
+            if suppressDeinitWarning {
                 return
             }
             
             let id = identifier ?? "unknown"
-            // Use print instead of assertionFailure during development to avoid crashes
-            print("⚠️ WARNING: NextGuard(\(id)) deallocated without calling next() - middleware must call next exactly once (unless cancelled)")
+            let message = "⚠️ WARNING: NextGuard(\(id)) deallocated without calling next() - middleware must call next exactly once (unless cancelled)"
+            
+            // Use custom handler if provided, otherwise print
+            if let handler = NextGuardConfiguration.shared.warningHandler {
+                handler(message)
+            } else {
+                print(message)
+            }
+            
             #if false
             assertionFailure(
                 "NextGuard(\(id)) deallocated without calling next() - " +

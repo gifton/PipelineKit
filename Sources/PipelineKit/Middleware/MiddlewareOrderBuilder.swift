@@ -33,8 +33,16 @@ public struct MiddlewareOrderBuilder {
         middlewares.append((middleware, priority))
     }
     
-    /// Returns middleware sorted by priority.
+    /// Returns middleware sorted by priority, preserving insertion order for ties.
     public func build() -> [(any Middleware, Int)] {
-        return middlewares.sorted { $0.1 < $1.1 }
+        return middlewares
+            .enumerated()
+            .sorted { lhs, rhs in
+                let lp = lhs.element.1
+                let rp = rhs.element.1
+                if lp != rp { return lp < rp }
+                return lhs.offset < rhs.offset
+            }
+            .map { $0.element }
     }
 }

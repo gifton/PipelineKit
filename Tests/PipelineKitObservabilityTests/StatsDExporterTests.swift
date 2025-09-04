@@ -108,7 +108,10 @@ final class StatsDExporterTests: XCTestCase {
     
     func testForceFlush() async throws {
         // Use mock transport to avoid network operations
-        let (exporter, mockTransport) = await StatsDExporter.withMockTransport()
+        guard let (exporter, mockTransport) = await StatsDExporter.withMockTransport() else {
+            XCTFail("Failed to create mock transport")
+            return
+        }
         
         await exporter.counter("flush.test", value: 1.0)
         await exporter.forceFlush()
@@ -129,7 +132,10 @@ final class StatsDExporterTests: XCTestCase {
             shouldFail: true,
             failureError: .sendFailed("Simulated failure")
         )
-        let (exporter, _) = await StatsDExporter.withMockTransport(mockConfig: mockConfig)
+        guard let (exporter, _) = await StatsDExporter.withMockTransport(mockConfig: mockConfig) else {
+            XCTFail("Failed to create mock transport")
+            return
+        }
         
         await exporter.setErrorHandler { _ in
             // Verify we got an error
@@ -220,7 +226,10 @@ final class StatsDExporterTests: XCTestCase {
     
     func testConcurrentRecording() async throws {
         // Use mock transport to avoid network operations
-        let (exporter, mockTransport) = await StatsDExporter.withMockTransport()
+        guard let (exporter, mockTransport) = await StatsDExporter.withMockTransport() else {
+            XCTFail("Failed to create mock transport")
+            return
+        }
         
         await withTaskGroup(of: Void.self) { group in
             for i in 0..<100 {
@@ -239,7 +248,10 @@ final class StatsDExporterTests: XCTestCase {
     
     func testConcurrentBatching() async throws {
         let config = StatsDExporter.Configuration(maxBatchSize: 10)
-        let (exporter, mockTransport) = await StatsDExporter.withMockTransport(configuration: config)
+        guard let (exporter, mockTransport) = await StatsDExporter.withMockTransport(configuration: config) else {
+            XCTFail("Failed to create mock transport")
+            return
+        }
         
         await withTaskGroup(of: Void.self) { group in
             for _ in 0..<10 {

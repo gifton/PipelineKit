@@ -6,12 +6,13 @@
 //
 
 import Foundation
+import Atomics
 
 /// Represents an event in the pipeline execution.
 ///
 /// Events provide observability into the pipeline's execution flow,
 /// allowing monitoring, debugging, and metrics collection.
-public struct PipelineEvent: Sendable, Equatable {
+public struct PipelineEvent: Sendable {
     /// The name/type of the event (e.g., "command.started", "middleware.timeout")
     public let name: String
     
@@ -66,22 +67,12 @@ public struct PipelineEvent: Sendable, Equatable {
         )
     }
     
-    // Thread-safe sequence counter actor
-    private actor SequenceCounter {
-        private var value: UInt64 = 0
-        
-        func next() -> UInt64 {
-            value += 1
-            return value
-        }
-    }
-    
-    private static let sequenceCounter = SequenceCounter()
+    // Monotonic, thread-safe sequence counter using atomics
+    private static let sequenceCounter = ManagedAtomic<UInt64>(0)
     
     private static func nextSequenceID() -> UInt64 {
-        // This is a synchronous context, so we can't use async/await
-        // For now, just use a random ID
-        return UInt64.random(in: 1...UInt64.max)
+        // Use a wrapping increment to avoid overflow traps and guarantee progress
+        return sequenceCounter.wrappingIncrementThenLoad(ordering: .relaxed)
     }
 }
 

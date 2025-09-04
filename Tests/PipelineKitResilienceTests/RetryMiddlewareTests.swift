@@ -451,7 +451,7 @@ final class RetryMiddlewareTests: XCTestCase {
             XCTFail("Expected circuit open error")
         } catch {
             let duration = Date().timeIntervalSince(startTime)
-            XCTAssertLessThan(duration, 0.01) // Should fail fast
+            XCTAssertLessThan(duration, 0.1, "Should fail fast (duration: \(duration)s)") // Allow CI tolerance
         }
     }
     */

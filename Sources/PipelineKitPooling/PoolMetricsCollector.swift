@@ -1,7 +1,12 @@
 import Foundation
+#if os(Linux)
+@preconcurrency import Glibc
+#else
+@preconcurrency import Darwin
+#endif
 import PipelineKitCore
 #if canImport(os)
-import os
+@preconcurrency import os
 #endif
 
 /// Collects and reports metrics from object pools for production monitoring.

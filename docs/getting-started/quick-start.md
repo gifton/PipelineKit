@@ -10,7 +10,7 @@ Add PipelineKit to your `Package.swift` file:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/yourusername/PipelineKit.git", from: "0.1.0")
+    .package(url: "https://github.com/gifton/PipelineKit.git", from: "0.1.0")
 ]
 ```
 
@@ -57,13 +57,13 @@ struct CalculateHandler: CommandHandler {
 }
 
 // 3. Build a pipeline
-let pipeline = try await PipelineBuilder(handler: CalculateHandler())
-    .build()
+let builder = PipelineBuilder(handler: CalculateHandler())
+let pipeline = try await builder.build()
 
 // 4. Execute commands
 let result = try await pipeline.execute(
     CalculateCommand(a: 5, b: 3),
-    context: CommandContext(metadata: StandardCommandMetadata())
+    context: CommandContext(metadata: DefaultCommandMetadata())
 )
 
 print(result) // Output: 8
@@ -90,10 +90,10 @@ struct LoggingMiddleware: Middleware {
     }
 }
 
-// Add to pipeline
-let pipeline = try await PipelineBuilder(handler: CalculateHandler())
+// Add to pipeline via builder
+let builder = PipelineBuilder(handler: CalculateHandler())
     .with(LoggingMiddleware())
-    .build()
+let pipeline = try await builder.build()
 ```
 
 ## Using Context
@@ -102,28 +102,26 @@ Share data between middleware using context:
 
 ```swift
 // Define a context key
-struct UserKey: ContextKey {
-    typealias Value = String
-}
+let userKey = ContextKey<String>("user")
 
 // Set in middleware
-context.set("john.doe", for: UserKey.self)
+await context.set(userKey, value: "john.doe")
 
 // Get in another middleware
-if let user = context.get(UserKey.self) {
+if let user: String = await context.get(userKey) {
     print("User: \(user)")
 }
 ```
 
 ## Performance Optimization
 
-For better performance, use the optimized pipeline:
+For ergonomic construction and stable middleware ordering, use the builder:
 
 ```swift
-let pipeline = try await PipelineBuilder(handler: handler)
+let builder = PipelineBuilder(handler: handler)
     .with(middleware1)
     .with(middleware2)
-    .build() // Pre-compiles execution path
+let pipeline = try await builder.build()
 ```
 
 ## Next Steps
@@ -159,9 +157,9 @@ let parallel = ParallelMiddlewareWrapper(
     strategy: .sideEffectsOnly
 )
 
-let pipeline = try await PipelineBuilder(handler: handler)
+let builder2 = PipelineBuilder(handler: handler)
     .with(parallel)
-    .build()
+let pipeline = try await builder2.build()
 ```
 
 ### Caching Results
@@ -171,9 +169,9 @@ Cache expensive operations:
 ```swift
 let cached = ExpensiveMiddleware().cached(ttl: 300) // 5 minutes
 
-let pipeline = try await PipelineBuilder(handler: handler)
+let builder3 = PipelineBuilder(handler: handler)
     .with(cached)
-    .build()
+let pipeline = try await builder3.build()
 ```
 
 ## Troubleshooting
@@ -190,4 +188,4 @@ let pipeline = try await PipelineBuilder(handler: handler)
    - Use `.build()` for pre-compiled pipelines
    - Enable context pooling for high-throughput scenarios
 
-For more help, see our [Troubleshooting Guide](troubleshooting.md) or [file an issue](https://github.com/yourusername/PipelineKit/issues).
+For more help, see our [Troubleshooting Guide](troubleshooting.md) or [file an issue](https://github.com/gifton/PipelineKit/issues).

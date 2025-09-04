@@ -1,0 +1,229 @@
+name: PR Validation
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+env:
+  BENCHMARK_DISABLE_JEMALLOC: '1'  # Disable jemalloc dependency in swift-benchmark
+
+
+concurrency:
+  group: pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  # Quick validation checks
+  quick-check:
+    name: Quick Validation
+    runs-on: macos-14
+    if: github.event.pull_request.draft == false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Check PR Size
+        run: |
+          # Get diff stats
+          LINES_ADDED=$(git diff --numstat origin/${{ github.base_ref }}...HEAD | awk '{sum+=$1} END {print sum}')
+          LINES_DELETED=$(git diff --numstat origin/${{ github.base_ref }}...HEAD | awk '{sum+=$2} END {print sum}')
+          FILES_CHANGED=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | wc -l)
+          
+          echo "📊 PR Statistics:"
+          echo "  Lines added: $LINES_ADDED"
+          echo "  Lines deleted: $LINES_DELETED"
+          echo "  Files changed: $FILES_CHANGED"
+          
+          # Warn for large PRs
+          if [ $LINES_ADDED -gt 500 ]; then
+            echo "⚠️ Large PR detected (>500 lines). Consider breaking into smaller PRs."
+          fi
+      
+      - name: Check Commit Messages
+        run: |
+          # Validate commit message format
+          git log --format="%s" origin/${{ github.base_ref }}..HEAD | while read commit; do
+            if ! echo "$commit" | grep -qE "^(feat|fix|docs|style|refactor|test|chore|perf|ci|build|revert)(\(.+\))?: .+"; then
+              echo "⚠️ Non-conventional commit message: $commit"
+              echo "   Expected format: type(scope): description"
+            fi
+          done
+        continue-on-error: true
+
+  # Check for merge conflicts
+  conflict-check:
+    name: Merge Conflict Check
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Check for Merge Conflicts
+        run: |
+          git fetch origin ${{ github.base_ref }}
+          if git merge-tree $(git merge-base HEAD origin/${{ github.base_ref }}) HEAD origin/${{ github.base_ref }} | grep -q "<<<<<<< "; then
+            echo "❌ Merge conflicts detected. Please resolve conflicts."
+            exit 1
+          else
+            echo "✅ No merge conflicts"
+          fi
+
+  # Run targeted tests based on changes
+  smart-test:
+    name: Smart Test Selection
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Setup Swift
+        uses: swift-actions/setup-swift@v2
+        with:
+          swift-version: '6.0'
+      
+      
+    # jemalloc installation removed - benchmarks configured to not require it      - name: Identify Changed Modules
+        id: changes
+        run: |
+          # Identify which modules changed
+          CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD)
+          
+          CORE_CHANGED=false
+          SECURITY_CHANGED=false
+          RESILIENCE_CHANGED=false
+          OBSERVABILITY_CHANGED=false
+          
+          for file in $CHANGED_FILES; do
+            if echo "$file" | grep -q "Sources/PipelineKitCore"; then
+              CORE_CHANGED=true
+            fi
+            if echo "$file" | grep -q "Sources/PipelineKitSecurity"; then
+              SECURITY_CHANGED=true
+            fi
+            if echo "$file" | grep -qE "Sources/PipelineKitResilience"; then
+              RESILIENCE_CHANGED=true
+            fi
+            if echo "$file" | grep -q "Sources/PipelineKitObservability"; then
+              OBSERVABILITY_CHANGED=true
+            fi
+          done
+          
+          echo "core_changed=$CORE_CHANGED" >> $GITHUB_OUTPUT
+          echo "security_changed=$SECURITY_CHANGED" >> $GITHUB_OUTPUT
+          echo "resilience_changed=$RESILIENCE_CHANGED" >> $GITHUB_OUTPUT
+          echo "observability_changed=$OBSERVABILITY_CHANGED" >> $GITHUB_OUTPUT
+      
+      - name: Run Core Tests
+        if: steps.changes.outputs.core_changed == 'true'
+        run: swift test --filter PipelineKitCoreTests
+      
+      - name: Run Security Tests
+        if: steps.changes.outputs.security_changed == 'true'
+        run: swift test --filter PipelineKitSecurityTests
+      
+      - name: Run Resilience Tests
+        if: steps.changes.outputs.resilience_changed == 'true'
+        run: swift test --filter PipelineKitResilienceTests
+      
+      - name: Run Observability Tests
+        if: steps.changes.outputs.observability_changed == 'true'
+        run: swift test --filter PipelineKitObservabilityTests
+
+  # Label PR automatically
+  auto-label:
+    name: Auto Label
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Label PR
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const files = await github.rest.pulls.listFiles({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+            
+            const labels = new Set();
+            
+            for (const file of files.data) {
+              if (file.filename.includes('Tests/')) {
+                labels.add('test');
+              }
+              if (file.filename.includes('Sources/PipelineKitCore')) {
+                labels.add('core');
+              }
+              if (file.filename.includes('Sources/PipelineKitSecurity')) {
+                labels.add('security');
+              }
+              if (file.filename.includes('Sources/PipelineKitResilience')) {
+                labels.add('resilience');
+              }
+              if (file.filename.includes('.github/workflows')) {
+                labels.add('ci/cd');
+              }
+              if (file.filename.includes('README') || file.filename.includes('docs/')) {
+                labels.add('documentation');
+              }
+            }
+            
+            // Add size labels
+            const additions = files.data.reduce((sum, file) => sum + file.additions, 0);
+            if (additions < 10) {
+              labels.add('size/XS');
+            } else if (additions < 50) {
+              labels.add('size/S');
+            } else if (additions < 200) {
+              labels.add('size/M');
+            } else if (additions < 500) {
+              labels.add('size/L');
+            } else {
+              labels.add('size/XL');
+            }
+            
+            if (labels.size > 0) {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                labels: Array.from(labels)
+              });
+            }
+        continue-on-error: true
+
+  # Required status check
+  pr-status:
+    name: PR Status Check
+    runs-on: macos-14
+    needs: [quick-check, conflict-check, smart-test]
+    if: always()
+    steps:
+      - name: PR Validation Summary
+        run: |
+          echo "## PR Validation Summary"
+          echo ""
+          echo "Quick Check: ${{ needs.quick-check.result }}"
+          echo "Conflict Check: ${{ needs.conflict-check.result }}"
+          echo "Smart Tests: ${{ needs.smart-test.result }}"
+          
+          # Determine overall status
+          if [ "${{ needs.conflict-check.result }}" = "failure" ]; then
+            echo ""
+            echo "❌ PR has merge conflicts that must be resolved"
+            exit 1
+          fi
+          
+          if [ "${{ needs.smart-test.result }}" = "failure" ]; then
+            echo ""
+            echo "❌ Tests are failing"
+            exit 1
+          fi
+          
+          echo ""
+          echo "✅ PR validation passed"

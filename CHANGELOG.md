@@ -57,5 +57,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Memory usage: 131 bytes per context
 - Cache hit rates: 99.8% in typical workloads
 
-[Unreleased]: https://github.com/yourusername/PipelineKit/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/yourusername/PipelineKit/releases/tag/v0.1.0
+[Unreleased]: https://github.com/gifton/PipelineKit/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/gifton/PipelineKit/releases/tag/v0.1.0

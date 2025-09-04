@@ -142,12 +142,15 @@ public actor ObservabilitySystem {
         }
     }
     
-    /// Records a metric directly.
-    ///
-    /// While events automatically generate metrics, you can also
-    /// record metrics directly when needed.
-    public func recordMetric(_ snapshot: MetricSnapshot) async {
+    /// Records a counter metric.
+    public func recordCounter(
+        name: String,
+        value: Double = 1.0,
+        tags: [String: String] = [:]
+    ) async {
         guard config.enableMetrics else { return }
+        
+        let snapshot = MetricSnapshot.counter(name, value: value, tags: tags)
         
         // Record locally
         await metricsStorage.record(snapshot)
@@ -157,6 +160,46 @@ public actor ObservabilitySystem {
             await exporter.record(snapshot)
         }
     }
+    
+    /// Records a gauge metric.
+    public func recordGauge(
+        name: String,
+        value: Double,
+        tags: [String: String] = [:],
+        unit: String? = nil
+    ) async {
+        guard config.enableMetrics else { return }
+        
+        let snapshot = MetricSnapshot.gauge(name, value: value, tags: tags, unit: unit)
+        
+        // Record locally
+        await metricsStorage.record(snapshot)
+        
+        // Forward to StatsD if configured
+        if let exporter = statsdExporter {
+            await exporter.record(snapshot)
+        }
+    }
+    
+    /// Records a timer metric.
+    public func recordTimer(
+        name: String,
+        duration: TimeInterval,
+        tags: [String: String] = [:]
+    ) async {
+        guard config.enableMetrics else { return }
+        
+        let snapshot = MetricSnapshot.timer(name, duration: duration, tags: tags)
+        
+        // Record locally
+        await metricsStorage.record(snapshot)
+        
+        // Forward to StatsD if configured
+        if let exporter = statsdExporter {
+            await exporter.record(snapshot)
+        }
+    }
+    
     
     /// Emits an event directly.
     ///
@@ -243,24 +286,71 @@ public extension CommandContext {
         self.setEventEmitter(system.eventHub)
     }
     
-    /// Records a metric through the context's observability system.
-    ///
-    /// This provides natural metric recording alongside events:
-    /// ```swift
-    /// context.recordMetric(.gauge("memory.usage", value: 67.5))
-    /// ```
-    func recordMetric(_ snapshot: MetricSnapshot) async {
+    /// Records a counter metric through the context's observability system.
+    func recordCounter(
+        name: String,
+        value: Double = 1.0,
+        tags: [String: String] = [:]
+    ) async {
         // If we have a metrics-capable event emitter, use it
         if let hub = eventEmitter as? EventHub {
-            // The hub should have a metrics bridge subscribed
-            // For now, we emit a synthetic event that will be converted
             let event = PipelineEvent(
-                name: "metric.recorded",
+                name: "metric.counter.recorded",
                 properties: [
-                    "metric_name": snapshot.name,
-                    "metric_type": snapshot.type,
-                    "metric_value": snapshot.value ?? 0,
-                    "metric_tags": snapshot.tags
+                    "metric_name": name,
+                    "metric_type": "counter",
+                    "metric_value": value,
+                    "metric_tags": tags
+                ],
+                correlationID: await correlationID ?? commandMetadata.correlationId ?? UUID().uuidString
+            )
+            await hub.emit(event)
+        }
+    }
+    
+    /// Records a gauge metric through the context's observability system.
+    func recordGauge(
+        name: String,
+        value: Double,
+        tags: [String: String] = [:],
+        unit: String? = nil
+    ) async {
+        // If we have a metrics-capable event emitter, use it
+        if let hub = eventEmitter as? EventHub {
+            var props: [String: any Sendable] = [
+                "metric_name": name,
+                "metric_type": "gauge",
+                "metric_value": value,
+                "metric_tags": tags
+            ]
+            if let unit = unit {
+                props["metric_unit"] = unit
+            }
+            let event = PipelineEvent(
+                name: "metric.gauge.recorded",
+                properties: props,
+                correlationID: await correlationID ?? commandMetadata.correlationId ?? UUID().uuidString
+            )
+            await hub.emit(event)
+        }
+    }
+    
+    /// Records a timer metric through the context's observability system.
+    func recordTimer(
+        name: String,
+        duration: TimeInterval,
+        tags: [String: String] = [:]
+    ) async {
+        // If we have a metrics-capable event emitter, use it
+        if let hub = eventEmitter as? EventHub {
+            let event = PipelineEvent(
+                name: "metric.timer.recorded",
+                properties: [
+                    "metric_name": name,
+                    "metric_type": "timer",
+                    "metric_value": duration * 1000, // Convert to milliseconds
+                    "metric_tags": tags,
+                    "metric_unit": "ms"
                 ],
                 correlationID: await correlationID ?? commandMetadata.correlationId ?? UUID().uuidString
             )
