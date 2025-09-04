@@ -96,13 +96,13 @@ actor MetricAggregator {
         guard buffer.count < configuration.maxUniqueMetrics ||
               buffer.keys.contains(MetricKey(name: snapshot.name, tags: snapshot.tags)) else {
             await emitWarningOnce("aggregation_keys_limit",
-                                 "Aggregation buffer reached \(configuration.maxUniqueMetrics) unique keys")
+                                  "Aggregation buffer reached \(configuration.maxUniqueMetrics) unique keys")
             return false
         }
         
         guard totalValueCount < configuration.maxTotalValues else {
             await emitWarningOnce("aggregation_values_limit",
-                                 "Aggregation buffer reached \(configuration.maxTotalValues) total values")
+                                  "Aggregation buffer reached \(configuration.maxTotalValues) total values")
             return false
         }
         

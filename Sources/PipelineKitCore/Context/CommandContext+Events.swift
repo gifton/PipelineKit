@@ -4,10 +4,10 @@ import Foundation
 ///
 /// This provides the foundation for event emission in PipelineKit. 
 /// The actual emitter can be set using the eventEmitter context key.
-extension CommandContext {
+public extension CommandContext {
     /// Gets the event emitter for this context.
-    public var eventEmitter: EventEmitter? {
-        get { self.get(ContextKeys.eventEmitter) }
+    var eventEmitter: EventEmitter? {
+        self.get(ContextKeys.eventEmitter)
     }
     
     /// Sets the event emitter for this context.

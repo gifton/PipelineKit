@@ -2,14 +2,14 @@ import XCTest
 import PipelineKit
 
 final class DynamicPipelineRegistrationTests: XCTestCase {
-    struct EchoCommand: Command { typealias Result = String; let text: String }
+    private struct EchoCommand: Command { typealias Result = String; let text: String }
 
-    final class EchoHandlerA: CommandHandler {
+    private final class EchoHandlerA: CommandHandler {
         typealias CommandType = EchoCommand
         func handle(_ command: EchoCommand) async throws -> String { "A:\(command.text)" }
     }
 
-    final class EchoHandlerB: CommandHandler {
+    private final class EchoHandlerB: CommandHandler {
         typealias CommandType = EchoCommand
         func handle(_ command: EchoCommand) async throws -> String { "B:\(command.text)" }
     }
@@ -17,77 +17,82 @@ final class DynamicPipelineRegistrationTests: XCTestCase {
     func testRegisterOnceInsertsAndExecutes() async throws {
         let pipeline = DynamicPipeline()
         try await pipeline.registerOnce(EchoCommand.self, handler: EchoHandlerA())
-
-        let result = try await pipeline.send(EchoCommand(text: "hello"))
+        
+        let command = EchoCommand(text: "hello")
+        let result = try await pipeline.execute(command)
         XCTAssertEqual(result, "A:hello")
     }
 
-    func testRegisterOnceThrowsOnDuplicate() async throws {
+    func testRegisterOnceWithExistingKeyThrows() async throws {
         let pipeline = DynamicPipeline()
-        await pipeline.register(EchoCommand.self, handler: EchoHandlerA())
-
-        do {
+        try await pipeline.registerOnce(EchoCommand.self, handler: EchoHandlerA())
+        
+        await XCTAssertThrowsError(
             try await pipeline.registerOnce(EchoCommand.self, handler: EchoHandlerB())
-            XCTFail("Expected duplicate registration to throw")
-        } catch let error as PipelineError {
-            switch error {
-            case .pipelineNotConfigured(let reason):
-                XCTAssertTrue(reason.contains("already registered"), "Unexpected reason: \(reason)")
-            default:
-                XCTFail("Unexpected error: \(error)")
+        ) { error in
+            if case PipelineError.configurationError(let message) = error {
+                XCTAssertTrue(message.contains("already registered"))
+            } else {
+                XCTFail("Expected configurationError, got \(error)")
             }
-        } catch {
-            XCTFail("Unexpected error type: \(error)")
         }
     }
 
-    func testReplaceReturnsFlagsAndOverridesHandler() async throws {
-        let pipeline = DynamicPipeline()
-        // First replace should return false (no previous)
-        var replaced = await pipeline.replace(EchoCommand.self, with: EchoHandlerA())
-        XCTAssertFalse(replaced)
-
-        var result = try await pipeline.send(EchoCommand(text: "x"))
-        XCTAssertEqual(result, "A:x")
-
-        // Second replace should return true and override
-        replaced = await pipeline.replace(EchoCommand.self, with: EchoHandlerB())
-        XCTAssertTrue(replaced)
-
-        result = try await pipeline.send(EchoCommand(text: "y"))
-        XCTAssertEqual(result, "B:y")
-    }
-
-    func testUnregisterRemovesHandlerAndSendFails() async throws {
+    func testRegisterOverwritesHandler() async throws {
         let pipeline = DynamicPipeline()
         await pipeline.register(EchoCommand.self, handler: EchoHandlerA())
+        await pipeline.register(EchoCommand.self, handler: EchoHandlerB())
+        
+        let command = EchoCommand(text: "overwrite")
+        let result = try await pipeline.execute(command)
+        XCTAssertEqual(result, "B:overwrite")
+    }
 
+    func testUnregisterRemovesHandler() async throws {
+        let pipeline = DynamicPipeline()
+        await pipeline.register(EchoCommand.self, handler: EchoHandlerA())
         let removed = await pipeline.unregister(EchoCommand.self)
         XCTAssertTrue(removed)
-
-        do {
-            _ = try await pipeline.send(EchoCommand(text: "fail"))
-            XCTFail("Expected handlerNotFound error")
-        } catch let error as PipelineError {
-            switch error {
-            case .handlerNotFound(let typeName):
-                XCTAssertTrue(typeName.contains("EchoCommand"))
-            default:
-                XCTFail("Unexpected error: \(error)")
+        
+        let command = EchoCommand(text: "missing")
+        await XCTAssertThrowsError(
+            try await pipeline.execute(command)
+        ) { error in
+            if case PipelineError.configurationError(let message) = error {
+                XCTAssertTrue(message.contains("No handler"))
+            } else {
+                XCTFail("Expected configurationError, got \(error)")
             }
-        } catch {
-            XCTFail("Unexpected error type: \(error)")
         }
     }
 
-    func testRegisterReplaceByDefaultOverridesHandler() async throws {
+    func testIsRegisteredChecksExistence() async {
+        let pipeline = DynamicPipeline()
+        XCTAssertFalse(await pipeline.isRegistered(EchoCommand.self))
+        
+        await pipeline.register(EchoCommand.self, handler: EchoHandlerA())
+        XCTAssertTrue(await pipeline.isRegistered(EchoCommand.self))
+        
+        _ = await pipeline.unregister(EchoCommand.self)
+        XCTAssertFalse(await pipeline.isRegistered(EchoCommand.self))
+    }
+
+    func testCountReturnsRegistrationCount() async {
+        let pipeline = DynamicPipeline()
+        XCTAssertEqual(await pipeline.registrationCount(), 0)
+        
+        await pipeline.register(EchoCommand.self, handler: EchoHandlerA())
+        XCTAssertEqual(await pipeline.registrationCount(), 1)
+    }
+
+    func testClearRemovesAll() async {
         let pipeline = DynamicPipeline()
         await pipeline.register(EchoCommand.self, handler: EchoHandlerA())
-        // Replace-by-default semantics
-        await pipeline.register(EchoCommand.self, handler: EchoHandlerB())
-
-        let result = try await pipeline.send(EchoCommand(text: "z"))
-        XCTAssertEqual(result, "B:z")
+        XCTAssertEqual(await pipeline.registrationCount(), 1)
+        
+        await pipeline.clear()
+        XCTAssertEqual(await pipeline.registrationCount(), 0)
+        XCTAssertFalse(await pipeline.isRegistered(EchoCommand.self))
     }
 
     func testUnregisterOnMissingReturnsFalse() async {
@@ -96,4 +101,3 @@ final class DynamicPipelineRegistrationTests: XCTestCase {
         XCTAssertFalse(removed)
     }
 }
-

@@ -3,9 +3,9 @@ import PipelineKit
 import PipelineKitCache
 
 final class NextGuardSuppressionTests: XCTestCase {
-    struct EchoCommand: Command { typealias Result = String; let text: String }
+    private struct EchoCommand: Command { typealias Result = String; let text: String }
 
-    final class EchoHandler: CommandHandler {
+    private final class EchoHandler: CommandHandler {
         typealias CommandType = EchoCommand
         func handle(_ command: EchoCommand) async throws -> String { "handled:\(command.text)" }
     }

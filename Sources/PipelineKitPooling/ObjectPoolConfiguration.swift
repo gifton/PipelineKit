@@ -9,7 +9,7 @@ public enum ObjectPoolConfigurationError: Error, LocalizedError {
         switch self {
         case .invalidMaxSize(let size):
             return "ObjectPoolConfiguration: maxSize must be positive, got \(size)"
-        case .invalidWatermarks(let low, let high, let max):
+        case let .invalidWatermarks(low, high, max):
             return "ObjectPoolConfiguration: invalid watermarks (low: \(low), high: \(high), max: \(max))"
         }
     }

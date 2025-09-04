@@ -234,7 +234,7 @@ final class OptimizedValidatorsTests: XCTestCase {
         
         // Optional: Log relative performance (simple should generally be faster)
         if simpleTime < regexTime {
-            print("✓ Simple validation is \(String(format: "%.1f", regexTime/simpleTime))x faster than regex")
+            print("✓ Simple validation is \(String(format: "%.1f", regexTime / simpleTime))x faster than regex")
         }
     }
     

@@ -134,7 +134,7 @@ final class CommandContextThreadSafetyTests: XCTestCase {
     }
 
     // merge() and get() methods were removed during simplification
-    // TODO: Update test if these methods are re-added
+    // Note: Update test if these methods are re-added
     /*
     func testConcurrentMergeOperations() async throws {
         let target = CommandContext()

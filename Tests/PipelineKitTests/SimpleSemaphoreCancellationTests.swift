@@ -8,7 +8,6 @@ import PipelineKitCore
 /// by resuming continuations with CancellationError rather than leaving them
 /// suspended indefinitely.
 final class SimpleSemaphoreCancellationTests: XCTestCase {
-    
     // MARK: - Basic Cancellation Tests
     
     func testCancelledTaskThrowsCancellationError() async throws {

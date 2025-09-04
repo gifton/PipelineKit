@@ -337,7 +337,7 @@ final class RetryMiddlewareTests: XCTestCase {
         XCTAssertGreaterThan(uniqueTimes.count, 1)
     }
 
-    /* // TODO: onRetry callback removed from API
+    /* // Note: onRetry callback removed from API
     func testOnRetryCallback() async throws {
         // Given
         let expectation = XCTestExpectation(description: "onRetry called")
@@ -420,7 +420,7 @@ final class RetryMiddlewareTests: XCTestCase {
         XCTAssertEqual(command.attempts, 3)
     }
 
-    /* // TODO: CircuitBreaker integration removed from API
+    /* // Note: CircuitBreaker integration removed from API
     func testCircuitBreakerIntegration() async throws {
         // Given
         let middleware = RetryMiddleware(

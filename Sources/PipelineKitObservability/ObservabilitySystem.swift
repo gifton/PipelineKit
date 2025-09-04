@@ -258,9 +258,7 @@ public extension CommandContext {
     /// This provides the most natural integration - the context
     /// automatically has observability capabilities.
     var observability: ObservabilitySystem? {
-        get {
-            // Check if we already have one
-            if let _ = eventEmitter as? EventHub {
+            if eventEmitter is EventHub {
                 // Try to find the associated system
                 // For now, we'll need to store it separately
                 return nil

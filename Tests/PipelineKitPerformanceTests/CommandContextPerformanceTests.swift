@@ -4,7 +4,6 @@ import PipelineKitTestSupport
 
 /// Performance tests for CommandContext operations
 final class CommandContextPerformanceTests: XCTestCase {
-    
     // MARK: - Set Metadata Performance
     
     func testSetMetadataPerformance() throws {
@@ -77,7 +76,7 @@ final class CommandContextPerformanceTests: XCTestCase {
             
             Task {
                 for i in 0..<10000 {
-                    if i % 2 == 0 {
+                    if i.isMultiple(of: 2) {
                         await context.setMetadata("key-\(i)", value: i)
                     } else {
                         _ = await context.metadata["key-\(i - 1)"]
@@ -167,7 +166,7 @@ final class CommandContextPerformanceTests: XCTestCase {
             
             Task {
                 for i in 0..<1000 {
-                    if i % 2 == 0 {
+                    if i.isMultiple(of: 2) {
                         _ = await context.metadata["key-\(i % 1000)"]
                     } else {
                         await context.setMetadata("new-key-\(i)", value: i)

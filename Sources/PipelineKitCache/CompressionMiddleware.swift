@@ -390,9 +390,12 @@ public final class CompressionUtility: Sendable {
             defer { destinationBuffer.deallocate() }
             
             let compressedSize = compression_encode_buffer(
-                destinationBuffer, destinationSize,
-                sourcePtr, data.count,
-                nil, algorithm.foundationAlgorithm
+                destinationBuffer,
+                destinationSize,
+                sourcePtr,
+                data.count,
+                nil,
+                algorithm.foundationAlgorithm
             )
             
             guard compressedSize > 0 else {
@@ -426,9 +429,12 @@ public final class CompressionUtility: Sendable {
             defer { destinationBuffer.deallocate() }
             
             let decompressedSize = compression_decode_buffer(
-                destinationBuffer, destinationSize,
-                sourcePtr, data.count,
-                nil, algorithm.foundationAlgorithm
+                destinationBuffer,
+                destinationSize,
+                sourcePtr,
+                data.count,
+                nil,
+                algorithm.foundationAlgorithm
             )
             
             guard decompressedSize > 0 else {

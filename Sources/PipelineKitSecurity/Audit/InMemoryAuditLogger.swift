@@ -71,7 +71,7 @@ public actor InMemoryAuditLogger: AuditLogger {
             droppedCount += 1
             
             // Report health event every 10 drops
-            if droppedCount % 10 == 0 {
+            if droppedCount.isMultiple(of: 10) {
                 healthContinuation.yield(.dropped(
                     count: droppedCount,
                     reason: "Memory limit reached (\(maxEvents) events)"

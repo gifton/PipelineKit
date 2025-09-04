@@ -1,8 +1,7 @@
 import XCTest
 
 /// Configuration for performance tests
-public struct PerformanceTestConfiguration {
-    
+public enum PerformanceTestConfiguration {
     /// Whether we're running in CI environment
     public static var isCI: Bool {
         ProcessInfo.processInfo.environment["CI"] != nil
@@ -60,29 +59,28 @@ public struct PerformanceTestConfiguration {
 
 /// Base class for performance tests with common configuration
 open class PerformanceTestCase: XCTestCase {
-    
-    public var measureOptions: XCTMeasureOptions {
+    private var measureOptions: XCTMeasureOptions {
         PerformanceTestConfiguration.defaultMeasureOptions()
     }
     
-    public var defaultMetrics: [XCTMetric] {
+    private var defaultMetrics: [XCTMetric] {
         PerformanceTestConfiguration.defaultMetrics()
     }
     
-    public var operationCount: Int {
+    private var operationCount: Int {
         PerformanceTestConfiguration.operationCount
     }
     
-    public var concurrencyLevel: Int {
+    private var concurrencyLevel: Int {
         PerformanceTestConfiguration.concurrencyLevel
     }
     
-    public var defaultTimeout: TimeInterval {
+    private var defaultTimeout: TimeInterval {
         PerformanceTestConfiguration.defaultTimeout
     }
     
     /// Measures performance with default configuration
-    public func measureWithDefaults(_ block: () -> Void) {
+    private func measureWithDefaults(_ block: () -> Void) {
         measure(
             metrics: defaultMetrics,
             options: measureOptions,
@@ -91,7 +89,7 @@ open class PerformanceTestCase: XCTestCase {
     }
     
     /// Helper to create and wait for expectations in performance tests
-    public func performAsync(
+    private func performAsync(
         operations: Int? = nil,
         timeout: TimeInterval? = nil,
         file: StaticString = #filePath,

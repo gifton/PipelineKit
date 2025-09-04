@@ -3,11 +3,10 @@ import XCTest
 
 /// Tests for unified event emission in Core
 final class EventEmissionTests: XCTestCase {
-    
     // MARK: - Test Event Emitter
     
     /// A simple test emitter that captures events
-    actor TestEventEmitter: EventEmitter {
+    private actor TestEventEmitter: EventEmitter {
         private(set) var capturedEvents: [PipelineEvent] = []
         
         func emit(_ event: PipelineEvent) async {
@@ -264,7 +263,7 @@ final class EventEmissionTests: XCTestCase {
         for i in 1..<events.count {
             XCTAssertGreaterThan(
                 events[i].sequenceID,
-                events[i-1].sequenceID,
+                events[i - 1].sequenceID,
                 "Sequence IDs should be monotonically increasing"
             )
         }
