@@ -69,7 +69,7 @@ jobs:
     if: github.event_name == 'pull_request'
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
       
@@ -91,7 +91,7 @@ jobs:
     runs-on: macos-14  # Keep on macOS for native SwiftLint
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       
       - name: Run SwiftLint
         run: |
@@ -138,7 +138,7 @@ jobs:
             platform: macOS
     
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     
     - name: Setup Swift (macOS)
       if: runner.os == 'macOS'
@@ -179,7 +179,7 @@ jobs:
     continue-on-error: true  # Allow Linux to fail for now
     
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     
     - name: Install Dependencies
       run: |
@@ -208,7 +208,7 @@ jobs:
     timeout-minutes: 20
     
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     
     - name: Setup Swift
       uses: swift-actions/setup-swift@v2
@@ -336,7 +336,7 @@ jobs:
     continue-on-error: true  # Allow Linux to fail for now
     
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     
     - name: Install Dependencies
       run: |
@@ -362,7 +362,7 @@ jobs:
     timeout-minutes: 30
     
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     
     - name: Setup Swift
       uses: swift-actions/setup-swift@v2
@@ -401,7 +401,7 @@ jobs:
     timeout-minutes: 25
     
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     
     - name: Setup Swift
       uses: swift-actions/setup-swift@v2
@@ -452,7 +452,7 @@ jobs:
       security-events: write
     
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     
     - name: Run Trivy Security Scan
       uses: aquasecurity/trivy-action@0.28.0
@@ -483,7 +483,7 @@ jobs:
       id-token: write
     
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     
     - name: Setup Swift
       uses: swift-actions/setup-swift@v2
