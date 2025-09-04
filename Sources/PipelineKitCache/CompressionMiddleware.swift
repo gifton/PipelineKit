@@ -1,3 +1,4 @@
+#if canImport(Compression)
 import Foundation
 import PipelineKit
 import Compression
@@ -462,3 +463,5 @@ public final class CompressionUtility: Sendable {
         }
     }
 }
+
+#endif // canImport(Compression)

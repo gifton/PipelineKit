@@ -1,6 +1,6 @@
 # PipelineKit
 
-A high-performance, type-safe command-bus architecture framework for Swift 6 with built-in observability, resilience, and caching capabilities.
+A high-performance, type-safe command-bus architecture for Swift 6 with built‑in observability, resilience, caching, and pooling. Designed for production pipelines with strong concurrency guarantees and modular, opt‑in features.
 
 [![Swift 6.0](https://img.shields.io/badge/Swift-6.0-orange.svg)](https://swift.org)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -122,12 +122,19 @@ protocol Middleware: Sendable {
 }
 ```
 
-**Built-in Priorities:**
-1. `.authentication` (1000) - Verify identity
-2. `.authorization` (900) - Check permissions  
-3. `.validation` (800) - Validate input
-4. `.preProcessing` (500) - Transform data
-5. `.postProcessing` (100) - Process results
+**Built-in Priorities (lower value executes earlier):**
+- `.authentication` (100)
+- `.validation` (200)
+- `.resilience` (250)
+- `.preProcessing` (300)
+- `.monitoring` (350)
+- `.processing` (400)
+- `.postProcessing` (500)
+- `.errorHandling` (600)
+- `.observability` (700)
+- `.custom` (1000)
+
+Note: Equal priorities preserve insertion order (stable ordering).
 
 ### CommandContext
 
@@ -135,15 +142,22 @@ Thread-safe context for sharing data across middleware and handlers.
 
 ```swift
 actor CommandContext {
+    // Typed storage access
     func set<T: Sendable>(_ key: ContextKey<T>, value: T?)
-    func value<T: Sendable>(for key: ContextKey<T>) -> T?
-    
-    // Built-in properties
-    var requestID: String?
-    var userID: String?
-    var correlationID: String?
-    var metadata: [String: any Sendable]
+    func get<T: Sendable>(_ key: ContextKey<T>) -> T?
+
+    // Built‑in async properties
+    var requestID: String? { get async }
+    var userID: String? { get async }
+    var correlationID: String? { get async }
+    var metadata: [String: any Sendable] { get async }
+
+    // Observability
+    var eventEmitter: EventEmitter? { get }
+    func setEventEmitter(_ emitter: EventEmitter?)
 }
+
+Event emission is provided via `PipelineKitObservability` (see that module). Core exposes the `EventEmitter` type and forwards to the configured emitter when set.
 ```
 
 ### Pipeline
@@ -151,10 +165,10 @@ actor CommandContext {
 The pipeline orchestrates command execution through middleware to handlers.
 
 ```swift
-actor StandardPipeline<C: Command, H: CommandHandler> {
+actor StandardPipeline<C: Command, H: CommandHandler> where H.CommandType == C {
     init(handler: H, maxConcurrency: Int? = nil)
     func execute(_ command: C, context: CommandContext) async throws -> C.Result
-    func addMiddleware(_ middleware: any Middleware) async throws
+    func addMiddleware(_ middleware: any Middleware) throws
 }
 ```
 
@@ -165,10 +179,14 @@ actor StandardPipeline<C: Command, H: CommandHandler> {
 The main module provides the core pipeline implementation with production-ready defaults.
 
 **Key Features:**
-- `StandardPipeline` - Main pipeline implementation
-- `SimpleSemaphore` - Basic concurrency control
-- `NextGuard` - Safe middleware chaining
-- Built-in concurrency limiting
+- `StandardPipeline` and `AnyStandardPipeline` – production‑grade pipeline implementations
+- `DynamicPipeline` – runtime routing with handler registry
+- `PipelineBuilder` – fluent builder for assembling pipelines
+- `SimpleSemaphore` – basic concurrency control (acquire is `async throws`)
+- `NextGuard` – ensures middleware `next` is called exactly once
+- `NextGuardWarningSuppressing` – opt‑in to suppress debug‑only warnings for intentional short‑circuits (e.g., cache hits)
+
+SwiftLog is used for internal logging; on Apple, you can bootstrap `swift-log-oslog` for OSLog output.
 
 ```swift
 import PipelineKit
@@ -185,10 +203,12 @@ let pipeline = StandardPipeline(handler: MyHandler(), maxConcurrency: 10)
 Foundation types and protocols that all other modules build upon.
 
 **Components:**
-- Core protocols (`Command`, `CommandHandler`, `Middleware`)
-- `CommandContext` for request-scoped data
-- `PipelineError` for error handling
-- Memory management utilities
+- Core protocols (`Command`, `CommandHandler`, `Middleware`, `Pipeline`)
+- `ExecutionPriority` and stable middleware ordering
+- `CommandContext` (typed storage, built‑ins, fork, cancellation)
+- `PipelineError`, `RetryPolicy`, `DelayStrategy`
+- Events: `PipelineEvent` (monotonic `sequenceID`), `EventEmitter` / `PipelineObserver`
+- Utilities: memory pressure detection and profiling
 
 ```swift
 import PipelineKitCore
@@ -200,7 +220,7 @@ struct MyCommand: Command {
 
 final class MyHandler: CommandHandler {
     func handle(_ command: MyCommand) async throws -> String {
-        return "Processed: \(command.input)"
+        "Processed: \(command.input)"
     }
 }
 ```
@@ -210,10 +230,12 @@ final class MyHandler: CommandHandler {
 Comprehensive observability with metrics, events, and distributed tracing.
 
 **Features:**
-- Unified `ObservabilitySystem`
-- StatsD integration
-- Event-driven metrics
-- Automatic metric generation from events
+- `ObservabilitySystem` – unified events + metrics orchestration
+- StatsD exporter (UDP) with batching and sampling
+- `EventHub` ↔ `MetricsStorage` integration (events can produce metrics)
+- `LoggingEmitter` – logs events via OSLog (Apple) or print/SwiftLog elsewhere
+
+Note: The default UDP transport uses Apple’s Network framework when available; on non‑Apple platforms you can plug in a different transport.
 
 ```swift
 import PipelineKitObservability
@@ -331,7 +353,7 @@ let audit = AuditLoggingMiddleware(
 )
 ```
 
-### PipelineKitCaching
+### PipelineKitCache
 
 Intelligent caching with automatic invalidation and compression.
 
@@ -347,6 +369,8 @@ let cache = CachingMiddleware(
 // Automatic caching based on command type
 pipeline.addMiddleware(cache)
 ```
+
+Additional wrappers: `CachedMiddleware`, `ConditionalCachedMiddleware`, and in‑memory cache implementations for middleware or general data.
 
 ### PipelineKitPooling
 
@@ -798,6 +822,26 @@ swift-format lint --recursive Sources Tests
 ## License
 
 PipelineKit is released under the MIT License. See [LICENSE](LICENSE) for details.
+
+---
+
+## Additional Notes
+
+- SimpleSemaphore: `acquire()` is `async throws` and returns a `SemaphoreToken` that auto‑releases on deinit; you can also `defer { token.release() }` explicitly.
+- DynamicPipeline registration APIs:
+  - `register(_:handler:)` – replace‑by‑default (non‑throwing)
+  - `registerOnce(_:handler:)` – throws if a handler already exists
+  - `replace(_:with:)` – returns whether a previous handler was replaced
+  - `unregister(_:)` – returns whether a handler was removed
+- NextGuard safety:
+  - Default: ensures `next` is called exactly once; throws on multiple/concurrent calls.
+  - `UnsafeMiddleware`: opt‑out for custom patterns (use with care).
+  - `NextGuardWarningSuppressing`: suppresses debug‑only deinit warnings for intentional short‑circuits (e.g., cache hits).
+- AnySendable: type‑erased Sendable value container (not Equatable/Hashable by design). Extract concrete values via `get(_:)` to compare.
+- Platform support:
+  - Apple platforms fully supported per Package.swift.
+  - SwiftLog is used for internal logging; on Apple you can bootstrap OSLog backend via `swift-log-oslog` if desired.
+  - Linux builds are enabled; some transports (e.g., Network‑based UDP) may require alternative backends.
 
 ## Acknowledgments
 
