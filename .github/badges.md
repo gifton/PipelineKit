@@ -17,7 +17,7 @@ Add these badges to your README to show project status:
 
 ## Code Quality
 ```markdown
-![Swift Version](https://img.shields.io/badge/Swift-6.0-orange.svg)
+![Swift Version](https://img.shields.io/badge/Swift-6.1-orange.svg)
 ![Platform](https://img.shields.io/badge/platform-iOS%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ```
@@ -45,7 +45,7 @@ Add these badges to your README to show project status:
 ```markdown
 ![Build](https://github.com/gifton/PipelineKit/workflows/CI/badge.svg)
 ![Coverage](https://codecov.io/gh/gifton/PipelineKit/branch/main/graph/badge.svg)
-![Swift Version](https://img.shields.io/badge/Swift-6.0-orange.svg)
+![Swift Version](https://img.shields.io/badge/Swift-6.1-orange.svg)
 ![Platform](https://img.shields.io/badge/platform-iOS%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Performance](https://img.shields.io/badge/performance-50k%2B%20ops%2Fsec-brightgreen)

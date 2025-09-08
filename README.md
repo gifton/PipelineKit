@@ -2,7 +2,7 @@
 
 A high-performance, type-safe command-bus architecture for Swift 6 with built‑in observability, resilience, caching, and pooling. Designed for production pipelines with strong concurrency guarantees and modular, opt‑in features.
 
-[![Swift 6.0](https://img.shields.io/badge/Swift-6.0-orange.svg)](https://swift.org)
+[![Swift 6.1](https://img.shields.io/badge/Swift-6.1-orange.svg)](https://swift.org)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/Platform-iOS%20|%20macOS%20|%20tvOS%20|%20watchOS-lightgrey.svg)](Package.swift)
 

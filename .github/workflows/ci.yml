@@ -41,7 +41,7 @@ on:
 
 # Environment variables
 env:
-  SWIFT_VERSION: '6.0'
+  SWIFT_VERSION: '6.1.2'
   MINIMUM_COVERAGE: 70  # Start with realistic threshold
   # Gradual enforcement flags (set to 'true' to enforce)
   ENFORCE_SWIFTLINT: 'false'  # Week 1: warn only
@@ -173,7 +173,7 @@ jobs:
   build-linux:
     name: Build (Linux)
     runs-on: ubuntu-latest
-    container: swift:6.0
+    container: swift:6.1
     needs: swiftlint
     timeout-minutes: 15
     continue-on-error: true  # Allow Linux to fail for now
@@ -330,7 +330,7 @@ jobs:
   test-linux:
     name: Build (Linux - extra)
     runs-on: ubuntu-latest
-    container: swift:6.0
+    container: swift:6.1
     needs: [build, build-linux]
     timeout-minutes: 20
     continue-on-error: true  # Allow Linux to fail for now

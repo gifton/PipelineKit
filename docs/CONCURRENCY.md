@@ -7,7 +7,7 @@ PipelineKit is designed for safe concurrent execution using Swift's modern concu
 ## Swift Version Strategy
 
 ### Production (Current)
-- **Swift Version**: 6.0
+- **Swift Version**: 6.1
 - **Concurrency Mode**: Swift 6 language mode with strict concurrency
 - **Status**: Full Swift 6 compliance with Sendable conformance
 
