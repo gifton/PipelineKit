@@ -41,7 +41,7 @@ on:
 
 # Environment variables
 env:
-  SWIFT_VERSION: '6.1'
+  SWIFT_VERSION: '6.1-RELEASE'
   MINIMUM_COVERAGE: 70  # Start with realistic threshold
   # Gradual enforcement flags (set to 'true' to enforce)
   ENFORCE_SWIFTLINT: 'false'  # Week 1: warn only
@@ -153,7 +153,12 @@ jobs:
         swift-version: ${{ env.SWIFT_VERSION }}
     
     - name: Swift Version
-      run: swift --version
+      run: |
+        swift --version
+        if ! swift --version | grep -q "version 6.1"; then
+          echo "::error::Expected Swift 6.1 toolchain after setup-swift"
+          exit 1
+        fi
       
     - name: Build Debug
       run: swift build --configuration debug
