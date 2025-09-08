@@ -24,7 +24,7 @@ jobs:
     outputs:
       version: ${{ steps.get_version.outputs.version }}
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     
     - name: Get version from tag
       id: get_version
@@ -48,7 +48,7 @@ jobs:
       matrix:
         os: [macos-14, macos-13]
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     
     - name: Setup Swift
       uses: swift-actions/setup-swift@v2
@@ -82,7 +82,7 @@ jobs:
     permissions:
       contents: write
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     
     - name: Download artifacts
       uses: actions/download-artifact@v5
@@ -121,7 +121,7 @@ jobs:
       pages: write
       id-token: write
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     
     - name: Setup Swift
       uses: swift-actions/setup-swift@v2
