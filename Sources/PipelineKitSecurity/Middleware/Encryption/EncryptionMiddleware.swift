@@ -134,11 +134,24 @@ public struct EncryptionMiddleware: Middleware {
             return command
         }
         
-        // Encrypt each field
+        // Encrypt each field with type preservation
         var encryptedFields: [String: EncryptedData] = [:]
         for (fieldPath, value) in dataToEncrypt {
             do {
-                let encrypted = try await encryptionService.encrypt(value)
+                var encrypted = try await encryptionService.encrypt(value)
+                
+                // Add type hint to the encrypted data for proper decryption
+                let typeHint = String(describing: type(of: value))
+                encrypted = EncryptedData(
+                    ciphertext: encrypted.ciphertext,
+                    nonce: encrypted.nonce,
+                    tag: encrypted.tag,
+                    algorithm: encrypted.algorithm,
+                    encryptedAt: encrypted.encryptedAt,
+                    typeHint: typeHint,
+                    encodingFormat: encrypted.encodingFormat
+                )
+                
                 encryptedFields[fieldPath] = encrypted
             } catch {
                 // Log encryption failure and re-throw
@@ -182,18 +195,62 @@ public struct EncryptionMiddleware: Middleware {
             return result
         }
         
-        // Decrypt each field
-        var decryptedFields: [String: Any] = [:]
+        // Decrypt each field with type preservation
+        var decryptedFields: [String: DecryptedValue] = [:]
+        var failedFields: [String] = []
+        
         for (fieldPath, encrypted) in encryptedData {
             do {
-                // We need to know the type to decrypt properly
-                // For now, we'll try to decrypt as Data and let the result handle conversion
-                let decrypted = try await encryptionService.decrypt(encrypted, as: Data.self)
-                decryptedFields[fieldPath] = decrypted
+                // Determine the type to decrypt based on type hint
+                let decryptedValue: DecryptedValue
+                
+                if let typeHint = encrypted.typeHint {
+                    // Use type hint to guide decryption
+                    switch typeHint {
+                    case "String":
+                        let value = try await encryptionService.decrypt(encrypted, as: String.self)
+                        decryptedValue = DecryptedValue(value)
+                    case "Int":
+                        let value = try await encryptionService.decrypt(encrypted, as: Int.self)
+                        decryptedValue = DecryptedValue(value)
+                    case "Double":
+                        let value = try await encryptionService.decrypt(encrypted, as: Double.self)
+                        decryptedValue = DecryptedValue(value)
+                    case "Bool":
+                        let value = try await encryptionService.decrypt(encrypted, as: Bool.self)
+                        decryptedValue = DecryptedValue(value)
+                    case "Date":
+                        let value = try await encryptionService.decrypt(encrypted, as: Date.self)
+                        decryptedValue = DecryptedValue(value)
+                    case "Data":
+                        let value = try await encryptionService.decrypt(encrypted, as: Data.self)
+                        decryptedValue = DecryptedValue(value)
+                    default:
+                        // For custom types, try to decrypt as JSON-encoded Data
+                        // The result implementation should handle deserialization
+                        if encrypted.encodingFormat == "json" {
+                            let data = try await encryptionService.decrypt(encrypted, as: Data.self)
+                            // Store as Data but with type hint for later deserialization
+                            decryptedValue = DecryptedValue(TypedData(data: data, originalType: typeHint))
+                        } else {
+                            // Fallback to raw Data
+                            let data = try await encryptionService.decrypt(encrypted, as: Data.self)
+                            decryptedValue = DecryptedValue(data)
+                        }
+                    }
+                } else {
+                    // No type hint - fallback to Data and let result handle it
+                    let data = try await encryptionService.decrypt(encrypted, as: Data.self)
+                    decryptedValue = DecryptedValue(data)
+                }
+                
+                decryptedFields[fieldPath] = decryptedValue
+                
             } catch {
                 // Log decryption failure
-                await context.setMetadata("decryption.failed", value: true)
-                await context.setMetadata("decryption.error", value: error.localizedDescription)
+                failedFields.append(fieldPath)
+                await context.setMetadata("decryption.failed.\(fieldPath)", value: true)
+                await context.setMetadata("decryption.error.\(fieldPath)", value: error.localizedDescription)
                 
                 // Depending on configuration, we might want to fail or continue
                 if !allowPartialDecryption {
@@ -202,12 +259,19 @@ public struct EncryptionMiddleware: Middleware {
             }
         }
         
+        // Log overall decryption status
+        if !failedFields.isEmpty {
+            await context.setMetadata("decryption.partial", value: true)
+            await context.setMetadata("decryption.failedFields", value: failedFields)
+        }
+        
         // Create new result with decrypted data
         let decryptedResult = decryptable.withDecryptedData(decryptedFields)
         
         // Mark decryption in context
         await context.setMetadata("encryption.decrypted", value: true)
         await context.setMetadata("decryption.fieldCount", value: decryptedFields.count)
+        await context.setMetadata("decryption.failedCount", value: failedFields.count)
         
         // Log decryption for audit
         let contextMetadata = await context.getMetadata()
@@ -216,7 +280,8 @@ public struct EncryptionMiddleware: Middleware {
                 action: .decryption,
                 resource: String(describing: type(of: result)),
                 details: [
-                    "fieldsDecrypted": Array(decryptedFields.keys) as any Sendable
+                    "fieldsDecrypted": Array(decryptedFields.keys) as any Sendable,
+                    "failedFields": failedFields as any Sendable
                 ]
             ))
         }
@@ -229,6 +294,23 @@ public struct EncryptionMiddleware: Middleware {
 }
 
 // MARK: - Supporting Types
+
+/// Helper struct to carry typed data with its original type information
+public struct TypedData: Sendable {
+    public let data: Data
+    public let originalType: String
+    
+    public init(data: Data, originalType: String) {
+        self.data = data
+        self.originalType = originalType
+    }
+    
+    /// Attempt to decode the data as a specific Decodable type
+    public func decode<T: Decodable>(as type: T.Type, using decoder: JSONDecoder = JSONDecoder()) throws -> T {
+        return try decoder.decode(type, from: data)
+    }
+}
+
 // EncryptionService and EncryptedData are defined in EncryptionProtocols.swift
 
 /// Errors that can occur during encryption operations.
@@ -277,7 +359,8 @@ public protocol DecryptableResult {
     var encryptedData: [String: EncryptedData]? { get }
     
     /// Creates a new instance with decrypted data.
-    func withDecryptedData(_ decryptedData: [String: Any]) -> Self
+    /// The DecryptedValue wrapper preserves type information from decryption.
+    func withDecryptedData(_ decryptedData: [String: DecryptedValue]) -> Self
 }
 
 // MARK: - Security Audit Event

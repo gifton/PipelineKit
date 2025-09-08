@@ -1,81 +1,89 @@
 #!/bin/bash
-# Coverage analysis tool for PipelineKit
 
-echo "======================================"
-echo "PipelineKit Coverage Analysis"
-echo "======================================"
-echo ""
+# Generate code coverage analysis for PipelineKit
+# Usage: ./Scripts/analyze-coverage.sh
 
-# Function to analyze a module
-analyze_module() {
+set -e
+
+echo "=================================================="
+echo "PipelineKit Code Coverage Analysis"
+echo "=================================================="
+echo
+
+# Check if coverage data exists
+if [ ! -f ".build/coverage.profdata" ]; then
+    echo "Coverage data not found. Running tests with coverage..."
+    swift test --enable-code-coverage
+    
+    echo "Merging coverage data..."
+    xcrun llvm-profdata merge \
+        .build/arm64-apple-macosx/debug/codecov/*.profraw \
+        -o .build/coverage.profdata
+fi
+
+# Generate coverage report
+echo "Generating coverage report..."
+COVERAGE_OUTPUT=$(xcrun llvm-cov report \
+    .build/arm64-apple-macosx/debug/PipelineKitPackageTests.xctest/Contents/MacOS/PipelineKitPackageTests \
+    -instr-profile=.build/coverage.profdata \
+    -ignore-filename-regex=".build|Tests" 2>&1)
+
+echo
+echo "=================================================="
+echo "OVERALL PROJECT COVERAGE:"
+echo "=================================================="
+echo "$COVERAGE_OUTPUT" | grep "^TOTAL" | awk '{
+    printf "Line Coverage:     %.1f%% (%d/%d lines)\n", 100*($2-$3)/$2, $2-$3, $2
+    printf "Function Coverage: %.1f%% (%d/%d functions)\n", 100*($5-$6)/$5, $5-$6, $5
+    printf "Region Coverage:   %.1f%% (%d/%d regions)\n", 100*($8-$9)/$8, $8-$9, $8
+}'
+
+echo
+echo "=================================================="
+echo "MODULE-LEVEL COVERAGE:"
+echo "=================================================="
+
+# Function to calculate module coverage
+calculate_module_coverage() {
     local module=$1
-    local source_dir="Sources/$module"
-    local test_dir="Tests/${module}Tests"
-    
-    echo "=== $module ==="
-    
-    # Count source files
-    local source_count=$(find "$source_dir" -name "*.swift" -type f 2>/dev/null | wc -l | tr -d ' ')
-    echo "Source files: $source_count"
-    
-    # Count test files
-    local test_count=$(find "$test_dir" -name "*Tests.swift" -type f 2>/dev/null | wc -l | tr -d ' ')
-    echo "Test files: $test_count"
-    
-    # Count test methods
-    local test_methods=$(grep -r "func test" "$test_dir" --include="*.swift" 2>/dev/null | wc -l | tr -d ' ')
-    echo "Test methods: $test_methods"
-    
-    # List untested components
-    echo ""
-    echo "Components needing tests:"
-    find "$source_dir" -name "*.swift" -type f 2>/dev/null | while read source_file; do
-        local component=$(basename "$source_file" .swift)
-        local test_file="$test_dir"
-        
-        # Check if test exists for this component
-        if ! find "$test_dir" -name "*${component}*Test*.swift" 2>/dev/null | grep -q .; then
-            echo "  ❌ $component"
-        fi
-    done
-    
-    echo ""
+    local stats=$(echo "$COVERAGE_OUTPUT" | grep "^$module/" | awk '{
+        lines += $2
+        uncovered += $3
+        funcs += $5
+        uncovered_funcs += $6
+    } END {
+        if (lines > 0) {
+            line_cov = ((lines - uncovered) / lines) * 100
+            func_cov = ((funcs - uncovered_funcs) / funcs) * 100
+            printf "%.1f%% lines, %.1f%% functions", line_cov, func_cov
+        } else {
+            print "No data"
+        }
+    }')
+    echo "$stats"
 }
 
-# Analyze each module
-for module in PipelineKitCore PipelineKitSecurity PipelineKitResilience PipelineKitObservability PipelineKitCache; do
-    analyze_module "$module"
-done
+# Core modules
+printf "%-35s %s\n" "PipelineKitCore:" "$(calculate_module_coverage PipelineKitCore)"
+printf "%-35s %s\n" "PipelineKit:" "$(calculate_module_coverage PipelineKit)"
+printf "%-35s %s\n" "PipelineKitObservability:" "$(calculate_module_coverage PipelineKitObservability)"
+printf "%-35s %s\n" "PipelineKitSecurity:" "$(calculate_module_coverage PipelineKitSecurity)"
+printf "%-35s %s\n" "PipelineKitCache:" "$(calculate_module_coverage PipelineKitCache)"
+printf "%-35s %s\n" "PipelineKitPooling:" "$(calculate_module_coverage PipelineKitPooling)"
+printf "%-35s %s\n" "PipelineKitResilienceCore:" "$(calculate_module_coverage PipelineKitResilienceCore)"
+printf "%-35s %s\n" "PipelineKitResilienceCircuitBreaker:" "$(calculate_module_coverage PipelineKitResilienceCircuitBreaker)"
 
-# Summary
-echo "======================================"
-echo "Summary"
-echo "======================================"
-echo ""
-echo "Total source files: $(find Sources -name "*.swift" -type f | wc -l | tr -d ' ')"
-echo "Total test files: $(find Tests -name "*Tests.swift" -type f | wc -l | tr -d ' ')"
-echo "Total test methods: $(grep -r "func test" Tests --include="*.swift" | wc -l | tr -d ' ')"
+echo
+echo "=================================================="
+echo "FILES WITH 100% LINE COVERAGE:"
+echo "=================================================="
+echo "$COVERAGE_OUTPUT" | grep -E "^PipelineKit.*\s+100\.00%" | awk '{print "✅", $1}' | head -20
 
-# Priority components for testing
-echo ""
-echo "======================================"
-echo "Priority Components for Testing"
-echo "======================================"
-echo ""
-echo "1. Core Pipeline Components:"
-echo "   - Pipeline.swift"
-echo "   - Middleware.swift"
-echo "   - CommandHandler.swift"
-echo ""
-echo "2. Context Management:"
-echo "   - CommandContext.swift"
-echo "   - CommandContext+Events.swift"
-echo ""
-echo "3. Error Handling:"
-echo "   - PipelineError.swift"
-echo "   - CancellationError.swift"
-echo ""
-echo "4. Security Components:"
-echo "   - AuthenticationMiddleware.swift"
-echo "   - AuthorizationMiddleware.swift"
-echo "   - ValidationMiddleware.swift"
+echo
+echo "=================================================="
+echo "FILES WITH < 20% LINE COVERAGE:"
+echo "=================================================="
+echo "$COVERAGE_OUTPUT" | awk '$4 ~ /%$/ && $4+0 < 20 && $1 ~ /^PipelineKit/ {printf "⚠️  %-60s %s\n", $1, $4}' | head -20
+
+echo
+echo "Coverage analysis complete!"

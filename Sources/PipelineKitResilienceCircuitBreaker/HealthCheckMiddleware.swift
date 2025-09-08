@@ -656,10 +656,46 @@ public struct HTTPHealthCheck: HealthCheck {
     }
 
     public func check() async -> HealthCheckResult {
-        // This is a placeholder - actual implementation would use URLSession
-        // For now, return healthy
-        return .healthy(message: "HTTP check placeholder")
+        do {
+            var request = URLRequest(url: url)
+            if let timeout = timeout {
+                request.timeoutInterval = timeout
+            }
+            
+            let (_, response) = try await URLSession.shared.data(for: request)
+            
+            guard let httpResponse = response as? HTTPURLResponse else {
+                return .unhealthy(message: "Invalid HTTP response")
+            }
+            
+            if httpResponse.statusCode == expectedStatusCode {
+                return .healthy(message: "HTTP endpoint responding with status \(httpResponse.statusCode)")
+            } else if httpResponse.statusCode >= 500 {
+                // Server errors indicate unhealthy
+                return .unhealthy(message: "HTTP endpoint returned server error: \(httpResponse.statusCode)")
+            } else if httpResponse.statusCode >= 400 {
+                // Client errors might indicate degraded state
+                return .degraded(message: "HTTP endpoint returned client error: \(httpResponse.statusCode)")
+            } else {
+                // Other 2xx/3xx codes might be acceptable but not expected
+                return .degraded(message: "HTTP endpoint returned unexpected status: \(httpResponse.statusCode)")
+            }
+        } catch {
+            // Network errors or timeouts indicate unhealthy state
+            let errorMessage = if error is URLError {
+                "Network error: \(error.localizedDescription)"
+            } else {
+                "Health check failed: \(error.localizedDescription)"
+            }
+            return .unhealthy(message: errorMessage)
+        }
     }
+}
+
+/// Protocol for database connections that can be health checked
+public protocol DatabaseConnection: Sendable {
+    /// Execute a simple query to test connectivity
+    func executeQuery(_ query: String) async throws -> Bool
 }
 
 /// Database connection health check
@@ -667,21 +703,76 @@ public struct DatabaseHealthCheck: HealthCheck {
     public let name: String
     public let timeout: TimeInterval?
     public let query: String
+    private let connection: (any DatabaseConnection)?
+    private let connectionCheck: (@Sendable () async -> Bool)?
 
+    /// Initialize with a database connection
+    public init(
+        name: String,
+        connection: any DatabaseConnection,
+        timeout: TimeInterval? = 3.0,
+        query: String = "SELECT 1"
+    ) {
+        self.name = name
+        self.connection = connection
+        self.timeout = timeout
+        self.query = query
+        self.connectionCheck = nil
+    }
+    
+    /// Initialize with a custom connection check closure
+    public init(
+        name: String,
+        connectionCheck: @escaping @Sendable () async -> Bool,
+        timeout: TimeInterval? = 3.0,
+        query: String = "SELECT 1"
+    ) {
+        self.name = name
+        self.connection = nil
+        self.connectionCheck = connectionCheck
+        self.timeout = timeout
+        self.query = query
+    }
+    
+    /// Initialize without a connection (returns unknown status)
     public init(
         name: String,
         timeout: TimeInterval? = 3.0,
         query: String = "SELECT 1"
     ) {
         self.name = name
+        self.connection = nil
+        self.connectionCheck = nil
         self.timeout = timeout
         self.query = query
     }
 
     public func check() async -> HealthCheckResult {
-        // This is a placeholder - actual implementation would execute query
-        // For now, return healthy
-        return .healthy(message: "Database connection OK")
+        // If we have a connection check closure, use it
+        if let connectionCheck = connectionCheck {
+            let isHealthy = await connectionCheck()
+            return isHealthy 
+                ? .healthy(message: "Database connection verified")
+                : .unhealthy(message: "Database connection check failed")
+        }
+        
+        // If we have a database connection, use it
+        if let connection = connection {
+            do {
+                let success = try await connection.executeQuery(query)
+                return success 
+                    ? .healthy(message: "Database query '\(query)' executed successfully")
+                    : .unhealthy(message: "Database query '\(query)' failed")
+            } catch {
+                return .unhealthy(message: "Database error: \(error.localizedDescription)")
+            }
+        }
+        
+        // No connection configured - return unknown
+        return HealthCheckResult(
+            status: .unknown,
+            message: "No database connection configured for health check"
+        )
     }
 }
 

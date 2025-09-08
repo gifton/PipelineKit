@@ -48,6 +48,9 @@ public actor EventHub: EventEmitter {
 
     /// Weak references to subscribers
     private var subscribers: [WeakBox] = []
+    
+    /// Weak reference to the parent ObservabilitySystem if this hub is part of one
+    internal weak var parentSystem: ObservabilitySystem?
 
     /// Timer for periodic cleanup of nil references
     private var cleanupTask: Task<Void, Never>?
@@ -182,6 +185,19 @@ public actor EventHub: EventEmitter {
             stats.cleanupRuns += 1
             stats.referencesCleanedUp += removed
         }
+    }
+    
+    // MARK: - Internal Methods
+    
+    /// Sets the parent ObservabilitySystem for this hub.
+    /// This enables retrieving the system from a CommandContext.
+    public func setParentSystem(_ system: ObservabilitySystem?) {
+        self.parentSystem = system
+    }
+    
+    /// Gets the parent ObservabilitySystem if one exists.
+    public func getParentSystem() -> ObservabilitySystem? {
+        return parentSystem
     }
 }
 

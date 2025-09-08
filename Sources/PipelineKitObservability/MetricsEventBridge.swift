@@ -99,9 +99,8 @@ public final class MetricsEventBridge: EventSubscriber, Sendable {
         if !config.includePatterns.isEmpty {
             var included = false
             for pattern in config.includePatterns where event.name.contains(pattern) {
-                    included = true
-                    break
-                }
+                included = true
+                break
             }
             if !included {
                 return

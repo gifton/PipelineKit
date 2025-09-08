@@ -20,7 +20,7 @@ public extension CommandContext {
     ///   - name: The event name
     ///   - properties: Additional event properties
     func emitEvent(_ name: String, properties: [String: any Sendable] = [:]) async {
-        guard eventEmitter != nil else { return }
+        guard await eventEmitter != nil else { return }
 
         let correlationId = await correlationID ?? commandMetadata.correlationId ?? commandMetadata.id.uuidString
         let event = PipelineEvent(

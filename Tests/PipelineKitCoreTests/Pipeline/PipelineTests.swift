@@ -77,6 +77,28 @@ final class PipelineTests: XCTestCase {
         XCTAssertEqual(result, "TEST")
     }
     
+    func testPipelineDefaultExecuteMethod() async throws {
+        // Test the default execute method that creates its own context
+        struct MockPipeline: Pipeline {
+            var executedWithContext = false
+            
+            func execute<T: Command>(_ command: T, context: CommandContext) async throws -> T.Result {
+                if let testCommand = command as? TestCommand,
+                   let result = try await testCommand.execute() as? T.Result {
+                    return result
+                }
+                fatalError("Unsupported command type")
+            }
+        }
+        
+        let pipeline = MockPipeline()
+        let command = TestCommand(value: "hello")
+        
+        // Use the default execute method (without providing context)
+        let result = try await pipeline.execute(command)
+        XCTAssertEqual(result, "HELLO")
+    }
+    
     // MARK: - Middleware Execution Tests
     
     func testMiddlewareExecutionOrder() async throws {

@@ -7,12 +7,14 @@ import Foundation
 public extension CommandContext {
     /// Gets the event emitter for this context.
     var eventEmitter: EventEmitter? {
-        self.get(ContextKeys.eventEmitter)
+        get async {
+            self.get(ContextKeys.eventEmitter)
+        }
     }
     
     /// Sets the event emitter for this context.
     /// - Parameter emitter: The event emitter to use for this context
-    public func setEventEmitter(_ emitter: EventEmitter?) {
+    func setEventEmitter(_ emitter: EventEmitter?) async {
         self.set(ContextKeys.eventEmitter, value: emitter)
     }
     
@@ -23,22 +25,22 @@ public extension CommandContext {
     /// conditional checks at every emission site.
     ///
     /// - Parameter event: The event to emit
-    public func emitEvent(_ event: PipelineEvent) async {
+    func emitEvent(_ event: PipelineEvent) async {
         // Forward to the configured emitter if present
-        if let emitter = eventEmitter {
+        if let emitter = await eventEmitter {
             await emitter.emit(event)
         }
         // No fallback to metadata storage - clean separation of concerns
     }
     
     /// Convenience method to emit a middleware event.
-    public func emitMiddlewareEvent(
+    func emitMiddlewareEvent(
         _ name: String,
         middleware: String,
         properties: [String: any Sendable] = [:]
     ) async {
         // Use request ID as correlation ID, or generate one
-        let correlationID = (getRequestID()) ?? UUID().uuidString
+        let correlationID = getRequestID() ?? UUID().uuidString
         let event = PipelineEvent(
             name: name,
             properties: properties.merging(["middleware": middleware]) { _, new in new },
@@ -48,7 +50,7 @@ public extension CommandContext {
     }
     
     /// Convenience method to emit a middleware event with typed properties.
-    public func emitMiddlewareEvent<T: Sendable>(
+    func emitMiddlewareEvent<T: Sendable>(
         _ name: String,
         middleware: String,
         properties: [String: T]

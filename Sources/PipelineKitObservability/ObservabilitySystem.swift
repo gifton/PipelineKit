@@ -8,6 +8,15 @@
 import Foundation
 import PipelineKitCore
 
+// MARK: - Context Key for ObservabilitySystem
+
+extension ContextKey where Value == ObservabilitySystem {
+    /// Key for storing the ObservabilitySystem in the context
+    static var observabilitySystem: ContextKey<ObservabilitySystem> {
+        ContextKey<ObservabilitySystem>("__observability_system")
+    }
+}
+
 /// A complete observability system with natural event and metric integration.
 ///
 /// This provides a single entry point for all observability needs,
@@ -90,6 +99,9 @@ public actor ObservabilitySystem {
         self.config = configuration
         self.eventHub = EventHub()
         self.metricsStorage = MetricsStorage()
+        
+        // Set this system as the parent of the event hub
+        await eventHub.setParentSystem(self)
         
         // Set up natural integration
         await setupIntegration()
@@ -224,6 +236,12 @@ public actor ObservabilitySystem {
         await eventHub.statistics
     }
     
+    /// Gets the event hub for this system.
+    /// This is useful when setting up a CommandContext manually.
+    public func getEventHub() -> EventHub {
+        return eventHub
+    }
+    
     // MARK: - Private Methods
     
     private func setupIntegration() async {
@@ -253,15 +271,19 @@ public actor ObservabilitySystem {
 // MARK: - CommandContext Extension for Natural Usage
 
 public extension CommandContext {
-    /// Gets or creates an observability system for this context.
+    /// Gets the observability system for this context if one is configured.
     ///
     /// This provides the most natural integration - the context
-    /// automatically has observability capabilities.
+    /// automatically has observability capabilities when an ObservabilitySystem
+    /// has been set up with setupObservability().
+    ///
+    /// - Returns: The ObservabilitySystem if one is configured, nil otherwise
     var observability: ObservabilitySystem? {
-            if eventEmitter is EventHub {
-                // Try to find the associated system
-                // For now, we'll need to store it separately
-                return nil
+        get async {
+            // Check if we have an EventHub as the event emitter
+            if let hub = await self.eventEmitter as? EventHub {
+                // Get the parent system from the hub
+                return await hub.getParentSystem()
             }
             return nil
         }
@@ -276,12 +298,20 @@ public extension CommandContext {
     /// 
     /// // Now events automatically generate metrics!
     /// context.emitCommandStarted(type: "CreateUser")
+    /// 
+    /// // And you can access the full system:
+    /// let metrics = await context.observability?.getMetrics()
     /// ```
     func setupObservability(
         _ config: ObservabilitySystem.Configuration = .development
     ) async {
         let system = await ObservabilitySystem(configuration: config)
-        self.setEventEmitter(system.eventHub)
+        let hub = await system.getEventHub()
+        await self.setEventEmitter(hub)
+        
+        // Store the system in the context to keep it alive
+        // The hub has only a weak reference to prevent cycles
+        self.set(.observabilitySystem, value: system)
     }
     
     /// Records a counter metric through the context's observability system.
@@ -291,7 +321,7 @@ public extension CommandContext {
         tags: [String: String] = [:]
     ) async {
         // If we have a metrics-capable event emitter, use it
-        if let hub = eventEmitter as? EventHub {
+        if let hub = await eventEmitter as? EventHub {
             let event = PipelineEvent(
                 name: "metric.counter.recorded",
                 properties: [
@@ -314,7 +344,7 @@ public extension CommandContext {
         unit: String? = nil
     ) async {
         // If we have a metrics-capable event emitter, use it
-        if let hub = eventEmitter as? EventHub {
+        if let hub = await eventEmitter as? EventHub {
             var props: [String: any Sendable] = [
                 "metric_name": name,
                 "metric_type": "gauge",
@@ -340,7 +370,7 @@ public extension CommandContext {
         tags: [String: String] = [:]
     ) async {
         // If we have a metrics-capable event emitter, use it
-        if let hub = eventEmitter as? EventHub {
+        if let hub = await eventEmitter as? EventHub {
             let event = PipelineEvent(
                 name: "metric.timer.recorded",
                 properties: [
