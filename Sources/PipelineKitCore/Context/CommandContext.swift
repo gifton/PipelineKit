@@ -39,7 +39,7 @@ public actor CommandContext {
         
         // Initialize storage with metadata values
         storage[ContextKeys.commandID.name] = AnySendable(metadata.id)
-        storage[ContextKeys.startTime.name] = AnySendable(metadata.timestamp)
+        // Do not set a default startTime; only record when explicitly provided
         
         if let userId = metadata.userId {
             storage[ContextKeys.userID.name] = AnySendable(userId)
@@ -226,7 +226,7 @@ public actor CommandContext {
         storage.removeAll(keepingCapacity: true)
         // Restore command metadata
         storage[ContextKeys.commandID.name] = AnySendable(commandMetadata.id)
-        storage[ContextKeys.startTime.name] = AnySendable(commandMetadata.timestamp)
+        // Intentionally do not restore startTime; it must be explicitly set
         
         if let userId = commandMetadata.userId {
             storage[ContextKeys.userID.name] = AnySendable(userId)
