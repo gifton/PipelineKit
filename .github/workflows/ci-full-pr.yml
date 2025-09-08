@@ -21,7 +21,7 @@ jobs:
           echo "This includes stress tests, performance, and security scans"
           echo "This may take 20-30 minutes to complete"
       
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       
       # Re-run ci.yml but override the conditions
       - name: Trigger Full Test Suite
