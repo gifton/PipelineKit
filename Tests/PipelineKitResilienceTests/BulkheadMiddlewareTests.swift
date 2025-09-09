@@ -199,7 +199,7 @@ final class BulkheadMiddlewareTests: XCTestCase {
         }
 
         // Give it time to start and acquire the semaphore reliably in CI
-        try await Task.sleep(nanoseconds: 30_000_000)
+        try await Task.sleep(nanoseconds: 60_000_000)
 
         // When - queue another command that will timeout
         do {
