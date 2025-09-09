@@ -228,6 +228,7 @@ jobs:
         scan-ref: '.'
         severity: 'UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL'
         format: 'table'
+        args: --config .trivy.yaml
         exit-code: '1'  # Fail on any finding
     
     - name: SAST Scan

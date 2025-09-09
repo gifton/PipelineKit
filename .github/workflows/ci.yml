@@ -467,6 +467,7 @@ jobs:
         severity: 'CRITICAL,HIGH'
         format: 'sarif'
         output: 'trivy-results.sarif'
+        args: --config .trivy.yaml
     
     - name: Upload Trivy Results
       uses: github/codeql-action/upload-sarif@v3
