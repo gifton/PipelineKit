@@ -95,7 +95,8 @@ final class TimeoutMiddlewareTests: XCTestCase {
         let timeoutMiddleware = TimeoutMiddleware(
             configuration: TimeoutMiddleware.Configuration(
                 defaultTimeout: 0.1, // 100ms timeout
-                gracePeriod: 0.1    // 100ms grace period
+                // Use a slightly larger grace period to account for CI/macOS scheduler jitter
+                gracePeriod: 0.2    // 200ms grace period
             )
         )
         

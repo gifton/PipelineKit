@@ -73,11 +73,18 @@ final class ObservabilitySystemTests: XCTestCase {
         
         // Verify metrics were recorded through the observability system
         if let system = await context.observability {
-            let metrics = await system.getMetrics()
-            
+            // Event delivery is asynchronous; poll briefly for eventual consistency
+            var metrics = await system.getMetrics()
+            if metrics.count < 3 {
+                for _ in 0..<10 {
+                    try? await Task.sleep(nanoseconds: 20_000_000) // 20ms
+                    metrics = await system.getMetrics()
+                    if metrics.count >= 3 { break }
+                }
+            }
             // We should have both direct metrics and event-generated metrics
             // (the context methods generate events which are converted to metrics)
-            XCTAssertTrue(metrics.count >= 3, "Should have at least 3 metrics")
+            XCTAssertTrue(metrics.count >= 3, "Should have at least 3 metrics after event processing")
             
             // The event bridge may or may not have converted them yet depending on timing
             // So we'll just verify the system is working by checking we can record more metrics

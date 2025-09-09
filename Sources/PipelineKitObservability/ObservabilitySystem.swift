@@ -50,6 +50,11 @@ public actor ObservabilitySystem {
     /// Optional StatsD exporter
     private var statsdExporter: StatsDExporter?
     
+    /// Strong references to event subscribers to prevent premature deallocation
+    /// EventHub stores subscribers weakly to avoid retain cycles, so the system
+    /// maintains strong references for the bridges it creates.
+    private var retainedSubscribers: [any EventSubscriber] = []
+    
     /// Configuration
     private let config: Configuration
     
@@ -151,6 +156,8 @@ public actor ObservabilitySystem {
                 config: self.config.metricsGeneration
             )
             await eventHub.subscribe(bridge)
+            // Retain the bridge to keep it alive
+            retainedSubscribers.append(bridge)
         }
     }
     
@@ -252,6 +259,8 @@ public actor ObservabilitySystem {
                 config: config.metricsGeneration
             )
             await eventHub.subscribe(bridge)
+            // Retain the bridge to keep it alive
+            retainedSubscribers.append(bridge)
         }
         
         // Set up logging if enabled
@@ -264,6 +273,8 @@ public actor ObservabilitySystem {
             // We need to create a bridge
             let loggingBridge = LoggingEventBridge(emitter: logger)
             await eventHub.subscribe(loggingBridge)
+            // Retain the bridge to keep it alive
+            retainedSubscribers.append(loggingBridge)
         }
     }
 }
