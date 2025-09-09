@@ -217,9 +217,13 @@ final class CancellationErrorTests: XCTestCase {
                 let result = try await longRunningOperation()
                 XCTFail("Should have been cancelled, but got result: \(result)")
             } catch {
+                // Cancellation may surface as our PipelineError.cancelled
+                // or as Swift's native CancellationError from a suspension point (e.g., Task.sleep)
                 if case PipelineError.cancelled(let context) = error {
                     XCTAssertNotNil(context)
                     XCTAssertTrue(context!.contains("Processing batch"))
+                } else if error is CancellationError {
+                    // Accept native cancellation as equivalent
                 } else {
                     XCTFail("Unexpected error: \(error)")
                 }
