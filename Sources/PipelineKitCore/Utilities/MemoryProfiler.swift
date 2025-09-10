@@ -259,10 +259,52 @@ public actor MemoryProfiler {
             return (resident: 0, virtual: 0)
         }
         #else
-        // Linux fallback: best-effort zeros (can be improved via /proc parsing)
+        // Linux: First try /proc/self/status (VmRSS, VmSize in kB)
+        if let status = try? String(contentsOfFile: "/proc/self/status", encoding: .utf8) {
+            var rssKB: UInt64?
+            var vsizeKB: UInt64?
+            for line in status.split(separator: "\n") {
+                if line.hasPrefix("VmRSS:") {
+                    rssKB = MemoryProfiler.parseKB(line)
+                } else if line.hasPrefix("VmSize:") {
+                    vsizeKB = MemoryProfiler.parseKB(line)
+                }
+            }
+            if let rss = rssKB, let vsize = vsizeKB {
+                return (resident: rss * 1024, virtual: vsize * 1024)
+            } else if let rss = rssKB {
+                return (resident: rss * 1024, virtual: 0)
+            }
+        }
+
+        // Fallback: /proc/self/statm with page counts
+        if let statm = try? String(contentsOfFile: "/proc/self/statm", encoding: .utf8) {
+            let parts = statm.split(whereSeparator: { $0 == " " || $0 == "\t" })
+            if parts.count >= 2 {
+                let pageSizeValue = Glibc.sysconf(Int32(_SC_PAGESIZE))
+                let pageSize: UInt64 = pageSizeValue > 0 ? UInt64(pageSizeValue) : 4096
+                let totalPages = UInt64(String(parts[0])) ?? 0
+                let residentPages = UInt64(String(parts[1])) ?? 0
+                return (
+                    resident: residentPages * pageSize,
+                    virtual: totalPages * pageSize
+                )
+            }
+        }
+
+        // As a last resort, return zeros
         return (resident: 0, virtual: 0)
         #endif
     }
+
+    #if os(Linux)
+    private static func parseKB<S: StringProtocol>(_ line: S) -> UInt64? {
+        // Expected: Key:\t<number> kB
+        let parts = line.split(whereSeparator: { $0 == " " || $0 == "\t" || $0 == ":" })
+        guard parts.count >= 2, let value = UInt64(parts[1]) else { return nil }
+        return value
+    }
+    #endif
     
     private func generateRecommendations(
         peakMemory: UInt64,
