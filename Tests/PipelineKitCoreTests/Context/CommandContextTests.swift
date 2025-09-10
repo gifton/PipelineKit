@@ -11,10 +11,10 @@ final class CommandContextTests: XCTestCase {
         // Verify basic properties are initialized
         // CommandContext is an actor, so we can't access commandMetadata directly
         // Instead, verify through the methods that use it
-        let userId = await context.getUserID()
+        _ = await context.getUserID()
         let startTime = await context.getStartTime()
-        // If initialization worked, these should exist
-        XCTAssertNotNil(startTime)
+        // By default, startTime is unset until explicitly provided
+        XCTAssertNil(startTime)
     }
     
     func testInitWithCustomMetadata() async {

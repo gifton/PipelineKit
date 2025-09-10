@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 env:
-  SWIFT_VERSION: '6.1-RELEASE'
+  SWIFT_VERSION: '6.1.0'
 
 permissions:
   contents: read
@@ -67,7 +67,7 @@ jobs:
     timeout-minutes: 30
     strategy:
       matrix:
-        swift-version: ['5.9', '6.1']
+        swift-version: ['5.9', '6.1.0']
     
     steps:
       - uses: actions/checkout@v5

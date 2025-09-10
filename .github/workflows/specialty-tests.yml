@@ -17,7 +17,7 @@ on:
         required: true
 
 env:
-  SWIFT_VERSION: '6.1-RELEASE'
+  SWIFT_VERSION: '6.1.0'
 
 permissions:
   contents: read
@@ -228,6 +228,7 @@ jobs:
         scan-ref: '.'
         severity: 'UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL'
         format: 'table'
+        args: --config .trivy.yaml
         exit-code: '1'  # Fail on any finding
     
     - name: SAST Scan

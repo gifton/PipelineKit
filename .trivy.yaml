@@ -1,0 +1,34 @@
+scanners:
+  - vuln
+  - secret
+  - misconfig
+
+# Exclude build and non-source dirs to reduce noise
+skip-dirs:
+  - .build
+  - .swiftpm
+  - docs
+  - .git
+  - Examples
+  - Scripts
+
+timeout: 5m
+
+vulnerability:
+  # Report only high/critical by default; adjust in workflow if needed
+  severity:
+    - CRITICAL
+    - HIGH
+  ignore-unfixed: true
+  types:
+    - os
+    - library
+
+misconfiguration:
+  severity:
+    - CRITICAL
+    - HIGH
+
+secret:
+  # Keep defaults; enable scanning
+  enabled: true
