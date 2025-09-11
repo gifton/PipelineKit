@@ -1,7 +1,6 @@
 import Foundation
 #if !canImport(Darwin)
 @inline(__always) func autoreleasepool<T>(invoking body: () -> T) -> T { body() }
-@inline(__always) func autoreleasepool<T>(_ body: () -> T) -> T { body() }
 #endif
 
 /// Sliding window implementation for rate limiting.
