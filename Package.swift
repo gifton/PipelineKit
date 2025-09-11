@@ -63,6 +63,10 @@ let package = Package(
         // Security: No known vulnerabilities
         // License: Apache-2.0
         .package(url: "https://github.com/apple/swift-log.git", from: "1.5.4"),
+        // swift-crypto - CryptoKit-compatible APIs for non-Apple platforms
+        // Security: Maintained by Apple, used for Linux compatibility
+        // License: Apache-2.0
+        .package(url: "https://github.com/apple/swift-crypto.git", from: "3.4.0"),
         // swift-docc-plugin 1.3.0 - For documentation generation
         // Security: No known vulnerabilities
         // License: Apache-2.0
@@ -196,7 +200,11 @@ let package = Package(
         // Security module - Depends on Kit
         .target(
             name: "PipelineKitSecurity",
-            dependencies: ["PipelineKit", "PipelineKitResilience"],
+            dependencies: [
+                "PipelineKit",
+                "PipelineKitResilience",
+                .product(name: "Crypto", package: "swift-crypto")
+            ],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency"),
                 .enableExperimentalFeature("AccessLevelOnImport"),

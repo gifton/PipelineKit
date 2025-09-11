@@ -1,6 +1,10 @@
 import Foundation
 import PipelineKit
+#if canImport(CryptoKit)
 @preconcurrency import CryptoKit
+#else
+@preconcurrency import Crypto
+#endif
 
 /// Manages encryption keys and operations for command encryption.
 ///

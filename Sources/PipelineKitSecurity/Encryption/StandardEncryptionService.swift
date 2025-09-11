@@ -1,5 +1,9 @@
 import Foundation
+#if canImport(CryptoKit)
 @preconcurrency import CryptoKit
+#else
+@preconcurrency import Crypto
+#endif
 import PipelineKit
 
 /// Standard AES-GCM encryption service

@@ -1,5 +1,9 @@
 import XCTest
+#if canImport(CryptoKit)
 @preconcurrency import CryptoKit
+#else
+@preconcurrency import Crypto
+#endif
 @testable import PipelineKitSecurity
 @testable import PipelineKitCore
 import PipelineKitTestSupport
