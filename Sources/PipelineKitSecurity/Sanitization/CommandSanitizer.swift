@@ -1,4 +1,8 @@
 import Foundation
+#if !canImport(Darwin)
+@inline(__always) func autoreleasepool<T>(invoking body: () -> T) -> T { body() }
+@inline(__always) func autoreleasepool<T>(_ body: () -> T) -> T { body() }
+#endif
 
 /// Provides common sanitization utilities for command data.
 public struct CommandSanitizer: Sendable {
