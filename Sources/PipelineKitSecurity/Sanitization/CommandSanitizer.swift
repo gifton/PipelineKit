@@ -1,4 +1,9 @@
 import Foundation
+#if !canImport(Darwin)
+@inline(__always) private func _autoreleasepool<T>(_ body: () -> T) -> T { body() }
+#else
+@inline(__always) private func _autoreleasepool<T>(_ body: () -> T) -> T { autoreleasepool(invoking: body) }
+#endif
 
 /// Provides common sanitization utilities for command data.
 public struct CommandSanitizer: Sendable {
@@ -7,7 +12,7 @@ public struct CommandSanitizer: Sendable {
     /// - Parameter input: The string to sanitize
     /// - Returns: Sanitized string with dangerous content removed
     public static func sanitizeHTML(_ input: String) -> String {
-        autoreleasepool {
+        _autoreleasepool {
             var sanitized = input
             
             // Remove script tags and content
@@ -41,7 +46,7 @@ public struct CommandSanitizer: Sendable {
     /// - Parameter input: The string to escape
     /// - Returns: String with HTML entities escaped
     public static func escapeHTML(_ input: String) -> String {
-        autoreleasepool {
+        _autoreleasepool {
             return input
                 .replacingOccurrences(of: "&", with: "&amp;")
                 .replacingOccurrences(of: "<", with: "&lt;")
@@ -59,7 +64,7 @@ public struct CommandSanitizer: Sendable {
     /// - Parameter input: The string to sanitize
     /// - Returns: SQL-safe string
     public static func sanitizeSQL(_ input: String) -> String {
-        autoreleasepool {
+        _autoreleasepool {
             return input
                 .replacingOccurrences(of: "'", with: "''")
                 .replacingOccurrences(of: "\\", with: "\\\\")
@@ -75,7 +80,7 @@ public struct CommandSanitizer: Sendable {
     /// - Parameter input: The string to clean
     /// - Returns: String with only printable characters
     public static func removeNonPrintable(_ input: String) -> String {
-        autoreleasepool {
+        _autoreleasepool {
             let printable = CharacterSet.alphanumerics
                 .union(.punctuationCharacters)
                 .union(.whitespaces)

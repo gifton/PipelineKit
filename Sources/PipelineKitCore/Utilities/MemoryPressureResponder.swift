@@ -168,10 +168,55 @@ public actor MemoryPressureResponder {
         let available = Int(totalMemory) - used
         return available > 0 ? available : 0
         #else
-        // Best-effort fallback: unknown used memory, assume not under pressure
+        // Linux: Read from /proc/meminfo. Prefer MemAvailable if present; otherwise
+        // approximate with MemFree + Buffers + Cached. Values are reported in kB.
+        do {
+            let contents = try String(contentsOfFile: "/proc/meminfo", encoding: .utf8)
+            var memAvailableKB: Int?
+            var memFreeKB: Int?
+            var buffersKB: Int?
+            var cachedKB: Int?
+
+            for line in contents.split(separator: "\n") {
+                if line.hasPrefix("MemAvailable:") {
+                    memAvailableKB = MemoryPressureResponder.parseKBValue(line)
+                } else if line.hasPrefix("MemFree:") {
+                    memFreeKB = MemoryPressureResponder.parseKBValue(line)
+                } else if line.hasPrefix("Buffers:") {
+                    buffersKB = MemoryPressureResponder.parseKBValue(line)
+                } else if line.hasPrefix("Cached:") {
+                    cachedKB = MemoryPressureResponder.parseKBValue(line)
+                }
+            }
+
+            if let avail = memAvailableKB {
+                let bytes = avail * 1024
+                return bytes > 0 ? bytes : 0
+            }
+
+            let fallbackKB = (memFreeKB ?? 0) + (buffersKB ?? 0) + (cachedKB ?? 0)
+            if fallbackKB > 0 {
+                return fallbackKB * 1024
+            }
+        } catch {
+            // Ignore and fall through to the conservative fallback below
+        }
+
+        // Conservative fallback if /proc is unavailable or unparsable
         return Int(totalMemory)
         #endif
     }
+
+    #if !canImport(Darwin)
+    private static func parseKBValue<S: StringProtocol>(_ line: S) -> Int? {
+        // Expected format: Key: <number> kB
+        // Split on whitespace and extract the numeric token
+        let parts = line.split(whereSeparator: { $0 == " " || $0 == "\t" || $0 == ":" })
+        // parts example: ["MemAvailable", "123456", "kB"]
+        guard parts.count >= 2, let value = Int(parts[1]) else { return nil }
+        return value
+    }
+    #endif
     
     #if canImport(Darwin)
     private func getMemoryUsageDarwin() -> Int {

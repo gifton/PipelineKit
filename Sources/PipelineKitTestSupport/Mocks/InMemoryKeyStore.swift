@@ -1,6 +1,10 @@
 import Foundation
 import PipelineKitSecurity
+#if canImport(CryptoKit)
 @preconcurrency import CryptoKit
+#else
+@preconcurrency import Crypto
+#endif
 
 /// Simple in-memory key store implementation for testing.
 ///

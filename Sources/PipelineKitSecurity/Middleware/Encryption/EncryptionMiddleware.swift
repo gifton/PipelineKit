@@ -1,6 +1,10 @@
 import Foundation
 import PipelineKit
+#if canImport(CryptoKit)
 @preconcurrency import CryptoKit
+#else
+@preconcurrency import Crypto
+#endif
 
 /// Middleware that handles encryption and decryption of sensitive data in commands.
 ///
