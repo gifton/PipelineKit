@@ -1,4 +1,7 @@
 import Foundation
+#if !canImport(Darwin)
+@inline(__always) func autoreleasepool<T>(invoking body: () -> T) -> T { body() }
+#endif
 import PipelineKit
 import _ResilienceFoundation
 
