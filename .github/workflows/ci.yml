@@ -482,7 +482,7 @@ jobs:
     needs: swiftlint  # Don't depend on build to avoid cascade failures
     # Run on all events, but only deploy on main branch
     timeout-minutes: 20
-    continue-on-error: true  # Don't block CI if documentation fails
+    # Remove continue-on-error to make it a required check for PRs
     permissions:
       contents: read
       pages: write
@@ -509,13 +509,36 @@ jobs:
     
     - name: Build Documentation
       run: |
+        # Build documentation for all public targets
+        echo "Building documentation for PipelineKit..."
         swift package --allow-writing-to-directory ./docs \
           generate-documentation --target PipelineKit \
           --output-path ./docs \
           --disable-indexing \
           --transform-for-static-hosting
-    
+
+        # Also validate documentation for other public modules
+        echo "Validating documentation for PipelineKitSecurity..."
+        swift package generate-documentation --target PipelineKitSecurity
+
+        echo "Validating documentation for PipelineKitCore..."
+        swift package generate-documentation --target PipelineKitCore
+
+        echo "Validating documentation for PipelineKitResilience..."
+        swift package generate-documentation --target PipelineKitResilience
+
+        echo "Validating documentation for PipelineKitCache..."
+        swift package generate-documentation --target PipelineKitCache
+
+        echo "Validating documentation for PipelineKitPooling..."
+        swift package generate-documentation --target PipelineKitPooling
+
+        echo "Validating documentation for PipelineKitObservability..."
+        swift package generate-documentation --target PipelineKitObservability
+
     - name: Fix Documentation Filenames for Artifacts
+      # Only run sanitization when we need to upload/deploy
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
       run: |
         # GitHub Actions artifacts don't allow certain characters in filenames
         # Swift-DocC creates DIRECTORIES with colons for methods like send(_:context:)
@@ -561,6 +584,8 @@ jobs:
         fi
     
     - name: Upload Documentation Artifact
+      # Only upload artifacts for main branch builds
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
       uses: actions/upload-artifact@v4
       with:
         name: documentation
