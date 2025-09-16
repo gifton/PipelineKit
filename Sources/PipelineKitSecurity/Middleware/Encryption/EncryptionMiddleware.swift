@@ -67,6 +67,7 @@ public struct EncryptionMiddleware: Middleware {
     ///   - encryptionService: The service handling encryption/decryption operations
     ///   - sensitiveFields: Field names that contain sensitive data
     ///   - encryptFullPayload: If true, encrypts entire command payload
+    ///   - allowPartialDecryption: If true, allows processing even if some fields cannot be decrypted
     public init(
         encryptionService: EncryptionService,
         sensitiveFields: Set<String> = [],

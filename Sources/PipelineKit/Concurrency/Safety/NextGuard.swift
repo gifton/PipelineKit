@@ -41,6 +41,7 @@ public final class NextGuard<T: Command>: Sendable {
     /// - Parameters:
     ///   - next: The middleware next closure to guard
     ///   - identifier: Optional identifier for debugging
+    ///   - suppressDeinitWarning: If true, suppresses the warning when guard is deallocated without being invoked
     public init(
         _ next: @escaping @Sendable (T, CommandContext) async throws -> T.Result,
         identifier: String? = nil,

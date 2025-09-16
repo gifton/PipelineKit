@@ -1,16 +1,19 @@
 name: Runner Health Check
 
+# This workflow monitors the availability of GitHub Actions runners
+# for supported platforms (macOS and Linux only - Windows is not supported)
+
 on:
   workflow_dispatch:
   schedule:
-    - cron: '*/30 * * * *'  # Every 30 minutes
+    - cron: '0 1 * * *'  # Daily at 1 AM UTC
 
 jobs:
   check-runners:
     name: Check Runner Availability
     strategy:
       matrix:
-        runner: [ubuntu-latest, macos-14, macos-13, windows-latest]
+        runner: [ubuntu-latest, macos-14, macos-13]
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 2
     
