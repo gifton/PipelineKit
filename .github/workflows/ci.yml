@@ -210,7 +210,7 @@ jobs:
     name: Test (macOS)
     runs-on: macos-14
     needs: [build, build-linux]
-    timeout-minutes: 20
+    timeout-minutes: 30
     
     steps:
     - uses: actions/checkout@v5
@@ -225,26 +225,54 @@ jobs:
       with:
         cache-key-prefix: 'test'
         swift-version: ${{ env.SWIFT_VERSION }}
-    
+
+    - name: List Test Targets
+      run: |
+        echo "Available test targets:"
+        swift test list
+
     - name: Run Tests
       run: |
-        # Run tests without --parallel to prevent hanging
+        echo "Starting test execution at $(date)"
+        echo "Running tests with verbose output to diagnose hanging..."
+
+        # First, build the tests to separate build time from test time
+        echo "Building tests..."
+        swift build --build-tests
+
+        # Run tests without --parallel to prevent hanging, with verbose output
         set +e  # Don't exit on test failure
-        swift test --enable-code-coverage
-        TEST_EXIT_CODE=$?
+
+        echo "Executing tests..."
+        # Add timeout per test suite and verbose output
+        timeout 1200 swift test --enable-code-coverage --verbose || TEST_EXIT_CODE=$?
+
+        # If timeout was hit, try running specific test targets
+        if [ "${TEST_EXIT_CODE:-0}" -eq 124 ]; then
+          echo "::warning::Test execution timed out. Trying individual test targets..."
+
+          # Run each test target separately to identify which one hangs
+          for target in PipelineKitTests PipelineKitCoreTests PipelineKitResilienceTests PipelineKitSecurityTests PipelineKitCacheTests PipelineKitPoolingTests PipelineKitObservabilityTests; do
+            echo "Running $target..."
+            timeout 300 swift test --filter "$target" || echo "::warning::$target failed or timed out"
+          done
+
+          TEST_EXIT_CODE=1
+        fi
+
         set -e
-        
+
         # Parse test output to provide a summary
-        if [ $TEST_EXIT_CODE -eq 0 ]; then
+        if [ "${TEST_EXIT_CODE:-0}" -eq 0 ]; then
           echo "::notice::✅ All tests passed successfully"
         else
-          echo "::error::❌ Tests failed with exit code $TEST_EXIT_CODE"
+          echo "::error::❌ Tests failed with exit code ${TEST_EXIT_CODE:-1}"
           echo "::warning::Check the test output above for specific failures"
           # Continue anyway to generate coverage report
         fi
-        
+
         # Store exit code for later
-        echo "TEST_EXIT_CODE=$TEST_EXIT_CODE" >> $GITHUB_ENV
+        echo "TEST_EXIT_CODE=${TEST_EXIT_CODE:-0}" >> $GITHUB_ENV
     
     - name: Generate Coverage Report
       id: coverage_report
