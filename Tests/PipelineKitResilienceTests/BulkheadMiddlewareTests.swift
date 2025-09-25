@@ -352,7 +352,7 @@ final class BulkheadMiddlewareTests: XCTestCase {
             configuration: BulkheadMiddleware.Configuration(
                 maxConcurrency: 1,
                 rejectionHandler: { command, _ in
-                    Task { await tracker.setRejected(command) }
+                    Task { @Sendable in await tracker.setRejected(command) }
                     expectation.fulfill()
                 }
             )

@@ -316,6 +316,22 @@ public actor PoolRegistry {
     deinit {
         cleanupTask?.cancel()
     }
+
+    // MARK: - Shutdown (Test Support / Process Exit)
+
+    /// Cancels background tasks and releases resources.
+    ///
+    /// Use in test bundles to ensure background maintenance tasks do not keep
+    /// the process alive after tests complete.
+    nonisolated public static func shutdown() {
+        Task { await shared._shutdown() }
+    }
+
+    private func _shutdown() {
+        cleanupTask?.cancel()
+        cleanupTask = nil
+        pools.removeAll()
+    }
     
     // MARK: - Name Generation
     

@@ -124,16 +124,15 @@ final class BackPressurePerformanceTests: XCTestCase {
     
     func testFailedAcquirePerformance() throws {
         let semaphore = BackPressureSemaphore(maxConcurrency: 1)
-        
-        // Block the semaphore first
+
+        // Block the semaphore first using a task
         let blockExpectation = expectation(description: "Block semaphore")
-        var blocker: SemaphoreToken?
-        Task {
-            blocker = try? await semaphore.acquire()
+        let blockerTask = Task { @Sendable () -> SemaphoreToken? in
+            let token = try? await semaphore.acquire()
             blockExpectation.fulfill()
+            return token
         }
         wait(for: [blockExpectation], timeout: 1)
-        defer { blocker?.release() }
         
         let options = XCTMeasureOptions()
         options.iterationCount = 5
@@ -145,7 +144,7 @@ final class BackPressurePerformanceTests: XCTestCase {
             let expectation = expectation(description: "Failed acquire")
             expectation.expectedFulfillmentCount = 1000
             
-            Task {
+            Task { @Sendable in
                 for _ in 0..<1000 {
                     // tryAcquire should return nil immediately since semaphore is blocked
                     _ = await semaphore.tryAcquire()
@@ -155,8 +154,11 @@ final class BackPressurePerformanceTests: XCTestCase {
             
             wait(for: [expectation], timeout: 10)
         }
+
+        // Cleanup: cancel the blocker task
+        blockerTask.cancel()
     }
-    
+
     // MARK: - Memory Pressure Test
     
     func testMemoryPressureWithManyTokens() throws {
@@ -164,8 +166,8 @@ final class BackPressurePerformanceTests: XCTestCase {
         
         measure(metrics: [XCTMemoryMetric()]) {
             let expectation = self.expectation(description: "Memory pressure")
-            
-            Task {
+
+            Task { @Sendable in
                 var tokens: [SemaphoreToken] = []
                 
                 // Acquire many tokens
