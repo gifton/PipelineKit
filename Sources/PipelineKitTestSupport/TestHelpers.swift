@@ -98,21 +98,21 @@ public actor TestActor <T: Sendable> {
 /// metadata storage across diverse test cases.
 public struct TestCommandMetadata: CommandMetadata, @unchecked Sendable {
     public let id: UUID
-    public let userId: String?
-    public let correlationId: String?
+    public let userID: String?
+    public let correlationID: String?
     public let timestamp: Date
     public let additionalData: [String: Any]
     
     public init(
         id: UUID = UUID(),
-        userId: String? = "test-user",
-        correlationId: String? = UUID().uuidString,
+        userID: String? = "test-user",
+        correlationID: String? = UUID().uuidString,
         timestamp: Date = Date(),
         additionalData: [String: Any] = [:]
     ) {
         self.id = id
-        self.userId = userId
-        self.correlationId = correlationId
+        self.userID = userID
+        self.correlationID = correlationID
         self.timestamp = timestamp
         self.additionalData = additionalData
     }
@@ -125,14 +125,14 @@ public struct TestCommandMetadata: CommandMetadata, @unchecked Sendable {
 
 public extension CommandContext {
     static func test(
-        userId: String? = "test-user",
-        correlationId: String = UUID().uuidString,
+        userID: String? = "test-user",
+        correlationID: String = UUID().uuidString,
         additionalData: [String: Any] = [:],
         customKeys: [String: Any] = [:]
     ) -> CommandContext {
         let metadata = TestCommandMetadata(
-            userId: userId,
-            correlationId: correlationId,
+            userID: userID,
+            correlationID: correlationID,
             additionalData: additionalData
         )
         

@@ -131,7 +131,7 @@ public enum PipelineError: Error, Sendable {
 
 - Custom middleware: implement Middleware and choose an appropriate ExecutionPriority
 - Context keys: define ContextKey<T>("name") for type‑safe values
-- Builder extensions: add fluent helpers that call `.with(...)`
+- Builder extensions: add fluent helpers that call `.add...` aliases
 
 ## Notes
 

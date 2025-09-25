@@ -77,8 +77,8 @@ public actor SecureCommandDispatcher {
         
         // Apply rate limiting
         if let limiter = rateLimiter {
-            // Use userId from metadata for rate limiting, defaulting to "unknown" for anonymous requests
-            let identifier = metadata?.userId ?? "unknown"
+            // Use userID from metadata for rate limiting, defaulting to "unknown" for anonymous requests
+            let identifier = metadata?.userID ?? "unknown"
             let allowed = try await limiter.allowRequest(
                 identifier: "\(identifier):\(commandType)",
                 cost: calculateCommandCost(command)
@@ -161,14 +161,14 @@ public actor SecureCommandDispatcher {
     /// Gets the current rate limit status for a user and command type.
     /// 
     /// - Parameters:
-    ///   - userId: The user identifier
+    ///   - userID: The user identifier
     ///   - commandType: The command type
     /// - Returns: The current rate limit status, if a rate limiter is configured
     public func getRateLimitStatus(
-        userId: String,
+        userID: String,
         commandType: String
     ) async -> RateLimitStatus? {
         guard let limiter = rateLimiter else { return nil }
-        return await limiter.getStatus(identifier: "\(userId):\(commandType)")
+        return await limiter.getStatus(identifier: "\(userID):\(commandType)")
     }
 }

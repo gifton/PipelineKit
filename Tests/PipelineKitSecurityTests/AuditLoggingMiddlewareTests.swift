@@ -56,7 +56,7 @@ final class AuditLoggingMiddlewareTests: XCTestCase {
         let startEvent = commandEvents[0]
         XCTAssertEqual(startEvent.phase, .started)
         XCTAssertEqual(startEvent.commandType, "TestCommand")
-        XCTAssertEqual(startEvent.userId, "user-456")
+        XCTAssertEqual(startEvent.userID, "user-456")
         XCTAssertEqual(startEvent.sessionId, "session-789")
         
         // Verify complete event
@@ -117,7 +117,7 @@ final class AuditLoggingMiddlewareTests: XCTestCase {
         let traceContext = TraceContext(
             traceId: UUID(),
             spanId: UUID(),
-            userId: "trace-user",
+            userID: "trace-user",
             sessionId: "trace-session"
         )
         
@@ -178,7 +178,7 @@ final class AuditLoggingMiddlewareTests: XCTestCase {
             phase: .completed,
             commandType: "TestCommand",
             commandId: UUID(),
-            userId: "test-user",
+            userID: "test-user",
             duration: 1.234
         )
         

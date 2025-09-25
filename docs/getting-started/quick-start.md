@@ -92,7 +92,7 @@ struct LoggingMiddleware: Middleware {
 
 // Add to pipeline via builder
 let builder = PipelineBuilder(handler: CalculateHandler())
-    .with(LoggingMiddleware())
+await builder.addMiddleware(LoggingMiddleware())
 let pipeline = try await builder.build()
 ```
 
@@ -119,16 +119,15 @@ For ergonomic construction and stable middleware ordering, use the builder:
 
 ```swift
 let builder = PipelineBuilder(handler: handler)
-    .with(middleware1)
-    .with(middleware2)
+await builder.addMiddleware(middleware1)
+await builder.addMiddleware(middleware2)
 let pipeline = try await builder.build()
 ```
 
 ## Next Steps
 
 - Read the [Architecture Guide](../guides/architecture.md) to understand the design
-- Check out [Advanced Patterns](examples/advanced-patterns.md) for complex scenarios
-- See [API Reference](../reference/api-reference.md) for detailed documentation
+- Check out [Advanced Patterns](../tutorials/advanced-patterns.md) for complex scenarios
 
 ## Common Patterns
 
@@ -147,20 +146,8 @@ struct ValidationMiddleware: Middleware {
 }
 ```
 
-### Parallel Middleware
-
-Execute independent middleware concurrently:
-
-```swift
-let parallel = ParallelMiddlewareWrapper(
-    wrapping: [LoggingMiddleware(), MetricsMiddleware()],
-    strategy: .sideEffectsOnly
-)
-
-let builder2 = PipelineBuilder(handler: handler)
-    .with(parallel)
-let pipeline = try await builder2.build()
-```
+// Parallel middleware wrappers are not part of the public API; compose
+// independent work within a single middleware when beneficial.
 
 ### Caching Results
 
@@ -170,7 +157,7 @@ Cache expensive operations:
 let cached = ExpensiveMiddleware().cached(ttl: 300) // 5 minutes
 
 let builder3 = PipelineBuilder(handler: handler)
-    .with(cached)
+await builder3.addMiddleware(cached)
 let pipeline = try await builder3.build()
 ```
 
@@ -185,7 +172,7 @@ let pipeline = try await builder3.build()
    - Ensure your commands and middleware are thread-safe
 
 3. **Performance issues**
-   - Use `.build()` for pre-compiled pipelines
-   - Enable context pooling for high-throughput scenarios
+   - Reuse pipelines and keep middleware light
+   - Set appropriate `maxConcurrency`
 
 For more help, see our [Troubleshooting Guide](troubleshooting.md) or [file an issue](https://github.com/gifton/PipelineKit/issues).

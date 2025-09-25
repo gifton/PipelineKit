@@ -26,6 +26,20 @@ struct ConditionalMiddleware<M: Middleware>: Middleware {
     }
 }
 
+// Example: enable verbose logging when a debug flag is set
+struct VerboseLoggingMiddleware: Middleware {
+    let priority = ExecutionPriority.postProcessing
+    func execute<T: Command>(
+        _ command: T,
+        context: CommandContext,
+        next: @Sendable (T, CommandContext) async throws -> T.Result
+    ) async throws -> T.Result {
+        let result = try await next(command, context)
+        print("[DEBUG] \(T.self) executed")
+        return result
+    }
+}
+
 let debugLogging = ConditionalMiddleware(
     wrapped: VerboseLoggingMiddleware(),
     condition: { _, context in await context.get(debugKey) ?? false }
@@ -43,20 +57,27 @@ struct PipelineFactory {
         environment: Environment
     ) async throws -> StandardPipeline<H.CommandType, H> {
         let builder = PipelineBuilder(handler: handler)
-        builder.with(AuthenticationMiddleware())
-               .with(ValidationMiddleware())
+        await builder.addAuthentication(AuthenticationMiddleware())
+        await builder.addMiddleware(ValidationMiddleware())
 
         switch environment {
         case .development:
-            builder.with(VerboseLoggingMiddleware())
+            await builder.addLogging(VerboseLoggingMiddleware())
         case .staging:
-            builder.with(StandardLoggingMiddleware())
+            // Use your staging logging middleware
+            await builder.addLogging(VerboseLoggingMiddleware())
         case .production:
-            builder.with(ProductionLoggingMiddleware())
-                   .with(RateLimitingMiddleware(limiter: RateLimiter(
-                        strategy: .tokenBucket(capacity: 100, refillRate: 10),
-                        scope: .perUser
-                   )))
+            // Add rate limiting and concise logging for production
+            await builder.addLogging(VerboseLoggingMiddleware())
+            await builder.addRateLimiting(EnhancedRateLimitingMiddleware(
+                limiter: RateLimiter.tokenBucket(
+                    capacity: 100,
+                    refillRate: 10
+                ),
+                identifierExtractor: { _, ctx in
+                    await ctx.commandMetadata.userID ?? "anonymous"
+                }
+            ))
         }
 
         return try await builder.build()

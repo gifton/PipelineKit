@@ -69,9 +69,9 @@ struct SimpleLoggingMiddleware: Middleware {
 }
 
 // Add to pipeline
-let pipeline = try await PipelineBuilder(handler: GreetHandler())
-    .with(SimpleLoggingMiddleware())
-    .build()
+let builder = PipelineBuilder(handler: GreetHandler())
+await builder.addMiddleware(SimpleLoggingMiddleware())
+let pipeline = try await builder.build()
 ```
 
 ## Using Context for Data Sharing
@@ -368,16 +368,16 @@ struct OrderSystem {
     static func main() async throws {
         // Build pipeline with multiple middleware
         let builder = PipelineBuilder(handler: CreateOrderHandler())
-            .with(RequestIDMiddleware())
-            .with(ValidationMiddleware())
-            .with(SimpleLoggingMiddleware())
-            .with(ErrorHandlingMiddleware())
+        await builder.addMiddleware(RequestIDMiddleware())
+        await builder.addMiddleware(ValidationMiddleware())
+        await builder.addMiddleware(SimpleLoggingMiddleware())
+        await builder.addMiddleware(ErrorHandlingMiddleware())
         let pipeline = try await builder.build()
         
         // Create context with metadata
         let metadata = DefaultCommandMetadata(
-            userId: "user123",
-            correlationId: UUID().uuidString
+            userID: "user123",
+            correlationID: UUID().uuidString
         )
         let context = CommandContext(metadata: metadata)
         

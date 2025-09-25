@@ -304,6 +304,9 @@ public actor BackPressureSemaphore {
             oldestWaiterAge: waiters.first?.enqueuedAt.timeIntervalSinceNow.magnitude
         )
     }
+
+    /// Alias property for `getStats()`.
+    public var stats: SemaphoreStats { getStats() }
     
     public func healthCheck() -> SemaphoreHealth {
         let stats = getStats()
@@ -350,6 +353,7 @@ extension PipelineError {
 }
 
 /// Statistics about the semaphore's current state.
+@frozen
 public struct SemaphoreStats: Sendable {
     public let maxConcurrency: Int
     public let maxOutstanding: Int
@@ -362,6 +366,7 @@ public struct SemaphoreStats: Sendable {
 }
 
 /// Health status for monitoring the semaphore.
+@frozen
 public struct SemaphoreHealth: Sendable {
     public let isHealthy: Bool
     public let queueUtilization: Double
