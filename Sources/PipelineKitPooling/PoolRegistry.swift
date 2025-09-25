@@ -14,17 +14,33 @@ public actor PoolRegistry {
     
     // MARK: - Configuration
     
-    /// Whether metrics are enabled by default for new pools
-    public static var metricsEnabledByDefault = false
+    /// Whether metrics are enabled by default for new pools (thread-safe)
+    private static let _metricsEnabledByDefault = ManagedAtomic(false)
+    public static var metricsEnabledByDefault: Bool {
+        get { _metricsEnabledByDefault.load(ordering: .relaxed) }
+        set { _metricsEnabledByDefault.store(newValue, ordering: .relaxed) }
+    }
     
-    /// Cleanup interval for removing dead weak references
-    public static var cleanupInterval: TimeInterval = 30.0
+    /// Cleanup interval for removing dead weak references (seconds; thread-safe)
+    private static let _cleanupIntervalSeconds = ManagedAtomic<Int64>(30)
+    public static var cleanupInterval: TimeInterval {
+        get { TimeInterval(_cleanupIntervalSeconds.load(ordering: .relaxed)) }
+        set { _cleanupIntervalSeconds.store(Int64(newValue), ordering: .relaxed) }
+    }
     
-    /// Minimum interval between pool shrink operations (in seconds)
-    public static var minimumShrinkInterval: TimeInterval = 10.0
+    /// Minimum interval between pool shrink operations (seconds; thread-safe)
+    private static let _minimumShrinkIntervalSeconds = ManagedAtomic<Int64>(10)
+    public static var minimumShrinkInterval: TimeInterval {
+        get { TimeInterval(_minimumShrinkIntervalSeconds.load(ordering: .relaxed)) }
+        set { _minimumShrinkIntervalSeconds.store(Int64(newValue), ordering: .relaxed) }
+    }
     
-    /// Enable intelligent shrinking based on usage patterns
-    public static var intelligentShrinkingEnabled = true
+    /// Enable intelligent shrinking based on usage patterns (thread-safe)
+    private static let _intelligentShrinkingEnabled = ManagedAtomic(true)
+    public static var intelligentShrinkingEnabled: Bool {
+        get { _intelligentShrinkingEnabled.load(ordering: .relaxed) }
+        set { _intelligentShrinkingEnabled.store(newValue, ordering: .relaxed) }
+    }
     
     // MARK: - Private Properties
     
@@ -299,6 +315,22 @@ public actor PoolRegistry {
     
     deinit {
         cleanupTask?.cancel()
+    }
+
+    // MARK: - Shutdown (Test Support / Process Exit)
+
+    /// Cancels background tasks and releases resources.
+    ///
+    /// Use in test bundles to ensure background maintenance tasks do not keep
+    /// the process alive after tests complete.
+    nonisolated public static func shutdown() {
+        Task { await shared._shutdown() }
+    }
+
+    private func _shutdown() {
+        cleanupTask?.cancel()
+        cleanupTask = nil
+        pools.removeAll()
     }
     
     // MARK: - Name Generation

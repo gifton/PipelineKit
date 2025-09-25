@@ -7,33 +7,34 @@ import Foundation
 /// Example:
 /// ```swift
 /// let metadata = DefaultCommandMetadata(
-///     userId: "user123",
-///     correlationId: "trace-456"
+///     userID: "user123",
+///     correlationID: "trace-456"
 /// )
 /// ```
+@frozen
 public struct DefaultCommandMetadata: CommandMetadata, Equatable, Hashable {
     public let id: UUID
     public let timestamp: Date
-    public let userId: String?
-    public let correlationId: String?
+    public let userID: String?
+    public let correlationID: String?
     
     /// Creates new command metadata.
     /// 
     /// - Parameters:
     ///   - id: Unique identifier. Defaults to a new UUID.
     ///   - timestamp: Creation timestamp. Defaults to current date.
-    ///   - userId: Optional user identifier for authorization.
-    ///   - correlationId: Optional correlation ID for distributed tracing.
+    ///   - userID: Optional user identifier for authorization.
+    ///   - correlationID: Optional correlation ID for distributed tracing.
     @inlinable
     public init(
         id: UUID = UUID(),
         timestamp: Date = Date(),
-        userId: String? = nil,
-        correlationId: String? = nil
+        userID: String? = nil,
+        correlationID: String? = nil
     ) {
         self.id = id
         self.timestamp = timestamp
-        self.userId = userId
-        self.correlationId = correlationId
+        self.userID = userID
+        self.correlationID = correlationID
     }
 }

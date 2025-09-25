@@ -8,8 +8,8 @@ final class CommandContextNonActorTests: XCTestCase {
     func testContextIsNoLongerActor() async {
         // This test verifies that CommandContext uses the new API
         let metadata = TestCommandMetadata(
-            userId: "test-user",
-            correlationId: "test-123"
+            userID: "test-user",
+            correlationID: "test-123"
         )
         let context = CommandContext(metadata: metadata)
         
@@ -20,7 +20,7 @@ final class CommandContextNonActorTests: XCTestCase {
         
         // Test metadata access (still synchronous)
         let retrievedMetadata = await context.commandMetadata
-        XCTAssertEqual(retrievedMetadata.userId, "test-user")
+        XCTAssertEqual(retrievedMetadata.userID, "test-user")
     }
     
     func testConcurrentContextAccess() async throws {

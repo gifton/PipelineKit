@@ -89,6 +89,20 @@ public actor PipelineBuilder<T: Command, H: CommandHandler> where H.CommandType 
         self.middlewares.append(contentsOf: middlewares)
         return self
     }
+
+    // MARK: - Additive Aliases (Non-breaking)
+
+    /// Alias for `with(_:)` to add a single middleware.
+    @discardableResult
+    public func addMiddleware(_ middleware: any Middleware) -> Self {
+        with(middleware)
+    }
+
+    /// Alias for `with(_:)` to add multiple middleware.
+    @discardableResult
+    public func addMiddlewares(_ middlewares: [any Middleware]) -> Self {
+        with(middlewares)
+    }
     
     /// Sets the maximum depth of middleware allowed in the pipeline.
     ///
@@ -101,6 +115,12 @@ public actor PipelineBuilder<T: Command, H: CommandHandler> where H.CommandType 
     public func withMaxDepth(_ depth: Int) -> Self {
         self.maxDepth = depth
         return self
+    }
+
+    /// Alias for `withMaxDepth(_:)`.
+    @discardableResult
+    public func setMaxDepth(_ depth: Int) -> Self {
+        withMaxDepth(depth)
     }
     
     /// Enables middleware chain optimization for improved performance.
@@ -145,6 +165,12 @@ public actor PipelineBuilder<T: Command, H: CommandHandler> where H.CommandType 
         orderBuilder.add(middleware, order: middleware.priority)
         return self
     }
+
+    /// Alias for `withAuthentication(_:)`.
+    @discardableResult
+    public func addAuthentication(_ middleware: any Middleware) -> Self {
+        withAuthentication(middleware)
+    }
     
     /// Adds authorization middleware with appropriate priority.
     ///
@@ -155,6 +181,12 @@ public actor PipelineBuilder<T: Command, H: CommandHandler> where H.CommandType 
         useOrderedMiddleware = true
         orderBuilder.add(middleware, order: middleware.priority)
         return self
+    }
+
+    /// Alias for `withAuthorization(_:)`.
+    @discardableResult
+    public func addAuthorization(_ middleware: any Middleware) -> Self {
+        withAuthorization(middleware)
     }
     
     /// Adds rate limiting middleware with appropriate priority.
@@ -167,6 +199,12 @@ public actor PipelineBuilder<T: Command, H: CommandHandler> where H.CommandType 
         orderBuilder.add(middleware, order: middleware.priority)
         return self
     }
+
+    /// Alias for `withRateLimiting(_:)`.
+    @discardableResult
+    public func addRateLimiting(_ middleware: any Middleware) -> Self {
+        withRateLimiting(middleware)
+    }
     
     /// Adds logging middleware with appropriate priority.
     ///
@@ -177,6 +215,12 @@ public actor PipelineBuilder<T: Command, H: CommandHandler> where H.CommandType 
         useOrderedMiddleware = true
         orderBuilder.add(middleware, order: middleware.priority)
         return self
+    }
+
+    /// Alias for `withLogging(_:)`.
+    @discardableResult
+    public func addLogging(_ middleware: any Middleware) -> Self {
+        withLogging(middleware)
     }
     
     /// Builds and returns a configured `Pipeline`.

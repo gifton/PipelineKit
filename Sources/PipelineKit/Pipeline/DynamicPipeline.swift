@@ -174,6 +174,22 @@ public actor DynamicPipeline {
         }
     }
 
+    /// Executes a command (alias for `send`) for API parity with `Pipeline`.
+    ///
+    /// - Parameters:
+    ///   - command: The command to execute
+    ///   - context: Optional command context; a new one is created if nil
+    ///   - retryPolicy: Policy for retrying failed executions
+    /// - Returns: The result of command execution
+    /// - Throws: Any error thrown during execution
+    public func execute<T: Command>(
+        _ command: T,
+        context: CommandContext? = nil,
+        retryPolicy: RetryPolicy = .default
+    ) async throws -> T.Result {
+        try await send(command, context: context, retryPolicy: retryPolicy)
+    }
+
     private func executePipeline<T: Command>(command: T, context: CommandContext) async throws -> T.Result {
         // Check for cancellation before starting pipeline execution
         try Task.checkCancellation(context: "DynamicPipeline execution cancelled before pipeline")

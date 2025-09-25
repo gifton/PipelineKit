@@ -87,7 +87,7 @@ struct MapResult<Mapped, C: Command>: Middleware {
 ## Rate Limiting (built‑in)
 
 ```swift
-import PipelineKitResilience
+import PipelineKitResilienceRateLimiting
 
 let limiter = RateLimiter(
     strategy: .tokenBucket(capacity: 100, refillRate: 10),
@@ -97,7 +97,7 @@ let limiter = RateLimiter(
 let rateLimit = RateLimitingMiddleware(
     limiter: limiter,
     identifierExtractor: { _, context in
-        await context.commandMetadata.userId ?? "anonymous"
+        await context.commandMetadata.userID ?? "anonymous"
     }
 )
 

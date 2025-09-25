@@ -46,18 +46,12 @@ struct MyCachingMiddleware: Middleware, NextGuardWarningSuppressing {
 - `NextGuardConfiguration.shared.emitWarnings: Bool` – enable/disable warnings
 - `NextGuardConfiguration.setWarningHandler(_:)` – integrate with your logging system
 
-### Temporary Suppression (Testing Utilities)
+### Test Environments
+
+In CI or tests, you can route warnings to a no‑op handler to silence output without changing runtime behavior:
 
 ```swift
-// Synchronous code
-let value = NextGuard.withoutWarnings {
-    try doSomethingThatWouldWarn()
-}
-
-// Asynchronous code
-let value = try await NextGuard.withoutWarnings {
-    try await doSomethingAsyncThatWouldWarn()
-}
+NextGuardConfiguration.setWarningHandler { _ in /* no‑op in CI */ }
 ```
 
 ## Best Practices

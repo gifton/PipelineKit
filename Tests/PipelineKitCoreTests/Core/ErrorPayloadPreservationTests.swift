@@ -149,8 +149,8 @@ final class ErrorPayloadPreservationTests: XCTestCase {
         let context = PipelineError.ErrorContext(
             commandType: "TestCommand",
             middlewareType: "RateLimitMiddleware",
-            correlationId: "test-123",
-            userId: "user-456",
+            correlationID: "test-123",
+            userID: "user-456",
             additionalInfo: ["key": "value"]
         )
         
@@ -163,8 +163,8 @@ final class ErrorPayloadPreservationTests: XCTestCase {
             XCTAssertEqual(message, "Test failed")
             XCTAssertEqual(errorContext?.commandType, "TestCommand")
             XCTAssertEqual(errorContext?.middlewareType, "RateLimitMiddleware")
-            XCTAssertEqual(errorContext?.correlationId, "test-123")
-            XCTAssertEqual(errorContext?.userId, "user-456")
+            XCTAssertEqual(errorContext?.correlationID, "test-123")
+            XCTAssertEqual(errorContext?.userID, "user-456")
             XCTAssertEqual(errorContext?.additionalInfo["key"], "value")
         } else {
             XCTFail("Error context not preserved")

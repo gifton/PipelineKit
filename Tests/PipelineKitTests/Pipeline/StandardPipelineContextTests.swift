@@ -182,7 +182,7 @@ final class StandardPipelineContextTests: XCTestCase {
         try await pipeline.addMiddleware(authzMiddleware)
         
         // Test with valid user
-        let validContext = CommandContext.test(userId: "user123")
+        let validContext = CommandContext.test(userID: "user123")
         let result = try await pipeline.execute(
             CalculateCommand(value: 10),
             context: validContext
@@ -190,7 +190,7 @@ final class StandardPipelineContextTests: XCTestCase {
         XCTAssertEqual(result, 20)
         
         // Test with invalid user
-        let invalidContext = CommandContext.test(userId: "unknown")
+        let invalidContext = CommandContext.test(userID: "unknown")
         do {
             _ = try await pipeline.execute(
                 CalculateCommand(value: 10),
@@ -259,14 +259,14 @@ final class StandardPipelineContextTests: XCTestCase {
             let metadata = await context.commandMetadata
             let contextMetadata = await context.getMetadata()
             let requestId = (contextMetadata["request_id"] as? String)
-            await capturedData.set((metadata.userId, requestId, metadata.timestamp))
+            await capturedData.set((metadata.userID, requestId, metadata.timestamp))
             expectation.fulfill()
         }
         
         let pipeline = StandardPipeline(handler: CalculateHandler())
         try await pipeline.addMiddleware(inspector)
         
-        let context = CommandContext.test(userId: "test-user-123")
+        let context = CommandContext.test(userID: "test-user-123")
         _ = try await pipeline.execute(CalculateCommand(value: 5), context: context)
         
         await fulfillment(of: [expectation], timeout: 1.0)

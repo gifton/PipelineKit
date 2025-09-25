@@ -293,8 +293,8 @@ public enum PipelineError: Error, Sendable, LocalizedError {
     public struct ErrorContext: Sendable {
         public let commandType: String
         public let middlewareType: String?
-        public let correlationId: String?
-        public let userId: String?
+        public let correlationID: String?
+        public let userID: String?
         public let additionalInfo: [String: String]
         public let timestamp: Date
         public let stackTrace: [String]?
@@ -302,16 +302,16 @@ public enum PipelineError: Error, Sendable, LocalizedError {
         public init(
             commandType: String,
             middlewareType: String? = nil,
-            correlationId: String? = nil,
-            userId: String? = nil,
+            correlationID: String? = nil,
+            userID: String? = nil,
             additionalInfo: [String: String] = [:],
             timestamp: Date = Date(),
             stackTrace: [String]? = nil
         ) {
             self.commandType = commandType
             self.middlewareType = middlewareType
-            self.correlationId = correlationId
-            self.userId = userId
+            self.correlationID = correlationID
+            self.userID = userID
             self.additionalInfo = additionalInfo
             self.timestamp = timestamp
             self.stackTrace = stackTrace ?? Thread.callStackSymbols.map { String($0) }
@@ -781,14 +781,14 @@ public extension PipelineError {
         _ message: String,
         command: C,
         middleware: (any Middleware)? = nil,
-        correlationId: String? = nil,
-        userId: String? = nil
+        correlationID: String? = nil,
+        userID: String? = nil
     ) -> PipelineError {
         let context = ErrorContext(
             commandType: String(describing: C.self),
             middlewareType: middleware.map { String(describing: type(of: $0)) },
-            correlationId: correlationId,
-            userId: userId
+            correlationID: correlationID,
+            userID: userID
         )
         return .executionFailed(message: message, context: context)
     }

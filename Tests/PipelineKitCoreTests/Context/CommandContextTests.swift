@@ -19,8 +19,8 @@ final class CommandContextTests: XCTestCase {
     
     func testInitWithCustomMetadata() async {
         let metadata = TestCommandMetadata(
-            userId: "user123",
-            correlationId: "corr456"
+            userID: "user123",
+            correlationID: "corr456"
         )
         let context = CommandContext(metadata: metadata)
         
@@ -31,7 +31,7 @@ final class CommandContextTests: XCTestCase {
         
         XCTAssertEqual(userId, "user123")
         XCTAssertEqual(correlationId, "corr456")
-        XCTAssertEqual(requestId, "corr456") // Should be set from correlationId
+        XCTAssertEqual(requestId, "corr456") // Should be set from correlationID
     }
     
     // MARK: - Typed Key Access Tests
@@ -274,8 +274,8 @@ final class CommandContextTests: XCTestCase {
     
     func testClear() async {
         let metadata = TestCommandMetadata(
-            userId: "user123",
-            correlationId: "corr456"
+            userID: "user123",
+            correlationID: "corr456"
         )
         let context = CommandContext(metadata: metadata)
         
@@ -641,11 +641,11 @@ final class CommandContextTests: XCTestCase {
 private struct TestCommandMetadata: CommandMetadata {
     let id = UUID()
     let timestamp = Date()
-    let userId: String?
-    let correlationId: String?
+    let userID: String?
+    let correlationID: String?
     
-    init(userId: String? = nil, correlationId: String? = nil) {
-        self.userId = userId
-        self.correlationId = correlationId
+    init(userID: String? = nil, correlationID: String? = nil) {
+        self.userID = userID
+        self.correlationID = correlationID
     }
 }

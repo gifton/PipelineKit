@@ -60,7 +60,7 @@ Instead of heuristics, PipelineKit uses explicit controls:
 
 2) For middleware that intentionally short‑circuits (e.g., cache hits), conform to `NextGuardWarningSuppressing` to suppress debug‑only deinit warnings for that middleware.
 
-3) In CI or specialized tests, temporarily disable warnings using `NextGuard.withoutWarnings { ... }` utilities or register a no‑op warning handler via `NextGuardConfiguration.setWarningHandler(_:)`.
+3) In CI or specialized tests, register a no‑op warning handler via `NextGuardConfiguration.setWarningHandler(_:)`.
 
 ## Impact Assessment
 
@@ -184,7 +184,7 @@ class CustomDeadlineMiddleware: Middleware {
 
 1. **Document prominently** ✅ (this document)
 2. **Disable in production**: Only emit warnings in DEBUG builds
-3. **Improve heuristics gradually**: Add more timeout-related string patterns as needed
+3. **Improve diagnostics gradually**: Enhance documentation and examples as concurrency APIs evolve
 4. **Wait for Swift Evolution**: Monitor proposals for better cancellation handling
 5. **Re-evaluate periodically**: Revisit when Swift adds new concurrency features
 

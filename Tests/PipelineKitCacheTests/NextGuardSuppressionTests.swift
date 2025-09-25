@@ -15,7 +15,7 @@ final class NextGuardSuppressionTests: XCTestCase {
         actor WarningCollector { var items: [String] = []; func add(_ s: String) { items.append(s) }; func snapshot() -> [String] { items } }
         let collector = WarningCollector()
         NextGuardConfiguration.setWarningHandler { msg in
-            Task { await collector.add(msg) }
+            Task { @Sendable in await collector.add(msg) }
         }
         NextGuardConfiguration.shared.emitWarnings = true
 

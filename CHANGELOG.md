@@ -53,7 +53,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Ensured all semaphore continuations are properly resumed to prevent resource leaks
 - Added proper task cancellation handling throughout concurrency primitives
 
+## [1.0.0] - 2025-09-25
+
+### Breaking
+- Renamed metadata initialisms for clarity and Swift guidelines compliance:
+  - `CommandMetadata.userId` → `userID`
+  - `CommandMetadata.correlationId` → `correlationID`
+  - `PipelineError.ErrorContext.userId` → `userID`
+  - `PipelineError.ErrorContext.correlationId` → `correlationID`
+- `CommandContext.snapshot()`/`snapshotRaw()` keys now use `userID`/`correlationID`.
+- Removed unused `associatedtype Metadata` from `Command` protocol.
+
+### Added
+- `DynamicPipeline.execute(_:context:retryPolicy:)` alias method (for parity with `Pipeline`).
+- `PipelineBuilder` action‑style aliases (all forward to existing methods):
+  - `addMiddleware(_:)`, `addMiddlewares(_:)`, `setMaxDepth(_:)`, `enableOptimization()`
+  - `addAuthentication(_:)`, `addAuthorization(_:)`, `addRateLimiting(_:)`, `addLogging(_:)`
+- `BackPressureSemaphore.stats` (alias for `getStats()`).
+- `AsyncSemaphore.availableResources` (alias for `availableResourcesCount()`).
+
+### Changed
+- Made `PoolRegistry` static configuration concurrency‑safe using atomics:
+  - `metricsEnabledByDefault`, `intelligentShrinkingEnabled`
+  - `cleanupInterval`, `minimumShrinkInterval` (stored as atomic seconds)
+- Updated docs and examples to reflect new aliases and initialisms; removed outdated content.
+
+### Stability
+- Marked small, stable value types as `@frozen`:
+  - `DefaultCommandMetadata`, `HealthCheckResult`, `SemaphoreStats`, `SemaphoreHealth`.
+
+### Migration Notes
+- Update references from `userId`/`correlationId` to `userID`/`correlationID`.
+- Remove any `typealias Metadata = ...` from `Command` types (no longer supported).
+- All alias APIs are additive and source‑compatible.
+
 ## [Unreleased]
 
-[Unreleased]: https://github.com/gifton/PipelineKit/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/gifton/PipelineKit/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/gifton/PipelineKit/releases/tag/v1.0.0
 [0.1.0]: https://github.com/gifton/PipelineKit/releases/tag/v0.1.0

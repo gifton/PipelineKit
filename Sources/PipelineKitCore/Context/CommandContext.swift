@@ -41,13 +41,13 @@ public actor CommandContext {
         storage[ContextKeys.commandID.name] = AnySendable(metadata.id)
         // Do not set a default startTime; only record when explicitly provided
         
-        if let userId = metadata.userId {
-            storage[ContextKeys.userID.name] = AnySendable(userId)
+        if let userID = metadata.userID {
+            storage[ContextKeys.userID.name] = AnySendable(userID)
         }
         
-        if let correlationId = metadata.correlationId {
-            storage[ContextKeys.correlationID.name] = AnySendable(correlationId)
-            storage[ContextKeys.requestID.name] = AnySendable(correlationId)
+        if let correlationID = metadata.correlationID {
+            storage[ContextKeys.correlationID.name] = AnySendable(correlationID)
+            storage[ContextKeys.requestID.name] = AnySendable(correlationID)
         }
     }
     
@@ -228,13 +228,13 @@ public actor CommandContext {
         storage[ContextKeys.commandID.name] = AnySendable(commandMetadata.id)
         // Intentionally do not restore startTime; it must be explicitly set
         
-        if let userId = commandMetadata.userId {
-            storage[ContextKeys.userID.name] = AnySendable(userId)
+        if let userID = commandMetadata.userID {
+            storage[ContextKeys.userID.name] = AnySendable(userID)
         }
         
-        if let correlationId = commandMetadata.correlationId {
-            storage[ContextKeys.correlationID.name] = AnySendable(correlationId)
-            storage[ContextKeys.requestID.name] = AnySendable(correlationId)
+        if let correlationID = commandMetadata.correlationID {
+            storage[ContextKeys.correlationID.name] = AnySendable(correlationID)
+            storage[ContextKeys.requestID.name] = AnySendable(correlationID)
         }
     }
     
@@ -256,8 +256,8 @@ public actor CommandContext {
         let metadataDict: [String: any Sendable] = [
             "id": commandMetadata.id.uuidString,
             "timestamp": commandMetadata.timestamp,
-            "userId": commandMetadata.userId ?? "",
-            "correlationId": commandMetadata.correlationId ?? ""
+            "userID": commandMetadata.userID ?? "",
+            "correlationID": commandMetadata.correlationID ?? ""
         ]
         result["commandMetadata"] = metadataDict
         
@@ -271,8 +271,8 @@ public actor CommandContext {
         let metadataDict: [String: any Sendable] = [
             "id": commandMetadata.id.uuidString,
             "timestamp": commandMetadata.timestamp,
-            "userId": commandMetadata.userId ?? "",
-            "correlationId": commandMetadata.correlationId ?? ""
+            "userID": commandMetadata.userID ?? "",
+            "correlationID": commandMetadata.correlationID ?? ""
         ]
         result["commandMetadata"] = AnySendable(metadataDict)
         return result
