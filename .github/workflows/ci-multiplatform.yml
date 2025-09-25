@@ -9,6 +9,9 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
 
+env:
+  SWIFT_VERSION: '6.1.0'
+
 jobs:
   macos-spm:
     name: macOS • SwiftPM (Debug + Release)
@@ -16,7 +19,18 @@ jobs:
     timeout-minutes: 25
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
+
+      - name: Setup Swift
+        uses: swift-actions/setup-swift@v2
+        with:
+          swift-version: ${{ env.SWIFT_VERSION }}
+
+      - name: Setup SPM Cache
+        uses: ./.github/actions/setup-spm-cache
+        with:
+          cache-key-prefix: 'multiplatform'
+          swift-version: ${{ env.SWIFT_VERSION }}
 
       - name: Cache SwiftPM
         uses: actions/cache@v4
@@ -51,7 +65,7 @@ jobs:
 
   ios-sim:
     name: iOS • Simulator Tests
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 25
     env:
       # Update this scheme if you use a custom one; SPM auto-schemes commonly use this name
@@ -59,7 +73,15 @@ jobs:
       DESTINATION: platform=iOS Simulator,name=iPhone 15 Pro
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
+
+      - name: Select Xcode 16
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '16.*'
+
+      - name: Xcode version
+        run: xcodebuild -version
 
       - name: Build for testing (Debug)
         run: |
@@ -87,7 +109,7 @@ jobs:
 
   watchos-sim:
     name: watchOS • Simulator Build
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 20
     continue-on-error: true  # keep advisory while we stabilize
     env:
@@ -95,7 +117,15 @@ jobs:
       DESTINATION: platform=watchOS Simulator,name=Apple Watch Series 9 (45mm)
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
+
+      - name: Select Xcode 16
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '16.*'
+
+      - name: Xcode version
+        run: xcodebuild -version
 
       - name: Build (Debug)
         run: |
