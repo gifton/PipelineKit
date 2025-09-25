@@ -1,0 +1,110 @@
+name: CI (Multiplatform)
+
+# This workflow adds macOS (SwiftPM), iOS Simulator, and watchOS Simulator coverage.
+# It is disabled by default and can be run manually. Integrate into your main
+# CI once it’s stable by adding push/pull_request triggers as needed.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  macos-spm:
+    name: macOS • SwiftPM (Debug + Release)
+    runs-on: macos-14
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Cache SwiftPM
+        uses: actions/cache@v4
+        with:
+          path: .build
+          key: spm-${{ runner.os }}-${{ hashFiles('Package.resolved') }}
+
+      - name: Build (Debug)
+        run: swift build -c debug -Xswiftc -warnings-as-errors -Xswiftc -strict-concurrency=complete
+
+      - name: Test (Debug + Coverage)
+        run: swift test -c debug --enable-code-coverage -Xswiftc -warnings-as-errors -Xswiftc -strict-concurrency=complete
+
+      - name: Build (Release)
+        run: swift build -c release -Xswiftc -warnings-as-errors -Xswiftc -strict-concurrency=complete
+
+      - name: Export coverage
+        run: |
+          set -euo pipefail
+          BIN=$(find .build -name "*PackageTests.xctest" -type d | head -n1)/Contents/MacOS/$(basename $(find .build -name "*PackageTests.xctest" -type d | head -n1) .xctest)
+          PROF=$(find .build -name default.profdata | head -n1)
+          if [[ -f "$BIN" && -f "$PROF" ]]; then
+            xcrun llvm-cov export "$BIN" -instr-profile "$PROF" > coverage.json || true
+          fi
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-macos
+          path: coverage.json
+          if-no-files-found: ignore
+
+  ios-sim:
+    name: iOS • Simulator Tests
+    runs-on: macos-14
+    timeout-minutes: 25
+    env:
+      # Update this scheme if you use a custom one; SPM auto-schemes commonly use this name
+      SCHEME: PipelineKit-Package
+      DESTINATION: platform=iOS Simulator,name=iPhone 15 Pro
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build for testing (Debug)
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -scheme "$SCHEME" \
+            -destination "$DESTINATION" \
+            -configuration Debug \
+            SWIFT_TREAT_WARNINGS_AS_ERRORS=YES \
+            -skipPackagePluginValidation \
+            -skipMacroValidation \
+            build-for-testing | xcpretty || exit ${PIPESTATUS[0]}
+
+      - name: Run tests (Debug)
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -scheme "$SCHEME" \
+            -destination "$DESTINATION" \
+            -configuration Debug \
+            SWIFT_TREAT_WARNINGS_AS_ERRORS=YES \
+            -skipPackagePluginValidation \
+            -skipMacroValidation \
+            test | xcpretty || exit ${PIPESTATUS[0]}
+
+  watchos-sim:
+    name: watchOS • Simulator Build
+    runs-on: macos-14
+    timeout-minutes: 20
+    continue-on-error: true  # keep advisory while we stabilize
+    env:
+      SCHEME: PipelineKit-Package
+      DESTINATION: platform=watchOS Simulator,name=Apple Watch Series 9 (45mm)
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build (Debug)
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -scheme "$SCHEME" \
+            -destination "$DESTINATION" \
+            -configuration Debug \
+            SWIFT_TREAT_WARNINGS_AS_ERRORS=YES \
+            -skipPackagePluginValidation \
+            -skipMacroValidation \
+            build | xcpretty || exit ${PIPESTATUS[0]}
