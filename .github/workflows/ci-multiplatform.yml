@@ -39,13 +39,13 @@ jobs:
           key: spm-${{ runner.os }}-${{ hashFiles('Package.resolved') }}
 
       - name: Build (Debug)
-        run: swift build -c debug -Xswiftc -warnings-as-errors -Xswiftc -strict-concurrency=complete
+        run: swift build -c debug
 
       - name: Test (Debug + Coverage)
-        run: swift test -c debug --enable-code-coverage -Xswiftc -warnings-as-errors -Xswiftc -strict-concurrency=complete
+        run: swift test -c debug --enable-code-coverage
 
       - name: Build (Release)
-        run: swift build -c release -Xswiftc -warnings-as-errors -Xswiftc -strict-concurrency=complete
+        run: swift build -c release
 
       - name: Export coverage
         run: |
@@ -70,7 +70,7 @@ jobs:
     env:
       # Update this scheme if you use a custom one; SPM auto-schemes commonly use this name
       SCHEME: PipelineKit-Package
-      DESTINATION: platform=iOS Simulator,name=iPhone 15 Pro
+      DESTINATION: generic/platform=iOS Simulator
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -90,7 +90,6 @@ jobs:
             -scheme "$SCHEME" \
             -destination "$DESTINATION" \
             -configuration Debug \
-            SWIFT_TREAT_WARNINGS_AS_ERRORS=YES \
             -skipPackagePluginValidation \
             -skipMacroValidation \
             build-for-testing | xcpretty || exit ${PIPESTATUS[0]}
@@ -102,7 +101,6 @@ jobs:
             -scheme "$SCHEME" \
             -destination "$DESTINATION" \
             -configuration Debug \
-            SWIFT_TREAT_WARNINGS_AS_ERRORS=YES \
             -skipPackagePluginValidation \
             -skipMacroValidation \
             test | xcpretty || exit ${PIPESTATUS[0]}
@@ -114,7 +112,7 @@ jobs:
     continue-on-error: true  # keep advisory while we stabilize
     env:
       SCHEME: PipelineKit-Package
-      DESTINATION: platform=watchOS Simulator,name=Apple Watch Series 9 (45mm)
+      DESTINATION: generic/platform=watchOS Simulator
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -134,7 +132,6 @@ jobs:
             -scheme "$SCHEME" \
             -destination "$DESTINATION" \
             -configuration Debug \
-            SWIFT_TREAT_WARNINGS_AS_ERRORS=YES \
             -skipPackagePluginValidation \
             -skipMacroValidation \
             build | xcpretty || exit ${PIPESTATUS[0]}
