@@ -322,11 +322,19 @@ public actor PoolRegistry {
     /// Static shutdown method for test cleanup.
     /// This is called from test teardown observers to cancel background tasks so
     /// the process can exit cleanly after tests complete.
-    public static func shutdown() {
+    /// - Important: This method blocks briefly to ensure cleanup completes.
+    @objc public static func shutdown() {
+        // Create a semaphore to wait for cleanup
+        let semaphore = DispatchSemaphore(value: 0)
+
         // Use a detached task to avoid isolation issues
         Task.detached {
-            await shared._shutdown()
+            await PoolRegistry.shared._shutdown()
+            semaphore.signal()
         }
+
+        // Wait briefly for cleanup to complete (max 100ms)
+        _ = semaphore.wait(timeout: .now() + .milliseconds(100))
     }
 
     private func _shutdown() {
