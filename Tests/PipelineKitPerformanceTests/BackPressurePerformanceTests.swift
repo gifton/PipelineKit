@@ -127,13 +127,22 @@ final class BackPressurePerformanceTests: XCTestCase {
         
         // Block the semaphore first
         let blockExpectation = expectation(description: "Block semaphore")
-        var blocker: SemaphoreToken?
-        Task {
-            blocker = try? await semaphore.acquire()
+        let blockerTask = Task { @Sendable () -> SemaphoreToken? in
+            let token = try? await semaphore.acquire()
             blockExpectation.fulfill()
+            return token
         }
         wait(for: [blockExpectation], timeout: 1)
-        defer { blocker?.release() }
+
+        // Clean up the blocker token after the test
+        defer {
+            blockerTask.cancel()
+            Task { @Sendable in
+                if let token = await blockerTask.value {
+                    token.release()
+                }
+            }
+        }
         
         let options = XCTMeasureOptions()
         options.iterationCount = 5
@@ -145,7 +154,7 @@ final class BackPressurePerformanceTests: XCTestCase {
             let expectation = expectation(description: "Failed acquire")
             expectation.expectedFulfillmentCount = 1000
             
-            Task {
+            Task { @Sendable in
                 for _ in 0..<1000 {
                     // tryAcquire should return nil immediately since semaphore is blocked
                     _ = await semaphore.tryAcquire()
@@ -165,9 +174,9 @@ final class BackPressurePerformanceTests: XCTestCase {
         measure(metrics: [XCTMemoryMetric()]) {
             let expectation = self.expectation(description: "Memory pressure")
             
-            Task {
+            Task { @Sendable in
                 var tokens: [SemaphoreToken] = []
-                
+
                 // Acquire many tokens
                 for _ in 0..<5000 {
                     if let token = try? await semaphore.acquire() {

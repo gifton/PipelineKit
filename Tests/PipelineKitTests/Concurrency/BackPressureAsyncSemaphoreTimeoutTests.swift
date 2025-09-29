@@ -168,8 +168,8 @@ final class BackPressureAsyncSemaphoreTimeoutTests: XCTestCase {
         
         // Fill up the semaphore
         let token1 = try await semaphore.acquire()
-        let token2Future = Task { try await semaphore.acquire() }
-        let token3Future = Task { try await semaphore.acquire() }
+        let token2Future = Task { @Sendable in try await semaphore.acquire() }
+        let token3Future = Task { @Sendable in try await semaphore.acquire() }
         
         // Give tasks time to queue
         try await Task.sleep(nanoseconds: 50_000_000) // 50ms
@@ -209,9 +209,9 @@ final class BackPressureAsyncSemaphoreTimeoutTests: XCTestCase {
         let token2 = try await semaphore.acquire()
         
         // When: Multiple timeout waiters
-        Task { try await semaphore.acquire(timeout: 0.5) }
-        Task { try await semaphore.acquire(timeout: 1.0) }
-        Task { try await semaphore.acquire(timeout: 1.5) }
+        Task { @Sendable in try await semaphore.acquire(timeout: 0.5) }
+        Task { @Sendable in try await semaphore.acquire(timeout: 1.0) }
+        Task { @Sendable in try await semaphore.acquire(timeout: 1.5) }
         
         // Give tasks time to queue
         try await Task.sleep(nanoseconds: 100_000_000) // 100ms

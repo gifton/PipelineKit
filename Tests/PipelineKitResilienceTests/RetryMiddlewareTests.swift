@@ -235,7 +235,7 @@ final class RetryMiddlewareTests: XCTestCase {
             configuration: RetryMiddleware.Configuration(
                 maxAttempts: 3,
                 strategy: .custom { attempt in
-                    Task { await tracker.add(attempt) }
+                    Task { @Sendable in await tracker.add(attempt) }
                     return 0.01 * Double(attempt)
                 },
                 errorEvaluator: { error in

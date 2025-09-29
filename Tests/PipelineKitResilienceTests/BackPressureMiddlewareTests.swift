@@ -317,24 +317,26 @@ final class BackPressureMiddlewareTests: XCTestCase {
     func testRateLimitIntegration() async throws {
         // Skip this test - rate limiting is not implemented yet
         throw XCTSkip("Rate limiting is not available in this version")
-        
+
+        // The following code is commented out until rate limiting is implemented:
+        /*
         // Given
         let middleware = BackPressureMiddleware(
             maxConcurrency: 10
             // Rate limiting is not available in this version
         )
-        
+
         let executionTimes = ExecutionTracker()
-        
+
         // When - Try to execute 10 commands rapidly
         let startTime = Date()
-        
+
         await withTaskGroup(of: Void.self) { group in
             for i in 0..<10 {
                 group.addTask {
                     let command = BPTestCommand(value: "rate-\(i)")
                     let context = CommandContext()
-                    
+
                     _ = try? await middleware.execute(command, context: context) { cmd, _ in
                         await executionTimes.append(Int(Date().timeIntervalSince(startTime) * 1000)) // ms
                         return cmd.value
@@ -342,16 +344,16 @@ final class BackPressureMiddlewareTests: XCTestCase {
                 }
             }
         }
-        
+
         // Then
         let times = await executionTimes.getOrder()
-        
+
         // First 5 should execute immediately (< 100ms)
         let firstBatch = times.prefix(5)
         for time in firstBatch {
             XCTAssertLessThan(time, 100, "First batch should execute quickly")
         }
-        
+
         // Next 5 should be delayed (~1 second)
         if times.count > 5 {
             let secondBatch = times.dropFirst(5)
@@ -359,6 +361,7 @@ final class BackPressureMiddlewareTests: XCTestCase {
                 XCTAssertGreaterThan(time, 900, "Second batch should be rate limited")
             }
         }
+        */
     }
     
     func testStatsAccuracy() async throws {
