@@ -84,7 +84,7 @@ final class ObservabilityIntegrationTests: XCTestCase {
         
         // Verify configuration affects behavior
         await system?.recordCounter(name: "test", value: 1.0)
-        let metrics = await system?.getMetrics() ?? []
+        _ = await system?.getMetrics() ?? []
         // Metrics might still be recorded locally even if disabled
         // The important thing is the system exists and is accessible
         XCTAssertNotNil(system)

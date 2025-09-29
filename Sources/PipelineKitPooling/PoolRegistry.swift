@@ -323,7 +323,7 @@ public actor PoolRegistry {
     /// This is called from test teardown observers to cancel background tasks so
     /// the process can exit cleanly after tests complete.
     /// - Important: This method blocks briefly to ensure cleanup completes.
-    @objc public static func shutdown() {
+    public static func shutdown() {
         // Create a semaphore to wait for cleanup
         let semaphore = DispatchSemaphore(value: 0)
 
