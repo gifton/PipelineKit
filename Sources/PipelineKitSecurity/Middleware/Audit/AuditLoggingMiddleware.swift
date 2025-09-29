@@ -86,7 +86,7 @@ public struct AuditLoggingMiddleware: Middleware {
                 phase: .started,
                 commandType: commandType,
                 commandId: commandId,
-                userId: userId,
+                userID: userId,
                 sessionId: sessionId
             )
             await logger.log(startEvent)
@@ -101,7 +101,7 @@ public struct AuditLoggingMiddleware: Middleware {
                     phase: .completed,
                     commandType: commandType,
                     commandId: commandId,
-                    userId: userId,
+                    userID: userId,
                     sessionId: sessionId,
                     duration: duration
                 )
@@ -115,7 +115,7 @@ public struct AuditLoggingMiddleware: Middleware {
                     phase: .failed,
                     commandType: commandType,
                     commandId: commandId,
-                    userId: userId,
+                    userID: userId,
                     sessionId: sessionId,
                     duration: duration,
                     error: String(describing: error)
@@ -129,7 +129,7 @@ public struct AuditLoggingMiddleware: Middleware {
             let traceContext = TraceContext(
                 traceId: UUID(),
                 spanId: commandId,
-                userId: userId,
+                userID: userId,
                 sessionId: sessionId
             )
             
@@ -140,7 +140,7 @@ public struct AuditLoggingMiddleware: Middleware {
                     phase: .started,
                     commandType: commandType,
                     commandId: commandId,
-                    userId: userId,
+                    userID: userId,
                     sessionId: sessionId
                 )
                 await logger.log(startEvent)
@@ -155,7 +155,7 @@ public struct AuditLoggingMiddleware: Middleware {
                         phase: .completed,
                         commandType: commandType,
                         commandId: commandId,
-                        userId: userId,
+                        userID: userId,
                         sessionId: sessionId,
                         duration: duration
                     )
@@ -169,7 +169,7 @@ public struct AuditLoggingMiddleware: Middleware {
                         phase: .failed,
                         commandType: commandType,
                         commandId: commandId,
-                        userId: userId,
+                        userID: userId,
                         sessionId: sessionId,
                         duration: duration,
                         error: String(describing: error)

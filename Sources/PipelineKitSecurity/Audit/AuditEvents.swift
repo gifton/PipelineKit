@@ -24,7 +24,7 @@ public struct CommandLifecycleEvent: AuditEvent {
     public let commandId: UUID
     
     /// Optional user who initiated the command
-    public let userId: String?
+    public let userID: String?
     
     /// Optional session identifier
     public let sessionId: String?
@@ -43,7 +43,7 @@ public struct CommandLifecycleEvent: AuditEvent {
         phase: Phase,
         commandType: String,
         commandId: UUID = UUID(),
-        userId: String? = nil,
+        userID: String? = nil,
         sessionId: String? = nil,
         duration: TimeInterval? = nil,
         error: String? = nil,
@@ -52,7 +52,7 @@ public struct CommandLifecycleEvent: AuditEvent {
         self.phase = phase
         self.commandType = commandType
         self.commandId = commandId
-        self.userId = userId
+        self.userID = userID
         self.sessionId = sessionId
         self.duration = duration
         self.error = error
@@ -71,8 +71,8 @@ public struct CommandLifecycleEvent: AuditEvent {
             "commandId": commandId.uuidString
         ]
         
-        if let userId {
-            meta["userId"] = userId
+        if let userID {
+            meta["userID"] = userID
         }
         
         if let sessionId {

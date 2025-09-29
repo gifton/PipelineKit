@@ -43,7 +43,7 @@ public struct EnhancedRateLimitingMiddleware: Middleware {
         limiter: RateLimiter,
         identifierExtractor: @escaping @Sendable (any Command, CommandContext) async -> String = { _, context in
             let metadata = context.commandMetadata
-            return metadata.userId ?? "anonymous"
+            return metadata.userID ?? "anonymous"
         },
         costCalculator: @escaping @Sendable (any Command) -> Double = { _ in 1.0 },
         priorityExtractor: @escaping @Sendable (any Command, CommandContext) async -> Priority = { _, _ in .medium }

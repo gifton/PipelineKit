@@ -36,27 +36,27 @@ final class CommandTests: XCTestCase {
     
     func testCommandMetadata() async throws {
         let metadata = TestCommandMetadata(
-            userId: "test-user",
-            correlationId: "test-correlation"
+            userID: "test-user",
+            correlationID: "test-correlation"
         )
         
-        XCTAssertEqual(metadata.userId, "test-user")
-        XCTAssertEqual(metadata.correlationId, "test-correlation")
+        XCTAssertEqual(metadata.userID, "test-user")
+        XCTAssertEqual(metadata.correlationID, "test-correlation")
         XCTAssertNotNil(metadata.id)
         XCTAssertNotNil(metadata.timestamp)
     }
     
     func testCommandContext() async throws {
         let context = CommandContext.test(
-            userId: "user-123",
-            correlationId: "corr-123",
+            userID: "user-123",
+            correlationID: "corr-123",
             additionalData: ["key": "value"]
         )
         
         let metadata = await context.commandMetadata
         XCTAssertNotNil(metadata)
-        XCTAssertEqual(metadata.userId, "user-123")
-        XCTAssertEqual(metadata.correlationId, "corr-123")
+        XCTAssertEqual(metadata.userID, "user-123")
+        XCTAssertEqual(metadata.correlationID, "corr-123")
     }
     
     func testCommandContextWithCustomKeys() async throws {

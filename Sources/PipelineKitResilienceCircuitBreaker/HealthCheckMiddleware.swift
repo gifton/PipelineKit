@@ -298,6 +298,7 @@ public protocol HealthCheck: Sendable {
 }
 
 /// Result of a health check
+@frozen
 public struct HealthCheckResult: Sendable {
     public let status: HealthCheckMiddleware.HealthState
     public let message: String?

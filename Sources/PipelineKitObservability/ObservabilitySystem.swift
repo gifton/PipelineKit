@@ -341,7 +341,7 @@ public extension CommandContext {
                     "metric_value": value,
                     "metric_tags": tags
                 ],
-                correlationID: await correlationID ?? commandMetadata.correlationId ?? UUID().uuidString
+                correlationID: await correlationID ?? commandMetadata.correlationID ?? UUID().uuidString
             )
             await hub.emit(event)
         }
@@ -368,7 +368,7 @@ public extension CommandContext {
             let event = PipelineEvent(
                 name: "metric.gauge.recorded",
                 properties: props,
-                correlationID: await correlationID ?? commandMetadata.correlationId ?? UUID().uuidString
+                correlationID: await correlationID ?? commandMetadata.correlationID ?? UUID().uuidString
             )
             await hub.emit(event)
         }
@@ -391,7 +391,7 @@ public extension CommandContext {
                     "metric_tags": tags,
                     "metric_unit": "ms"
                 ],
-                correlationID: await correlationID ?? commandMetadata.correlationId ?? UUID().uuidString
+                correlationID: await correlationID ?? commandMetadata.correlationID ?? UUID().uuidString
             )
             await hub.emit(event)
         }

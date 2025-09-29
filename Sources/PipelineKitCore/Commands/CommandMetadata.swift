@@ -12,8 +12,8 @@ public protocol CommandMetadata: Sendable {
     var timestamp: Date { get }
     
     /// Optional user identifier for authorization and auditing
-    var userId: String? { get }
+    var userID: String? { get }
     
     /// Optional correlation ID for distributed tracing
-    var correlationId: String? { get }
+    var correlationID: String? { get }
 }

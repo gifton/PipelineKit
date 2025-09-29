@@ -80,8 +80,8 @@ public extension AuditEvent {
             enrichedMetadata["spanId"] = traceContext.spanId.uuidString
             
             // Add user and session if available and not already present
-            if let userId = traceContext.userId, enrichedMetadata["userId"] == nil {
-                enrichedMetadata["userId"] = userId
+            if let userID = traceContext.userID, enrichedMetadata["userID"] == nil {
+                enrichedMetadata["userID"] = userID
             }
             if let sessionId = traceContext.sessionId, enrichedMetadata["sessionId"] == nil {
                 enrichedMetadata["sessionId"] = sessionId
@@ -123,7 +123,7 @@ public struct TraceContext: Sendable, Equatable {
     public let spanId: UUID
     
     /// Optional user identifier
-    public let userId: String?
+    public let userID: String?
     
     /// Optional session identifier
     public let sessionId: String?
@@ -132,12 +132,12 @@ public struct TraceContext: Sendable, Equatable {
     public init(
         traceId: UUID = UUID(),
         spanId: UUID = UUID(),
-        userId: String? = nil,
+        userID: String? = nil,
         sessionId: String? = nil
     ) {
         self.traceId = traceId
         self.spanId = spanId
-        self.userId = userId
+        self.userID = userID
         self.sessionId = sessionId
     }
 }

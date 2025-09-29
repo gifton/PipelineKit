@@ -151,7 +151,7 @@ After installation, verify PipelineKit is working:
 import PipelineKit
 
 // Create a simple test
-let metadata = DefaultCommandMetadata(userId: "test")
+let metadata = DefaultCommandMetadata(userID: "test")
 let context = CommandContext(metadata: metadata)
 print("PipelineKit installed successfully!")
 ```
