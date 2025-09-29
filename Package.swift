@@ -103,7 +103,8 @@ let package = Package(
                 "PipelineKitCore",
                 "PipelineKitTestSupport",
                 "PipelineKitResilience",
-                "PipelineKitObservability"
+                "PipelineKitObservability",
+                "PipelineKitPooling"  // Added for TestTeardownObserver
             ],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency"),
