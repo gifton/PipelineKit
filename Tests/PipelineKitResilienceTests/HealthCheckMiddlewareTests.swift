@@ -11,63 +11,18 @@ final class HealthCheckMiddlewareTests: XCTestCase {
         // Skip external HTTP checks on CI or when network is unreliable
         // These tests depend on external services and can be flaky
         throw XCTSkip("Skipping external HTTP health check - use mock tests instead")
-
-        // Original test code kept for reference:
-        // Use a reliable public endpoint for testing
-        let url = URL(string: "https://httpbin.org/status/200")!
-        let healthCheck = HTTPHealthCheck(
-            name: "httpbin",
-            url: url,
-            timeout: 10.0,
-            expectedStatusCode: 200
-        )
-
-        let result = await healthCheck.check()
-
-        XCTAssertEqual(result.status, .healthy)
-        XCTAssertTrue(result.message?.contains("200") ?? false)
     }
     
     func testHTTPHealthCheckWithServerError() async throws {
         // Skip external HTTP checks on CI or when network is unreliable
         // These tests depend on external services and can be flaky
         throw XCTSkip("Skipping external HTTP health check - use mock tests instead")
-
-        // Original test code kept for reference:
-        // Test with 500 server error
-        let url = URL(string: "https://httpbin.org/status/500")!
-        let healthCheck = HTTPHealthCheck(
-            name: "httpbin-error",
-            url: url,
-            timeout: 10.0,
-            expectedStatusCode: 200
-        )
-
-        let result = await healthCheck.check()
-
-        XCTAssertEqual(result.status, .unhealthy)
-        XCTAssertTrue(result.message?.contains("500") ?? false)
     }
     
     func testHTTPHealthCheckWithClientError() async throws {
         // Skip external HTTP checks on CI or when network is unreliable
         // These tests depend on external services and can be flaky
         throw XCTSkip("Skipping external HTTP health check - use mock tests instead")
-
-        // Original test code kept for reference:
-        // Test with 404 not found
-        let url = URL(string: "https://httpbin.org/status/404")!
-        let healthCheck = HTTPHealthCheck(
-            name: "httpbin-notfound",
-            url: url,
-            timeout: 10.0,
-            expectedStatusCode: 200
-        )
-        
-        let result = await healthCheck.check()
-        
-        XCTAssertEqual(result.status, .degraded)
-        XCTAssertTrue(result.message?.contains("404") ?? false)
     }
     
     func testHTTPHealthCheckWithInvalidURL() async throws {

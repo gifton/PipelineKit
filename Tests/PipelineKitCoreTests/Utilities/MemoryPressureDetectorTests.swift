@@ -104,8 +104,6 @@ final class MemoryPressureDetectorTests: XCTestCase {
         case .normal, .warning, .critical:
             // Valid level
             break
-        default:
-            XCTFail("Unknown pressure level: \(level)")
         }
     }
     
