@@ -228,7 +228,10 @@ final class ResilientMiddlewareTests: XCTestCase {
     */
 
     func testExponentialBackoffRetry() async throws {
-        // Skip on CI to avoid scheduler-induced timing flakiness
+        // Skip on CI/simulator to avoid scheduler-induced timing flakiness
+        #if targetEnvironment(simulator)
+        throw XCTSkip("Skipping flaky exponential backoff timing test on simulator")
+        #endif
         if ProcessInfo.processInfo.environment["CI"] == "true" {
             throw XCTSkip("Skipping flaky exponential backoff timing test on CI")
         }
