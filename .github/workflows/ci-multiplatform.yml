@@ -42,7 +42,23 @@ jobs:
         run: swift build -c debug
 
       - name: Test (Debug + Coverage)
-        run: swift test -c debug --enable-code-coverage
+        run: |
+          set -euo pipefail
+          # Add timeout and verbose output to diagnose hanging tests
+          # macOS timeout uses different syntax than GNU timeout
+          echo "Starting tests at $(date)"
+
+          # Run with 10 minute timeout (600 seconds)
+          perl -e 'alarm shift; exec @ARGV' 600 swift test -c debug --enable-code-coverage --verbose || {
+            EXIT_CODE=$?
+            if [ $EXIT_CODE -eq 142 ]; then
+              echo "::error::Tests timed out after 600 seconds. Last output above shows which test was hanging."
+              exit 1
+            fi
+            exit $EXIT_CODE
+          }
+
+          echo "Tests completed at $(date)"
 
       - name: Build (Release)
         run: swift build -c release
@@ -70,7 +86,7 @@ jobs:
     env:
       # Update this scheme if you use a custom one; SPM auto-schemes commonly use this name
       SCHEME: PipelineKit-Package
-      DESTINATION: generic/platform=iOS Simulator
+      DESTINATION: platform=iOS Simulator,name=iPhone 16,OS=latest
     steps:
       - name: Checkout
         uses: actions/checkout@v5
