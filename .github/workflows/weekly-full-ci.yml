@@ -12,6 +12,7 @@ on:
 
 env:
   SWIFT_VERSION: '6.1.0'
+  CI: 'true'
   # Full CI always enforces quality gates
   ENFORCE_SWIFTLINT: 'true'
   ENFORCE_COVERAGE: 'true'
