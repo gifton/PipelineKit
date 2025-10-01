@@ -44,8 +44,13 @@ jobs:
 
       - name: Test (Debug + Coverage)
         run: |
-          echo "Starting tests at $(date)"
+          echo "Starting test execution at $(date)"
+          echo "Building tests..."
+          swift build --build-tests -c debug
+
+          echo "Executing tests..."
           swift test -c debug --enable-code-coverage
+
           echo "Tests completed at $(date)"
 
       - name: Build (Release)
