@@ -42,6 +42,7 @@ on:
 # Environment variables
 env:
   SWIFT_VERSION: '6.1.0'
+  CI: 'true'
   MINIMUM_COVERAGE: 70  # Start with realistic threshold
   # Gradual enforcement flags (set to 'true' to enforce)
   ENFORCE_SWIFTLINT: 'false'  # Week 1: warn only

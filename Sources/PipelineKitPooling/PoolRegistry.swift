@@ -13,28 +13,28 @@ public actor PoolRegistry {
     public static let shared = PoolRegistry()
     
     // MARK: - Configuration
-    
+
     /// Whether metrics are enabled by default for new pools (thread-safe)
     private static let _metricsEnabledByDefault = ManagedAtomic(false)
     public static var metricsEnabledByDefault: Bool {
         get { _metricsEnabledByDefault.load(ordering: .relaxed) }
         set { _metricsEnabledByDefault.store(newValue, ordering: .relaxed) }
     }
-    
+
     /// Cleanup interval for removing dead weak references (seconds; thread-safe)
     private static let _cleanupIntervalSeconds = ManagedAtomic<Int64>(30)
     public static var cleanupInterval: TimeInterval {
         get { TimeInterval(_cleanupIntervalSeconds.load(ordering: .relaxed)) }
         set { _cleanupIntervalSeconds.store(Int64(newValue), ordering: .relaxed) }
     }
-    
+
     /// Minimum interval between pool shrink operations (seconds; thread-safe)
     private static let _minimumShrinkIntervalSeconds = ManagedAtomic<Int64>(10)
     public static var minimumShrinkInterval: TimeInterval {
         get { TimeInterval(_minimumShrinkIntervalSeconds.load(ordering: .relaxed)) }
         set { _minimumShrinkIntervalSeconds.store(Int64(newValue), ordering: .relaxed) }
     }
-    
+
     /// Enable intelligent shrinking based on usage patterns (thread-safe)
     private static let _intelligentShrinkingEnabled = ManagedAtomic(true)
     public static var intelligentShrinkingEnabled: Bool {
@@ -317,14 +317,24 @@ public actor PoolRegistry {
         cleanupTask?.cancel()
     }
 
-    // MARK: - Shutdown (Test Support / Process Exit)
+    // MARK: - Shutdown
 
-    /// Cancels background tasks and releases resources.
-    ///
-    /// Use in test bundles to ensure background maintenance tasks do not keep
-    /// the process alive after tests complete.
-    nonisolated public static func shutdown() {
-        Task { await shared._shutdown() }
+    /// Static shutdown method for test cleanup.
+    /// This is called from test teardown observers to cancel background tasks so
+    /// the process can exit cleanly after tests complete.
+    /// - Important: This method blocks briefly to ensure cleanup completes.
+    public static func shutdown() {
+        // Create a semaphore to wait for cleanup
+        let semaphore = DispatchSemaphore(value: 0)
+
+        // Use a detached task to avoid isolation issues
+        Task.detached {
+            await PoolRegistry.shared._shutdown()
+            semaphore.signal()
+        }
+
+        // Wait briefly for cleanup to complete (max 100ms)
+        _ = semaphore.wait(timeout: .now() + .milliseconds(100))
     }
 
     private func _shutdown() {
@@ -332,7 +342,7 @@ public actor PoolRegistry {
         cleanupTask = nil
         pools.removeAll()
     }
-    
+
     // MARK: - Name Generation
     
     /// Generate a unique name for a pool type

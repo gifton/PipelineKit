@@ -11,8 +11,7 @@ final class GlobalTestTeardownObserver: NSObject, XCTestObservation {
     }
 }
 
-// Register at module load time.
+// Register at module load time
 private let _registerGlobalTestTeardownObserver: Void = {
     XCTestObservationCenter.shared.addTestObserver(GlobalTestTeardownObserver())
 }()
-

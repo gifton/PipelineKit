@@ -250,10 +250,10 @@ public final class TestMiddleware: Middleware, @unchecked Sendable {
 /// This is a permanent solution for test infrastructure that needs to simulate
 /// various error conditions with different error types.
 public final class TestFailingMiddleware: Middleware, @unchecked Sendable {
-    public let error: Error
+    public let error: any Error
     public let priority: ExecutionPriority = .custom
-    
-    public init(error: Error = TestError.middlewareFailed) {
+
+    public init(error: any Error = TestError.middlewareFailed) {
         self.error = error
     }
     
@@ -298,7 +298,7 @@ public enum TestConstants {
 }
 
 public extension CommandContext {
-    func assertHasMetadata() throws -> CommandMetadata {
+    func assertHasMetadata() throws -> any CommandMetadata {
         return self.commandMetadata
     }
     
@@ -311,7 +311,7 @@ public extension CommandContext {
 public protocol ObservableCommand: Command {
     func setupObservability(context: CommandContext) async
     func observabilityDidComplete<Result>(context: CommandContext, result: Result) async
-    func observabilityDidFail(context: CommandContext, error: Error) async
+    func observabilityDidFail(context: CommandContext, error: any Error) async
 }
 
 // MARK: - Retry Support

@@ -26,7 +26,7 @@ final class TypeSafeMetricTests: XCTestCase {
     func testCreateTimer() {
         let name = "test.timer"
         let duration = 0.123
-        let tags = ["method": "GET"]
+        _ = ["method": "GET"]
         let timer = Metric<PipelineTimer>.timer(name, duration: duration, tags: ["method": "GET"])
         
         XCTAssertEqual(timer.name, name)

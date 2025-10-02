@@ -1,0 +1,146 @@
+name: CI (Multiplatform)
+
+# This workflow adds macOS (SwiftPM), iOS Simulator, and watchOS Simulator coverage.
+# It is disabled by default and can be run manually. Integrate into your main
+# CI once it’s stable by adding push/pull_request triggers as needed.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+env:
+  SWIFT_VERSION: '6.1.0'
+  CI: 'true'
+
+jobs:
+  macos-spm:
+    name: macOS • SwiftPM (Debug + Release)
+    runs-on: macos-14
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Swift
+        uses: swift-actions/setup-swift@v2
+        with:
+          swift-version: ${{ env.SWIFT_VERSION }}
+
+      - name: Setup SPM Cache
+        uses: ./.github/actions/setup-spm-cache
+        with:
+          cache-key-prefix: 'multiplatform'
+          swift-version: ${{ env.SWIFT_VERSION }}
+
+      - name: Cache SwiftPM
+        uses: actions/cache@v4
+        with:
+          path: .build
+          key: spm-${{ runner.os }}-${{ hashFiles('Package.resolved') }}
+
+      - name: Build (Debug)
+        run: swift build -c debug
+
+      - name: Test (Debug + Coverage)
+        run: |
+          echo "Starting test execution at $(date)"
+          echo "Building tests..."
+          swift build --build-tests
+
+          echo "Executing tests..."
+          swift test --enable-code-coverage
+
+          echo "Tests completed at $(date)"
+
+      - name: Build (Release)
+        run: swift build -c release
+
+      - name: Export coverage
+        run: |
+          set -euo pipefail
+          BIN=$(find .build -name "*PackageTests.xctest" -type d | head -n1)/Contents/MacOS/$(basename $(find .build -name "*PackageTests.xctest" -type d | head -n1) .xctest)
+          PROF=$(find .build -name default.profdata | head -n1)
+          if [[ -f "$BIN" && -f "$PROF" ]]; then
+            xcrun llvm-cov export "$BIN" -instr-profile "$PROF" > coverage.json || true
+          fi
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-macos
+          path: coverage.json
+          if-no-files-found: ignore
+
+  ios-sim:
+    name: iOS • Simulator Tests
+    runs-on: macos-15
+    timeout-minutes: 25
+    env:
+      # Update this scheme if you use a custom one; SPM auto-schemes commonly use this name
+      SCHEME: PipelineKit-Package
+      DESTINATION: platform=iOS Simulator,name=iPhone 16,OS=latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Select Xcode 16
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '16.*'
+
+      - name: Xcode version
+        run: xcodebuild -version
+
+      - name: Build for testing (Debug)
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -scheme "$SCHEME" \
+            -destination "$DESTINATION" \
+            -configuration Debug \
+            -skipPackagePluginValidation \
+            -skipMacroValidation \
+            build-for-testing | xcpretty || exit ${PIPESTATUS[0]}
+
+      - name: Run tests (Debug)
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -scheme "$SCHEME" \
+            -destination "$DESTINATION" \
+            -configuration Debug \
+            -skipPackagePluginValidation \
+            -skipMacroValidation \
+            test | xcpretty || exit ${PIPESTATUS[0]}
+
+  watchos-sim:
+    name: watchOS • Simulator Build
+    runs-on: macos-15
+    timeout-minutes: 20
+    continue-on-error: true  # keep advisory while we stabilize
+    env:
+      SCHEME: PipelineKit-Package
+      DESTINATION: generic/platform=watchOS Simulator
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Select Xcode 16
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '16.*'
+
+      - name: Xcode version
+        run: xcodebuild -version
+
+      - name: Build (Debug)
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -scheme "$SCHEME" \
+            -destination "$DESTINATION" \
+            -configuration Debug \
+            -skipPackagePluginValidation \
+            -skipMacroValidation \
+            build | xcpretty || exit ${PIPESTATUS[0]}

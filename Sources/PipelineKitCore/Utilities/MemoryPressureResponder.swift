@@ -2,7 +2,7 @@
 #if canImport(Darwin)
 @preconcurrency import Darwin
 #endif
-#if canImport(UIKit)
+#if canImport(UIKit) && (os(iOS) || os(tvOS))
 import UIKit
 #endif
 
@@ -49,8 +49,8 @@ public actor MemoryPressureResponder {
     public func startMonitoring() {
         guard monitoringTask == nil else { return }
         
-        #if canImport(UIKit)
-        // iOS memory warning notifications
+        #if os(iOS) || os(tvOS)
+        // iOS/tvOS memory warning notifications
         Task { @MainActor in
             NotificationCenter.default.addObserver(
                 forName: UIApplication.didReceiveMemoryWarningNotification,
@@ -75,7 +75,7 @@ public actor MemoryPressureResponder {
         monitoringTask?.cancel()
         monitoringTask = nil
         
-        #if canImport(UIKit)
+        #if os(iOS) || os(tvOS)
         Task { @MainActor in
             NotificationCenter.default.removeObserver(
                 self,

@@ -124,8 +124,8 @@ final class BackPressurePerformanceTests: XCTestCase {
     
     func testFailedAcquirePerformance() throws {
         let semaphore = BackPressureSemaphore(maxConcurrency: 1)
-
-        // Block the semaphore first using a task
+        
+        // Block the semaphore first
         let blockExpectation = expectation(description: "Block semaphore")
         let blockerTask = Task { @Sendable () -> SemaphoreToken? in
             let token = try? await semaphore.acquire()
@@ -133,6 +133,16 @@ final class BackPressurePerformanceTests: XCTestCase {
             return token
         }
         wait(for: [blockExpectation], timeout: 1)
+
+        // Clean up the blocker token after the test
+        defer {
+            blockerTask.cancel()
+            Task { @Sendable in
+                if let token = await blockerTask.value {
+                    token.release()
+                }
+            }
+        }
         
         let options = XCTMeasureOptions()
         options.iterationCount = 5
@@ -154,11 +164,8 @@ final class BackPressurePerformanceTests: XCTestCase {
             
             wait(for: [expectation], timeout: 10)
         }
-
-        // Cleanup: cancel the blocker task
-        blockerTask.cancel()
     }
-
+    
     // MARK: - Memory Pressure Test
     
     func testMemoryPressureWithManyTokens() throws {
@@ -166,10 +173,10 @@ final class BackPressurePerformanceTests: XCTestCase {
         
         measure(metrics: [XCTMemoryMetric()]) {
             let expectation = self.expectation(description: "Memory pressure")
-
+            
             Task { @Sendable in
                 var tokens: [SemaphoreToken] = []
-                
+
                 // Acquire many tokens
                 for _ in 0..<5000 {
                     if let token = try? await semaphore.acquire() {

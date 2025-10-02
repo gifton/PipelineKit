@@ -111,7 +111,7 @@ public actor ExecutionRecorder {
     public struct ExecutionRecord: Sendable {
         public let id: UUID
         public let command: String
-        public let metadata: CommandMetadata
+        public let metadata: any CommandMetadata
         public let startTime: Date
         public let endTime: Date?
         public let result: String?
@@ -126,7 +126,7 @@ public actor ExecutionRecorder {
         public let succeeded: Bool
     }
     
-    func recordStart(executionId: UUID, command: any Command, metadata: CommandMetadata) {
+    func recordStart(executionId: UUID, command: any Command, metadata: any CommandMetadata) {
         let record = ExecutionRecord(
             id: executionId,
             command: String(describing: type(of: command)),
@@ -156,7 +156,7 @@ public actor ExecutionRecorder {
         }
     }
     
-    func recordFailure(executionId: UUID, error: Error, duration: TimeInterval) {
+    func recordFailure(executionId: UUID, error: any Error, duration: TimeInterval) {
         if let index = executions.firstIndex(where: { $0.id == executionId }) {
             let record = executions[index]
             executions[index] = ExecutionRecord(
@@ -253,7 +253,7 @@ public extension XCTestCase {
     func XCTAssertPipelineSucceeds<T: Command>(
         _ pipeline: any Pipeline,
         command: T,
-        metadata: CommandMetadata = DefaultCommandMetadata(),
+        metadata: any CommandMetadata = DefaultCommandMetadata(),
         file: StaticString = #filePath,
         line: UInt = #line
     ) async {
@@ -269,8 +269,8 @@ public extension XCTestCase {
     func XCTAssertPipelineFails<T: Command>(
         _ pipeline: any Pipeline,
         command: T,
-        metadata: CommandMetadata = DefaultCommandMetadata(),
-        withError expectedError: Error? = nil,
+        metadata: any CommandMetadata = DefaultCommandMetadata(),
+        withError expectedError: (any Error)? = nil,
         file: StaticString = #filePath,
         line: UInt = #line
     ) async {
@@ -294,7 +294,7 @@ public extension XCTestCase {
     func XCTAssertPipelinePerformance<T: Command>(
         _ pipeline: any Pipeline,
         command: T,
-        metadata: CommandMetadata = DefaultCommandMetadata(),
+        metadata: any CommandMetadata = DefaultCommandMetadata(),
         within duration: TimeInterval,
         file: StaticString = #filePath,
         line: UInt = #line
