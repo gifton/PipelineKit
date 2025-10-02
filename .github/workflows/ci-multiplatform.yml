@@ -46,10 +46,10 @@ jobs:
         run: |
           echo "Starting test execution at $(date)"
           echo "Building tests..."
-          swift build --build-tests -c debug
+          swift build --build-tests
 
           echo "Executing tests..."
-          swift test -c debug --enable-code-coverage
+          swift test --enable-code-coverage
 
           echo "Tests completed at $(date)"
 
