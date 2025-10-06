@@ -36,7 +36,7 @@ import Foundation
 /// 
 /// // Emit events
 /// context.eventEmitter = eventHub
-/// context.emitCommandStarted(type: "CreateUser")
+/// await context.emitCommandStarted(type: "CreateUser")
 ///
 /// // Record metrics
 /// await metrics.record(.counter("api.requests", tags: ["endpoint": "users"]))

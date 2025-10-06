@@ -97,65 +97,162 @@ public struct LoggingEmitter: EventEmitter {
 
     #if canImport(OSLog)
     private func logWithOSLog(event: PipelineEvent, level: Level) {
+        let indicator = visualIndicator(for: event.name)
+        let shortID = shortenUUID(event.correlationID)
+        let commandType = extractCommandType(event.properties) ?? event.name
         let propertiesString = formatProperties(event.properties)
+
+        // Format: [LEVEL] indicator commandType | shortID | properties
+        let message: String
+        if propertiesString.isEmpty {
+            message = "\(indicator) \(commandType) | \(shortID)"
+        } else {
+            message = "\(indicator) \(commandType) | \(shortID) | \(propertiesString)"
+        }
 
         switch level {
         case .debug:
-            logger.debug("""
-                Event: \(event.name, privacy: .public)
-                CorrelationID: \(event.correlationID, privacy: .public)
-                Properties: \(propertiesString, privacy: .private)
-                """)
+            logger.debug("\(message, privacy: .public)")
         case .info:
-            logger.info("""
-                Event: \(event.name, privacy: .public)
-                CorrelationID: \(event.correlationID, privacy: .public)
-                Properties: \(propertiesString, privacy: .private)
-                """)
+            logger.info("\(message, privacy: .public)")
         case .notice:
-            logger.notice("""
-                Event: \(event.name, privacy: .public)
-                CorrelationID: \(event.correlationID, privacy: .public)
-                Properties: \(propertiesString, privacy: .private)
-                """)
+            logger.notice("\(message, privacy: .public)")
         case .warning:
-            logger.warning("""
-                Event: \(event.name, privacy: .public)
-                CorrelationID: \(event.correlationID, privacy: .public)
-                Properties: \(propertiesString, privacy: .private)
-                """)
+            logger.warning("\(message, privacy: .public)")
         case .error:
-            logger.error("""
-                Event: \(event.name, privacy: .public)
-                CorrelationID: \(event.correlationID, privacy: .public)
-                Properties: \(propertiesString, privacy: .private)
-                """)
+            logger.error("\(message, privacy: .public)")
         }
     }
     #endif
 
     private func logWithPrint(event: PipelineEvent, level: Level) {
         let levelString = levelString(for: level)
+        let indicator = visualIndicator(for: event.name)
+        let shortID = shortenUUID(event.correlationID)
+        let commandType = extractCommandType(event.properties) ?? event.name
         let propertiesString = formatProperties(event.properties)
 
-        print("""
-            [\(levelString)] Event: \(event.name)
-            CorrelationID: \(event.correlationID)
-            SequenceID: \(event.sequenceID)
-            Properties: \(propertiesString)
-            """)
+        // Format: [LEVEL] indicator commandType | shortID | properties
+        if propertiesString.isEmpty {
+            print("[\(levelString)] \(indicator) \(commandType) | \(shortID)")
+        } else {
+            print("[\(levelString)] \(indicator) \(commandType) | \(shortID) | \(propertiesString)")
+        }
     }
 
     private func formatProperties(_ properties: [String: AnySendable]) -> String {
         if properties.isEmpty {
-            return "{}"
+            return ""
         }
 
-        let items = properties.map { key, value in
-            "\(key): \(value)"
-        }.joined(separator: ", ")
+        let items = properties.compactMap { key, value -> String? in
+            // Skip redundant source field
+            guard key != "source" else { return nil }
 
-        return "{ \(items) }"
+            let unwrapped = unwrapValue(value)
+            return "\(key)=\(unwrapped)"
+        }.joined(separator: " ")
+
+        return items
+    }
+
+    /// Unwraps AnySendable to get the actual value without nested wrappers
+    private func unwrapValue(_ value: AnySendable) -> String {
+        // Try different common types in order of likelihood
+
+        // String
+        if let string: String = value.get() {
+            return string.contains(" ") ? "\"\(string)\"" : string
+        }
+
+        // Date - format as time
+        if let date: Date = value.get() {
+            return formatTime(date)
+        }
+
+        // Double - check if it's a duration
+        if let duration: Double = value.get() {
+            return String(format: "%.3fs", duration)
+        }
+
+        // Bool
+        if let bool: Bool = value.get() {
+            return bool ? "true" : "false"
+        }
+
+        // Int variants
+        if let int: Int = value.get() {
+            return "\(int)"
+        }
+
+        if let int64: Int64 = value.get() {
+            return "\(int64)"
+        }
+
+        if let uint: UInt = value.get() {
+            return "\(uint)"
+        }
+
+        if let uint64: UInt64 = value.get() {
+            return "\(uint64)"
+        }
+
+        // Float
+        if let float: Float = value.get() {
+            return String(format: "%.3f", float)
+        }
+
+        // UUID
+        if let uuid: UUID = value.get() {
+            return shortenUUID(uuid.uuidString)
+        }
+
+        // Nested AnySendable (recursive unwrap)
+        if let nested: AnySendable = value.get() {
+            return unwrapValue(nested)
+        }
+
+        // Fallback to description (will show AnySendable(...) if nothing matched)
+        return String(describing: value)
+            .replacingOccurrences(of: "AnySendable(", with: "")
+            .replacingOccurrences(of: ")", with: "")
+    }
+
+    /// Shortens a UUID to first 8 characters
+    private func shortenUUID(_ uuid: String) -> String {
+        String(uuid.prefix(8))
+    }
+
+    /// Formats a time as HH:mm:ss
+    private func formatTime(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm:ss"
+        return formatter.string(from: date)
+    }
+
+    /// Returns a visual indicator based on event name
+    private func visualIndicator(for eventName: String) -> String {
+        if eventName.contains("started") {
+            return "▶"
+        } else if eventName.contains("completed") {
+            return "✓"
+        } else if eventName.contains("failed") || eventName.contains("error") {
+            return "✗"
+        } else {
+            return "•"
+        }
+    }
+
+    /// Extracts command type from properties
+    private func extractCommandType(_ properties: [String: AnySendable]) -> String? {
+        guard let commandType = properties["command_type"] else { return nil }
+
+        let value = unwrapValue(commandType)
+        // Remove "AnySendable(" wrapper if present
+        let cleaned = value
+            .replacingOccurrences(of: "AnySendable(", with: "")
+            .replacingOccurrences(of: ")", with: "")
+        return cleaned
     }
 
     private func shouldLog(level: Level) -> Bool {

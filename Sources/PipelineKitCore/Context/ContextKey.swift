@@ -80,7 +80,7 @@ public enum ContextKeys {
     // MARK: Observability
 
     /// Key for event emitter
-    public static let eventEmitter = ContextKey<EventEmitter>("eventEmitter")
+    public static let eventEmitter = ContextKey<any EventEmitter>("eventEmitter")
     
     /// Key for log level
     public static let logLevel = ContextKey<String>("logLevel")

@@ -373,7 +373,7 @@ public struct RetryableError: Error, LocalizedError {
 }
 
 /// Errors specific to retry functionality
-public enum RetryError: Error, LocalizedError {
+public enum RetryError: Error, LocalizedError, Sendable {
     case maxRetryTimeExceeded
     case unexpectedState
 

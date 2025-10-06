@@ -52,7 +52,7 @@ public final class ResilientMiddleware: Middleware, @unchecked Sendable {
     ) async throws -> T.Result {
         var lastError: Error?
         let startTime = Date()
-        let metadata = await context.commandMetadata
+        let metadata = context.commandMetadata
         _ = (metadata as? DefaultCommandMetadata)?.userID ?? "unknown"
         
         for attempt in 1...retryPolicy.maxAttempts {
@@ -73,7 +73,7 @@ public final class ResilientMiddleware: Middleware, @unchecked Sendable {
                 return try await next(command, context)
             } catch {
                 lastError = error
-                
+
                 await context.emitMiddlewareEvent(
                     "middleware.retry_failed",
                     middleware: "ResilientMiddleware",

@@ -93,7 +93,7 @@ struct RequestIDMiddleware: Middleware {
     ) async throws -> T.Result {
         // Add request ID to context (built‑in key)
         let requestID = UUID().uuidString
-        await context.set(ContextKeys.requestID, value: requestID)
+        context.set(ContextKeys.requestID, value: requestID)
         
         print("[Request \(requestID)] Started")
         return try await next(command, context)
@@ -112,8 +112,8 @@ struct AuditMiddleware: Middleware {
         let result = try await next(command, context)
         
         // Read from context
-        let requestID = await context.get(ContextKeys.requestID) ?? "unknown"
-        let user: String = await context.get(userKey) ?? "anonymous"
+        let requestID = context.get(ContextKeys.requestID) ?? "unknown"
+        let user: String = context.get(userKey) ?? "anonymous"
         
         print("[AUDIT] Request \(requestID) by user \(user) completed")
         
@@ -383,7 +383,7 @@ struct OrderSystem {
         
         // Set additional context
         let userKey = ContextKey<String>("user")
-        await context.set(userKey, value: "user123")
+        context.set(userKey, value: "user123")
         
         // Execute command
         let command = CreateOrderCommand(

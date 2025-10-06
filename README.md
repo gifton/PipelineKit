@@ -141,16 +141,16 @@ Note: Equal priorities preserve insertion order (stable ordering).
 Thread-safe context for sharing data across middleware and handlers.
 
 ```swift
-actor CommandContext {
+final class CommandContext: @unchecked Sendable {
     // Typed storage access
     func set<T: Sendable>(_ key: ContextKey<T>, value: T?)
     func get<T: Sendable>(_ key: ContextKey<T>) -> T?
 
     // Built‑in async properties
-    var requestID: String? { get async }
-    var userID: String? { get async }
-    var correlationID: String? { get async }
-    var metadata: [String: any Sendable] { get async }
+    var requestID: String? { get }
+    var userID: String? { get }
+    var correlationID: String? { get }
+    var metadata: [String: any Sendable] { get }
 
     // Observability
     var eventEmitter: EventEmitter? { get }
@@ -248,7 +248,7 @@ let observability = await ObservabilitySystem.production(
 )
 
 // Automatic metrics from events
-context.emitCommandCompleted(type: "CreateUser", duration: 0.125)
+await context.emitCommandCompleted(type: "CreateUser", duration: 0.125)
 // Generates: 
 // - counter: command.completed = 1
 // - timer: command.duration = 125ms
@@ -331,14 +331,14 @@ let auth = AuthenticationMiddleware { context in
         throw SecurityError.unauthorized
     }
     let user = try await validateToken(token)
-    await context.setUserID(user.id)
+    context.setUserID(user.id)
 }
 ```
 
 #### Authorization
 ```swift
 let authz = AuthorizationMiddleware { command, context in
-    guard let userID = await context.userID else {
+    guard let userID = context.userID else {
         return false
     }
     return await checkPermission(userID, for: command)
@@ -514,8 +514,8 @@ try await pipeline.addMiddleware(
 
 // Execute with context
 let context = CommandContext()
-await context.setRequestID(UUID().uuidString)
-await context.setMetadata("auth-token", value: request.token)
+context.setRequestID(UUID().uuidString)
+context.setMetadata("auth-token", value: request.token)
 context.eventEmitter = observability.eventHub
 
 let order = try await pipeline.execute(
@@ -536,7 +536,7 @@ actor EventProcessor {
             for await event in events {
                 group.addTask { [pipeline] in
                     let context = CommandContext()
-                    await context.setCorrelationID(event.correlationId)
+                    context.setCorrelationID(event.correlationId)
                     
                     do {
                         _ = try await pipeline.execute(
@@ -585,9 +585,9 @@ struct UpdateUserCommand: Command {
 ```swift
 // ✅ GOOD - Using context for request metadata
 let context = CommandContext()
-await context.setRequestID(UUID().uuidString)
-await context.setUserID(authenticatedUser.id)
-await context.setMetadata("client-version", value: "2.0.0")
+context.setRequestID(UUID().uuidString)
+context.setUserID(authenticatedUser.id)
+context.setMetadata("client-version", value: "2.0.0")
 
 // ❌ BAD - Passing auth in every command
 struct MyCommand: Command {
@@ -642,11 +642,11 @@ extension ContextKey {
     static let requestSource = ContextKey<RequestSource>("request-source")
 }
 
-await context.set(.apiVersion, value: "v2")
-let version = await context.value(for: .apiVersion) // String?
+context.set(.apiVersion, value: "v2")
+let version = context.value(for: .apiVersion) // String?
 
 // ❌ BAD - String-based keys with casting
-await context.setMetadata("api-version", value: "v2")
+context.setMetadata("api-version", value: "v2")
 let version = context.metadata["api-version"] as? String // Unsafe!
 ```
 

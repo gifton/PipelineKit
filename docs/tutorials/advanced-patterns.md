@@ -42,7 +42,7 @@ struct VerboseLoggingMiddleware: Middleware {
 
 let debugLogging = ConditionalMiddleware(
     wrapped: VerboseLoggingMiddleware(),
-    condition: { _, context in await context.get(debugKey) ?? false }
+    condition: { _, context in context.get(debugKey) ?? false }
 )
 ```
 
@@ -75,7 +75,7 @@ struct PipelineFactory {
                     refillRate: 10
                 ),
                 identifierExtractor: { _, ctx in
-                    await ctx.commandMetadata.userID ?? "anonymous"
+                    ctx.commandMetadata.userID ?? "anonymous"
                 }
             ))
         }

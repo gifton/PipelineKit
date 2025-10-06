@@ -42,7 +42,7 @@ final class StandardPipelineContextTests: XCTestCase {
             context: CommandContext,
             next: @Sendable (T, CommandContext) async throws -> T.Result
         ) async throws -> T.Result {
-            await context.setMetadata(TestKeys.multiplier, value: multiplier)
+            context.setMetadata(TestKeys.multiplier, value: multiplier)
             
             let result = try await next(command, context)
             
@@ -64,17 +64,17 @@ final class StandardPipelineContextTests: XCTestCase {
             context: CommandContext,
             next: @Sendable (T, CommandContext) async throws -> T.Result
         ) async throws -> T.Result {
-            let metadata = await context.getMetadata()
+            let metadata = context.getMetadata()
             var accumulator: [String] = (metadata[TestKeys.accumulator] as? [String]) ?? []
             accumulator.append("\(name):before")
-            await context.setMetadata(TestKeys.accumulator, value: accumulator)
+            context.setMetadata(TestKeys.accumulator, value: accumulator)
             
             let result = try await next(command, context)
             
-            let metadata2 = await context.getMetadata()
+            let metadata2 = context.getMetadata()
             accumulator = (metadata2[TestKeys.accumulator] as? [String]) ?? []
             accumulator.append("\(name):after")
-            await context.setMetadata(TestKeys.accumulator, value: accumulator)
+            context.setMetadata(TestKeys.accumulator, value: accumulator)
             
             return result
         }
@@ -111,7 +111,7 @@ final class StandardPipelineContextTests: XCTestCase {
         XCTAssertEqual(result, 20) // (5 * 2) * 2
         
         // Check accumulator
-        let metadata = await context.getMetadata()
+        let metadata = context.getMetadata()
         let accumulator: [String]? = (metadata[TestKeys.accumulator] as? [String])
         XCTAssertEqual(accumulator, ["First:before", "Second:before", "Second:after", "First:after"])
     }
@@ -233,7 +233,7 @@ final class StandardPipelineContextTests: XCTestCase {
         _ = try await pipeline.execute(CalculateCommand(value: 5), context: context)
         
         // Verify metrics were collected via context
-        let metadata = await context.commandMetadata
+        let metadata = context.commandMetadata
         XCTAssertNotNil(metadata)
     }
     */
@@ -256,8 +256,8 @@ final class StandardPipelineContextTests: XCTestCase {
         let capturedData = Actor<(String?, String?, Date?)>((nil, nil, nil))
         
         let inspector = ContextInspectorMiddleware { context in
-            let metadata = await context.commandMetadata
-            let contextMetadata = await context.getMetadata()
+            let metadata = context.commandMetadata
+            let contextMetadata = context.getMetadata()
             let requestId = (contextMetadata["request_id"] as? String)
             await capturedData.set((metadata.userID, requestId, metadata.timestamp))
             expectation.fulfill()
@@ -285,7 +285,7 @@ final class StandardPipelineContextTests: XCTestCase {
                 context: CommandContext,
                 next: @Sendable (T, CommandContext) async throws -> T.Result
             ) async throws -> T.Result {
-                await context.setMetadata(TestKeys.customValue, value: value)
+                context.setMetadata(TestKeys.customValue, value: value)
                 return try await next(command, context)
             }
         }
@@ -298,7 +298,7 @@ final class StandardPipelineContextTests: XCTestCase {
                 context: CommandContext,
                 next: @Sendable (T, CommandContext) async throws -> T.Result
             ) async throws -> T.Result {
-                let metadata = await context.getMetadata()
+                let metadata = context.getMetadata()
                 let value = (metadata[TestKeys.customValue] as? String)
                 XCTAssertEqual(value, expectedValue)
                 return try await next(command, context)
@@ -315,7 +315,7 @@ final class StandardPipelineContextTests: XCTestCase {
         XCTAssertEqual(result, 14)
         
         // Verify context persists after execution
-        let metadata = await context.getMetadata()
+        let metadata = context.getMetadata()
         let finalValue = (metadata[TestKeys.customValue] as? String)
         XCTAssertEqual(finalValue, "test-value")
     }

@@ -528,7 +528,7 @@ public extension StatsDExporter {
 // MARK: - Error Types
 
 /// Errors that can occur in metrics export.
-public enum MetricsError: Error, LocalizedError {
+public enum MetricsError: Error, LocalizedError, Sendable {
     case connectionFailed(Error)
     case sendFailed(String)
     case invalidData(String)

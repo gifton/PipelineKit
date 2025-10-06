@@ -122,7 +122,7 @@ final class DeduplicationMiddlewareTests: XCTestCase {
         // First execution
         _ = try await middleware.execute(command, context: context) { cmd, _ in
             await executionCounter.increment()
-            let isDupe = await context.isDuplicate
+            let isDupe = context.isDuplicate
             XCTAssertFalse(isDupe) // First execution is not duplicate
             return cmd.value
         }
@@ -130,7 +130,7 @@ final class DeduplicationMiddlewareTests: XCTestCase {
         // Second execution
         _ = try await middleware.execute(command, context: context) { cmd, _ in
             await executionCounter.increment()
-            let isDupe = await context.isDuplicate
+            let isDupe = context.isDuplicate
             XCTAssertTrue(isDupe) // Second execution is marked as duplicate
             return cmd.value
         }
@@ -236,7 +236,7 @@ final class DeduplicationMiddlewareTests: XCTestCase {
         
         let command = DedupeTestCommand(id: "events", value: "test")
         let context = CommandContext()
-        await context.setObserverRegistry(observerRegistry)
+        context.setObserverRegistry(observerRegistry)
         
         // First execution
         _ = try await middleware.execute(command, context: context) { cmd, _ in

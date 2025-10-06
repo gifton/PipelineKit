@@ -74,7 +74,7 @@ public struct AuditLoggingMiddleware: Middleware {
         let commandType = String(describing: type(of: command))
         
         // Extract user and session info from context
-        let metadata = await context.getMetadata()
+        let metadata = context.getMetadata()
         let userId = metadata["authUserId"] as? String
         let sessionId = metadata["sessionId"] as? String
         

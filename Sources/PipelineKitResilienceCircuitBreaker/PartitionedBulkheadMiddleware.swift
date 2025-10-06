@@ -140,7 +140,7 @@ public struct PartitionedBulkheadMiddleware: Middleware {
             : configuration.defaultPartition
 
         // Store partition info in context
-        await context.setMetadata("bulkheadPartition", value: effectiveKey)
+        context.setMetadata("bulkheadPartition", value: effectiveKey)
 
         // Try to acquire resources from partition
         let acquisition = try await partitionManager.acquire(
@@ -266,13 +266,13 @@ public struct PartitionedBulkheadMiddleware: Middleware {
         let duration = Date().timeIntervalSince(metrics.startTime)
         _ = await partitionManager.getStats(for: metrics.partitionKey)
 
-        await context.setMetadata("bulkhead.partition", value: metrics.partitionKey)
-        await context.setMetadata("bulkhead.duration", value: duration)
-        await context.setMetadata("bulkhead.wasBorrowed", value: metrics.wasBorrowed)
-        await context.setMetadata("bulkhead.wasQueued", value: metrics.wasQueued)
+        context.setMetadata("bulkhead.partition", value: metrics.partitionKey)
+        context.setMetadata("bulkhead.duration", value: duration)
+        context.setMetadata("bulkhead.wasBorrowed", value: metrics.wasBorrowed)
+        context.setMetadata("bulkhead.wasQueued", value: metrics.wasQueued)
 
         if let queueTime = metrics.queueTime {
-            await context.setMetadata("bulkhead.queueTime", value: queueTime)
+            context.setMetadata("bulkhead.queueTime", value: queueTime)
         }
 
         await context.emitMiddlewareEvent(

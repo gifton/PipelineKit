@@ -220,7 +220,7 @@ public struct TimeoutMiddleware: Middleware {
                 )
 
                 // Mark context as cancelled due to timeout
-                await context.markAsCancelled(reason: .timeout(
+                context.markAsCancelled(reason: .timeout(
                     duration: duration,
                     gracePeriod: configuration.gracePeriod
                 ))
@@ -250,7 +250,7 @@ public struct TimeoutMiddleware: Middleware {
                 )
 
                 // Mark context as cancelled due to timeout
-                await context.markAsCancelled(reason: .timeout(
+                context.markAsCancelled(reason: .timeout(
                     duration: timeout,
                     gracePeriod: gracePeriod
                 ))

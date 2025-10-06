@@ -285,8 +285,8 @@ struct ResourceAuthorizationMiddleware: ContextAwareMiddleware {
         next: @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
         
-        guard let user = await context.get(UserKey.self),
-              let organization = await context.get(OrganizationKey.self) else {
+        guard let user = context.get(UserKey.self),
+              let organization = context.get(OrganizationKey.self) else {
             throw AuthorizationError.unauthenticated
         }
         

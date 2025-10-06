@@ -9,7 +9,7 @@ public struct RetryPolicy: Sendable {
     public let delayStrategy: DelayStrategy
     
     /// Determines if an error should trigger a retry
-    public let shouldRetry: @Sendable (Error) -> Bool
+    public let shouldRetry: @Sendable (any Error) -> Bool
     
     /// Creates a retry policy.
     ///
@@ -20,7 +20,7 @@ public struct RetryPolicy: Sendable {
     public init(
         maxAttempts: Int = 3,
         delayStrategy: DelayStrategy = .exponentialBackoff(base: 0.1, multiplier: 2.0, maxDelay: 10.0),
-        shouldRetry: @escaping @Sendable (Error) -> Bool = { _ in true }
+        shouldRetry: @escaping @Sendable (any Error) -> Bool = { _ in true }
     ) {
         self.maxAttempts = maxAttempts
         self.delayStrategy = delayStrategy
@@ -102,7 +102,7 @@ public struct ErrorRecoveryContext: Sendable {
     public let commandType: String
     
     /// The error that occurred
-    public let error: Error
+    public let error: any Error
     
     /// Current attempt number (1-based)
     public let attempt: Int
@@ -115,7 +115,7 @@ public struct ErrorRecoveryContext: Sendable {
     
     public init<T: Command>(
         command: T,
-        error: Error,
+        error: any Error,
         attempt: Int,
         totalElapsedTime: TimeInterval,
         isFinalAttempt: Bool

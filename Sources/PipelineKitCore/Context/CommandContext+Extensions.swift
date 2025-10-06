@@ -18,15 +18,15 @@ public extension CommandContext {
     /// - Parameter copyableKeys: The context keys to check for ContextCopyable conformance
     /// - Returns: A new context with deep-copied values where applicable
     func deepFork<T: Sendable>(copying keys: [ContextKey<T>]) async -> CommandContext {
-        let newContext = await self.fork()
-        
+        let newContext = self.fork()
+
         for key in keys {
-            if let value = self.get(key) as? ContextCopyable,
+            if let value = self.get(key) as? any ContextCopyable,
                let copied = value.contextCopy() as? T {
-                await newContext.set(key, value: copied)
+                newContext.set(key, value: copied)
             }
         }
-        
+
         return newContext
     }
 }

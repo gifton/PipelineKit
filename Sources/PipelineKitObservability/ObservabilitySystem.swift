@@ -34,7 +34,7 @@ extension ContextKey where Value == ObservabilitySystem {
 /// context.eventEmitter = observability.eventHub
 ///
 /// // Events automatically generate metrics!
-/// context.emitCommandCompleted(type: "CreateUser", duration: 0.125)
+/// await context.emitCommandCompleted(type: "CreateUser", duration: 0.125)
 /// // This generates:
 /// // - Event: command.completed with properties
 /// // - Metric: command.duration (timer) = 125ms
@@ -305,13 +305,13 @@ public extension CommandContext {
     /// This is the most natural way to add observability:
     /// ```swift
     /// let context = CommandContext()
-    /// await context.setupObservability(.production)
+    /// context.setupObservability(.production)
     /// 
     /// // Now events automatically generate metrics!
-    /// context.emitCommandStarted(type: "CreateUser")
+    /// await context.emitCommandStarted(type: "CreateUser")
     /// 
     /// // And you can access the full system:
-    /// let metrics = await context.observability?.getMetrics()
+    /// let metrics = context.observability?.getMetrics()
     /// ```
     func setupObservability(
         _ config: ObservabilitySystem.Configuration = .development

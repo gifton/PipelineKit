@@ -64,16 +64,16 @@ public struct EnhancedRateLimitingMiddleware: Middleware {
         let priority = await priorityExtractor(command, context)
 
         // Store priority in context for the rate limiter to use
-        await context.setMetadata("rateLimitPriority", value: priority.rawValue)
+        context.setMetadata("rateLimitPriority", value: priority.rawValue)
 
         guard try await limiter.allowRequest(identifier: identifier, cost: cost) else {
             let status = await limiter.getStatus(identifier: identifier)
 
             // Store rate limit info in context
-            await context.setMetadata("rateLimitExceeded", value: true)
-            await context.setMetadata("rateLimitIdentifier", value: identifier)
-            await context.setMetadata("rateLimitPriority", value: priority.rawValue)
-            await context.setMetadata("rateLimitStatus", value: [
+            context.setMetadata("rateLimitExceeded", value: true)
+            context.setMetadata("rateLimitIdentifier", value: identifier)
+            context.setMetadata("rateLimitPriority", value: priority.rawValue)
+            context.setMetadata("rateLimitStatus", value: [
                 "limit": status.limit,
                 "remaining": status.remaining,
                 "resetAt": status.resetAt,
@@ -88,9 +88,9 @@ public struct EnhancedRateLimitingMiddleware: Middleware {
         }
 
         // Track successful rate limit checks
-        let currentMetrics = await context.getMetadata()
+        let currentMetrics = context.getMetadata()
         let currentChecks = (currentMetrics["rateLimitChecks"] as? Int) ?? 0
-        await context.setMetadata("rateLimitChecks", value: currentChecks + 1)
+        context.setMetadata("rateLimitChecks", value: currentChecks + 1)
 
         return try await next(command, context)
     }

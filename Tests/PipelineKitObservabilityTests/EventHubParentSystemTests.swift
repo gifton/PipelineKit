@@ -94,7 +94,7 @@ final class EventHubParentSystemTests: XCTestCase {
         
         // Create context and set hub
         let context = CommandContext()
-        await context.setEventEmitter(hub)
+        context.setEventEmitter(hub)
         
         // Retrieve system through context
         let retrievedSystem = await context.observability
@@ -107,7 +107,7 @@ final class EventHubParentSystemTests: XCTestCase {
         
         // Set non-EventHub emitter
         let customEmitter = SimpleEventEmitter()
-        await context.setEventEmitter(customEmitter)
+        context.setEventEmitter(customEmitter)
         
         // Should not be able to retrieve system
         let system = await context.observability
@@ -125,7 +125,7 @@ final class EventHubParentSystemTests: XCTestCase {
         
         // System is deallocated, but hub exists
         let context = CommandContext()
-        await context.setEventEmitter(hub)
+        context.setEventEmitter(hub)
         
         // Should not retrieve deallocated system
         let retrievedSystem = await context.observability
@@ -169,7 +169,7 @@ final class EventHubParentSystemTests: XCTestCase {
         // Setup first system
         let system1 = await ObservabilitySystem(configuration: .development)
         let hub1 = await system1.getEventHub()
-        await context.setEventEmitter(hub1)
+        context.setEventEmitter(hub1)
         
         let retrieved1 = await context.observability
         XCTAssertNotNil(retrieved1)
@@ -178,7 +178,7 @@ final class EventHubParentSystemTests: XCTestCase {
         // Switch to second system
         let system2 = await ObservabilitySystem(configuration: .production)
         let hub2 = await system2.getEventHub()
-        await context.setEventEmitter(hub2)
+        context.setEventEmitter(hub2)
         
         let retrieved2 = await context.observability
         XCTAssertNotNil(retrieved2)

@@ -91,7 +91,7 @@ public struct DefaultCacheKeyGenerator: CacheKeyGenerator {
         }
         
         // Add user context if available
-        let metadata = await context.commandMetadata
+        let metadata = context.commandMetadata
         if let userID = metadata.userID {
             components.append("u:\(userID)")
         }
@@ -269,7 +269,7 @@ public struct ConditionalCachedMiddleware<M: Middleware>: Middleware, NextGuardW
     }
     
     private func generateKey<T: Command>(for command: T, context: CommandContext) async -> String {
-        let metadata = await context.commandMetadata
+        let metadata = context.commandMetadata
         let wrappedType = type(of: wrapped)
         let commandType = type(of: command)
         let corrID = metadata.correlationID ?? "none"

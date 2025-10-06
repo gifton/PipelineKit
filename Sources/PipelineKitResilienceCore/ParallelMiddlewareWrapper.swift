@@ -2,7 +2,7 @@ import Foundation
 import PipelineKit
 
 /// Errors specific to parallel execution
-public enum ParallelExecutionError: Error, Equatable {
+public enum ParallelExecutionError: Error, Equatable, Sendable {
     case middlewareShouldNotCallNext
     case validationOnlyExecution
 }

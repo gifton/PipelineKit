@@ -206,7 +206,7 @@ internal enum TimeoutRaceResult<T: Sendable>: Sendable {
 }
 
 /// Detailed timeout error information
-public enum TimeoutError: Error {
+public enum TimeoutError: Error, Sendable {
     /// Operation exceeded the specified timeout
     case exceeded(duration: TimeInterval)
 

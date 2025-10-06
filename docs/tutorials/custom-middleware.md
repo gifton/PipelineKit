@@ -55,7 +55,7 @@ struct HeaderInjectionMiddleware: Middleware {
     ) async throws -> T.Result {
         for (key, value) in headers {
             let headerKey = ContextKey<String>("header:\(key)")
-            await context.set(headerKey, value: value)
+            context.set(headerKey, value: value)
         }
         return try await next(command, context)
     }
@@ -97,7 +97,7 @@ let limiter = RateLimiter(
 let rateLimit = RateLimitingMiddleware(
     limiter: limiter,
     identifierExtractor: { _, context in
-        await context.commandMetadata.userID ?? "anonymous"
+        context.commandMetadata.userID ?? "anonymous"
     }
 )
 

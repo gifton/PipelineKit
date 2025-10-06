@@ -144,7 +144,7 @@ public struct HealthCheckMiddleware: Middleware {
         let healthState = await healthMonitor.getHealthState(for: serviceName)
 
         // Store health state in context
-        await context.setMetadata("serviceHealth", value: healthState.rawValue)
+        context.setMetadata("serviceHealth", value: healthState.rawValue)
 
         // Block if configured and service is unhealthy
         if configuration.blockUnhealthyServices && healthState == .unhealthy {
@@ -230,7 +230,7 @@ public struct HealthCheckMiddleware: Middleware {
         }
 
         // Check context for service name
-        let metadata = await context.getMetadata()
+        let metadata = context.getMetadata()
         if let serviceName = metadata["serviceName"] as? String {
             return serviceName
         }
@@ -265,10 +265,10 @@ public struct HealthCheckMiddleware: Middleware {
     ) async {
         guard configuration.emitMetrics else { return }
 
-        await context.setMetadata("health.service", value: serviceName)
-        await context.setMetadata("health.state", value: healthState.rawValue)
-        await context.setMetadata("health.success", value: success)
-        await context.setMetadata("health.duration", value: duration)
+        context.setMetadata("health.service", value: serviceName)
+        context.setMetadata("health.state", value: healthState.rawValue)
+        context.setMetadata("health.success", value: success)
+        context.setMetadata("health.duration", value: duration)
 
         await context.emitMiddlewareEvent(
             "middleware.health_check_execution",
