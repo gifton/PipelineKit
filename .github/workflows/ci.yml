@@ -256,7 +256,8 @@ jobs:
           "PipelineKitCacheTests"
           "PipelineKitPoolingTests"
           "PipelineKitObservabilityTests"
-          "PipelineKitPerformanceTests"
+          # Performance tests skipped - run locally or in dedicated perf suite
+          # "PipelineKitPerformanceTests"
         )
 
         FAILED_TARGETS=""
