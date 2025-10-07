@@ -10,7 +10,7 @@ Add PipelineKit to your `Package.swift` file:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/gifton/PipelineKit.git", from: "0.1.0")
+    .package(url: "https://github.com/gifton/PipelineKit.git", from: "0.2.0")
 ]
 ```
 
@@ -105,10 +105,10 @@ Share data between middleware using context:
 let userKey = ContextKey<String>("user")
 
 // Set in middleware
-await context.set(userKey, value: "john.doe")
+context.set(userKey, value: "john.doe")
 
 // Get in another middleware
-if let user: String = await context.get(userKey) {
+if let user: String = context.get(userKey) {
     print("User: \(user)")
 }
 ```

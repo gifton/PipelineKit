@@ -18,7 +18,7 @@ public struct AuthorizationMiddleware: Middleware {
     public func execute<T: Command>(
         _ command: T,
         context: CommandContext,
-        next: @escaping @Sendable (T, CommandContext) async throws -> T.Result
+        next: @escaping MiddlewareNext<T>
     ) async throws -> T.Result {
         // If no roles are required, allow access (public endpoint)
         if requiredRoles.isEmpty {
@@ -26,13 +26,13 @@ public struct AuthorizationMiddleware: Middleware {
         }
         
         // Get authenticated user from context
-        let metadata = await context.getMetadata()
+        let metadata = context.getMetadata()
         guard let userId = metadata["authUserId"] as? String else {
             throw PipelineError.authorization(reason: .invalidCredentials)
         }
 
         let userRoles = try await getUserRoles(userId)
-        await context.setMetadata("authRoles", value: userRoles)
+        context.setMetadata("authRoles", value: userRoles)
 
         // Check if user has all required roles
         guard requiredRoles.isSubset(of: userRoles) else {

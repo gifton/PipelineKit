@@ -37,7 +37,7 @@ public final class ResilientMiddleware: Middleware, @unchecked Sendable {
     public func execute<T: Command>(
         _ command: T,
         context: CommandContext,
-        next: @escaping @Sendable (T, CommandContext) async throws -> T.Result
+        next: @escaping MiddlewareNext<T>
     ) async throws -> T.Result {
         // Circuit breaker functionality removed - use CircuitBreakerMiddleware instead
         // This middleware now focuses solely on retry logic
@@ -48,11 +48,11 @@ public final class ResilientMiddleware: Middleware, @unchecked Sendable {
     private func executeWithRetry<T: Command>(
         _ command: T,
         context: CommandContext,
-        next: @escaping @Sendable (T, CommandContext) async throws -> T.Result
+        next: @escaping MiddlewareNext<T>
     ) async throws -> T.Result {
         var lastError: Error?
         let startTime = Date()
-        let metadata = await context.commandMetadata
+        let metadata = context.commandMetadata
         _ = (metadata as? DefaultCommandMetadata)?.userID ?? "unknown"
         
         for attempt in 1...retryPolicy.maxAttempts {
@@ -73,7 +73,7 @@ public final class ResilientMiddleware: Middleware, @unchecked Sendable {
                 return try await next(command, context)
             } catch {
                 lastError = error
-                
+
                 await context.emitMiddlewareEvent(
                     "middleware.retry_failed",
                     middleware: "ResilientMiddleware",

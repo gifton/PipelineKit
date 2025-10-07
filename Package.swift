@@ -385,7 +385,8 @@ let package = Package(
             name: "PipelineKitCache",
             dependencies: [
                 "PipelineKit",
-                "PipelineKitCore"
+                "PipelineKitCore",
+                "PipelineKitObservability"
             ],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency"),

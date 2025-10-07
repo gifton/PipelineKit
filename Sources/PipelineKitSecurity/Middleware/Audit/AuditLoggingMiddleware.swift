@@ -67,14 +67,14 @@ public struct AuditLoggingMiddleware: Middleware {
     public func execute<T: Command>(
         _ command: T,
         context: CommandContext,
-        next: @escaping @Sendable (T, CommandContext) async throws -> T.Result
+        next: @escaping MiddlewareNext<T>
     ) async throws -> T.Result {
         let startTime = Date()
         let commandId = UUID()
         let commandType = String(describing: type(of: command))
         
         // Extract user and session info from context
-        let metadata = await context.getMetadata()
+        let metadata = context.getMetadata()
         let userId = metadata["authUserId"] as? String
         let sessionId = metadata["sessionId"] as? String
         

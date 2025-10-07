@@ -33,10 +33,10 @@ final class ContextCopyableTests: XCTestCase {
     func testShallowForkSharesReferences() async {
         let context = CommandContext()
         let session = UserSession(id: "user123", permissions: ["read", "write"])
-        await context.set(TestContextKeys.session, value: session)
-        await context.set(TestContextKeys.counter, value: 42)
+        context.set(TestContextKeys.session, value: session)
+        context.set(TestContextKeys.counter, value: 42)
         
-        let forked = await context.fork()
+        let forked = context.fork()
         
         // Reference types are shared
         let forkedSession = await forked.get(TestContextKeys.session)
@@ -48,7 +48,7 @@ final class ContextCopyableTests: XCTestCase {
         
         // Modifying the shared reference affects both contexts
         session.permissions.insert("admin")
-        let contextSession = await context.get(TestContextKeys.session)
+        let contextSession = context.get(TestContextKeys.session)
         XCTAssertTrue(contextSession?.permissions.contains("admin") ?? false)
         let finalForkedSession = await forked.get(TestContextKeys.session)
         XCTAssertTrue(finalForkedSession?.permissions.contains("admin") ?? false)
@@ -57,13 +57,13 @@ final class ContextCopyableTests: XCTestCase {
     func testManualDeepCopy() async {
         let context = CommandContext()
         let session = UserSession(id: "user123", permissions: ["read", "write"])
-        await context.set(TestContextKeys.session, value: session)
+        context.set(TestContextKeys.session, value: session)
         
         // Manual deep copy
-        let forked = await context.fork()
+        let forked = context.fork()
         await forked.set(
             TestContextKeys.session,
-            value: await context.get(TestContextKeys.session)?.contextCopy() as? UserSession
+            value: context.get(TestContextKeys.session)?.contextCopy() as? UserSession
         )
         
         // Different instances
@@ -82,8 +82,8 @@ final class ContextCopyableTests: XCTestCase {
     func testDeepForkConvenienceMethod() async {
         let context = CommandContext()
         let session = UserSession(id: "user123", permissions: ["read"])
-        await context.set(TestContextKeys.session, value: session)
-        await context.set(TestContextKeys.name, value: "John")
+        context.set(TestContextKeys.session, value: session)
+        context.set(TestContextKeys.name, value: "John")
         
         // Use convenience method
         let forked = await context.deepFork(copying: [TestContextKeys.session])
@@ -112,10 +112,10 @@ final class ContextCopyableTests: XCTestCase {
         let session1 = UserSession(id: "user1", permissions: ["read"])
         let session2 = UserSession(id: "user2", permissions: ["write"])
         
-        await context.set(TestContextKeys.session, value: session1)
-        await context.set(ContextKey<UserSession>("session2"), value: session2)
+        context.set(TestContextKeys.session, value: session1)
+        context.set(ContextKey<UserSession>("session2"), value: session2)
         
-        let forked = await context.fork()
+        let forked = context.fork()
         
         // Deep copy only session1
         await forked.set(

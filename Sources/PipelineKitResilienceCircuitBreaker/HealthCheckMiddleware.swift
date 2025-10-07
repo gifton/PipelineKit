@@ -135,7 +135,7 @@ public struct HealthCheckMiddleware: Middleware {
     public func execute<T: Command>(
         _ command: T,
         context: CommandContext,
-        next: @escaping @Sendable (T, CommandContext) async throws -> T.Result
+        next: @escaping MiddlewareNext<T>
     ) async throws -> T.Result {
         let startTime = Date()
         let serviceName = await extractServiceName(from: command, context: context)
@@ -144,7 +144,7 @@ public struct HealthCheckMiddleware: Middleware {
         let healthState = await healthMonitor.getHealthState(for: serviceName)
 
         // Store health state in context
-        await context.setMetadata("serviceHealth", value: healthState.rawValue)
+        context.setMetadata("serviceHealth", value: healthState.rawValue)
 
         // Block if configured and service is unhealthy
         if configuration.blockUnhealthyServices && healthState == .unhealthy {
@@ -230,7 +230,7 @@ public struct HealthCheckMiddleware: Middleware {
         }
 
         // Check context for service name
-        let metadata = await context.getMetadata()
+        let metadata = context.getMetadata()
         if let serviceName = metadata["serviceName"] as? String {
             return serviceName
         }
@@ -265,10 +265,10 @@ public struct HealthCheckMiddleware: Middleware {
     ) async {
         guard configuration.emitMetrics else { return }
 
-        await context.setMetadata("health.service", value: serviceName)
-        await context.setMetadata("health.state", value: healthState.rawValue)
-        await context.setMetadata("health.success", value: success)
-        await context.setMetadata("health.duration", value: duration)
+        context.setMetadata("health.service", value: serviceName)
+        context.setMetadata("health.state", value: healthState.rawValue)
+        context.setMetadata("health.success", value: success)
+        context.setMetadata("health.duration", value: duration)
 
         await context.emitMiddlewareEvent(
             "middleware.health_check_execution",
@@ -755,7 +755,7 @@ public struct DatabaseHealthCheck: HealthCheck {
         // If we have a connection check closure, use it
         if let connectionCheck = connectionCheck {
             let isHealthy = await connectionCheck()
-            return isHealthy 
+            return isHealthy
                 ? .healthy(message: "Database connection verified")
                 : .unhealthy(message: "Database connection check failed")
         }
@@ -764,7 +764,7 @@ public struct DatabaseHealthCheck: HealthCheck {
         if let connection = connection {
             do {
                 let success = try await connection.executeQuery(query)
-                return success 
+                return success
                     ? .healthy(message: "Database query '\(query)' executed successfully")
                     : .unhealthy(message: "Database query '\(query)' failed")
             } catch {

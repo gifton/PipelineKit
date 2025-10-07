@@ -5,7 +5,6 @@ import PipelineKitObservability
 
 /// Integration tests for the complete observability system
 final class ObservabilityIntegrationTests: XCTestCase {
-    
     // MARK: - Parent System Reference Tests
     
     func testEventHubMaintainsWeakReferenceToParentSystem() async throws {
@@ -56,9 +55,9 @@ final class ObservabilityIntegrationTests: XCTestCase {
         await context.setupObservability(.development)
         
         // Perform various operations
-        await context.set(ContextKey<String>("test"), value: "value")
-        await context.setMetadata("key", value: "data")
-        await context.setRequestID("req-123")
+        context.set(ContextKey<String>("test"), value: "value")
+        context.setMetadata("key", value: "data")
+        context.setRequestID("req-123")
         
         // Observability should still be accessible
         let system = await context.observability
@@ -100,7 +99,7 @@ final class ObservabilityIntegrationTests: XCTestCase {
         
         // Replace with different event emitter
         let customEmitter = MockEventEmitter()
-        await context.setEventEmitter(customEmitter)
+        context.setEventEmitter(customEmitter)
         
         // Observability should be nil (not an EventHub)
         let system2 = await context.observability
@@ -140,7 +139,7 @@ final class ObservabilityIntegrationTests: XCTestCase {
         let system = await ObservabilitySystem(configuration: .development)
         let context = CommandContext()
         let hub = await system.getEventHub()
-        await context.setEventEmitter(hub)
+        context.setEventEmitter(hub)
         
         // Record through system directly
         await system.recordCounter(name: "direct.counter", value: 10.0)
@@ -205,7 +204,7 @@ final class ObservabilityIntegrationTests: XCTestCase {
         
         let context = CommandContext()
         let hub = await system.getEventHub()
-        await context.setEventEmitter(hub)
+        context.setEventEmitter(hub)
         
         // Should be able to retrieve the configured system
         let retrieved = await context.observability
@@ -242,12 +241,12 @@ final class ObservabilityIntegrationTests: XCTestCase {
             let metrics = await system.drainMetrics()
             // Drain should clear metrics
             let afterDrain = await system.getMetrics()
-            XCTAssertTrue(afterDrain.isEmpty || afterDrain.count < metrics.count, 
+            XCTAssertTrue(afterDrain.isEmpty || afterDrain.count < metrics.count,
                          "Drain should remove metrics")
         }
         
         // 5. Clear observability
-        await context.setEventEmitter(nil)
+        context.setEventEmitter(nil)
         let afterClear = await context.observability
         XCTAssertNil(afterClear, "Should have no observability after clearing")
     }
@@ -259,7 +258,7 @@ final class ObservabilityIntegrationTests: XCTestCase {
         
         // Set a non-EventHub emitter
         let customEmitter = MockEventEmitter()
-        await context.setEventEmitter(customEmitter)
+        context.setEventEmitter(customEmitter)
         
         // Observability should gracefully return nil
         let system = await context.observability

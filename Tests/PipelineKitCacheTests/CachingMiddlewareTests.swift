@@ -191,7 +191,7 @@ final class CachingMiddlewareTests: XCTestCase {
     //     
     //     let command = CacheTestCommand(id: "event-test", value: "test")
     //     let context = CommandContext()
-    //     await context.setObserverRegistry(observerRegistry)
+    //     context.setObserverRegistry(observerRegistry)
     //     
     //     // First execution - cache miss
     //     _ = try await middleware.execute(command, context: context) { cmd, _ in

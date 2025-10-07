@@ -1,8 +1,10 @@
 import Foundation
 #if !canImport(Darwin)
-@inline(__always) private func _autoreleasepool<T>(_ body: () -> T) -> T { body() }
+@inline(__always)
+private func _autoreleasepool<T>(_ body: () -> T) -> T { body() }
 #else
-@inline(__always) private func _autoreleasepool<T>(_ body: () -> T) -> T { autoreleasepool(invoking: body) }
+@inline(__always)
+private func _autoreleasepool<T>(_ body: () -> T) -> T { autoreleasepool(invoking: body) }
 #endif
 
 /// Provides common sanitization utilities for command data.

@@ -94,7 +94,7 @@ public struct EncryptionMiddleware: Middleware {
     public func execute<T: Command>(
         _ command: T,
         context: CommandContext,
-        next: @escaping @Sendable (T, CommandContext) async throws -> T.Result
+        next: @escaping MiddlewareNext<T>
     ) async throws -> T.Result {
         // Encrypt sensitive data in command if needed
         let processedCommand = try await encryptCommand(command, context: context)
@@ -113,8 +113,8 @@ public struct EncryptionMiddleware: Middleware {
         guard let encryptable = command as? any EncryptableCommand else {
             // If not encryptable but we have sensitive fields configured, log warning
             if !sensitiveFields.isEmpty || encryptFullPayload {
-                await context.setMetadata("encryption.skipped", value: true)
-                await context.setMetadata("encryption.reason", value: "Command does not support encryption")
+                context.setMetadata("encryption.skipped", value: true)
+                context.setMetadata("encryption.reason", value: "Command does not support encryption")
             }
             return command
         }
@@ -160,8 +160,8 @@ public struct EncryptionMiddleware: Middleware {
                 encryptedFields[fieldPath] = encrypted
             } catch {
                 // Log encryption failure and re-throw
-                await context.setMetadata("encryption.failed", value: true)
-                await context.setMetadata("encryption.error", value: error.localizedDescription)
+                context.setMetadata("encryption.failed", value: true)
+                context.setMetadata("encryption.error", value: error.localizedDescription)
                 throw EncryptionError.encryptionFailed("Failed to encrypt field \(fieldPath): \(error)")
             }
         }
@@ -170,12 +170,12 @@ public struct EncryptionMiddleware: Middleware {
         let encryptedCommand = encryptable.withEncryptedData(encryptedFields)
         
         // Mark encryption in context
-        await context.setMetadata("encryption.applied", value: true)
-        await context.setMetadata("encryption.timestamp", value: Date())
-        await context.setMetadata("encryption.fieldCount", value: encryptedFields.count)
+        context.setMetadata("encryption.applied", value: true)
+        context.setMetadata("encryption.timestamp", value: Date())
+        context.setMetadata("encryption.fieldCount", value: encryptedFields.count)
         
         // Log encryption for audit
-        let metadata = await context.getMetadata()
+        let metadata = context.getMetadata()
         if let auditLogger = metadata["auditLogger"] as? AuditLogger {
             await auditLogger.log(SecurityAuditEvent(
                 action: .encryption,
@@ -250,12 +250,11 @@ public struct EncryptionMiddleware: Middleware {
                 }
                 
                 decryptedFields[fieldPath] = decryptedValue
-                
             } catch {
                 // Log decryption failure
                 failedFields.append(fieldPath)
-                await context.setMetadata("decryption.failed.\(fieldPath)", value: true)
-                await context.setMetadata("decryption.error.\(fieldPath)", value: error.localizedDescription)
+                context.setMetadata("decryption.failed.\(fieldPath)", value: true)
+                context.setMetadata("decryption.error.\(fieldPath)", value: error.localizedDescription)
                 
                 // Depending on configuration, we might want to fail or continue
                 if !allowPartialDecryption {
@@ -266,20 +265,20 @@ public struct EncryptionMiddleware: Middleware {
         
         // Log overall decryption status
         if !failedFields.isEmpty {
-            await context.setMetadata("decryption.partial", value: true)
-            await context.setMetadata("decryption.failedFields", value: failedFields)
+            context.setMetadata("decryption.partial", value: true)
+            context.setMetadata("decryption.failedFields", value: failedFields)
         }
         
         // Create new result with decrypted data
         let decryptedResult = decryptable.withDecryptedData(decryptedFields)
         
         // Mark decryption in context
-        await context.setMetadata("encryption.decrypted", value: true)
-        await context.setMetadata("decryption.fieldCount", value: decryptedFields.count)
-        await context.setMetadata("decryption.failedCount", value: failedFields.count)
+        context.setMetadata("encryption.decrypted", value: true)
+        context.setMetadata("decryption.fieldCount", value: decryptedFields.count)
+        context.setMetadata("decryption.failedCount", value: failedFields.count)
         
         // Log decryption for audit
-        let contextMetadata = await context.getMetadata()
+        let contextMetadata = context.getMetadata()
         if let auditLogger = contextMetadata["auditLogger"] as? AuditLogger {
             await auditLogger.log(SecurityAuditEvent(
                 action: .decryption,
@@ -319,7 +318,7 @@ public struct TypedData: Sendable {
 // EncryptionService and EncryptedData are defined in EncryptionProtocols.swift
 
 /// Errors that can occur during encryption operations.
-public enum EncryptionError: Error, LocalizedError {
+public enum EncryptionError: Error, LocalizedError, Sendable {
     case encryptionFailed(String)
     case decryptionFailed(String)
     case keyNotFound(String)

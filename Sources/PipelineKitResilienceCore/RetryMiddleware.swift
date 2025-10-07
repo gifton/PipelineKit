@@ -128,7 +128,7 @@ public struct RetryMiddleware: Middleware {
     public func execute<T: Command>(
         _ command: T,
         context: CommandContext,
-        next: @escaping @Sendable (T, CommandContext) async throws -> T.Result
+        next: @escaping MiddlewareNext<T>
     ) async throws -> T.Result {
         let commandType = String(describing: type(of: command))
         let startTime = Date()
@@ -373,7 +373,7 @@ public struct RetryableError: Error, LocalizedError {
 }
 
 /// Errors specific to retry functionality
-public enum RetryError: Error, LocalizedError {
+public enum RetryError: Error, LocalizedError, Sendable {
     case maxRetryTimeExceeded
     case unexpectedState
 

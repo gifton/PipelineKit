@@ -3,7 +3,6 @@ import Foundation
 @testable import PipelineKitCore
 
 final class MetricsCollectorTests: XCTestCase {
-    
     // MARK: - Mock Collector
     
     /// Mock implementation for testing
@@ -54,7 +53,7 @@ final class MetricsCollectorTests: XCTestCase {
     func testRecordCounter() async {
         let collector = MockMetricsCollector()
         
-        await collector.recordCounter("commands.executed", value: 1.0, 
+        await collector.recordCounter("commands.executed", value: 1.0,
                                      tags: ["command": "CreateUser"])
         
         let counters = await collector.counters
@@ -96,7 +95,7 @@ final class MetricsCollectorTests: XCTestCase {
     func testRecordGauge() async {
         let collector = MockMetricsCollector()
         
-        await collector.recordGauge("memory.usage", value: 75.5, 
+        await collector.recordGauge("memory.usage", value: 75.5,
                                    tags: ["unit": "percent"])
         
         let gauges = await collector.gauges
@@ -140,7 +139,7 @@ final class MetricsCollectorTests: XCTestCase {
     func testRecordTimer() async {
         let collector = MockMetricsCollector()
         
-        await collector.recordTimer("request.duration", duration: 0.125, 
+        await collector.recordTimer("request.duration", duration: 0.125,
                                    tags: ["method": "GET", "status": "200"])
         
         let timers = await collector.timers
@@ -184,7 +183,7 @@ final class MetricsCollectorTests: XCTestCase {
     func testRecordHistogram() async {
         let collector = MockMetricsCollector()
         
-        await collector.recordHistogram("response.size", value: 2048.0, 
+        await collector.recordHistogram("response.size", value: 2048.0,
                                        tags: ["content_type": "json"])
         
         let histograms = await collector.histograms
@@ -294,8 +293,8 @@ final class MetricsCollectorTests: XCTestCase {
         await withTaskGroup(of: Void.self) { group in
             for i in 0..<iterations {
                 group.addTask {
-                    await collector.recordCounter("concurrent.counter", 
-                                                 value: Double(i), 
+                    await collector.recordCounter("concurrent.counter",
+                                                 value: Double(i),
                                                  tags: ["index": "\(i)"])
                 }
             }
@@ -313,29 +312,29 @@ final class MetricsCollectorTests: XCTestCase {
             for i in 0..<iterations {
                 // Counter
                 group.addTask {
-                    await collector.recordCounter("concurrent.counter", 
-                                                 value: Double(i), 
+                    await collector.recordCounter("concurrent.counter",
+                                                 value: Double(i),
                                                  tags: ["index": "\(i)"])
                 }
                 
                 // Gauge
                 group.addTask {
-                    await collector.recordGauge("concurrent.gauge", 
-                                               value: Double(i * 2), 
+                    await collector.recordGauge("concurrent.gauge",
+                                               value: Double(i * 2),
                                                tags: ["index": "\(i)"])
                 }
                 
                 // Timer
                 group.addTask {
-                    await collector.recordTimer("concurrent.timer", 
-                                               duration: TimeInterval(i) / 1000.0, 
+                    await collector.recordTimer("concurrent.timer",
+                                               duration: TimeInterval(i) / 1000.0,
                                                tags: ["index": "\(i)"])
                 }
                 
                 // Histogram
                 group.addTask {
-                    await collector.recordHistogram("concurrent.histogram", 
-                                                   value: Double(i * 10), 
+                    await collector.recordHistogram("concurrent.histogram",
+                                                   value: Double(i * 10),
                                                    tags: ["index": "\(i)"])
                 }
             }

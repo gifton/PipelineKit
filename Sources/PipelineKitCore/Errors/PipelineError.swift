@@ -23,7 +23,7 @@ public enum PipelineError: Error, Sendable, LocalizedError {
     case timeout(duration: TimeInterval, context: ErrorContext?)
     
     /// Retry attempts exhausted
-    case retryExhausted(attempts: Int, lastError: Error?)
+    case retryExhausted(attempts: Int, lastError: (any Error)?)
     
     /// Command context is missing
     case contextMissing
@@ -65,7 +65,7 @@ public enum PipelineError: Error, Sendable, LocalizedError {
     // MARK: - Parallel Execution
     
     /// Parallel execution failed with multiple errors
-    case parallelExecutionFailed(errors: [Error])
+    case parallelExecutionFailed(errors: [any Error])
     
     // MARK: - Context Errors
     
@@ -142,7 +142,7 @@ public enum PipelineError: Error, Sendable, LocalizedError {
     // MARK: - Generic Wrapped Error
     
     /// Wraps any other error with optional context
-    case wrapped(Error, context: ErrorContext?)
+    case wrapped(any Error, context: ErrorContext?)
     
     // MARK: - Nested Types
     

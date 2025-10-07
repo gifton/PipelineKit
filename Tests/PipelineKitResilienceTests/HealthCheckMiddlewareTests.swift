@@ -4,7 +4,6 @@ import PipelineKitCore
 @testable import _CircuitBreaker
 
 final class HealthCheckMiddlewareTests: XCTestCase {
-    
     // MARK: - HTTP Health Check Tests
     
     func testHTTPHealthCheckWithValidEndpoint() async throws {
@@ -86,7 +85,7 @@ final class HealthCheckMiddlewareTests: XCTestCase {
     
     // MARK: - Mock Database Connection
     
-    struct MockDatabaseConnection: DatabaseConnection {
+    private struct MockDatabaseConnection: DatabaseConnection {
         let shouldSucceed: Bool
         let shouldThrow: Bool
         
@@ -98,7 +97,7 @@ final class HealthCheckMiddlewareTests: XCTestCase {
         }
     }
     
-    enum MockDatabaseError: Error {
+    private enum MockDatabaseError: Error {
         case connectionFailed
     }
     
@@ -208,7 +207,7 @@ final class HealthCheckMiddlewareTests: XCTestCase {
     
     // MARK: - Mock Health Check
     
-    struct MockHealthCheck: HealthCheck {
+    private struct MockHealthCheck: HealthCheck {
         let name: String
         let timeout: TimeInterval? = nil
         let result: HealthCheckResult

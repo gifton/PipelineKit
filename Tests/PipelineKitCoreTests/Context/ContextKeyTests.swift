@@ -2,7 +2,6 @@ import XCTest
 @testable import PipelineKitCore
 
 final class ContextKeyTests: XCTestCase {
-    
     // MARK: - Basic Functionality Tests
     
     func testContextKeyCreation() {

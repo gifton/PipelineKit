@@ -307,7 +307,7 @@ final class ResilientMiddlewareTests: XCTestCase {
     //     let command = ResilientTestCommand(value: "test")
     //     let metadata = TestCommandMetadata(userId: "user-123")
     //     let context = CommandContext(metadata: metadata)
-    //     await context.setObserverRegistry(observerRegistry)
+    //     context.setObserverRegistry(observerRegistry)
     //
     //     let attemptTracker = ResilientTestCounter(0)
     //

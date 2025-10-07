@@ -125,7 +125,7 @@ final class MiddlewareTests: XCTestCase {
                 context: CommandContext,
                 next: @Sendable (T, CommandContext) async throws -> T.Result
             ) async throws -> T.Result {
-                await context.setMetadata(key, value: value)
+                context.setMetadata(key, value: value)
                 return try await next(command, context)
             }
         }
@@ -141,7 +141,7 @@ final class MiddlewareTests: XCTestCase {
         }
         
         // Verify context still has the value
-        let finalValue = await context.getMetadata("test") as? String
+        let finalValue = context.getMetadata("test") as? String
         XCTAssertEqual(finalValue, "modified")
     }
     

@@ -36,7 +36,7 @@ public actor BackPressureMiddleware: Middleware {
     public nonisolated func execute<T: Command>(
         _ command: T,
         context: CommandContext,
-        next: @escaping @Sendable (T, CommandContext) async throws -> T.Result
+        next: @escaping MiddlewareNext<T>
     ) async throws -> T.Result {
         // Acquire semaphore token, using timeout if error strategy specifies one
         let token: SemaphoreToken
@@ -76,7 +76,7 @@ public actor BackPressureMiddleware: Middleware {
         _ command: T,
         context: CommandContext,
         estimatedSize: Int,
-        next: @escaping @Sendable (T, CommandContext) async throws -> T.Result
+        next: @escaping MiddlewareNext<T>
     ) async throws -> T.Result {
         // Acquire semaphore token, using timeout if error strategy specifies one
         let token: SemaphoreToken
