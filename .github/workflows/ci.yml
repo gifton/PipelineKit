@@ -268,9 +268,21 @@ jobs:
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "Running $target with coverage..."
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "Start time: $(date)"
 
-          swift test --filter "$target" --enable-code-coverage
-          TARGET_EXIT_CODE=$?
+          # Run with timeout (5 minutes per target)
+          timeout 300 swift test --filter "$target" --enable-code-coverage || TARGET_EXIT_CODE=$?
+
+          # Check if timeout occurred (exit code 124)
+          if [ "${TARGET_EXIT_CODE:-0}" -eq 124 ]; then
+            echo "::error::⏱️ $target TIMED OUT after 5 minutes - likely hanging test"
+            FAILED_TARGETS="$FAILED_TARGETS $target(timeout)"
+            OVERALL_EXIT_CODE=1
+            continue
+          fi
+
+          TARGET_EXIT_CODE=${TARGET_EXIT_CODE:-0}
+          echo "End time: $(date) (exit code: $TARGET_EXIT_CODE)"
 
           if [ $TARGET_EXIT_CODE -eq 0 ]; then
             echo "✅ $target passed"
