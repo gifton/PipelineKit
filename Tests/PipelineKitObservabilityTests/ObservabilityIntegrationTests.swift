@@ -5,7 +5,6 @@ import PipelineKitObservability
 
 /// Integration tests for the complete observability system
 final class ObservabilityIntegrationTests: XCTestCase {
-    
     // MARK: - Parent System Reference Tests
     
     func testEventHubMaintainsWeakReferenceToParentSystem() async throws {
@@ -242,7 +241,7 @@ final class ObservabilityIntegrationTests: XCTestCase {
             let metrics = await system.drainMetrics()
             // Drain should clear metrics
             let afterDrain = await system.getMetrics()
-            XCTAssertTrue(afterDrain.isEmpty || afterDrain.count < metrics.count, 
+            XCTAssertTrue(afterDrain.isEmpty || afterDrain.count < metrics.count,
                          "Drain should remove metrics")
         }
         

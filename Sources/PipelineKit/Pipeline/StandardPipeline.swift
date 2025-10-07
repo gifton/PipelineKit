@@ -264,7 +264,23 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: Pipeline where H.C
     public func hasMiddleware<M: Middleware>(ofType type: M.Type) -> Bool {
         middlewares.contains { $0 is M }
     }
-    
+
+    // MARK: - Internal Helpers (for Visualization)
+
+    /// Internal helper to get middleware information for visualization
+    /// - Returns: Array of tuples containing (type, priority) for each middleware
+    internal func getMiddlewareDetails() -> [(type: any Middleware.Type, priority: Int)] {
+        middlewares.map { middleware in
+            (type: type(of: middleware), priority: middleware.priority.rawValue)
+        }
+    }
+
+    /// Internal helper to get the handler type
+    /// - Returns: The handler instance
+    internal func getHandlerInstance() -> H {
+        handler
+    }
+
     // MARK: - Private Methods
     
     /// Sorts middleware by priority (lower values execute first),

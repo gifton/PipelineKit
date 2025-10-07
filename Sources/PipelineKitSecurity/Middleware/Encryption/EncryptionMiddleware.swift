@@ -250,7 +250,6 @@ public struct EncryptionMiddleware: Middleware {
                 }
                 
                 decryptedFields[fieldPath] = decryptedValue
-                
             } catch {
                 // Log decryption failure
                 failedFields.append(fieldPath)

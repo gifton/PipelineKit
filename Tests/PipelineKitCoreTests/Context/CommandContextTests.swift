@@ -2,7 +2,6 @@ import XCTest
 @testable import PipelineKitCore
 
 final class CommandContextTests: XCTestCase {
-    
     // MARK: - Initialization Tests
     
     func testInitWithDefaultMetadata() async {
@@ -77,7 +76,7 @@ final class CommandContextTests: XCTestCase {
         XCTAssertEqual(stringValue, "test")
         XCTAssertEqual(intValue, 42)
         XCTAssertEqual(doubleValue, 3.14)
-        XCTAssertEqual(boolValue, true)
+        XCTAssertEqual(boolValue, true) // swiftlint:disable:this xct_specific_matcher
         XCTAssertEqual(dateValue, testDate)
     }
     

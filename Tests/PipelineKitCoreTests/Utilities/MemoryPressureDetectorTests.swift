@@ -2,7 +2,6 @@ import XCTest
 @testable import PipelineKitCore
 
 final class MemoryPressureDetectorTests: XCTestCase {
-    
     // MARK: - Setup & Teardown
     
     override func tearDown() async throws {
@@ -205,7 +204,7 @@ final class MemoryPressureDetectorTests: XCTestCase {
         await withTaskGroup(of: Void.self) { group in
             for i in 0..<50 {
                 group.addTask {
-                    if i % 2 == 0 {
+                    if i.isMultiple(of: 2) {
                         await detector.startMonitoring()
                     } else {
                         await detector.stopMonitoring()
@@ -233,7 +232,7 @@ final class MemoryPressureDetectorTests: XCTestCase {
         
         // We can't directly access the watermarks, but we can verify
         // that the statistics are being collected
-        XCTAssertGreaterThanOrEqual(stats.periodicChecks, 0, 
+        XCTAssertGreaterThanOrEqual(stats.periodicChecks, 0,
                                    "Should have done at least one check")
         XCTAssertGreaterThan(expectedHighWatermark, expectedLowWatermark,
                             "High watermark should be greater than low watermark")

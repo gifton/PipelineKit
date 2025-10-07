@@ -2,7 +2,6 @@ import XCTest
 @testable import PipelineKitCore
 
 final class CancellationErrorTests: XCTestCase {
-    
     // MARK: - Basic Functionality Tests
     
     func testCheckCancellationWhenNotCancelled() async throws {
@@ -200,8 +199,8 @@ final class CancellationErrorTests: XCTestCase {
             
             for i in 0..<1000 {
                 // Periodically check for cancellation
-                if i % 100 == 0 {
-                    try Task.checkCancellation(context: "Processing batch \(i/100)")
+                if i.isMultiple(of: 100) {
+                    try Task.checkCancellation(context: "Processing batch \(i / 100)")
                 }
                 
                 // Simulate work

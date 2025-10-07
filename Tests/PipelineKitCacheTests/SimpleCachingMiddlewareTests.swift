@@ -4,15 +4,14 @@ import XCTest
 @testable import PipelineKitCore
 
 final class SimpleCachingMiddlewareTests: XCTestCase {
-
     // MARK: - Test Types
 
-    struct TestCommand: Command {
+    private struct TestCommand: Command {
         typealias Result = String
         let id: String
     }
 
-    final class TestHandler: CommandHandler {
+    private final class TestHandler: CommandHandler {
         typealias CommandType = TestCommand
 
         let response: String
@@ -26,12 +25,12 @@ final class SimpleCachingMiddlewareTests: XCTestCase {
         }
     }
 
-    struct NumberCommand: Command {
+    private struct NumberCommand: Command {
         typealias Result = Int
         let value: Int
     }
 
-    final class NumberHandler: CommandHandler {
+    private final class NumberHandler: CommandHandler {
         typealias CommandType = NumberCommand
 
         func handle(_ command: NumberCommand) async throws -> Int {

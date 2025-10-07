@@ -59,7 +59,6 @@ import PipelineKitObservability
 /// - `cache.hit` - Result found in cache
 /// - `cache.miss` - Result not in cache, executing command
 public final class SimpleCachingMiddleware: Middleware, NextGuardWarningSuppressing, @unchecked Sendable {
-
     // MARK: - Types
 
     private struct CacheEntry {
@@ -117,7 +116,6 @@ public final class SimpleCachingMiddleware: Middleware, NextGuardWarningSuppress
         context: CommandContext,
         next: @escaping MiddlewareNext<C>
     ) async throws -> C.Result {
-
         // Check if this command should be cached
         guard shouldCache(command) else {
             return try await next(command, context)

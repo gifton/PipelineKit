@@ -510,4 +510,3 @@ public extension CommandContext {
         set { setStartTime(newValue) }
     }
 }
-

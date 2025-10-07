@@ -4,7 +4,6 @@ import PipelineKitObservability
 
 /// Tests specifically for EventHub parent system relationship
 final class EventHubParentSystemTests: XCTestCase {
-    
     // MARK: - Parent System Reference Tests
     
     func testEventHubStoresParentSystemReference() async throws {
@@ -223,7 +222,7 @@ final class EventHubParentSystemTests: XCTestCase {
             // Alternate between setting different parents
             for i in 0..<100 {
                 group.addTask {
-                    if i % 2 == 0 {
+                    if i.isMultiple(of: 2) {
                         await hub.setParentSystem(system1)
                     } else {
                         await hub.setParentSystem(system2)

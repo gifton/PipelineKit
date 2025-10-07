@@ -3,7 +3,6 @@ import XCTest
 
 /// Tests for @dynamicMemberLookup functionality in CommandContext
 final class CommandContextDynamicMemberTests: XCTestCase {
-
     // MARK: - Direct Property Access Tests
 
     func testDirectPropertyAccessWrite() {

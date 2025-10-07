@@ -3,7 +3,6 @@ import PipelineKitCore
 import PipelineKitObservability
 
 final class ObservabilitySystemTests: XCTestCase {
-    
     // MARK: - Context Integration Tests
     
     func testContextObservabilityPropertyWorks() async throws {

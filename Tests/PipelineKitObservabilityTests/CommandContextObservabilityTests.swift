@@ -4,7 +4,6 @@ import PipelineKitObservability
 
 /// Tests for CommandContext observability extensions
 final class CommandContextObservabilityTests: XCTestCase {
-    
     // MARK: - Setup Observability Tests
     
     func testSetupObservabilityWithDefaultConfig() async throws {

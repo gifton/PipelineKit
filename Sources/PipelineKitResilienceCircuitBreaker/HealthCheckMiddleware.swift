@@ -755,7 +755,7 @@ public struct DatabaseHealthCheck: HealthCheck {
         // If we have a connection check closure, use it
         if let connectionCheck = connectionCheck {
             let isHealthy = await connectionCheck()
-            return isHealthy 
+            return isHealthy
                 ? .healthy(message: "Database connection verified")
                 : .unhealthy(message: "Database connection check failed")
         }
@@ -764,7 +764,7 @@ public struct DatabaseHealthCheck: HealthCheck {
         if let connection = connection {
             do {
                 let success = try await connection.executeQuery(query)
-                return success 
+                return success
                     ? .healthy(message: "Database query '\(query)' executed successfully")
                     : .unhealthy(message: "Database query '\(query)' failed")
             } catch {
