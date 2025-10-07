@@ -43,8 +43,8 @@ import Foundation
 /// ```
 public enum PipelineKitObservability {
     /// Current version of the observability module
-    public static let version = "0.1.0"
-    
+    public static let version = "0.3.0"
+
     /// Module capabilities
     public enum Capabilities {
         public static let supportsEvents = true

@@ -41,7 +41,7 @@ let pipeline = PipelineBuilder(handler: MyHandler())
 ```
 
 ## Environment
-- **PipelineKit version**: [e.g., 0.1.0]
+- **PipelineKit version**: [e.g., 0.3.0]
 - **Swift version**: [e.g., 5.10]
 - **Platform**: [e.g., iOS 17.0, macOS 14.0]
 - **Xcode version**: [e.g., 15.0]
