@@ -18,7 +18,7 @@ public struct AuthorizationMiddleware: Middleware {
     public func execute<T: Command>(
         _ command: T,
         context: CommandContext,
-        next: @escaping @Sendable (T, CommandContext) async throws -> T.Result
+        next: @escaping MiddlewareNext<T>
     ) async throws -> T.Result {
         // If no roles are required, allow access (public endpoint)
         if requiredRoles.isEmpty {

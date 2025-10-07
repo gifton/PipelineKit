@@ -188,35 +188,68 @@ final class AsyncSemaphoreCancellationTests: XCTestCase {
         let semaphore = AsyncSemaphore(value: 1)
         let completedCount = TestCounter()
         let cancelledCount = TestCounter()
+        let readyCount = TestCounter()
 
         // Hold the resource
         let holder = Task {
             try? await semaphore.wait()
-            try? await Task.sleep(for: .milliseconds(300))
+            try? await Task.sleep(for: .milliseconds(500))
             await semaphore.signal()
         }
 
         // Wait for holder to acquire
         try? await Task.sleep(for: .milliseconds(50))
 
+        // Create synchronization barrier to ensure all tasks are ready before cancellation
+        let startBarrier = AsyncSemaphore(value: 0)
+
         // Create many waiting tasks
         var tasks: [Task<Void, Never>] = []
         for i in 0..<20 {
             let task = Task {
+                // Signal we're ready and wait at barrier
+                await readyCount.increment()
+                try? await startBarrier.wait()
+
                 do {
+                    // Explicit cancellation checkpoint
+                    try Task.checkCancellation()
+
                     try await semaphore.wait()
+
+                    // Check cancellation after acquiring
+                    try Task.checkCancellation()
+
                     await completedCount.increment()
                     await semaphore.signal()
+                } catch is CancellationError {
+                    _ = await cancelledCount.increment()
                 } catch {
+                    // Other errors (shouldn't happen in this test)
                     _ = await cancelledCount.increment()
                 }
             }
             tasks.append(task)
+        }
 
-            // Cancel every other task
+        // Wait for all tasks to be ready at barrier
+        while await readyCount.get() < 20 {
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+
+        // NOW cancel every other task (they're all waiting at barrier)
+        for i in 0..<20 {
             if i % 2 == 1 {
-                task.cancel()
+                tasks[i].cancel()
             }
+        }
+
+        // Small delay to ensure cancellations propagate
+        try? await Task.sleep(for: .milliseconds(50))
+
+        // Release all tasks from barrier
+        for _ in 0..<20 {
+            await startBarrier.signal()
         }
 
         // Wait for holder to release

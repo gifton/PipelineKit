@@ -115,7 +115,7 @@ public final class SimpleCachingMiddleware: Middleware, NextGuardWarningSuppress
     public func execute<C: Command>(
         _ command: C,
         context: CommandContext,
-        next: @Sendable (C, CommandContext) async throws -> C.Result
+        next: @escaping MiddlewareNext<C>
     ) async throws -> C.Result {
 
         // Check if this command should be cached

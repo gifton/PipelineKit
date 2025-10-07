@@ -37,7 +37,7 @@ public final class ResilientMiddleware: Middleware, @unchecked Sendable {
     public func execute<T: Command>(
         _ command: T,
         context: CommandContext,
-        next: @escaping @Sendable (T, CommandContext) async throws -> T.Result
+        next: @escaping MiddlewareNext<T>
     ) async throws -> T.Result {
         // Circuit breaker functionality removed - use CircuitBreakerMiddleware instead
         // This middleware now focuses solely on retry logic
@@ -48,7 +48,7 @@ public final class ResilientMiddleware: Middleware, @unchecked Sendable {
     private func executeWithRetry<T: Command>(
         _ command: T,
         context: CommandContext,
-        next: @escaping @Sendable (T, CommandContext) async throws -> T.Result
+        next: @escaping MiddlewareNext<T>
     ) async throws -> T.Result {
         var lastError: Error?
         let startTime = Date()

@@ -76,25 +76,25 @@ let pipeline = try await builder.build()
 
 ## Using Context for Data Sharing
 
-Share data between middleware using context:
+Share data between middleware using context with modern property-style access:
 
 ```swift
-// Define context keys (use built‑ins where available)
+// Define context keys for custom values
 let userKey = ContextKey<String>("user")
 
 // Middleware that adds request ID
 struct RequestIDMiddleware: Middleware {
     let priority = ExecutionPriority.preProcessing
-    
+
     func execute<T: Command>(
         _ command: T,
         context: CommandContext,
         next: @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
-        // Add request ID to context (built‑in key)
+        // Modern property-style access - clean and intuitive!
         let requestID = UUID().uuidString
-        context.set(ContextKeys.requestID, value: requestID)
-        
+        context.requestID = requestID
+
         print("[Request \(requestID)] Started")
         return try await next(command, context)
     }
@@ -103,23 +103,49 @@ struct RequestIDMiddleware: Middleware {
 // Middleware that uses context data
 struct AuditMiddleware: Middleware {
     let priority = ExecutionPriority.postProcessing
-    
+
     func execute<T: Command>(
         _ command: T,
         context: CommandContext,
         next: @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
         let result = try await next(command, context)
-        
-        // Read from context
-        let requestID = context.get(ContextKeys.requestID) ?? "unknown"
-        let user: String = context.get(userKey) ?? "anonymous"
-        
+
+        // Read from context using property access
+        let requestID = context.requestID ?? "unknown"
+        // Custom keys still use subscript
+        let user: String = context[userKey] ?? "anonymous"
+
         print("[AUDIT] Request \(requestID) by user \(user) completed")
-        
+
         return result
     }
 }
+```
+
+### Context Access Patterns
+
+PipelineKit provides multiple ways to work with context:
+
+```swift
+// Modern property access (recommended for built-in keys)
+context.requestID = "req-123"
+context.userID = "user-456"
+context.startTime = Date()
+
+// Read values
+let id = context.requestID
+
+// KeyPath subscript
+context[\\.requestID] = "req-123"
+
+// Traditional subscript (for custom keys)
+let customKey = ContextKey<String>("custom")
+context[customKey] = "value"
+
+// Method-based (backwards compatible)
+context.set(.requestID, value: "req-123")
+let id = context.get(.requestID)
 ```
 
 ## Error Handling
@@ -380,10 +406,10 @@ struct OrderSystem {
             correlationID: UUID().uuidString
         )
         let context = CommandContext(metadata: metadata)
-        
-        // Set additional context
+
+        // Set additional context using modern property access
         let userKey = ContextKey<String>("user")
-        context.set(userKey, value: "user123")
+        context[userKey] = "user123"
         
         // Execute command
         let command = CreateOrderCommand(

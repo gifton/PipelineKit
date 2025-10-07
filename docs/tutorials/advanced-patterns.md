@@ -42,7 +42,7 @@ struct VerboseLoggingMiddleware: Middleware {
 
 let debugLogging = ConditionalMiddleware(
     wrapped: VerboseLoggingMiddleware(),
-    condition: { _, context in context.get(debugKey) ?? false }
+    condition: { _, context in context[debugKey] ?? false }
 )
 ```
 

@@ -20,12 +20,22 @@ import os
 /// ## Usage Example
 /// ```swift
 /// let context = CommandContext()
-/// context.setRequestID("req-123")
-/// context.set(.userID, value: "user-456")
-/// context.setMetric("latency", value: 0.125)
-/// // Or use subscripts:
+///
+/// // Modern property-style access (recommended):
+/// context.requestID = "req-123"
+/// context.userID = "user-456"
+/// let id = context.requestID
+///
+/// // KeyPath subscript:
+/// context[\\.requestID] = "req-123"
+///
+/// // Traditional subscript:
 /// context[.userID] = "user-456"
+///
+/// // Method-based access:
+/// context.setMetric("latency", value: 0.125)
 /// ```
+@dynamicMemberLookup
 public final class CommandContext: @unchecked Sendable {
     // MARK: - Private Storage
 
@@ -103,7 +113,55 @@ public final class CommandContext: @unchecked Sendable {
         get { get(key) }
         set { set(key, value: newValue) }
     }
-    
+
+    // MARK: - Dynamic Member Lookup
+
+    /// Enables property-style access to context values using predefined keys.
+    ///
+    /// This subscript enables clean, property-like syntax for accessing context values:
+    /// ```swift
+    /// // Direct property access
+    /// context.requestID = "req-123"
+    /// let id = context.requestID
+    ///
+    /// // KeyPath subscript (also works)
+    /// context[keyPath: \\.requestID] = "user-456"
+    /// let user = context[keyPath: \\.requestID]
+    /// ```
+    ///
+    /// - Note: Only works with keys defined in the `ContextKeys` enum.
+    ///   For custom keys, use the standard subscript: `context[customKey]`
+    ///
+    /// - Parameter keyPath: A key path to a property on `ContextKeys`
+    /// - Returns: The value associated with the key, or nil if not set
+    public subscript<T: Sendable>(dynamicMember keyPath: KeyPath<ContextKeys.Type, ContextKey<T>>) -> T? {
+        get {
+            let key = ContextKeys.self[keyPath: keyPath]
+            return get(key)
+        }
+        set {
+            let key = ContextKeys.self[keyPath: keyPath]
+            set(key, value: newValue)
+        }
+    }
+
+    /// KeyPath subscript for accessing context values.
+    ///
+    /// Enables KeyPath-based access: `context[keyPath: \\.requestID]`
+    ///
+    /// - Parameter keyPath: A key path to a property on `ContextKeys`
+    /// - Returns: The value associated with the key, or nil if not set
+    public subscript<T: Sendable>(keyPath keyPath: KeyPath<ContextKeys.Type, ContextKey<T>>) -> T? {
+        get {
+            let key = ContextKeys.self[keyPath: keyPath]
+            return get(key)
+        }
+        set {
+            let key = ContextKeys.self[keyPath: keyPath]
+            set(key, value: newValue)
+        }
+    }
+
     // MARK: - Direct Property Access
 
     /// Gets the request ID for this command execution
@@ -410,33 +468,46 @@ extension CommandContext: CustomDebugStringConvertible {
 // MARK: - Backward Compatibility Properties
 
 public extension CommandContext {
-    /// Property-style access to metadata (synchronous)
+    /// Property-style access to metadata dictionary.
+    ///
+    /// Returns an empty dictionary if no metadata is set, enabling convenient
+    /// chained access like `context.metadata["key"]`.
     var metadata: [String: any Sendable] {
-        getMetadata()
+        get { getMetadata() }
+        set { setMetadata(newValue) }
     }
 
-    /// Property-style access to metrics (synchronous)
+    /// Property-style access to metrics dictionary.
+    ///
+    /// Returns an empty dictionary if no metrics are set, enabling convenient
+    /// chained access like `context.metrics["key"]`.
     var metrics: [String: any Sendable] {
-        getMetrics()
+        get { getMetrics() }
+        set { setMetrics(newValue) }
     }
 
     /// Property-style access to requestID (synchronous)
     var requestID: String? {
-        getRequestID()
+        get { getRequestID() }
+        set { setRequestID(newValue) }
     }
 
     /// Property-style access to userID (synchronous)
     var userID: String? {
-        getUserID()
+        get { getUserID() }
+        set { setUserID(newValue) }
     }
 
     /// Property-style access to correlationID (synchronous)
     var correlationID: String? {
-        getCorrelationID()
+        get { getCorrelationID() }
+        set { setCorrelationID(newValue) }
     }
 
     /// Property-style access to startTime (synchronous)
     var startTime: Date? {
-        getStartTime()
+        get { getStartTime() }
+        set { setStartTime(newValue) }
     }
 }
+

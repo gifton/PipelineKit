@@ -105,7 +105,7 @@ public struct TimeoutMiddleware: Middleware {
     public func execute<T: Command>(
         _ command: T,
         context: CommandContext,
-        next: @escaping @Sendable (T, CommandContext) async throws -> T.Result
+        next: @escaping MiddlewareNext<T>
     ) async throws -> T.Result {
         let commandType = String(describing: type(of: command))
         let timeout = resolveTimeout(for: command, commandType: commandType)
@@ -133,7 +133,7 @@ public struct TimeoutMiddleware: Middleware {
         context: CommandContext,
         timeout: TimeInterval,
         startTime: Date,
-        next: @escaping @Sendable (T, CommandContext) async throws -> T.Result
+        next: @escaping MiddlewareNext<T>
     ) async throws -> T.Result {
         do {
             let result: T.Result

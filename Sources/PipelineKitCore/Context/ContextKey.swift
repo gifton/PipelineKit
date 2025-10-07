@@ -5,14 +5,35 @@ import Foundation
 /// ContextKey provides compile-time type safety for values stored in CommandContext.
 /// Each key is associated with a specific value type, preventing type mismatches.
 ///
-/// ## Usage Example
+/// ## Usage Examples
+///
+/// ### Modern Property Access (Recommended)
+/// For predefined keys in `ContextKeys`, use property-style access:
 /// ```swift
-/// // Define a key
-/// let userIDKey = ContextKey<String>("userID")
-/// 
-/// // Use with CommandContext
-/// context[userIDKey] = "user123"
-/// let id: String? = context[userIDKey]  // Type-safe access
+/// // Direct property access
+/// context.requestID = "req-123"
+/// context.userID = "user-456"
+/// let id = context.requestID
+/// ```
+///
+/// ### KeyPath Subscript
+/// ```swift
+/// context[\\.requestID] = "req-123"
+/// let id = context[\\.requestID]
+/// ```
+///
+/// ### Traditional Subscript
+/// ```swift
+/// context[.requestID] = "req-123"
+/// let id: String? = context[.requestID]
+/// ```
+///
+/// ### Custom Keys
+/// For dynamically created keys, use subscript access:
+/// ```swift
+/// let customKey = ContextKey<String>("myCustomKey")
+/// context[customKey] = "value"
+/// let value: String? = context[customKey]
 /// ```
 @frozen
 public struct ContextKey<Value: Sendable>: Hashable, Sendable {

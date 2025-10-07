@@ -85,7 +85,7 @@ public struct AuthenticationMiddleware: Middleware {
     public func execute<T: Command>(
         _ command: T,
         context: CommandContext,
-        next: @escaping @Sendable (T, CommandContext) async throws -> T.Result
+        next: @escaping MiddlewareNext<T>
     ) async throws -> T.Result {
         let metadata = context.commandMetadata
         let userId = try await authenticate(metadata.userID)

@@ -55,7 +55,8 @@ struct HeaderInjectionMiddleware: Middleware {
     ) async throws -> T.Result {
         for (key, value) in headers {
             let headerKey = ContextKey<String>("header:\(key)")
-            context.set(headerKey, value: value)
+            // Use subscript for custom keys
+            context[headerKey] = value
         }
         return try await next(command, context)
     }

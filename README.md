@@ -138,24 +138,53 @@ Note: Equal priorities preserve insertion order (stable ordering).
 
 ### CommandContext
 
-Thread-safe context for sharing data across middleware and handlers.
+Thread-safe context for sharing data across middleware and handlers. CommandContext supports multiple ergonomic access patterns, from modern property-style to traditional methods.
+
+#### Modern Property Access (Recommended)
 
 ```swift
-final class CommandContext: @unchecked Sendable {
-    // Typed storage access
-    func set<T: Sendable>(_ key: ContextKey<T>, value: T?)
-    func get<T: Sendable>(_ key: ContextKey<T>) -> T?
+// Direct property access - clean and intuitive
+context.requestID = "req-123"
+context.userID = "user-456"
+context.startTime = Date()
 
-    // Built‑in async properties
+// Reading values
+let id = context.requestID
+let user = context.userID
+```
+
+#### All Access Patterns
+
+```swift
+@dynamicMemberLookup
+final class CommandContext: @unchecked Sendable {
+    // 1. Property access (via @dynamicMemberLookup)
+    context.requestID = "req-123"
+    let id = context.requestID
+
+    // 2. KeyPath subscript
+    context[\\.requestID] = "req-123"
+    let id = context[\\.requestID]
+
+    // 3. Traditional subscript
+    context[.requestID] = "req-123"
+    let id: String? = context[.requestID]
+
+    // 4. Method-based access
+    context.set(.requestID, value: "req-123")
+    let id = context.get(.requestID)
+
+    // Built-in properties (read-only for convenience)
     var requestID: String? { get }
     var userID: String? { get }
     var correlationID: String? { get }
+    var startTime: Date? { get }
     var metadata: [String: any Sendable] { get }
-
-    // Observability
-    var eventEmitter: EventEmitter? { get }
-    func setEventEmitter(_ emitter: EventEmitter?)
+    var metrics: [String: any Sendable] { get }
 }
+```
+
+**All patterns are fully type-safe and work seamlessly together.** Choose the style that fits your codebase best.
 
 Event emission is provided via `PipelineKitObservability` (see that module). Core exposes the `EventEmitter` type and forwards to the configured emitter when set.
 ```

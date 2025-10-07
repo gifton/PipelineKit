@@ -165,7 +165,7 @@ public struct BulkheadMiddleware: Middleware {
     public func execute<T: Command>(
         _ command: T,
         context: CommandContext,
-        next: @escaping @Sendable (T, CommandContext) async throws -> T.Result
+        next: @escaping MiddlewareNext<T>
     ) async throws -> T.Result {
         let startTime = Date()
 
@@ -207,7 +207,7 @@ public struct BulkheadMiddleware: Middleware {
     private func executeSemaphoreIsolation<T: Command>(
         _ command: T,
         context: CommandContext,
-        next: @escaping @Sendable (T, CommandContext) async throws -> T.Result,
+        next: @escaping MiddlewareNext<T>,
         startTime: Date
     ) async throws -> T.Result {
         // Try to acquire semaphore immediately
@@ -318,7 +318,7 @@ public struct BulkheadMiddleware: Middleware {
     private func executeTaskGroupIsolation<T: Command>(
         _ command: T,
         context: CommandContext,
-        next: @escaping @Sendable (T, CommandContext) async throws -> T.Result,
+        next: @escaping MiddlewareNext<T>,
         priority: TaskPriority?,
         startTime: Date
     ) async throws -> T.Result {
@@ -337,7 +337,7 @@ public struct BulkheadMiddleware: Middleware {
     private func executeTaggedIsolation<T: Command>(
         _ command: T,
         context: CommandContext,
-        next: @escaping @Sendable (T, CommandContext) async throws -> T.Result,
+        next: @escaping MiddlewareNext<T>,
         tag: String,
         startTime: Date
     ) async throws -> T.Result {
