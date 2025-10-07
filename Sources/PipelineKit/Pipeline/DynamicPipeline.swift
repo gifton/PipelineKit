@@ -220,7 +220,7 @@ public actor DynamicPipeline {
         let chain = sortedMiddleware.reversed().reduce(finalHandler) { next, middleware in
             // Apply NextGuard unless middleware opts out
             let wrappedNext: @Sendable (T, CommandContext) async throws -> T.Result
-            if middleware is UnsafeMiddleware {
+            if middleware is any UnsafeMiddleware {
                 // Skip NextGuard for unsafe middleware
                 wrappedNext = next
             } else {
@@ -241,7 +241,7 @@ public actor DynamicPipeline {
 
     private func withRetry<T: Command>(retryPolicy: RetryPolicy, command: T, operation: @escaping @Sendable () async throws -> T.Result) async throws -> T.Result {
         let startTime = Date()
-        var lastError: Error?
+        var lastError: (any Error)?
 
         for attempt in 1...retryPolicy.maxAttempts {
             // Check for cancellation before each retry attempt
