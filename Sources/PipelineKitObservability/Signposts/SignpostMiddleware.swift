@@ -6,7 +6,7 @@
 //
 
 #if canImport(os)
-import os.signpost
+@preconcurrency import os.signpost
 import Foundation
 import PipelineKitCore
 
