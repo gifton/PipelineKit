@@ -49,6 +49,7 @@ jobs:
           swift build --build-tests
 
           echo "Executing tests..."
+          # Run tests (job-level 25min timeout handles hung tests)
           swift test --enable-code-coverage
 
           echo "Tests completed at $(date)"
@@ -59,17 +60,39 @@ jobs:
       - name: Export coverage
         run: |
           set -euo pipefail
+
+          # Find test binary and profdata
           BIN=$(find .build -name "*PackageTests.xctest" -type d | head -n1)/Contents/MacOS/$(basename $(find .build -name "*PackageTests.xctest" -type d | head -n1) .xctest)
           PROF=$(find .build -name default.profdata | head -n1)
+
           if [[ -f "$BIN" && -f "$PROF" ]]; then
-            xcrun llvm-cov export "$BIN" -instr-profile "$PROF" > coverage.json || true
+            echo "Found test binary: $BIN"
+            echo "Found profdata: $PROF"
+
+            # Use llvm-cov from the Swift toolchain to match the profdata format
+            LLVM_COV=$(xcrun --find llvm-cov 2>/dev/null || echo "llvm-cov")
+
+            echo "Using llvm-cov: $LLVM_COV"
+            $LLVM_COV --version || true
+
+            # Export coverage with format matching
+            $LLVM_COV export "$BIN" -instr-profile="$PROF" -format=lcov > coverage.lcov || {
+              echo "::warning::Failed to export coverage - format mismatch or corrupt profdata"
+              exit 0
+            }
+
+            echo "✅ Coverage exported successfully"
+          else
+            echo "::warning::Missing test binary or profdata file"
+            echo "BIN exists: $(test -f "$BIN" && echo yes || echo no)"
+            echo "PROF exists: $(test -f "$PROF" && echo yes || echo no)"
           fi
 
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v4
         with:
           name: coverage-macos
-          path: coverage.json
+          path: coverage.lcov
           if-no-files-found: ignore
 
   ios-sim:
