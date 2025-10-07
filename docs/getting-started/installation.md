@@ -18,7 +18,7 @@ PipelineKit supports multiple installation methods to fit your workflow.
    ```
    https://github.com/gifton/PipelineKit.git
    ```
-4. Choose version requirements (e.g., "Up to Next Major" from 0.1.0)
+4. Choose version requirements (e.g., "Up to Next Major" from 0.2.0)
 5. Click **Add Package**
 6. Select the products you want to add to your targets
 
@@ -39,7 +39,7 @@ let package = Package(
         .watchOS(.v10)
     ],
     dependencies: [
-        .package(url: "https://github.com/gifton/PipelineKit.git", from: "0.1.0")
+        .package(url: "https://github.com/gifton/PipelineKit.git", from: "0.2.0")
     ],
     targets: [
         .target(
@@ -60,19 +60,19 @@ You can specify version requirements in several ways:
 
 ```swift
 // Exact version
-.package(url: "...", exact: "0.1.0")
+.package(url: "...", exact: "0.2.0")
 
 // Version range
 .package(url: "...", "0.1.0"..<"0.2.0")
 
 // From version
-.package(url: "...", from: "0.1.0")
+.package(url: "...", from: "0.2.0")
 
 // Up to next major
-.package(url: "...", .upToNextMajor(from: "0.1.0"))
+.package(url: "...", .upToNextMajor(from: "0.2.0"))
 
 // Up to next minor
-.package(url: "...", .upToNextMinor(from: "0.1.0"))
+.package(url: "...", .upToNextMinor(from: "0.2.0"))
 
 // Branch
 .package(url: "...", branch: "main")
@@ -130,7 +130,7 @@ pod 'PipelineKit', '~> 0.1.0'
 
 ```
 # Cartfile (Coming Soon)
-github "gifton/PipelineKit" ~> 0.1.0
+github "gifton/PipelineKit" ~> 0.2.0
 ```
 
 ## Manual Installation

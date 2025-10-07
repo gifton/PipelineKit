@@ -4,7 +4,7 @@ A high-performance, type-safe command-bus architecture for Swift 6 with built‑
 
 [![Swift 6.1](https://img.shields.io/badge/Swift-6.1-orange.svg)](https://swift.org)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Platform](https://img.shields.io/badge/Platform-iOS%20|%20macOS%20|%20tvOS%20|%20watchOS-lightgrey.svg)](Package.swift)
+[![Platform](https://img.shields.io/badge/Platform-iOS%20|%20macOS%20|%20tvOS%20|%20watchOS%20|%20visionOS-lightgrey.svg)](Package.swift)
 
 ## Table of Contents
 
@@ -16,7 +16,7 @@ A high-performance, type-safe command-bus architecture for Swift 6 with built‑
   - [PipelineKitObservability](#pipelinekitobservability)
   - [PipelineKitResilience](#pipelinekitresilience)
   - [PipelineKitSecurity](#pipelinekitsecurity)
-  - [PipelineKitCaching](#pipelinekitcaching)
+  - [PipelineKitCache](#pipelinekitcache)
   - [PipelineKitPooling](#pipelinekitpooling)
 - [Installation](#installation)
 - [Example Usages](#example-usages)
@@ -425,13 +425,23 @@ defer { await pool.release(connection) }
 
 ## Installation
 
+### Requirements
+
+- **Swift 6.0+**
+- **Platforms:**
+  - iOS 17.0+
+  - macOS 14.0+
+  - tvOS 17.0+
+  - watchOS 10.0+
+  - visionOS 1.0+
+
 ### Swift Package Manager
 
 Add to your `Package.swift`:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/gifton/PipelineKit.git", from: "0.1.0")
+    .package(url: "https://github.com/gifton/PipelineKit.git", from: "0.2.0")
 ]
 ```
 
