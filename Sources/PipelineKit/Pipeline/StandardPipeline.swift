@@ -194,7 +194,7 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: Pipeline where H.C
     ///   - metadata: Optional metadata for the command execution
     /// - Returns: The result from the command handler
     /// - Throws: Any error from middleware or the handler
-    public func execute<T: Command>(_ command: T, metadata: CommandMetadata? = nil) async throws -> T.Result {
+    public func execute<T: Command>(_ command: T, metadata: (any CommandMetadata)? = nil) async throws -> T.Result {
         let actualMetadata = metadata ?? DefaultCommandMetadata()
         let context = CommandContext(metadata: actualMetadata)
         return try await execute(command, context: context)

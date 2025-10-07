@@ -81,7 +81,7 @@ public extension CommandContext {
     ///   - properties: Additional properties
     func emitCommandFailed(
         type commandType: String,
-        error: Error,
+        error: any Error,
         properties: [String: any Sendable] = [:]
     ) async {
         var props = properties
@@ -110,8 +110,8 @@ public extension CommandContext {
     ///   - metadata: Optional command metadata
     /// - Returns: A configured command context
     static func withEmitter(
-        _ emitter: EventEmitter,
-        metadata: CommandMetadata? = nil
+        _ emitter: any EventEmitter,
+        metadata: (any CommandMetadata)? = nil
     ) async -> CommandContext {
         let context = CommandContext(metadata: metadata ?? DefaultCommandMetadata())
         context.setEventEmitter(emitter)
@@ -122,7 +122,7 @@ public extension CommandContext {
     ///
     /// - Parameter emitter: The event emitter to set
     /// - Returns: A new context with the emitter configured
-    func withEmitter(_ emitter: EventEmitter) async -> CommandContext {
+    func withEmitter(_ emitter: any EventEmitter) async -> CommandContext {
         let newContext = self.fork()
         newContext.setEventEmitter(emitter)
         return newContext

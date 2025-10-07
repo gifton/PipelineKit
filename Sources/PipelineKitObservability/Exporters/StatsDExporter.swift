@@ -75,7 +75,7 @@ public actor StatsDExporter: MetricRecorder {
         case disconnected
         case connecting
         case connected(NWConnection)
-        case failed(Error)
+        case failed(any Error)
     }
     #endif
     
@@ -98,10 +98,10 @@ public actor StatsDExporter: MetricRecorder {
     private let aggregator: MetricAggregator?
     
     // Error handling
-    private var errorHandler: (@Sendable (Error) -> Void)?
+    private var errorHandler: (@Sendable (any Error) -> Void)?
     
     /// Sets the error handler.
-    public func setErrorHandler(_ handler: @escaping @Sendable (Error) -> Void) {
+    public func setErrorHandler(_ handler: @escaping @Sendable (any Error) -> Void) {
         self.errorHandler = handler
     }
     
@@ -441,7 +441,7 @@ public actor StatsDExporter: MetricRecorder {
     #endif
     
     /// Reports an error through the configured handler.
-    private func reportError(_ error: Error) {
+    private func reportError(_ error: any Error) {
         errorHandler?(error)
         #if DEBUG
         print("[MetricsExporter] Error: \(error)")
@@ -529,7 +529,7 @@ public extension StatsDExporter {
 
 /// Errors that can occur in metrics export.
 public enum MetricsError: Error, LocalizedError, Sendable {
-    case connectionFailed(Error)
+    case connectionFailed(any Error)
     case sendFailed(String)
     case invalidData(String)
     case configurationError(String)

@@ -26,7 +26,7 @@ public actor BackPressureSemaphore {
     
     private struct Waiter {
         let id = UUID()
-        let continuation: CheckedContinuation<SemaphoreToken, Error>
+        let continuation: CheckedContinuation<SemaphoreToken, any Error>
         let enqueuedAt = Date()
         let priority: QueuePriority
         let estimatedSize: Int
@@ -329,7 +329,7 @@ public actor BackPressureSemaphore {
     
     // MARK: - Shutdown
     
-    public func shutdown(error: Error? = nil) {
+    public func shutdown(error: (any Error)? = nil) {
         cleanupTask?.cancel()
         
         let shutdownError = error ?? PipelineError.semaphoreShutdown
