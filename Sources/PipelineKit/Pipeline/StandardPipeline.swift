@@ -194,7 +194,7 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: Pipeline where H.C
     ///   - metadata: Optional metadata for the command execution
     /// - Returns: The result from the command handler
     /// - Throws: Any error from middleware or the handler
-    public func execute<T: Command>(_ command: T, metadata: CommandMetadata? = nil) async throws -> T.Result {
+    public func execute<T: Command>(_ command: T, metadata: (any CommandMetadata)? = nil) async throws -> T.Result {
         let actualMetadata = metadata ?? DefaultCommandMetadata()
         let context = CommandContext(metadata: actualMetadata)
         return try await execute(command, context: context)
@@ -237,11 +237,11 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: Pipeline where H.C
     
     /// Initializes standard context values if not already set.
     private func initializeContextIfNeeded(_ context: CommandContext) async {
-        if await context.getRequestID() == nil {
-            await context.setRequestID(UUID().uuidString)
+        if context.getRequestID() == nil {
+            context.setRequestID(UUID().uuidString)
         }
-        if await context.getMetadata("requestStartTime") == nil {
-            await context.setMetadata("requestStartTime", value: Date())
+        if context.getMetadata("requestStartTime") == nil {
+            context.setMetadata("requestStartTime", value: Date())
         }
     }
     
@@ -264,7 +264,23 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: Pipeline where H.C
     public func hasMiddleware<M: Middleware>(ofType type: M.Type) -> Bool {
         middlewares.contains { $0 is M }
     }
-    
+
+    // MARK: - Internal Helpers (for Visualization)
+
+    /// Internal helper to get middleware information for visualization
+    /// - Returns: Array of tuples containing (type, priority) for each middleware
+    internal func getMiddlewareDetails() -> [(type: any Middleware.Type, priority: Int)] {
+        middlewares.map { middleware in
+            (type: type(of: middleware), priority: middleware.priority.rawValue)
+        }
+    }
+
+    /// Internal helper to get the handler type
+    /// - Returns: The handler instance
+    internal func getHandlerInstance() -> H {
+        handler
+    }
+
     // MARK: - Private Methods
     
     /// Sorts middleware by priority (lower values execute first),

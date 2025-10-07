@@ -53,7 +53,7 @@ final class CommandTests: XCTestCase {
             additionalData: ["key": "value"]
         )
         
-        let metadata = await context.commandMetadata
+        let metadata = context.commandMetadata
         XCTAssertNotNil(metadata)
         XCTAssertEqual(metadata.userID, "user-123")
         XCTAssertEqual(metadata.correlationID, "corr-123")
@@ -63,11 +63,11 @@ final class CommandTests: XCTestCase {
         let context = CommandContext.test()
         
         // Set values using string keys
-        await context.setMetadata("test_custom_value", value: "customValue")
-        await context.setMetadata("test_number", value: 42)
+        context.setMetadata("test_custom_value", value: "customValue")
+        context.setMetadata("test_number", value: 42)
         
-        let customValue = (await context.getMetadata()["test_custom_value"] as? String)
-        let numberValue = (await context.getMetadata()["test_number"] as? Int)
+        let customValue = (context.getMetadata()["test_custom_value"] as? String)
+        let numberValue = (context.getMetadata()["test_number"] as? Int)
         
         XCTAssertEqual(customValue, "customValue")
         XCTAssertEqual(numberValue, 42)

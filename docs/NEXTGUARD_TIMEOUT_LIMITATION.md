@@ -25,7 +25,7 @@ When a timeout occurs in the pipeline:
 #### Swift's Actor Model Constraint
 ```swift
 // CommandContext is an actor (async access only)
-actor CommandContext {
+final class CommandContext: @unchecked Sendable {
     func getCancellationReason() -> CancellationReason? { ... }
 }
 

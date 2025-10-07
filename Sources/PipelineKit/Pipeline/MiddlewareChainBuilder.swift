@@ -19,10 +19,10 @@ enum MiddlewareChainBuilder {
                 let middleware = middlewares[i]
                 let previous = chain
                 let wrappedNext: @Sendable (T, CommandContext) async throws -> T.Result
-                if middleware is UnsafeMiddleware {
+                if middleware is any UnsafeMiddleware {
                     wrappedNext = previous
                 } else {
-                    let suppress = (middleware is NextGuardWarningSuppressing)
+                    let suppress = (middleware is any NextGuardWarningSuppressing)
                     let nextGuard = NextGuard<T>(
                         previous,
                         identifier: String(describing: type(of: middleware)),
@@ -52,10 +52,10 @@ enum MiddlewareChainBuilder {
             let middleware = middlewares[i]
             let previous = chain
             let wrappedNext: @Sendable (T, CommandContext) async throws -> T.Result
-            if middleware is UnsafeMiddleware {
+            if middleware is any UnsafeMiddleware {
                 wrappedNext = previous
             } else {
-                let suppress = (middleware is NextGuardWarningSuppressing)
+                let suppress = (middleware is any NextGuardWarningSuppressing)
                 let nextGuard = NextGuard<T>(
                     previous,
                     identifier: String(describing: type(of: middleware)),

@@ -37,11 +37,11 @@ import Foundation
 /// ```swift
 /// struct LoggingMiddleware: Middleware {
 ///     let priority = ExecutionPriority.postProcessing
-///     
+///
 ///     func execute<T: Command>(
 ///         _ command: T,
 ///         context: CommandContext,
-///         next: @Sendable (T, CommandContext) async throws -> T.Result
+///         next: @escaping MiddlewareNext<T>
 ///     ) async throws -> T.Result {
 ///         let start = Date()
 ///         do {
@@ -92,6 +92,69 @@ public protocol Middleware: Sendable {
     ) async throws -> T.Result
 }
 
+// MARK: - Middleware Typealiases
+
+/// Typealias for the middleware next closure.
+///
+/// This type alias simplifies middleware signatures by providing a shorter,
+/// more readable name for the continuation function that invokes the next
+/// middleware in the chain or the final command handler.
+///
+/// ## Usage
+///
+/// Instead of writing the full closure signature:
+/// ```swift
+/// next: @escaping @Sendable (T, CommandContext) async throws -> T.Result
+/// ```
+///
+/// You can use the more concise form:
+/// ```swift
+/// next: @escaping MiddlewareNext<T>
+/// ```
+///
+/// Both forms are completely equivalent and fully compatible. The typealias
+/// is purely for improved readability and maintainability.
+///
+/// ## Example
+///
+/// ```swift
+/// struct LoggingMiddleware: Middleware {
+///     func execute<T: Command>(
+///         _ command: T,
+///         context: CommandContext,
+///         next: @escaping MiddlewareNext<T>  // ✅ Cleaner signature
+///     ) async throws -> T.Result {
+///         print("Executing: \(T.self)")
+///         return try await next(command, context)
+///     }
+/// }
+/// ```
+///
+/// ## Before and After
+///
+/// **Before:**
+/// ```swift
+/// func execute<T: Command>(
+///     _ command: T,
+///     context: CommandContext,
+///     next: @escaping @Sendable (T, CommandContext) async throws -> T.Result
+/// ) async throws -> T.Result
+/// ```
+///
+/// **After:**
+/// ```swift
+/// func execute<T: Command>(
+///     _ command: T,
+///     context: CommandContext,
+///     next: @escaping MiddlewareNext<T>
+/// ) async throws -> T.Result
+/// ```
+///
+/// - Note: This typealias is compile-time only and has zero runtime overhead.
+///
+/// - SeeAlso: `Middleware`
+public typealias MiddlewareNext<T: Command> = @Sendable (T, CommandContext) async throws -> T.Result
+
 // Add extension for default priority
 public extension Middleware {
     /// Default priority for middleware when not specified.
@@ -126,7 +189,7 @@ public extension Middleware {
 ///     func execute<T: Command>(
 ///         _ command: T,
 ///         context: CommandContext,
-///         next: @escaping @Sendable (T, CommandContext) async throws -> T.Result
+///         next: @escaping MiddlewareNext<T>
 ///     ) async throws -> T.Result {
 ///         // Custom logic that might call next multiple times
 ///         var lastError: Error?

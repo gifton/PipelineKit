@@ -223,7 +223,7 @@ final class PipelineTests: XCTestCase {
                 context: CommandContext,
                 next: @Sendable (T, CommandContext) async throws -> T.Result
             ) async throws -> T.Result {
-                await context.setMetadata(key, value: value)
+                context.setMetadata(key, value: value)
                 return try await next(command, context)
             }
         }
@@ -246,7 +246,7 @@ final class PipelineTests: XCTestCase {
         }
         
         // Verify context still has values after execution
-        let finalMetadata = await context.getMetadata()
+        let finalMetadata = context.getMetadata()
         XCTAssertEqual(finalMetadata["key1"] as? String, "value1")
         XCTAssertEqual(finalMetadata["key2"] as? String, "value2")
     }

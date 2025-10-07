@@ -2,7 +2,6 @@ import XCTest
 @testable import PipelineKitCore
 
 final class ExecutionPriorityTests: XCTestCase {
-    
     // MARK: - Enum Case Tests
     
     func testAllCasesHaveCorrectRawValues() {
@@ -37,23 +36,23 @@ final class ExecutionPriorityTests: XCTestCase {
     
     func testPriorityOrdering() {
         // Verify priorities are in expected order
-        XCTAssertLessThan(ExecutionPriority.authentication.rawValue, 
+        XCTAssertLessThan(ExecutionPriority.authentication.rawValue,
                          ExecutionPriority.validation.rawValue)
-        XCTAssertLessThan(ExecutionPriority.validation.rawValue, 
+        XCTAssertLessThan(ExecutionPriority.validation.rawValue,
                          ExecutionPriority.resilience.rawValue)
-        XCTAssertLessThan(ExecutionPriority.resilience.rawValue, 
+        XCTAssertLessThan(ExecutionPriority.resilience.rawValue,
                          ExecutionPriority.preProcessing.rawValue)
-        XCTAssertLessThan(ExecutionPriority.preProcessing.rawValue, 
+        XCTAssertLessThan(ExecutionPriority.preProcessing.rawValue,
                          ExecutionPriority.monitoring.rawValue)
-        XCTAssertLessThan(ExecutionPriority.monitoring.rawValue, 
+        XCTAssertLessThan(ExecutionPriority.monitoring.rawValue,
                          ExecutionPriority.processing.rawValue)
-        XCTAssertLessThan(ExecutionPriority.processing.rawValue, 
+        XCTAssertLessThan(ExecutionPriority.processing.rawValue,
                          ExecutionPriority.postProcessing.rawValue)
-        XCTAssertLessThan(ExecutionPriority.postProcessing.rawValue, 
+        XCTAssertLessThan(ExecutionPriority.postProcessing.rawValue,
                          ExecutionPriority.errorHandling.rawValue)
-        XCTAssertLessThan(ExecutionPriority.errorHandling.rawValue, 
+        XCTAssertLessThan(ExecutionPriority.errorHandling.rawValue,
                          ExecutionPriority.observability.rawValue)
-        XCTAssertLessThan(ExecutionPriority.observability.rawValue, 
+        XCTAssertLessThan(ExecutionPriority.observability.rawValue,
                          ExecutionPriority.custom.rawValue)
     }
     

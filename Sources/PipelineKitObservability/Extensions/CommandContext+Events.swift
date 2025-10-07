@@ -20,9 +20,9 @@ public extension CommandContext {
     ///   - name: The event name
     ///   - properties: Additional event properties
     func emitEvent(_ name: String, properties: [String: any Sendable] = [:]) async {
-        guard await eventEmitter != nil else { return }
+        guard eventEmitter != nil else { return }
 
-        let correlationId = await correlationID ?? commandMetadata.correlationID ?? commandMetadata.id.uuidString
+        let correlationId = correlationID ?? commandMetadata.correlationID ?? commandMetadata.id.uuidString
         let event = PipelineEvent(
             name: name,
             properties: properties,
@@ -42,7 +42,7 @@ public extension CommandContext {
         props["commandType"] = commandType
         props["commandID"] = commandMetadata.id.uuidString
 
-        if let userId = await userID {
+        if let userId = userID {
             props["userID"] = userId
         }
 
@@ -66,7 +66,7 @@ public extension CommandContext {
 
         if let duration = duration {
             props["duration"] = duration
-        } else if let startTime = await startTime {
+        } else if let startTime = startTime {
             props["duration"] = Date().timeIntervalSince(startTime)
         }
 
@@ -81,7 +81,7 @@ public extension CommandContext {
     ///   - properties: Additional properties
     func emitCommandFailed(
         type commandType: String,
-        error: Error,
+        error: any Error,
         properties: [String: any Sendable] = [:]
     ) async {
         var props = properties
@@ -90,7 +90,7 @@ public extension CommandContext {
         props["errorType"] = String(describing: type(of: error))
         props["errorMessage"] = error.localizedDescription
 
-        if let startTime = await startTime {
+        if let startTime = startTime {
             props["duration"] = Date().timeIntervalSince(startTime)
         }
 
@@ -110,11 +110,11 @@ public extension CommandContext {
     ///   - metadata: Optional command metadata
     /// - Returns: A configured command context
     static func withEmitter(
-        _ emitter: EventEmitter,
-        metadata: CommandMetadata? = nil
+        _ emitter: any EventEmitter,
+        metadata: (any CommandMetadata)? = nil
     ) async -> CommandContext {
         let context = CommandContext(metadata: metadata ?? DefaultCommandMetadata())
-        await context.setEventEmitter(emitter)
+        context.setEventEmitter(emitter)
         return context
     }
 
@@ -122,9 +122,9 @@ public extension CommandContext {
     ///
     /// - Parameter emitter: The event emitter to set
     /// - Returns: A new context with the emitter configured
-    func withEmitter(_ emitter: EventEmitter) async -> CommandContext {
-        let newContext = await self.fork()
-        await newContext.setEventEmitter(emitter)
+    func withEmitter(_ emitter: any EventEmitter) async -> CommandContext {
+        let newContext = self.fork()
+        newContext.setEventEmitter(emitter)
         return newContext
     }
 }

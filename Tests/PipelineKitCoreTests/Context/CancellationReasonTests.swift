@@ -2,7 +2,6 @@ import XCTest
 @testable import PipelineKitCore
 
 final class CancellationReasonTests: XCTestCase {
-    
     // MARK: - Enum Case Tests
     
     func testTimeoutCase() {

@@ -57,7 +57,7 @@ public actor MockDecryptor {
     }
 }
 
-public enum MockEncryptionError: LocalizedError {
+public enum MockEncryptionError: LocalizedError, Sendable {
     case invalidKey
     case invalidData
     

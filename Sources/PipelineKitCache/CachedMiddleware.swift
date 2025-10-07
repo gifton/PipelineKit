@@ -35,7 +35,7 @@ public struct CachedMiddleware<M: Middleware>: Middleware, NextGuardWarningSuppr
     public func execute<T: Command>(
         _ command: T,
         context: CommandContext,
-        next: @escaping @Sendable (T, CommandContext) async throws -> T.Result
+        next: @escaping MiddlewareNext<T>
     ) async throws -> T.Result {
         // Generate cache key
         let key = await keyGenerator.generateKey(
@@ -91,7 +91,7 @@ public struct DefaultCacheKeyGenerator: CacheKeyGenerator {
         }
         
         // Add user context if available
-        let metadata = await context.commandMetadata
+        let metadata = context.commandMetadata
         if let userID = metadata.userID {
             components.append("u:\(userID)")
         }
@@ -245,7 +245,7 @@ public struct ConditionalCachedMiddleware<M: Middleware>: Middleware, NextGuardW
     public func execute<T: Command>(
         _ command: T,
         context: CommandContext,
-        next: @escaping @Sendable (T, CommandContext) async throws -> T.Result
+        next: @escaping MiddlewareNext<T>
     ) async throws -> T.Result {
         // Check if we should cache this command
         let shouldCacheResult = await shouldCache(command, context)
@@ -269,7 +269,7 @@ public struct ConditionalCachedMiddleware<M: Middleware>: Middleware, NextGuardW
     }
     
     private func generateKey<T: Command>(for command: T, context: CommandContext) async -> String {
-        let metadata = await context.commandMetadata
+        let metadata = context.commandMetadata
         let wrappedType = type(of: wrapped)
         let commandType = type(of: command)
         let corrID = metadata.correlationID ?? "none"

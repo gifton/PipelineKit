@@ -38,7 +38,7 @@ public actor AsyncSemaphore {
     
     /// Type of continuation
     private enum ContinuationType {
-        case regular(CheckedContinuation<Void, Error>)
+        case regular(CheckedContinuation<Void, any Error>)
         case timeout(CheckedContinuation<Bool, Never>)
     }
     

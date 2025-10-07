@@ -306,7 +306,7 @@ let observability = await ObservabilitySystem.production(
 
 // Configure context to emit events
 let context = CommandContext()
-await context.setEventEmitter(observability.eventHub)
+context.setEventEmitter(observability.eventHub)
 
 // Emit events explicitly
 await context.emitEvent("command.started", properties: [
@@ -357,7 +357,7 @@ import PipelineKitTestSupport
 
 let emitter = CapturingEmitter()
 let context = CommandContext()
-await context.setEventEmitter(emitter)
+context.setEventEmitter(emitter)
 
 // Execute code that emits events
 // ...

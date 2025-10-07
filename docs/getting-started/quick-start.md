@@ -105,10 +105,10 @@ Share data between middleware using context:
 let userKey = ContextKey<String>("user")
 
 // Set in middleware
-await context.set(userKey, value: "john.doe")
+context.set(userKey, value: "john.doe")
 
 // Get in another middleware
-if let user: String = await context.get(userKey) {
+if let user: String = context.get(userKey) {
     print("User: \(user)")
 }
 ```

@@ -14,26 +14,26 @@ final class CommandContextThreadSafetyTests: XCTestCase {
             // Multiple writers with different keys
             for i in 0..<iterations {
                 group.addTask {
-                    await context.set(TestContextKeys.key("\(i)"), value: "value-\(i)")
-                    await context.set(TestContextKeys.number("\(i)"), value: i)
+                    context.set(TestContextKeys.key("\(i)"), value: "value-\(i)")
+                    context.set(TestContextKeys.number("\(i)"), value: i)
                 }
             }
 
             // Multiple readers
             for i in 0..<iterations {
                 group.addTask {
-                    _ = await context.get(TestContextKeys.key("\(i)"))
-                    _ = await context.get(TestContextKeys.number("\(i)"))
+                    _ = context.get(TestContextKeys.key("\(i)"))
+                    _ = context.get(TestContextKeys.number("\(i)"))
                 }
             }
         }
 
         // Verify data integrity
         for i in 0..<10 {
-            let value = await context.get(TestContextKeys.key("\(i)"))
+            let value = context.get(TestContextKeys.key("\(i)"))
             XCTAssertEqual(value, "value-\(i)")
 
-            let number = await context.get(TestContextKeys.number("\(i)"))
+            let number = context.get(TestContextKeys.number("\(i)"))
             XCTAssertEqual(number, i)
         }
     }
@@ -46,15 +46,15 @@ final class CommandContextThreadSafetyTests: XCTestCase {
             // Multiple writers to metadata using thread-safe methods
             for i in 0..<iterations {
                 group.addTask {
-                    await context.setMetadata("key-\(i)", value: "value-\(i)")
-                    await context.setMetadata("number-\(i)", value: i)
+                    context.setMetadata("key-\(i)", value: "value-\(i)")
+                    context.setMetadata("number-\(i)", value: i)
                 }
             }
 
             // Multiple readers
             for i in 0..<iterations {
                 group.addTask {
-                    let metadata = await context.getMetadata()
+                    let metadata = context.getMetadata()
                     _ = metadata["key-\(i)"]
                     _ = metadata["number-\(i)"]
                 }
@@ -62,7 +62,7 @@ final class CommandContextThreadSafetyTests: XCTestCase {
         }
 
         // Verify some values
-        let metadata = await context.getMetadata()
+        let metadata = context.getMetadata()
         for i in 0..<10 {
             XCTAssertEqual(metadata["key-\(i)"] as? String, "value-\(i)")
             XCTAssertEqual(metadata["number-\(i)"] as? Int, i)
@@ -77,15 +77,15 @@ final class CommandContextThreadSafetyTests: XCTestCase {
             // Multiple writers to metrics using thread-safe methods
             for i in 0..<iterations {
                 group.addTask {
-                    await context.setMetric("counter-\(i)", value: Double(i))
-                    await context.setMetric("timer-\(i)", value: Double(i) * 0.001)
+                    context.setMetric("counter-\(i)", value: Double(i))
+                    context.setMetric("timer-\(i)", value: Double(i) * 0.001)
                 }
             }
 
             // Multiple readers
             for i in 0..<iterations {
                 group.addTask {
-                    let metrics = await context.getMetrics()
+                    let metrics = context.getMetrics()
                     _ = metrics["counter-\(i)"]
                     _ = metrics["timer-\(i)"]
                 }
@@ -93,7 +93,7 @@ final class CommandContextThreadSafetyTests: XCTestCase {
         }
 
         // Verify some values
-        let metrics = await context.getMetrics()
+        let metrics = context.getMetrics()
         for i in 0..<10 {
             XCTAssertEqual(metrics["counter-\(i)"] as? Double, Double(i))
             XCTAssertEqual(metrics["timer-\(i)"] as? Double, Double(i) * 0.001)
@@ -172,23 +172,23 @@ final class CommandContextThreadSafetyTests: XCTestCase {
         let iterations = 100
         let key = "contention.key"
 
-        await context.setMetadata(key, value: 0)
+        context.setMetadata(key, value: 0)
 
         await withTaskGroup(of: Void.self) { group in
             for _ in 0..<iterations {
                 group.addTask {
                     // This is now thread-safe but still not atomic increment
                     // Each operation is safe but the increment itself is not atomic
-                    let metadata = await context.getMetadata()
+                    let metadata = context.getMetadata()
                     let current = (metadata[key] as? Int) ?? 0
-                    await context.setMetadata(key, value: current + 1)
+                    context.setMetadata(key, value: current + 1)
                 }
             }
         }
 
         // Note: This is still NOT atomic increment, so the final value may not equal iterations
         // This test verifies thread safety (no crashes), not atomicity of increment
-        let metadata = await context.getMetadata()
+        let metadata = context.getMetadata()
         let finalValue = metadata[key] as? Int
         XCTAssertNotNil(finalValue)
         print("Final value after \(iterations) concurrent increments: \(finalValue ?? 0)")
@@ -208,9 +208,9 @@ final class CommandContextThreadSafetyTests: XCTestCase {
                 while Date() < endTime {
                     let key = "storage.\(Int.random(in: 0..<50))"
                     if Bool.random() {
-                        await context.setMetadata(key, value: "value-\(count)")
+                        context.setMetadata(key, value: "value-\(count)")
                     } else {
-                        let metadata = await context.getMetadata()
+                        let metadata = context.getMetadata()
                         _ = metadata[key] as? String
                     }
                     count += 1
@@ -224,9 +224,9 @@ final class CommandContextThreadSafetyTests: XCTestCase {
                 while Date() < endTime {
                     let key = "metadata-\(Int.random(in: 0..<50))"
                     if Bool.random() {
-                        await context.setMetadata(key, value: "value-\(count)")
+                        context.setMetadata(key, value: "value-\(count)")
                     } else {
-                        _ = await context.getMetadata(key)
+                        _ = context.getMetadata(key)
                     }
                     count += 1
                 }
@@ -239,9 +239,9 @@ final class CommandContextThreadSafetyTests: XCTestCase {
                 while Date() < endTime {
                     let key = "metric-\(Int.random(in: 0..<50))"
                     if Bool.random() {
-                        await context.setMetric(key, value: Double.random(in: 0..<1000))
+                        context.setMetric(key, value: Double.random(in: 0..<1000))
                     } else {
-                        _ = await context.getMetric(key)
+                        _ = context.getMetric(key)
                     }
                     count += 1
                 }
@@ -252,7 +252,7 @@ final class CommandContextThreadSafetyTests: XCTestCase {
             group.addTask {
                 var count = 0
                 while Date() < endTime {
-                    _ = await context.fork()
+                    _ = context.fork()
                     count += 1
                 }
                 return count
@@ -267,15 +267,15 @@ final class CommandContextThreadSafetyTests: XCTestCase {
         print("Rate: \(Int(Double(operationCount) / duration)) ops/sec")
 
         // Verify context is still functional
-        await context.setMetadata("test.final", value: "final")
-        let finalValue = await context.getMetadata("test.final") as? String
+        context.setMetadata("test.final", value: "final")
+        let finalValue = context.getMetadata("test.final") as? String
         XCTAssertEqual(finalValue, "final")
     }
 
     func testRequestIDConsistency() async throws {
         let context = CommandContext()
         let requestID = UUID().uuidString
-        await context.setRequestID(requestID)
+        context.setRequestID(requestID)
 
         let iterations = 100
 
@@ -283,7 +283,7 @@ final class CommandContextThreadSafetyTests: XCTestCase {
             // Multiple readers - all should see a valid request ID
             for _ in 0..<iterations {
                 group.addTask {
-                    let readID = await context.getRequestID()
+                    let readID = context.getRequestID()
                     // Just verify we get a non-nil value (thread-safe read)
                     XCTAssertNotNil(readID)
                 }
@@ -292,13 +292,13 @@ final class CommandContextThreadSafetyTests: XCTestCase {
             // Multiple writers - thread safety test, not immutability
             for _ in 0..<10 {
                 group.addTask {
-                    await context.setRequestID(UUID().uuidString)
+                    context.setRequestID(UUID().uuidString)
                 }
             }
         }
 
         // Verify context still has a valid requestID (thread safety, not immutability)
-        let finalID = await context.getRequestID()
+        let finalID = context.getRequestID()
         XCTAssertNotNil(finalID)
     }
 
@@ -308,7 +308,7 @@ final class CommandContextThreadSafetyTests: XCTestCase {
 
         // Populate initial data
         for i in 0..<iterations {
-            await context.setMetadata("key-\(i)", value: "value-\(i)")
+            context.setMetadata("key-\(i)", value: "value-\(i)")
         }
 
         // Take snapshots while modifying
@@ -316,7 +316,7 @@ final class CommandContextThreadSafetyTests: XCTestCase {
             // Writers
             for i in 0..<iterations {
                 group.addTask {
-                    await context.setMetadata("key-\(i)", value: "updated-\(i)")
+                    context.setMetadata("key-\(i)", value: "updated-\(i)")
                     return [:]
                 }
             }
@@ -324,7 +324,7 @@ final class CommandContextThreadSafetyTests: XCTestCase {
             // Snapshot readers
             for _ in 0..<5 {
                 group.addTask {
-                    return await context.snapshot()
+                    return context.snapshot()
                 }
             }
 

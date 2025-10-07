@@ -28,8 +28,8 @@ final class AuditLoggingMiddlewareTests: XCTestCase {
         
         // Create context with user info
         let context = CommandContext()
-        await context.setMetadata("authUserId", value: "user-456")
-        await context.setMetadata("sessionId", value: "session-789")
+        context.setMetadata("authUserId", value: "user-456")
+        context.setMetadata("sessionId", value: "session-789")
         
         // Test handler
         let handler: @Sendable (TestCommand, CommandContext) async throws -> TestResult = { _, _ in
@@ -79,7 +79,7 @@ final class AuditLoggingMiddlewareTests: XCTestCase {
         
         // Create context
         let context = CommandContext()
-        await context.setMetadata("authUserId", value: "admin")
+        context.setMetadata("authUserId", value: "admin")
         
         // Test handler that throws error
         let handler: @Sendable (TestCommand, CommandContext) async throws -> TestResult = { _, _ in

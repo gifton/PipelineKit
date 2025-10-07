@@ -43,7 +43,7 @@ public final class MockAuthenticationMiddleware: Middleware, Sendable {
         next: @escaping @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
         // Simple authentication check
-        guard await context.commandMetadata.userID != nil else {
+        guard context.commandMetadata.userID != nil else {
             throw PipelineError.authorization(reason: .invalidCredentials)
         }
         return try await next(command, context)

@@ -6,15 +6,13 @@ import Foundation
 /// The actual emitter can be set using the eventEmitter context key.
 public extension CommandContext {
     /// Gets the event emitter for this context.
-    var eventEmitter: EventEmitter? {
-        get async {
-            self.get(ContextKeys.eventEmitter)
-        }
+    var eventEmitter: (any EventEmitter)? {
+        self.get(ContextKeys.eventEmitter)
     }
-    
+
     /// Sets the event emitter for this context.
     /// - Parameter emitter: The event emitter to use for this context
-    func setEventEmitter(_ emitter: EventEmitter?) async {
+    func setEventEmitter(_ emitter: (any EventEmitter)?) {
         self.set(ContextKeys.eventEmitter, value: emitter)
     }
     
@@ -27,7 +25,7 @@ public extension CommandContext {
     /// - Parameter event: The event to emit
     func emitEvent(_ event: PipelineEvent) async {
         // Forward to the configured emitter if present
-        if let emitter = await eventEmitter {
+        if let emitter = eventEmitter {
             await emitter.emit(event)
         }
         // No fallback to metadata storage - clean separation of concerns

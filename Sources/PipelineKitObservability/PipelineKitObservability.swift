@@ -36,15 +36,15 @@ import Foundation
 /// 
 /// // Emit events
 /// context.eventEmitter = eventHub
-/// context.emitCommandStarted(type: "CreateUser")
+/// await context.emitCommandStarted(type: "CreateUser")
 ///
 /// // Record metrics
 /// await metrics.record(.counter("api.requests", tags: ["endpoint": "users"]))
 /// ```
 public enum PipelineKitObservability {
     /// Current version of the observability module
+    /// 
     public static let version = "0.3.0"
-
     /// Module capabilities
     public enum Capabilities {
         public static let supportsEvents = true

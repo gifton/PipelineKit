@@ -131,7 +131,7 @@ pod 'PipelineKit', '~> 0.3.0'
 ```
 # Cartfile (Coming Soon)
 github "gifton/PipelineKit" ~> 0.3.0
-```
+
 
 ## Manual Installation
 

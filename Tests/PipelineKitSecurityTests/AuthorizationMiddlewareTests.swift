@@ -21,7 +21,7 @@ final class AuthorizationMiddlewareTests: XCTestCase {
         let context = CommandContext()
         
         // Set authenticated user
-        await context.setMetadata("authUserId", value: "admin-user")
+        context.setMetadata("authUserId", value: "admin-user")
         
         let handlerExecutedBox = Box(value: false)
         
@@ -47,7 +47,7 @@ final class AuthorizationMiddlewareTests: XCTestCase {
         
         let command = AuthzTestCommand(value: "test")
         let context = CommandContext()
-        await context.setMetadata("authUserId", value: "regular-user")
+        context.setMetadata("authUserId", value: "regular-user")
         
         // When/Then
         do {
@@ -154,7 +154,7 @@ final class AuthorizationMiddlewareTests: XCTestCase {
         
         let command = AuthzTestCommand(value: "test")
         let context = CommandContext()
-        await context.setMetadata("authUserId", value: "user123-premium")
+        context.setMetadata("authUserId", value: "user123-premium")
         
         // When
         let result = try await middleware.execute(command, context: context) { cmd, _ in
@@ -191,7 +191,7 @@ final class AuthorizationMiddlewareTests: XCTestCase {
                 let command = AuthzTestCommand(value: "test-\(i)")
                 let context = CommandContext()
                 let userId = i.isMultiple(of: 2) ? "valid-user-\(i)" : "invalid-user-\(i)"
-                await context.setMetadata("authUserId", value: userId)
+                context.setMetadata("authUserId", value: userId)
                 
                 do {
                     return try await middleware.execute(command, context: context) { cmd, _ in

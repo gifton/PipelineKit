@@ -1,7 +1,7 @@
 import Foundation
 
 /// Errors that can occur when creating an ObjectPoolConfiguration.
-public enum ObjectPoolConfigurationError: Error, LocalizedError {
+public enum ObjectPoolConfigurationError: Error, LocalizedError, Sendable {
     case invalidMaxSize(Int)
     case invalidWatermarks(low: Int, high: Int, max: Int)
     

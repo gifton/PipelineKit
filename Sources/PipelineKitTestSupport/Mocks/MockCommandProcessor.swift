@@ -42,7 +42,7 @@ public actor MockCommandProcessor {
     }
 }
 
-public enum MockProcessingError: LocalizedError {
+public enum MockProcessingError: LocalizedError, Sendable {
     case processingFailed
     
     public var errorDescription: String? {

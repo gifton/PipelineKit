@@ -31,7 +31,7 @@ import _ResilienceFoundation
 /// let middleware = BulkheadMiddleware(
 ///     maxConcurrency: 10,
 ///     rejectionHandler: { command, context in
-///         await context.emitCustomEvent("bulkhead_rejected", properties: [
+///         context.emitCustomEvent("bulkhead_rejected", properties: [
 ///             "command": String(describing: type(of: command))
 ///         ])
 ///     }
@@ -165,7 +165,7 @@ public struct BulkheadMiddleware: Middleware {
     public func execute<T: Command>(
         _ command: T,
         context: CommandContext,
-        next: @escaping @Sendable (T, CommandContext) async throws -> T.Result
+        next: @escaping MiddlewareNext<T>
     ) async throws -> T.Result {
         let startTime = Date()
 
@@ -207,7 +207,7 @@ public struct BulkheadMiddleware: Middleware {
     private func executeSemaphoreIsolation<T: Command>(
         _ command: T,
         context: CommandContext,
-        next: @escaping @Sendable (T, CommandContext) async throws -> T.Result,
+        next: @escaping MiddlewareNext<T>,
         startTime: Date
     ) async throws -> T.Result {
         // Try to acquire semaphore immediately
@@ -318,7 +318,7 @@ public struct BulkheadMiddleware: Middleware {
     private func executeTaskGroupIsolation<T: Command>(
         _ command: T,
         context: CommandContext,
-        next: @escaping @Sendable (T, CommandContext) async throws -> T.Result,
+        next: @escaping MiddlewareNext<T>,
         priority: TaskPriority?,
         startTime: Date
     ) async throws -> T.Result {
@@ -337,13 +337,13 @@ public struct BulkheadMiddleware: Middleware {
     private func executeTaggedIsolation<T: Command>(
         _ command: T,
         context: CommandContext,
-        next: @escaping @Sendable (T, CommandContext) async throws -> T.Result,
+        next: @escaping MiddlewareNext<T>,
         tag: String,
         startTime: Date
     ) async throws -> T.Result {
         // For tagged isolation, we could maintain separate semaphores per tag
         // This is a simplified implementation
-        await context.setMetadata("bulkheadTag", value: tag)
+        context.setMetadata("bulkheadTag", value: tag)
 
         return try await executeSemaphoreIsolation(
             command,
@@ -379,12 +379,12 @@ public struct BulkheadMiddleware: Middleware {
         let duration = Date().timeIntervalSince(startTime)
         let stats = await metrics.getStats()
 
-        await context.setMetadata("bulkhead.duration", value: duration)
-        await context.setMetadata("bulkhead.wasQueued", value: wasQueued)
-        await context.setMetadata("bulkhead.activeCount", value: stats.activeExecutions)
-        await context.setMetadata("bulkhead.queuedCount", value: stats.queuedCommands)
+        context.setMetadata("bulkhead.duration", value: duration)
+        context.setMetadata("bulkhead.wasQueued", value: wasQueued)
+        context.setMetadata("bulkhead.activeCount", value: stats.activeExecutions)
+        context.setMetadata("bulkhead.queuedCount", value: stats.queuedCommands)
 
-// //         await context.emitCustomEvent(
+// //         context.emitCustomEvent(
 // //             "bulkhead_execution",
 // //             properties: [
 // //                 "duration": duration,

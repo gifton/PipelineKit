@@ -34,7 +34,7 @@ public extension Command {
     /// - Parameters:
     ///   - context: The command execution context
     ///   - error: The error that occurred
-    func observabilityDidFail(context: CommandContext, error: Error) async {
+    func observabilityDidFail(context: CommandContext, error: any Error) async {
         // Default: no failure tracking
     }
 }

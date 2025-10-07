@@ -92,7 +92,7 @@ public struct CompressionMiddleware: Middleware {
     public func execute<T: Command>(
         _ command: T,
         context: CommandContext,
-        next: @escaping @Sendable (T, CommandContext) async throws -> T.Result
+        next: @escaping MiddlewareNext<T>
     ) async throws -> T.Result {
         let startTime = Date()
         
@@ -120,12 +120,12 @@ public struct CompressionMiddleware: Middleware {
                     compressionApplied = true
                     
                     // Store compression metadata
-                    await context.setMetadata("compression.applied", value: true)
-                    await context.setMetadata("compression.algorithm", value: algorithm.rawValue)
-                    await context.setMetadata("compression.level", value: compressionLevel.rawValue)
-                    await context.setMetadata("compression.originalSize", value: dataToCompress.count)
-                    await context.setMetadata("compression.compressedSize", value: compressedData.count)
-                    await context.setMetadata("compression.ratio", value: Double(dataToCompress.count) / Double(compressedData.count))
+                    context.setMetadata("compression.applied", value: true)
+                    context.setMetadata("compression.algorithm", value: algorithm.rawValue)
+                    context.setMetadata("compression.level", value: compressionLevel.rawValue)
+                    context.setMetadata("compression.originalSize", value: dataToCompress.count)
+                    context.setMetadata("compression.compressedSize", value: compressedData.count)
+                    context.setMetadata("compression.ratio", value: Double(dataToCompress.count) / Double(compressedData.count))
                     
                     if trackStatistics {
                         await updateStatistics(
@@ -137,8 +137,8 @@ public struct CompressionMiddleware: Middleware {
                 }
             } catch {
                 // Log compression failure but continue with uncompressed data
-                await context.setMetadata("compression.failed", value: true)
-                await context.setMetadata("compression.error", value: error.localizedDescription)
+                context.setMetadata("compression.failed", value: true)
+                context.setMetadata("compression.error", value: error.localizedDescription)
             }
         }
         
@@ -149,7 +149,7 @@ public struct CompressionMiddleware: Middleware {
         var processedResult = result
         if compressionApplied {
             // Mark that decompression may be needed
-            await context.setMetadata("compression.needsDecompression", value: true)
+            context.setMetadata("compression.needsDecompression", value: true)
         }
         
         // Try to compress the result if it supports compression
@@ -172,15 +172,15 @@ public struct CompressionMiddleware: Middleware {
                     processedResult = typedResult
                     
                     // Store result compression metadata
-                    await context.setMetadata("compression.resultApplied", value: true)
-                    await context.setMetadata("compression.resultOriginalSize", value: dataToCompress.count)
-                    await context.setMetadata("compression.resultCompressedSize", value: compressedData.count)
-                    await context.setMetadata("compression.resultRatio", value: Double(dataToCompress.count) / Double(compressedData.count))
+                    context.setMetadata("compression.resultApplied", value: true)
+                    context.setMetadata("compression.resultOriginalSize", value: dataToCompress.count)
+                    context.setMetadata("compression.resultCompressedSize", value: compressedData.count)
+                    context.setMetadata("compression.resultRatio", value: Double(dataToCompress.count) / Double(compressedData.count))
                 }
             } catch {
                 // Log compression failure but return uncompressed result
-                await context.setMetadata("compression.resultFailed", value: true)
-                await context.setMetadata("compression.resultError", value: error.localizedDescription)
+                context.setMetadata("compression.resultFailed", value: true)
+                context.setMetadata("compression.resultError", value: error.localizedDescription)
             }
         }
         
@@ -191,7 +191,7 @@ public struct CompressionMiddleware: Middleware {
     
     private func shouldCompressCommand<T: Command>(_ command: T, context: CommandContext) async -> Bool {
         // Check if compression is disabled in context
-        let metadata = await context.getMetadata()
+        let metadata = context.getMetadata()
         if let disabled = metadata["compression.disabled"] as? Bool, disabled {
             return false
         }
@@ -335,7 +335,7 @@ public protocol CompressibleResult {
 }
 
 /// Errors that can occur during compression operations.
-public enum CompressionError: Error, LocalizedError {
+public enum CompressionError: Error, LocalizedError, Sendable {
     case compressionFailed(String)
     case decompressionFailed(String)
     case unsupportedAlgorithm(String)

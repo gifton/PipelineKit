@@ -20,7 +20,7 @@ public actor SimpleSemaphore {
     private var permits: Int
     
     /// Queue of waiters for permits with their IDs for cancellation.
-    private var waiters: [(id: UUID, continuation: CheckedContinuation<SemaphoreToken, Error>)] = []
+    private var waiters: [(id: UUID, continuation: CheckedContinuation<SemaphoreToken, any Error>)] = []
     
     /// Creates a simple semaphore with the specified number of permits.
     ///

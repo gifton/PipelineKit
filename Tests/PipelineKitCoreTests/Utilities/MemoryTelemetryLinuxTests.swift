@@ -34,4 +34,3 @@ final class MemoryTelemetryLinuxTests: XCTestCase {
     }
 }
 #endif
-

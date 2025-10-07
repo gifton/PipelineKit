@@ -211,7 +211,7 @@ jobs:
     name: Test (macOS)
     runs-on: macos-14
     needs: [build, build-linux]
-    timeout-minutes: 30
+    timeout-minutes: 45  # Increased for individual target coverage collection
     
     steps:
     - uses: actions/checkout@v5
@@ -235,76 +235,156 @@ jobs:
     - name: Run Tests
       run: |
         echo "Starting test execution at $(date)"
-        echo "Running tests to diagnose any issues..."
+        echo "Running tests with individual target coverage collection to prevent timeout..."
 
         # First, build the tests to separate build time from test time
         echo "Building tests..."
         swift build --build-tests
 
-        # Run tests without --parallel to prevent hanging
+        # Create directory for profdata files
+        mkdir -p .build/debug/codecov
+
+        # Run each test target individually with coverage
+        # This prevents timeout issues and allows better isolation
         set +e  # Don't exit on test failure
 
-        echo "Executing tests..."
-        # Run tests with code coverage enabled
-        swift test --enable-code-coverage
-        TEST_EXIT_CODE=$?
+        TEST_TARGETS=(
+          "PipelineKitTests"
+          "PipelineKitCoreTests"
+          "PipelineKitResilienceTests"
+          "PipelineKitSecurityTests"
+          "PipelineKitCacheTests"
+          "PipelineKitPoolingTests"
+          "PipelineKitObservabilityTests"
+          # Performance tests skipped - run locally or in dedicated perf suite
+          # "PipelineKitPerformanceTests"
+        )
 
-        # If tests failed, try running specific test targets to identify the issue
-        if [ "${TEST_EXIT_CODE:-0}" -ne 0 ]; then
-          echo "::warning::Tests failed. Trying individual test targets to identify the issue..."
+        FAILED_TARGETS=""
+        PASSED_TARGETS=""
+        OVERALL_EXIT_CODE=0
 
-          # Run each test target separately to identify which one fails
-          for target in PipelineKitTests PipelineKitCoreTests PipelineKitResilienceTests PipelineKitSecurityTests PipelineKitCacheTests PipelineKitPoolingTests PipelineKitObservabilityTests; do
-            echo "Running $target..."
-            swift test --filter "$target" || echo "::warning::$target failed with exit code $?"
-          done
-        fi
+        for target in "${TEST_TARGETS[@]}"; do
+          echo ""
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "Running $target with coverage..."
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "Start time: $(date)"
+
+          # Run tests (job-level timeout handles hung tests)
+          swift test --filter "$target" --enable-code-coverage || TARGET_EXIT_CODE=$?
+
+          TARGET_EXIT_CODE=${TARGET_EXIT_CODE:-0}
+          echo "End time: $(date) (exit code: $TARGET_EXIT_CODE)"
+
+          if [ $TARGET_EXIT_CODE -eq 0 ]; then
+            echo "✅ $target passed"
+            PASSED_TARGETS="$PASSED_TARGETS $target"
+
+            # Preserve the profdata file with a unique name
+            if [ -f .build/debug/codecov/default.profdata ]; then
+              cp .build/debug/codecov/default.profdata .build/debug/codecov/${target}.profdata
+              echo "   Saved coverage data to ${target}.profdata"
+            else
+              echo "::warning::No profdata generated for $target"
+            fi
+          else
+            echo "::warning::❌ $target failed with exit code $TARGET_EXIT_CODE"
+            FAILED_TARGETS="$FAILED_TARGETS $target"
+            OVERALL_EXIT_CODE=1
+          fi
+        done
 
         set -e
 
-        # Parse test output to provide a summary
-        if [ "${TEST_EXIT_CODE:-0}" -eq 0 ]; then
-          echo "::notice::✅ All tests passed successfully"
+        # Summary
+        echo ""
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "Test Execution Summary"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+        if [ -n "$PASSED_TARGETS" ]; then
+          echo "✅ Passed targets:$PASSED_TARGETS"
+        fi
+
+        if [ -n "$FAILED_TARGETS" ]; then
+          echo "::error::❌ Failed targets:$FAILED_TARGETS"
+        fi
+
+        # List generated profdata files
+        echo ""
+        echo "Generated profdata files:"
+        ls -lh .build/debug/codecov/*.profdata 2>/dev/null || echo "No profdata files found"
+
+        if [ $OVERALL_EXIT_CODE -eq 0 ]; then
+          echo "::notice::✅ All test targets passed successfully"
         else
-          echo "::error::❌ Tests failed with exit code ${TEST_EXIT_CODE}"
+          echo "::error::❌ Some test targets failed"
           echo "::warning::Check the test output above for specific failures"
-          # Continue anyway to generate coverage report
         fi
 
         # Store exit code for later
-        echo "TEST_EXIT_CODE=${TEST_EXIT_CODE:-0}" >> $GITHUB_ENV
+        echo "TEST_EXIT_CODE=$OVERALL_EXIT_CODE" >> $GITHUB_ENV
     
     - name: Generate Coverage Report
       id: coverage_report
       run: |
-        # Find the correct llvm-cov using xcrun on macOS
+        # Find the correct llvm-cov and llvm-profdata using xcrun on macOS
         if [[ "${{ matrix.os }}" == "macos-latest" ]]; then
           LLVM_COV="$(xcrun --find llvm-cov)"
+          LLVM_PROFDATA="$(xcrun --find llvm-profdata)"
         else
           # For Linux, try to get it from swift toolchain
           TOOLCHAIN_BIN=$(swift -print-target-info | jq -r '.runtimeResourcePath' | sed 's|/lib/swift$|/bin|')
           LLVM_COV="${TOOLCHAIN_BIN}/llvm-cov"
+          LLVM_PROFDATA="${TOOLCHAIN_BIN}/llvm-profdata"
         fi
-        
-        # Check if llvm-cov was found
-        if [ ! -x "$LLVM_COV" ]; then
-          echo "::warning::llvm-cov not found, skipping coverage report"
+
+        # Check if llvm tools were found
+        if [ ! -x "$LLVM_COV" ] || [ ! -x "$LLVM_PROFDATA" ]; then
+          echo "::warning::llvm-cov or llvm-profdata not found, skipping coverage report"
           echo "COVERAGE_SKIPPED=true" >> $GITHUB_ENV
           exit 0
         fi
-        
+
         echo "Using llvm-cov at: $LLVM_COV"
-        
-        # Generate coverage report
+        echo "Using llvm-profdata at: $LLVM_PROFDATA"
+
+        # Check if we have any profdata files to merge
+        PROFDATA_COUNT=$(ls -1 .build/debug/codecov/*.profdata 2>/dev/null | wc -l)
+
+        if [ "$PROFDATA_COUNT" -eq 0 ]; then
+          echo "::warning::No profdata files found, skipping coverage report"
+          echo "COVERAGE_SKIPPED=true" >> $GITHUB_ENV
+          exit 0
+        fi
+
+        echo "Found $PROFDATA_COUNT profdata files to merge"
+
+        # Merge all profdata files from individual test targets
+        echo "Merging coverage data from all test targets..."
+        $LLVM_PROFDATA merge -sparse \
+          .build/debug/codecov/*.profdata \
+          -o .build/debug/codecov/merged.profdata
+
+        echo "✅ Successfully merged coverage data"
+        ls -lh .build/debug/codecov/merged.profdata
+
+        # Generate coverage report using merged profdata
+        echo "Generating coverage report..."
         $LLVM_COV export \
           .build/debug/PipelineKitPackageTests.xctest/Contents/MacOS/PipelineKitPackageTests \
-          -instr-profile=.build/debug/codecov/default.profdata \
+          -instr-profile=.build/debug/codecov/merged.profdata \
           -format=lcov > coverage.lcov
-        
-        # Simple coverage summary
+
+        echo "✅ Generated coverage.lcov"
+
+        # Generate human-readable coverage summary
+        echo ""
+        echo "Coverage Summary:"
         $LLVM_COV report \
           .build/debug/PipelineKitPackageTests.xctest/Contents/MacOS/PipelineKitPackageTests \
-          -instr-profile=.build/debug/codecov/default.profdata
+          -instr-profile=.build/debug/codecov/merged.profdata
     
     - name: Upload Coverage to Codecov
       uses: codecov/codecov-action@v5

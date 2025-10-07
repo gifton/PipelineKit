@@ -2,7 +2,6 @@ import XCTest
 @testable import PipelineKitCore
 
 final class CommandContextTests: XCTestCase {
-    
     // MARK: - Initialization Tests
     
     func testInitWithDefaultMetadata() async {
@@ -11,8 +10,8 @@ final class CommandContextTests: XCTestCase {
         // Verify basic properties are initialized
         // CommandContext is an actor, so we can't access commandMetadata directly
         // Instead, verify through the methods that use it
-        _ = await context.getUserID()
-        let startTime = await context.getStartTime()
+        _ = context.getUserID()
+        let startTime = context.getStartTime()
         // By default, startTime is unset until explicitly provided
         XCTAssertNil(startTime)
     }
@@ -25,9 +24,9 @@ final class CommandContextTests: XCTestCase {
         let context = CommandContext(metadata: metadata)
         
         // Verify metadata is properly stored
-        let userId = await context.getUserID()
-        let correlationId = await context.getCorrelationID()
-        let requestId = await context.getRequestID()
+        let userId = context.getUserID()
+        let correlationId = context.getCorrelationID()
+        let requestId = context.getRequestID()
         
         XCTAssertEqual(userId, "user123")
         XCTAssertEqual(correlationId, "corr456")
@@ -41,13 +40,13 @@ final class CommandContextTests: XCTestCase {
         let testKey = ContextKey<String>("testKey")
         
         // Test setting and getting
-        await context.set(testKey, value: "testValue")
-        let value = await context.get(testKey)
+        context.set(testKey, value: "testValue")
+        let value = context.get(testKey)
         XCTAssertEqual(value, "testValue")
         
         // Test removing
-        await context.set(testKey, value: nil)
-        let removedValue = await context.get(testKey)
+        context.set(testKey, value: nil)
+        let removedValue = context.get(testKey)
         XCTAssertNil(removedValue)
     }
     
@@ -62,22 +61,22 @@ final class CommandContextTests: XCTestCase {
         
         let testDate = Date()
         
-        await context.set(stringKey, value: "test")
-        await context.set(intKey, value: 42)
-        await context.set(doubleKey, value: 3.14)
-        await context.set(boolKey, value: true)
-        await context.set(dateKey, value: testDate)
+        context.set(stringKey, value: "test")
+        context.set(intKey, value: 42)
+        context.set(doubleKey, value: 3.14)
+        context.set(boolKey, value: true)
+        context.set(dateKey, value: testDate)
         
-        let stringValue = await context.get(stringKey)
-        let intValue = await context.get(intKey)
-        let doubleValue = await context.get(doubleKey)
-        let boolValue = await context.get(boolKey)
-        let dateValue = await context.get(dateKey)
+        let stringValue = context.get(stringKey)
+        let intValue = context.get(intKey)
+        let doubleValue = context.get(doubleKey)
+        let boolValue = context.get(boolKey)
+        let dateValue = context.get(dateKey)
         
         XCTAssertEqual(stringValue, "test")
         XCTAssertEqual(intValue, 42)
         XCTAssertEqual(doubleValue, 3.14)
-        XCTAssertEqual(boolValue, true)
+        XCTAssertEqual(boolValue, true) // swiftlint:disable:this xct_specific_matcher
         XCTAssertEqual(dateValue, testDate)
     }
     
@@ -85,11 +84,11 @@ final class CommandContextTests: XCTestCase {
         let context = CommandContext()
         let stringKey = ContextKey<String>("test")
         
-        await context.set(stringKey, value: "stringValue")
+        context.set(stringKey, value: "stringValue")
         
         // Try to get with wrong type - should return nil due to type mismatch
         let intKey = ContextKey<Int>("test") // Same name, different type
-        let wrongTypeValue = await context.get(intKey)
+        let wrongTypeValue = context.get(intKey)
         XCTAssertNil(wrongTypeValue)
     }
     
@@ -98,36 +97,36 @@ final class CommandContextTests: XCTestCase {
     func testRequestIDGetSet() async {
         let context = CommandContext()
         
-        await context.setRequestID("req123")
-        let requestId = await context.getRequestID()
+        context.setRequestID("req123")
+        let requestId = context.getRequestID()
         XCTAssertEqual(requestId, "req123")
         
-        await context.setRequestID(nil)
-        let clearedId = await context.getRequestID()
+        context.setRequestID(nil)
+        let clearedId = context.getRequestID()
         XCTAssertNil(clearedId)
     }
     
     func testUserIDGetSet() async {
         let context = CommandContext()
         
-        await context.setUserID("user456")
-        let userId = await context.getUserID()
+        context.setUserID("user456")
+        let userId = context.getUserID()
         XCTAssertEqual(userId, "user456")
         
-        await context.setUserID(nil)
-        let clearedId = await context.getUserID()
+        context.setUserID(nil)
+        let clearedId = context.getUserID()
         XCTAssertNil(clearedId)
     }
     
     func testCorrelationIDGetSet() async {
         let context = CommandContext()
         
-        await context.setCorrelationID("corr789")
-        let correlationId = await context.getCorrelationID()
+        context.setCorrelationID("corr789")
+        let correlationId = context.getCorrelationID()
         XCTAssertEqual(correlationId, "corr789")
         
-        await context.setCorrelationID(nil)
-        let clearedId = await context.getCorrelationID()
+        context.setCorrelationID(nil)
+        let clearedId = context.getCorrelationID()
         XCTAssertNil(clearedId)
     }
     
@@ -135,12 +134,12 @@ final class CommandContextTests: XCTestCase {
         let context = CommandContext()
         let testTime = Date()
         
-        await context.setStartTime(testTime)
-        let startTime = await context.getStartTime()
+        context.setStartTime(testTime)
+        let startTime = context.getStartTime()
         XCTAssertEqual(startTime, testTime)
         
-        await context.setStartTime(nil)
-        let clearedTime = await context.getStartTime()
+        context.setStartTime(nil)
+        let clearedTime = context.getStartTime()
         XCTAssertNil(clearedTime)
     }
     
@@ -150,17 +149,17 @@ final class CommandContextTests: XCTestCase {
         let context = CommandContext()
         
         // Test setting individual metadata
-        await context.setMetadata("key1", value: "value1")
-        await context.setMetadata("key2", value: 42)
+        context.setMetadata("key1", value: "value1")
+        context.setMetadata("key2", value: 42)
         
-        let value1 = await context.getMetadata("key1") as? String
-        let value2 = await context.getMetadata("key2") as? Int
+        let value1 = context.getMetadata("key1") as? String
+        let value2 = context.getMetadata("key2") as? Int
         
         XCTAssertEqual(value1, "value1")
         XCTAssertEqual(value2, 42)
         
         // Test getting all metadata
-        let allMetadata = await context.getMetadata()
+        let allMetadata = context.getMetadata()
         XCTAssertEqual(allMetadata["key1"] as? String, "value1")
         XCTAssertEqual(allMetadata["key2"] as? Int, 42)
     }
@@ -168,13 +167,13 @@ final class CommandContextTests: XCTestCase {
     func testMetadataUpdate() async {
         let context = CommandContext()
         
-        await context.setMetadata("existing", value: "old")
-        await context.updateMetadata([
+        context.setMetadata("existing", value: "old")
+        context.updateMetadata([
             "existing": "new",
             "added": "value"
         ])
         
-        let metadata = await context.getMetadata()
+        let metadata = context.getMetadata()
         XCTAssertEqual(metadata["existing"] as? String, "new")
         XCTAssertEqual(metadata["added"] as? String, "value")
     }
@@ -182,13 +181,13 @@ final class CommandContextTests: XCTestCase {
     func testMetadataReplace() async {
         let context = CommandContext()
         
-        await context.setMetadata("key1", value: "value1")
-        await context.setMetadata("key2", value: "value2")
+        context.setMetadata("key1", value: "value1")
+        context.setMetadata("key2", value: "value2")
         
         let newMetadata: [String: any Sendable] = ["key3": "value3"]
-        await context.setMetadata(newMetadata)
+        context.setMetadata(newMetadata)
         
-        let metadata = await context.getMetadata()
+        let metadata = context.getMetadata()
         XCTAssertNil(metadata["key1"])
         XCTAssertNil(metadata["key2"])
         XCTAssertEqual(metadata["key3"] as? String, "value3")
@@ -200,31 +199,31 @@ final class CommandContextTests: XCTestCase {
         let context = CommandContext()
         
         // Test setting individual metrics
-        await context.setMetric("latency", value: 0.125)
-        await context.setMetric("count", value: 100)
+        context.setMetric("latency", value: 0.125)
+        context.setMetric("count", value: 100)
         
-        let latency = await context.getMetric("latency") as? Double
-        let count = await context.getMetric("count") as? Int
+        let latency = context.getMetric("latency") as? Double
+        let count = context.getMetric("count") as? Int
         
         XCTAssertEqual(latency, 0.125)
         XCTAssertEqual(count, 100)
         
         // Test storeMetric (alias)
-        await context.storeMetric("throughput", value: 1000.0)
-        let throughput = await context.getMetric("throughput") as? Double
+        context.storeMetric("throughput", value: 1000.0)
+        let throughput = context.getMetric("throughput") as? Double
         XCTAssertEqual(throughput, 1000.0)
     }
     
     func testMetricsUpdate() async {
         let context = CommandContext()
         
-        await context.setMetric("metric1", value: 1)
-        await context.updateMetrics([
+        context.setMetric("metric1", value: 1)
+        context.updateMetrics([
             "metric1": 2,
             "metric2": 3
         ])
         
-        let metrics = await context.getMetrics()
+        let metrics = context.getMetrics()
         XCTAssertEqual(metrics["metric1"] as? Int, 2)
         XCTAssertEqual(metrics["metric2"] as? Int, 3)
     }
@@ -232,14 +231,14 @@ final class CommandContextTests: XCTestCase {
     func testRecordDuration() async throws {
         let context = CommandContext()
         let startTime = Date()
-        await context.setStartTime(startTime)
+        context.setStartTime(startTime)
         
         // Wait a small amount
         try await Task.sleep(nanoseconds: 10_000_000) // 10ms
         
-        await context.recordDuration()
+        context.recordDuration()
         
-        let duration = await context.getMetric("duration") as? TimeInterval
+        let duration = context.getMetric("duration") as? TimeInterval
         XCTAssertNotNil(duration)
         XCTAssertGreaterThan(duration!, 0)
         XCTAssertLessThan(duration!, 1.0) // Should be less than 1 second
@@ -248,13 +247,13 @@ final class CommandContextTests: XCTestCase {
     func testRecordDurationWithCustomName() async throws {
         let context = CommandContext()
         let startTime = Date()
-        await context.setStartTime(startTime)
+        context.setStartTime(startTime)
         
         try await Task.sleep(nanoseconds: 10_000_000) // 10ms
         
-        await context.recordDuration("customDuration")
+        context.recordDuration("customDuration")
         
-        let duration = await context.getMetric("customDuration") as? TimeInterval
+        let duration = context.getMetric("customDuration") as? TimeInterval
         XCTAssertNotNil(duration)
         XCTAssertGreaterThan(duration!, 0)
     }
@@ -263,10 +262,10 @@ final class CommandContextTests: XCTestCase {
         let context = CommandContext()
         // Don't set start time
         
-        await context.recordDuration()
+        context.recordDuration()
         
         // Should not crash, just not record anything
-        let duration = await context.getMetric("duration")
+        let duration = context.getMetric("duration")
         XCTAssertNil(duration)
     }
     
@@ -280,37 +279,37 @@ final class CommandContextTests: XCTestCase {
         let context = CommandContext(metadata: metadata)
         
         // Add some data
-        await context.setMetadata("key", value: "value")
-        await context.setMetric("metric", value: 123)
+        context.setMetadata("key", value: "value")
+        context.setMetric("metric", value: 123)
         let testKey = ContextKey<String>("test")
-        await context.set(testKey, value: "testValue")
+        context.set(testKey, value: "testValue")
         
         // Clear
-        await context.clear()
+        context.clear()
         
         // Verify custom data is cleared
-        let clearedMeta = await context.getMetadata("key")
+        let clearedMeta = context.getMetadata("key")
         XCTAssertNil(clearedMeta)
-        let clearedMetric = await context.getMetric("metric")
+        let clearedMetric = context.getMetric("metric")
         XCTAssertNil(clearedMetric)
-        let clearedValue = await context.get(testKey)
+        let clearedValue = context.get(testKey)
         XCTAssertNil(clearedValue)
         
         // Verify command metadata is preserved
-        let userId = await context.getUserID()
+        let userId = context.getUserID()
         XCTAssertEqual(userId, "user123")
-        let correlationId = await context.getCorrelationID()
+        let correlationId = context.getCorrelationID()
         XCTAssertEqual(correlationId, "corr456")
     }
     
     func testSnapshot() async {
         let context = CommandContext()
         
-        await context.setRequestID("req123")
-        await context.setMetadata("meta", value: "data")
-        await context.setMetric("metric", value: 456)
+        context.setRequestID("req123")
+        context.setMetadata("meta", value: "data")
+        context.setMetric("metric", value: 456)
         
-        let snapshot = await context.snapshot()
+        let snapshot = context.snapshot()
         
         // Verify snapshot contains data
         XCTAssertNotNil(snapshot["commandMetadata"])
@@ -322,10 +321,10 @@ final class CommandContextTests: XCTestCase {
     func testSnapshotRaw() async {
         let context = CommandContext()
         
-        await context.setRequestID("req123")
-        await context.setMetadata("meta", value: "data")
+        context.setRequestID("req123")
+        context.setMetadata("meta", value: "data")
         
-        let snapshot = await context.snapshotRaw()
+        let snapshot = context.snapshotRaw()
         
         // Verify raw snapshot contains AnySendable wrappers
         XCTAssertNotNil(snapshot["commandMetadata"])
@@ -342,15 +341,15 @@ final class CommandContextTests: XCTestCase {
         let context = CommandContext()
         let key = ContextKey<String>("test")
         
-        let contains1 = await context.contains(key)
+        let contains1 = context.contains(key)
         XCTAssertFalse(contains1)
         
-        await context.set(key, value: "value")
-        let contains2 = await context.contains(key)
+        context.set(key, value: "value")
+        let contains2 = context.contains(key)
         XCTAssertTrue(contains2)
         
-        await context.remove(key)
-        let contains3 = await context.contains(key)
+        context.remove(key)
+        let contains3 = context.contains(key)
         XCTAssertFalse(contains3)
     }
     
@@ -358,29 +357,29 @@ final class CommandContextTests: XCTestCase {
         let context = CommandContext()
         let key = ContextKey<String>("test")
         
-        await context.set(key, value: "value")
-        let beforeRemove = await context.get(key)
+        context.set(key, value: "value")
+        let beforeRemove = context.get(key)
         XCTAssertNotNil(beforeRemove)
         
-        await context.remove(key)
-        let afterRemove = await context.get(key)
+        context.remove(key)
+        let afterRemove = context.get(key)
         XCTAssertNil(afterRemove)
     }
     
     func testUpdate() async {
         let context = CommandContext()
         
-        await context.update { ctx in
-            await ctx.setRequestID("req123")
-            await ctx.setUserID("user456")
-            await ctx.setMetadata("key", value: "value")
+        context.update { ctx in
+            ctx.setRequestID("req123")
+            ctx.setUserID("user456")
+            ctx.setMetadata("key", value: "value")
         }
         
-        let requestId = await context.getRequestID()
+        let requestId = context.getRequestID()
         XCTAssertEqual(requestId, "req123")
-        let userId = await context.getUserID()
+        let userId = context.getUserID()
         XCTAssertEqual(userId, "user456")
-        let metaValue = await context.getMetadata("key") as? String
+        let metaValue = context.getMetadata("key") as? String
         XCTAssertEqual(metaValue, "value")
     }
     
@@ -389,29 +388,29 @@ final class CommandContextTests: XCTestCase {
     func testCancellationSupport() async {
         let context = CommandContext()
         
-        let isCancelled1 = await context.isCancelled
+        let isCancelled1 = context.isCancelled
         XCTAssertFalse(isCancelled1)
-        let reason0 = await context.getCancellationReason()
+        let reason0 = context.getCancellationReason()
         XCTAssertNil(reason0)
         
-        await context.markAsCancelled(reason: .timeout(duration: 5.0, gracePeriod: nil))
+        context.markAsCancelled(reason: .timeout(duration: 5.0, gracePeriod: nil))
         
-        let isCancelled2 = await context.isCancelled
+        let isCancelled2 = context.isCancelled
         XCTAssertTrue(isCancelled2)
-        let reason = await context.getCancellationReason()
+        let reason = context.getCancellationReason()
         XCTAssertEqual(reason, .timeout(duration: 5.0, gracePeriod: nil))
     }
     
     func testDifferentCancellationReasons() async {
         let context = CommandContext()
         
-        await context.markAsCancelled(reason: .userCancellation)
-        let reason1 = await context.getCancellationReason()
+        context.markAsCancelled(reason: .userCancellation)
+        let reason1 = context.getCancellationReason()
         XCTAssertEqual(reason1, .userCancellation)
         
         // Change reason
-        await context.markAsCancelled(reason: .systemShutdown)
-        let reason2 = await context.getCancellationReason()
+        context.markAsCancelled(reason: .systemShutdown)
+        let reason2 = context.getCancellationReason()
         XCTAssertEqual(reason2, .systemShutdown)
     }
     
@@ -421,12 +420,12 @@ final class CommandContextTests: XCTestCase {
         let context = CommandContext()
         
         // Set up original context
-        await context.setRequestID("req123")
-        await context.setMetadata("key", value: "value")
-        await context.setMetric("metric", value: 100)
+        context.setRequestID("req123")
+        context.setMetadata("key", value: "value")
+        context.setMetric("metric", value: 100)
         
         // Fork
-        let forked = await context.fork()
+        let forked = context.fork()
         
         // Verify forked context has same data
         let forkedReqId1 = await forked.getRequestID()
@@ -441,9 +440,9 @@ final class CommandContextTests: XCTestCase {
         await forked.setMetadata("key", value: "newValue")
         
         // Verify original is unchanged
-        let origReqId = await context.getRequestID()
+        let origReqId = context.getRequestID()
         XCTAssertEqual(origReqId, "req123")
-        let origMeta = await context.getMetadata("key") as? String
+        let origMeta = context.getMetadata("key") as? String
         XCTAssertEqual(origMeta, "value")
         
         // Verify forked has changes
@@ -458,20 +457,20 @@ final class CommandContextTests: XCTestCase {
     func testBackwardCompatibilityProperties() async {
         let context = CommandContext()
         
-        await context.setRequestID("req123")
-        await context.setUserID("user456")
-        await context.setCorrelationID("corr789")
-        await context.setStartTime(Date())
-        await context.setMetadata(["key": "value"])
-        await context.setMetrics(["metric": 100])
+        context.setRequestID("req123")
+        context.setUserID("user456")
+        context.setCorrelationID("corr789")
+        context.setStartTime(Date())
+        context.setMetadata(["key": "value"])
+        context.setMetrics(["metric": 100])
         
         // Test property-style access
-        let requestId = await context.requestID
-        let userId = await context.userID
-        let correlationId = await context.correlationID
-        let startTime = await context.startTime
-        let metadata = await context.metadata
-        let metrics = await context.metrics
+        let requestId = context.requestID
+        let userId = context.userID
+        let correlationId = context.correlationID
+        let startTime = context.startTime
+        let metadata = context.metadata
+        let metrics = context.metrics
         
         XCTAssertEqual(requestId, "req123")
         XCTAssertEqual(userId, "user456")
@@ -485,13 +484,13 @@ final class CommandContextTests: XCTestCase {
     
     func testConcurrentReads() async {
         let context = CommandContext()
-        await context.setRequestID("req123")
+        context.setRequestID("req123")
         
         // Perform many concurrent reads
         await withTaskGroup(of: String?.self) { group in
             for _ in 0..<100 {
                 group.addTask {
-                    await context.getRequestID()
+                    context.getRequestID()
                 }
             }
             
@@ -510,7 +509,7 @@ final class CommandContextTests: XCTestCase {
             for i in 0..<iterations {
                 group.addTask {
                     let key = ContextKey<Int>("key\(i)")
-                    await context.set(key, value: i)
+                    context.set(key, value: i)
                 }
             }
         }
@@ -518,7 +517,7 @@ final class CommandContextTests: XCTestCase {
         // Verify all writes succeeded
         for i in 0..<iterations {
             let key = ContextKey<Int>("key\(i)")
-            let value = await context.get(key)
+            let value = context.get(key)
             XCTAssertEqual(value, i)
         }
     }
@@ -530,28 +529,28 @@ final class CommandContextTests: XCTestCase {
             // Writers
             for i in 0..<50 {
                 group.addTask {
-                    await context.setMetadata("key\(i)", value: i)
+                    context.setMetadata("key\(i)", value: i)
                 }
             }
             
             // Readers
             for _ in 0..<50 {
                 group.addTask {
-                    _ = await context.getMetadata()
+                    _ = context.getMetadata()
                 }
             }
             
             // Updates
             for i in 0..<50 {
                 group.addTask {
-                    await context.setMetric("metric\(i)", value: i * 2)
+                    context.setMetric("metric\(i)", value: i * 2)
                 }
             }
         }
         
         // Verify state after concurrent operations
-        let metadata = await context.getMetadata()
-        let metrics = await context.getMetrics()
+        let metadata = context.getMetadata()
+        let metrics = context.getMetrics()
         
         XCTAssertGreaterThan(metadata.count, 0)
         XCTAssertGreaterThan(metrics.count, 0)
@@ -563,8 +562,8 @@ final class CommandContextTests: XCTestCase {
         let context = CommandContext()
         let emptyKey = ContextKey<String>("")
         
-        await context.set(emptyKey, value: "value")
-        let value = await context.get(emptyKey)
+        context.set(emptyKey, value: "value")
+        let value = context.get(emptyKey)
         XCTAssertEqual(value, "value")
     }
     
@@ -573,8 +572,8 @@ final class CommandContextTests: XCTestCase {
         let largeArray = Array(repeating: "test", count: 10000)
         let key = ContextKey<[String]>("large")
         
-        await context.set(key, value: largeArray)
-        let retrieved = await context.get(key)
+        context.set(key, value: largeArray)
+        let retrieved = context.get(key)
         
         XCTAssertEqual(retrieved?.count, 10000)
     }
@@ -583,8 +582,8 @@ final class CommandContextTests: XCTestCase {
         let context = CommandContext()
         let specialKey = ContextKey<String>("key!@#$%^&*()[]{}|\\:;\"'<>,.?/")
         
-        await context.set(specialKey, value: "value")
-        let value = await context.get(specialKey)
+        context.set(specialKey, value: "value")
+        let value = context.get(specialKey)
         XCTAssertEqual(value, "value")
     }
     
@@ -599,8 +598,8 @@ final class CommandContextTests: XCTestCase {
         XCTAssertTrue(description.contains("id:"))
         
         // Async debug description
-        await context.setRequestID("req123")
-        let asyncDescription = await context.debugDescriptionAsync()
+        context.setRequestID("req123")
+        let asyncDescription = context.debugDescription
         XCTAssertTrue(asyncDescription.contains("CommandContext"))
     }
     
@@ -612,8 +611,8 @@ final class CommandContextTests: XCTestCase {
         
         let start = Date()
         for i in 0..<1000 {
-            await context.set(key, value: "value\(i)")
-            _ = await context.get(key)
+            context.set(key, value: "value\(i)")
+            _ = context.get(key)
         }
         let duration = Date().timeIntervalSince(start)
         
@@ -626,9 +625,9 @@ final class CommandContextTests: XCTestCase {
         
         let start = Date()
         for i in 0..<1000 {
-            await context.setMetadata("key\(i)", value: "value\(i)")
+            context.setMetadata("key\(i)", value: "value\(i)")
         }
-        _ = await context.getMetadata()
+        _ = context.getMetadata()
         let duration = Date().timeIntervalSince(start)
         
         print("Metadata performance: 1000 writes + 1 read in \(duration)s")

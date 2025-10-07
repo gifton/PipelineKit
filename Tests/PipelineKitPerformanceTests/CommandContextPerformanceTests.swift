@@ -19,7 +19,7 @@ final class CommandContextPerformanceTests: XCTestCase {
             
             Task {
                 for i in 0..<10000 {
-                    await context.setMetadata("key-\(i)", value: i)
+                    context.setMetadata("key-\(i)", value: i)
                     expectation.fulfill()
                 }
             }
@@ -37,7 +37,7 @@ final class CommandContextPerformanceTests: XCTestCase {
         let setupExpectation = expectation(description: "Setup")
         Task {
             for i in 0..<100 {
-                await context.setMetadata("key-\(i)", value: i)
+                context.setMetadata("key-\(i)", value: i)
             }
             setupExpectation.fulfill()
         }
@@ -52,7 +52,7 @@ final class CommandContextPerformanceTests: XCTestCase {
             
             Task {
                 for i in 0..<10000 {
-                    _ = await context.metadata["key-\(i % 100)"]
+                    _ = context.metadata["key-\(i % 100)"]
                     expectation.fulfill()
                 }
             }
@@ -77,9 +77,9 @@ final class CommandContextPerformanceTests: XCTestCase {
             Task {
                 for i in 0..<10000 {
                     if i.isMultiple(of: 2) {
-                        await context.setMetadata("key-\(i)", value: i)
+                        context.setMetadata("key-\(i)", value: i)
                     } else {
-                        _ = await context.metadata["key-\(i - 1)"]
+                        _ = context.metadata["key-\(i - 1)"]
                     }
                     expectation.fulfill()
                 }
@@ -107,7 +107,7 @@ final class CommandContextPerformanceTests: XCTestCase {
                     // 5000 writes
                     for i in 0..<5000 {
                         group.addTask {
-                            await context.setMetadata("key-\(i)", value: i)
+                            context.setMetadata("key-\(i)", value: i)
                             expectation.fulfill()
                         }
                     }
@@ -115,7 +115,7 @@ final class CommandContextPerformanceTests: XCTestCase {
                     // 5000 reads
                     for i in 0..<5000 {
                         group.addTask {
-                            _ = await context.metadata["key-\(i)"]
+                            _ = context.metadata["key-\(i)"]
                             expectation.fulfill()
                         }
                     }
@@ -151,7 +151,7 @@ final class CommandContextPerformanceTests: XCTestCase {
         let setupExpectation = expectation(description: "Setup large context")
         Task {
             for i in 0..<1000 {
-                await context.setMetadata("key-\(i)", value: String(repeating: "data", count: 100))
+                context.setMetadata("key-\(i)", value: String(repeating: "data", count: 100))
             }
             setupExpectation.fulfill()
         }
@@ -167,9 +167,9 @@ final class CommandContextPerformanceTests: XCTestCase {
             Task {
                 for i in 0..<1000 {
                     if i.isMultiple(of: 2) {
-                        _ = await context.metadata["key-\(i % 1000)"]
+                        _ = context.metadata["key-\(i % 1000)"]
                     } else {
-                        await context.setMetadata("new-key-\(i)", value: i)
+                        context.setMetadata("new-key-\(i)", value: i)
                     }
                     expectation.fulfill()
                 }

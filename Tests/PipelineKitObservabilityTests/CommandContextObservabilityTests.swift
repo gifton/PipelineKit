@@ -4,7 +4,6 @@ import PipelineKitObservability
 
 /// Tests for CommandContext observability extensions
 final class CommandContextObservabilityTests: XCTestCase {
-    
     // MARK: - Setup Observability Tests
     
     func testSetupObservabilityWithDefaultConfig() async throws {
@@ -137,7 +136,7 @@ final class CommandContextObservabilityTests: XCTestCase {
         await context.setupObservability(.development)
         
         // Set correlation ID
-        await context.setRequestID("req-123")
+        context.setRequestID("req-123")
         
         // Create a test subscriber to capture events
         let subscriber = EventCapturingSubscriber()
@@ -165,14 +164,14 @@ final class CommandContextObservabilityTests: XCTestCase {
         let context = CommandContext()
         
         // Initially no emitter
-        let initialEmitter = await context.eventEmitter
+        let initialEmitter = context.eventEmitter
         XCTAssertNil(initialEmitter, "Should have no emitter initially")
         
         // Setup observability
         await context.setupObservability(.development)
         
         // Should have emitter
-        let emitter = await context.eventEmitter
+        let emitter = context.eventEmitter
         XCTAssertNotNil(emitter, "Should have emitter after setup")
         XCTAssertTrue(emitter is EventHub, "Emitter should be EventHub")
     }
@@ -182,10 +181,10 @@ final class CommandContextObservabilityTests: XCTestCase {
         
         // Set custom emitter
         let customEmitter = CustomEventEmitter()
-        await context.setEventEmitter(customEmitter)
+        context.setEventEmitter(customEmitter)
         
         // Should have custom emitter
-        let emitter = await context.eventEmitter
+        let emitter = context.eventEmitter
         XCTAssertNotNil(emitter)
         XCTAssertTrue((emitter as AnyObject) === customEmitter)
         
@@ -201,9 +200,9 @@ final class CommandContextObservabilityTests: XCTestCase {
         await context.setupObservability(.development)
         
         // Set various context metadata
-        await context.setMetadata("user_id", value: "user-123")
-        await context.setMetadata("tenant", value: "acme-corp")
-        await context.setRequestID("req-456")
+        context.setMetadata("user_id", value: "user-123")
+        context.setMetadata("tenant", value: "acme-corp")
+        context.setRequestID("req-456")
         
         // Record metrics
         await context.recordCounter(name: "action.performed", value: 1.0)
@@ -213,7 +212,7 @@ final class CommandContextObservabilityTests: XCTestCase {
         XCTAssertNotNil(system)
         
         // Context metadata should be preserved
-        let metadata = await context.getMetadata()
+        let metadata = context.getMetadata()
         XCTAssertEqual(metadata["user_id"] as? String, "user-123")
         XCTAssertEqual(metadata["tenant"] as? String, "acme-corp")
     }
@@ -226,8 +225,8 @@ final class CommandContextObservabilityTests: XCTestCase {
         let userKey = ContextKey<String>("user")
         let countKey = ContextKey<Int>("count")
         
-        await context.set(userKey, value: "alice")
-        await context.set(countKey, value: 42)
+        context.set(userKey, value: "alice")
+        context.set(countKey, value: 42)
         
         // Record metrics
         await context.recordGauge(name: "user.activity", value: 42.0)
@@ -236,8 +235,8 @@ final class CommandContextObservabilityTests: XCTestCase {
         let system = await context.observability
         XCTAssertNotNil(system)
         
-        let user = await context.get(userKey)
-        let count = await context.get(countKey)
+        let user = context.get(userKey)
+        let count = context.get(countKey)
         XCTAssertEqual(user, "alice")
         XCTAssertEqual(count, 42)
     }

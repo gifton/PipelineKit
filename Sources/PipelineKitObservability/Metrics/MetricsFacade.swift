@@ -12,7 +12,7 @@ public enum Metrics {
     nonisolated(unsafe) public static var exporter: any MetricRecorder = StatsDExporter(configuration: .default)
     
     /// Error handler for metric failures.
-    nonisolated(unsafe) public static var errorHandler: (@Sendable (Error) -> Void)?
+    nonisolated(unsafe) public static var errorHandler: (@Sendable (any Error) -> Void)?
     
     /// Configures the metrics system with a new exporter.
     public static func configure(
