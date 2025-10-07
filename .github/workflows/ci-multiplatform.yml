@@ -27,6 +27,9 @@ jobs:
         with:
           swift-version: ${{ env.SWIFT_VERSION }}
 
+      - name: Install GNU timeout
+        run: brew install coreutils
+
       - name: Setup SPM Cache
         uses: ./.github/actions/setup-spm-cache
         with:
@@ -48,11 +51,61 @@ jobs:
           echo "Building tests..."
           swift build --build-tests
 
-          echo "Executing tests..."
-          # Run tests (job-level 25min timeout handles hung tests)
-          swift test --enable-code-coverage
+          # Create directory for profdata files
+          mkdir -p .build/debug/codecov
 
+          # Run each test target individually to prevent one hung test from blocking all tests
+          set +e  # Don't exit on test failure
+
+          TEST_TARGETS=(
+            "PipelineKitTests"
+            "PipelineKitCoreTests"
+            "PipelineKitResilienceTests"
+            "PipelineKitSecurityTests"
+            "PipelineKitCacheTests"
+            "PipelineKitPoolingTests"
+            "PipelineKitObservabilityTests"
+            "PipelineKitPerformanceTests"
+          )
+
+          OVERALL_EXIT_CODE=0
+
+          for target in "${TEST_TARGETS[@]}"; do
+            echo ""
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "Running $target with coverage..."
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "Start time: $(date)"
+
+            # Run with 10 minute timeout per target (gtimeout from brew install coreutils)
+            if command -v gtimeout &> /dev/null; then
+              gtimeout 600 swift test --filter "$target" --enable-code-coverage || TARGET_EXIT_CODE=$?
+            else
+              swift test --filter "$target" --enable-code-coverage || TARGET_EXIT_CODE=$?
+            fi
+
+            TARGET_EXIT_CODE=${TARGET_EXIT_CODE:-0}
+            echo "End time: $(date) (exit code: $TARGET_EXIT_CODE)"
+
+            if [ $TARGET_EXIT_CODE -eq 0 ]; then
+              echo "✅ $target passed"
+              # Preserve profdata
+              if [ -f .build/debug/codecov/default.profdata ]; then
+                cp .build/debug/codecov/default.profdata .build/debug/codecov/${target}.profdata
+                echo "   Saved coverage data to ${target}.profdata"
+              fi
+            elif [ $TARGET_EXIT_CODE -eq 124 ]; then
+              echo "::error::⏱️ $target TIMED OUT after 10 minutes"
+              OVERALL_EXIT_CODE=1
+            else
+              echo "::warning::❌ $target failed with exit code $TARGET_EXIT_CODE"
+              OVERALL_EXIT_CODE=1
+            fi
+          done
+
+          set -e
           echo "Tests completed at $(date)"
+          exit $OVERALL_EXIT_CODE
 
       - name: Build (Release)
         run: swift build -c release
