@@ -113,3 +113,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [Unreleased]: https://github.com/gifton/PipelineKit/compare/v1.0.0...HEAD
 [1.0.0]: https://github.com/gifton/PipelineKit/releases/tag/v1.0.0
 [0.1.0]: https://github.com/gifton/PipelineKit/releases/tag/v0.1.0
+## [0.3.1] - 2025-10-18
+
+### Fixed
+- Removed unsafe build flags from all library and internal targets used by shipped products (PipelineKit, PipelineKitCore, PipelineKitCache, PipelineKitObservability, PipelineKitResilience, PipelineKitSecurity, PipelineKitPooling) so iOS app targets can link these products in Xcode 15+.
+- Moved strict flags to tests only (kept `-enable-testing` on test targets). No `.unsafeFlags` remain on shipping targets.
+
+### Notes
+- Removed `-cross-module-optimization` from release builds of shipping targets to comply with SPM’s safety rules. If desired, pass this via CI (`swift build -Xswiftc -cross-module-optimization`).
