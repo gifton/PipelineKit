@@ -89,11 +89,7 @@ let package = Package(
                 .enableUpcomingFeature("ExistentialAny"),
                 .enableUpcomingFeature("ConciseMagicFile"),
                 .enableUpcomingFeature("ForwardTrailingClosures"),
-                .enableUpcomingFeature("BareSlashRegexLiterals"),
-                // Week 1 Optimization: Cross-module optimization (+10-15% performance)
-                .unsafeFlags(["-cross-module-optimization"], .when(configuration: .release)),
-                // Enable @testable imports in debug builds
-                .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
+                .enableUpcomingFeature("BareSlashRegexLiterals")
             ],
             linkerSettings: [
                 // Week 1 Optimization: Link Accelerate framework for vectorized operations
@@ -215,10 +211,7 @@ let package = Package(
                 .enableUpcomingFeature("ExistentialAny"),
                 .enableUpcomingFeature("ConciseMagicFile"),
                 .enableUpcomingFeature("ForwardTrailingClosures"),
-                .enableUpcomingFeature("BareSlashRegexLiterals"),
-                // Week 1 Optimization: Cross-module optimization (+10-15% performance)
-                .unsafeFlags(["-cross-module-optimization"], .when(configuration: .release)),
-                .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
+                .enableUpcomingFeature("BareSlashRegexLiterals")
             ],
             linkerSettings: [
                 // Week 1 Optimization: Link Accelerate framework (critical for MemoryProfiler statistics)
@@ -241,10 +234,7 @@ let package = Package(
                 .enableUpcomingFeature("ExistentialAny"),
                 .enableUpcomingFeature("ConciseMagicFile"),
                 .enableUpcomingFeature("ForwardTrailingClosures"),
-                .enableUpcomingFeature("BareSlashRegexLiterals"),
-                // Week 1 Optimization: Cross-module optimization (+10-15% performance)
-                .unsafeFlags(["-cross-module-optimization"], .when(configuration: .release)),
-                .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
+                .enableUpcomingFeature("BareSlashRegexLiterals")
             ]
         ),
         
@@ -264,10 +254,7 @@ let package = Package(
                 .enableUpcomingFeature("ExistentialAny"),
                 .enableUpcomingFeature("ConciseMagicFile"),
                 .enableUpcomingFeature("ForwardTrailingClosures"),
-                .enableUpcomingFeature("BareSlashRegexLiterals"),
-                // Week 1 Optimization: Cross-module optimization (+10-15% performance)
-                .unsafeFlags(["-cross-module-optimization"], .when(configuration: .release)),
-                .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
+                .enableUpcomingFeature("BareSlashRegexLiterals")
             ]
         ),
         .target(
@@ -285,10 +272,7 @@ let package = Package(
                 .enableUpcomingFeature("ExistentialAny"),
                 .enableUpcomingFeature("ConciseMagicFile"),
                 .enableUpcomingFeature("ForwardTrailingClosures"),
-                .enableUpcomingFeature("BareSlashRegexLiterals"),
-                // Week 1 Optimization: Cross-module optimization (+10-15% performance)
-                .unsafeFlags(["-cross-module-optimization"], .when(configuration: .release)),
-                .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
+                .enableUpcomingFeature("BareSlashRegexLiterals")
             ]
         ),
         .target(
@@ -305,10 +289,7 @@ let package = Package(
                 .enableUpcomingFeature("ExistentialAny"),
                 .enableUpcomingFeature("ConciseMagicFile"),
                 .enableUpcomingFeature("ForwardTrailingClosures"),
-                .enableUpcomingFeature("BareSlashRegexLiterals"),
-                // Week 1 Optimization: Cross-module optimization (+10-15% performance)
-                .unsafeFlags(["-cross-module-optimization"], .when(configuration: .release)),
-                .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
+                .enableUpcomingFeature("BareSlashRegexLiterals")
             ]
         ),
         .target(
@@ -325,10 +306,7 @@ let package = Package(
                 .enableUpcomingFeature("ExistentialAny"),
                 .enableUpcomingFeature("ConciseMagicFile"),
                 .enableUpcomingFeature("ForwardTrailingClosures"),
-                .enableUpcomingFeature("BareSlashRegexLiterals"),
-                // Week 1 Optimization: Cross-module optimization (+10-15% performance)
-                .unsafeFlags(["-cross-module-optimization"], .when(configuration: .release)),
-                .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
+                .enableUpcomingFeature("BareSlashRegexLiterals")
             ]
         ),
         // Public umbrella target
@@ -348,10 +326,7 @@ let package = Package(
                 .enableUpcomingFeature("ExistentialAny"),
                 .enableUpcomingFeature("ConciseMagicFile"),
                 .enableUpcomingFeature("ForwardTrailingClosures"),
-                .enableUpcomingFeature("BareSlashRegexLiterals"),
-                // Week 1 Optimization: Cross-module optimization (+10-15% performance)
-                .unsafeFlags(["-cross-module-optimization"], .when(configuration: .release)),
-                .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
+                .enableUpcomingFeature("BareSlashRegexLiterals")
             ]
         ),
         
@@ -369,10 +344,7 @@ let package = Package(
                 .enableUpcomingFeature("ExistentialAny"),
                 .enableUpcomingFeature("ConciseMagicFile"),
                 .enableUpcomingFeature("ForwardTrailingClosures"),
-                .enableUpcomingFeature("BareSlashRegexLiterals"),
-                // Week 1 Optimization: Cross-module optimization (+10-15% performance)
-                .unsafeFlags(["-cross-module-optimization"], .when(configuration: .release)),
-                .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
+                .enableUpcomingFeature("BareSlashRegexLiterals")
             ],
             linkerSettings: [
                 // Week 1 Optimization: Link Accelerate framework for metrics calculations
@@ -395,10 +367,7 @@ let package = Package(
                 .enableUpcomingFeature("ExistentialAny"),
                 .enableUpcomingFeature("ConciseMagicFile"),
                 .enableUpcomingFeature("ForwardTrailingClosures"),
-                .enableUpcomingFeature("BareSlashRegexLiterals"),
-                // Week 1 Optimization: Cross-module optimization (+10-15% performance)
-                .unsafeFlags(["-cross-module-optimization"], .when(configuration: .release)),
-                .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
+                .enableUpcomingFeature("BareSlashRegexLiterals")
             ]
         ),
 
@@ -417,10 +386,7 @@ let package = Package(
                 .enableUpcomingFeature("ExistentialAny"),
                 .enableUpcomingFeature("ConciseMagicFile"),
                 .enableUpcomingFeature("ForwardTrailingClosures"),
-                .enableUpcomingFeature("BareSlashRegexLiterals"),
-                // Week 1 Optimization: Cross-module optimization (+10-15% performance)
-                .unsafeFlags(["-cross-module-optimization"], .when(configuration: .release)),
-                .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
+                .enableUpcomingFeature("BareSlashRegexLiterals")
             ],
             linkerSettings: [
                 // Week 1 Optimization: Link Accelerate framework for pool metrics
