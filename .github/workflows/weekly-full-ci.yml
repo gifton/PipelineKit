@@ -175,7 +175,7 @@ jobs:
           --level detailed
     
     - name: Upload Documentation Report
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: documentation-audit
         path: docs/
