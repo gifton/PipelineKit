@@ -147,7 +147,7 @@ jobs:
         echo "See uploaded artifacts for detailed results" >> performance-report.md
     
     - name: Upload Performance Results
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: performance-comparison
         path: |
