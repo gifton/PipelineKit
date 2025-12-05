@@ -25,7 +25,7 @@ jobs:
     outputs:
       version: ${{ steps.get_version.outputs.version }}
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Get version from tag
       id: get_version
@@ -46,36 +46,18 @@ jobs:
     needs: validate-tag
     runs-on: macos-26
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
-    - name: Setup Xcode
-      uses: maxim-lobanov/setup-xcode@v1
+    - name: Setup Swift
+      uses: swift-actions/setup-swift@v2
       with:
-        xcode-version: 'latest-stable'
-
-    - name: System Info
-      run: |
-        echo "## System Info" >> $GITHUB_STEP_SUMMARY
-        echo "- Swift: $(swift --version | head -1)" >> $GITHUB_STEP_SUMMARY
-        echo "- Xcode: $(xcodebuild -version | head -1)" >> $GITHUB_STEP_SUMMARY
-        echo "- macOS: $(sw_vers -productVersion)" >> $GITHUB_STEP_SUMMARY
+        swift-version: ${{ env.SWIFT_VERSION }}
 
     - name: Build
       run: swift build -c release -v
 
     - name: Test
       run: swift test -v
-
-    - name: Archive build
-      run: |
-        swift build -c release --arch arm64 --arch x86_64
-        tar -czf PipelineKit-${{ needs.validate-tag.outputs.version }}-macos.tar.gz -C .build/release PipelineKit
-
-    - name: Upload artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: build-artifacts
-        path: PipelineKit-*.tar.gz
 
   create-release:
     name: Create Release
@@ -84,12 +66,7 @@ jobs:
     permissions:
       contents: write
     steps:
-    - uses: actions/checkout@v4
-
-    - name: Download artifacts
-      uses: actions/download-artifact@v4
-      with:
-        name: build-artifacts
+    - uses: actions/checkout@v5
 
     - name: Extract changelog
       id: changelog
@@ -107,8 +84,6 @@ jobs:
         body: ${{ steps.changelog.outputs.changelog }}
         draft: false
         prerelease: ${{ contains(needs.validate-tag.outputs.version, '-') }}
-        files: |
-          PipelineKit-*.tar.gz
 
     - name: Update Package Index
       run: |
@@ -123,12 +98,12 @@ jobs:
       pages: write
       id-token: write
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
-    - name: Setup Xcode
-      uses: maxim-lobanov/setup-xcode@v1
+    - name: Setup Swift
+      uses: swift-actions/setup-swift@v2
       with:
-        xcode-version: 'latest-stable'
+        swift-version: ${{ env.SWIFT_VERSION }}
 
     - name: Build documentation
       run: |
