@@ -1,11 +1,25 @@
 # CI Configuration Notes
 
+## Platform Configuration (Updated December 2025)
+
+All CI workflows have been updated to use:
+- **Runner**: `macos-26` (macOS 26 Tahoe)
+- **Xcode**: `latest-stable` via `maxim-lobanov/setup-xcode@v1`
+- **Swift**: Uses Xcode-bundled Swift toolchain (no separate `swift-actions/setup-swift`)
+- **iOS Simulator**: iPhone 17 with iOS 26.0
+
+### Key Changes from Previous Configuration
+
+1. **Removed `swift-actions/setup-swift`** - Now using Xcode's bundled Swift
+2. **Removed legacy Swift versions** - No more 5.9/5.10 compatibility tests
+3. **Removed macOS-13/14 runners** - Consolidated to macOS-26
+4. **Added `DEVELOPER_DIR` environment variable** - Points to Xcode app
+
 ## Important Configuration Decisions
 
 ### 1. Parallel Test Execution Disabled
 - **Issue**: Tests hang when run with `--parallel` flag
 - **Solution**: Removed `--parallel` from all test commands
-- **Files**: `simple-ci.yml`, `ci.yml`
 - **TODO**: Investigate root cause - likely related to actor isolation or semaphore deadlocks
 
 ### 2. Job Dependencies Removed
@@ -16,8 +30,7 @@
 
 ### 3. Coverage Generation
 - **Issue**: Version mismatch between Swift compiler and system llvm-cov
-- **Solution**: Use llvm-cov from Swift toolchain
-- **Implementation**: Extract toolchain path and use its llvm-cov
+- **Solution**: Use llvm-cov from Xcode toolchain via `xcrun --find llvm-cov`
 
 ### 4. NextGuard Warning Configuration
 - **Default**: Timeout warnings are automatically suppressed
@@ -28,9 +41,20 @@
 
 | Variable | Purpose | Required | Default |
 |----------|---------|----------|---------|
-| `SWIFT_VERSION` | Swift version for builds | Yes | 6.0 |
-| `BENCHMARK_DISABLE_JEMALLOC` | Disable jemalloc in benchmarks | Yes | 1 |
-| `PIPELINEKIT_DISABLE_NEXTGUARD_WARNINGS` | Disable NextGuard warnings | No | unset |
+| `DEVELOPER_DIR` | Xcode path | Yes | `/Applications/Xcode.app/Contents/Developer` |
+| `CI` | CI mode flag | Yes | `true` |
+| `MINIMUM_COVERAGE` | Coverage threshold | No | 70 |
+
+## Workflows Overview
+
+| Workflow | Trigger | Runner | Purpose |
+|----------|---------|--------|---------|
+| `ci.yml` | Push/PR | macos-26 | Main CI pipeline |
+| `ci-multiplatform.yml` | PR/Manual | macos-26 | iOS/watchOS simulator tests |
+| `nightly.yml` | Daily 2AM UTC | macos-26 | Extended test suite |
+| `weekly-full-ci.yml` | Sunday 3AM UTC | macos-26 | Comprehensive testing |
+| `specialty-tests.yml` | Label/Manual | macos-26 | Memory/perf/stress tests |
+| `release.yml` | Tag push | macos-26 | Release automation |
 
 ## Known Issues
 
@@ -51,39 +75,35 @@ Current CI timings (sequential):
 - Build: ~30s
 - Tests: ~45s
 - Coverage: ~10s
-- Total: ~85s per matrix configuration
+- Total: ~85s per configuration
 
-With parallel tests (if fixed):
-- Potential improvement: ~30s faster
+## Linux Support
 
-## Maintenance Notes
-
-1. **Swift Version Updates**: Update `SWIFT_VERSION` in env and `swift-version` in setup
-2. **New Test Targets**: Add to filter list in `ci.yml` line 62
-3. **Coverage**: Only generated for `macos-14` with Swift 6.0 to save time
-4. **Benchmarks**: Using XCTest performance tests instead of package-benchmark
+Linux builds use Docker container `swift:6.1`:
+- Set as `continue-on-error: true` (secondary platform)
+- Requires additional system dependencies
+- Uses Swift 6.1 only (no legacy version testing)
 
 ## Troubleshooting
 
 ### Tests Failing in CI but Passing Locally
 1. Check for timing-sensitive tests
 2. Verify environment variables match
-3. Consider CI hardware differences (slower/different architecture)
+3. Consider CI hardware differences
 
 ### Coverage Upload Failures
 1. Verify `CODECOV_TOKEN` secret is set
 2. Check that test binary exists at expected path
 3. Ensure profdata was generated with `--enable-code-coverage`
 
-### Benchmark Timeouts
-1. Current timeout: 10 minutes
-2. If benchmarks timeout, consider reducing iterations
-3. Or split into smaller benchmark suites
+### Xcode Setup Issues
+1. Verify `macos-26` runner is available
+2. Check that `latest-stable` Xcode version exists
+3. Review `maxim-lobanov/setup-xcode` action logs
 
 ## Future Improvements
 
 1. **Fix parallel test execution** - Investigate and resolve hanging issue
 2. **Add benchmark regression detection** - Compare results against baseline
-3. **Matrix strategy optimization** - Consider if we need all OS versions
-4. **Caching improvements** - Cache Swift toolchain installation
-5. **Add performance gates** - Fail if performance degrades significantly
+3. **Caching improvements** - Cache Xcode DerivedData more effectively
+4. **Add performance gates** - Fail if performance degrades significantly
