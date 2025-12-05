@@ -1,8 +1,7 @@
 name: CI (Multiplatform)
 
 # This workflow adds macOS (SwiftPM), iOS Simulator, and watchOS Simulator coverage.
-# It is disabled by default and can be run manually. Integrate into your main
-# CI once it’s stable by adding push/pull_request triggers as needed.
+# Updated for macOS 26 / iOS 26 / Xcode 26.
 
 on:
   workflow_dispatch:
@@ -10,37 +9,39 @@ on:
     types: [opened, synchronize, reopened]
 
 env:
-  SWIFT_VERSION: '6.1.0'
+  DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
   CI: 'true'
 
 jobs:
   macos-spm:
     name: macOS • SwiftPM (Debug + Release)
-    runs-on: macos-14
+    runs-on: macos-26
     timeout-minutes: 25
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
-      - name: Setup Swift
-        uses: swift-actions/setup-swift@v2
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
         with:
-          swift-version: ${{ env.SWIFT_VERSION }}
+          xcode-version: 'latest-stable'
 
-      - name: Install GNU timeout
-        run: brew install coreutils
+      - name: System Info
+        run: |
+          echo "## System Info" >> $GITHUB_STEP_SUMMARY
+          echo "- Swift: $(swift --version | head -1)" >> $GITHUB_STEP_SUMMARY
+          echo "- Xcode: $(xcodebuild -version | head -1)" >> $GITHUB_STEP_SUMMARY
+          echo "- macOS: $(sw_vers -productVersion)" >> $GITHUB_STEP_SUMMARY
 
-      - name: Setup SPM Cache
-        uses: ./.github/actions/setup-spm-cache
-        with:
-          cache-key-prefix: 'multiplatform'
-          swift-version: ${{ env.SWIFT_VERSION }}
-
-      - name: Cache SwiftPM
+      - name: Cache SPM
         uses: actions/cache@v4
         with:
-          path: .build
+          path: |
+            .build
+            ~/Library/Developer/Xcode/DerivedData
           key: spm-${{ runner.os }}-${{ hashFiles('Package.resolved') }}
+          restore-keys: |
+            spm-${{ runner.os }}-
 
       - name: Build (Debug)
         run: swift build -c debug
@@ -65,8 +66,7 @@ jobs:
             "PipelineKitCacheTests"
             "PipelineKitPoolingTests"
             "PipelineKitObservabilityTests"
-            # Performance tests skipped - run locally or in dedicated perf suite
-            # "PipelineKitPerformanceTests"
+            "PipelineKitTestSupportTests"
           )
 
           OVERALL_EXIT_CODE=0
@@ -78,12 +78,7 @@ jobs:
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             echo "Start time: $(date)"
 
-            # Run with 10 minute timeout per target (gtimeout from brew install coreutils)
-            if command -v gtimeout &> /dev/null; then
-              gtimeout 600 swift test --filter "$target" --enable-code-coverage || TARGET_EXIT_CODE=$?
-            else
-              swift test --filter "$target" --enable-code-coverage || TARGET_EXIT_CODE=$?
-            fi
+            swift test --filter "$target" --enable-code-coverage || TARGET_EXIT_CODE=$?
 
             TARGET_EXIT_CODE=${TARGET_EXIT_CODE:-0}
             echo "End time: $(date) (exit code: $TARGET_EXIT_CODE)"
@@ -95,9 +90,6 @@ jobs:
                 cp .build/debug/codecov/default.profdata .build/debug/codecov/${target}.profdata
                 echo "   Saved coverage data to ${target}.profdata"
               fi
-            elif [ $TARGET_EXIT_CODE -eq 124 ]; then
-              echo "::error::⏱️ $target TIMED OUT after 10 minutes"
-              OVERALL_EXIT_CODE=1
             else
               echo "::warning::❌ $target failed with exit code $TARGET_EXIT_CODE"
               OVERALL_EXIT_CODE=1
@@ -123,13 +115,11 @@ jobs:
             echo "Found test binary: $BIN"
             echo "Found profdata: $PROF"
 
-            # Use llvm-cov from the Swift toolchain to match the profdata format
-            LLVM_COV=$(xcrun --find llvm-cov 2>/dev/null || echo "llvm-cov")
+            LLVM_COV=$(xcrun --find llvm-cov)
 
             echo "Using llvm-cov: $LLVM_COV"
             $LLVM_COV --version || true
 
-            # Export coverage with format matching
             $LLVM_COV export "$BIN" -instr-profile="$PROF" -format=lcov > coverage.lcov || {
               echo "::warning::Failed to export coverage - format mismatch or corrupt profdata"
               exit 0
@@ -138,8 +128,6 @@ jobs:
             echo "✅ Coverage exported successfully"
           else
             echo "::warning::Missing test binary or profdata file"
-            echo "BIN exists: $(test -f "$BIN" && echo yes || echo no)"
-            echo "PROF exists: $(test -f "$PROF" && echo yes || echo no)"
           fi
 
       - name: Upload coverage artifact
@@ -150,31 +138,50 @@ jobs:
           if-no-files-found: ignore
 
   ios-sim:
-    name: iOS • Simulator Tests
-    runs-on: macos-15
+    name: iOS 26 • Simulator Tests
+    runs-on: macos-26
     timeout-minutes: 25
     env:
-      # Update this scheme if you use a custom one; SPM auto-schemes commonly use this name
       SCHEME: PipelineKit-Package
-      DESTINATION: platform=iOS Simulator,name=iPhone 16,OS=latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
-      - name: Select Xcode 16
+      - name: Setup Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: '16.*'
+          xcode-version: 'latest-stable'
 
-      - name: Xcode version
-        run: xcodebuild -version
+      - name: System Info
+        run: |
+          echo "## System Info" >> $GITHUB_STEP_SUMMARY
+          echo "- Xcode: $(xcodebuild -version | head -1)" >> $GITHUB_STEP_SUMMARY
+          echo "- macOS: $(sw_vers -productVersion)" >> $GITHUB_STEP_SUMMARY
+          echo "- Available iOS 26+ simulators:" >> $GITHUB_STEP_SUMMARY
+          xcrun simctl list devices available | grep -i iphone | grep "26\." | head -5 >> $GITHUB_STEP_SUMMARY || echo "  (listing may be empty)" >> $GITHUB_STEP_SUMMARY
+
+      - name: Find iOS Simulator
+        id: find-sim
+        run: |
+          # Find the latest iOS 26.x iPhone simulator
+          DEVICE=$(xcrun simctl list devices available -j | \
+            jq -r '.devices | to_entries[] | select(.key | contains("iOS") and contains("26")) | .value[] | select(.name | contains("iPhone")) | .name' | \
+            head -1)
+
+          if [ -z "$DEVICE" ]; then
+            echo "No iOS 26.x iPhone simulator found, falling back to generic destination"
+            echo "destination=platform=iOS Simulator,name=Any iOS Simulator Device" >> $GITHUB_OUTPUT
+          else
+            echo "Found simulator: $DEVICE"
+            echo "destination=platform=iOS Simulator,name=$DEVICE" >> $GITHUB_OUTPUT
+          fi
 
       - name: Build for testing (Debug)
         run: |
           set -euo pipefail
           xcodebuild \
             -scheme "$SCHEME" \
-            -destination "$DESTINATION" \
+            -destination "${{ steps.find-sim.outputs.destination }}" \
             -configuration Debug \
             -skipPackagePluginValidation \
             -skipMacroValidation \
@@ -185,15 +192,15 @@ jobs:
           set -euo pipefail
           xcodebuild \
             -scheme "$SCHEME" \
-            -destination "$DESTINATION" \
+            -destination "${{ steps.find-sim.outputs.destination }}" \
             -configuration Debug \
             -skipPackagePluginValidation \
             -skipMacroValidation \
             test | xcpretty || exit ${PIPESTATUS[0]}
 
   watchos-sim:
-    name: watchOS • Simulator Build
-    runs-on: macos-15
+    name: watchOS 26 • Simulator Build
+    runs-on: macos-26
     timeout-minutes: 20
     continue-on-error: true  # keep advisory while we stabilize
     env:
@@ -201,12 +208,12 @@ jobs:
       DESTINATION: generic/platform=watchOS Simulator
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
-      - name: Select Xcode 16
+      - name: Setup Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: '16.*'
+          xcode-version: 'latest-stable'
 
       - name: Xcode version
         run: xcodebuild -version

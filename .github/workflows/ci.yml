@@ -41,7 +41,7 @@ on:
 
 # Environment variables
 env:
-  SWIFT_VERSION: '6.1.0'
+  DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
   CI: 'true'
   MINIMUM_COVERAGE: 70  # Start with realistic threshold
   # Gradual enforcement flags (set to 'true' to enforce)
@@ -89,11 +89,14 @@ jobs:
   # SwiftLint - early fail job
   swiftlint:
     name: SwiftLint
-    runs-on: macos-14  # Keep on macOS for native SwiftLint
+    runs-on: macos-26
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v5
-      
+      - uses: actions/checkout@v4
+
+      - name: Install SwiftLint
+        run: brew install swiftlint
+
       - name: Run SwiftLint
         run: |
           if which swiftlint >/dev/null; then
@@ -126,52 +129,46 @@ jobs:
 
   # Main build job
   build:
-    name: Build (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
+    name: Build (macOS)
+    runs-on: macos-26
     needs: swiftlint
     timeout-minutes: 15
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [macos-14]
-        include:
-          - os: macos-14
-            platform: macOS
-    
+
     steps:
-    - uses: actions/checkout@v5
-    
-    - name: Setup Swift (macOS)
-      if: runner.os == 'macOS'
-      uses: swift-actions/setup-swift@v2
+    - uses: actions/checkout@v4
+
+    - name: Setup Xcode
+      uses: maxim-lobanov/setup-xcode@v1
       with:
-        swift-version: ${{ env.SWIFT_VERSION }}
-    
-    - name: Setup SPM Cache
-      uses: ./.github/actions/setup-spm-cache
-      with:
-        cache-key-prefix: 'build'
-        swift-version: ${{ env.SWIFT_VERSION }}
-    
-    - name: Swift Version
+        xcode-version: 'latest-stable'
+
+    - name: System Info
       run: |
-        swift --version
-        if ! swift --version | grep -q "version 6.1"; then
-          echo "::error::Expected Swift 6.1 toolchain after setup-swift"
-          exit 1
-        fi
-      
+        echo "## System Info" >> $GITHUB_STEP_SUMMARY
+        echo "- Swift: $(swift --version | head -1)" >> $GITHUB_STEP_SUMMARY
+        echo "- Xcode: $(xcodebuild -version | head -1)" >> $GITHUB_STEP_SUMMARY
+        echo "- macOS: $(sw_vers -productVersion)" >> $GITHUB_STEP_SUMMARY
+
+    - name: Cache SPM
+      uses: actions/cache@v4
+      with:
+        path: |
+          .build
+          ~/Library/Developer/Xcode/DerivedData
+        key: ${{ runner.os }}-spm-${{ hashFiles('Package.resolved') }}
+        restore-keys: |
+          ${{ runner.os }}-spm-
+
     - name: Build Debug
       run: swift build --configuration debug
-      
+
     - name: Build Release
       run: swift build --configuration release
-      
+
     - name: Upload Build Artifacts
-      if: runner.os == 'macOS'
       uses: actions/upload-artifact@v4
       with:
-        name: build-${{ matrix.platform }}
+        name: build-macOS
         path: .build/release/
         retention-days: 7
 
@@ -183,10 +180,10 @@ jobs:
     needs: swiftlint
     timeout-minutes: 15
     continue-on-error: true  # Allow Linux to fail for now
-    
+
     steps:
-    - uses: actions/checkout@v5
-    
+    - uses: actions/checkout@v4
+
     - name: Install Dependencies
       run: |
         apt-get update && apt-get install -y \
@@ -196,36 +193,40 @@ jobs:
           tzdata \
           git \
           jq
-    
+
     - name: Swift Version
       run: swift --version
-      
+
     - name: Build Debug
       run: swift build --configuration debug
-      
+
     - name: Build Release
       run: swift build --configuration release
 
   # Test job with coverage
   test:
     name: Test (macOS)
-    runs-on: macos-14
+    runs-on: macos-26
     needs: [build, build-linux]
     timeout-minutes: 45  # Increased for individual target coverage collection
-    
+
     steps:
-    - uses: actions/checkout@v5
-    
-    - name: Setup Swift
-      uses: swift-actions/setup-swift@v2
+    - uses: actions/checkout@v4
+
+    - name: Setup Xcode
+      uses: maxim-lobanov/setup-xcode@v1
       with:
-        swift-version: ${{ env.SWIFT_VERSION }}
-    
-    - name: Setup SPM Cache
-      uses: ./.github/actions/setup-spm-cache
+        xcode-version: 'latest-stable'
+
+    - name: Cache SPM
+      uses: actions/cache@v4
       with:
-        cache-key-prefix: 'test'
-        swift-version: ${{ env.SWIFT_VERSION }}
+        path: |
+          .build
+          ~/Library/Developer/Xcode/DerivedData
+        key: ${{ runner.os }}-spm-${{ hashFiles('Package.resolved') }}
+        restore-keys: |
+          ${{ runner.os }}-spm-
 
     - name: List Test Targets
       run: |
@@ -256,6 +257,7 @@ jobs:
           "PipelineKitCacheTests"
           "PipelineKitPoolingTests"
           "PipelineKitObservabilityTests"
+          "PipelineKitTestSupportTests"
           # Performance tests skipped - run locally or in dedicated perf suite
           # "PipelineKitPerformanceTests"
         )
@@ -330,15 +332,8 @@ jobs:
       id: coverage_report
       run: |
         # Find the correct llvm-cov and llvm-profdata using xcrun on macOS
-        if [[ "${{ matrix.os }}" == "macos-latest" ]]; then
-          LLVM_COV="$(xcrun --find llvm-cov)"
-          LLVM_PROFDATA="$(xcrun --find llvm-profdata)"
-        else
-          # For Linux, try to get it from swift toolchain
-          TOOLCHAIN_BIN=$(swift -print-target-info | jq -r '.runtimeResourcePath' | sed 's|/lib/swift$|/bin|')
-          LLVM_COV="${TOOLCHAIN_BIN}/llvm-cov"
-          LLVM_PROFDATA="${TOOLCHAIN_BIN}/llvm-profdata"
-        fi
+        LLVM_COV="$(xcrun --find llvm-cov)"
+        LLVM_PROFDATA="$(xcrun --find llvm-profdata)"
 
         # Check if llvm tools were found
         if [ ! -x "$LLVM_COV" ] || [ ! -x "$LLVM_PROFDATA" ]; then
@@ -447,10 +442,10 @@ jobs:
     needs: [build, build-linux]
     timeout-minutes: 20
     continue-on-error: true  # Allow Linux to fail for now
-    
+
     steps:
-    - uses: actions/checkout@v5
-    
+    - uses: actions/checkout@v4
+
     - name: Install Dependencies
       run: |
         apt-get update && apt-get install -y \
@@ -459,7 +454,7 @@ jobs:
           libxml2-dev \
           tzdata \
           git
-    
+
     - name: Build Debug
       run: swift build --configuration debug
 
@@ -469,36 +464,38 @@ jobs:
   # Stress/Resilience tests
   stress-test:
     name: Stress Tests
-    runs-on: macos-14
+    runs-on: macos-26
     needs: swiftlint  # Don't depend on test to avoid cascade failures
-    # Now runs on all events including PRs
     timeout-minutes: 30
-    
+
     steps:
-    - uses: actions/checkout@v5
-    
-    - name: Setup Swift
-      uses: swift-actions/setup-swift@v2
+    - uses: actions/checkout@v4
+
+    - name: Setup Xcode
+      uses: maxim-lobanov/setup-xcode@v1
       with:
-        swift-version: ${{ env.SWIFT_VERSION }}
-    
-    - name: Setup SPM Cache
-      uses: ./.github/actions/setup-spm-cache
+        xcode-version: 'latest-stable'
+
+    - name: Cache SPM
+      uses: actions/cache@v4
       with:
-        cache-key-prefix: 'stress'
-        swift-version: ${{ env.SWIFT_VERSION }}
-    
+        path: |
+          .build
+          ~/Library/Developer/Xcode/DerivedData
+        key: ${{ runner.os }}-spm-${{ hashFiles('Package.resolved') }}
+        restore-keys: |
+          ${{ runner.os }}-spm-
+
     - name: Run Stress Tests
       run: |
         # Run resilience tests which include stress scenarios
-        # Build tests first to ensure they're compiled
         swift build --build-tests
-        
+
         # Run with explicit filter pattern matching test class names
-        swift test --filter "PipelineKitResilienceTests" --disable-xctest-dynamic-overlay || {
+        swift test --filter "PipelineKitResilienceTests" || {
           echo "Warning: Some tests may have failed or timed out"
           echo "Attempting to run individual test classes..."
-          
+
           # Try running specific test classes if the full suite fails
           swift test --filter "CircuitBreakerMiddlewareTests" || true
           swift test --filter "BackPressureTests" || true
@@ -508,33 +505,36 @@ jobs:
   # Performance tests
   performance:
     name: Performance Tests
-    runs-on: macos-14
+    runs-on: macos-26
     needs: swiftlint  # Don't depend on build to avoid cascade failures
-    # Now runs on all events including PRs
     timeout-minutes: 25
-    
+
     steps:
-    - uses: actions/checkout@v5
-    
-    - name: Setup Swift
-      uses: swift-actions/setup-swift@v2
+    - uses: actions/checkout@v4
+
+    - name: Setup Xcode
+      uses: maxim-lobanov/setup-xcode@v1
       with:
-        swift-version: ${{ env.SWIFT_VERSION }}
-    
-    - name: Setup SPM Cache
-      uses: ./.github/actions/setup-spm-cache
+        xcode-version: 'latest-stable'
+
+    - name: Cache SPM
+      uses: actions/cache@v4
       with:
-        cache-key-prefix: 'performance'
-        swift-version: ${{ env.SWIFT_VERSION }}
-    
+        path: |
+          .build
+          ~/Library/Developer/Xcode/DerivedData
+        key: ${{ runner.os }}-spm-${{ hashFiles('Package.resolved') }}
+        restore-keys: |
+          ${{ runner.os }}-spm-
+
     - name: Build Performance Tests
       run: swift build --configuration release --target PipelineKitPerformanceTests
-    
+
     - name: Run Performance Tests
       run: |
         # Run XCTest performance tests in release mode
         swift test --configuration release --filter "PipelineKitPerformanceTests" || PERF_EXIT=$?
-        
+
         # Conditional enforcement based on environment variable
         if [ "${{ env.ENFORCE_PERFORMANCE }}" = "true" ] && [ "${PERF_EXIT:-0}" -ne 0 ]; then
           echo "❌ Performance tests failed (enforcement enabled)"
@@ -544,7 +544,7 @@ jobs:
         else
           echo "✅ Performance tests passed"
         fi
-    
+
     - name: Upload Performance Results
       if: always()
       uses: actions/upload-artifact@v4
@@ -559,14 +559,13 @@ jobs:
   security:
     name: Security Scan
     runs-on: ubuntu-latest
-    # Now runs on all events including PRs
     timeout-minutes: 15
     permissions:
       security-events: write
-    
+
     steps:
-    - uses: actions/checkout@v5
-    
+    - uses: actions/checkout@v4
+
     - name: Run Trivy Security Scan
       uses: aquasecurity/trivy-action@0.33.1
       with:
@@ -576,7 +575,7 @@ jobs:
         format: 'sarif'
         output: 'trivy-results.sarif'
         args: --config .trivy.yaml
-    
+
     - name: Upload Trivy Results
       uses: github/codeql-action/upload-sarif@v3
       if: always()
@@ -586,30 +585,28 @@ jobs:
   # Documentation generation and deployment
   documentation:
     name: Documentation
-    runs-on: macos-14
+    runs-on: macos-26
     needs: swiftlint  # Don't depend on build to avoid cascade failures
-    # Run on all events, but only deploy on main branch
     timeout-minutes: 20
-    # Remove continue-on-error to make it a required check for PRs
     permissions:
       contents: read
       pages: write
       id-token: write
-    
+
     steps:
-    - uses: actions/checkout@v5
-    
-    - name: Setup Swift
-      uses: swift-actions/setup-swift@v2
+    - uses: actions/checkout@v4
+
+    - name: Setup Xcode
+      uses: maxim-lobanov/setup-xcode@v1
       with:
-        swift-version: ${{ env.SWIFT_VERSION }}
-    
+        xcode-version: 'latest-stable'
+
     - name: Cache SPM
       uses: actions/cache@v4
       with:
         path: |
           .build
-          ~/.swiftpm
+          ~/Library/Developer/Xcode/DerivedData
         key: ${{ runner.os }}-spm-docs-${{ hashFiles('Package.resolved') }}
         restore-keys: |
           ${{ runner.os }}-spm-docs-

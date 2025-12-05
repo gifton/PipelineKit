@@ -6,11 +6,11 @@ on:
       - 'v*'
 
 env:
-  SWIFT_VERSION: '6.1.0'
+  DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
   CI: 'true'
 
 permissions:
-  contents: write  # Need write for releases
+  contents: write
   packages: write
   checks: write
 
@@ -21,7 +21,7 @@ concurrency:
 jobs:
   validate-tag:
     name: Validate Tag
-    runs-on: macos-14
+    runs-on: macos-26
     outputs:
       version: ${{ steps.get_version.outputs.version }}
     steps:
@@ -44,10 +44,7 @@ jobs:
   build-and-test:
     name: Build and Test
     needs: validate-tag
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [macos-14, macos-13]
+    runs-on: macos-26
     steps:
     - uses: actions/checkout@v5
 
@@ -65,7 +62,7 @@ jobs:
   create-release:
     name: Create Release
     needs: [validate-tag, build-and-test]
-    runs-on: macos-14
+    runs-on: macos-26
     permissions:
       contents: write
     steps:
@@ -95,7 +92,7 @@ jobs:
   publish-docs:
     name: Publish Documentation
     needs: create-release
-    runs-on: macos-latest
+    runs-on: macos-26
     permissions:
       contents: write
       pages: write

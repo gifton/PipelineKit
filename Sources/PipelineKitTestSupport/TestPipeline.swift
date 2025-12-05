@@ -7,12 +7,12 @@ public actor TestPipeline: Pipeline {
     private var middlewareMocks: [String: Any] = [:]
     private var middlewareDelays: [String: TimeInterval] = [:]
     private var middlewareFailures: [String: (count: Int, after: Int)] = [:]
-    private var executionRecorder: ExecutionRecorder
+    private var executionRecorder: TestExecutionRecorder
     private let basePipeline: (any Pipeline)?
     
     public init(basePipeline: (any Pipeline)? = nil) {
         self.basePipeline = basePipeline
-        self.executionRecorder = ExecutionRecorder()
+        self.executionRecorder = TestExecutionRecorder()
     }
     
     /// Mock a middleware to return a specific value
@@ -90,7 +90,7 @@ public actor TestPipeline: Pipeline {
     }
     
     /// Get execution recorder for assertions
-    public func getRecorder() -> ExecutionRecorder {
+    public func getRecorder() -> TestExecutionRecorder {
         executionRecorder
     }
     
@@ -99,16 +99,16 @@ public actor TestPipeline: Pipeline {
         middlewareMocks.removeAll()
         middlewareDelays.removeAll()
         middlewareFailures.removeAll()
-        executionRecorder = ExecutionRecorder()
+        executionRecorder = TestExecutionRecorder()
     }
 }
 
-/// Records pipeline executions for testing
-public actor ExecutionRecorder {
-    private var executions: [ExecutionRecord] = []
+/// Records pipeline executions for testing (internal test support version)
+public actor TestExecutionRecorder {
+    private var executions: [TestExecutionRecord] = []
     private var middlewareExecutions: [MiddlewareExecution] = []
-    
-    public struct ExecutionRecord: Sendable {
+
+    public struct TestExecutionRecord: Sendable {
         public let id: UUID
         public let command: String
         public let metadata: any CommandMetadata
@@ -127,7 +127,7 @@ public actor ExecutionRecorder {
     }
     
     func recordStart(executionId: UUID, command: any Command, metadata: any CommandMetadata) {
-        let record = ExecutionRecord(
+        let record = TestExecutionRecord(
             id: executionId,
             command: String(describing: type(of: command)),
             metadata: metadata,
@@ -143,7 +143,7 @@ public actor ExecutionRecorder {
     func recordSuccess(executionId: UUID, result: Any, duration: TimeInterval) {
         if let index = executions.firstIndex(where: { $0.id == executionId }) {
             let record = executions[index]
-            executions[index] = ExecutionRecord(
+            executions[index] = TestExecutionRecord(
                 id: record.id,
                 command: record.command,
                 metadata: record.metadata,
@@ -159,7 +159,7 @@ public actor ExecutionRecorder {
     func recordFailure(executionId: UUID, error: any Error, duration: TimeInterval) {
         if let index = executions.firstIndex(where: { $0.id == executionId }) {
             let record = executions[index]
-            executions[index] = ExecutionRecord(
+            executions[index] = TestExecutionRecord(
                 id: record.id,
                 command: record.command,
                 metadata: record.metadata,
@@ -183,7 +183,7 @@ public actor ExecutionRecorder {
         )
     }
     
-    public func getExecutions() -> [ExecutionRecord] {
+    public func getExecutions() -> [TestExecutionRecord] {
         executions
     }
     
