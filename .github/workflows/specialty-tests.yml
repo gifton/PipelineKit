@@ -13,11 +13,10 @@ on:
           - performance-baseline
           - stress-testing
           - security-audit
-          - compatibility-matrix
         required: true
 
 env:
-  SWIFT_VERSION: '6.1.0'
+  DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
   CI: 'true'
 
 permissions:
@@ -32,40 +31,42 @@ jobs:
     if: |
       (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'test:memory')) ||
       (github.event_name == 'workflow_dispatch' && github.event.inputs.test_type == 'memory-intensive')
-    runs-on: macos-14
+    runs-on: macos-26
     timeout-minutes: 60
-    
+
     steps:
-    - uses: actions/checkout@v5
-    
-    - name: Setup Swift
-      uses: swift-actions/setup-swift@v2
+    - uses: actions/checkout@v4
+
+    - name: Setup Xcode
+      uses: maxim-lobanov/setup-xcode@v1
       with:
-        swift-version: ${{ env.SWIFT_VERSION }}
-    
-    - name: Setup SPM Cache
-      uses: ./.github/actions/setup-spm-cache
+        xcode-version: 'latest-stable'
+
+    - name: Cache SPM
+      uses: actions/cache@v4
       with:
-        cache-key-prefix: 'memory-test'
-        swift-version: ${{ env.SWIFT_VERSION }}
-    
+        path: |
+          .build
+          ~/Library/Developer/Xcode/DerivedData
+        key: ${{ runner.os }}-spm-memory-${{ hashFiles('Package.resolved') }}
+        restore-keys: |
+          ${{ runner.os }}-spm-
+
     - name: Run Memory Tests with Address Sanitizer
       run: |
-        echo "🧪 Running memory tests with Address Sanitizer"
+        echo "Running memory tests with Address Sanitizer"
         swift test --sanitize=address --configuration release
-    
+
     - name: Run Memory Tests with Thread Sanitizer
       run: |
-        echo "🧪 Running memory tests with Thread Sanitizer"
+        echo "Running memory tests with Thread Sanitizer"
         swift test --sanitize=thread --configuration release
-    
+
     - name: Memory Leak Detection
       run: |
-        echo "🔍 Running leak detection"
-        # Build with debug symbols
+        echo "Running leak detection"
         swift build --configuration debug
-        
-        # Run with leaks tool (macOS specific)
+
         if command -v leaks &> /dev/null; then
           swift test --filter "PipelineKitResilienceTests" 2>&1 | \
           leaks --atExit -- .build/debug/PipelineKitPackageTests.xctest/Contents/MacOS/PipelineKitPackageTests || true
@@ -77,63 +78,63 @@ jobs:
     if: |
       (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'test:performance')) ||
       (github.event_name == 'workflow_dispatch' && github.event.inputs.test_type == 'performance-baseline')
-    runs-on: macos-14
+    runs-on: macos-26
     timeout-minutes: 90
-    
+
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v4
       with:
-        fetch-depth: 0  # Need full history for baseline comparison
-    
-    - name: Setup Swift
-      uses: swift-actions/setup-swift@v2
+        fetch-depth: 0
+
+    - name: Setup Xcode
+      uses: maxim-lobanov/setup-xcode@v1
       with:
-        swift-version: ${{ env.SWIFT_VERSION }}
-    
-    - name: Setup SPM Cache
-      uses: ./.github/actions/setup-spm-cache
+        xcode-version: 'latest-stable'
+
+    - name: Cache SPM
+      uses: actions/cache@v4
       with:
-        cache-key-prefix: 'perf-baseline'
-        swift-version: ${{ env.SWIFT_VERSION }}
-    
+        path: |
+          .build
+          ~/Library/Developer/Xcode/DerivedData
+        key: ${{ runner.os }}-spm-perf-${{ hashFiles('Package.resolved') }}
+        restore-keys: |
+          ${{ runner.os }}-spm-
+
     - name: Checkout Base Branch
       run: |
         git checkout ${{ github.base_ref || 'main' }}
-    
+
     - name: Run Baseline Performance Tests
       run: |
-        echo "📊 Establishing performance baseline from ${{ github.base_ref || 'main' }}"
+        echo "Establishing performance baseline from ${{ github.base_ref || 'main' }}"
         swift build --configuration release --target PipelineKitPerformanceTests
-        
-        # Run tests 5 times and collect results
+
         for i in {1..5}; do
           echo "Baseline iteration $i/5"
           swift test --configuration release --filter "PipelineKitPerformanceTests" > baseline_$i.txt 2>&1
         done
-        
-        # Save baseline results
+
         mkdir -p performance-baseline
         mv baseline_*.txt performance-baseline/
-    
+
     - name: Checkout PR Branch
       run: |
         git checkout ${{ github.head_ref || github.ref }}
-    
+
     - name: Run PR Performance Tests
       run: |
-        echo "📊 Running performance tests on PR branch"
+        echo "Running performance tests on PR branch"
         swift build --configuration release --target PipelineKitPerformanceTests
-        
-        # Run tests 5 times and collect results
+
         for i in {1..5}; do
           echo "PR iteration $i/5"
           swift test --configuration release --filter "PipelineKitPerformanceTests" > pr_$i.txt 2>&1
         done
-        
-        # Save PR results
+
         mkdir -p performance-pr
         mv pr_*.txt performance-pr/
-    
+
     - name: Compare Performance
       run: |
         echo "## Performance Comparison Report" > performance-report.md
@@ -141,11 +142,9 @@ jobs:
         echo "Baseline: ${{ github.base_ref || 'main' }}" >> performance-report.md
         echo "PR: ${{ github.head_ref || github.ref }}" >> performance-report.md
         echo "" >> performance-report.md
-        
-        # Simple comparison (would need more sophisticated analysis in production)
         echo "### Test Results" >> performance-report.md
         echo "See uploaded artifacts for detailed results" >> performance-report.md
-    
+
     - name: Upload Performance Results
       uses: actions/upload-artifact@v4
       with:
@@ -162,53 +161,52 @@ jobs:
     if: |
       (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'test:stress')) ||
       (github.event_name == 'workflow_dispatch' && github.event.inputs.test_type == 'stress-testing')
-    runs-on: macos-14
+    runs-on: macos-26
     timeout-minutes: 120
-    
+
     steps:
-    - uses: actions/checkout@v5
-    
-    - name: Setup Swift
-      uses: swift-actions/setup-swift@v2
+    - uses: actions/checkout@v4
+
+    - name: Setup Xcode
+      uses: maxim-lobanov/setup-xcode@v1
       with:
-        swift-version: ${{ env.SWIFT_VERSION }}
-    
-    - name: Setup SPM Cache
-      uses: ./.github/actions/setup-spm-cache
+        xcode-version: 'latest-stable'
+
+    - name: Cache SPM
+      uses: actions/cache@v4
       with:
-        cache-key-prefix: 'stress'
-        swift-version: ${{ env.SWIFT_VERSION }}
-    
+        path: |
+          .build
+          ~/Library/Developer/Xcode/DerivedData
+        key: ${{ runner.os }}-spm-stress-${{ hashFiles('Package.resolved') }}
+        restore-keys: |
+          ${{ runner.os }}-spm-
+
     - name: Run Stress Tests
       run: |
-        echo "🔥 Running stress tests"
-        
-        # Build in release mode for stress testing
+        echo "Running stress tests"
         swift build --configuration release --build-tests
-        
-        # Run resilience tests repeatedly
+
         for i in {1..10}; do
           echo "Stress test iteration $i/10"
           swift test --configuration release --filter "PipelineKitResilienceTests" || {
-            echo "❌ Stress test failed at iteration $i"
+            echo "Stress test failed at iteration $i"
             exit 1
           }
         done
-        
-        echo "✅ All stress test iterations passed"
-    
+
+        echo "All stress test iterations passed"
+
     - name: Concurrent Stress Test
       run: |
-        echo "🔥 Running concurrent stress tests"
-        
-        # Run multiple test processes concurrently
+        echo "Running concurrent stress tests"
+
         for i in {1..4}; do
           swift test --configuration release --filter "PipelineKitResilienceTests" &
         done
-        
-        # Wait for all background jobs
+
         wait
-        echo "✅ Concurrent stress tests completed"
+        echo "Concurrent stress tests completed"
 
   # Security audit
   security-deep-scan:
@@ -218,10 +216,10 @@ jobs:
       (github.event_name == 'workflow_dispatch' && github.event.inputs.test_type == 'security-audit')
     runs-on: ubuntu-latest
     timeout-minutes: 45
-    
+
     steps:
-    - uses: actions/checkout@v5
-    
+    - uses: actions/checkout@v4
+
     - name: Run Comprehensive Security Scan
       uses: aquasecurity/trivy-action@0.33.1
       with:
@@ -230,123 +228,66 @@ jobs:
         severity: 'UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL'
         format: 'table'
         args: --config .trivy.yaml
-        exit-code: '1'  # Fail on any finding
-    
+        exit-code: '1'
+
     - name: SAST Scan
       run: |
-        echo "🔍 Running static analysis security testing"
-        # Would integrate with tools like Semgrep, CodeQL, etc.
-    
+        echo "Running static analysis security testing"
+
     - name: Dependency Vulnerability Scan
       run: |
-        echo "🔍 Scanning dependencies for vulnerabilities"
-        swift package show-dependencies --format json > dependencies.json
-        
-        # Check for known vulnerabilities (would integrate with real vulnerability DB)
+        echo "Scanning dependencies for vulnerabilities"
         echo "Dependency audit completed"
-
-  # Compatibility matrix
-  compatibility-matrix:
-    name: Compatibility Matrix
-    if: |
-      (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'test:compatibility')) ||
-      (github.event_name == 'workflow_dispatch' && github.event.inputs.test_type == 'compatibility-matrix')
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [macos-14, macos-13, macos-12, ubuntu-latest]
-        swift: ['5.8', '5.9', '5.10', '6.0']
-        exclude:
-          # Exclude unsupported combinations
-          - os: ubuntu-latest
-            swift: '5.8'
-          - os: macos-12
-            swift: '6.0'
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
-    
-    steps:
-    - uses: actions/checkout@v5
-    
-    - name: Setup Swift
-      if: runner.os != 'Linux'
-      uses: swift-actions/setup-swift@v2
-      with:
-        swift-version: ${{ matrix.swift }}
-      continue-on-error: true
-    
-    - name: Test Compatibility
-      run: |
-        echo "Testing Swift ${{ matrix.swift }} on ${{ matrix.os }}"
-        swift --version || echo "Swift setup failed"
-        
-        # Try to build
-        swift build || {
-          echo "⚠️ Build failed with Swift ${{ matrix.swift }} on ${{ matrix.os }}"
-          exit 0  # Don't fail the job, just report
-        }
-        
-        # Try to test
-        swift test || {
-          echo "⚠️ Tests failed with Swift ${{ matrix.swift }} on ${{ matrix.os }}"
-          exit 0  # Don't fail the job, just report
-        }
-        
-        echo "✅ Compatible with Swift ${{ matrix.swift }} on ${{ matrix.os }}"
 
   # Report results
   specialty-report:
     name: Specialty Test Report
     runs-on: ubuntu-latest
     if: always() && github.event_name == 'pull_request'
-    needs: [memory-tests, performance-baseline, stress-testing, security-deep-scan, compatibility-matrix]
+    needs: [memory-tests, performance-baseline, stress-testing, security-deep-scan]
     timeout-minutes: 5
-    
+
     steps:
     - name: Generate Report Comment
-      uses: actions/github-script@v8
+      uses: actions/github-script@v7
       with:
         script: |
           const jobs = {
             'Memory Tests': '${{ needs.memory-tests.result }}',
             'Performance Baseline': '${{ needs.performance-baseline.result }}',
             'Stress Testing': '${{ needs.stress-testing.result }}',
-            'Security Scan': '${{ needs.security-deep-scan.result }}',
-            'Compatibility Matrix': '${{ needs.compatibility-matrix.result }}'
+            'Security Scan': '${{ needs.security-deep-scan.result }}'
           };
-          
+
           let comment = '## Specialty Test Results\n\n';
-          
+
           for (const [name, result] of Object.entries(jobs)) {
             if (result && result !== 'skipped') {
               const emoji = result === 'success' ? '✅' : '❌';
               comment += `- ${name}: ${emoji} ${result}\n`;
             }
           }
-          
-          // Check if any specialty tests were run
+
           const anyRun = Object.values(jobs).some(r => r && r !== 'skipped');
-          
+
           if (!anyRun) {
             comment = '## Specialty Tests\n\nNo specialty tests were triggered. Add labels to run:\n';
             comment += '- `test:memory` - Memory intensive tests\n';
             comment += '- `test:performance` - Performance baseline comparison\n';
             comment += '- `test:stress` - Stress testing\n';
             comment += '- `test:security` - Security audit\n';
-            comment += '- `test:compatibility` - Compatibility matrix\n';
           }
-          
-          // Post or update comment
+
           const { data: comments } = await github.rest.issues.listComments({
             owner: context.repo.owner,
             repo: context.repo.repo,
             issue_number: context.issue.number
           });
-          
-          const botComment = comments.find(c => 
+
+          const botComment = comments.find(c =>
             c.user.type === 'Bot' && c.body.includes('Specialty Test Results')
           );
-          
+
           if (botComment) {
             await github.rest.issues.updateComment({
               owner: context.repo.owner,

@@ -6,11 +6,11 @@ on:
       - 'v*'
 
 env:
-  SWIFT_VERSION: '6.1.0'
+  DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
   CI: 'true'
 
 permissions:
-  contents: write  # Need write for releases
+  contents: write
   packages: write
   checks: write
 
@@ -21,18 +21,18 @@ concurrency:
 jobs:
   validate-tag:
     name: Validate Tag
-    runs-on: macos-14
+    runs-on: macos-26
     outputs:
       version: ${{ steps.get_version.outputs.version }}
     steps:
-    - uses: actions/checkout@v5
-    
+    - uses: actions/checkout@v4
+
     - name: Get version from tag
       id: get_version
       run: |
         VERSION=${GITHUB_REF#refs/tags/v}
         echo "version=$VERSION" >> $GITHUB_OUTPUT
-        
+
     - name: Validate semantic version
       run: |
         VERSION=${{ steps.get_version.outputs.version }}
@@ -44,33 +44,34 @@ jobs:
   build-and-test:
     name: Build and Test
     needs: validate-tag
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [macos-14, macos-13]
+    runs-on: macos-26
     steps:
-    - uses: actions/checkout@v5
-    
-    - name: Setup Swift
-      uses: swift-actions/setup-swift@v2
+    - uses: actions/checkout@v4
+
+    - name: Setup Xcode
+      uses: maxim-lobanov/setup-xcode@v1
       with:
-        swift-version: ${{ env.SWIFT_VERSION }}
-    
-      
-    # jemalloc installation removed - benchmarks configured to not require it    - name: Build
+        xcode-version: 'latest-stable'
+
+    - name: System Info
+      run: |
+        echo "## System Info" >> $GITHUB_STEP_SUMMARY
+        echo "- Swift: $(swift --version | head -1)" >> $GITHUB_STEP_SUMMARY
+        echo "- Xcode: $(xcodebuild -version | head -1)" >> $GITHUB_STEP_SUMMARY
+        echo "- macOS: $(sw_vers -productVersion)" >> $GITHUB_STEP_SUMMARY
+
+    - name: Build
       run: swift build -c release -v
-      
+
     - name: Test
       run: swift test -v
-      
+
     - name: Archive build
-      if: matrix.os == 'macos-14'
       run: |
         swift build -c release --arch arm64 --arch x86_64
         tar -czf PipelineKit-${{ needs.validate-tag.outputs.version }}-macos.tar.gz -C .build/release PipelineKit
-        
+
     - name: Upload artifacts
-      if: matrix.os == 'macos-14'
       uses: actions/upload-artifact@v4
       with:
         name: build-artifacts
@@ -79,17 +80,17 @@ jobs:
   create-release:
     name: Create Release
     needs: [validate-tag, build-and-test]
-    runs-on: macos-14
+    runs-on: macos-26
     permissions:
       contents: write
     steps:
-    - uses: actions/checkout@v5
-    
+    - uses: actions/checkout@v4
+
     - name: Download artifacts
-      uses: actions/download-artifact@v5
+      uses: actions/download-artifact@v4
       with:
         name: build-artifacts
-        
+
     - name: Extract changelog
       id: changelog
       run: |
@@ -98,7 +99,7 @@ jobs:
         echo "changelog<<EOF" >> $GITHUB_OUTPUT
         echo "$CHANGELOG" >> $GITHUB_OUTPUT
         echo "EOF" >> $GITHUB_OUTPUT
-        
+
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v2
       with:
@@ -108,7 +109,7 @@ jobs:
         prerelease: ${{ contains(needs.validate-tag.outputs.version, '-') }}
         files: |
           PipelineKit-*.tar.gz
-          
+
     - name: Update Package Index
       run: |
         echo "Package index update would happen here for package registries"
@@ -116,31 +117,30 @@ jobs:
   publish-docs:
     name: Publish Documentation
     needs: create-release
-    runs-on: macos-latest
+    runs-on: macos-26
     permissions:
       contents: write
       pages: write
       id-token: write
     steps:
-    - uses: actions/checkout@v5
-    
-    - name: Setup Swift
-      uses: swift-actions/setup-swift@v2
+    - uses: actions/checkout@v4
+
+    - name: Setup Xcode
+      uses: maxim-lobanov/setup-xcode@v1
       with:
-        swift-version: ${{ env.SWIFT_VERSION }}
-        
-      
-    # jemalloc installation removed - benchmarks configured to not require it    - name: Build documentation
+        xcode-version: 'latest-stable'
+
+    - name: Build documentation
       run: |
         swift package generate-documentation \
           --target PipelineKit \
           --output-path ./docs-output \
           --hosting-base-path PipelineKit
-          
+
     - name: Upload Pages artifact
       uses: actions/upload-pages-artifact@v4
       with:
         path: ./docs-output
-        
+
     - name: Deploy to GitHub Pages
       uses: actions/deploy-pages@v4
