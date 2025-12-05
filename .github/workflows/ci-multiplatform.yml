@@ -142,7 +142,6 @@ jobs:
     timeout-minutes: 25
     env:
       SCHEME: PipelineKit-Package
-      DESTINATION: platform=iOS Simulator,name=iPhone 17,OS=26.0
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -157,15 +156,31 @@ jobs:
           echo "## System Info" >> $GITHUB_STEP_SUMMARY
           echo "- Xcode: $(xcodebuild -version | head -1)" >> $GITHUB_STEP_SUMMARY
           echo "- macOS: $(sw_vers -productVersion)" >> $GITHUB_STEP_SUMMARY
-          echo "- Available simulators:" >> $GITHUB_STEP_SUMMARY
-          xcrun simctl list devices available | grep -i iphone | head -5 >> $GITHUB_STEP_SUMMARY
+          echo "- Available iOS 26+ simulators:" >> $GITHUB_STEP_SUMMARY
+          xcrun simctl list devices available | grep -i iphone | grep "26\." | head -5 >> $GITHUB_STEP_SUMMARY || echo "  (listing may be empty)" >> $GITHUB_STEP_SUMMARY
+
+      - name: Find iOS Simulator
+        id: find-sim
+        run: |
+          # Find the latest iOS 26.x iPhone simulator
+          DEVICE=$(xcrun simctl list devices available -j | \
+            jq -r '.devices | to_entries[] | select(.key | contains("iOS") and contains("26")) | .value[] | select(.name | contains("iPhone")) | .name' | \
+            head -1)
+
+          if [ -z "$DEVICE" ]; then
+            echo "No iOS 26.x iPhone simulator found, falling back to generic destination"
+            echo "destination=platform=iOS Simulator,name=Any iOS Simulator Device" >> $GITHUB_OUTPUT
+          else
+            echo "Found simulator: $DEVICE"
+            echo "destination=platform=iOS Simulator,name=$DEVICE" >> $GITHUB_OUTPUT
+          fi
 
       - name: Build for testing (Debug)
         run: |
           set -euo pipefail
           xcodebuild \
             -scheme "$SCHEME" \
-            -destination "$DESTINATION" \
+            -destination "${{ steps.find-sim.outputs.destination }}" \
             -configuration Debug \
             -skipPackagePluginValidation \
             -skipMacroValidation \
@@ -176,7 +191,7 @@ jobs:
           set -euo pipefail
           xcodebuild \
             -scheme "$SCHEME" \
-            -destination "$DESTINATION" \
+            -destination "${{ steps.find-sim.outputs.destination }}" \
             -configuration Debug \
             -skipPackagePluginValidation \
             -skipMacroValidation \
