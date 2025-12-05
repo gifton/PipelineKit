@@ -183,13 +183,22 @@ let package = Package(
             name: "PipelineKitPerformanceTests",
             dependencies: [
                 "PipelineKitCore",
-                "PipelineKitResilience", 
+                "PipelineKitResilience",
                 "PipelineKitSecurity",
                 "PipelineKitCache",
                 "PipelineKitPooling",
                 "PipelineKitObservability",
                 "PipelineKitTestSupport"
             ],
+            swiftSettings: [
+                .enableExperimentalFeature("StrictConcurrency"),
+                .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
+            ]
+        ),
+        // Test support library tests - Tests for MockMiddlewareFactory etc.
+        .testTarget(
+            name: "PipelineKitTestSupportTests",
+            dependencies: ["PipelineKit", "PipelineKitCore", "PipelineKitTestSupport"],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency"),
                 .unsafeFlags(["-enable-testing"], .when(configuration: .debug))
