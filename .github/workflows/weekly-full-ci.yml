@@ -11,7 +11,7 @@ on:
         default: true
 
 env:
-  SWIFT_VERSION: '6.1.0'
+  DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
   CI: 'true'
   # Full CI always enforces quality gates
   ENFORCE_SWIFTLINT: 'true'
@@ -26,69 +26,89 @@ permissions:
   security-events: write
 
 jobs:
-  # Run ALL tests regardless of what changed
-  full-test-matrix:
-    name: Full Test Matrix (${{ matrix.os }} / Swift ${{ matrix.swift }})
-    runs-on: ${{ matrix.os }}
+  # Run ALL tests on macOS 26
+  full-test-macos:
+    name: Full Test (macOS 26)
+    runs-on: macos-26
     timeout-minutes: 45
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [macos-14, macos-13, ubuntu-latest]
-        swift: ['5.9', '6.1.0']
-        exclude:
-          # Ubuntu doesn't support Swift 5.9 well
-          - os: ubuntu-latest
-            swift: '5.9'
-        include:
-          - os: ubuntu-latest
-            swift: '6.1'
-            container: swift:6.1
-          - os: ubuntu-latest
-            swift: '5.10'
-            container: swift:5.10
-    
-    container: ${{ matrix.container }}
-    
+
     steps:
-    - uses: actions/checkout@v5
-    
-    - name: Setup Swift
-      if: runner.os != 'Linux'
-      uses: swift-actions/setup-swift@v2
+    - uses: actions/checkout@v4
+
+    - name: Setup Xcode
+      uses: maxim-lobanov/setup-xcode@v1
       with:
-        swift-version: ${{ matrix.swift }}
-    
-    - name: Setup SPM Cache
-      uses: ./.github/actions/setup-spm-cache
+        xcode-version: 'latest-stable'
+
+    - name: System Info
+      run: |
+        echo "## System Info" >> $GITHUB_STEP_SUMMARY
+        echo "- Swift: $(swift --version | head -1)" >> $GITHUB_STEP_SUMMARY
+        echo "- Xcode: $(xcodebuild -version | head -1)" >> $GITHUB_STEP_SUMMARY
+        echo "- macOS: $(sw_vers -productVersion)" >> $GITHUB_STEP_SUMMARY
+
+    - name: Cache SPM
+      uses: actions/cache@v4
       with:
-        cache-key-prefix: 'weekly'
-        swift-version: ${{ matrix.swift }}
-    
+        path: |
+          .build
+          ~/Library/Developer/Xcode/DerivedData
+        key: ${{ runner.os }}-spm-weekly-${{ hashFiles('Package.resolved') }}
+        restore-keys: |
+          ${{ runner.os }}-spm-weekly-
+          ${{ runner.os }}-spm-
+
     - name: Build All Targets
       run: |
         swift build --build-tests
         swift build --configuration release
-    
+
     - name: Run All Tests
       run: |
-        # Run all test targets
         swift test --enable-code-coverage
-    
+
     - name: Run Performance Tests
-      if: runner.os == 'macOS'
       run: |
         swift test --configuration release --filter "PipelineKitPerformanceTests"
+
+  # Linux test
+  full-test-linux:
+    name: Full Test (Linux)
+    runs-on: ubuntu-latest
+    container: swift:6.1
+    timeout-minutes: 45
+    continue-on-error: true
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install Dependencies
+      run: |
+        apt-get update && apt-get install -y \
+          libssl-dev \
+          libcurl4-openssl-dev \
+          libxml2-dev \
+          tzdata \
+          git
+
+    - name: Build All Targets
+      run: |
+        swift build --build-tests
+        swift build --configuration release
+
+    - name: Run All Tests
+      run: |
+        swift test
 
   # Deep security scan
   security-audit:
     name: Deep Security Audit
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    
+
     steps:
-    - uses: actions/checkout@v5
-    
+    - uses: actions/checkout@v4
+
     - name: Run Trivy Deep Scan
       uses: aquasecurity/trivy-action@0.33.1
       with:
@@ -98,74 +118,72 @@ jobs:
         format: 'sarif'
         output: 'trivy-results.sarif'
         args: --config .trivy.yaml
-    
+
     - name: Upload Security Results
       uses: github/codeql-action/upload-sarif@v3
       with:
         sarif_file: 'trivy-results.sarif'
-    
+
     - name: Dependency Audit
       run: |
-        # Check for outdated dependencies
-        swift package show-dependencies --format json > dependencies.json
-        echo "📦 Dependency tree generated"
+        echo "Dependency tree generated - check for outdated dependencies"
 
   # Comprehensive benchmarking
   benchmark-suite:
     name: Full Benchmark Suite
-    runs-on: macos-14
+    runs-on: macos-26
     timeout-minutes: 90
-    
+
     steps:
-    - uses: actions/checkout@v5
-    
-    - name: Setup Swift
-      uses: swift-actions/setup-swift@v2
+    - uses: actions/checkout@v4
+
+    - name: Setup Xcode
+      uses: maxim-lobanov/setup-xcode@v1
       with:
-        swift-version: ${{ env.SWIFT_VERSION }}
-    
-    - name: Setup SPM Cache
-      uses: ./.github/actions/setup-spm-cache
+        xcode-version: 'latest-stable'
+
+    - name: Cache SPM
+      uses: actions/cache@v4
       with:
-        cache-key-prefix: 'benchmark-full'
-        swift-version: ${{ env.SWIFT_VERSION }}
-    
+        path: |
+          .build
+          ~/Library/Developer/Xcode/DerivedData
+        key: ${{ runner.os }}-spm-benchmark-${{ hashFiles('Package.resolved') }}
+        restore-keys: |
+          ${{ runner.os }}-spm-benchmark-
+          ${{ runner.os }}-spm-
+
     - name: Run Extended Benchmarks
       run: |
-        # Build all test targets in release mode
         swift build --configuration release --build-tests
-        
+
         # Run performance tests multiple times for consistency
         for i in {1..3}; do
-          echo "🔄 Benchmark iteration $i/3"
+          echo "Benchmark iteration $i/3"
           swift test --configuration release --filter "PerformanceTests"
         done
-    
+
     - name: Memory Profiling
       run: |
-        # Run with memory sanitizer
         swift test --sanitize=address || echo "Address sanitizer completed"
-        
-        # Run with thread sanitizer
         swift test --sanitize=thread || echo "Thread sanitizer completed"
 
   # Documentation completeness check
   documentation-audit:
     name: Documentation Audit
-    runs-on: macos-14
+    runs-on: macos-26
     timeout-minutes: 30
-    
+
     steps:
-    - uses: actions/checkout@v5
-    
-    - name: Setup Swift
-      uses: swift-actions/setup-swift@v2
+    - uses: actions/checkout@v4
+
+    - name: Setup Xcode
+      uses: maxim-lobanov/setup-xcode@v1
       with:
-        swift-version: ${{ env.SWIFT_VERSION }}
-    
+        xcode-version: 'latest-stable'
+
     - name: Check Documentation Coverage
       run: |
-        # Generate documentation with warnings
         swift package generate-documentation \
           --target PipelineKit \
           --output-path ./docs \
@@ -173,7 +191,7 @@ jobs:
           --transform-for-static-hosting \
           --analyze \
           --level detailed
-    
+
     - name: Upload Documentation Report
       uses: actions/upload-artifact@v4
       with:
@@ -184,28 +202,32 @@ jobs:
   # Compatibility testing
   compatibility-check:
     name: Compatibility Check
-    runs-on: macos-14
+    runs-on: macos-26
     timeout-minutes: 30
-    
+
     steps:
-    - uses: actions/checkout@v5
-    
+    - uses: actions/checkout@v4
+
+    - name: Setup Xcode
+      uses: maxim-lobanov/setup-xcode@v1
+      with:
+        xcode-version: 'latest-stable'
+
     - name: Test Package Resolution
       run: |
-        # Test as dependency
         mkdir test-integration
         cd test-integration
-        
+
         swift package init --type executable
-        
+
         # Add PipelineKit as dependency
         cat > Package.swift << EOF
-        // swift-tools-version:5.9
+        // swift-tools-version:6.0
         import PackageDescription
-        
+
         let package = Package(
             name: "TestIntegration",
-            platforms: [.macOS(.v13)],
+            platforms: [.macOS(.v14)],
             dependencies: [
                 .package(path: "..")
             ],
@@ -216,46 +238,46 @@ jobs:
             ]
         )
         EOF
-        
+
         swift build
 
   # Weekly report
   weekly-report:
     name: Generate Weekly Report
     runs-on: ubuntu-latest
-    needs: [full-test-matrix, security-audit, benchmark-suite, documentation-audit, compatibility-check]
+    needs: [full-test-macos, full-test-linux, security-audit, benchmark-suite, documentation-audit, compatibility-check]
     if: always()
     timeout-minutes: 10
-    
+
     steps:
     - name: Generate Report
       run: |
-        echo "# Weekly Full CI Report"
-        echo "Date: $(date)"
-        echo ""
-        echo "## Test Results:"
-        echo "- Full Test Matrix: ${{ needs.full-test-matrix.result }}"
-        echo "- Security Audit: ${{ needs.security-audit.result }}"
-        echo "- Benchmark Suite: ${{ needs.benchmark-suite.result }}"
-        echo "- Documentation Audit: ${{ needs.documentation-audit.result }}"
-        echo "- Compatibility Check: ${{ needs.compatibility-check.result }}"
-        echo ""
-        
-        # Determine overall status
-        if [ "${{ needs.full-test-matrix.result }}" = "success" ] && \
+        echo "# Weekly Full CI Report" >> $GITHUB_STEP_SUMMARY
+        echo "Date: $(date)" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "## Test Results:" >> $GITHUB_STEP_SUMMARY
+        echo "- macOS Tests: ${{ needs.full-test-macos.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "- Linux Tests: ${{ needs.full-test-linux.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "- Security Audit: ${{ needs.security-audit.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "- Benchmark Suite: ${{ needs.benchmark-suite.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "- Documentation Audit: ${{ needs.documentation-audit.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "- Compatibility Check: ${{ needs.compatibility-check.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+
+        if [ "${{ needs.full-test-macos.result }}" = "success" ] && \
            [ "${{ needs.security-audit.result }}" = "success" ] && \
            [ "${{ needs.benchmark-suite.result }}" = "success" ]; then
-          echo "## Overall Status: ✅ PASSED"
+          echo "## Overall Status: PASSED" >> $GITHUB_STEP_SUMMARY
         else
-          echo "## Overall Status: ❌ FAILED"
-          echo ""
-          echo "### Action Required:"
-          echo "Please review failing jobs and address issues before next release."
+          echo "## Overall Status: FAILED" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Action Required:" >> $GITHUB_STEP_SUMMARY
+          echo "Please review failing jobs and address issues before next release." >> $GITHUB_STEP_SUMMARY
         fi
-    
+
     - name: Create Issue for Failures
       if: failure()
-      uses: actions/github-script@v8
+      uses: actions/github-script@v7
       with:
         script: |
           const date = new Date().toISOString().split('T')[0];

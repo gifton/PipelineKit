@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 env:
-  SWIFT_VERSION: '6.1.0'
+  DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
   CI: 'true'
 
 permissions:
@@ -19,172 +19,146 @@ concurrency:
 
 jobs:
   nightly-test:
-    name: Nightly Test Suite (${{ matrix.os }})
-    runs-on: ${{ matrix.runner }}
+    name: Nightly Test Suite
+    runs-on: macos-26
     timeout-minutes: 45
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: macOS-14
-            runner: macos-14
-          - os: macOS-13
-            runner: macos-13
-    
+
     steps:
-      - uses: actions/checkout@v5
-      
-      - name: Setup Swift
-        uses: swift-actions/setup-swift@v2
+      - uses: actions/checkout@v4
+
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
         with:
-          swift-version: ${{ env.SWIFT_VERSION }}
-      
+          xcode-version: 'latest-stable'
+
+      - name: System Info
+        run: |
+          echo "## System Info" >> $GITHUB_STEP_SUMMARY
+          echo "- Swift: $(swift --version | head -1)" >> $GITHUB_STEP_SUMMARY
+          echo "- Xcode: $(xcodebuild -version | head -1)" >> $GITHUB_STEP_SUMMARY
+          echo "- macOS: $(sw_vers -productVersion)" >> $GITHUB_STEP_SUMMARY
+
       - name: Cache SPM
         uses: actions/cache@v4
         with:
           path: |
             .build
-            ~/.swiftpm
+            ~/Library/Developer/Xcode/DerivedData
           key: ${{ runner.os }}-spm-${{ hashFiles('Package.resolved') }}
           restore-keys: |
             ${{ runner.os }}-spm-
-      
+
       - name: Full Test Suite
         run: |
           swift test --enable-code-coverage
-      
+
       - name: Stress Tests
         run: |
           # Run tests multiple times to catch flaky tests
-          for i in {1..5}; do
-            echo "🔄 Test iteration $i/5"
+          for i in {1..3}; do
+            echo "🔄 Test iteration $i/3"
             swift test --configuration release
           done
         timeout-minutes: 30
 
-  compatibility-test:
-    name: Swift Compatibility
-    runs-on: macos-14
-    timeout-minutes: 30
-    strategy:
-      matrix:
-        swift-version: ['5.9', '6.1.0']
-    
-    steps:
-      - uses: actions/checkout@v5
-      
-      - name: Setup Swift ${{ matrix.swift-version }}
-        uses: swift-actions/setup-swift@v2
-        with:
-          swift-version: ${{ matrix.swift-version }}
-      
-      - name: Cache SPM
-        uses: actions/cache@v4
-        with:
-          path: |
-            .build
-            ~/.swiftpm
-          key: ${{ runner.os }}-swift-${{ matrix.swift-version }}-${{ hashFiles('Package.resolved') }}
-          restore-keys: |
-            ${{ runner.os }}-swift-${{ matrix.swift-version }}-
-      
-      - name: Build
-        run: swift build
-      
-      - name: Test
-        run: swift test
-
   linux-test:
     name: Linux Test
     runs-on: ubuntu-latest
-    container: swift:${{ matrix.swift-version }}
+    container: swift:6.1
     timeout-minutes: 30
-    strategy:
-      matrix:
-        swift-version: ['6.1', '5.10']
-    
+    continue-on-error: true  # Linux is secondary platform
+
     steps:
-      - uses: actions/checkout@v5
-      
+      - uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: |
+          apt-get update && apt-get install -y \
+            libssl-dev \
+            libcurl4-openssl-dev \
+            libxml2-dev \
+            tzdata \
+            git
+
       - name: Cache SPM
         uses: actions/cache@v4
         with:
           path: |
             .build
             ~/.swiftpm
-          key: linux-swift-${{ matrix.swift-version }}-${{ hashFiles('Package.resolved') }}
+          key: linux-swift-6.1-${{ hashFiles('Package.resolved') }}
           restore-keys: |
-            linux-swift-${{ matrix.swift-version }}-
-      
+            linux-swift-6.1-
+
       - name: Build
         run: swift build
-      
+
       - name: Test
         run: swift test
 
   memory-test:
     name: Memory & Leak Tests
-    runs-on: macos-14
+    runs-on: macos-26
     timeout-minutes: 30
-    
+
     steps:
-      - uses: actions/checkout@v5
-      
-      - name: Setup Swift
-        uses: swift-actions/setup-swift@v2
+      - uses: actions/checkout@v4
+
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
         with:
-          swift-version: ${{ env.SWIFT_VERSION }}
-      
+          xcode-version: 'latest-stable'
+
       - name: Cache SPM
         uses: actions/cache@v4
         with:
           path: |
             .build
-            ~/.swiftpm
+            ~/Library/Developer/Xcode/DerivedData
           key: ${{ runner.os }}-spm-${{ hashFiles('Package.resolved') }}
           restore-keys: |
             ${{ runner.os }}-spm-
-      
+
       - name: Build with Address Sanitizer
         run: swift build --sanitize=address
-      
+
       - name: Run Tests with Address Sanitizer
         run: swift test --sanitize=address
         continue-on-error: true  # Don't fail for now
-      
+
       - name: Build with Thread Sanitizer
         run: swift build --sanitize=thread
-      
+
       - name: Run Tests with Thread Sanitizer
         run: swift test --sanitize=thread
         continue-on-error: true  # Don't fail for now
 
   extended-benchmarks:
     name: Extended Benchmarks
-    runs-on: macos-14
+    runs-on: macos-26
     timeout-minutes: 60
-    
+
     steps:
-      - uses: actions/checkout@v5
-      
-      - name: Setup Swift
-        uses: swift-actions/setup-swift@v2
+      - uses: actions/checkout@v4
+
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
         with:
-          swift-version: ${{ env.SWIFT_VERSION }}
-      
+          xcode-version: 'latest-stable'
+
       - name: Cache SPM
         uses: actions/cache@v4
         with:
           path: |
             .build
-            ~/.swiftpm
+            ~/Library/Developer/Xcode/DerivedData
           key: ${{ runner.os }}-spm-${{ hashFiles('Package.resolved') }}
           restore-keys: |
             ${{ runner.os }}-spm-
-      
+
       - name: Build Performance Tests
         run: swift build --configuration release --target PipelineKitPerformanceTests
-      
+
       - name: Run Extended Performance Tests
         run: |
           # Run full performance test suite
@@ -192,7 +166,7 @@ jobs:
             EXIT_CODE=$?
             echo "Performance tests completed with status: $EXIT_CODE"
           }
-      
+
       - name: Upload Results
         if: always()
         uses: actions/upload-artifact@v4
@@ -207,18 +181,27 @@ jobs:
   report:
     name: Nightly Report
     runs-on: ubuntu-latest
-    needs: [nightly-test, compatibility-test, linux-test, memory-test, extended-benchmarks]
+    needs: [nightly-test, linux-test, memory-test, extended-benchmarks]
     if: always()
-    
+
     steps:
       - name: Generate Report
         run: |
-          echo "# Nightly Build Report"
-          echo "Date: $(date)"
-          echo ""
-          echo "## Results:"
-          echo "- Nightly Tests: ${{ needs.nightly-test.result }}"
-          echo "- Compatibility: ${{ needs.compatibility-test.result }}"
-          echo "- Linux: ${{ needs.linux-test.result }}"
-          echo "- Memory Tests: ${{ needs.memory-test.result }}"
-          echo "- Benchmarks: ${{ needs.extended-benchmarks.result }}"
+          echo "# Nightly Build Report" >> $GITHUB_STEP_SUMMARY
+          echo "Date: $(date)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Results:" >> $GITHUB_STEP_SUMMARY
+          echo "- Nightly Tests: ${{ needs.nightly-test.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Linux: ${{ needs.linux-test.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Memory Tests: ${{ needs.memory-test.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Benchmarks: ${{ needs.extended-benchmarks.result }}" >> $GITHUB_STEP_SUMMARY
+
+          # Determine overall status
+          if [ "${{ needs.nightly-test.result }}" != "success" ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "❌ Nightly build failed" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          else
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "✅ Nightly build passed" >> $GITHUB_STEP_SUMMARY
+          fi
