@@ -68,7 +68,7 @@ public actor SecureCommandDispatcher {
     ///           `SecureDispatcherError.executionFailed` with sanitized error message
     public func dispatch<T: Command>(
         _ command: T,
-        metadata: CommandMetadata? = nil
+        metadata: (any CommandMetadata)? = nil
     ) async throws -> T.Result {
         let commandType = String(describing: T.self)
         let executionMetadata = metadata ?? DefaultCommandMetadata()
