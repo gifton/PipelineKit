@@ -526,7 +526,7 @@ private actor Partition {
         )
     }
 
-    func addWaiter(_ continuation: CheckedContinuation<Void, Error>) {
+    func addWaiter(_ continuation: CheckedContinuation<Void, any Error>) {
         waiters.append(continuation)
     }
 }

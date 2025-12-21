@@ -161,7 +161,7 @@ private struct CacheWrapper<T>: Codable {
         case typeInfo
     }
     
-    init(from decoder: Decoder) throws {
+    init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.typeInfo = try container.decode(String.self, forKey: .typeInfo)
         
@@ -218,6 +218,7 @@ private struct CacheWrapper<T>: Codable {
             self.result = value
         } else {
             // For other Decodable types, try generic decoding
+            // Note: We use Decodable.Type here (not `any Decodable.Type`) because we need to call init on it
             if let decodableType = T.self as? Decodable.Type {
                 let value = try decodableType.init(from: try container.superDecoder(forKey: .result))
                 guard let typedValue = value as? T else {
@@ -234,7 +235,7 @@ private struct CacheWrapper<T>: Codable {
         }
     }
     
-    func encode(to encoder: Encoder) throws {
+    func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(typeInfo, forKey: .typeInfo)
         

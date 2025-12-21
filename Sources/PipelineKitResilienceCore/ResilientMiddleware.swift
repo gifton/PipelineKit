@@ -50,7 +50,7 @@ public final class ResilientMiddleware: Middleware, @unchecked Sendable {
         context: CommandContext,
         next: @escaping MiddlewareNext<T>
     ) async throws -> T.Result {
-        var lastError: Error?
+        var lastError: (any Error)?
         let startTime = Date()
         let metadata = context.commandMetadata
         _ = (metadata as? DefaultCommandMetadata)?.userID ?? "unknown"
