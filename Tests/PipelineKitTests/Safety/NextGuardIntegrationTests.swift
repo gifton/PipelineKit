@@ -17,7 +17,7 @@ final class NextGuardIntegrationTests: XCTestCase {
     private struct TestHandler: CommandHandler {
         typealias CommandType = TestCommand
         
-        func handle(_ command: TestCommand) async throws -> TestCommand.Result {
+        func handle(_ command: TestCommand, context: CommandContext) async throws -> TestCommand.Result {
             return command.value + "-handled"
         }
     }
@@ -119,7 +119,7 @@ final class NextGuardIntegrationTests: XCTestCase {
             typealias CommandType = TestCommand
             let state: CountingState
             
-            func handle(_ command: TestCommand) async throws -> TestCommand.Result {
+            func handle(_ command: TestCommand, context: CommandContext) async throws -> TestCommand.Result {
                 let count = await state.increment()
                 return command.value + "-handled-\(count)"
             }

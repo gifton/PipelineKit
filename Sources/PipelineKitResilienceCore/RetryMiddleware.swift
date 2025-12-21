@@ -77,7 +77,7 @@ public struct RetryMiddleware: Middleware {
         public let retryableErrors: Set<RetryableError.ErrorType>
 
         /// Custom error evaluator
-        public let errorEvaluator: (@Sendable (Error) -> Bool)?
+        public let errorEvaluator: (@Sendable (any Error) -> Bool)?
 
         /// Whether to emit observability events
         public let emitEvents: Bool
@@ -89,7 +89,7 @@ public struct RetryMiddleware: Middleware {
             maxAttempts: Int = 3,
             strategy: BackoffStrategy = .exponentialJitter(baseDelay: 1.0, maxDelay: 30.0),
             retryableErrors: Set<RetryableError.ErrorType> = [.timeout, .networkError, .temporaryFailure],
-            errorEvaluator: (@Sendable (Error) -> Bool)? = nil,
+            errorEvaluator: (@Sendable (any Error) -> Bool)? = nil,
             emitEvents: Bool = true,
             maxRetryTime: TimeInterval? = nil
         ) {
@@ -132,7 +132,7 @@ public struct RetryMiddleware: Middleware {
     ) async throws -> T.Result {
         let commandType = String(describing: type(of: command))
         let startTime = Date()
-        var lastError: Error?
+        var lastError: (any Error)?
 
         for attempt in 0...configuration.maxAttempts {
             // Check max retry time
@@ -211,7 +211,7 @@ public struct RetryMiddleware: Middleware {
 
     // MARK: - Private Methods
 
-    private func shouldRetry(error: Error) -> Bool {
+    private func shouldRetry(error: any Error) -> Bool {
         // Check cancellation first
         if error is CancellationError {
             return false
@@ -278,7 +278,7 @@ public struct RetryMiddleware: Middleware {
         commandType: String,
         attempt: Int,
         delay: TimeInterval,
-        error: Error,
+        error: any Error,
         context: CommandContext
     ) async {
         guard configuration.emitEvents else { return }
@@ -317,7 +317,7 @@ public struct RetryMiddleware: Middleware {
     private func emitRetryExhausted(
         commandType: String,
         attempts: Int,
-        error: Error,
+        error: any Error,
         context: CommandContext
     ) async {
         guard configuration.emitEvents else { return }

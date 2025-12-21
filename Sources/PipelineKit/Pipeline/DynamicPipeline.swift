@@ -48,6 +48,7 @@ import PipelineKitCore
 public actor DynamicPipeline {
     private let handlerRegistry = HandlerRegistry()
     private var middlewares: [any Middleware] = []
+    private var sortedMiddlewaresCache: [any Middleware]?
     private let maxMiddlewareDepth = 100
     // Circuit breaker functionality is now provided via middleware
     // See RateLimitingMiddleware with CircuitBreaker in PipelineKitMiddleware
@@ -121,6 +122,7 @@ public actor DynamicPipeline {
             throw PipelineError.maxDepthExceeded(depth: middlewares.count + 1, max: maxMiddlewareDepth)
         }
         middlewares.append(middleware)
+        sortedMiddlewaresCache = nil  // Invalidate cache
     }
 
     /// Adds multiple middleware to the command bus at once.
@@ -137,6 +139,7 @@ public actor DynamicPipeline {
             throw PipelineError.maxDepthExceeded(depth: middlewares.count + newMiddlewares.count, max: maxMiddlewareDepth)
         }
         middlewares.append(contentsOf: newMiddlewares)
+        sortedMiddlewaresCache = nil  // Invalidate cache
     }
 
     /// Sends a command through the bus for execution.
@@ -190,24 +193,16 @@ public actor DynamicPipeline {
         try await send(command, context: context, retryPolicy: retryPolicy)
     }
 
-    private func executePipeline<T: Command>(command: T, context: CommandContext) async throws -> T.Result {
-        // Check for cancellation before starting pipeline execution
-        try Task.checkCancellation(context: "DynamicPipeline execution cancelled before pipeline")
-        
-        guard let anyHandler = await handlerRegistry.handler(for: T.self),
-              let handler = anyHandler as? AnyCommandHandler<T> else {
-            throw PipelineError.handlerNotFound(commandType: String(describing: T.self))
-        }
-
-        let finalHandler: @Sendable (T, CommandContext) async throws -> T.Result = { cmd, _ in
-            // Check for cancellation before handler execution
-            try Task.checkCancellation(context: "DynamicPipeline execution cancelled before handler")
-            return try await handler.handle(cmd)
+    /// Returns sorted middlewares, computing and caching on first access.
+    /// This reduces per-send overhead from O(n log n) to O(1) after first call.
+    private func getSortedMiddlewares() -> [any Middleware] {
+        if let cached = sortedMiddlewaresCache {
+            return cached
         }
 
         // Sort middleware by priority (lower values execute first),
         // preserving insertion order for equal priorities
-        let sortedMiddleware: [any Middleware] = middlewares
+        let sorted = middlewares
             .enumerated()
             .sorted { lhs, rhs in
                 let lp = lhs.element.priority.rawValue
@@ -216,6 +211,28 @@ public actor DynamicPipeline {
                 return lhs.offset < rhs.offset
             }
             .map { $0.element }
+
+        sortedMiddlewaresCache = sorted
+        return sorted
+    }
+
+    private func executePipeline<T: Command>(command: T, context: CommandContext) async throws -> T.Result {
+        // Check for cancellation before starting pipeline execution
+        try Task.checkCancellation(context: "DynamicPipeline execution cancelled before pipeline")
+
+        guard let anyHandler = await handlerRegistry.handler(for: T.self),
+              let handler = anyHandler as? AnyCommandHandler<T> else {
+            throw PipelineError.handlerNotFound(commandType: String(describing: T.self))
+        }
+
+        let finalHandler: @Sendable (T, CommandContext) async throws -> T.Result = { cmd, ctx in
+            // Check for cancellation before handler execution
+            try Task.checkCancellation(context: "DynamicPipeline execution cancelled before handler")
+            return try await handler.handle(cmd, context: ctx)
+        }
+
+        // Use cached sorted middlewares (O(1) after first call vs O(n log n) per-send)
+        let sortedMiddleware = getSortedMiddlewares()
 
         let chain = sortedMiddleware.reversed().reduce(finalHandler) { next, middleware in
             // Apply NextGuard unless middleware opts out
@@ -311,10 +328,12 @@ public actor DynamicPipeline {
     public func clear() async {
         await handlerRegistry.removeAllHandlers()
         middlewares.removeAll()
+        sortedMiddlewaresCache = nil  // Invalidate cache
     }
 
     public func clearMiddlewares() {
         middlewares.removeAll()
+        sortedMiddlewaresCache = nil  // Invalidate cache
     }
 
     public var middlewareCount: Int {

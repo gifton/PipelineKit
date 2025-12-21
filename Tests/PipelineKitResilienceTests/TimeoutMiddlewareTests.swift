@@ -19,13 +19,14 @@ final class TimeoutMiddlewareTests: XCTestCase {
     private struct TestHandler: CommandHandler {
         typealias CommandType = TestCommand
         
-        func handle(_ command: TestCommand) async throws -> String {
+        func handle(_ command: TestCommand, context: CommandContext) async throws -> String {
             return command.value
         }
     }
     
-    // Slow middleware for testing timeouts
-    private struct SlowMiddleware: Middleware {
+    // Slow middleware for testing timeouts - conforms to NextGuardWarningSuppressing
+    // because it may be cancelled by timeout, leaving next() uncalled
+    private struct SlowMiddleware: Middleware, NextGuardWarningSuppressing {
         let delay: TimeInterval
         let priority: ExecutionPriority = .postProcessing  // Higher priority number than resilience
         
@@ -137,8 +138,8 @@ final class TimeoutMiddlewareTests: XCTestCase {
         
         struct TimeoutHandler: CommandHandler {
             typealias CommandType = TimeoutCommand
-            
-            func handle(_ command: TimeoutCommand) async throws -> String {
+
+            func handle(_ command: TimeoutCommand, context: CommandContext) async throws -> String {
                 return command.value
             }
         }

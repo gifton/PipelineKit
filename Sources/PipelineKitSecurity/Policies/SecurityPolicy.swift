@@ -86,7 +86,7 @@ public struct SecurityPolicyMiddleware: Middleware {
         next: @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
         // If command implements SecurityValidatable, use its validation
-        if let validatable = command as? SecurityValidatable {
+        if let validatable = command as? any SecurityValidatable {
             try validatable.validate(against: policy)
         } else if policy.strictValidation {
             // For non-validatable commands, use reflection-based validation

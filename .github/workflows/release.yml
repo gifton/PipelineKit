@@ -6,11 +6,11 @@ on:
       - 'v*'
 
 env:
-  DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
+  SWIFT_VERSION: '6.2'
   CI: 'true'
 
 permissions:
-  contents: write
+  contents: write  # Need write for releases
   packages: write
   checks: write
 

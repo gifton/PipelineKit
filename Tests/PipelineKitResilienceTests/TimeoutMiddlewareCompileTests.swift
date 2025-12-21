@@ -76,7 +76,7 @@ private struct DummyCommand: Command {
 private struct DummyHandler: CommandHandler {
     typealias CommandType = DummyCommand
 
-    func handle(_ command: DummyCommand) async throws -> String {
+    func handle(_ command: DummyCommand, context: CommandContext) async throws -> String {
         return try await command.execute()
     }
 }

@@ -15,7 +15,7 @@ final class CommandTests: XCTestCase {
     private struct TestHandler: CommandHandler {
         typealias CommandType = LocalTestCommand
         
-        func handle(_ command: LocalTestCommand) async throws -> String {
+        func handle(_ command: LocalTestCommand, context: CommandContext) async throws -> String {
             return "Processed: \(command.value)"
         }
     }
@@ -24,7 +24,7 @@ final class CommandTests: XCTestCase {
         let command = LocalTestCommand(value: 42)
         let handler = TestHandler()
         
-        let result = try await handler.handle(command)
+        let result = try await handler.handle(command, context: CommandContext())
         XCTAssertEqual(result, "Processed: 42")
     }
     

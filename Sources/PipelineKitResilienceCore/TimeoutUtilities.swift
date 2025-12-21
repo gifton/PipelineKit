@@ -188,7 +188,7 @@ internal func withTimeoutAndGrace<T: Sendable>(
 internal enum TimeoutRaceResult<T: Sendable>: Sendable {
     case success(T)
     case timeout
-    case failure(Error)
+    case failure(any Error)
     case cancelled
 
     func get() throws -> T {

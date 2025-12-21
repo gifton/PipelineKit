@@ -20,32 +20,35 @@ public protocol Command: Sendable {
 ```swift
 public protocol CommandHandler: Sendable {
     associatedtype CommandType: Command
-    func handle(_ command: CommandType) async throws -> CommandType.Result
+    func handle(_ command: CommandType, context: CommandContext) async throws -> CommandType.Result
 }
 ```
 
 - One handler per command type
+- Receives `CommandContext` for metadata, correlation IDs, transactions
 - Async/await for modern concurrency
 - Throws for explicit error handling
 
-### CommandContext (actor)
+### CommandContext
 
 ```swift
-public actor CommandContext {
+@dynamicMemberLookup
+public final class CommandContext: @unchecked Sendable {
     // Typed storage access
     public func set<T: Sendable>(_ key: ContextKey<T>, value: T?)
     public func get<T: Sendable>(_ key: ContextKey<T>) -> T?
 
-    // Built‑in keys
-    public var requestID: String? { get async }
-    public var userID: String? { get async }
-    public var correlationID: String? { get async }
+    // Built‑in properties (via dynamic member lookup)
+    public var requestID: String? { get set }
+    public var userID: String? { get set }
+    public var correlationID: String? { get set }
 }
 ```
 
-- Actor‑isolated for thread‑safety
+- Thread-safe class with internal locking (not an actor)
 - Type‑safe storage via ContextKey<T>
-- Built‑in keys in ContextKeys (e.g., requestID)
+- Built‑in keys accessible via property syntax
+- `@dynamicMemberLookup` for ergonomic access
 
 ### Middleware
 

@@ -2,7 +2,11 @@ import Foundation
 import PipelineKit
 
 /// Authorization middleware with role-based access control.
-public struct AuthorizationMiddleware: Middleware {
+///
+/// This middleware conforms to `NextGuardWarningSuppressing` because it
+/// intentionally short-circuits the pipeline by throwing when authorization fails,
+/// without calling `next()`. This is expected behavior for security middleware.
+public struct AuthorizationMiddleware: Middleware, NextGuardWarningSuppressing {
     public let priority: ExecutionPriority = .validation
     private let requiredRoles: Set<String>
     private let getUserRoles: @Sendable (String) async throws -> Set<String>

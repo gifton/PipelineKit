@@ -225,7 +225,7 @@ public struct HealthCheckMiddleware: Middleware {
 
     private func extractServiceName(from command: any Command, context: CommandContext) async -> String {
         // Check if command implements ServiceIdentifiable
-        if let serviceCommand = command as? ServiceIdentifiable {
+        if let serviceCommand = command as? any ServiceIdentifiable {
             return serviceCommand.serviceName
         }
 
@@ -403,7 +403,7 @@ private actor HealthMonitor {
         updateHealthState(for: service)
     }
 
-    func recordFailure(service: String, error: Error, duration: TimeInterval) {
+    func recordFailure(service: String, error: (any Error), duration: TimeInterval) {
         ensureServiceStats(for: service)
         serviceStats[service]?.recordFailure(duration: duration)
         updateHealthState(for: service)

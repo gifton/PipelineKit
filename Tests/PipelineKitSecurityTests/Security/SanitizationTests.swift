@@ -105,7 +105,7 @@ final class SanitizationTests: XCTestCase {
         struct TestHandler: CommandHandler {
             typealias CommandType = CreatePostCommand
             
-            func handle(_ command: CreatePostCommand) async throws -> String {
+            func handle(_ command: CreatePostCommand, context: CommandContext) async throws -> String {
                 return "Post created: \(command.title)"
             }
         }

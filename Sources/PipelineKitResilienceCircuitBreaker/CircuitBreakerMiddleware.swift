@@ -169,7 +169,7 @@ public struct CircuitBreakerMiddleware: Middleware {
         public let emitEvents: Bool
         
         /// Custom error evaluator
-        public let errorEvaluator: (@Sendable (Error) -> Bool)?
+        public let errorEvaluator: (@Sendable (any Error) -> Bool)?
         
         public init(
             failureThreshold: Int = 5,
@@ -178,7 +178,7 @@ public struct CircuitBreakerMiddleware: Middleware {
             halfOpenSuccessThreshold: Int = 3,
             triggeredByErrors: Set<CircuitBreakerError.ErrorType> = [.timeout, .networkError, .serverError, .unknown],
             emitEvents: Bool = true,
-            errorEvaluator: (@Sendable (Error) -> Bool)? = nil
+            errorEvaluator: (@Sendable (any Error) -> Bool)? = nil
         ) {
             self.failureThreshold = max(1, failureThreshold)
             self.recoveryTimeout = max(0.1, recoveryTimeout)
@@ -260,7 +260,7 @@ public struct CircuitBreakerMiddleware: Middleware {
     
     // MARK: - Private Methods
     
-    private func shouldTriggerCircuit(for error: Error) -> Bool {
+    private func shouldTriggerCircuit(for error: (any Error)) -> Bool {
         // Check custom evaluator first
         if let evaluator = configuration.errorEvaluator {
             return evaluator(error)

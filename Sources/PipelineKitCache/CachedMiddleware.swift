@@ -86,7 +86,7 @@ public struct DefaultCacheKeyGenerator: CacheKeyGenerator {
         ]
         
         // Add command description if available
-        if let describable = command as? CustomStringConvertible {
+        if let describable = command as? any CustomStringConvertible {
             components.append(describable.description)
         }
         

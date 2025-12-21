@@ -22,7 +22,7 @@ struct InspectorTestCommand: Command {
 final class InspectorTestHandler: CommandHandler {
     typealias CommandType = InspectorTestCommand
 
-    func handle(_ command: InspectorTestCommand) async throws -> String {
+    func handle(_ command: InspectorTestCommand, context: CommandContext) async throws -> String {
         command.value
     }
 }

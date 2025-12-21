@@ -25,12 +25,11 @@ public actor BackPressureSemaphore {
     // MARK: - Types
     
     private struct Waiter {
-        let id = UUID()
+        let id: UUID
         let continuation: CheckedContinuation<SemaphoreToken, any Error>
-        let enqueuedAt = Date()
+        let enqueuedAt: Date
         let priority: QueuePriority
         let estimatedSize: Int
-        var isCancelled = false
     }
     
     public enum QueuePriority: Int, Comparable, Sendable {
@@ -99,10 +98,16 @@ public actor BackPressureSemaphore {
         try checkQueueLimits(estimatedSize: estimatedSize)
         
         // Slow path: queue and wait
+        // Capture waiter ID before withTaskCancellationHandler for proper cancellation targeting
+        let waiterID = UUID()
+        let enqueuedAt = Date()
+
         return try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { continuation in
                 let waiter = Waiter(
+                    id: waiterID,
                     continuation: continuation,
+                    enqueuedAt: enqueuedAt,
                     priority: priority,
                     estimatedSize: estimatedSize
                 )
@@ -110,7 +115,7 @@ public actor BackPressureSemaphore {
             }
         } onCancel: {
             Task { [weak self] in
-                await self?.cancelWaiter()
+                await self?.cancelWaiter(waiterID)
             }
         }
     }
@@ -196,24 +201,18 @@ public actor BackPressureSemaphore {
     
     private func extractNextWaiter() -> Waiter? {
         guard !waiters.isEmpty else { return nil }
-        
-        // Skip cancelled waiters
-        while !waiters.isEmpty {
-            let waiter = waiters.removeFirst()
-            if !waiter.isCancelled {
-                return waiter
-            }
-        }
-        return nil
+        return waiters.removeFirst()
     }
-    
-    private func cancelWaiter() {
-        // Mark the most recent waiter as cancelled
-        // In a real implementation, we'd track by task ID
-        if let index = waiters.lastIndex(where: { !$0.isCancelled }) {
-            waiters[index].isCancelled = true
-            waiters[index].continuation.resume(throwing: CancellationError())
+
+    /// Cancels a specific waiter by ID, removing it before resuming to prevent double-resume.
+    private func cancelWaiter(_ waiterID: UUID) {
+        // Find and remove the waiter, then resume with cancellation error
+        // Remove FIRST to prevent double-resume if release() is called concurrently
+        if let index = waiters.firstIndex(where: { $0.id == waiterID }) {
+            let waiter = waiters.remove(at: index)
+            waiter.continuation.resume(throwing: CancellationError())
         }
+        // If waiter not found, it was already processed by release() - no action needed
     }
     
     private func checkQueueLimits(estimatedSize: Int) throws {
@@ -280,7 +279,8 @@ public actor BackPressureSemaphore {
     private func cleanupExpiredWaiters() {
         let now = Date()
         waiters.removeAll { waiter in
-            if waiter.enqueuedAt.timeIntervalSince(now) > waiterTimeout {
+            // Fix: now.timeIntervalSince(waiter.enqueuedAt) produces positive values for old waiters
+            if now.timeIntervalSince(waiter.enqueuedAt) > waiterTimeout {
                 waiter.continuation.resume(throwing:
                     PipelineError.backPressure(reason: .timeout(duration: waiterTimeout))
                 )

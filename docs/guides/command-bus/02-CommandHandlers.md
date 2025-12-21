@@ -29,9 +29,10 @@ import Foundation
 
 // A generic protocol for all command handlers.
 // It uses an `associatedtype` to strongly-type the command it can handle.
-public protocol CommandHandler {
+// PipelineKit's actual protocol - your handlers should conform to this.
+public protocol CommandHandler: Sendable {
     associatedtype CommandType: Command
-    func handle(command: CommandType) async throws
+    func handle(_ command: CommandType, context: CommandContext) async throws -> CommandType.Result
 }
 
 // A mock service that our handler will depend on.
@@ -67,7 +68,8 @@ class CreateUserCommandHandler: CommandHandler {
     }
     
     // The `handle` method contains the actual business logic.
-    func handle(command: CreateUserCommand) async throws {
+    // Note: context provides metadata, correlation IDs, and more.
+    func handle(_ command: CreateUserCommand, context: CommandContext) async throws -> Void {
         print("▶️ [Handler] Handling CreateUserCommand for user: \(command.username)")
         
         // --- Business Logic ---
@@ -154,23 +156,31 @@ enum UserHandlerError: Error, LocalizedError {
 
 ### 2. Result Types for Partial Success
 ```swift
-struct CreateUserResult {
+// PipelineKit handlers return CommandType.Result, so define your result type:
+struct CreateUserCommand: Command {
+    typealias Result = CreateUserResult  // Custom result type
+    let username: String
+    let email: String
+}
+
+struct CreateUserResult: Sendable {
     let userId: UUID
     let warnings: [String]
 }
 
-protocol ResultCommandHandler {
-    associatedtype CommandType: Command
-    associatedtype ResultType
-    
-    func handle(command: CommandType) async throws -> ResultType
+// Handler returns the custom result type
+struct CreateUserHandler: CommandHandler {
+    func handle(_ command: CreateUserCommand, context: CommandContext) async throws -> CreateUserResult {
+        // ... business logic ...
+        return CreateUserResult(userId: UUID(), warnings: [])
+    }
 }
 ```
 
 ### 3. Compensation Actions
 ```swift
 class CreateUserCommandHandler: CommandHandler {
-    func handle(command: CreateUserCommand) async throws {
+    func handle(_ command: CreateUserCommand, context: CommandContext) async throws -> Void {
         // Track what we've done for rollback
         var compensations: [() async throws -> Void] = []
         
@@ -249,10 +259,10 @@ Sometimes you need to compose handlers for complex operations:
 // Composite handler for related operations
 class UserRegistrationHandler: CommandHandler {
     typealias CommandType = RegisterUserCommand
-    
+
     private let commandBus: CommandBus
-    
-    func handle(command: RegisterUserCommand) async throws {
+
+    func handle(_ command: RegisterUserCommand, context: CommandContext) async throws -> Void {
         // Break down into smaller commands
         try await commandBus.dispatch(CreateUserCommand(
             username: command.username,
@@ -297,9 +307,10 @@ class CreateUserCommandHandlerTests: XCTestCase {
             username: "johndoe",
             email: "john@example.com"
         )
-        
+        let context = CommandContext()
+
         // Act
-        try await handler.handle(command: command)
+        try await handler.handle(command, context: context)
         
         // Assert
         XCTAssertEqual(mockUserService.savedUsers.count, 1)
@@ -318,10 +329,11 @@ class CreateUserCommandHandlerTests: XCTestCase {
             username: "johndoe",
             email: "invalid-email"
         )
-        
+        let context = CommandContext()
+
         // Act & Assert
         await assertThrowsError {
-            try await handler.handle(command: command)
+            try await handler.handle(command, context: context)
         } errorHandler: { error in
             XCTAssertEqual(error as? HandlerError, .invalidEmail)
         }

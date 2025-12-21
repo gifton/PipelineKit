@@ -13,7 +13,7 @@ jobs:
     name: Check Runner Availability
     strategy:
       matrix:
-        runner: [ubuntu-latest, macos-14, macos-13]
+        runner: [ubuntu-latest, macos-26]
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 2
     

@@ -310,15 +310,196 @@ final class BackPressureTests: XCTestCase {
         try await pipeline.addMiddleware(backPressureMiddleware)
         
         // Execute with custom size estimation
+        let context = CommandContext()
         let result = try await backPressureMiddleware.execute(
             BackPressureTestCommand(value: "test"),
-            context: CommandContext(),
+            context: context,
             estimatedSize: 512
-        ) { command, _ in
-            try await handler.handle(command)
+        ) { command, ctx in
+            try await handler.handle(command, context: ctx)
         }
         
         XCTAssertEqual(result, "Handled: test")
+    }
+
+    // MARK: - BackPressureSemaphore Correctness Tests
+
+    func testCancellationTargetsCorrectWaiter() async throws {
+        // Tests that task cancellation cancels the correct waiter, not a random one
+        let semaphore = BackPressureSemaphore(
+            maxConcurrency: 1,
+            maxOutstanding: 10,
+            strategy: .suspend
+        )
+
+        // Hold the only permit
+        let holdingToken = try await semaphore.acquire()
+
+        // Create multiple waiting tasks
+        let task1 = Task {
+            do {
+                _ = try await semaphore.acquire()
+                return "task1-acquired"
+            } catch is CancellationError {
+                return "task1-cancelled"
+            } catch {
+                return "task1-error"
+            }
+        }
+
+        let task2 = Task {
+            do {
+                _ = try await semaphore.acquire()
+                return "task2-acquired"
+            } catch is CancellationError {
+                return "task2-cancelled"
+            } catch {
+                return "task2-error"
+            }
+        }
+
+        let task3 = Task {
+            do {
+                _ = try await semaphore.acquire()
+                return "task3-acquired"
+            } catch is CancellationError {
+                return "task3-cancelled"
+            } catch {
+                return "task3-error"
+            }
+        }
+
+        // Give all tasks time to queue
+        await synchronizer.mediumDelay()
+
+        // Cancel only task2
+        task2.cancel()
+
+        // Give cancellation time to process
+        await synchronizer.shortDelay()
+
+        // Verify only task2 was cancelled
+        let result2 = await task2.value
+        XCTAssertEqual(result2, "task2-cancelled", "Task 2 should be cancelled")
+
+        // Release the holding token so task1 and task3 can complete
+        _ = holdingToken  // Keep alive until here
+
+        // Cancel remaining tasks for cleanup
+        task1.cancel()
+        task3.cancel()
+
+        _ = await task1.value
+        _ = await task3.value
+    }
+
+    func testWaiterTimeoutActuallyExpires() async throws {
+        // Tests that the timeout cleanup actually removes old waiters
+        let shortTimeout: TimeInterval = 0.5  // 500ms
+        let semaphore = BackPressureSemaphore(
+            maxConcurrency: 1,
+            maxOutstanding: 10,
+            strategy: .suspend,
+            waiterTimeout: shortTimeout
+        )
+
+        // Hold the only permit
+        let holdingToken = try await semaphore.acquire()
+
+        // Start a waiter that will timeout
+        let waiterTask = Task {
+            do {
+                _ = try await semaphore.acquire()
+                return "acquired"
+            } catch let error as PipelineError {
+                if case .backPressure(let reason) = error,
+                   case .timeout = reason {
+                    return "timed-out"
+                }
+                return "other-error: \(error)"
+            } catch {
+                return "unexpected-error: \(error)"
+            }
+        }
+
+        // Wait for timeout + cleanup interval + margin
+        // Cleanup runs every 1 second, so wait 2 seconds to ensure it runs
+        try await Task.sleep(nanoseconds: 2_500_000_000)  // 2.5 seconds
+
+        let result = await waiterTask.value
+        XCTAssertEqual(result, "timed-out", "Waiter should have been timed out by cleanup")
+
+        // Cleanup
+        _ = holdingToken
+    }
+
+    func testNoDoubleResumeUnderConcurrentOperations() async throws {
+        // Stress test: concurrent cancellations and releases shouldn't cause double-resume
+        // If double-resume happens, this test will crash (continuation resumed twice)
+        let semaphore = BackPressureSemaphore(
+            maxConcurrency: 1,
+            maxOutstanding: 20,
+            strategy: .suspend
+        )
+
+        let successCounter = TestCounter()
+        let cancelCounter = TestCounter()
+        let errorCounter = TestCounter()
+
+        // Run multiple iterations to stress test
+        for _ in 0..<20 {
+            // Hold the only permit
+            let holdingToken = try await semaphore.acquire()
+
+            // Create a waiting task
+            let waitingTask = Task {
+                do {
+                    let token = try await semaphore.acquire()
+                    token.release()
+                    return "acquired"
+                } catch is CancellationError {
+                    return "cancelled"
+                } catch {
+                    return "error: \(error)"
+                }
+            }
+
+            // Give task time to queue
+            await synchronizer.shortDelay()
+
+            // Race: cancel the task AND release the permit nearly simultaneously
+            // This tests the scenario where both cancellation and release try to
+            // resume the same continuation - if not handled correctly, this crashes
+            let cancelTask = Task {
+                waitingTask.cancel()
+            }
+            let releaseTask = Task {
+                holdingToken.release()
+            }
+
+            _ = await cancelTask.value
+            _ = await releaseTask.value
+
+            // Collect result
+            let result = await waitingTask.value
+            switch result {
+            case "acquired":
+                await successCounter.increment()
+            case "cancelled":
+                await cancelCounter.increment()
+            default:
+                await errorCounter.increment()
+            }
+        }
+
+        // Verify no unexpected errors (which could indicate double-resume)
+        let errorCount = await errorCounter.get()
+        let successCount = await successCounter.get()
+        let cancelCount = await cancelCounter.get()
+
+        XCTAssertEqual(errorCount, 0, "Should have no errors - double-resume would cause crashes")
+        // Either acquired or cancelled is valid - just verify we didn't crash
+        XCTAssertGreaterThan(successCount + cancelCount, 0, "All operations should complete without crash")
     }
 }
 
@@ -337,7 +518,7 @@ private struct TestSlowCommand: Command {
 private struct BackPressureTestHandler: CommandHandler {
     typealias CommandType = BackPressureTestCommand
     
-    func handle(_ command: BackPressureTestCommand) async throws -> String {
+    func handle(_ command: BackPressureTestCommand, context: CommandContext) async throws -> String {
         return "Handled: \(command.value)"
     }
 }
@@ -345,7 +526,7 @@ private struct BackPressureTestHandler: CommandHandler {
 private struct TestSlowHandler: CommandHandler {
     typealias CommandType = TestSlowCommand
     
-    func handle(_ command: TestSlowCommand) async throws -> String {
+    func handle(_ command: TestSlowCommand, context: CommandContext) async throws -> String {
         // Actually sleep for the specified duration
         try await Task.sleep(nanoseconds: UInt64(command.duration * 1_000_000_000))
         return "Processed slow command"

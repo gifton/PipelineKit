@@ -17,7 +17,7 @@ final class PipelineTests: XCTestCase {
     private struct TransformHandler: CommandHandler {
         typealias CommandType = TransformCommand
         
-        func handle(_ command: TransformCommand) async throws -> String {
+        func handle(_ command: TransformCommand, context: CommandContext) async throws -> String {
             return command.input.uppercased()
         }
     }

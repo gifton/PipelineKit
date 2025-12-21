@@ -3,6 +3,29 @@ import PipelineKitCore
 @testable import PipelineKitResilience
 
 final class BulkheadMiddlewareTests: XCTestCase {
+    // MARK: - Synchronization Helpers
+
+    /// Actor-based signal for coordinating between tasks
+    private actor Signal {
+        private var triggered = false
+        private var waiters: [CheckedContinuation<Void, Never>] = []
+
+        func trigger() {
+            triggered = true
+            for waiter in waiters {
+                waiter.resume()
+            }
+            waiters.removeAll()
+        }
+
+        func wait() async {
+            if triggered { return }
+            await withCheckedContinuation { continuation in
+                waiters.append(continuation)
+            }
+        }
+    }
+
     // MARK: - Test Commands
 
     private struct SlowCommand: Command {
@@ -11,6 +34,20 @@ final class BulkheadMiddlewareTests: XCTestCase {
         let duration: TimeInterval
 
         func execute() async throws -> String {
+            try await Task.sleep(nanoseconds: UInt64(duration * 1_000_000_000))
+            return "Command \(id) completed"
+        }
+    }
+
+    /// A slow command that signals when it has started executing
+    private struct SignalingSlowCommand: Command {
+        typealias Result = String
+        let id: Int
+        let duration: TimeInterval
+        let startedSignal: Signal
+
+        func execute() async throws -> String {
+            await startedSignal.trigger()
             try await Task.sleep(nanoseconds: UInt64(duration * 1_000_000_000))
             return "Command \(id) completed"
         }
@@ -101,18 +138,21 @@ final class BulkheadMiddlewareTests: XCTestCase {
             maxQueueSize: 0 // No queueing
         )
 
-        // Start a slow command
+        // Use a signal to know when the slow command has acquired the semaphore
+        let slowCommandStarted = Signal()
+
+        // Start a slow command that signals when it starts executing
         let slowTask = Task {
             try await middleware.execute(
-                SlowCommand(id: 1, duration: 0.1),
+                SignalingSlowCommand(id: 1, duration: 0.2, startedSignal: slowCommandStarted),
                 context: CommandContext()
             ) { cmd, _ in
                 try await cmd.execute()
             }
         }
 
-        // Give it time to acquire the semaphore
-        try await Task.sleep(nanoseconds: 10_000_000) // 10ms
+        // Wait until the slow command has actually started (semaphore acquired)
+        await slowCommandStarted.wait()
 
         // When - try another command while first is running
         do {
@@ -183,6 +223,7 @@ final class BulkheadMiddlewareTests: XCTestCase {
         #if targetEnvironment(simulator)
         throw XCTSkip("Skipping flaky queue-timeout test on simulator")
         #endif
+
         if ProcessInfo.processInfo.environment["CI"] == "true" {
             throw XCTSkip("Skipping flaky queue-timeout test on CI")
         }
@@ -196,18 +237,21 @@ final class BulkheadMiddlewareTests: XCTestCase {
             )
         )
 
-        // Start a slow command
+        // Use a signal to know when the slow command has acquired the semaphore
+        let slowCommandStarted = Signal()
+
+        // Start a slow command that signals when it starts executing
         let slowTask = Task {
             try await middleware.execute(
-                SlowCommand(id: 1, duration: 0.2), // 200ms
+                SignalingSlowCommand(id: 1, duration: 0.5, startedSignal: slowCommandStarted),
                 context: CommandContext()
             ) { cmd, _ in
                 try await cmd.execute()
             }
         }
 
-        // Give it time to start and acquire the semaphore reliably in CI
-        try await Task.sleep(nanoseconds: 100_000_000)
+        // Wait until the slow command has actually started (semaphore acquired)
+        await slowCommandStarted.wait()
 
         // When - queue another command that will timeout
         do {
@@ -241,18 +285,21 @@ final class BulkheadMiddlewareTests: XCTestCase {
             )
         )
 
-        // Start a slow command
+        // Use a signal to know when the slow command has acquired the semaphore
+        let slowCommandStarted = Signal()
+
+        // Start a slow command that signals when it starts executing
         let slowTask = Task {
             try await middleware.execute(
-                SlowCommand(id: 1, duration: 0.1),
+                SignalingSlowCommand(id: 1, duration: 0.2, startedSignal: slowCommandStarted),
                 context: CommandContext()
             ) { cmd, _ in
                 try await cmd.execute()
             }
         }
 
-        // Give it time to start
-        try await Task.sleep(nanoseconds: 10_000_000)
+        // Wait until the slow command has actually started (semaphore acquired)
+        await slowCommandStarted.wait()
 
         // When - execute another command
         let result = try await middleware.execute(
@@ -281,18 +328,21 @@ final class BulkheadMiddlewareTests: XCTestCase {
             )
         )
 
-        // Start a slow command
+        // Use a signal to know when the slow command has acquired the semaphore
+        let slowCommandStarted = Signal()
+
+        // Start a slow command that signals when it starts executing
         let slowTask = Task {
             try await middleware.execute(
-                SlowCommand(id: 1, duration: 0.1),
+                SignalingSlowCommand(id: 1, duration: 0.2, startedSignal: slowCommandStarted),
                 context: CommandContext()
             ) { cmd, _ in
                 try await cmd.execute()
             }
         }
 
-        // Give it time to start
-        try await Task.sleep(nanoseconds: 10_000_000)
+        // Wait until the slow command has actually started (semaphore acquired)
+        await slowCommandStarted.wait()
 
         // When
         let result = try await middleware.execute(
@@ -328,7 +378,7 @@ final class BulkheadMiddlewareTests: XCTestCase {
         }
 
         // Give time for metrics to be emitted
-        try await Task.sleep(nanoseconds: 10_000_000) // 10ms
+        try await Task.sleep(nanoseconds: 50_000_000) // 50ms
 
         // Then - check metrics
         let metrics = context.getMetadata()
@@ -362,18 +412,21 @@ final class BulkheadMiddlewareTests: XCTestCase {
             )
         )
 
-        // Start a slow command
+        // Use a signal to know when the slow command has acquired the semaphore
+        let slowCommandStarted = Signal()
+
+        // Start a slow command that signals when it starts executing
         let slowTask = Task {
             try await middleware.execute(
-                SlowCommand(id: 1, duration: 0.1),
+                SignalingSlowCommand(id: 1, duration: 0.2, startedSignal: slowCommandStarted),
                 context: CommandContext()
             ) { cmd, _ in
                 try await cmd.execute()
             }
         }
 
-        // Give it time to start
-        try await Task.sleep(nanoseconds: 10_000_000)
+        // Wait until the slow command has actually started (semaphore acquired)
+        await slowCommandStarted.wait()
 
         // When - try to execute another
         _ = try? await middleware.execute(

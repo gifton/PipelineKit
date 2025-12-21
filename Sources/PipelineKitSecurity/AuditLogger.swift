@@ -103,7 +103,7 @@ public enum LoggerHealthEvent: Sendable {
     case backpressure(queueDepth: Int)
     
     /// A sink (file, network, etc.) failed
-    case sinkFailure(Error)
+    case sinkFailure(any Error)
     
     /// Logger recovered from a previous issue
     case recovered

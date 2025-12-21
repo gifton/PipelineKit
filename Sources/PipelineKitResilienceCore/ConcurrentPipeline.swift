@@ -162,8 +162,8 @@ public actor ConcurrentPipeline: Pipeline {
     public func executeConcurrently<T: Command>(
         _ commands: [T],
         context: CommandContext? = nil
-    ) async throws -> [Result<T.Result, Error>] {
-        return await withTaskGroup(of: (Int, Result<T.Result, Error>).self) { group in
+    ) async throws -> [Result<T.Result, any Error>] {
+        return await withTaskGroup(of: (Int, Result<T.Result, any Error>).self) { group in
             for (index, command) in commands.enumerated() {
                 group.addTask {
                     do {
@@ -176,7 +176,7 @@ public actor ConcurrentPipeline: Pipeline {
                 }
             }
             
-            var results: [(Int, Result<T.Result, Error>)] = []
+            var results: [(Int, Result<T.Result, any Error>)] = []
             for await indexedResult in group {
                 results.append(indexedResult)
             }

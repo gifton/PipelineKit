@@ -7,7 +7,7 @@ final class NextGuardSuppressionTests: XCTestCase {
 
     private final class EchoHandler: CommandHandler {
         typealias CommandType = EchoCommand
-        func handle(_ command: EchoCommand) async throws -> String { "handled:\(command.text)" }
+        func handle(_ command: EchoCommand, context: CommandContext) async throws -> String { "handled:\(command.text)" }
     }
 
     func testCachingMiddlewareSuppressesNextGuardWarningOnCacheHit() async throws {

@@ -40,13 +40,14 @@ final class TimeoutDiagnosticTests: XCTestCase {
     private struct TestHandler: CommandHandler {
         typealias CommandType = TestCommand
         
-        func handle(_ command: TestCommand) async throws -> String {
+        func handle(_ command: TestCommand, context: CommandContext) async throws -> String {
             return command.value
         }
     }
     
-    // Slow middleware for testing timeouts
-    private struct SlowMiddleware: Middleware {
+    // Slow middleware for testing timeouts - conforms to NextGuardWarningSuppressing
+    // because it may be cancelled by timeout before next() is called
+    private struct SlowMiddleware: Middleware, NextGuardWarningSuppressing {
         let delay: TimeInterval
         let priority: ExecutionPriority = .custom
         let id: String
@@ -182,7 +183,7 @@ final class TimeoutDiagnosticTests: XCTestCase {
         let pipeline = StandardPipeline(handler: handler)
         
         // Create slow middleware with lower priority (executes first)
-        struct EarlySlowMiddleware: Middleware {
+        struct EarlySlowMiddleware: Middleware, NextGuardWarningSuppressing {
             let delay: TimeInterval
             let priority: ExecutionPriority = .preProcessing // 100 - runs before timeout
             
@@ -270,8 +271,8 @@ final class TimeoutDiagnosticTests: XCTestCase {
         // Add a slow operation in the handler itself
         struct SlowHandler: CommandHandler {
             typealias CommandType = TestCommand
-            
-            func handle(_ command: TestCommand) async throws -> String {
+
+            func handle(_ command: TestCommand, context: CommandContext) async throws -> String {
                 print("[Handler] Starting slow operation")
                 try await Task.sleep(nanoseconds: 100_000_000) // 0.1s
                 print("[Handler] Completed")

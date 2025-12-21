@@ -259,7 +259,7 @@ private struct CacheWrapper<T>: Codable {
             try container.encode(value, forKey: .result)
         } else if let value = result as? [String: Int] {
             try container.encode(value, forKey: .result)
-        } else if let encodable = result as? Encodable {
+        } else if let encodable = result as? any Encodable {
             // For other Encodable types
             try encodable.encode(to: container.superEncoder(forKey: .result))
         } else {

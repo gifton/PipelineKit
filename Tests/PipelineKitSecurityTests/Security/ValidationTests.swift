@@ -107,7 +107,7 @@ final class ValidationTests: XCTestCase {
         struct TestHandler: CommandHandler {
             typealias CommandType = CreateUserCommand
             
-            func handle(_ command: CreateUserCommand) async throws -> String {
+            func handle(_ command: CreateUserCommand, context: CommandContext) async throws -> String {
                 // The handler should validate the command itself
                 // since ValidationMiddleware uses generic dispatch
                 try command.validate()

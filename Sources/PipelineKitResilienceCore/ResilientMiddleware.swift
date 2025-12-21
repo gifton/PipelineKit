@@ -130,7 +130,7 @@ public actor Bulkhead {
     private let name: String
     private let maxConcurrency: Int
     private var activeCalls = 0
-    private var waitQueue: [CheckedContinuation<Void, Error>] = []
+    private var waitQueue: [CheckedContinuation<Void, any Error>] = []
     private let maxWaitingCalls: Int
     
     public init(

@@ -335,13 +335,13 @@ private struct TestCommand: Command {
 }
 
 private struct TestHandler: CommandHandler {
-    func handle(_ command: TestCommand) async throws -> String {
+    func handle(_ command: TestCommand, context: CommandContext) async throws -> String {
         "test-result"
     }
 }
 
 private struct FailingHandler: CommandHandler {
-    func handle(_ command: TestCommand) async throws -> String {
+    func handle(_ command: TestCommand, context: CommandContext) async throws -> String {
         struct TestError: Error {}
         throw TestError()
     }

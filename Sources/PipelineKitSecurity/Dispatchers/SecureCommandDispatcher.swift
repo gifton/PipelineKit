@@ -68,7 +68,7 @@ public actor SecureCommandDispatcher {
     ///           `SecureDispatcherError.executionFailed` with sanitized error message
     public func dispatch<T: Command>(
         _ command: T,
-        metadata: CommandMetadata? = nil
+        metadata: (any CommandMetadata)? = nil
     ) async throws -> T.Result {
         let commandType = String(describing: T.self)
         let executionMetadata = metadata ?? DefaultCommandMetadata()
@@ -141,7 +141,7 @@ public actor SecureCommandDispatcher {
     /// 
     /// - Parameter error: The error to sanitize
     /// - Returns: A safe error message suitable for external consumption
-    private func sanitizeError(_ error: Error) -> String {
+    private func sanitizeError(_ error: any Error) -> String {
         switch error {
         case PipelineError.handlerNotFound:
             return "Command handler not found"
