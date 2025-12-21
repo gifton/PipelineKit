@@ -225,3 +225,290 @@ public protocol UnsafeMiddleware: Middleware {
 public protocol NextGuardWarningSuppressing: Middleware {
     // Marker protocol - no additional requirements
 }
+
+// MARK: - Conditional Middleware
+
+/// A protocol for middleware that can conditionally activate based on command or context.
+///
+/// Conform to `ConditionalMiddleware` when your middleware should only execute
+/// under certain conditions, such as:
+/// - Feature flags being enabled
+/// - Specific context values being present
+/// - Command conforming to certain marker protocols
+/// - Runtime configuration settings
+///
+/// ## Overview
+///
+/// By default, all middleware executes for every command. `ConditionalMiddleware`
+/// adds a `shouldActivate` method that the pipeline checks before invoking the
+/// middleware. If `shouldActivate` returns `false`, the middleware is bypassed
+/// entirely and the next component in the chain is called directly.
+///
+/// ## Performance
+///
+/// The `shouldActivate` check is performed at the start of each execution. For
+/// maximum performance, the check should be as lightweight as possible—ideally
+/// just reading a boolean from context or checking a type conformance.
+///
+/// ## Example: Feature-Flagged Middleware
+///
+/// ```swift
+/// struct EncryptionMiddleware: ConditionalMiddleware {
+///     let priority = ExecutionPriority.preProcessing
+///
+///     func shouldActivate<T: Command>(for command: T, context: CommandContext) -> Bool {
+///         // Only activate if encryption is enabled in feature flags
+///         return context[\.featureFlags]?.encryptionEnabled ?? false
+///     }
+///
+///     func execute<T: Command>(
+///         _ command: T,
+///         context: CommandContext,
+///         next: @escaping MiddlewareNext<T>
+///     ) async throws -> T.Result {
+///         // Encryption logic here
+///         let result = try await next(command, context)
+///         return result
+///     }
+/// }
+/// ```
+///
+/// ## Example: Type-Based Activation
+///
+/// ```swift
+/// protocol RequiresAudit: Command {}
+///
+/// struct AuditMiddleware: ConditionalMiddleware {
+///     func shouldActivate<T: Command>(for command: T, context: CommandContext) -> Bool {
+///         // Only audit commands that opt-in
+///         return command is any RequiresAudit
+///     }
+///
+///     func execute<T: Command>(
+///         _ command: T,
+///         context: CommandContext,
+///         next: @escaping MiddlewareNext<T>
+///     ) async throws -> T.Result {
+///         let result = try await next(command, context)
+///         await auditLog.record(command: command, result: result)
+///         return result
+///     }
+/// }
+/// ```
+///
+/// - Note: If `shouldActivate` returns `false`, the middleware's `execute` method
+///   is never called, and the command passes directly to the next component.
+///
+/// - SeeAlso: `Middleware`, `ScopedMiddleware`
+public protocol ConditionalMiddleware: Middleware {
+    /// Determines whether this middleware should activate for a given command.
+    ///
+    /// Called before `execute` for each command. If this returns `false`, the
+    /// middleware is bypassed and the next component in the chain is called directly.
+    ///
+    /// - Parameters:
+    ///   - command: The command about to be executed
+    ///   - context: The command context containing metadata and shared data
+    ///
+    /// - Returns: `true` if the middleware should execute, `false` to bypass
+    ///
+    /// - Note: This method should be lightweight and fast. Avoid I/O operations
+    ///   or expensive computations—instead, rely on cached values or type checks.
+    func shouldActivate<T: Command>(for command: T, context: CommandContext) -> Bool
+}
+
+/// Default implementation that always activates.
+public extension ConditionalMiddleware {
+    /// By default, conditional middleware always activates.
+    ///
+    /// Override this method to implement custom activation logic.
+    func shouldActivate<T: Command>(for command: T, context: CommandContext) -> Bool {
+        return true
+    }
+}
+
+// MARK: - Scoped Middleware (Marker Protocol Pattern)
+
+/// A protocol for middleware that only activates for commands conforming to a marker protocol.
+///
+/// `ScopedMiddleware` builds on `ConditionalMiddleware` to provide a cleaner pattern
+/// for type-based middleware scoping. Instead of manually checking command types in
+/// `shouldActivate`, you specify a `Scope` marker protocol and the middleware
+/// automatically activates only for commands that conform to it.
+///
+/// ## Overview
+///
+/// This pattern allows you to declare middleware requirements at the command level
+/// using marker protocols. Commands "opt-in" to middleware by conforming to the
+/// appropriate marker protocol.
+///
+/// ## Defining a Scope
+///
+/// First, define a marker protocol for your scope:
+///
+/// ```swift
+/// /// Marker protocol for commands that require encryption
+/// protocol RequiresEncryption: Command {}
+///
+/// /// Marker protocol for commands that should be audited
+/// protocol Auditable: Command {}
+/// ```
+///
+/// ## Implementing Scoped Middleware
+///
+/// ```swift
+/// struct EncryptionMiddleware: ScopedMiddleware {
+///     // Only commands conforming to RequiresEncryption will trigger this middleware
+///     typealias Scope = RequiresEncryption
+///
+///     let priority = ExecutionPriority.preProcessing
+///
+///     func execute<T: Command>(
+///         _ command: T,
+///         context: CommandContext,
+///         next: @escaping MiddlewareNext<T>
+///     ) async throws -> T.Result {
+///         // This code only runs for RequiresEncryption commands
+///         // The command can be safely cast: command as! RequiresEncryption
+///         let result = try await next(command, context)
+///         return encryptResult(result)
+///     }
+/// }
+/// ```
+///
+/// ## Using Marker Protocols on Commands
+///
+/// ```swift
+/// // This command triggers EncryptionMiddleware
+/// struct CreateEntryCommand: Command, RequiresEncryption {
+///     typealias Result = Entry
+///     let content: String
+/// }
+///
+/// // This command does NOT trigger EncryptionMiddleware
+/// struct SearchCommand: Command {
+///     typealias Result = [Entry]
+///     let query: String
+/// }
+/// ```
+///
+/// ## Multiple Scopes
+///
+/// Commands can conform to multiple marker protocols to trigger multiple middleware:
+///
+/// ```swift
+/// struct UpdateEntryCommand: Command, RequiresEncryption, Auditable {
+///     typealias Result = Entry
+///     let entryId: UUID
+///     let newContent: String
+/// }
+/// // Both EncryptionMiddleware and AuditMiddleware will activate
+/// ```
+///
+/// ## Performance
+///
+/// The type conformance check uses Swift's `is` operator which is highly optimized.
+/// The check happens once per command execution and is essentially free compared
+/// to the actual middleware logic.
+///
+/// - Note: `ScopedMiddleware` inherits from `ConditionalMiddleware`, so you can
+///   still override `shouldActivate` for additional runtime checks if needed.
+///
+/// - SeeAlso: `ConditionalMiddleware`, `Middleware`
+public protocol ScopedMiddleware: ConditionalMiddleware {
+    /// The marker protocol that commands must conform to for this middleware to activate.
+    ///
+    /// Define this as your custom marker protocol that extends `Command`.
+    ///
+    /// Example:
+    /// ```swift
+    /// protocol RequiresValidation: Command {}
+    ///
+    /// struct ValidationMiddleware: ScopedMiddleware {
+    ///     typealias Scope = RequiresValidation
+    ///     // ...
+    /// }
+    /// ```
+    associatedtype Scope
+}
+
+/// Default implementation that checks command conformance to the Scope protocol.
+public extension ScopedMiddleware {
+    /// Activates only when the command conforms to the `Scope` protocol.
+    ///
+    /// This implementation uses Swift's `is` operator for efficient type checking.
+    /// The check is performed at runtime but is highly optimized by the compiler.
+    func shouldActivate<T: Command>(for command: T, context: CommandContext) -> Bool {
+        return command is Scope
+    }
+}
+
+// MARK: - Common Marker Protocols
+
+/// Marker protocol for commands that require encryption.
+///
+/// Commands conforming to `RequiresEncryption` will automatically trigger
+/// any `ScopedMiddleware` that targets this scope.
+///
+/// ```swift
+/// struct CreateSecretCommand: Command, RequiresEncryption {
+///     typealias Result = Secret
+///     let data: Data
+/// }
+/// ```
+public protocol RequiresEncryption: Command {}
+
+/// Marker protocol for commands that require validation.
+///
+/// Commands conforming to `RequiresValidation` will automatically trigger
+/// any `ScopedMiddleware` that targets this scope.
+///
+/// ```swift
+/// struct CreateUserCommand: Command, RequiresValidation {
+///     typealias Result = User
+///     let email: String
+///     let password: String
+/// }
+/// ```
+public protocol RequiresValidation: Command {}
+
+/// Marker protocol for commands that require authentication.
+///
+/// Commands conforming to `RequiresAuthentication` will automatically trigger
+/// any `ScopedMiddleware` that targets this scope.
+///
+/// ```swift
+/// struct DeleteAccountCommand: Command, RequiresAuthentication {
+///     typealias Result = Void
+///     let userId: UUID
+/// }
+/// ```
+public protocol RequiresAuthentication: Command {}
+
+/// Marker protocol for commands that should be audited.
+///
+/// Commands conforming to `Auditable` will automatically trigger
+/// any `ScopedMiddleware` that targets this scope.
+///
+/// ```swift
+/// struct TransferFundsCommand: Command, Auditable {
+///     typealias Result = TransferReceipt
+///     let fromAccount: UUID
+///     let toAccount: UUID
+///     let amount: Decimal
+/// }
+/// ```
+public protocol Auditable: Command {}
+
+/// Marker protocol for commands that should be cached.
+///
+/// Commands conforming to `Cacheable` will automatically trigger
+/// any `ScopedMiddleware` that targets this scope.
+///
+/// ```swift
+/// struct GetUserProfileCommand: Command, Cacheable {
+///     typealias Result = UserProfile
+///     let userId: UUID
+/// }
+/// ```
+public protocol Cacheable: Command {}

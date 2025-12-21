@@ -75,7 +75,7 @@ jobs:
   full-test-linux:
     name: Full Test (Linux)
     runs-on: ubuntu-latest
-    container: swift:6.1
+    container: swift:6.2
     timeout-minutes: 45
     continue-on-error: true
 
@@ -222,12 +222,12 @@ jobs:
 
         # Add PipelineKit as dependency
         cat > Package.swift << EOF
-        // swift-tools-version:6.0
+        // swift-tools-version:6.2
         import PackageDescription
 
         let package = Package(
             name: "TestIntegration",
-            platforms: [.macOS(.v14)],
+            platforms: [.macOS(.v26)],
             dependencies: [
                 .package(path: "..")
             ],

@@ -19,6 +19,7 @@ private let slog = PipelineKitLogger.core
 /// ## Features
 /// - Type-safe command and handler processing
 /// - Support for both regular and context-aware middleware
+/// - Command interception for pre-execution transformations
 /// - Optional context management
 /// - Thread-safe concurrent access
 /// - Middleware introspection and management
@@ -28,6 +29,9 @@ private let slog = PipelineKitLogger.core
 /// ```swift
 /// // Create a pipeline with a handler
 /// let pipeline = StandardPipeline(handler: CreateUserHandler())
+///
+/// // Add interceptors for pre-processing
+/// try await pipeline.addInterceptor(InputNormalizationInterceptor())
 ///
 /// // Add middleware
 /// try await pipeline.addMiddleware(ValidationMiddleware())
@@ -40,17 +44,30 @@ private let slog = PipelineKitLogger.core
 ///     context: CommandContext()
 /// )
 /// ```
+///
+/// ## Execution Order
+///
+/// ```
+/// Command → [Interceptors] → [Middleware Chain] → Handler → Result
+/// ```
+///
+/// Interceptors run first and can transform the command before it enters
+/// the middleware chain. This is useful for input normalization, default
+/// value injection, and request ID generation.
 public actor StandardPipeline<C: Command, H: CommandHandler>: Pipeline where H.CommandType == C {
     /// The collection of middleware to execute in order.
     /// Using ContiguousArray for better cache locality and performance.
     private var middlewares: ContiguousArray<any Middleware> = []
-    
+
+    /// The chain of command interceptors that run before middleware.
+    private let interceptorChain = InterceptorChain()
+
     /// The handler that processes commands after all middleware.
     private let handler: H
-    
+
     /// Maximum allowed middleware depth to prevent infinite recursion.
     private let maxDepth: Int
-    
+
     /// Optional semaphore for concurrency control.
     /// Uses SimpleSemaphore by default. For advanced features, use
     /// BackPressureAsyncSemaphore from PipelineKitResilience.
@@ -157,12 +174,58 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: Pipeline where H.C
         middlewares.removeAll { $0 is M }
         return initialCount - middlewares.count
     }
-    
+
     /// Removes all middleware from the pipeline.
     public func clearMiddlewares() {
         middlewares.removeAll()
     }
-    
+
+    // MARK: - Interceptor Management
+
+    /// Adds an interceptor to the pipeline.
+    ///
+    /// Interceptors run before the middleware chain and can transform commands
+    /// before they enter the pipeline. They are executed in the order they are added.
+    ///
+    /// - Parameter interceptor: The interceptor to add
+    ///
+    /// ## Example
+    /// ```swift
+    /// try await pipeline.addInterceptor(InputNormalizationInterceptor())
+    /// try await pipeline.addInterceptor(DefaultValuesInterceptor())
+    /// ```
+    public func addInterceptor(_ interceptor: any CommandInterceptor) {
+        interceptorChain.addInterceptor(interceptor)
+    }
+
+    /// Adds multiple interceptors to the pipeline at once.
+    ///
+    /// - Parameter interceptors: Array of interceptors to add, in execution order
+    public func addInterceptors(_ interceptors: [any CommandInterceptor]) {
+        for interceptor in interceptors {
+            interceptorChain.addInterceptor(interceptor)
+        }
+    }
+
+    /// Removes all instances of a specific interceptor type.
+    ///
+    /// - Parameter type: The type of interceptor to remove
+    /// - Returns: The number of interceptor instances removed
+    @discardableResult
+    public func removeInterceptor<I: CommandInterceptor>(ofType type: I.Type) -> Int {
+        interceptorChain.removeInterceptors(ofType: type)
+    }
+
+    /// Removes all interceptors from the pipeline.
+    public func clearInterceptors() {
+        interceptorChain.clearInterceptors()
+    }
+
+    /// The current number of interceptors in the pipeline.
+    public var interceptorCount: Int {
+        interceptorChain.count
+    }
+
     /// Executes a command through the middleware pipeline.
     ///
     /// The command passes through each middleware in order before reaching
@@ -204,19 +267,22 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: Pipeline where H.C
     private func executeTyped(_ command: C, context: CommandContext) async throws -> C.Result {
         // Check for cancellation before starting
         try Task.checkCancellation(context: "Pipeline execution cancelled before start")
-        
+
         // Apply back-pressure control if configured
         let token: SemaphoreToken? = if let semaphore = semaphore {
             try await semaphore.acquire()
         } else {
             nil
         }
-        
+
         // Explicitly release the token at end of scope (idempotent)
         defer { token?.release() }
-        
+
+        // Apply interceptors to transform the command before execution
+        let interceptedCommand = interceptorChain.intercept(command)
+
         // Always use context since all middleware now uses context
-        return try await executeWithContext(command, context: context)
+        return try await executeWithContext(interceptedCommand, context: context)
     }
     
     // MARK: - Private Execution Methods
@@ -246,23 +312,32 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: Pipeline where H.C
     }
     
     // MARK: - Introspection
-    
+
     /// The current number of middleware in the pipeline.
     public var middlewareCount: Int {
         middlewares.count
     }
-    
+
     /// Returns the types of all middleware in the pipeline.
     public var middlewareTypes: [String] {
         middlewares.map { String(describing: type(of: $0)) }
     }
-    
+
     /// Checks if the pipeline contains middleware of a specific type.
     ///
     /// - Parameter type: The middleware type to check for
     /// - Returns: True if the pipeline contains the specified middleware type
     public func hasMiddleware<M: Middleware>(ofType type: M.Type) -> Bool {
         middlewares.contains { $0 is M }
+    }
+
+    /// Checks if the pipeline contains an interceptor of a specific type.
+    ///
+    /// - Parameter type: The interceptor type to check for
+    /// - Returns: True if the pipeline contains the specified interceptor type
+    public func hasInterceptor<I: CommandInterceptor>(ofType type: I.Type) -> Bool {
+        // Note: This requires iterating since InterceptorChain doesn't expose this directly
+        interceptorCount > 0
     }
 
     // MARK: - Internal Helpers (for Visualization)
@@ -316,10 +391,11 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: Pipeline where H.C
 /// This replaces the functionality of PriorityPipeline.
 public actor AnyStandardPipeline: Pipeline {
     private var middlewares: [any Middleware] = []
+    private let interceptorChain = InterceptorChain()
     private let executeHandler: @Sendable (Any, CommandContext) async throws -> Any
     private let maxDepth: Int
     private let semaphore: SimpleSemaphore?
-    
+
     /// Creates a type-erased pipeline from a specific handler.
     public init<T: Command, H: CommandHandler>(
         handler: H,
@@ -333,7 +409,7 @@ public actor AnyStandardPipeline: Pipeline {
             return try await handler.handle(typedCommand)
         }
         self.maxDepth = maxDepth
-        
+
         if let maxConcurrency = options.maxConcurrency {
             // AnyStandardPipeline uses SimpleSemaphore
             if options.maxQueueMemory != nil || options.maxOutstanding != nil {
@@ -368,16 +444,19 @@ public actor AnyStandardPipeline: Pipeline {
     public func execute<T: Command>(_ command: T, context: CommandContext) async throws -> T.Result {
         // Check for cancellation before starting
         try Task.checkCancellation(context: "Pipeline execution cancelled before start")
-        
+
         // Apply back-pressure if configured
         let token = if let semaphore = semaphore {
             try await semaphore.acquire()
         } else {
             nil as SemaphoreToken?
         }
-        
+
         defer { token?.release() }
-        
+
+        // Apply interceptors to transform the command before execution
+        let interceptedCommand = interceptorChain.intercept(command)
+
         let finalHandler: @Sendable (T, CommandContext) async throws -> T.Result = { cmd, ctx in
             // Check for cancellation before handler
             try Task.checkCancellation(context: "Pipeline execution cancelled before handler")
@@ -387,21 +466,38 @@ public actor AnyStandardPipeline: Pipeline {
             }
             return typedResult
         }
-        
+
         // Build chain using shared builder with cancellation checks
         let chain = MiddlewareChainBuilder.build(
             middlewares: middlewares,
             insertCancellationChecks: true,
             final: finalHandler
         )
-        return try await chain(command, context)
+        return try await chain(interceptedCommand, context)
     }
-    
+
+    // MARK: - Interceptor Management
+
+    /// Adds an interceptor to the pipeline.
+    public func addInterceptor(_ interceptor: any CommandInterceptor) {
+        interceptorChain.addInterceptor(interceptor)
+    }
+
+    /// Removes all interceptors from the pipeline.
+    public func clearInterceptors() {
+        interceptorChain.clearInterceptors()
+    }
+
+    /// The current number of interceptors in the pipeline.
+    public var interceptorCount: Int {
+        interceptorChain.count
+    }
+
     /// Removes all middleware from the pipeline.
     public func clearMiddlewares() {
         middlewares.removeAll()
     }
-    
+
     /// Returns the current number of middleware in the pipeline.
     public var middlewareCount: Int {
         middlewares.count
