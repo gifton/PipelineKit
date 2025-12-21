@@ -18,7 +18,7 @@ final class TimeoutDebugTest: XCTestCase {
     private struct TestHandler: CommandHandler {
         typealias CommandType = TestCommand
         
-        func handle(_ command: TestCommand) async throws -> String {
+        func handle(_ command: TestCommand, context: CommandContext) async throws -> String {
             print("  [Handler] Handling: \(command.value)")
             return command.value
         }

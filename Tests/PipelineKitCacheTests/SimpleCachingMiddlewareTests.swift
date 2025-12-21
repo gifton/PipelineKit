@@ -20,7 +20,7 @@ final class SimpleCachingMiddlewareTests: XCTestCase {
             self.response = response
         }
 
-        func handle(_ command: TestCommand) async throws -> String {
+        func handle(_ command: TestCommand, context: CommandContext) async throws -> String {
             return response
         }
     }
@@ -33,7 +33,7 @@ final class SimpleCachingMiddlewareTests: XCTestCase {
     private final class NumberHandler: CommandHandler {
         typealias CommandType = NumberCommand
 
-        func handle(_ command: NumberCommand) async throws -> Int {
+        func handle(_ command: NumberCommand, context: CommandContext) async throws -> Int {
             return command.value * 2
         }
     }
@@ -355,7 +355,7 @@ final class SimpleCachingMiddlewareTests: XCTestCase {
         final class OptionalHandler: CommandHandler {
             typealias CommandType = OptionalCommand
 
-            func handle(_ command: OptionalCommand) async throws -> String? {
+            func handle(_ command: OptionalCommand, context: CommandContext) async throws -> String? {
                 return nil
             }
         }
@@ -390,7 +390,7 @@ final class SimpleCachingMiddlewareTests: XCTestCase {
         final class ComplexHandler: CommandHandler {
             typealias CommandType = ComplexCommand
 
-            func handle(_ command: ComplexCommand) async throws -> ComplexResult {
+            func handle(_ command: ComplexCommand, context: CommandContext) async throws -> ComplexResult {
                 return ComplexResult(id: "test", data: ["a": 1, "b": 2])
             }
         }

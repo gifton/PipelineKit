@@ -21,7 +21,7 @@ public actor CommandEncryptor {
     private var currentKey: SendableSymmetricKey
     private var keyRotationInterval: TimeInterval
     private var lastKeyRotation: Date
-    private let keyStore: KeyStore
+    private let keyStore: any KeyStore
     
     /// Creates a command encryptor with specified configuration.
     ///
@@ -29,7 +29,7 @@ public actor CommandEncryptor {
     ///   - keyStore: Storage for encryption keys
     ///   - keyRotationInterval: How often to rotate keys (default: 24 hours)
     public init(
-        keyStore: KeyStore,
+        keyStore: any KeyStore,
         keyRotationInterval: TimeInterval = 86400 // 24 hours
     ) async {
         self.keyStore = keyStore

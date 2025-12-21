@@ -453,10 +453,10 @@ public final class MockEncryptionService: @unchecked Sendable {
 
 public final class TestCommandHandler: CommandHandler {
     public typealias CommandType = TestCommand
-    
+
     public init() {}
-    
-    public func handle(_ command: TestCommand) async throws -> String {
+
+    public func handle(_ command: TestCommand, context: CommandContext) async throws -> String {
         if command.shouldFail {
             throw PipelineError.executionFailed(message: "Test command failed", context: nil)
         }
@@ -466,10 +466,10 @@ public final class TestCommandHandler: CommandHandler {
 
 public final class AsyncTestCommandHandler: CommandHandler {
     public typealias CommandType = AsyncTestCommand
-    
+
     public init() {}
-    
-    public func handle(_ command: AsyncTestCommand) async throws -> Int {
+
+    public func handle(_ command: AsyncTestCommand, context: CommandContext) async throws -> Int {
         try await Task.sleep(nanoseconds: UInt64(command.delay * 1_000_000_000))
         return command.value
     }

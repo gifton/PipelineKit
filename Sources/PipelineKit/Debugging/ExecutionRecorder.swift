@@ -178,7 +178,7 @@ public actor ExecutionRecorder {
         correlationID: String? = nil,
         startTime: Date,
         endTime: Date,
-        error: Error? = nil,
+        error: (any Error)? = nil,
         middlewareTrace: [String] = [],
         metadata: [String: String] = [:]
     ) {

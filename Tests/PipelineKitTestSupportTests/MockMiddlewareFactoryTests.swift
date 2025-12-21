@@ -22,7 +22,7 @@ struct FactoryTestCommand: Command {
 final class FactoryTestHandler: CommandHandler {
     typealias CommandType = FactoryTestCommand
 
-    func handle(_ command: FactoryTestCommand) async throws -> String {
+    func handle(_ command: FactoryTestCommand, context: CommandContext) async throws -> String {
         command.value
     }
 }

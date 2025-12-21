@@ -294,7 +294,7 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: Pipeline where H.C
         
         // Fast path: No middleware
         if middlewares.isEmpty {
-            return try await handler.handle(command)
+            return try await handler.handle(command, context: context)
         }
         
         // Execute through middleware chain without copying middleware array
@@ -373,8 +373,8 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: Pipeline where H.C
     /// Executes a command through a chain of middleware
     private func executeWithMiddleware(_ command: C, context: CommandContext) async throws -> C.Result {
         // Build the middleware chain (no cancellation checks here to preserve existing behavior)
-        let final: @Sendable (C, CommandContext) async throws -> C.Result = { cmd, _ in
-            try await self.handler.handle(cmd)
+        let final: @Sendable (C, CommandContext) async throws -> C.Result = { cmd, ctx in
+            try await self.handler.handle(cmd, context: ctx)
         }
         let chain = MiddlewareChainBuilder.build(
             middlewares: middlewares,
@@ -402,11 +402,11 @@ public actor AnyStandardPipeline: Pipeline {
         options: PipelineOptions = .default,
         maxDepth: Int = 100
     ) where H.CommandType == T {
-        self.executeHandler = { command, _ in
+        self.executeHandler = { command, context in
             guard let typedCommand = command as? T else {
                 throw PipelineError.executionFailed(message: "Invalid command type provided to pipeline", context: nil)
             }
-            return try await handler.handle(typedCommand)
+            return try await handler.handle(typedCommand, context: context)
         }
         self.maxDepth = maxDepth
 

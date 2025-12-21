@@ -17,7 +17,7 @@ final class ParallelMiddlewareWrapperTests: XCTestCase {
     private final class TestHandler: CommandHandler {
         typealias CommandType = TestCommand
         
-        func handle(_ command: TestCommand) async throws -> String {
+        func handle(_ command: TestCommand, context: CommandContext) async throws -> String {
             return "Handled: \(command.id)"
         }
     }

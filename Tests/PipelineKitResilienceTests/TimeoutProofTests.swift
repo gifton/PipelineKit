@@ -13,7 +13,7 @@ final class TimeoutProofTests: XCTestCase {
     
     private struct TestHandler: CommandHandler {
         typealias CommandType = TestCommand
-        func handle(_ command: TestCommand) async throws -> String {
+        func handle(_ command: TestCommand, context: CommandContext) async throws -> String {
             command.value
         }
     }

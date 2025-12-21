@@ -183,6 +183,7 @@ final class BulkheadMiddlewareTests: XCTestCase {
         #if targetEnvironment(simulator)
         throw XCTSkip("Skipping flaky queue-timeout test on simulator")
         #endif
+        
         if ProcessInfo.processInfo.environment["CI"] == "true" {
             throw XCTSkip("Skipping flaky queue-timeout test on CI")
         }

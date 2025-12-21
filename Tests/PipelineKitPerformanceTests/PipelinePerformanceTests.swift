@@ -19,7 +19,7 @@ final class PipelinePerformanceTests: XCTestCase {
     private final class PerformanceHandler: CommandHandler {
         typealias CommandType = PerformanceCommand
 
-        func handle(_ command: PerformanceCommand) async throws -> Int {
+        func handle(_ command: PerformanceCommand, context: CommandContext) async throws -> Int {
             return command.value * 2
         }
     }

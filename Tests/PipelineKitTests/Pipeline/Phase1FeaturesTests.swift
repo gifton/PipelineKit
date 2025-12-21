@@ -32,21 +32,21 @@ struct MultiScopeCommand: Command, RequiresEncryption, RequiresValidation {
 
 struct EchoHandler: CommandHandler {
     typealias CommandType = SimpleTestCommand
-    func handle(_ command: SimpleTestCommand) async throws -> String {
+    func handle(_ command: SimpleTestCommand, context: CommandContext) async throws -> String {
         return "Echo: \(command.value)"
     }
 }
 
 struct SecureHandler: CommandHandler {
     typealias CommandType = SecureTestCommand
-    func handle(_ command: SecureTestCommand) async throws -> String {
+    func handle(_ command: SecureTestCommand, context: CommandContext) async throws -> String {
         return "Secure: \(command.data)"
     }
 }
 
 struct ValidatableHandler: CommandHandler {
     typealias CommandType = ValidatableTestCommand
-    func handle(_ command: ValidatableTestCommand) async throws -> String {
+    func handle(_ command: ValidatableTestCommand, context: CommandContext) async throws -> String {
         return "Validated: \(command.input)"
     }
 }

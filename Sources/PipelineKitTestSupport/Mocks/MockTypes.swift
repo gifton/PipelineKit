@@ -19,10 +19,10 @@ public struct MockCommand: Command {
 
 public final class MockCommandHandler: CommandHandler {
     public typealias CommandType = MockCommand
-    
+
     public init() {}
-    
-    public func handle(_ command: MockCommand) async throws -> String {
+
+    public func handle(_ command: MockCommand, context: CommandContext) async throws -> String {
         if command.shouldFail {
             throw PipelineError.executionFailed(message: "Command failed", context: nil)
         }

@@ -40,7 +40,7 @@ final class TimeoutDiagnosticTests: XCTestCase {
     private struct TestHandler: CommandHandler {
         typealias CommandType = TestCommand
         
-        func handle(_ command: TestCommand) async throws -> String {
+        func handle(_ command: TestCommand, context: CommandContext) async throws -> String {
             return command.value
         }
     }
@@ -271,8 +271,8 @@ final class TimeoutDiagnosticTests: XCTestCase {
         // Add a slow operation in the handler itself
         struct SlowHandler: CommandHandler {
             typealias CommandType = TestCommand
-            
-            func handle(_ command: TestCommand) async throws -> String {
+
+            func handle(_ command: TestCommand, context: CommandContext) async throws -> String {
                 print("[Handler] Starting slow operation")
                 try await Task.sleep(nanoseconds: 100_000_000) // 0.1s
                 print("[Handler] Completed")

@@ -19,7 +19,7 @@ final class TimeoutMiddlewareTests: XCTestCase {
     private struct TestHandler: CommandHandler {
         typealias CommandType = TestCommand
         
-        func handle(_ command: TestCommand) async throws -> String {
+        func handle(_ command: TestCommand, context: CommandContext) async throws -> String {
             return command.value
         }
     }
@@ -138,8 +138,8 @@ final class TimeoutMiddlewareTests: XCTestCase {
         
         struct TimeoutHandler: CommandHandler {
             typealias CommandType = TimeoutCommand
-            
-            func handle(_ command: TimeoutCommand) async throws -> String {
+
+            func handle(_ command: TimeoutCommand, context: CommandContext) async throws -> String {
                 return command.value
             }
         }

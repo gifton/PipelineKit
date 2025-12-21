@@ -16,7 +16,7 @@ final class SimpleCancellationTests: XCTestCase {
         struct TestHandler: CommandHandler {
             typealias CommandType = TestCommand
             
-            func handle(_ command: TestCommand) async throws -> String {
+            func handle(_ command: TestCommand, context: CommandContext) async throws -> String {
                 // Simulate some work
                 try await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
                 return "completed"
@@ -75,7 +75,7 @@ final class SimpleCancellationTests: XCTestCase {
         struct TestHandler: CommandHandler {
             typealias CommandType = TestCommand
             
-            func handle(_ command: TestCommand) async throws -> String {
+            func handle(_ command: TestCommand, context: CommandContext) async throws -> String {
                 return "completed"
             }
         }
@@ -119,7 +119,7 @@ final class SimpleCancellationTests: XCTestCase {
             typealias CommandType = TestCommand
             var attemptCount = 0
             
-            func handle(_ command: TestCommand) async throws -> String {
+            func handle(_ command: TestCommand, context: CommandContext) async throws -> String {
                 attemptCount += 1
                 throw SimpleCancellationTestError.simulatedFailure
             }
@@ -168,7 +168,7 @@ final class SimpleCancellationTests: XCTestCase {
             typealias CommandType = TestCommand
             var attemptCount = 0
             
-            func handle(_ command: TestCommand) async throws -> String {
+            func handle(_ command: TestCommand, context: CommandContext) async throws -> String {
                 attemptCount += 1
                 throw PipelineError.cancelled(context: "Handler cancelled")
             }
@@ -211,7 +211,7 @@ final class SimpleCancellationTests: XCTestCase {
         struct SlowHandler: CommandHandler {
             typealias CommandType = SlowCommand
             
-            func handle(_ command: SlowCommand) async throws -> String {
+            func handle(_ command: SlowCommand, context: CommandContext) async throws -> String {
                 // Simulate slow operation
                 try await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
                 return "completed"

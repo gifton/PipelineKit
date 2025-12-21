@@ -50,7 +50,7 @@ public struct EncryptionMiddleware: Middleware {
     public let priority: ExecutionPriority = .preProcessing
     
     /// The encryption service used for cryptographic operations.
-    private let encryptionService: EncryptionService
+    private let encryptionService: any EncryptionService
     
     /// Set of field names that should be encrypted.
     private let sensitiveFields: Set<String>
@@ -69,7 +69,7 @@ public struct EncryptionMiddleware: Middleware {
     ///   - encryptFullPayload: If true, encrypts entire command payload
     ///   - allowPartialDecryption: If true, allows processing even if some fields cannot be decrypted
     public init(
-        encryptionService: EncryptionService,
+        encryptionService: any EncryptionService,
         sensitiveFields: Set<String> = [],
         encryptFullPayload: Bool = false,
         allowPartialDecryption: Bool = false
@@ -176,7 +176,7 @@ public struct EncryptionMiddleware: Middleware {
         
         // Log encryption for audit
         let metadata = context.getMetadata()
-        if let auditLogger = metadata["auditLogger"] as? AuditLogger {
+        if let auditLogger = metadata["auditLogger"] as? any AuditLogger {
             await auditLogger.log(SecurityAuditEvent(
                 action: .encryption,
                 resource: String(describing: type(of: command)),
@@ -279,7 +279,7 @@ public struct EncryptionMiddleware: Middleware {
         
         // Log decryption for audit
         let contextMetadata = context.getMetadata()
-        if let auditLogger = contextMetadata["auditLogger"] as? AuditLogger {
+        if let auditLogger = contextMetadata["auditLogger"] as? any AuditLogger {
             await auditLogger.log(SecurityAuditEvent(
                 action: .decryption,
                 resource: String(describing: type(of: result)),

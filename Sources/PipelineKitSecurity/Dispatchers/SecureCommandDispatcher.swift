@@ -141,7 +141,7 @@ public actor SecureCommandDispatcher {
     /// 
     /// - Parameter error: The error to sanitize
     /// - Returns: A safe error message suitable for external consumption
-    private func sanitizeError(_ error: Error) -> String {
+    private func sanitizeError(_ error: any Error) -> String {
         switch error {
         case PipelineError.handlerNotFound:
             return "Command handler not found"

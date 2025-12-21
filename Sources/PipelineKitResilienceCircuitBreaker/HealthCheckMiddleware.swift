@@ -403,7 +403,7 @@ private actor HealthMonitor {
         updateHealthState(for: service)
     }
 
-    func recordFailure(service: String, error: Error, duration: TimeInterval) {
+    func recordFailure(service: String, error: (any Error), duration: TimeInterval) {
         ensureServiceStats(for: service)
         serviceStats[service]?.recordFailure(duration: duration)
         updateHealthState(for: service)

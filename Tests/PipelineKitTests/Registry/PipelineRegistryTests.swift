@@ -29,7 +29,7 @@ struct AnotherRegistryCommand: Command {
 final class RegistryTestHandler: CommandHandler {
     typealias CommandType = RegistryTestCommand
 
-    func handle(_ command: RegistryTestCommand) async throws -> String {
+    func handle(_ command: RegistryTestCommand, context: CommandContext) async throws -> String {
         command.value
     }
 }
@@ -37,7 +37,7 @@ final class RegistryTestHandler: CommandHandler {
 final class AnotherRegistryHandler: CommandHandler {
     typealias CommandType = AnotherRegistryCommand
 
-    func handle(_ command: AnotherRegistryCommand) async throws -> Int {
+    func handle(_ command: AnotherRegistryCommand, context: CommandContext) async throws -> Int {
         command.value
     }
 }

@@ -419,7 +419,7 @@ private actor Partition {
     private var totalRejections = 0
     private var totalTimeouts = 0
     private var queueTimes: [TimeInterval] = []
-    private var waiters: [CheckedContinuation<Void, Error>] = []
+    private var waiters: [CheckedContinuation<Void, (any Error)>] = []
 
     init(name: String, config: PartitionedBulkheadMiddleware.PartitionConfig) {
         self.name = name

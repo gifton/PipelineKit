@@ -26,7 +26,7 @@ final class StandardPipelineContextTests: XCTestCase {
     private struct CalculateHandler: CommandHandler {
         typealias CommandType = CalculateCommand
         
-        func handle(_ command: CalculateCommand) async throws -> Int {
+        func handle(_ command: CalculateCommand, context: CommandContext) async throws -> Int {
             return command.value * 2
         }
     }
