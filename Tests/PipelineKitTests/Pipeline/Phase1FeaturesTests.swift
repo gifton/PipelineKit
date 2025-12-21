@@ -493,7 +493,8 @@ struct Phase1IntegrationTests {
         }
     }
 
-    struct AuthMiddleware: ConditionalMiddleware {
+    // Conforms to NextGuardWarningSuppressing because it throws without calling next() when not authenticated
+    struct AuthMiddleware: ConditionalMiddleware, NextGuardWarningSuppressing {
         let isAuthenticated: Bool
 
         func shouldActivate<T: Command>(for command: T, context: CommandContext) -> Bool {

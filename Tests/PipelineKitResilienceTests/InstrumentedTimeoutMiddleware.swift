@@ -2,7 +2,9 @@ import Foundation
 import PipelineKitCore
 
 // Instrumented version of TimeoutMiddleware for debugging
-public struct InstrumentedTimeoutMiddleware: Middleware {
+// Conforms to NextGuardWarningSuppressing because it may cancel the wrapped
+// operation before next() completes, which is expected behavior.
+public struct InstrumentedTimeoutMiddleware: Middleware, NextGuardWarningSuppressing {
     public let priority: ExecutionPriority = .resilience
     private let timeout: TimeInterval
     

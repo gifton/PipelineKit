@@ -153,7 +153,7 @@ public struct CompressionMiddleware: Middleware {
         }
         
         // Try to compress the result if it supports compression
-        if let compressibleResult = result as? CompressibleResult,
+        if let compressibleResult = result as? any CompressibleResult,
            compressibleResult.estimatedSize >= minimumSize,
            let dataToCompress = compressibleResult.dataToCompress {
             do {

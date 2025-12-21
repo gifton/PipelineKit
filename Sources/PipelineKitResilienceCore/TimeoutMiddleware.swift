@@ -327,7 +327,7 @@ public struct TimeoutMiddleware: Middleware {
         }
 
         // Check if command implements TimeoutConfigurable
-        if let configurableCommand = command as? TimeoutConfigurable {
+        if let configurableCommand = command as? any TimeoutConfigurable {
             return configurableCommand.timeout
         }
 

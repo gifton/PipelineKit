@@ -19,7 +19,8 @@ final class TimeoutProofTests: XCTestCase {
     }
     
     /// Middleware that delays WITHIN the timeout's protection
-    private struct SlowHandlerWrapper: Middleware {
+    /// Conforms to NextGuardWarningSuppressing because it may be cancelled by timeout
+    private struct SlowHandlerWrapper: Middleware, NextGuardWarningSuppressing {
         let delay: TimeInterval
         let priority: ExecutionPriority = .postProcessing // Higher priority (400) than timeout (250)
         
@@ -81,7 +82,7 @@ final class TimeoutProofTests: XCTestCase {
     func testOriginalTestSetupCannotWork() async throws {
         // This recreates the original test setup to show why it can't work
         
-        struct SlowMiddlewareBeforeTimeout: Middleware {
+        struct SlowMiddlewareBeforeTimeout: Middleware, NextGuardWarningSuppressing {
             let delay: TimeInterval
             // Using .custom priority (1000) like original test - will run AFTER timeout
             let priority: ExecutionPriority = .custom
@@ -126,7 +127,7 @@ final class TimeoutProofTests: XCTestCase {
     func testSlowOperationBeforeTimeoutCannotBeInterrupted() async throws {
         // This shows that operations BEFORE timeout in the chain cannot be timed out
         
-        struct EarlySlowMiddleware: Middleware {
+        struct EarlySlowMiddleware: Middleware, NextGuardWarningSuppressing {
             let delay: TimeInterval
             let priority: ExecutionPriority = .preProcessing // Priority 100 < timeout's 250
             

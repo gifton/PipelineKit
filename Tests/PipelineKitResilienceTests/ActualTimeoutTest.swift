@@ -24,8 +24,9 @@ final class ActualTimeoutTest: XCTestCase {
         }
     }
     
-    // Instrumented slow middleware
-    private struct InstrumentedSlowMiddleware: Middleware {
+    // Instrumented slow middleware - conforms to NextGuardWarningSuppressing
+    // because it may be cancelled by timeout, leaving next() uncalled
+    private struct InstrumentedSlowMiddleware: Middleware, NextGuardWarningSuppressing {
         let delay: TimeInterval
         let priority: ExecutionPriority = .postProcessing
         

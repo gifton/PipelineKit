@@ -194,7 +194,7 @@ public struct EncryptionMiddleware: Middleware {
     
     private func decryptResult<T>(_ result: T, context: CommandContext) async throws -> T {
         // Check if result supports decryption
-        guard let decryptable = result as? DecryptableResult,
+        guard let decryptable = result as? any DecryptableResult,
               let encryptedData = decryptable.encryptedData,
               !encryptedData.isEmpty else {
             return result

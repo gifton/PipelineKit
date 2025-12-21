@@ -218,7 +218,8 @@ final class SimpleCancellationTests: XCTestCase {
             }
         }
         
-        final class SlowMiddleware: Middleware, @unchecked Sendable {
+        // Conforms to NextGuardWarningSuppressing because this may be cancelled before next() is called
+        final class SlowMiddleware: Middleware, NextGuardWarningSuppressing, @unchecked Sendable {
             let priority = ExecutionPriority.processing
             
             func execute<T: Command>(

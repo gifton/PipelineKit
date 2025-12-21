@@ -25,25 +25,16 @@ enum MiddlewareChainBuilder {
             for i in stride(from: middlewares.count - 1, through: 0, by: -1) {
                 let middleware = middlewares[i]
                 let previous = chain
-                let wrappedNext: @Sendable (T, CommandContext) async throws -> T.Result
-                if middleware is any UnsafeMiddleware {
-                    wrappedNext = previous
-                } else {
-                    let suppress = (middleware is any NextGuardWarningSuppressing)
-                    let nextGuard = NextGuard<T>(
-                        previous,
-                        identifier: String(describing: type(of: middleware)),
-                        suppressDeinitWarning: suppress
-                    )
-                    wrappedNext = nextGuard.callAsFunction
-                }
+                let isUnsafe = middleware is any UnsafeMiddleware
+                let suppress = (middleware is any NextGuardWarningSuppressing)
+                let middlewareName = String(describing: type(of: middleware))
 
                 // Check if middleware is conditional and wrap with activation check
                 let conditionalMiddleware = middleware as? any ConditionalMiddleware
 
                 chain = { (cmd: T, ctx: CommandContext) in
                     if insertCancellationChecks {
-                        try Task.checkCancellation(context: "Pipeline execution cancelled at middleware: \(String(describing: type(of: middleware)))")
+                        try Task.checkCancellation(context: "Pipeline execution cancelled at middleware: \(middlewareName)")
                     }
 
                     // If conditional, check shouldActivate before executing
@@ -52,6 +43,19 @@ enum MiddlewareChainBuilder {
                             // Skip this middleware, pass directly to next in chain
                             return try await previous(cmd, ctx)
                         }
+                    }
+
+                    // Create NextGuard lazily, only when middleware will actually execute
+                    let wrappedNext: @Sendable (T, CommandContext) async throws -> T.Result
+                    if isUnsafe {
+                        wrappedNext = previous
+                    } else {
+                        let nextGuard = NextGuard<T>(
+                            previous,
+                            identifier: middlewareName,
+                            suppressDeinitWarning: suppress
+                        )
+                        wrappedNext = nextGuard.callAsFunction
                     }
 
                     return try await middleware.execute(cmd, context: ctx, next: wrappedNext)
@@ -71,25 +75,16 @@ enum MiddlewareChainBuilder {
         for i in stride(from: middlewares.count - 1, through: 0, by: -1) {
             let middleware = middlewares[i]
             let previous = chain
-            let wrappedNext: @Sendable (T, CommandContext) async throws -> T.Result
-            if middleware is any UnsafeMiddleware {
-                wrappedNext = previous
-            } else {
-                let suppress = (middleware is any NextGuardWarningSuppressing)
-                let nextGuard = NextGuard<T>(
-                    previous,
-                    identifier: String(describing: type(of: middleware)),
-                    suppressDeinitWarning: suppress
-                )
-                wrappedNext = nextGuard.callAsFunction
-            }
+            let isUnsafe = middleware is any UnsafeMiddleware
+            let suppress = (middleware is any NextGuardWarningSuppressing)
+            let middlewareName = String(describing: type(of: middleware))
 
             // Check if middleware is conditional and wrap with activation check
             let conditionalMiddleware = middleware as? any ConditionalMiddleware
 
             chain = { (cmd: T, ctx: CommandContext) in
                 if insertCancellationChecks {
-                    try Task.checkCancellation(context: "Pipeline execution cancelled at middleware: \(String(describing: type(of: middleware)))")
+                    try Task.checkCancellation(context: "Pipeline execution cancelled at middleware: \(middlewareName)")
                 }
 
                 // If conditional, check shouldActivate before executing
@@ -98,6 +93,19 @@ enum MiddlewareChainBuilder {
                         // Skip this middleware, pass directly to next in chain
                         return try await previous(cmd, ctx)
                     }
+                }
+
+                // Create NextGuard lazily, only when middleware will actually execute
+                let wrappedNext: @Sendable (T, CommandContext) async throws -> T.Result
+                if isUnsafe {
+                    wrappedNext = previous
+                } else {
+                    let nextGuard = NextGuard<T>(
+                        previous,
+                        identifier: middlewareName,
+                        suppressDeinitWarning: suppress
+                    )
+                    wrappedNext = nextGuard.callAsFunction
                 }
 
                 return try await middleware.execute(cmd, context: ctx, next: wrappedNext)

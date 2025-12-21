@@ -32,7 +32,7 @@ public final class MockCommandHandler: CommandHandler {
 
 // MARK: - Mock Middleware
 
-public final class MockAuthenticationMiddleware: Middleware, Sendable {
+public final class MockAuthenticationMiddleware: Middleware, NextGuardWarningSuppressing, Sendable {
     public let priority = ExecutionPriority.authentication
     
     public init() {}

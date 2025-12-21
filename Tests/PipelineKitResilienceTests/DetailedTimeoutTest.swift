@@ -25,7 +25,8 @@ final class DetailedTimeoutTest: XCTestCase {
     }
     
     // Custom timeout middleware with debug output
-    private struct DebugTimeoutMiddleware: Middleware {
+    // Conforms to NextGuardWarningSuppressing because it may cancel operations before next() completes
+    private struct DebugTimeoutMiddleware: Middleware, NextGuardWarningSuppressing {
         let timeout: TimeInterval
         let priority: ExecutionPriority = .resilience
         
@@ -135,8 +136,8 @@ final class DetailedTimeoutTest: XCTestCase {
         }
     }
     
-    // Slow middleware
-    private struct SlowMiddleware: Middleware {
+    // Slow middleware - conforms to NextGuardWarningSuppressing because it may be cancelled by timeout
+    private struct SlowMiddleware: Middleware, NextGuardWarningSuppressing {
         let delay: TimeInterval
         let priority: ExecutionPriority = .postProcessing
         

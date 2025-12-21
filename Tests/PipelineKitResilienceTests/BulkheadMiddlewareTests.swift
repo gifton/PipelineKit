@@ -111,8 +111,8 @@ final class BulkheadMiddlewareTests: XCTestCase {
             }
         }
 
-        // Give it time to acquire the semaphore
-        try await Task.sleep(nanoseconds: 10_000_000) // 10ms
+        // Give it time to acquire the semaphore (increased for CI reliability)
+        try await Task.sleep(nanoseconds: 50_000_000) // 50ms
 
         // When - try another command while first is running
         do {
@@ -252,7 +252,7 @@ final class BulkheadMiddlewareTests: XCTestCase {
         }
 
         // Give it time to start
-        try await Task.sleep(nanoseconds: 10_000_000)
+        try await Task.sleep(nanoseconds: 50_000_000)
 
         // When - execute another command
         let result = try await middleware.execute(
@@ -292,7 +292,7 @@ final class BulkheadMiddlewareTests: XCTestCase {
         }
 
         // Give it time to start
-        try await Task.sleep(nanoseconds: 10_000_000)
+        try await Task.sleep(nanoseconds: 50_000_000)
 
         // When
         let result = try await middleware.execute(
@@ -328,7 +328,7 @@ final class BulkheadMiddlewareTests: XCTestCase {
         }
 
         // Give time for metrics to be emitted
-        try await Task.sleep(nanoseconds: 10_000_000) // 10ms
+        try await Task.sleep(nanoseconds: 50_000_000) // 50ms
 
         // Then - check metrics
         let metrics = context.getMetadata()
@@ -373,7 +373,7 @@ final class BulkheadMiddlewareTests: XCTestCase {
         }
 
         // Give it time to start
-        try await Task.sleep(nanoseconds: 10_000_000)
+        try await Task.sleep(nanoseconds: 50_000_000)
 
         // When - try to execute another
         _ = try? await middleware.execute(

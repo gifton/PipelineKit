@@ -225,7 +225,7 @@ public struct HealthCheckMiddleware: Middleware {
 
     private func extractServiceName(from command: any Command, context: CommandContext) async -> String {
         // Check if command implements ServiceIdentifiable
-        if let serviceCommand = command as? ServiceIdentifiable {
+        if let serviceCommand = command as? any ServiceIdentifiable {
             return serviceCommand.serviceName
         }
 

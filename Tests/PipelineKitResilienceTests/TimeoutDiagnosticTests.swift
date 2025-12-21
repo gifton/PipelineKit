@@ -45,8 +45,9 @@ final class TimeoutDiagnosticTests: XCTestCase {
         }
     }
     
-    // Slow middleware for testing timeouts
-    private struct SlowMiddleware: Middleware {
+    // Slow middleware for testing timeouts - conforms to NextGuardWarningSuppressing
+    // because it may be cancelled by timeout before next() is called
+    private struct SlowMiddleware: Middleware, NextGuardWarningSuppressing {
         let delay: TimeInterval
         let priority: ExecutionPriority = .custom
         let id: String
@@ -182,7 +183,7 @@ final class TimeoutDiagnosticTests: XCTestCase {
         let pipeline = StandardPipeline(handler: handler)
         
         // Create slow middleware with lower priority (executes first)
-        struct EarlySlowMiddleware: Middleware {
+        struct EarlySlowMiddleware: Middleware, NextGuardWarningSuppressing {
             let delay: TimeInterval
             let priority: ExecutionPriority = .preProcessing // 100 - runs before timeout
             
