@@ -277,7 +277,7 @@ public actor RateLimiter {
     
     private func checkDistributed(
         identifier: String,
-        store: DistributedRateLimitStore,
+        store: any DistributedRateLimitStore,
         windowSize: TimeInterval,
         maxRequests: Int
     ) async throws -> Bool {

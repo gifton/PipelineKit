@@ -7,12 +7,12 @@ import PipelineKit
 /// computations or I/O operations that can be cached based on command parameters.
 public struct CachedMiddleware<M: Middleware>: Middleware, NextGuardWarningSuppressing where M: Sendable {
     private let wrapped: M
-    private let cache: MiddlewareCache
-    private let keyGenerator: CacheKeyGenerator
+    private let cache: any MiddlewareCache
+    private let keyGenerator: any CacheKeyGenerator
     private let ttl: TimeInterval
-    
+
     public let priority: ExecutionPriority
-    
+
     /// Creates a cached middleware wrapper
     /// - Parameters:
     ///   - wrapped: The middleware to cache results for
@@ -21,8 +21,8 @@ public struct CachedMiddleware<M: Middleware>: Middleware, NextGuardWarningSuppr
     ///   - ttl: Time to live for cached entries (default: 5 minutes)
     public init(
         wrapping middleware: M,
-        cache: MiddlewareCache,
-        keyGenerator: CacheKeyGenerator = DefaultCacheKeyGenerator(),
+        cache: any MiddlewareCache,
+        keyGenerator: any CacheKeyGenerator = DefaultCacheKeyGenerator(),
         ttl: TimeInterval = 300 // 5 minutes
     ) {
         self.wrapped = middleware
@@ -223,15 +223,15 @@ public extension Middleware {
 /// Middleware wrapper that caches based on conditions
 public struct ConditionalCachedMiddleware<M: Middleware>: Middleware, NextGuardWarningSuppressing where M: Sendable {
     private let wrapped: M
-    private let cache: MiddlewareCache
+    private let cache: any MiddlewareCache
     private let shouldCache: @Sendable (Any, CommandContext) async -> Bool
     private let ttl: TimeInterval
-    
+
     public let priority: ExecutionPriority
-    
+
     public init(
         wrapping middleware: M,
-        cache: MiddlewareCache,
+        cache: any MiddlewareCache,
         ttl: TimeInterval = 300,
         shouldCache: @escaping @Sendable (Any, CommandContext) async -> Bool
     ) {
@@ -284,7 +284,7 @@ public extension Middleware {
     /// Wraps this middleware with caching
     func cached(
         ttl: TimeInterval = 300,
-        cache: MiddlewareCache
+        cache: any MiddlewareCache
     ) -> CachedMiddleware<Self> {
         return CachedMiddleware(
             wrapping: self,
@@ -292,11 +292,11 @@ public extension Middleware {
             ttl: ttl
         )
     }
-    
+
     /// Wraps this middleware with conditional caching
     func cachedWhen(
         ttl: TimeInterval = 300,
-        cache: MiddlewareCache,
+        cache: any MiddlewareCache,
         condition: @escaping @Sendable (Any, CommandContext) async -> Bool
     ) -> ConditionalCachedMiddleware<Self> {
         return ConditionalCachedMiddleware(

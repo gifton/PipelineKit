@@ -99,7 +99,7 @@ public actor UDPTransport: MetricsTransport {
         }
         
         // Send with timeout and retries
-        var lastError: Error?
+        var lastError: (any Error)?
         
         for attempt in 0..<configuration.maxRetries {
             do {

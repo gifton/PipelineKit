@@ -83,16 +83,10 @@ let package = Package(
             ],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency"),
-                // Enable System Programming Interface for internal module boundaries
                 .enableExperimentalFeature("AccessLevelOnImport"),
-                // Week 1 Optimization: Future-proof with Swift 6 upcoming features
-                .enableUpcomingFeature("ExistentialAny"),
-                .enableUpcomingFeature("ConciseMagicFile"),
-                .enableUpcomingFeature("ForwardTrailingClosures"),
-                .enableUpcomingFeature("BareSlashRegexLiterals")
+                .enableUpcomingFeature("ExistentialAny")
             ],
             linkerSettings: [
-                // Week 1 Optimization: Link Accelerate framework for vectorized operations
                 .linkedFramework("Accelerate", .when(platforms: [.macOS, .iOS, .tvOS, .watchOS, .visionOS]))
             ]
         ),
@@ -101,11 +95,7 @@ let package = Package(
             dependencies: ["PipelineKit", "PipelineKitSecurity"],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency"),
-                // Week 1 Optimization: Future-proof with Swift 6 upcoming features
-                .enableUpcomingFeature("ExistentialAny"),
-                .enableUpcomingFeature("ConciseMagicFile"),
-                .enableUpcomingFeature("ForwardTrailingClosures"),
-                .enableUpcomingFeature("BareSlashRegexLiterals")
+                .enableUpcomingFeature("ExistentialAny")
             ]
         ),
         // Core module tests - Tests for PipelineKitCore foundation types
@@ -216,14 +206,9 @@ let package = Package(
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency"),
                 .enableExperimentalFeature("AccessLevelOnImport"),
-                // Week 1 Optimization: Future-proof with Swift 6 upcoming features
-                .enableUpcomingFeature("ExistentialAny"),
-                .enableUpcomingFeature("ConciseMagicFile"),
-                .enableUpcomingFeature("ForwardTrailingClosures"),
-                .enableUpcomingFeature("BareSlashRegexLiterals")
+                .enableUpcomingFeature("ExistentialAny")
             ],
             linkerSettings: [
-                // Week 1 Optimization: Link Accelerate framework (critical for MemoryProfiler statistics)
                 .linkedFramework("Accelerate", .when(platforms: [.macOS, .iOS, .tvOS, .watchOS, .visionOS]))
             ]
         ),
@@ -239,14 +224,10 @@ let package = Package(
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency"),
                 .enableExperimentalFeature("AccessLevelOnImport"),
-                // Week 1 Optimization: Future-proof with Swift 6 upcoming features
-                .enableUpcomingFeature("ExistentialAny"),
-                .enableUpcomingFeature("ConciseMagicFile"),
-                .enableUpcomingFeature("ForwardTrailingClosures"),
-                .enableUpcomingFeature("BareSlashRegexLiterals")
+                .enableUpcomingFeature("ExistentialAny")
             ]
         ),
-        
+
         // Resilience module - Circuit breakers, retry, rate limiting
         // Internal targets for parallel compilation
         .target(
@@ -259,11 +240,7 @@ let package = Package(
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency"),
                 .enableExperimentalFeature("AccessLevelOnImport"),
-                // Week 1 Optimization: Future-proof with Swift 6 upcoming features
-                .enableUpcomingFeature("ExistentialAny"),
-                .enableUpcomingFeature("ConciseMagicFile"),
-                .enableUpcomingFeature("ForwardTrailingClosures"),
-                .enableUpcomingFeature("BareSlashRegexLiterals")
+                .enableUpcomingFeature("ExistentialAny")
             ]
         ),
         .target(
@@ -277,11 +254,7 @@ let package = Package(
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency"),
                 .enableExperimentalFeature("AccessLevelOnImport"),
-                // Week 1 Optimization: Future-proof with Swift 6 upcoming features
-                .enableUpcomingFeature("ExistentialAny"),
-                .enableUpcomingFeature("ConciseMagicFile"),
-                .enableUpcomingFeature("ForwardTrailingClosures"),
-                .enableUpcomingFeature("BareSlashRegexLiterals")
+                .enableUpcomingFeature("ExistentialAny")
             ]
         ),
         .target(
@@ -294,11 +267,7 @@ let package = Package(
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency"),
                 .enableExperimentalFeature("AccessLevelOnImport"),
-                // Week 1 Optimization: Future-proof with Swift 6 upcoming features
-                .enableUpcomingFeature("ExistentialAny"),
-                .enableUpcomingFeature("ConciseMagicFile"),
-                .enableUpcomingFeature("ForwardTrailingClosures"),
-                .enableUpcomingFeature("BareSlashRegexLiterals")
+                .enableUpcomingFeature("ExistentialAny")
             ]
         ),
         .target(
@@ -311,11 +280,7 @@ let package = Package(
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency"),
                 .enableExperimentalFeature("AccessLevelOnImport"),
-                // Week 1 Optimization: Future-proof with Swift 6 upcoming features
-                .enableUpcomingFeature("ExistentialAny"),
-                .enableUpcomingFeature("ConciseMagicFile"),
-                .enableUpcomingFeature("ForwardTrailingClosures"),
-                .enableUpcomingFeature("BareSlashRegexLiterals")
+                .enableUpcomingFeature("ExistentialAny")
             ]
         ),
         // Public umbrella target
@@ -331,11 +296,7 @@ let package = Package(
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency"),
                 .enableExperimentalFeature("AccessLevelOnImport"),
-                // Week 1 Optimization: Future-proof with Swift 6 upcoming features
-                .enableUpcomingFeature("ExistentialAny"),
-                .enableUpcomingFeature("ConciseMagicFile"),
-                .enableUpcomingFeature("ForwardTrailingClosures"),
-                .enableUpcomingFeature("BareSlashRegexLiterals")
+                .enableUpcomingFeature("ExistentialAny")
             ]
         ),
         
@@ -349,14 +310,9 @@ let package = Package(
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency"),
                 .enableExperimentalFeature("AccessLevelOnImport"),
-                // Week 1 Optimization: Future-proof with Swift 6 upcoming features
-                .enableUpcomingFeature("ExistentialAny"),
-                .enableUpcomingFeature("ConciseMagicFile"),
-                .enableUpcomingFeature("ForwardTrailingClosures"),
-                .enableUpcomingFeature("BareSlashRegexLiterals")
+                .enableUpcomingFeature("ExistentialAny")
             ],
             linkerSettings: [
-                // Week 1 Optimization: Link Accelerate framework for metrics calculations
                 .linkedFramework("Accelerate", .when(platforms: [.macOS, .iOS, .tvOS, .watchOS, .visionOS]))
             ]
         ),
@@ -372,11 +328,7 @@ let package = Package(
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency"),
                 .enableExperimentalFeature("AccessLevelOnImport"),
-                // Week 1 Optimization: Future-proof with Swift 6 upcoming features
-                .enableUpcomingFeature("ExistentialAny"),
-                .enableUpcomingFeature("ConciseMagicFile"),
-                .enableUpcomingFeature("ForwardTrailingClosures"),
-                .enableUpcomingFeature("BareSlashRegexLiterals")
+                .enableUpcomingFeature("ExistentialAny")
             ]
         ),
 
@@ -391,14 +343,9 @@ let package = Package(
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency"),
                 .enableExperimentalFeature("AccessLevelOnImport"),
-                // Week 1 Optimization: Future-proof with Swift 6 upcoming features
-                .enableUpcomingFeature("ExistentialAny"),
-                .enableUpcomingFeature("ConciseMagicFile"),
-                .enableUpcomingFeature("ForwardTrailingClosures"),
-                .enableUpcomingFeature("BareSlashRegexLiterals")
+                .enableUpcomingFeature("ExistentialAny")
             ],
             linkerSettings: [
-                // Week 1 Optimization: Link Accelerate framework for pool metrics
                 .linkedFramework("Accelerate", .when(platforms: [.macOS, .iOS, .tvOS, .watchOS, .visionOS]))
             ]
         ),

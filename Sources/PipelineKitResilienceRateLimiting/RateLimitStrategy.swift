@@ -19,7 +19,7 @@ public enum RateLimitStrategy: Sendable {
     
     /// Distributed rate limiting using external store
     case distributed(
-        store: DistributedRateLimitStore,
+        store: any DistributedRateLimitStore,
         windowSize: TimeInterval,
         maxRequests: Int
     )

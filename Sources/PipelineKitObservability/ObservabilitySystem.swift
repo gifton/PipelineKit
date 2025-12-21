@@ -292,7 +292,7 @@ public extension CommandContext {
     var observability: ObservabilitySystem? {
         get async {
             // Check if we have an EventHub as the event emitter
-            if let hub = await self.eventEmitter as? EventHub {
+            if let hub = self.eventEmitter as? EventHub {
                 // Get the parent system from the hub
                 return await hub.getParentSystem()
             }
@@ -318,7 +318,7 @@ public extension CommandContext {
     ) async {
         let system = await ObservabilitySystem(configuration: config)
         let hub = await system.getEventHub()
-        await self.setEventEmitter(hub)
+        self.setEventEmitter(hub)
         
         // Store the system in the context to keep it alive
         // The hub has only a weak reference to prevent cycles
@@ -332,7 +332,7 @@ public extension CommandContext {
         tags: [String: String] = [:]
     ) async {
         // If we have a metrics-capable event emitter, use it
-        if let hub = await eventEmitter as? EventHub {
+        if let hub = eventEmitter as? EventHub {
             let event = PipelineEvent(
                 name: "metric.counter.recorded",
                 properties: [
@@ -341,7 +341,7 @@ public extension CommandContext {
                     "metric_value": value,
                     "metric_tags": tags
                 ],
-                correlationID: await correlationID ?? commandMetadata.correlationID ?? UUID().uuidString
+                correlationID: correlationID ?? commandMetadata.correlationID ?? UUID().uuidString
             )
             await hub.emit(event)
         }
@@ -355,7 +355,7 @@ public extension CommandContext {
         unit: String? = nil
     ) async {
         // If we have a metrics-capable event emitter, use it
-        if let hub = await eventEmitter as? EventHub {
+        if let hub = eventEmitter as? EventHub {
             var props: [String: any Sendable] = [
                 "metric_name": name,
                 "metric_type": "gauge",
@@ -368,7 +368,7 @@ public extension CommandContext {
             let event = PipelineEvent(
                 name: "metric.gauge.recorded",
                 properties: props,
-                correlationID: await correlationID ?? commandMetadata.correlationID ?? UUID().uuidString
+                correlationID: correlationID ?? commandMetadata.correlationID ?? UUID().uuidString
             )
             await hub.emit(event)
         }
@@ -381,7 +381,7 @@ public extension CommandContext {
         tags: [String: String] = [:]
     ) async {
         // If we have a metrics-capable event emitter, use it
-        if let hub = await eventEmitter as? EventHub {
+        if let hub = eventEmitter as? EventHub {
             let event = PipelineEvent(
                 name: "metric.timer.recorded",
                 properties: [
@@ -391,7 +391,7 @@ public extension CommandContext {
                     "metric_tags": tags,
                     "metric_unit": "ms"
                 ],
-                correlationID: await correlationID ?? commandMetadata.correlationID ?? UUID().uuidString
+                correlationID: correlationID ?? commandMetadata.correlationID ?? UUID().uuidString
             )
             await hub.emit(event)
         }
