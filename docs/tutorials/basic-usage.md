@@ -18,8 +18,8 @@ struct GreetCommand: Command {
 // 2. Create a handler
 struct GreetHandler: CommandHandler {
     typealias CommandType = GreetCommand
-    
-    func handle(_ command: GreetCommand) async throws -> String {
+
+    func handle(_ command: GreetCommand, context: CommandContext) async throws -> String {
         return "Hello, \(command.name)!"
     }
 }
@@ -163,8 +163,8 @@ struct DivideCommand: Command {
 // Handler with validation
 struct DivideHandler: CommandHandler {
     typealias CommandType = DivideCommand
-    
-    func handle(_ command: DivideCommand) async throws -> Double {
+
+    func handle(_ command: DivideCommand, context: CommandContext) async throws -> Double {
         guard command.divisor != 0 else {
             throw DivisionError.divisionByZero
         }
@@ -264,13 +264,13 @@ struct SearchResults {
 
 struct SearchHandler: CommandHandler {
     typealias CommandType = SearchCommand
-    
-    func handle(_ command: SearchCommand) async throws -> SearchResults {
+
+    func handle(_ command: SearchCommand, context: CommandContext) async throws -> SearchResults {
         let start = Date()
-        
+
         // Simulate search
         let items = (0..<command.limit).map { "Result \($0) for '\(command.query)'" }
-        
+
         return SearchResults(
             items: items,
             totalCount: items.count * 10, // Simulate more results available
@@ -294,8 +294,8 @@ struct FetchDataCommand: Command {
 // Async handler
 struct FetchDataHandler: CommandHandler {
     typealias CommandType = FetchDataCommand
-    
-    func handle(_ command: FetchDataCommand) async throws -> Data {
+
+    func handle(_ command: FetchDataCommand, context: CommandContext) async throws -> Data {
         let (data, _) = try await URLSession.shared.data(from: command.url)
         return data
     }
@@ -377,8 +377,8 @@ enum OrderError: Error {
 // Handler
 struct CreateOrderHandler: CommandHandler {
     typealias CommandType = CreateOrderCommand
-    
-    func handle(_ command: CreateOrderCommand) async throws -> Order {
+
+    func handle(_ command: CreateOrderCommand, context: CommandContext) async throws -> Order {
         // Simulate order creation
         return Order(
             id: UUID().uuidString,

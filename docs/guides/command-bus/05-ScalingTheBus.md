@@ -145,13 +145,14 @@ class GenerateSalesReportCommandHandler: CommandHandler {
 
     private let reportService: ReportService
     private let jobQueue: BackgroundJobQueue
-    
+
     init(reportService: ReportService, jobQueue: BackgroundJobQueue) {
         self.reportService = reportService
         self.jobQueue = jobQueue
     }
-    
-    func handle(command: GenerateSalesReportCommand) async throws {
+
+    // Note: PipelineKit handlers receive context and return a Result type
+    func handle(_ command: GenerateSalesReportCommand, context: CommandContext) async throws -> Void {
         print("▶️ [Handler] Received report generation request")
         
         // Quick validation
@@ -291,9 +292,9 @@ struct UserRegistrationSaga: Saga {
 ```swift
 // Instead of direct chaining, use events
 class CreateUserCommandHandler: CommandHandler {
-    func handle(command: CreateUserCommand) async throws {
+    func handle(_ command: CreateUserCommand, context: CommandContext) async throws -> Void {
         // ... create user logic ...
-        
+
         // Emit event instead of dispatching next command
         await eventBus.publish(UserCreatedEvent(
             userId: command.userId,

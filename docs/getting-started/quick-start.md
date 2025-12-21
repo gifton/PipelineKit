@@ -50,8 +50,8 @@ struct CalculateCommand: Command {
 // 2. Create a handler
 struct CalculateHandler: CommandHandler {
     typealias CommandType = CalculateCommand
-    
-    func handle(_ command: CalculateCommand) async throws -> Int {
+
+    func handle(_ command: CalculateCommand, context: CommandContext) async throws -> Int {
         return command.a + command.b
     }
 }

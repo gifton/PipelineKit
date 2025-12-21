@@ -56,8 +56,8 @@ struct CreateUserCommand: Command {
 
 // 2. Create a Handler (how to do it)
 final class CreateUserHandler: CommandHandler {
-    func handle(_ command: CreateUserCommand) async throws -> User {
-        // Business logic here
+    func handle(_ command: CreateUserCommand, context: CommandContext) async throws -> User {
+        // Business logic here - context provides correlation IDs, metadata, etc.
         return User(email: command.email, name: command.name)
     }
 }
@@ -99,12 +99,13 @@ Handlers contain the actual business logic for processing commands.
 ```swift
 protocol CommandHandler: Sendable {
     associatedtype CommandType: Command
-    func handle(_ command: CommandType) async throws -> CommandType.Result
+    func handle(_ command: CommandType, context: CommandContext) async throws -> CommandType.Result
 }
 ```
 
 **Key Points:**
 - One handler per command type
+- Receives `CommandContext` for accessing metadata, correlation IDs, transactions
 - Stateless and `Sendable`
 - Async/await native
 - Focused single responsibility
@@ -248,7 +249,7 @@ struct MyCommand: Command {
 }
 
 final class MyHandler: CommandHandler {
-    func handle(_ command: MyCommand) async throws -> String {
+    func handle(_ command: MyCommand, context: CommandContext) async throws -> String {
         "Processed: \(command.input)"
     }
 }
@@ -477,12 +478,12 @@ struct CalculateCommand: Command {
 
 // 2. Create Handler
 final class CalculatorHandler: CommandHandler {
-    func handle(_ command: CalculateCommand) async throws -> Double {
+    func handle(_ command: CalculateCommand, context: CommandContext) async throws -> Double {
         switch command.operation {
         case "+": return command.a + command.b
         case "-": return command.a - command.b
         case "*": return command.a * command.b
-        case "/": 
+        case "/":
             guard command.b != 0 else { throw CalculationError.divisionByZero }
             return command.a / command.b
         default:
@@ -696,8 +697,8 @@ let version = context.metadata["api-version"] as? String // Unsafe!
 // ❌ BAD - Stateful handler
 class BadHandler: CommandHandler {
     var requestCount = 0 // Don't store state!
-    
-    func handle(_ command: MyCommand) async throws -> Result {
+
+    func handle(_ command: MyCommand, context: CommandContext) async throws -> Result {
         requestCount += 1 // Race condition!
         // ...
     }
@@ -706,8 +707,8 @@ class BadHandler: CommandHandler {
 // ✅ GOOD - Stateless handler with external state
 class GoodHandler: CommandHandler {
     let metrics: MetricsCollector // Injected dependency
-    
-    func handle(_ command: MyCommand) async throws -> Result {
+
+    func handle(_ command: MyCommand, context: CommandContext) async throws -> Result {
         await metrics.incrementCounter("requests")
         // ...
     }

@@ -4,9 +4,9 @@ PipelineKit supports multiple installation methods to fit your workflow.
 
 ## Requirements
 
-- Swift 5.10 or later
-- Xcode 15.0 or later (for Xcode integration)
-- macOS 13.0+ / iOS 17.0+ / tvOS 16.0+ / watchOS 9.0+
+- Swift 6.0 or later
+- Xcode 16.0 or later (for Xcode integration)
+- macOS 14.0+ / iOS 17.0+ / tvOS 17.0+ / watchOS 10.0+ / visionOS 1.0+
 
 ## Swift Package Manager (Recommended)
 
@@ -176,14 +176,14 @@ Or in Xcode:
 
 ### Linux
 
-PipelineKit builds on Linux. Ensure you have Swift installed. Some transports (e.g., UDP via Network framework) may require alternative backends on non‑Apple platforms:
+PipelineKit builds on Linux. Ensure you have Swift 6.0+ installed. Some transports (e.g., UDP via Network framework) may require alternative backends on non‑Apple platforms:
 
 ```bash
-# Ubuntu
-apt-get install swift
+# Ubuntu - install Swift 6.0+
+# See https://swift.org/download/
 
 # Using Docker
-docker run --rm -it swift:5.10
+docker run --rm -it swift:6.0
 ```
 
 ### Windows

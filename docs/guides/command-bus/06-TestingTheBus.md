@@ -243,18 +243,18 @@ class SpyMiddleware: Middleware {
 // Mock handler for testing middleware
 class MockHandler: CommandHandler {
     typealias CommandType = TestCommand
-    
+
     var handleCalled = false
     var shouldThrow: Error?
     var delay: TimeInterval = 0
-    
-    func handle(command: TestCommand) async throws {
+
+    func handle(_ command: TestCommand, context: CommandContext) async throws -> Void {
         handleCalled = true
-        
+
         if delay > 0 {
             try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
         }
-        
+
         if let error = shouldThrow {
             throw error
         }

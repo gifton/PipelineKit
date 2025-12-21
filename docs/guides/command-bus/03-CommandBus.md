@@ -36,6 +36,8 @@ Each middleware wraps the next, creating layers of functionality.
 
 First, we define a protocol for our Middleware. The `next()` closure is the key: it's a function that the middleware must call to pass control to the next item in the chain.
 
+> **Note:** This is a simplified educational example showing how command buses work conceptually. PipelineKit's actual `CommandHandler` protocol includes a `context: CommandContext` parameter and returns `CommandType.Result`. See the [README](../../../README.md) for the actual API.
+
 ```swift
 import Foundation
 
