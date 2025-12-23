@@ -276,11 +276,11 @@ final class ParallelMiddlewareContextTests: XCTestCase {
         
         // When/Then: Measure forking performance
         // Note: measure doesn't support async, so we'll use a simple timing approach
-        let start = CFAbsoluteTimeGetCurrent()
+        let start = Date().timeIntervalSinceReferenceDate
         for _ in 0..<1000 {
             _ = context.fork()
         }
-        let end = CFAbsoluteTimeGetCurrent()
+        let end = Date().timeIntervalSinceReferenceDate
         print("Fork performance: \((end - start) * 1000)ms for 1000 forks")
     }
     

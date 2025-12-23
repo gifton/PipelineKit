@@ -239,8 +239,8 @@ final class OptimizedValidatorsTests: XCTestCase {
     }
     
     private func measureTime(_ block: () -> Void) -> TimeInterval {
-        let start = CFAbsoluteTimeGetCurrent()
+        let start = Date().timeIntervalSinceReferenceDate
         block()
-        return CFAbsoluteTimeGetCurrent() - start
+        return Date().timeIntervalSinceReferenceDate - start
     }
 }
