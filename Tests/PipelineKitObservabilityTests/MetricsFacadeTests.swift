@@ -10,6 +10,14 @@ final class MetricsFacadeTests: XCTestCase {
         Metrics.exporter = NoOpRecorder()
         Metrics.errorHandler = nil
     }
+
+    override func tearDown() async throws {
+        // Reset to safe defaults to prevent dangling StatsDExporter instances
+        // that may have active flushTasks from interfering with other tests
+        Metrics.storage = MetricsStorage()
+        Metrics.exporter = NoOpRecorder()
+        Metrics.errorHandler = nil
+    }
     
     // MARK: - Basic Recording Tests
     

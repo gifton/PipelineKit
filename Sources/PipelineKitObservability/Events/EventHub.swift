@@ -73,9 +73,8 @@ public actor EventHub: EventEmitter {
         }
     }
 
-    deinit {
-        cleanupTask?.cancel()
-    }
+    // Note: No deinit needed. Accessing actor-isolated cleanupTask from deinit is a data race.
+    // The Task captured with weak self will exit when the actor is deallocated.
 
     // MARK: - EventEmitter Conformance
 

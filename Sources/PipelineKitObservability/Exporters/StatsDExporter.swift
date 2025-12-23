@@ -180,15 +180,9 @@ public actor StatsDExporter: MetricRecorder {
         return (shouldSample, rate)
     }
     
-    deinit {
-        #if canImport(Network)
-        // Clean up connection on deinit
-        if case .connected(let connection) = connectionState {
-            connection.cancel()
-        }
-        #endif
-        flushTask?.cancel()
-    }
+    // Note: No deinit needed. Accessing actor-isolated properties (connectionState, flushTask)
+    // from deinit is a data race. Tasks captured with weak self will exit when the actor
+    // is deallocated, and NWConnection handles its own cleanup when released.
     
     /// Records a metric snapshot.
     public func record(_ snapshot: MetricSnapshot) async {

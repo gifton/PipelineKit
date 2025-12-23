@@ -82,9 +82,8 @@ actor MetricAggregator {
         self.configuration = configuration
     }
     
-    deinit {
-        flushTask?.cancel()
-    }
+    // Note: No deinit needed. Accessing actor-isolated flushTask from deinit is a data race.
+    // The Task captured with weak self will exit when the actor is deallocated.
     
     /// Aggregates a metric snapshot.
     /// - Parameters:
