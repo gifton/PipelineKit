@@ -318,11 +318,11 @@ public extension CommandContext {
     ) async {
         let system = await ObservabilitySystem(configuration: config)
         let hub = await system.getEventHub()
-        self.setEventEmitter(hub)
-        
+        self.eventEmitter = hub
+
         // Store the system in the context to keep it alive
         // The hub has only a weak reference to prevent cycles
-        self.set(.observabilitySystem, value: system)
+        self[.observabilitySystem] = system
     }
     
     /// Records a counter metric through the context's observability system.

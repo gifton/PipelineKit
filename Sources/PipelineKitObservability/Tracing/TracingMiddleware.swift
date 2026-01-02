@@ -60,7 +60,7 @@ public struct TracingMiddleware: Middleware {
         // Get or create correlation ID
         let correlationID = context.correlationID ?? {
             let id = UUID().uuidString
-            context.setCorrelationID(id)
+            context.correlationID = id
             return id
         }()
 

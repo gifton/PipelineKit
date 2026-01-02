@@ -136,7 +136,7 @@ final class CommandContextObservabilityTests: XCTestCase {
         await context.setupObservability(.development)
         
         // Set correlation ID
-        context.setRequestID("req-123")
+        context.requestID = "req-123"
         
         // Create a test subscriber to capture events
         let subscriber = EventCapturingSubscriber()
@@ -181,7 +181,7 @@ final class CommandContextObservabilityTests: XCTestCase {
         
         // Set custom emitter
         let customEmitter = CustomEventEmitter()
-        context.setEventEmitter(customEmitter)
+        context.eventEmitter = customEmitter
         
         // Should have custom emitter
         let emitter = context.eventEmitter
@@ -202,7 +202,7 @@ final class CommandContextObservabilityTests: XCTestCase {
         // Set various context metadata
         context.setMetadata("user_id", value: "user-123")
         context.setMetadata("tenant", value: "acme-corp")
-        context.setRequestID("req-456")
+        context.requestID = "req-456"
         
         // Record metrics
         await context.recordCounter(name: "action.performed", value: 1.0)
@@ -225,8 +225,8 @@ final class CommandContextObservabilityTests: XCTestCase {
         let userKey = ContextKey<String>("user")
         let countKey = ContextKey<Int>("count")
         
-        context.set(userKey, value: "alice")
-        context.set(countKey, value: 42)
+        context[userKey] = "alice"
+        context[countKey] = 42
         
         // Record metrics
         await context.recordGauge(name: "user.activity", value: 42.0)
@@ -235,8 +235,8 @@ final class CommandContextObservabilityTests: XCTestCase {
         let system = await context.observability
         XCTAssertNotNil(system)
         
-        let user = context.get(userKey)
-        let count = context.get(countKey)
+        let user: String? = context[userKey]
+        let count: Int? = context[countKey]
         XCTAssertEqual(user, "alice")
         XCTAssertEqual(count, 42)
     }

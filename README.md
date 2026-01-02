@@ -154,34 +154,27 @@ let id = context.requestID
 let user = context.userID
 ```
 
-#### All Access Patterns
+#### Access Patterns
 
 ```swift
 @dynamicMemberLookup
 final class CommandContext: @unchecked Sendable {
-    // 1. Property access (via @dynamicMemberLookup)
+    // Property access for built-in keys (via @dynamicMemberLookup)
     context.requestID = "req-123"
     let id = context.requestID
 
-    // 2. KeyPath subscript
-    context[\\.requestID] = "req-123"
-    let id = context[\\.requestID]
+    // Subscript for custom keys
+    let customKey = ContextKey<String>("custom")
+    context[customKey] = "value"
+    let value: String? = context[customKey]
 
-    // 3. Traditional subscript
-    context[.requestID] = "req-123"
-    let id: String? = context[.requestID]
-
-    // 4. Method-based access
-    context.set(.requestID, value: "req-123")
-    let id = context.get(.requestID)
-
-    // Built-in properties (read-only for convenience)
-    var requestID: String? { get }
-    var userID: String? { get }
-    var correlationID: String? { get }
-    var startTime: Date? { get }
-    var metadata: [String: any Sendable] { get }
-    var metrics: [String: any Sendable] { get }
+    // Built-in properties
+    var requestID: String? { get set }
+    var userID: String? { get set }
+    var correlationID: String? { get set }
+    var startTime: Date? { get set }
+    var metadata: [String: any Sendable] { get set }
+    var metrics: [String: any Sendable] { get set }
 }
 ```
 
@@ -682,8 +675,8 @@ extension ContextKey {
     static let requestSource = ContextKey<RequestSource>("request-source")
 }
 
-context.set(.apiVersion, value: "v2")
-let version = context.value(for: .apiVersion) // String?
+context[.apiVersion] = "v2"
+let version: String? = context[.apiVersion]
 
 // ❌ BAD - String-based keys with casting
 context.setMetadata("api-version", value: "v2")

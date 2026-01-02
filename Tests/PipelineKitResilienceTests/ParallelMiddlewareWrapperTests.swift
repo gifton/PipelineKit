@@ -253,9 +253,9 @@ final class ParallelMiddlewareWrapperTests: XCTestCase {
         // Then
         // Context modifications in parallel middleware should be isolated
         // The original context should not be modified
-        let value1: String? = context.get(TestContextKeys.dynamic("key1"))
-        let value2: String? = context.get(TestContextKeys.dynamic("key2"))
-        let value3: String? = context.get(TestContextKeys.dynamic("key3"))
+        let value1: String? = context[TestContextKeys.dynamic("key1")]
+        let value2: String? = context[TestContextKeys.dynamic("key2")]
+        let value3: String? = context[TestContextKeys.dynamic("key3")]
         
         XCTAssertNil(value1)
         XCTAssertNil(value2)

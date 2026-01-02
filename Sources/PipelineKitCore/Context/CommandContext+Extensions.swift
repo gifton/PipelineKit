@@ -21,9 +21,10 @@ public extension CommandContext {
         let newContext = self.fork()
 
         for key in keys {
-            if let value = self.get(key) as? any ContextCopyable,
-               let copied = value.contextCopy() as? T {
-                newContext.set(key, value: copied)
+            if let value: T = self[key],
+               let copyable = value as? any ContextCopyable,
+               let copied = copyable.contextCopy() as? T {
+                newContext[key] = copied
             }
         }
 
