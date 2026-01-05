@@ -225,7 +225,7 @@ final class ExecutionTracerTests: XCTestCase {
         try await pipeline.addMiddleware(middleware)
 
         let context = CommandContext()
-        context.setCorrelationID("test-middleware-001")
+        context.correlationID = "test-middleware-001"
 
         _ = try await pipeline.execute(TestCommand(), context: context)
 
@@ -243,7 +243,7 @@ final class ExecutionTracerTests: XCTestCase {
         try await pipeline.addMiddleware(middleware)
 
         let context = CommandContext()
-        context.setCorrelationID("test-failure-001")
+        context.correlationID = "test-failure-001"
 
         do {
             _ = try await pipeline.execute(TestCommand(), context: context)
@@ -319,7 +319,7 @@ final class ExecutionTracerTests: XCTestCase {
         try await pipeline.addMiddleware(middleware)
 
         let context = CommandContext()
-        context.setCorrelationID("test-extension-001")
+        context.correlationID = "test-extension-001"
 
         _ = try await pipeline.execute(TestCommand(), context: context)
 

@@ -303,8 +303,8 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: Pipeline where H.C
     
     /// Initializes standard context values if not already set.
     private func initializeContextIfNeeded(_ context: CommandContext) async {
-        if context.getRequestID() == nil {
-            context.setRequestID(UUID().uuidString)
+        if context.requestID == nil {
+            context.requestID = UUID().uuidString
         }
         if context.getMetadata("requestStartTime") == nil {
             context.setMetadata("requestStartTime", value: Date())

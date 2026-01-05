@@ -14,26 +14,26 @@ final class CommandContextThreadSafetyTests: XCTestCase {
             // Multiple writers with different keys
             for i in 0..<iterations {
                 group.addTask {
-                    context.set(TestContextKeys.key("\(i)"), value: "value-\(i)")
-                    context.set(TestContextKeys.number("\(i)"), value: i)
+                    context[TestContextKeys.key("\(i)")] = "value-\(i)"
+                    context[TestContextKeys.number("\(i)")] = i
                 }
             }
 
             // Multiple readers
             for i in 0..<iterations {
                 group.addTask {
-                    _ = context.get(TestContextKeys.key("\(i)"))
-                    _ = context.get(TestContextKeys.number("\(i)"))
+                    let _: String? = context[TestContextKeys.key("\(i)")]
+                    let _: Int? = context[TestContextKeys.number("\(i)")]
                 }
             }
         }
 
         // Verify data integrity
         for i in 0..<10 {
-            let value = context.get(TestContextKeys.key("\(i)"))
+            let value: String? = context[TestContextKeys.key("\(i)")]
             XCTAssertEqual(value, "value-\(i)")
 
-            let number = context.get(TestContextKeys.number("\(i)"))
+            let number: Int? = context[TestContextKeys.number("\(i)")]
             XCTAssertEqual(number, i)
         }
     }
@@ -102,8 +102,8 @@ final class CommandContextThreadSafetyTests: XCTestCase {
 
     func testConcurrentForkOperations() async throws {
         let original = CommandContext()
-        await original.set(TestContextKeys.testKey, value: "original")
-        await original.setMetadata("original", value: true)
+        original[TestContextKeys.testKey] = "original"
+        original.setMetadata("original", value: true)
 
         let iterations = 50
         var forkedContexts: [CommandContext] = []
@@ -111,9 +111,9 @@ final class CommandContextThreadSafetyTests: XCTestCase {
         await withTaskGroup(of: CommandContext.self) { group in
             for i in 0..<iterations {
                 group.addTask {
-                    let forked = await original.fork()
-                    await forked.set(TestContextKeys.key("fork.\(i)"), value: "forked-\(i)")
-                    await forked.setMetadata("fork-\(i)", value: i)
+                    let forked = original.fork()
+                    forked[TestContextKeys.key("fork.\(i)")] = "forked-\(i)"
+                    forked.setMetadata("fork-\(i)", value: i)
                     return forked
                 }
             }
@@ -124,9 +124,9 @@ final class CommandContextThreadSafetyTests: XCTestCase {
         }
 
         // Verify original is unchanged
-        let originalValue = await original.get(TestContextKeys.testKey)
+        let originalValue: String? = original[TestContextKeys.testKey]
         XCTAssertEqual(originalValue, "original")
-        let originalMetadata = await original.getMetadata()
+        let originalMetadata = original.getMetadata()
         XCTAssertEqual(originalMetadata["original"] as? Bool, true)
 
         // Verify forked contexts have their values
@@ -275,7 +275,7 @@ final class CommandContextThreadSafetyTests: XCTestCase {
     func testRequestIDConsistency() async throws {
         let context = CommandContext()
         let requestID = UUID().uuidString
-        context.setRequestID(requestID)
+        context.requestID = requestID
 
         let iterations = 100
 
@@ -283,7 +283,7 @@ final class CommandContextThreadSafetyTests: XCTestCase {
             // Multiple readers - all should see a valid request ID
             for _ in 0..<iterations {
                 group.addTask {
-                    let readID = context.getRequestID()
+                    let readID = context.requestID
                     // Just verify we get a non-nil value (thread-safe read)
                     XCTAssertNotNil(readID)
                 }
@@ -292,13 +292,13 @@ final class CommandContextThreadSafetyTests: XCTestCase {
             // Multiple writers - thread safety test, not immutability
             for _ in 0..<10 {
                 group.addTask {
-                    context.setRequestID(UUID().uuidString)
+                    context.requestID = UUID().uuidString
                 }
             }
         }
 
         // Verify context still has a valid requestID (thread safety, not immutability)
-        let finalID = context.getRequestID()
+        let finalID = context.requestID
         XCTAssertNotNil(finalID)
     }
 

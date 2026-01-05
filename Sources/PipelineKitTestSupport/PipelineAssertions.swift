@@ -105,7 +105,8 @@ public extension CommandContext {
         file: StaticString = #filePath,
         line: UInt = #line
     ) -> T? {
-        guard let value = self.get(key) else {
+        let value: T? = self[key]
+        guard let value else {
             XCTFail("Context does not contain value for key: \(key.name)", file: file, line: line)
             return nil
         }
@@ -125,7 +126,8 @@ public extension CommandContext {
         file: StaticString = #filePath,
         line: UInt = #line
     ) {
-        guard let value = self.get(key) else {
+        let value: T? = self[key]
+        guard let value else {
             XCTFail("Context does not contain value for key: \(key.name)", file: file, line: line)
             return
         }
@@ -143,7 +145,8 @@ public extension CommandContext {
         file: StaticString = #filePath,
         line: UInt = #line
     ) {
-        if self.get(key) != nil {
+        let value: T? = self[key]
+        if value != nil {
             XCTFail("Context unexpectedly contains value for key: \(key.name)", file: file, line: line)
         }
     }

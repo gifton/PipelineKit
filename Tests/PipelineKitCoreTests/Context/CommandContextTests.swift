@@ -6,12 +6,12 @@ final class CommandContextTests: XCTestCase {
     
     func testInitWithDefaultMetadata() async {
         let context = CommandContext()
-        
+
         // Verify basic properties are initialized
         // CommandContext is an actor, so we can't access commandMetadata directly
-        // Instead, verify through the methods that use it
-        _ = context.getUserID()
-        let startTime = context.getStartTime()
+        // Instead, verify through the properties
+        _ = context.userID
+        let startTime = context.startTime
         // By default, startTime is unset until explicitly provided
         XCTAssertNil(startTime)
     }
@@ -24,10 +24,10 @@ final class CommandContextTests: XCTestCase {
         let context = CommandContext(metadata: metadata)
         
         // Verify metadata is properly stored
-        let userId = context.getUserID()
-        let correlationId = context.getCorrelationID()
-        let requestId = context.getRequestID()
-        
+        let userId = context.userID
+        let correlationId = context.correlationID
+        let requestId = context.requestID
+
         XCTAssertEqual(userId, "user123")
         XCTAssertEqual(correlationId, "corr456")
         XCTAssertEqual(requestId, "corr456") // Should be set from correlationID
@@ -38,41 +38,41 @@ final class CommandContextTests: XCTestCase {
     func testTypedKeyGetSet() async {
         let context = CommandContext()
         let testKey = ContextKey<String>("testKey")
-        
+
         // Test setting and getting
-        context.set(testKey, value: "testValue")
-        let value = context.get(testKey)
+        context[testKey] = "testValue"
+        let value: String? = context[testKey]
         XCTAssertEqual(value, "testValue")
-        
+
         // Test removing
-        context.set(testKey, value: nil)
-        let removedValue = context.get(testKey)
+        context[testKey] = nil
+        let removedValue: String? = context[testKey]
         XCTAssertNil(removedValue)
     }
     
     func testTypedKeyWithDifferentTypes() async {
         let context = CommandContext()
-        
+
         let stringKey = ContextKey<String>("string")
         let intKey = ContextKey<Int>("int")
         let doubleKey = ContextKey<Double>("double")
         let boolKey = ContextKey<Bool>("bool")
         let dateKey = ContextKey<Date>("date")
-        
+
         let testDate = Date()
-        
-        context.set(stringKey, value: "test")
-        context.set(intKey, value: 42)
-        context.set(doubleKey, value: 3.14)
-        context.set(boolKey, value: true)
-        context.set(dateKey, value: testDate)
-        
-        let stringValue = context.get(stringKey)
-        let intValue = context.get(intKey)
-        let doubleValue = context.get(doubleKey)
-        let boolValue = context.get(boolKey)
-        let dateValue = context.get(dateKey)
-        
+
+        context[stringKey] = "test"
+        context[intKey] = 42
+        context[doubleKey] = 3.14
+        context[boolKey] = true
+        context[dateKey] = testDate
+
+        let stringValue: String? = context[stringKey]
+        let intValue: Int? = context[intKey]
+        let doubleValue: Double? = context[doubleKey]
+        let boolValue: Bool? = context[boolKey]
+        let dateValue: Date? = context[dateKey]
+
         XCTAssertEqual(stringValue, "test")
         XCTAssertEqual(intValue, 42)
         XCTAssertEqual(doubleValue, 3.14)
@@ -83,12 +83,12 @@ final class CommandContextTests: XCTestCase {
     func testTypedKeyTypeySafety() async {
         let context = CommandContext()
         let stringKey = ContextKey<String>("test")
-        
-        context.set(stringKey, value: "stringValue")
-        
+
+        context[stringKey] = "stringValue"
+
         // Try to get with wrong type - should return nil due to type mismatch
         let intKey = ContextKey<Int>("test") // Same name, different type
-        let wrongTypeValue = context.get(intKey)
+        let wrongTypeValue: Int? = context[intKey]
         XCTAssertNil(wrongTypeValue)
     }
     
@@ -96,50 +96,50 @@ final class CommandContextTests: XCTestCase {
     
     func testRequestIDGetSet() async {
         let context = CommandContext()
-        
-        context.setRequestID("req123")
-        let requestId = context.getRequestID()
+
+        context.requestID = "req123"
+        let requestId = context.requestID
         XCTAssertEqual(requestId, "req123")
-        
-        context.setRequestID(nil)
-        let clearedId = context.getRequestID()
+
+        context.requestID = nil
+        let clearedId = context.requestID
         XCTAssertNil(clearedId)
     }
     
     func testUserIDGetSet() async {
         let context = CommandContext()
-        
-        context.setUserID("user456")
-        let userId = context.getUserID()
+
+        context.userID = "user456"
+        let userId = context.userID
         XCTAssertEqual(userId, "user456")
-        
-        context.setUserID(nil)
-        let clearedId = context.getUserID()
+
+        context.userID = nil
+        let clearedId = context.userID
         XCTAssertNil(clearedId)
     }
     
     func testCorrelationIDGetSet() async {
         let context = CommandContext()
-        
-        context.setCorrelationID("corr789")
-        let correlationId = context.getCorrelationID()
+
+        context.correlationID = "corr789"
+        let correlationId = context.correlationID
         XCTAssertEqual(correlationId, "corr789")
-        
-        context.setCorrelationID(nil)
-        let clearedId = context.getCorrelationID()
+
+        context.correlationID = nil
+        let clearedId = context.correlationID
         XCTAssertNil(clearedId)
     }
     
     func testStartTimeGetSet() async {
         let context = CommandContext()
         let testTime = Date()
-        
-        context.setStartTime(testTime)
-        let startTime = context.getStartTime()
+
+        context.startTime = testTime
+        let startTime = context.startTime
         XCTAssertEqual(startTime, testTime)
-        
-        context.setStartTime(nil)
-        let clearedTime = context.getStartTime()
+
+        context.startTime = nil
+        let clearedTime = context.startTime
         XCTAssertNil(clearedTime)
     }
     
@@ -231,7 +231,7 @@ final class CommandContextTests: XCTestCase {
     func testRecordDuration() async throws {
         let context = CommandContext()
         let startTime = Date()
-        context.setStartTime(startTime)
+        context.startTime = startTime
         
         // Wait a small amount
         try await Task.sleep(nanoseconds: 10_000_000) // 10ms
@@ -247,7 +247,7 @@ final class CommandContextTests: XCTestCase {
     func testRecordDurationWithCustomName() async throws {
         let context = CommandContext()
         let startTime = Date()
-        context.setStartTime(startTime)
+        context.startTime = startTime
         
         try await Task.sleep(nanoseconds: 10_000_000) // 10ms
         
@@ -282,30 +282,30 @@ final class CommandContextTests: XCTestCase {
         context.setMetadata("key", value: "value")
         context.setMetric("metric", value: 123)
         let testKey = ContextKey<String>("test")
-        context.set(testKey, value: "testValue")
-        
+        context[testKey] = "testValue"
+
         // Clear
         context.clear()
-        
+
         // Verify custom data is cleared
         let clearedMeta = context.getMetadata("key")
         XCTAssertNil(clearedMeta)
         let clearedMetric = context.getMetric("metric")
         XCTAssertNil(clearedMetric)
-        let clearedValue = context.get(testKey)
+        let clearedValue: String? = context[testKey]
         XCTAssertNil(clearedValue)
         
         // Verify command metadata is preserved
-        let userId = context.getUserID()
+        let userId = context.userID
         XCTAssertEqual(userId, "user123")
-        let correlationId = context.getCorrelationID()
+        let correlationId = context.correlationID
         XCTAssertEqual(correlationId, "corr456")
     }
     
     func testSnapshot() async {
         let context = CommandContext()
-        
-        context.setRequestID("req123")
+
+        context.requestID = "req123"
         context.setMetadata("meta", value: "data")
         context.setMetric("metric", value: 456)
         
@@ -320,8 +320,8 @@ final class CommandContextTests: XCTestCase {
     
     func testSnapshotRaw() async {
         let context = CommandContext()
-        
-        context.setRequestID("req123")
+
+        context.requestID = "req123"
         context.setMetadata("meta", value: "data")
         
         let snapshot = context.snapshotRaw()
@@ -340,14 +340,14 @@ final class CommandContextTests: XCTestCase {
     func testContains() async {
         let context = CommandContext()
         let key = ContextKey<String>("test")
-        
+
         let contains1 = context.contains(key)
         XCTAssertFalse(contains1)
-        
-        context.set(key, value: "value")
+
+        context[key] = "value"
         let contains2 = context.contains(key)
         XCTAssertTrue(contains2)
-        
+
         context.remove(key)
         let contains3 = context.contains(key)
         XCTAssertFalse(contains3)
@@ -356,28 +356,28 @@ final class CommandContextTests: XCTestCase {
     func testRemove() async {
         let context = CommandContext()
         let key = ContextKey<String>("test")
-        
-        context.set(key, value: "value")
-        let beforeRemove = context.get(key)
+
+        context[key] = "value"
+        let beforeRemove: String? = context[key]
         XCTAssertNotNil(beforeRemove)
-        
+
         context.remove(key)
-        let afterRemove = context.get(key)
+        let afterRemove: String? = context[key]
         XCTAssertNil(afterRemove)
     }
     
     func testUpdate() async {
         let context = CommandContext()
-        
+
         context.update { ctx in
-            ctx.setRequestID("req123")
-            ctx.setUserID("user456")
+            ctx.requestID = "req123"
+            ctx.userID = "user456"
             ctx.setMetadata("key", value: "value")
         }
-        
-        let requestId = context.getRequestID()
+
+        let requestId = context.requestID
         XCTAssertEqual(requestId, "req123")
-        let userId = context.getUserID()
+        let userId = context.userID
         XCTAssertEqual(userId, "user456")
         let metaValue = context.getMetadata("key") as? String
         XCTAssertEqual(metaValue, "value")
@@ -418,37 +418,37 @@ final class CommandContextTests: XCTestCase {
     
     func testFork() async {
         let context = CommandContext()
-        
+
         // Set up original context
-        context.setRequestID("req123")
+        context.requestID = "req123"
         context.setMetadata("key", value: "value")
         context.setMetric("metric", value: 100)
-        
+
         // Fork
         let forked = context.fork()
-        
+
         // Verify forked context has same data
-        let forkedReqId1 = await forked.getRequestID()
+        let forkedReqId1 = forked.requestID
         XCTAssertEqual(forkedReqId1, "req123")
-        let forkedMeta1 = await forked.getMetadata("key") as? String
+        let forkedMeta1 = forked.getMetadata("key") as? String
         XCTAssertEqual(forkedMeta1, "value")
-        let forkedMetric = await forked.getMetric("metric") as? Int
+        let forkedMetric = forked.getMetric("metric") as? Int
         XCTAssertEqual(forkedMetric, 100)
-        
+
         // Modify forked context
-        await forked.setRequestID("req456")
-        await forked.setMetadata("key", value: "newValue")
-        
+        forked.requestID = "req456"
+        forked.setMetadata("key", value: "newValue")
+
         // Verify original is unchanged
-        let origReqId = context.getRequestID()
+        let origReqId = context.requestID
         XCTAssertEqual(origReqId, "req123")
         let origMeta = context.getMetadata("key") as? String
         XCTAssertEqual(origMeta, "value")
-        
+
         // Verify forked has changes
-        let forkedReqId2 = await forked.getRequestID()
+        let forkedReqId2 = forked.requestID
         XCTAssertEqual(forkedReqId2, "req456")
-        let forkedMeta2 = await forked.getMetadata("key") as? String
+        let forkedMeta2 = forked.getMetadata("key") as? String
         XCTAssertEqual(forkedMeta2, "newValue")
     }
     
@@ -456,13 +456,13 @@ final class CommandContextTests: XCTestCase {
     
     func testBackwardCompatibilityProperties() async {
         let context = CommandContext()
-        
-        context.setRequestID("req123")
-        context.setUserID("user456")
-        context.setCorrelationID("corr789")
-        context.setStartTime(Date())
-        context.setMetadata(["key": "value"])
-        context.setMetrics(["metric": 100])
+
+        context.requestID = "req123"
+        context.userID = "user456"
+        context.correlationID = "corr789"
+        context.startTime = Date()
+        context.metadata = ["key": "value"]
+        context.metrics = ["metric": 100]
         
         // Test property-style access
         let requestId = context.requestID
@@ -484,16 +484,16 @@ final class CommandContextTests: XCTestCase {
     
     func testConcurrentReads() async {
         let context = CommandContext()
-        context.setRequestID("req123")
-        
+        context.requestID = "req123"
+
         // Perform many concurrent reads
         await withTaskGroup(of: String?.self) { group in
             for _ in 0..<100 {
                 group.addTask {
-                    context.getRequestID()
+                    context.requestID
                 }
             }
-            
+
             for await value in group {
                 XCTAssertEqual(value, "req123")
             }
@@ -503,21 +503,21 @@ final class CommandContextTests: XCTestCase {
     func testConcurrentWrites() async {
         let context = CommandContext()
         let iterations = 100
-        
+
         // Perform concurrent writes to different keys
         await withTaskGroup(of: Void.self) { group in
             for i in 0..<iterations {
                 group.addTask {
                     let key = ContextKey<Int>("key\(i)")
-                    context.set(key, value: i)
+                    context[key] = i
                 }
             }
         }
-        
+
         // Verify all writes succeeded
         for i in 0..<iterations {
             let key = ContextKey<Int>("key\(i)")
-            let value = context.get(key)
+            let value: Int? = context[key]
             XCTAssertEqual(value, i)
         }
     }
@@ -561,9 +561,9 @@ final class CommandContextTests: XCTestCase {
     func testEmptyKeyHandling() async {
         let context = CommandContext()
         let emptyKey = ContextKey<String>("")
-        
-        context.set(emptyKey, value: "value")
-        let value = context.get(emptyKey)
+
+        context[emptyKey] = "value"
+        let value: String? = context[emptyKey]
         XCTAssertEqual(value, "value")
     }
     
@@ -571,19 +571,19 @@ final class CommandContextTests: XCTestCase {
         let context = CommandContext()
         let largeArray = Array(repeating: "test", count: 10000)
         let key = ContextKey<[String]>("large")
-        
-        context.set(key, value: largeArray)
-        let retrieved = context.get(key)
-        
+
+        context[key] = largeArray
+        let retrieved: [String]? = context[key]
+
         XCTAssertEqual(retrieved?.count, 10000)
     }
     
     func testSpecialCharactersInKeys() async {
         let context = CommandContext()
         let specialKey = ContextKey<String>("key!@#$%^&*()[]{}|\\:;\"'<>,.?/")
-        
-        context.set(specialKey, value: "value")
-        let value = context.get(specialKey)
+
+        context[specialKey] = "value"
+        let value: String? = context[specialKey]
         XCTAssertEqual(value, "value")
     }
     
@@ -591,14 +591,14 @@ final class CommandContextTests: XCTestCase {
     
     func testDebugDescription() async {
         let context = CommandContext()
-        
+
         // Nonisolated debug description
         let description = context.debugDescription
         XCTAssertTrue(description.contains("CommandContext"))
         XCTAssertTrue(description.contains("id:"))
-        
+
         // Async debug description
-        context.setRequestID("req123")
+        context.requestID = "req123"
         let asyncDescription = context.debugDescription
         XCTAssertTrue(asyncDescription.contains("CommandContext"))
     }
@@ -608,14 +608,14 @@ final class CommandContextTests: XCTestCase {
     func testGetSetPerformance() async {
         let context = CommandContext()
         let key = ContextKey<String>("test")
-        
+
         let start = Date()
         for i in 0..<1000 {
-            context.set(key, value: "value\(i)")
-            _ = context.get(key)
+            context[key] = "value\(i)"
+            let _: String? = context[key]
         }
         let duration = Date().timeIntervalSince(start)
-        
+
         print("Get/Set performance: 2000 operations in \(duration)s")
         XCTAssertLessThan(duration, 1.0) // Should complete in less than 1 second
     }

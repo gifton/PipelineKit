@@ -43,7 +43,7 @@ final class ObservabilitySystemTests: XCTestCase {
         // Create a context and set the event hub
         let context = CommandContext()
         let hub = await system.getEventHub()
-        context.setEventEmitter(hub)
+        context.eventEmitter = hub
         
         // Should be able to retrieve the system through the context
         let retrievedSystem = await context.observability
@@ -105,7 +105,7 @@ final class ObservabilitySystemTests: XCTestCase {
         // Set it up on a context
         let context = CommandContext()
         let hub = await system.getEventHub()
-        context.setEventEmitter(hub)
+        context.eventEmitter = hub
         
         // Should be retrievable
         let retrieved = await context.observability
@@ -129,9 +129,9 @@ final class ObservabilitySystemTests: XCTestCase {
         let context3 = CommandContext()
         
         let hub = await system.getEventHub()
-        await context1.setEventEmitter(hub)
-        await context2.setEventEmitter(hub)
-        await context3.setEventEmitter(hub)
+        context1.eventEmitter = hub
+        context2.eventEmitter = hub
+        context3.eventEmitter = hub
         
         // All should retrieve the same system
         let retrieved1 = await context1.observability
@@ -174,7 +174,7 @@ final class ObservabilitySystemTests: XCTestCase {
         XCTAssertNotNil(system, "Should have system after setup")
         
         // Clear the event emitter
-        context.setEventEmitter(nil)
+        context.eventEmitter = nil
         
         // Now observability should be nil
         let clearedSystem = await context.observability

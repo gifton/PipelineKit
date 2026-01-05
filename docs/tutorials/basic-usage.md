@@ -125,10 +125,10 @@ struct AuditMiddleware: Middleware {
 
 ### Context Access Patterns
 
-PipelineKit provides multiple ways to work with context:
+PipelineKit provides two ways to work with context:
 
 ```swift
-// Modern property access (recommended for built-in keys)
+// Property access for built-in keys (recommended)
 context.requestID = "req-123"
 context.userID = "user-456"
 context.startTime = Date()
@@ -136,16 +136,10 @@ context.startTime = Date()
 // Read values
 let id = context.requestID
 
-// KeyPath subscript
-context[\\.requestID] = "req-123"
-
-// Traditional subscript (for custom keys)
+// Subscript for custom keys
 let customKey = ContextKey<String>("custom")
 context[customKey] = "value"
-
-// Method-based (backwards compatible)
-context.set(.requestID, value: "req-123")
-let id = context.get(.requestID)
+let value: String? = context[customKey]
 ```
 
 ## Error Handling
