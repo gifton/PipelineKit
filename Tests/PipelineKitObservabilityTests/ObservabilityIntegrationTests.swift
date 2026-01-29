@@ -55,9 +55,9 @@ final class ObservabilityIntegrationTests: XCTestCase {
         await context.setupObservability(.development)
         
         // Perform various operations
-        context.set(ContextKey<String>("test"), value: "value")
+        context[ContextKey<String>("test")] = "value"
         context.setMetadata("key", value: "data")
-        context.setRequestID("req-123")
+        context.requestID = "req-123"
         
         // Observability should still be accessible
         let system = await context.observability
@@ -99,7 +99,7 @@ final class ObservabilityIntegrationTests: XCTestCase {
         
         // Replace with different event emitter
         let customEmitter = MockEventEmitter()
-        context.setEventEmitter(customEmitter)
+        context.eventEmitter = customEmitter
         
         // Observability should be nil (not an EventHub)
         let system2 = await context.observability
@@ -139,7 +139,7 @@ final class ObservabilityIntegrationTests: XCTestCase {
         let system = await ObservabilitySystem(configuration: .development)
         let context = CommandContext()
         let hub = await system.getEventHub()
-        context.setEventEmitter(hub)
+        context.eventEmitter = hub
         
         // Record through system directly
         await system.recordCounter(name: "direct.counter", value: 10.0)
@@ -204,7 +204,7 @@ final class ObservabilityIntegrationTests: XCTestCase {
         
         let context = CommandContext()
         let hub = await system.getEventHub()
-        context.setEventEmitter(hub)
+        context.eventEmitter = hub
         
         // Should be able to retrieve the configured system
         let retrieved = await context.observability
@@ -246,7 +246,7 @@ final class ObservabilityIntegrationTests: XCTestCase {
         }
         
         // 5. Clear observability
-        context.setEventEmitter(nil)
+        context.eventEmitter = nil
         let afterClear = await context.observability
         XCTAssertNil(afterClear, "Should have no observability after clearing")
     }
@@ -258,7 +258,7 @@ final class ObservabilityIntegrationTests: XCTestCase {
         
         // Set a non-EventHub emitter
         let customEmitter = MockEventEmitter()
-        context.setEventEmitter(customEmitter)
+        context.eventEmitter = customEmitter
         
         // Observability should gracefully return nil
         let system = await context.observability

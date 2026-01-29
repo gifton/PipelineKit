@@ -114,7 +114,7 @@ public extension CommandContext {
         metadata: (any CommandMetadata)? = nil
     ) async -> CommandContext {
         let context = CommandContext(metadata: metadata ?? DefaultCommandMetadata())
-        context.setEventEmitter(emitter)
+        context.eventEmitter = emitter
         return context
     }
 
@@ -124,7 +124,7 @@ public extension CommandContext {
     /// - Returns: A new context with the emitter configured
     func withEmitter(_ emitter: any EventEmitter) async -> CommandContext {
         let newContext = self.fork()
-        newContext.setEventEmitter(emitter)
+        newContext.eventEmitter = emitter
         return newContext
     }
 }

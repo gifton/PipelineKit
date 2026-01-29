@@ -32,7 +32,7 @@ final class EventEmissionTests: XCTestCase {
         // Given
         let context = CommandContext()
         let emitter = TestEventEmitter()
-        context.setEventEmitter(emitter)
+        context.eventEmitter = emitter
         
         // When
         let event = PipelineEvent(
@@ -78,7 +78,7 @@ final class EventEmissionTests: XCTestCase {
         let emitter = TestEventEmitter()
         
         // When
-        context.setEventEmitter(emitter)
+        context.eventEmitter = emitter
         
         // Then
         let retrievedEmitter = context.eventEmitter
@@ -90,10 +90,10 @@ final class EventEmissionTests: XCTestCase {
         // Given
         let context = CommandContext()
         let emitter = TestEventEmitter()
-        context.setEventEmitter(emitter)
+        context.eventEmitter = emitter
         
         // When
-        context.setEventEmitter(nil)
+        context.eventEmitter = nil
         
         // Then
         let retrievedEmitter = context.eventEmitter
@@ -106,8 +106,8 @@ final class EventEmissionTests: XCTestCase {
         // Given
         let context = CommandContext()
         let emitter = TestEventEmitter()
-        context.setEventEmitter(emitter)
-        context.setRequestID("request-123")
+        context.eventEmitter = emitter
+        context.requestID = "request-123"
         
         // When
         await context.emitMiddlewareEvent(
@@ -135,7 +135,7 @@ final class EventEmissionTests: XCTestCase {
         // Given
         let context = CommandContext()
         let emitter = TestEventEmitter()
-        context.setEventEmitter(emitter)
+        context.eventEmitter = emitter
         
         // When
         let typedProps: [String: Int] = ["retryCount": 3, "statusCode": 200]
@@ -162,7 +162,7 @@ final class EventEmissionTests: XCTestCase {
         // Given
         let context = CommandContext()
         let emitter = TestEventEmitter()
-        context.setEventEmitter(emitter)
+        context.eventEmitter = emitter
         
         // When
         for i in 1...5 {
@@ -188,7 +188,7 @@ final class EventEmissionTests: XCTestCase {
         // Given
         let parentContext = CommandContext()
         let emitter = TestEventEmitter()
-        await parentContext.setEventEmitter(emitter)
+        parentContext.eventEmitter = emitter
         
         // When
         let childContext = await parentContext.fork()
@@ -211,11 +211,11 @@ final class EventEmissionTests: XCTestCase {
         // Given
         let parentContext = CommandContext()
         let parentEmitter = TestEventEmitter()
-        await parentContext.setEventEmitter(parentEmitter)
+        parentContext.eventEmitter = parentEmitter
         
         let childContext = await parentContext.fork()
         let childEmitter = TestEventEmitter()
-        await childContext.setEventEmitter(childEmitter)
+        childContext.eventEmitter = childEmitter
         
         // When
         await parentContext.emitEvent(PipelineEvent(
@@ -247,7 +247,7 @@ final class EventEmissionTests: XCTestCase {
         // Given
         let context = CommandContext()
         let emitter = TestEventEmitter()
-        context.setEventEmitter(emitter)
+        context.eventEmitter = emitter
         
         // When - emit multiple events
         for i in 1...10 {
@@ -275,7 +275,7 @@ final class EventEmissionTests: XCTestCase {
         // Given
         let context = CommandContext()
         let emitter = TestEventEmitter()
-        context.setEventEmitter(emitter)
+        context.eventEmitter = emitter
         
         // When - emit events concurrently
         await withTaskGroup(of: Void.self) { group in

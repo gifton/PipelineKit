@@ -7,13 +7,8 @@ import Foundation
 public extension CommandContext {
     /// Gets the event emitter for this context.
     var eventEmitter: (any EventEmitter)? {
-        self.get(ContextKeys.eventEmitter)
-    }
-
-    /// Sets the event emitter for this context.
-    /// - Parameter emitter: The event emitter to use for this context
-    func setEventEmitter(_ emitter: (any EventEmitter)?) {
-        self.set(ContextKeys.eventEmitter, value: emitter)
+        get { self[ContextKeys.eventEmitter] }
+        set { self[ContextKeys.eventEmitter] = newValue }
     }
     
     /// Emits a pipeline event through the configured event emitter.
@@ -38,7 +33,7 @@ public extension CommandContext {
         properties: [String: any Sendable] = [:]
     ) async {
         // Use request ID as correlation ID, or generate one
-        let correlationID = getRequestID() ?? UUID().uuidString
+        let correlationID = self.requestID ?? UUID().uuidString
         let event = PipelineEvent(
             name: name,
             properties: properties.merging(["middleware": middleware]) { _, new in new },
@@ -46,7 +41,7 @@ public extension CommandContext {
         )
         await emitEvent(event)
     }
-    
+
     /// Convenience method to emit a middleware event with typed properties.
     func emitMiddlewareEvent<T: Sendable>(
         _ name: String,
@@ -54,7 +49,7 @@ public extension CommandContext {
         properties: [String: T]
     ) async {
         // Use request ID as correlation ID, or generate one
-        let correlationID = getRequestID() ?? UUID().uuidString
+        let correlationID = self.requestID ?? UUID().uuidString
         // Convert typed properties to Any Sendable
         var allProperties: [String: any Sendable] = properties
         allProperties["middleware"] = middleware

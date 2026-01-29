@@ -256,7 +256,7 @@ final class PipelineConfigurationErrorTests: XCTestCase {
             context: CommandContext,
             next: @Sendable (T, CommandContext) async throws -> T.Result
         ) async throws -> T.Result {
-            let value: String? = context.get(TestContextKeys.testKey)
+            let value: String? = context[TestContextKeys.testKey]
             guard value != nil else {
                 throw PipelineError.pipelineNotConfigured(reason: "Missing required context")
             }
@@ -274,7 +274,7 @@ final class PipelineConfigurationErrorTests: XCTestCase {
             next: @Sendable (T, CommandContext) async throws -> T.Result
         ) async throws -> T.Result {
             // Store value in context using a test key
-            context.set(TestContextKeys.testKey, value: value)
+            context[TestContextKeys.testKey] = value
             return try await next(command, context)
         }
     }
@@ -287,11 +287,8 @@ final class PipelineConfigurationErrorTests: XCTestCase {
             context: CommandContext,
             next: @Sendable (T, CommandContext) async throws -> T.Result
         ) async throws -> T.Result {
-            // Clear specific keys - set to nil by not setting anything
-            // In the new API, we can't explicitly set nil, so we just don't set
-            // We need to use a different approach - perhaps remove the key
-            // For now, set it to empty string to simulate clearing
-            context.set(TestContextKeys.testKey, value: "")
+            // Clear specific keys by setting to empty string to simulate clearing
+            context[TestContextKeys.testKey] = ""
             return try await next(command, context)
         }
     }

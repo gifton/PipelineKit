@@ -24,9 +24,9 @@ final class CommandContextDynamicMemberTests: XCTestCase {
     func testDirectPropertyAccessRead() {
         let context = CommandContext()
 
-        // Set via traditional method
-        context.setRequestID("req-123")
-        context.setUserID("user-456")
+        // Set via subscript
+        context[ContextKeys.requestID] = "req-123"
+        context[ContextKeys.userID] = "user-456"
 
         // Read via property
         XCTAssertEqual(context.requestID, "req-123")
@@ -107,8 +107,8 @@ final class CommandContextDynamicMemberTests: XCTestCase {
         // Read via subscript
         XCTAssertEqual(context[ContextKeys.requestID], "req-123")
 
-        // Read via method
-        XCTAssertEqual(context.get(ContextKeys.requestID), "req-123")
+        // Read via subscript
+        XCTAssertEqual(context[ContextKeys.requestID], "req-123")
 
         // Read via property
         XCTAssertEqual(context.requestID, "req-123")
@@ -135,12 +135,12 @@ final class CommandContextDynamicMemberTests: XCTestCase {
     func testBackwardsCompatibilityReadOnlyProperties() {
         let context = CommandContext()
 
-        context.setRequestID("req-123")
-        context.setUserID("user-456")
-        context.setCorrelationID("corr-789")
-        context.setStartTime(Date())
-        context.setMetadata(["key": "value"])
-        context.setMetrics(["metric": 100])
+        context.requestID = "req-123"
+        context.userID = "user-456"
+        context.correlationID = "corr-789"
+        context.startTime = Date()
+        context.metadata = ["key": "value"]
+        context.metrics = ["metric": 100]
 
         // Test read-only property access (backwards compatible)
         let requestId = context.requestID
@@ -173,9 +173,9 @@ final class CommandContextDynamicMemberTests: XCTestCase {
     func testBackwardsCompatibilityMethodsStillWork() {
         let context = CommandContext()
 
-        // Old method-based access
-        context.set(ContextKeys.requestID, value: "req-123")
-        XCTAssertEqual(context.get(ContextKeys.requestID), "req-123")
+        // Subscript-based access
+        context[ContextKeys.requestID] = "req-123"
+        XCTAssertEqual(context[ContextKeys.requestID], "req-123")
 
         // Accessible via new syntax
         XCTAssertEqual(context.requestID, "req-123")
@@ -257,13 +257,13 @@ final class CommandContextDynamicMemberTests: XCTestCase {
         XCTAssertEqual(context[customKey], "customValue")
     }
 
-    func testCustomKeysWithMethods() {
+    func testCustomKeysWithSubscript() {
         let context = CommandContext()
         let customKey = ContextKey<String>("customKey")
 
-        // Custom keys work with methods
-        context.set(customKey, value: "customValue")
-        XCTAssertEqual(context.get(customKey), "customValue")
+        // Custom keys work with subscript
+        context[customKey] = "customValue"
+        XCTAssertEqual(context[customKey], "customValue")
     }
 
     func testCustomKeysDontWorkWithDynamicMemberLookup() {

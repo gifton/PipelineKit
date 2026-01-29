@@ -85,33 +85,22 @@ public final class CommandContext: @unchecked Sendable {
     
     // MARK: - Typed Key Access
 
-    /// Gets a value from the context using a typed key.
-    /// - Parameter key: The context key
-    /// - Returns: The value if present and of the correct type
-    public func get<T: Sendable>(_ key: ContextKey<T>) -> T? {
-        withLock { _storage[key.name]?.get(T.self) }
-    }
-
-    /// Sets a value in the context using a typed key.
-    /// - Parameters:
-    ///   - key: The context key
-    ///   - value: The value to set (nil to remove)
-    public func set<T: Sendable>(_ key: ContextKey<T>, value: T?) {
-        withLock {
-            if let value = value {
-                _storage[key.name] = AnySendable(value)
-            } else {
-                _storage[key.name] = nil
-            }
-        }
-    }
-
-    /// Subscript access for typed keys (convenient property-style access).
+    /// Subscript access for typed keys.
     /// - Parameter key: The context key
     /// - Returns: The value if present and of the correct type
     public subscript<T: Sendable>(_ key: ContextKey<T>) -> T? {
-        get { get(key) }
-        set { set(key, value: newValue) }
+        get {
+            withLock { _storage[key.name]?.get(T.self) }
+        }
+        set {
+            withLock {
+                if let newValue = newValue {
+                    _storage[key.name] = AnySendable(newValue)
+                } else {
+                    _storage[key.name] = nil
+                }
+            }
+        }
     }
 
     // MARK: - Dynamic Member Lookup
@@ -123,10 +112,6 @@ public final class CommandContext: @unchecked Sendable {
     /// // Direct property access
     /// context.requestID = "req-123"
     /// let id = context.requestID
-    ///
-    /// // KeyPath subscript (also works)
-    /// context[keyPath: \\.requestID] = "user-456"
-    /// let user = context[keyPath: \\.requestID]
     /// ```
     ///
     /// - Note: Only works with keys defined in the `ContextKeys` enum.
@@ -137,97 +122,15 @@ public final class CommandContext: @unchecked Sendable {
     public subscript<T: Sendable>(dynamicMember keyPath: KeyPath<ContextKeys.Type, ContextKey<T>>) -> T? {
         get {
             let key = ContextKeys.self[keyPath: keyPath]
-            return get(key)
+            return self[key]
         }
         set {
             let key = ContextKeys.self[keyPath: keyPath]
-            set(key, value: newValue)
+            self[key] = newValue
         }
     }
 
-    /// KeyPath subscript for accessing context values.
-    ///
-    /// Enables KeyPath-based access: `context[keyPath: \\.requestID]`
-    ///
-    /// - Parameter keyPath: A key path to a property on `ContextKeys`
-    /// - Returns: The value associated with the key, or nil if not set
-    public subscript<T: Sendable>(keyPath keyPath: KeyPath<ContextKeys.Type, ContextKey<T>>) -> T? {
-        get {
-            let key = ContextKeys.self[keyPath: keyPath]
-            return get(key)
-        }
-        set {
-            let key = ContextKeys.self[keyPath: keyPath]
-            set(key, value: newValue)
-        }
-    }
 
-    // MARK: - Direct Property Access
-
-    /// Gets the request ID for this command execution
-    public func getRequestID() -> String? {
-        withLock { _storage[ContextKeys.requestID.name]?.get(String.self) }
-    }
-
-    /// Sets the request ID for this command execution
-    public func setRequestID(_ value: String?) {
-        withLock {
-            if let value = value {
-                _storage[ContextKeys.requestID.name] = AnySendable(value)
-            } else {
-                _storage[ContextKeys.requestID.name] = nil
-            }
-        }
-    }
-
-    /// Gets the user ID associated with this command
-    public func getUserID() -> String? {
-        withLock { _storage[ContextKeys.userID.name]?.get(String.self) }
-    }
-
-    /// Sets the user ID associated with this command
-    public func setUserID(_ value: String?) {
-        withLock {
-            if let value = value {
-                _storage[ContextKeys.userID.name] = AnySendable(value)
-            } else {
-                _storage[ContextKeys.userID.name] = nil
-            }
-        }
-    }
-
-    /// Gets the correlation ID for distributed tracing
-    public func getCorrelationID() -> String? {
-        withLock { _storage[ContextKeys.correlationID.name]?.get(String.self) }
-    }
-
-    /// Sets the correlation ID for distributed tracing
-    public func setCorrelationID(_ value: String?) {
-        withLock {
-            if let value = value {
-                _storage[ContextKeys.correlationID.name] = AnySendable(value)
-            } else {
-                _storage[ContextKeys.correlationID.name] = nil
-            }
-        }
-    }
-
-    /// Gets the start time of command execution
-    public func getStartTime() -> Date? {
-        withLock { _storage[ContextKeys.startTime.name]?.get(Date.self) }
-    }
-
-    /// Sets the start time of command execution
-    public func setStartTime(_ value: Date?) {
-        withLock {
-            if let value = value {
-                _storage[ContextKeys.startTime.name] = AnySendable(value)
-            } else {
-                _storage[ContextKeys.startTime.name] = nil
-            }
-        }
-    }
-    
     // MARK: - Metadata Operations
 
     /// Gets all metadata
@@ -318,7 +221,7 @@ public final class CommandContext: @unchecked Sendable {
     /// Records the execution time since the start time.
     /// - Parameter name: The metric name for the duration
     public func recordDuration(_ name: String = "duration") {
-        guard let start = getStartTime() else { return }
+        guard let start: Date = self[ContextKeys.startTime] else { return }
         let duration = Date().timeIntervalSince(start)
         storeMetric(name, value: duration)
     }
@@ -422,7 +325,7 @@ public final class CommandContext: @unchecked Sendable {
     /// Gets the cancellation reason if the context has been cancelled.
     /// - Returns: The cancellation reason, or nil if not cancelled
     public func getCancellationReason() -> CancellationReason? {
-        get(ContextKeys.cancellationReason)
+        self[ContextKeys.cancellationReason]
     }
 
     /// Checks if this context has been marked as cancelled.
@@ -486,27 +389,27 @@ public extension CommandContext {
         set { setMetrics(newValue) }
     }
 
-    /// Property-style access to requestID (synchronous)
+    /// Property-style access to requestID
     var requestID: String? {
-        get { getRequestID() }
-        set { setRequestID(newValue) }
+        get { self[ContextKeys.requestID] }
+        set { self[ContextKeys.requestID] = newValue }
     }
 
-    /// Property-style access to userID (synchronous)
+    /// Property-style access to userID
     var userID: String? {
-        get { getUserID() }
-        set { setUserID(newValue) }
+        get { self[ContextKeys.userID] }
+        set { self[ContextKeys.userID] = newValue }
     }
 
-    /// Property-style access to correlationID (synchronous)
+    /// Property-style access to correlationID
     var correlationID: String? {
-        get { getCorrelationID() }
-        set { setCorrelationID(newValue) }
+        get { self[ContextKeys.correlationID] }
+        set { self[ContextKeys.correlationID] = newValue }
     }
 
-    /// Property-style access to startTime (synchronous)
+    /// Property-style access to startTime
     var startTime: Date? {
-        get { getStartTime() }
-        set { setStartTime(newValue) }
+        get { self[ContextKeys.startTime] }
+        set { self[ContextKeys.startTime] = newValue }
     }
 }
