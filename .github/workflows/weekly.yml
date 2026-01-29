@@ -1,8 +1,8 @@
-name: Nightly Build
+name: Weekly Build
 
 on:
   schedule:
-    - cron: '0 2 * * *'  # Run at 2 AM UTC daily
+    - cron: '0 2 * * 1'  # Run at 2 AM UTC every Monday
   workflow_dispatch:
 
 env:
@@ -14,8 +14,8 @@ permissions:
   checks: write
 
 concurrency:
-  group: nightly-${{ github.ref }}
-  cancel-in-progress: false  # Don't cancel nightly builds
+  group: weekly-${{ github.ref }}
+  cancel-in-progress: false  # Don't cancel weekly builds
 
 jobs:
   nightly-test:
@@ -50,14 +50,61 @@ jobs:
 
       - name: Full Test Suite
         run: |
-          swift test --enable-code-coverage
+          # Run each test target individually to prevent hangs and exclude
+          # performance tests (those run in the extended-benchmarks job).
+          # This matches the approach used in ci.yml.
+          swift build --build-tests
+
+          TEST_TARGETS=(
+            "PipelineKitTests"
+            "PipelineKitCoreTests"
+            "PipelineKitResilienceTests"
+            "PipelineKitSecurityTests"
+            "PipelineKitCacheTests"
+            "PipelineKitPoolingTests"
+            "PipelineKitObservabilityTests"
+            "PipelineKitTestSupportTests"
+            # Performance tests excluded - run in extended-benchmarks job
+          )
+
+          FAILED=""
+          for target in "${TEST_TARGETS[@]}"; do
+            echo "Running $target..."
+            if swift test --filter "$target" --enable-code-coverage; then
+              echo "✅ $target passed"
+            else
+              echo "❌ $target failed"
+              FAILED="$FAILED $target"
+            fi
+          done
+
+          if [ -n "$FAILED" ]; then
+            echo "::error::Failed targets:$FAILED"
+            exit 1
+          fi
 
       - name: Stress Tests
         run: |
-          # Run tests multiple times to catch flaky tests
+          # Run non-performance test targets multiple times to catch flaky tests
+          TEST_TARGETS=(
+            "PipelineKitTests"
+            "PipelineKitCoreTests"
+            "PipelineKitResilienceTests"
+            "PipelineKitSecurityTests"
+            "PipelineKitCacheTests"
+            "PipelineKitPoolingTests"
+            "PipelineKitObservabilityTests"
+            "PipelineKitTestSupportTests"
+          )
+
           for i in {1..3}; do
-            echo "🔄 Test iteration $i/3"
-            swift test --configuration release
+            echo "🔄 Stress iteration $i/3"
+            for target in "${TEST_TARGETS[@]}"; do
+              swift test --configuration release --filter "$target" || {
+                echo "::error::$target failed on iteration $i"
+                exit 1
+              }
+            done
           done
         timeout-minutes: 30
 
@@ -94,7 +141,34 @@ jobs:
         run: swift build
 
       - name: Test
-        run: swift test
+        run: |
+          # Run each test target individually, excluding performance tests
+          TEST_TARGETS=(
+            "PipelineKitTests"
+            "PipelineKitCoreTests"
+            "PipelineKitResilienceTests"
+            "PipelineKitSecurityTests"
+            "PipelineKitCacheTests"
+            "PipelineKitPoolingTests"
+            "PipelineKitObservabilityTests"
+            "PipelineKitTestSupportTests"
+          )
+
+          FAILED=""
+          for target in "${TEST_TARGETS[@]}"; do
+            echo "Running $target..."
+            if swift test --filter "$target"; then
+              echo "✅ $target passed"
+            else
+              echo "❌ $target failed"
+              FAILED="$FAILED $target"
+            fi
+          done
+
+          if [ -n "$FAILED" ]; then
+            echo "Failed targets:$FAILED"
+            exit 1
+          fi
 
   memory-test:
     name: Memory & Leak Tests
@@ -171,7 +245,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: nightly-benchmark-results
+          name: weekly-benchmark-results
           path: |
             benchmark-results/
             .benchmarkBaselines/
@@ -187,11 +261,11 @@ jobs:
     steps:
       - name: Generate Report
         run: |
-          echo "# Nightly Build Report" >> $GITHUB_STEP_SUMMARY
+          echo "# Weekly Build Report" >> $GITHUB_STEP_SUMMARY
           echo "Date: $(date)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "## Results:" >> $GITHUB_STEP_SUMMARY
-          echo "- Nightly Tests: ${{ needs.nightly-test.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Weekly Tests: ${{ needs.nightly-test.result }}" >> $GITHUB_STEP_SUMMARY
           echo "- Linux: ${{ needs.linux-test.result }}" >> $GITHUB_STEP_SUMMARY
           echo "- Memory Tests: ${{ needs.memory-test.result }}" >> $GITHUB_STEP_SUMMARY
           echo "- Benchmarks: ${{ needs.extended-benchmarks.result }}" >> $GITHUB_STEP_SUMMARY
@@ -199,9 +273,9 @@ jobs:
           # Determine overall status
           if [ "${{ needs.nightly-test.result }}" != "success" ]; then
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "❌ Nightly build failed" >> $GITHUB_STEP_SUMMARY
+            echo "❌ Weekly build failed" >> $GITHUB_STEP_SUMMARY
             exit 1
           else
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "✅ Nightly build passed" >> $GITHUB_STEP_SUMMARY
+            echo "✅ Weekly build passed" >> $GITHUB_STEP_SUMMARY
           fi

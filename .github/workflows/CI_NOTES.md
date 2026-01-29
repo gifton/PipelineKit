@@ -51,7 +51,7 @@ All CI workflows have been updated to use:
 |----------|---------|--------|---------|
 | `ci.yml` | Push/PR | macos-26 | Main CI pipeline |
 | `ci-multiplatform.yml` | PR/Manual | macos-26 | iOS/watchOS simulator tests |
-| `nightly.yml` | Daily 2AM UTC | macos-26 | Extended test suite |
+| `weekly.yml` | Monday 2AM UTC | macos-26 | Weekly extended test suite |
 | `weekly-full-ci.yml` | Sunday 3AM UTC | macos-26 | Comprehensive testing |
 | `specialty-tests.yml` | Label/Manual | macos-26 | Memory/perf/stress tests |
 | `release.yml` | Tag push | macos-26 | Release automation |
@@ -79,10 +79,11 @@ Current CI timings (sequential):
 
 ## Linux Support
 
-Linux builds use Docker container `swift:6.1`:
+Linux builds use Docker container `swift:6.2`:
 - Set as `continue-on-error: true` (secondary platform)
 - Requires additional system dependencies
-- Uses Swift 6.1 only (no legacy version testing)
+- Tests run per-target (excluding performance tests) to match macOS strategy
+- Uses Swift 6.2 only (no legacy version testing)
 
 ## Troubleshooting
 
