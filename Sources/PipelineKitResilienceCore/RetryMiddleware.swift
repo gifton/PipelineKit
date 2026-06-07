@@ -19,7 +19,7 @@ import PipelineKitObservability
 /// )
 /// pipeline.use(retry)
 /// ```
-public struct RetryMiddleware: Middleware {
+public struct RetryMiddleware: Middleware, UnsafeMiddleware {
     public let priority: ExecutionPriority = .resilience
 
     // MARK: - Backoff Strategies

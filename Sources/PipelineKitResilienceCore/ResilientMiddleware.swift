@@ -20,7 +20,7 @@ import PipelineKitCore
 ///
 /// Thread Safety: This type is thread-safe because all properties are immutable let constants.
 /// The RetryPolicy is a Sendable struct, and the name is a String (inherently Sendable).
-public final class ResilientMiddleware: Middleware, @unchecked Sendable {
+public final class ResilientMiddleware: Middleware, UnsafeMiddleware, @unchecked Sendable {
     public let priority: ExecutionPriority = .errorHandling
     private let retryPolicy: RetryPolicy
     // Circuit breaker functionality now available via CircuitBreakerMiddleware
