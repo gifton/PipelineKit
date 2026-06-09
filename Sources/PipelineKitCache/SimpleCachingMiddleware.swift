@@ -50,9 +50,12 @@ import PipelineKitObservability
 /// ```
 ///
 /// ## Performance Characteristics
-/// - **Cache Hit**: O(1) dictionary lookup + O(n) LRU update (n = cache size)
+/// - **Cache Hit**: O(1) dictionary lookup + O(1) LRU promotion
 /// - **Cache Miss**: O(1) insertion + O(1) eviction (if needed)
 /// - **Memory**: O(k) where k = number of cached entries
+///
+/// LRU recency is tracked by an O(1) doubly-linked-list + dictionary store
+/// (`LRUStorage`), so neither hits nor evictions scan the cache.
 ///
 /// ## Observability
 /// Emits cache events for monitoring:
@@ -79,8 +82,16 @@ public final class SimpleCachingMiddleware: Middleware, NextGuardWarningSuppress
     private let keyGenerator: @Sendable (Any) -> String
     private let shouldCache: @Sendable (Any) -> Bool
 
-    private var cache: [String: CacheEntry] = [:]
-    private var accessOrder: [String] = [] // For LRU eviction
+    /// O(1) LRU-ordered backing store (doubly-linked list + dictionary).
+    ///
+    /// Replaces the former `cache` dictionary plus `accessOrder` array, whose
+    /// per-access `removeAll { $0 == key }` scan was O(n). The store is **not**
+    /// thread-safe on its own; every access below is performed while holding
+    /// `lock`, preserving this type's existing `NSLock`-based synchronization
+    /// model unchanged.
+    ///
+    /// A `nil` `maxSize` (unlimited) maps to `Int.max`, so eviction never fires.
+    private let storage: LRUStorage<CacheEntry>
     private let lock = NSLock()
 
     // MARK: - Initialization
@@ -107,6 +118,8 @@ public final class SimpleCachingMiddleware: Middleware, NextGuardWarningSuppress
         self.priority = priority
         self.keyGenerator = keyGenerator
         self.shouldCache = shouldCache
+        // `nil` means unlimited; map it to `Int.max` so `LRUStorage` never evicts.
+        self.storage = LRUStorage<CacheEntry>(maxSize: maxSize ?? Int.max)
     }
 
     // MARK: - Middleware
@@ -152,20 +165,20 @@ public final class SimpleCachingMiddleware: Middleware, NextGuardWarningSuppress
         lock.lock()
         defer { lock.unlock() }
 
-        guard let entry = cache[key] else {
+        // Inspect without promoting first so an expired entry is not counted as a
+        // use before removal.
+        guard let entry = storage.peek(forKey: key) else {
             return nil
         }
 
         // Check if expired
         if entry.isExpired {
-            cache.removeValue(forKey: key)
-            accessOrder.removeAll { $0 == key }
+            storage.removeValue(forKey: key)
             return nil
         }
 
-        // Update LRU order
-        accessOrder.removeAll { $0 == key }
-        accessOrder.append(key)
+        // Live entry: promote to most-recently-used (O(1)).
+        _ = storage.value(forKey: key)
 
         return entry.value as? T
     }
@@ -174,21 +187,12 @@ public final class SimpleCachingMiddleware: Middleware, NextGuardWarningSuppress
         lock.lock()
         defer { lock.unlock() }
 
-        // Remove from access order if exists
-        accessOrder.removeAll { $0 == key }
-
-        // Check size limit and evict if needed
-        if let maxSize = maxSize, cache.count >= maxSize && cache[key] == nil {
-            // Evict least recently used entry
-            if let lruKey = accessOrder.first {
-                cache.removeValue(forKey: lruKey)
-                accessOrder.removeFirst()
-            }
-        }
-
-        // Store new entry
-        cache[key] = CacheEntry(value: result, timestamp: Date(), ttl: ttl)
-        accessOrder.append(key)
+        // Insert/update + promote. When a new key pushes the store past its
+        // capacity, `LRUStorage` evicts the least-recently-used entry; updating an
+        // existing key never evicts. This preserves the prior
+        // `cache.count >= maxSize && cache[key] == nil` eviction rule. An unlimited
+        // (`nil`) `maxSize` was mapped to `Int.max`, so eviction never fires.
+        storage.setValue(CacheEntry(value: result, timestamp: Date(), ttl: ttl), forKey: key)
     }
 
     /// Clears all cached entries.
@@ -198,8 +202,7 @@ public final class SimpleCachingMiddleware: Middleware, NextGuardWarningSuppress
     public func clear() {
         lock.lock()
         defer { lock.unlock() }
-        cache.removeAll()
-        accessOrder.removeAll()
+        storage.removeAll()
     }
 
     /// Removes expired entries from the cache.
@@ -210,13 +213,14 @@ public final class SimpleCachingMiddleware: Middleware, NextGuardWarningSuppress
         lock.lock()
         defer { lock.unlock() }
 
-        let expiredKeys = cache.compactMap { key, entry in
-            entry.isExpired ? key : nil
+        // Snapshot keys, then drop those whose entry is expired. `peek` is used so
+        // the inspection does not alter recency. Removal of each key is O(1).
+        let expiredKeys = storage.keysInLRUOrder().filter { key in
+            storage.peek(forKey: key)?.isExpired ?? false
         }
 
         for key in expiredKeys {
-            cache.removeValue(forKey: key)
-            accessOrder.removeAll { $0 == key }
+            storage.removeValue(forKey: key)
         }
     }
 
@@ -228,12 +232,13 @@ public final class SimpleCachingMiddleware: Middleware, NextGuardWarningSuppress
         lock.lock()
         defer { lock.unlock() }
 
-        let expired = cache.values.filter { $0.isExpired }.count
+        let total = storage.count
+        let expired = storage.values.filter { $0.isExpired }.count
 
         return CacheStats(
-            totalEntries: cache.count,
+            totalEntries: total,
             expiredEntries: expired,
-            activeEntries: cache.count - expired
+            activeEntries: total - expired
         )
     }
 }
