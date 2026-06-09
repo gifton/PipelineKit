@@ -73,8 +73,15 @@ public actor EventHub: EventEmitter {
         }
     }
 
-    // Note: No deinit needed. Accessing actor-isolated cleanupTask from deinit is a data race.
-    // The Task captured with weak self will exit when the actor is deallocated.
+    // Note: No deinit needed, and none is possible here without a data race:
+    // `cleanupTask` is actor-isolated state, so it cannot be read or cancelled
+    // from a (nonisolated) deinit. Instead, the cleanup loop in
+    // `startCleanupTask()` captures `self` weakly and only retains the actor for
+    // the brief window in which `performCleanup()` runs. While the loop is asleep
+    // it holds no strong reference, so once all external references are dropped
+    // the actor deallocates; the loop's `guard let self else { break }` then
+    // ends the task on its next wake-up. This avoids the permanent retain cycle
+    // a strong capture would create.
 
     // MARK: - EventEmitter Conformance
 
@@ -165,11 +172,21 @@ public actor EventHub: EventEmitter {
     }
 
     /// Starts the periodic cleanup task.
+    ///
+    /// The cleanup loop captures `self` weakly so that it does not keep the
+    /// actor alive. The immutable `cleanupInterval` is copied into a local
+    /// before the task is created, which means the sleep does not need to
+    /// touch `self` and therefore does not retain it while the loop is idle.
+    /// When all external references to the hub are dropped during the sleep,
+    /// the actor deallocates and the next wake-up exits via the
+    /// `guard let self else { break }` check.
     private func startCleanupTask() async {
-        cleanupTask = Task {
+        let interval = cleanupInterval
+        cleanupTask = Task { [weak self] in
             while !Task.isCancelled {
-                try? await Task.sleep(nanoseconds: UInt64(cleanupInterval * 1_000_000_000))
-                performCleanup()
+                try? await Task.sleep(nanoseconds: UInt64(interval * 1_000_000_000))
+                guard let self else { break }
+                await self.performCleanup()
             }
         }
     }

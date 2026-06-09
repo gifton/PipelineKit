@@ -151,7 +151,7 @@ public enum RetryError: Error, LocalizedError, Sendable { }
 **Updated Error Types:**
 1. `ObjectPoolConfigurationError` ✅
 2. `RetryError` ✅
-3. `ParallelExecutionError` ✅
+3. ~~`ParallelExecutionError`~~ — removed in the `ObserverMiddleware` refactor (type no longer exists)
 4. `TimeoutError` ✅
 5. `MetricsError` ✅
 6. `EncryptionError` ✅

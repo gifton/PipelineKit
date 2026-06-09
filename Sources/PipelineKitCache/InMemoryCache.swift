@@ -26,60 +26,50 @@ public actor InMemoryCache: Cache {
         }
     }
 
-    private var storage: [String: CacheEntry] = [:]
-    private let maxSize: Int
-    private var accessOrder: [String] = [] // For LRU eviction
+    /// O(1) LRU-ordered backing store (doubly-linked list + dictionary).
+    ///
+    /// Replaces the former `storage` dictionary plus `accessOrder` array, whose
+    /// per-access `removeAll { $0 == key }` scan was O(n). The store handles
+    /// recency promotion and least-recently-used eviction internally in O(1).
+    private let storage: LRUStorage<CacheEntry>
 
     /// Creates an in-memory cache with the specified maximum size.
     ///
     /// - Parameter maxSize: Maximum number of entries to store (default: 1000)
     public init(maxSize: Int = 1000) {
-        self.maxSize = maxSize
+        self.storage = LRUStorage<CacheEntry>(maxSize: maxSize)
     }
 
     public func get(key: String) -> Data? {
-        guard let entry = storage[key] else { return nil }
+        // Inspect without promoting first so an expired entry is not counted as a
+        // use before removal.
+        guard let entry = storage.peek(forKey: key) else { return nil }
 
         // Check expiration
         if entry.isExpired {
             storage.removeValue(forKey: key)
-            accessOrder.removeAll { $0 == key }
             return nil
         }
 
-        // Update access order for LRU
-        accessOrder.removeAll { $0 == key }
-        accessOrder.append(key)
-
+        // Live entry: promote to most-recently-used (O(1)) and return its data.
+        _ = storage.value(forKey: key)
         return entry.data
     }
 
     public func set(key: String, value: Data, expiration: Date?) {
-        // Remove existing entry from access order
-        accessOrder.removeAll { $0 == key }
-
-        // Check if we need to evict
-        if storage.count >= maxSize && storage[key] == nil {
-            // Evict least recently used
-            if let lruKey = accessOrder.first {
-                storage.removeValue(forKey: lruKey)
-                accessOrder.removeFirst()
-            }
-        }
-
-        // Store new entry
-        storage[key] = CacheEntry(data: value, expiration: expiration)
-        accessOrder.append(key)
+        // Insert/update + promote, evicting the least-recently-used entry if a new
+        // key pushes the store past `maxSize`. Updating an existing key never
+        // evicts; both behaviors are handled by `setValue`, matching the prior
+        // `storage.count >= maxSize && storage[key] == nil` eviction rule.
+        storage.setValue(CacheEntry(data: value, expiration: expiration), forKey: key)
     }
 
     public func remove(key: String) {
         storage.removeValue(forKey: key)
-        accessOrder.removeAll { $0 == key }
     }
 
     public func clear() {
         storage.removeAll()
-        accessOrder.removeAll()
     }
 }
 

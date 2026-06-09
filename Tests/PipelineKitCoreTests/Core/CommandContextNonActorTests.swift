@@ -85,34 +85,26 @@ final class CommandContextNonActorTests: XCTestCase {
     }
     
     func testParallelMiddlewareExecution() async throws {
-        struct ParallelTestMiddleware: Middleware {
+        struct ParallelTestObserver: ObserverMiddleware {
             let id: String
             let priority: ExecutionPriority = .custom
-            
-            func execute<T: Command>(
-                _ command: T,
-                context: CommandContext,
-                next: @Sendable (T, CommandContext) async throws -> T.Result
-            ) async throws -> T.Result {
+
+            func observe<T: Command>(_ command: T, context: CommandContext) async throws {
                 // Simulate some work
                 try await Task.sleep(nanoseconds: 10_000_000) // 10ms
                 context[TestContextKeys.testKey] = id
-                
-                // For parallel middleware, we don't call next
-                throw ParallelExecutionError.middlewareShouldNotCallNext
             }
         }
-        
+
         let handler = TestHelpers.TestHandler()
         let pipeline = StandardPipeline(handler: handler)
-        
+
         let parallelWrapper = ParallelMiddlewareWrapper(
-            middlewares: [
-                ParallelTestMiddleware(id: "middleware-1"),
-                ParallelTestMiddleware(id: "middleware-2"),
-                ParallelTestMiddleware(id: "middleware-3")
-            ],
-            strategy: .sideEffectsOnly
+            observers: [
+                ParallelTestObserver(id: "middleware-1"),
+                ParallelTestObserver(id: "middleware-2"),
+                ParallelTestObserver(id: "middleware-3")
+            ]
         )
         
         try await pipeline.addMiddleware(parallelWrapper)

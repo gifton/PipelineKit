@@ -59,6 +59,17 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: Pipeline where H.C
     /// Using ContiguousArray for better cache locality and performance.
     private var middlewares: ContiguousArray<any Middleware> = []
 
+    /// Cached middleware closure chain.
+    ///
+    /// Rebuilt lazily on the first execution after any middleware mutation. This is safe to
+    /// cache because `MiddlewareChainBuilder.build` mints fresh `NextGuard` instances *inside*
+    /// the returned closure on every invocation, so the built chain is stateless across
+    /// executions (it does not bake a one-shot guard into its structure). The chain also closes
+    /// over `self.handler`, which is immutable (`let`), so baking it in is safe.
+    ///
+    /// Invalidated (set to `nil`) at every point that mutates `middlewares`.
+    private var cachedChain: (@Sendable (C, CommandContext) async throws -> C.Result)?
+
     /// The chain of command interceptors that run before middleware.
     private let interceptorChain = InterceptorChain()
 
@@ -172,12 +183,14 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: Pipeline where H.C
     public func removeMiddleware<M: Middleware>(ofType type: M.Type) -> Int {
         let initialCount = middlewares.count
         middlewares.removeAll { $0 is M }
+        cachedChain = nil  // Invalidate cached chain after mutation
         return initialCount - middlewares.count
     }
 
     /// Removes all middleware from the pipeline.
     public func clearMiddlewares() {
         middlewares.removeAll()
+        cachedChain = nil  // Invalidate cached chain after mutation
     }
 
     // MARK: - Interceptor Management
@@ -368,19 +381,32 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: Pipeline where H.C
             return lhs.offset < rhs.offset
         }
         middlewares = ContiguousArray(stabilized.map { $0.element })
+        // Invalidate cached chain: covers addMiddleware/addMiddlewares which call this.
+        cachedChain = nil
     }
-    
-    /// Executes a command through a chain of middleware
+
+    /// Executes a command through a chain of middleware.
+    ///
+    /// Builds the chain via `MiddlewareChainBuilder.build` only on the first execution after a
+    /// middleware mutation, then caches and reuses it. Reuse is safe because the built chain is
+    /// stateless across invocations (see `cachedChain`).
     private func executeWithMiddleware(_ command: C, context: CommandContext) async throws -> C.Result {
-        // Build the middleware chain (no cancellation checks here to preserve existing behavior)
-        let final: @Sendable (C, CommandContext) async throws -> C.Result = { cmd, ctx in
-            try await self.handler.handle(cmd, context: ctx)
+        let chain: @Sendable (C, CommandContext) async throws -> C.Result
+        if let cached = cachedChain {
+            chain = cached
+        } else {
+            // Build the middleware chain (no cancellation checks here to preserve existing behavior)
+            let final: @Sendable (C, CommandContext) async throws -> C.Result = { cmd, ctx in
+                try await self.handler.handle(cmd, context: ctx)
+            }
+            let built = MiddlewareChainBuilder.build(
+                middlewares: middlewares,
+                insertCancellationChecks: false,
+                final: final
+            )
+            cachedChain = built
+            chain = built
         }
-        let chain = MiddlewareChainBuilder.build(
-            middlewares: middlewares,
-            insertCancellationChecks: false,
-            final: final
-        )
         return try await chain(command, context)
     }
 }

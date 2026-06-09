@@ -5,6 +5,17 @@ All notable changes to PipelineKit will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- `ObserverMiddleware` protocol (`observe(_:context:) async throws`) for side-effect/observer middleware that participate without a `next` closure. A default `execute` lets an observer drop into any sequential pipeline (observe, then forward to `next`).
+
+### Changed
+- **Breaking:** `ParallelMiddlewareWrapper` now takes `observers: [any ObserverMiddleware]` instead of `middlewares: [any Middleware]`. The `ExecutionStrategy` enum (`.sideEffectsOnly` / `.preValidation`) and the `ParallelExecutionError` type have been removed; the wrapper runs observers concurrently and propagates the first thrown error.
+
+### Fixed
+- `ParallelMiddlewareWrapper` now cancels the remaining sibling observers when one throws. Previously it drained all siblings (`waitForAll()`) before rethrowing, so a slow observer ran to completion instead of being cancelled.
+
 ## [0.1.0] - 2025-09-08
 
 ### Added

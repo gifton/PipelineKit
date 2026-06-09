@@ -110,14 +110,15 @@ jobs:
     - uses: actions/checkout@v4
 
     - name: Run Trivy Deep Scan
-      uses: aquasecurity/trivy-action@0.33.1
+      uses: aquasecurity/trivy-action@v0.36.0
       with:
         scan-type: 'fs'
         scan-ref: '.'
         severity: 'UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL'
         format: 'sarif'
         output: 'trivy-results.sarif'
-        args: --config .trivy.yaml
+        trivy-config: .trivy.yaml
+        token-setup-trivy: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Upload Security Results
       uses: github/codeql-action/upload-sarif@v3

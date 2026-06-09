@@ -42,8 +42,19 @@ public final class CommandContext: @unchecked Sendable {
     /// Internal storage dictionary
     private var _storage: [String: AnySendable] = [:]
 
-    /// Lock for thread-safe access
+    /// Lock for thread-safe access.
+    ///
+    /// On Apple platforms this uses `OSAllocatedUnfairLock`, which is
+    /// significantly faster than `NSLock` in the uncontended case that
+    /// dominates this hot path (every context get/set acquires it). The
+    /// Void-state form exposes non-mutating `lock()`/`unlock()`, so the
+    /// `withLock` helper below works unchanged. `NSLock` remains the
+    /// fallback on non-Apple platforms.
+    #if canImport(os)
+    private let lock = OSAllocatedUnfairLock()
+    #else
     private let lock = NSLock()
+    #endif
 
     /// Helper method for thread-safe read operations
     private func withLock<T>(_ operation: () throws -> T) rethrows -> T {

@@ -49,6 +49,16 @@ public actor DynamicPipeline {
     private let handlerRegistry = HandlerRegistry()
     private var middlewares: [any Middleware] = []
     private var sortedMiddlewaresCache: [any Middleware]?
+
+    /// Per-command-type cache of the built middleware chain.
+    ///
+    /// Keyed by `ObjectIdentifier(T.self)`; each value is the typed
+    /// `@Sendable (T, CommandContext) async throws -> T.Result` boxed as `Any` (the pipeline is
+    /// polymorphic over command type, so a single concrete closure type cannot be stored). The
+    /// cached chain closes over both the middleware set *and* the looked-up handler, so it is
+    /// invalidated whenever the middleware collection changes OR the handler registry changes.
+    private var chainCache: [ObjectIdentifier: Any] = [:]
+
     private let maxMiddlewareDepth = 100
     // Circuit breaker functionality is now provided via middleware
     // See RateLimitingMiddleware with CircuitBreaker in PipelineKitMiddleware
@@ -76,6 +86,9 @@ public actor DynamicPipeline {
         handler: H
     ) async where H.CommandType == T, H.CommandType.Result == T.Result {
         await handlerRegistry.register(commandType, handler: handler)
+        // The cached chain closes over the looked-up handler; a (re)registration could
+        // change which handler a cached chain would invoke, so invalidate to avoid stale handlers.
+        chainCache.removeAll()
     }
 
     /// Registers a handler only if none exists for the given command type.
@@ -90,6 +103,8 @@ public actor DynamicPipeline {
                 reason: "Handler already registered for \(String(describing: T.self))"
             )
         }
+        // A newly inserted handler must be reflected by any future chain build.
+        chainCache.removeAll()
     }
 
     /// Replaces the handler for a command type; returns whether a previous handler existed.
@@ -97,12 +112,18 @@ public actor DynamicPipeline {
         _ commandType: T.Type,
         with handler: H
     ) async -> Bool where H.CommandType == T, H.CommandType.Result == T.Result {
-        await handlerRegistry.replace(commandType, with: handler)
+        let replaced = await handlerRegistry.replace(commandType, with: handler)
+        // Replacing the handler must invalidate any cached chain bound to the old handler.
+        chainCache.removeAll()
+        return replaced
     }
 
     /// Unregisters any handler for the given command type; returns whether one was removed.
     public func unregister<T: Command>(_ commandType: T.Type) async -> Bool {
-        await handlerRegistry.removeHandler(for: commandType) != nil
+        let removed = await handlerRegistry.removeHandler(for: commandType) != nil
+        // A cached chain for this type would still close over the removed handler; invalidate it.
+        chainCache.removeAll()
+        return removed
     }
 
     /// Adds a single middleware to the command bus.
@@ -123,6 +144,7 @@ public actor DynamicPipeline {
         }
         middlewares.append(middleware)
         sortedMiddlewaresCache = nil  // Invalidate cache
+        chainCache.removeAll()        // Invalidate built chains
     }
 
     /// Adds multiple middleware to the command bus at once.
@@ -140,6 +162,7 @@ public actor DynamicPipeline {
         }
         middlewares.append(contentsOf: newMiddlewares)
         sortedMiddlewaresCache = nil  // Invalidate cache
+        chainCache.removeAll()        // Invalidate built chains
     }
 
     /// Sends a command through the bus for execution.
@@ -231,26 +254,30 @@ public actor DynamicPipeline {
             return try await handler.handle(cmd, context: ctx)
         }
 
-        // Use cached sorted middlewares (O(1) after first call vs O(n log n) per-send)
-        let sortedMiddleware = getSortedMiddlewares()
-
-        let chain = sortedMiddleware.reversed().reduce(finalHandler) { next, middleware in
-            // Apply NextGuard unless middleware opts out
-            let wrappedNext: @Sendable (T, CommandContext) async throws -> T.Result
-            if middleware is any UnsafeMiddleware {
-                // Skip NextGuard for unsafe middleware
-                wrappedNext = next
-            } else {
-                // Wrap with NextGuard for safety
-                let nextGuard = NextGuard<T>(next, identifier: String(describing: type(of: middleware)))
-                wrappedNext = nextGuard.callAsFunction
-            }
-            
-            return { (cmd: T, ctx: CommandContext) in
-                // Check for cancellation before each middleware
-                try Task.checkCancellation(context: "DynamicPipeline execution cancelled at middleware: \(String(describing: type(of: middleware)))")
-                return try await middleware.execute(cmd, context: ctx, next: wrappedNext)
-            }
+        // Resolve the middleware chain, caching the built closure per command type.
+        //
+        // The chain is built via `MiddlewareChainBuilder.build`, which creates each `NextGuard`
+        // lazily *inside* its returned closure (one fresh guard per execution). This makes the
+        // built chain stateless across sends and therefore safe to cache and reuse — unlike the
+        // previous hand-rolled `.reduce`, which baked a single one-shot `NextGuard` into the
+        // structure and would throw `nextAlreadyCalled` on the second send if reused.
+        //
+        // `insertCancellationChecks: true` preserves the prior behavior of checking for
+        // cancellation before each middleware and before the handler.
+        let cacheKey = ObjectIdentifier(T.self)
+        let chain: @Sendable (T, CommandContext) async throws -> T.Result
+        if let cached = chainCache[cacheKey] as? @Sendable (T, CommandContext) async throws -> T.Result {
+            chain = cached
+        } else {
+            // Use cached sorted middlewares (O(1) after first call vs O(n log n) per-send)
+            let sortedMiddleware = getSortedMiddlewares()
+            let built = MiddlewareChainBuilder.build(
+                middlewares: sortedMiddleware,
+                insertCancellationChecks: true,
+                final: finalHandler
+            )
+            chainCache[cacheKey] = built
+            chain = built
         }
 
         return try await chain(command, context)
@@ -329,11 +356,13 @@ public actor DynamicPipeline {
         await handlerRegistry.removeAllHandlers()
         middlewares.removeAll()
         sortedMiddlewaresCache = nil  // Invalidate cache
+        chainCache.removeAll()        // Invalidate built chains (handlers and middleware cleared)
     }
 
     public func clearMiddlewares() {
         middlewares.removeAll()
         sortedMiddlewaresCache = nil  // Invalidate cache
+        chainCache.removeAll()        // Invalidate built chains
     }
 
     public var middlewareCount: Int {

@@ -66,32 +66,28 @@ final class ParallelMiddlewareWrapperTests: XCTestCase {
         }
     }
     
-    private final class TrackingMiddleware: Middleware {
+    private final class TrackingObserver: ObserverMiddleware {
         let name: String
         let tracker: ExecutionTracker
         let delay: TimeInterval
         let priority = ExecutionPriority.processing
         let synchronizer: TestSynchronizer
-        
+
         init(name: String, tracker: ExecutionTracker, delay: TimeInterval = 0.1, synchronizer: TestSynchronizer = TestSynchronizer()) {
             self.name = name
             self.tracker = tracker
             self.delay = delay
             self.synchronizer = synchronizer
         }
-        
-        func execute<T: Command>(
-            _ command: T,
-            context: CommandContext,
-            next: @Sendable (T, CommandContext) async throws -> T.Result
-        ) async throws -> T.Result {
+
+        func observe<T: Command>(_ command: T, context: CommandContext) async throws {
             await tracker.recordStart(middleware: name)
-            
+
             // Simulate work with cancellation check
             if delay > 0 {
                 // Check for cancellation before starting work
                 try Task.checkCancellation()
-                
+
                 // Use Task.sleep which is cancellation-aware
                 do {
                     try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
@@ -99,15 +95,12 @@ final class ParallelMiddlewareWrapperTests: XCTestCase {
                     // If cancelled during sleep, don't record end
                     throw error
                 }
-                
+
                 // Check again after work
                 try Task.checkCancellation()
             }
-            
+
             await tracker.recordEnd(middleware: name)
-            
-            // Parallel middleware shouldn't modify results
-            return try await next(command, context)
         }
     }
     
@@ -116,13 +109,13 @@ final class ParallelMiddlewareWrapperTests: XCTestCase {
     func testParallelExecution() async throws {
         // Given
         let tracker = ExecutionTracker()
-        let middlewares = [
-            TrackingMiddleware(name: "MW1", tracker: tracker, delay: 0.2, synchronizer: synchronizer),
-            TrackingMiddleware(name: "MW2", tracker: tracker, delay: 0.2, synchronizer: synchronizer),
-            TrackingMiddleware(name: "MW3", tracker: tracker, delay: 0.2, synchronizer: synchronizer)
+        let observers = [
+            TrackingObserver(name: "MW1", tracker: tracker, delay: 0.2, synchronizer: synchronizer),
+            TrackingObserver(name: "MW2", tracker: tracker, delay: 0.2, synchronizer: synchronizer),
+            TrackingObserver(name: "MW3", tracker: tracker, delay: 0.2, synchronizer: synchronizer)
         ]
-        
-        let parallelWrapper = ParallelMiddlewareWrapper(middlewares: middlewares)
+
+        let parallelWrapper = ParallelMiddlewareWrapper(observers: observers)
         
         // When
         let startTime = Date()
@@ -143,8 +136,8 @@ final class ParallelMiddlewareWrapperTests: XCTestCase {
     
     func testEmptyMiddlewareArray() async throws {
         // Given
-        let parallelWrapper = ParallelMiddlewareWrapper(middlewares: [])
-        
+        let parallelWrapper = ParallelMiddlewareWrapper(observers: [])
+
         // When
         let result = try await parallelWrapper.execute(
             TestCommand(id: "empty"),
@@ -159,8 +152,8 @@ final class ParallelMiddlewareWrapperTests: XCTestCase {
     func testSingleMiddleware() async throws {
         // Given
         let tracker = ExecutionTracker()
-        let middleware = TrackingMiddleware(name: "Single", tracker: tracker, synchronizer: synchronizer)
-        let parallelWrapper = ParallelMiddlewareWrapper(middlewares: [middleware])
+        let observer = TrackingObserver(name: "Single", tracker: tracker, synchronizer: synchronizer)
+        let parallelWrapper = ParallelMiddlewareWrapper(observers: [observer])
         
         // When
         _ = try await parallelWrapper.execute(
@@ -177,8 +170,8 @@ final class ParallelMiddlewareWrapperTests: XCTestCase {
     
     func testErrorPropagation() async throws {
         // Given
-        let errorMiddleware = ErrorThrowingMiddleware(error: TestError.middleware)
-        let parallelWrapper = ParallelMiddlewareWrapper(middlewares: [errorMiddleware])
+        let errorObserver = ErrorThrowingObserver(error: TestError.middleware)
+        let parallelWrapper = ParallelMiddlewareWrapper(observers: [errorObserver])
         
         // When/Then
         do {
@@ -196,13 +189,13 @@ final class ParallelMiddlewareWrapperTests: XCTestCase {
     func testMultipleErrorsCancelOthers() async throws {
         // Given
         let tracker = ExecutionTracker()
-        let middlewares: [any Middleware] = [
-            TrackingMiddleware(name: "MW1", tracker: tracker, delay: 0.1, synchronizer: synchronizer),
-            ErrorThrowingMiddleware(error: TestError.middleware, delay: 0.05, synchronizer: synchronizer), // Fails quickly
-            TrackingMiddleware(name: "MW3", tracker: tracker, delay: 0.5, synchronizer: synchronizer) // Should be cancelled
+        let observers: [any ObserverMiddleware] = [
+            TrackingObserver(name: "MW1", tracker: tracker, delay: 0.1, synchronizer: synchronizer),
+            ErrorThrowingObserver(error: TestError.middleware, delay: 0.05, synchronizer: synchronizer), // Fails quickly
+            TrackingObserver(name: "MW3", tracker: tracker, delay: 0.5, synchronizer: synchronizer) // Should be cancelled
         ]
-        
-        let parallelWrapper = ParallelMiddlewareWrapper(middlewares: middlewares)
+
+        let parallelWrapper = ParallelMiddlewareWrapper(observers: observers)
         
         // When/Then
         do {
@@ -231,13 +224,13 @@ final class ParallelMiddlewareWrapperTests: XCTestCase {
     
     func testContextIsolation() async throws {
         // Given
-        let middlewares = [
-            ContextModifyingMiddleware(key: "key1", value: "value1"),
-            ContextModifyingMiddleware(key: "key2", value: "value2"),
-            ContextModifyingMiddleware(key: "key3", value: "value3")
+        let observers = [
+            ContextModifyingObserver(key: "key1", value: "value1"),
+            ContextModifyingObserver(key: "key2", value: "value2"),
+            ContextModifyingObserver(key: "key3", value: "value3")
         ]
-        
-        let parallelWrapper = ParallelMiddlewareWrapper(middlewares: middlewares)
+
+        let parallelWrapper = ParallelMiddlewareWrapper(observers: observers)
         let context = CommandContext()
         
         // When
@@ -264,16 +257,16 @@ final class ParallelMiddlewareWrapperTests: XCTestCase {
     
     func testPriorityInheritance() async throws {
         // Given
-        let middleware1 = PriorityMiddleware(priority: .authentication)
-        let middleware2 = PriorityMiddleware(priority: .validation)
-        
+        let observer1 = PriorityObserver(priority: .authentication)
+        let observer2 = PriorityObserver(priority: .validation)
+
         // When - default priority
-        let defaultWrapper = ParallelMiddlewareWrapper(middlewares: [middleware1, middleware2])
+        let defaultWrapper = ParallelMiddlewareWrapper(observers: [observer1, observer2])
         XCTAssertEqual(defaultWrapper.priority, .custom)
-        
+
         // When - explicit priority
         let explicitWrapper = ParallelMiddlewareWrapper(
-            middlewares: [middleware1, middleware2],
+            observers: [observer1, observer2],
             priority: .processing
         )
         XCTAssertEqual(explicitWrapper.priority, .processing)
@@ -283,11 +276,11 @@ final class ParallelMiddlewareWrapperTests: XCTestCase {
         // Given
         let middlewareCount = 100
         let tracker = ExecutionTracker()
-        let middlewares = (0..<middlewareCount).map { i in
-            TrackingMiddleware(name: "MW\(i)", tracker: tracker, delay: 0.01, synchronizer: synchronizer)
+        let observers = (0..<middlewareCount).map { i in
+            TrackingObserver(name: "MW\(i)", tracker: tracker, delay: 0.01, synchronizer: synchronizer)
         }
-        
-        let parallelWrapper = ParallelMiddlewareWrapper(middlewares: middlewares)
+
+        let parallelWrapper = ParallelMiddlewareWrapper(observers: observers)
         
         // When
         let startTime = Date()
@@ -312,23 +305,19 @@ final class ParallelMiddlewareWrapperTests: XCTestCase {
         case middleware
     }
     
-    private final class ErrorThrowingMiddleware: Middleware {
+    private final class ErrorThrowingObserver: ObserverMiddleware {
         let error: Error
         let delay: TimeInterval
         let priority = ExecutionPriority.processing
         let synchronizer: TestSynchronizer
-        
+
         init(error: Error, delay: TimeInterval = 0, synchronizer: TestSynchronizer = TestSynchronizer()) {
             self.error = error
             self.delay = delay
             self.synchronizer = synchronizer
         }
-        
-        func execute<T: Command>(
-            _ command: T,
-            context: CommandContext,
-            next: @Sendable (T, CommandContext) async throws -> T.Result
-        ) async throws -> T.Result {
+
+        func observe<T: Command>(_ command: T, context: CommandContext) async throws {
             if delay > 0 {
                 try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
             }
@@ -336,43 +325,34 @@ final class ParallelMiddlewareWrapperTests: XCTestCase {
         }
     }
     
-    private final class ContextModifyingMiddleware: Middleware {
+    private final class ContextModifyingObserver: ObserverMiddleware {
         let key: String
         let value: String
         let priority = ExecutionPriority.processing
-        
+
         init(key: String, value: String) {
             self.key = key
             self.value = value
         }
-        
-        func execute<T: Command>(
-            _ command: T,
-            context: CommandContext,
-            next: @Sendable (T, CommandContext) async throws -> T.Result
-        ) async throws -> T.Result {
+
+        func observe<T: Command>(_ command: T, context: CommandContext) async throws {
             // Note: Can't dynamically create context keys at runtime
             // This test was trying to verify context isolation, but we'd need
             // pre-defined key types for that
             _ = key
             _ = value
-            return try await next(command, context)
         }
     }
-    
-    private final class PriorityMiddleware: Middleware {
+
+    private final class PriorityObserver: ObserverMiddleware {
         let priority: ExecutionPriority
-        
+
         init(priority: ExecutionPriority) {
             self.priority = priority
         }
-        
-        func execute<T: Command>(
-            _ command: T,
-            context: CommandContext,
-            next: @Sendable (T, CommandContext) async throws -> T.Result
-        ) async throws -> T.Result {
-            try await next(command, context)
+
+        func observe<T: Command>(_ command: T, context: CommandContext) async throws {
+            // No side effects; used only to verify wrapper priority inheritance.
         }
     }
 }

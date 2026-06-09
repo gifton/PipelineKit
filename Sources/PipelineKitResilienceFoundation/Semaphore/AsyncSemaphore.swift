@@ -23,12 +23,21 @@ import PipelineKit  // For PipelineError
 public actor AsyncSemaphore {
     /// The current number of available resources
     private var availableResources: Int
-    
-    /// Queue of waiting tasks (FIFO ordering)
-    private var waiters: [Waiter] = []
-    
-    /// Lookup table for O(1) timeout handling
-    private var waiterLookup: [UUID: Waiter] = [:]
+
+    /// Queue of waiting tasks (FIFO ordering).
+    ///
+    /// Backed by a `PriorityHeap` keyed on a monotonically increasing sequence
+    /// number so that FIFO order is preserved while providing O(log n) insertion,
+    /// extraction, and arbitrary removal by id. The min-heap comparator
+    /// (`seq < seq`) makes `extractMin()` return the oldest (lowest sequence)
+    /// waiter first.
+    private var waiters: PriorityHeap<Waiter>
+
+    /// Monotonic sequence counter assigned to each waiter to impose FIFO order.
+    ///
+    /// Allocated and incremented only while running on the actor (inside the
+    /// continuation body), so no synchronization beyond actor isolation is needed.
+    private var nextSeq: UInt64 = 0
     
     /// State of a waiter
     private enum WaiterState {
@@ -50,13 +59,19 @@ public actor AsyncSemaphore {
     }
     
     /// Represents a waiting task
+    ///
+    /// Kept as a reference type so `tryResume` can mutate `state` in place while
+    /// the instance is held by value-typed storage (the `PriorityHeap`).
     private class Waiter {
         let id = UUID()
+        /// Monotonic FIFO ordering key. Lower values are served first.
+        let seq: UInt64
         var state = WaiterState.waiting
         let continuation: ContinuationType
         var timeoutTask: Task<Void, Never>?
-        
-        init(continuation: ContinuationType) {
+
+        init(seq: UInt64, continuation: ContinuationType) {
+            self.seq = seq
             self.continuation = continuation
         }
         
@@ -101,6 +116,13 @@ public actor AsyncSemaphore {
     /// - Parameter value: The initial number of available resources.
     public init(value: Int) {
         self.availableResources = value
+        // FIFO ordering: the waiter with the smallest sequence number is served
+        // first. The comparator returns `true` when `a` should be extracted
+        // before `b`, which the min-heap uses to keep the oldest waiter at the root.
+        self.waiters = PriorityHeap<Waiter>(
+            comparator: { $0.seq < $1.seq },
+            idExtractor: { $0.id }
+        )
     }
     
     /// Waits for a resource to become available.
@@ -128,10 +150,27 @@ public actor AsyncSemaphore {
         
         try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-                let waiter = Waiter(continuation: .regular(continuation))
+                let waiter = Waiter(seq: nextSeq, continuation: .regular(continuation))
+                nextSeq &+= 1
                 waiterIdBox.id = waiter.id
-                waiters.append(waiter)
-                waiterLookup[waiter.id] = waiter
+                waiters.insert(waiter)
+
+                // Cancellation race fix (TOCTOU): `Task.checkCancellation()` above
+                // closes the common case, but the task may be cancelled between that
+                // check and this body running. In that window `onCancel` may have
+                // already fired while `waiterIdBox.id` was still nil (so it did
+                // nothing), which would otherwise leave this continuation orphaned
+                // and never resumed. Claim and resume it here.
+                //
+                // Remove from the heap first to uphold the invariant "a waiter is in
+                // the heap iff it is unresumed" at every resume site. This runs
+                // synchronously on the actor, so a concurrent `signal()` cannot
+                // interleave. Idempotent: a late `onCancel` finds the waiter already
+                // gone (`remove` returns nil) and becomes a no-op.
+                if Task.isCancelled, waiters.remove(id: waiter.id) != nil {
+                    waiter.cancelTimeout()
+                    _ = waiter.tryResume(with: .cancelled)
+                }
             }
         } onCancel: { [weak self, waiterIdBox] in
             guard let waiterId = waiterIdBox.id else { return }
@@ -170,20 +209,33 @@ public actor AsyncSemaphore {
         
         return await withTaskCancellationHandler {
             await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
-                let waiter = Waiter(continuation: .timeout(continuation))
+                let waiter = Waiter(seq: nextSeq, continuation: .timeout(continuation))
+                nextSeq &+= 1
                 waiterIdBox.id = waiter.id
-                
+
                 // Create timeout task
                 let timeoutTask = Task { [weak self, waiterId = waiter.id] in
                     try? await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
-                    
+
                     // If we reach here, timeout occurred
                     await self?.handleTimeout(waiterId: waiterId)
                 }
-                
+
                 waiter.timeoutTask = timeoutTask
-                waiters.append(waiter)
-                waiterLookup[waiter.id] = waiter
+                waiters.insert(waiter)
+
+                // Cancellation race fix (TOCTOU): mirrors `wait()`. If the task was
+                // cancelled between the `Task.isCancelled` check above and this body
+                // running, `onCancel` may have already fired with a nil id and done
+                // nothing; claim and resume here so the continuation is not orphaned.
+                // Remove from the heap first (invariant: in-heap iff unresumed). A
+                // timeout waiter resumed with `.cancelled` returns `false`. We also
+                // cancel the timeout task we just created. Idempotent: a late
+                // `onCancel` finds the waiter already gone and becomes a no-op.
+                if Task.isCancelled, waiters.remove(id: waiter.id) != nil {
+                    waiter.cancelTimeout()
+                    _ = waiter.tryResume(with: .cancelled)
+                }
             }
         } onCancel: { [weak self, waiterIdBox] in
             // Handle task cancellation for specific waiter
@@ -199,61 +251,55 @@ public actor AsyncSemaphore {
     /// If there are waiting tasks, this method resumes the first waiter.
     /// Otherwise, it increments the available resource count.
     public func signal() {
-        // Check if there are any waiters
-        guard !waiters.isEmpty else {
+        // Resume the oldest waiter (FIFO). `extractMin()` both removes the waiter
+        // from the heap and returns it; under the `seq < seq` comparator this is
+        // the lowest-sequence (earliest-enqueued) waiter. If there are no waiters,
+        // restore an available resource instead.
+        guard let waiter = waiters.extractMin() else {
             availableResources += 1
             return
         }
-        
-        // Resume the first waiter (FIFO)
-        let waiter = waiters.removeFirst()
-        waiterLookup.removeValue(forKey: waiter.id)
-        
+
         // Cancel timeout if exists
         waiter.cancelTimeout()
-        
-        // Try to resume with signaled result
+
+        // Try to resume with signaled result. The "in heap iff unresumed"
+        // invariant guarantees an extracted waiter is still unresumed, so this
+        // resume always succeeds; `tryResume` returning false would be harmless.
         _ = waiter.tryResume(with: .signaled)
     }
     
     /// Handles timeout expiration
     private func handleTimeout(waiterId: UUID) {
-        // Find the waiter
-        guard let waiter = waiterLookup[waiterId] else { return }
-        
-        // Try to resume with timeout result
-        if waiter.tryResume(with: .timedOut) {
-            // Remove from storage
-            waiterLookup.removeValue(forKey: waiterId)
-            if let index = waiters.firstIndex(where: { $0.id == waiterId }) {
-                waiters.remove(at: index)
-            }
-        }
+        // Remove the waiter from the heap first; `remove(id:)` returns the element
+        // only if it was still present. Because every resume path removes the
+        // waiter from the heap in the same actor-synchronous step, a successful
+        // removal proves the waiter had not yet been resumed, so the subsequent
+        // `tryResume` always succeeds.
+        guard let waiter = waiters.remove(id: waiterId) else { return }
+        _ = waiter.tryResume(with: .timedOut)
     }
-    
+
     /// Handles cancellation for a specific waiter
     private func handleCancellationForWaiter(waiterId: UUID) {
-        guard let waiter = waiterLookup[waiterId] else { return }
-        
-        // Try to resume with cancelled result
-        if waiter.tryResume(with: .cancelled) {
-            // Remove from storage
-            waiterLookup.removeValue(forKey: waiterId)
-            if let index = waiters.firstIndex(where: { $0.id == waiterId }) {
-                waiters.remove(at: index)
-                // NOTE: We do NOT restore resources here because the waiter
-                // never actually acquired a resource - it was just waiting in line.
-                // Resources are only consumed when wait() returns successfully.
-            }
-            waiter.cancelTimeout()
-        }
+        // Same ownership transfer as `handleTimeout`: removing from the heap is the
+        // single point that claims the waiter. If it was already resumed (e.g. by
+        // `signal()`, a timeout, or the in-body cancellation race fix), it is no
+        // longer in the heap and `remove(id:)` returns nil.
+        //
+        // NOTE: We do NOT restore resources here because the waiter never actually
+        // acquired a resource - it was just waiting in line. Resources are only
+        // consumed when wait() returns successfully.
+        guard let waiter = waiters.remove(id: waiterId) else { return }
+        waiter.cancelTimeout()
+        _ = waiter.tryResume(with: .cancelled)
     }
-    
+
     /// Gets the current number of available resources (for testing)
     public func availableResourcesCount() -> Int {
         availableResources
     }
-    
+
     /// Gets the current number of waiters (for testing)
     internal func waiterCount() -> Int {
         waiters.count
