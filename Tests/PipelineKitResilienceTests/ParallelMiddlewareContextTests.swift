@@ -19,45 +19,38 @@ final class ParallelMiddlewareContextTests: XCTestCase {
     
     // MARK: - Test Middleware
     
-    private final class ContextModifyingMiddleware: Middleware {
+    private final class ContextModifyingObserver: ObserverMiddleware {
         let id: String
         let delay: TimeInterval
         let priority = ExecutionPriority.processing
-        
+
         init(id: String, delay: TimeInterval = 0.01) {
             self.id = id
             self.delay = delay
         }
-        
-        func execute<T: Command>(
-            _ command: T,
-            context: CommandContext,
-            next: @Sendable (T, CommandContext) async throws -> T.Result
-        ) async throws -> T.Result {
+
+        func observe<T: Command>(_ command: T, context: CommandContext) async throws {
             // Read current counter
             let currentCount: Int = (context.getMetadata()[TestKeys.counter] as? Int) ?? 0
-            
+
             // Add message
             var messages: [String] = (context.getMetadata()[TestKeys.messages] as? [String]) ?? []
             messages.append("Middleware \(id) started with count: \(currentCount)")
             context.setMetadata(TestKeys.messages, value: messages)
-            
+
             // Record thread info
             context.setMetadata(TestKeys.threadID, value: "\(id)-\(UUID().uuidString)")
-            
+
             // Simulate some work
             try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
-            
+
             // Increment counter
             context.setMetadata(TestKeys.counter, value: currentCount + 1)
-            
+
             // Add completion message
             messages = (context.getMetadata()[TestKeys.messages] as? [String]) ?? []
             messages.append("Middleware \(id) completed")
             context.setMetadata(TestKeys.messages, value: messages)
-            
-            // Don't call next for side effects
-            throw ParallelExecutionError.middlewareShouldNotCallNext
         }
     }
     
@@ -66,21 +59,18 @@ final class ParallelMiddlewareContextTests: XCTestCase {
     func testParallelExecutionWithSharedContext() async throws {
         // Given: Multiple middleware that modify the SHARED context
         // This test verifies that all middleware share the same context (by design)
-        let middlewares = [
-            ContextModifyingMiddleware(id: "A"),
-            ContextModifyingMiddleware(id: "B"),
-            ContextModifyingMiddleware(id: "C")
+        let observers = [
+            ContextModifyingObserver(id: "A"),
+            ContextModifyingObserver(id: "B"),
+            ContextModifyingObserver(id: "C")
         ]
-        
-        let wrapper = ParallelMiddlewareWrapper(
-            middlewares: middlewares,
-            strategy: .sideEffectsOnly
-        )
-        
+
+        let wrapper = ParallelMiddlewareWrapper(observers: observers)
+
         let command = TestCommand(id: "test")
         let context = CommandContext()
         context.setMetadata(TestKeys.counter, value: 0)
-        
+
         // When: We execute in parallel
         let result = try await wrapper.execute(command, context: context) { _, _ in
             "completed"
@@ -108,37 +98,35 @@ final class ParallelMiddlewareContextTests: XCTestCase {
     }
     
     func testParallelExecutionWithContextMerging() async throws {
-        // Given: Multiple middleware with context merging enabled
-        let middlewares = [
-            ContextModifyingMiddleware(id: "A", delay: 0.01),
-            ContextModifyingMiddleware(id: "B", delay: 0.02),
-            ContextModifyingMiddleware(id: "C", delay: 0.03)
+        // Given: Multiple observers that mutate the shared context
+        let observers = [
+            ContextModifyingObserver(id: "A", delay: 0.01),
+            ContextModifyingObserver(id: "B", delay: 0.02),
+            ContextModifyingObserver(id: "C", delay: 0.03)
         ]
-        
-        let wrapper = ParallelMiddlewareWrapper(
-            middlewares: middlewares,
-            strategy: .sideEffectsOnly  // Merging not supported - contexts are isolated
-        )
-        
+
+        let wrapper = ParallelMiddlewareWrapper(observers: observers)
+
         let command = TestCommand(id: "test")
         let context = CommandContext()
         context.setMetadata(TestKeys.counter, value: 0)
-        
-        // When: We execute with merging
+
+        // When: We execute the observers against the shared context
         let result = try await wrapper.execute(command, context: context) { _, _ in
             "completed"
         }
-        
-        // Then: CommandContext changes are merged back
+
+        // Then: CommandContext changes from the observers are visible on the shared context
         XCTAssertEqual(result, "completed")
-        
-        // Counter should have been incremented by one of the middleware (last merge wins)
+
+        // Each observer reads the counter (0) before sleeping, then writes 0 + 1;
+        // with last-write-wins on the shared context the final value is 1.
         let finalCount: Int = (context.getMetadata()[TestKeys.counter] as? Int) ?? 0
         XCTAssertEqual(finalCount, 1, "Counter should be incremented")
-        
-        // Messages from all middleware should be present (arrays get replaced)
+
+        // Messages from the observers should be present (arrays get replaced)
         let messages: [String] = (context.getMetadata()[TestKeys.messages] as? [String]) ?? []
-        XCTAssertTrue(messages.count >= 2, "Should have messages from at least one middleware")
+        XCTAssertTrue(messages.count >= 2, "Should have messages from at least one observer")
         
         // Thread ID from one of the middleware
         let threadID: String? = (context.getMetadata()[TestKeys.threadID] as? String)
@@ -146,43 +134,34 @@ final class ParallelMiddlewareContextTests: XCTestCase {
     }
     
     func testParallelExecutionWithSharedStateCoordination() async throws {
-        // Given: Middleware that coordinate through shared context
-        // This test demonstrates that middleware SHARE context and must handle concurrent access
-        final class CoordinatingMiddleware: Middleware {
+        // Given: Observers that coordinate through shared context
+        // This test demonstrates that observers SHARE context and must handle concurrent access
+        final class CoordinatingObserver: ObserverMiddleware {
             let id: String
             let priority = ExecutionPriority.processing
-            
+
             init(id: String) {
                 self.id = id
             }
-            
-            func execute<T: Command>(
-                _ command: T,
-                context: CommandContext,
-                next: @Sendable (T, CommandContext) async throws -> T.Result
-            ) async throws -> T.Result {
+
+            func observe<T: Command>(_ command: T, context: CommandContext) async throws {
                 // Append to a shared array (demonstrating shared state)
                 var visits: [String] = (context.getMetadata()["visits"] as? [String]) ?? []
                 visits.append(id)
                 context.setMetadata("visits", value: visits)
-                
+
                 // Small delay to ensure parallel execution
                 try await Task.sleep(nanoseconds: 5_000_000) // 5ms
-                
+
                 // Record completion
                 var completions: [String] = (context.getMetadata()["completions"] as? [String]) ?? []
                 completions.append(id)
                 context.setMetadata("completions", value: completions)
-                
-                throw ParallelExecutionError.middlewareShouldNotCallNext
             }
         }
-        
-        let middlewares = (0..<5).map { CoordinatingMiddleware(id: "MW-\($0)") }
-        let wrapper = ParallelMiddlewareWrapper(
-            middlewares: middlewares,
-            strategy: .sideEffectsOnly
-        )
+
+        let observers = (0..<5).map { CoordinatingObserver(id: "MW-\($0)") }
+        let wrapper = ParallelMiddlewareWrapper(observers: observers)
         
         let command = TestCommand(id: "test")
         let context = CommandContext()
@@ -209,43 +188,36 @@ final class ParallelMiddlewareContextTests: XCTestCase {
     // MARK: - Validation Strategy Tests
     
     func testValidationStrategyWithSharedContext() async throws {
-        // Given: Validation middleware that use shared context
-        final class ValidationMiddleware: Middleware {
+        // Given: Validation observers that use shared context
+        final class ValidationObserver: ObserverMiddleware {
             let validationKey: String
             let requiredValue: String
             let priority = ExecutionPriority.validation
-            
+
             init(key: String, requiredValue: String) {
                 self.validationKey = key
                 self.requiredValue = requiredValue
             }
-            
-            func execute<T: Command>(
-                _ command: T,
-                context: CommandContext,
-                next: @Sendable (T, CommandContext) async throws -> T.Result
-            ) async throws -> T.Result {
+
+            func observe<T: Command>(_ command: T, context: CommandContext) async throws {
                 // Record validation attempt in shared context
                 var validations: [String] = (context.getMetadata()["validations"] as? [String]) ?? []
                 validations.append("\(validationKey)-validated")
                 context.setMetadata("validations", value: validations)
-                
-                // Simulate validation
+
+                // Simulate validation: throwing rejects the command.
                 if validationKey == requiredValue {
                     throw TestError.validationFailed
                 }
-                
-                return try await next(command, context)
             }
         }
-        
+
         let wrapper = ParallelMiddlewareWrapper(
-            middlewares: [
-                ValidationMiddleware(key: "A", requiredValue: "X"),
-                ValidationMiddleware(key: "B", requiredValue: "Y"),
-                ValidationMiddleware(key: "C", requiredValue: "Z")
-            ],
-            strategy: .preValidation
+            observers: [
+                ValidationObserver(key: "A", requiredValue: "X"),
+                ValidationObserver(key: "B", requiredValue: "Y"),
+                ValidationObserver(key: "C", requiredValue: "Z")
+            ]
         )
         
         let command = TestCommand(id: "test")
@@ -287,14 +259,11 @@ final class ParallelMiddlewareContextTests: XCTestCase {
     func testParallelExecutionScalability() async throws {
         // Given: Many lightweight middleware
         let middlewareCount = 50
-        let middlewares = (0..<middlewareCount).map { i in
-            LightweightMiddleware(id: i)
+        let observers = (0..<middlewareCount).map { i in
+            LightweightObserver(id: i)
         }
-        
-        let wrapper = ParallelMiddlewareWrapper(
-            middlewares: middlewares,
-            strategy: .sideEffectsOnly
-        )
+
+        let wrapper = ParallelMiddlewareWrapper(observers: observers)
         
         let command = TestCommand(id: "test")
         let context = CommandContext()
@@ -315,22 +284,17 @@ final class ParallelMiddlewareContextTests: XCTestCase {
         case contextInterference(expected: String, actual: String)
     }
     
-    private final class LightweightMiddleware: Middleware {
+    private final class LightweightObserver: ObserverMiddleware {
         let id: Int
         let priority = ExecutionPriority.processing
-        
+
         init(id: Int) {
             self.id = id
         }
-        
-        func execute<T: Command>(
-            _ command: T,
-            context: CommandContext,
-            next: @Sendable (T, CommandContext) async throws -> T.Result
-        ) async throws -> T.Result {
+
+        func observe<T: Command>(_ command: T, context: CommandContext) async throws {
             // Just record execution
             context.setMetadata("lightweight_middleware_\(id)", value: "executed-\(id)")
-            throw ParallelExecutionError.middlewareShouldNotCallNext
         }
     }
 }
