@@ -5,7 +5,9 @@ import XCTest
 final class ParallelObserverTests: XCTestCase {
     actor Recorder {
         private(set) var seen: Set<String> = []
+        private(set) var nextCount = 0
         func add(_ s: String) { seen.insert(s) }
+        func bumpNext() { nextCount += 1 }
     }
     struct ProbeCommand: Command { typealias Result = String; let value: String }
     struct TagObserver: ObserverMiddleware {
@@ -29,11 +31,14 @@ final class ParallelObserverTests: XCTestCase {
         ])
         let ctx = CommandContext()
         let result = try await wrapper.execute(ProbeCommand(value: "ok"), context: ctx) { cmd, _ in
-            cmd.value
+            await recorder.bumpNext()
+            return cmd.value
         }
         XCTAssertEqual(result, "ok")
         let seen = await recorder.seen
         XCTAssertEqual(seen, ["a", "b", "c"], "every observer must run")
+        let nextCount = await recorder.nextCount
+        XCTAssertEqual(nextCount, 1, "next must run exactly once")
     }
 
     func testThrowingObserverFailsCommand() async {

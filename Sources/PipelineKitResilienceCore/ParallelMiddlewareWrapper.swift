@@ -59,8 +59,8 @@ public struct ParallelMiddlewareWrapper: Middleware, Sendable {
         return try await next(command, context)
     }
 
-    /// Runs all observers concurrently. If any throws, the group cancels the rest
-    /// and the first error is rethrown.
+    /// Runs all observers concurrently. If any throws, the first error is rethrown
+    /// eagerly and the remaining sibling observers are cancelled.
     private func runObservers<T: Command>(
         command: T,
         context: CommandContext
@@ -71,7 +71,12 @@ public struct ParallelMiddlewareWrapper: Middleware, Sendable {
                     try await observer.observe(command, context: context)
                 }
             }
-            try await group.waitForAll()
+            // Drain in completion order. The first task that throws makes this loop
+            // throw immediately; exiting the group body then cancels the remaining
+            // siblings. NOTE: do NOT replace with `group.waitForAll()` — that waits
+            // for every sibling to finish before rethrowing, so a slow sibling is
+            // never cancelled (it runs to completion).
+            for try await _ in group { }
         }
     }
 }
