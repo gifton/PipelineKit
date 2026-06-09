@@ -5,16 +5,29 @@ All notable changes to PipelineKit will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.5.0] - 2026-06-08
 
 ### Added
 - `ObserverMiddleware` protocol (`observe(_:context:) async throws`) for side-effect/observer middleware that participate without a `next` closure. A default `execute` lets an observer drop into any sequential pipeline (observe, then forward to `next`).
 
 ### Changed
-- **Breaking:** `ParallelMiddlewareWrapper` now takes `observers: [any ObserverMiddleware]` instead of `middlewares: [any Middleware]`. The `ExecutionStrategy` enum (`.sideEffectsOnly` / `.preValidation`) and the `ParallelExecutionError` type have been removed; the wrapper runs observers concurrently and propagates the first thrown error.
+- **Breaking:** `ParallelMiddlewareWrapper` now takes `observers: [any ObserverMiddleware]` instead of `middlewares: [any Middleware]`, runs them concurrently, and propagates (cancelling siblings on) the first thrown error.
+- `CommandContext` now uses `OSAllocatedUnfairLock` instead of `NSLock` for synchronization.
+- `CircuitBreaker`'s internal state machine moved from an `actor` to an `OSAllocatedUnfairLock`-backed type — ~45× lower wall time under contention in a microbenchmark. Public API unchanged.
+
+### Removed
+- **Breaking:** `ParallelMiddlewareWrapper.ExecutionStrategy` (`.sideEffectsOnly` / `.preValidation`) and the `ParallelExecutionError` type. Side-effect/observer middleware should adopt `ObserverMiddleware`.
+
+### Performance
+- O(1) LRU caches via a doubly-linked-list store, replacing the O(n)-per-access `accessOrder` scans in `InMemoryCache` and `SimpleCachingMiddleware`.
+- O(log n) waiter management in `AsyncSemaphore` and `BackPressureSemaphore` via the (previously unused) `PriorityHeap`, replacing O(n) array operations.
+- The compiled middleware chain is cached per pipeline instead of rebuilt on every command; `DynamicPipeline` caches per command type with handler-registry invalidation.
 
 ### Fixed
-- `ParallelMiddlewareWrapper` now cancels the remaining sibling observers when one throws. Previously it drained all siblings (`waitForAll()`) before rethrowing, so a slow observer ran to completion instead of being cancelled.
+- `EventHub` retain-cycle leak: the periodic cleanup task captured `self` strongly in an infinite loop, leaking every `EventHub` instance.
+- `AsyncSemaphore` cancellation race (TOCTOU) that could orphan a waiter's continuation.
+- `ParallelMiddlewareWrapper` now cancels sibling observers when one throws (previously `waitForAll()` let a slow sibling run to completion before the error propagated).
+- `GracePeriodManager` uses a single cancellation-aware `Task.sleep` instead of a 10-chunk manual poll.
 
 ## [0.1.0] - 2025-09-08
 
