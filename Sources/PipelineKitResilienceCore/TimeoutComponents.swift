@@ -15,19 +15,17 @@ actor GracePeriodManager {
         let id = UUID()
 
         let task = Task {
-            // Use multiple shorter sleeps for cancellation responsiveness
-            let intervals = 10
-            let intervalDuration = duration / Double(intervals)
+            // Gate entry: if cancelled before the sleep begins, do nothing.
+            guard !Task.isCancelled else { return }
 
-            for _ in 0..<intervals {
-                guard !Task.isCancelled else { return }
-
-                do {
-                    try await Task.sleep(nanoseconds: UInt64(intervalDuration * 1_000_000_000))
-                } catch {
-                    // Cancelled during sleep
-                    return
-                }
+            do {
+                // `Task.sleep` already throws `CancellationError` immediately on
+                // cancellation, so a single sleep provides the same prompt
+                // cancellation responsiveness as the previous chunked loop.
+                try await Task.sleep(nanoseconds: UInt64(duration * 1_000_000_000))
+            } catch {
+                // Cancelled during sleep — swallow the error and do not expire.
+                return
             }
 
             // Grace period expired
