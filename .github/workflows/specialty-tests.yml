@@ -227,7 +227,8 @@ jobs:
         scan-ref: '.'
         severity: 'UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL'
         format: 'table'
-        args: --config .trivy.yaml
+        trivy-config: .trivy.yaml
+        token-setup-trivy: ${{ secrets.GITHUB_TOKEN }}
         exit-code: '1'
 
     - name: SAST Scan
