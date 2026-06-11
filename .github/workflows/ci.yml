@@ -274,9 +274,8 @@ jobs:
           echo "Start time: $(date)"
 
           # Run tests (job-level timeout handles hung tests)
+          TARGET_EXIT_CODE=0
           swift test --filter "$target" --enable-code-coverage || TARGET_EXIT_CODE=$?
-
-          TARGET_EXIT_CODE=${TARGET_EXIT_CODE:-0}
           echo "End time: $(date) (exit code: $TARGET_EXIT_CODE)"
 
           if [ $TARGET_EXIT_CODE -eq 0 ]; then
