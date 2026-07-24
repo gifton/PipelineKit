@@ -70,7 +70,7 @@ jobs:
     if: github.event_name == 'pull_request'
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       
@@ -92,7 +92,7 @@ jobs:
     runs-on: macos-26
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install SwiftLint
         run: brew install swiftlint
@@ -135,7 +135,7 @@ jobs:
     timeout-minutes: 15
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
 
     - name: Setup Xcode
       uses: maxim-lobanov/setup-xcode@v1
@@ -182,7 +182,7 @@ jobs:
     continue-on-error: true  # Allow Linux to fail for now
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
 
     - name: Install Dependencies
       run: |
@@ -211,7 +211,7 @@ jobs:
     timeout-minutes: 45  # Increased for individual target coverage collection
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
 
     - name: Setup Xcode
       uses: maxim-lobanov/setup-xcode@v1
@@ -443,7 +443,7 @@ jobs:
     continue-on-error: true  # Allow Linux to fail for now
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
 
     - name: Install Dependencies
       run: |
@@ -468,7 +468,7 @@ jobs:
     timeout-minutes: 30
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
 
     - name: Setup Xcode
       uses: maxim-lobanov/setup-xcode@v1
@@ -509,7 +509,7 @@ jobs:
     timeout-minutes: 25
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
 
     - name: Setup Xcode
       uses: maxim-lobanov/setup-xcode@v1
@@ -563,7 +563,7 @@ jobs:
       security-events: write
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
 
     - name: Run Trivy Security Scan
       uses: aquasecurity/trivy-action@v0.36.0
@@ -594,7 +594,7 @@ jobs:
       id-token: write
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
 
     - name: Setup Xcode
       uses: maxim-lobanov/setup-xcode@v1
