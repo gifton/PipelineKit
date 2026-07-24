@@ -294,11 +294,24 @@ private actor MockSamplingExporter: MetricRecorder {
         let rate = configuration.sampleRatesByType[snapshot.type] ?? configuration.sampleRate
         guard rate < 1.0 else { return (true, 1.0) }
         
-        let hash = snapshot.name.hashValue
-        let threshold = Int(rate * Double(Int.max))
-        let shouldSample = abs(hash) < threshold
-        
+        // Same stable djb2 hash as StatsDExporter.stableHash — String.hashValue
+        // is seeded per process, which made these decisions reshuffle every run.
+        let hash = stableHash(snapshot.name)
+        let normalizedHash = Double(hash) / Double(UInt64.max)
+        let shouldSample = normalizedHash < rate
+
         return (shouldSample, rate)
+    }
+
+    private func stableHash(_ string: String) -> UInt64 {
+        var hash: UInt64 = 5381
+        for byte in string.utf8 {
+            hash = ((hash &<< 5) &+ hash) &+ UInt64(byte)  // hash * 33 + byte
+        }
+        hash = (hash ^ (hash >> 30)) &* 0xBF58476D1CE4E5B9
+        hash = (hash ^ (hash >> 27)) &* 0x94D049BB133111EB
+        hash ^= hash >> 31
+        return hash
     }
 }
 
