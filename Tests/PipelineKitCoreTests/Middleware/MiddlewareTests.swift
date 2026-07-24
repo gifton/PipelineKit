@@ -273,6 +273,9 @@ final class MiddlewareTests: XCTestCase {
     // MARK: - Performance Tests
     
     func testMiddlewarePerformance() async throws {
+        #if targetEnvironment(simulator)
+        throw XCTSkip("Absolute throughput floors are not meaningful on emulated simulator runners")
+        #endif
         let middleware = TransformMiddleware(transform: { $0 })
         let command = TestCommand(input: "perf")
         let context = CommandContext()

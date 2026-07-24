@@ -300,12 +300,15 @@ final class BackPressureMiddlewareTests: XCTestCase {
             }
         }
         
-        // Give time for queue to fill
-        await synchronizer.mediumDelay()
-        
-        // Check health
-        let health = await middleware.healthCheck()
-        
+        // Wait for the queue to fill — poll rather than a single fixed delay so
+        // slow task startup on a loaded runner can't race the health check.
+        var health = await middleware.healthCheck()
+        let deadline = Date().addingTimeInterval(5.0)
+        while health.queueUtilization < 0.8 && Date() < deadline {
+            await synchronizer.shortDelay()
+            health = await middleware.healthCheck()
+        }
+
         // Then
         XCTAssertFalse(health.isHealthy, "Should be unhealthy when queue is > 80% full")
         XCTAssertGreaterThanOrEqual(health.queueUtilization, 0.8)
