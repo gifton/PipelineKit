@@ -39,7 +39,7 @@ jobs:
           echo "- macOS: $(sw_vers -productVersion)" >> $GITHUB_STEP_SUMMARY
 
       - name: Cache SPM
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             .build
@@ -128,7 +128,7 @@ jobs:
             git
 
       - name: Cache SPM
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             .build
@@ -184,7 +184,7 @@ jobs:
           xcode-version: 'latest-stable'
 
       - name: Cache SPM
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             .build
@@ -221,7 +221,7 @@ jobs:
           xcode-version: 'latest-stable'
 
       - name: Cache SPM
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             .build
@@ -243,7 +243,7 @@ jobs:
 
       - name: Upload Results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: weekly-benchmark-results
           path: |

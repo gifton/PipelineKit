@@ -34,7 +34,7 @@ jobs:
           echo "- macOS: $(sw_vers -productVersion)" >> $GITHUB_STEP_SUMMARY
 
       - name: Cache SPM
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             .build
@@ -131,7 +131,7 @@ jobs:
           fi
 
       - name: Upload coverage artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-macos
           path: coverage.lcov
