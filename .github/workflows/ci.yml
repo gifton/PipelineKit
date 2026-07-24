@@ -70,7 +70,7 @@ jobs:
     if: github.event_name == 'pull_request'
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       
@@ -92,7 +92,7 @@ jobs:
     runs-on: macos-26
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install SwiftLint
         run: brew install swiftlint
@@ -120,7 +120,7 @@ jobs:
       
       - name: Upload SwiftLint Results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: swiftlint-results
           path: swiftlint.json
@@ -135,7 +135,7 @@ jobs:
     timeout-minutes: 15
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
 
     - name: Setup Xcode
       uses: maxim-lobanov/setup-xcode@v1
@@ -150,7 +150,7 @@ jobs:
         echo "- macOS: $(sw_vers -productVersion)" >> $GITHUB_STEP_SUMMARY
 
     - name: Cache SPM
-      uses: actions/cache@v4
+      uses: actions/cache@v6
       with:
         path: |
           .build
@@ -166,7 +166,7 @@ jobs:
       run: swift build --configuration release
 
     - name: Upload Build Artifacts
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: build-macOS
         path: .build/release/
@@ -182,7 +182,7 @@ jobs:
     continue-on-error: true  # Allow Linux to fail for now
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
 
     - name: Install Dependencies
       run: |
@@ -211,7 +211,7 @@ jobs:
     timeout-minutes: 45  # Increased for individual target coverage collection
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
 
     - name: Setup Xcode
       uses: maxim-lobanov/setup-xcode@v1
@@ -219,7 +219,7 @@ jobs:
         xcode-version: 'latest-stable'
 
     - name: Cache SPM
-      uses: actions/cache@v4
+      uses: actions/cache@v6
       with:
         path: |
           .build
@@ -381,7 +381,7 @@ jobs:
           -instr-profile=.build/debug/codecov/merged.profdata
     
     - name: Upload Coverage to Codecov
-      uses: codecov/codecov-action@v5
+      uses: codecov/codecov-action@v7
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         file: ./coverage.lcov
@@ -443,7 +443,7 @@ jobs:
     continue-on-error: true  # Allow Linux to fail for now
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
 
     - name: Install Dependencies
       run: |
@@ -468,7 +468,7 @@ jobs:
     timeout-minutes: 30
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
 
     - name: Setup Xcode
       uses: maxim-lobanov/setup-xcode@v1
@@ -476,7 +476,7 @@ jobs:
         xcode-version: 'latest-stable'
 
     - name: Cache SPM
-      uses: actions/cache@v4
+      uses: actions/cache@v6
       with:
         path: |
           .build
@@ -509,7 +509,7 @@ jobs:
     timeout-minutes: 25
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
 
     - name: Setup Xcode
       uses: maxim-lobanov/setup-xcode@v1
@@ -517,7 +517,7 @@ jobs:
         xcode-version: 'latest-stable'
 
     - name: Cache SPM
-      uses: actions/cache@v4
+      uses: actions/cache@v6
       with:
         path: |
           .build
@@ -546,7 +546,7 @@ jobs:
 
     - name: Upload Performance Results
       if: always()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: performance-test-results
         path: |
@@ -563,7 +563,7 @@ jobs:
       security-events: write
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
 
     - name: Run Trivy Security Scan
       uses: aquasecurity/trivy-action@v0.36.0
@@ -577,7 +577,7 @@ jobs:
         token-setup-trivy: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Upload Trivy Results
-      uses: github/codeql-action/upload-sarif@v3
+      uses: github/codeql-action/upload-sarif@v4
       if: always()
       with:
         sarif_file: 'trivy-results.sarif'
@@ -594,7 +594,7 @@ jobs:
       id-token: write
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
 
     - name: Setup Xcode
       uses: maxim-lobanov/setup-xcode@v1
@@ -602,7 +602,7 @@ jobs:
         xcode-version: 'latest-stable'
 
     - name: Cache SPM
-      uses: actions/cache@v4
+      uses: actions/cache@v6
       with:
         path: |
           .build
@@ -691,7 +691,7 @@ jobs:
     - name: Upload Documentation Artifact
       # Only upload artifacts for main branch builds
       if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: documentation
         path: docs/
@@ -699,18 +699,18 @@ jobs:
     
     - name: Setup Pages
       if: success() && github.event_name == 'push' && github.ref == 'refs/heads/main'
-      uses: actions/configure-pages@v5
+      uses: actions/configure-pages@v6
     
     - name: Upload to GitHub Pages
       if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-      uses: actions/upload-pages-artifact@v4
+      uses: actions/upload-pages-artifact@v5
       with:
         path: ./docs
     
     - name: Deploy to GitHub Pages
       if: github.event_name == 'push' && github.ref == 'refs/heads/main'
       id: deployment
-      uses: actions/deploy-pages@v4
+      uses: actions/deploy-pages@v5
 
   # Final status check
   ci-status:

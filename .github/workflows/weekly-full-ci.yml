@@ -33,7 +33,7 @@ jobs:
     timeout-minutes: 45
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
 
     - name: Setup Xcode
       uses: maxim-lobanov/setup-xcode@v1
@@ -48,7 +48,7 @@ jobs:
         echo "- macOS: $(sw_vers -productVersion)" >> $GITHUB_STEP_SUMMARY
 
     - name: Cache SPM
-      uses: actions/cache@v4
+      uses: actions/cache@v6
       with:
         path: |
           .build
@@ -80,7 +80,7 @@ jobs:
     continue-on-error: true
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
 
     - name: Install Dependencies
       run: |
@@ -107,7 +107,7 @@ jobs:
     timeout-minutes: 30
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
 
     - name: Run Trivy Deep Scan
       uses: aquasecurity/trivy-action@v0.36.0
@@ -121,7 +121,7 @@ jobs:
         token-setup-trivy: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Upload Security Results
-      uses: github/codeql-action/upload-sarif@v3
+      uses: github/codeql-action/upload-sarif@v4
       with:
         sarif_file: 'trivy-results.sarif'
 
@@ -136,7 +136,7 @@ jobs:
     timeout-minutes: 90
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
 
     - name: Setup Xcode
       uses: maxim-lobanov/setup-xcode@v1
@@ -144,7 +144,7 @@ jobs:
         xcode-version: 'latest-stable'
 
     - name: Cache SPM
-      uses: actions/cache@v4
+      uses: actions/cache@v6
       with:
         path: |
           .build
@@ -176,7 +176,7 @@ jobs:
     timeout-minutes: 30
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
 
     - name: Setup Xcode
       uses: maxim-lobanov/setup-xcode@v1
@@ -194,7 +194,7 @@ jobs:
           --level detailed
 
     - name: Upload Documentation Report
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: documentation-audit
         path: docs/
@@ -207,7 +207,7 @@ jobs:
     timeout-minutes: 30
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
 
     - name: Setup Xcode
       uses: maxim-lobanov/setup-xcode@v1
@@ -278,7 +278,7 @@ jobs:
 
     - name: Create Issue for Failures
       if: failure()
-      uses: actions/github-script@v7
+      uses: actions/github-script@v9
       with:
         script: |
           const date = new Date().toISOString().split('T')[0];
