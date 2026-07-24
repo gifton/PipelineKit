@@ -64,10 +64,26 @@ All CI workflows have been updated to use:
 - **Workaround**: Run tests sequentially
 - **Impact**: Longer CI times (~45s vs potential ~15s with parallel)
 
-### 2. ParallelMiddlewareContextTests Crash
-- **Symptom**: SIGBUS (signal 10) crash
-- **Test**: `testContextForkingPerformance`
-- **Status**: Test skipped, needs investigation
+### 2. ParallelMiddlewareContextTests Crash (stale)
+- **Symptom**: SIGBUS (signal 10) crash in `testContextForkingPerformance` (historical)
+- **Status**: The test was never actually skipped — commit `35394fd` only removed the
+  `PipelineKitPerformanceTests` *target* from the CI target arrays. The test runs in CI
+  today (under `PipelineKitResilienceTests`) without incident. Left enabled; revisit only
+  if the SIGBUS reappears.
+
+### 3. Flaky test-job failures (June 2026, resolved)
+- **Symptom**: Multiple targets reported "failed with exit code 1" while their logs showed
+  all tests passing (observed on the v0.5.0 release PR #59).
+- **Root cause**: two stacked bugs. (a) `TimeoutDiagnosticTests.testDirectTimeoutUtility`
+  genuinely failed — it raced a 0.1s timeout against a 0.2s operation, and on a loaded
+  runner the starved timeout continuation lost ("Unexpected success after 0.229s").
+  (b) The per-target loop didn't reset `TARGET_EXIT_CODE` between iterations, so that one
+  failure cascaded false failures onto the five following targets — which misattributed
+  the flake to `PipelineKitSecurityTests`.
+- **Fixes**: cascade fixed in `0675b20`; timing margins widened to seconds in
+  `TimeoutDiagnosticTests` (plus poll-based key-rotation wait in `EncryptionTests`).
+- **Lesson**: timing-race tests must let the losing branch lose by seconds, not
+  milliseconds; and only the FIRST failing target in a pre-`0675b20` log is trustworthy.
 
 ## Performance Benchmarks
 
@@ -82,7 +98,7 @@ Current CI timings (sequential):
 Linux builds use Docker container `swift:6.2`:
 - Set as `continue-on-error: true` (secondary platform)
 - Requires additional system dependencies
-- Tests run per-target (excluding performance tests) to match macOS strategy
+- **Build-only**: both Linux jobs run `swift build` — no tests execute on Linux
 - Uses Swift 6.2 only (no legacy version testing)
 
 ## Troubleshooting
