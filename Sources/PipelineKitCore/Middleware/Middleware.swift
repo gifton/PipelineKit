@@ -60,8 +60,9 @@ import Foundation
 public protocol Middleware: Sendable {
     /// The priority of the middleware, which determines its execution order.
     ///
-    /// Higher priority values execute first. Use predefined priorities from
-    /// `ExecutionPriority` or create custom values.
+    /// Lower priority raw values execute first (e.g. `.authentication` (100) runs
+    /// before `.postProcessing` (500)); equal priorities preserve insertion order.
+    /// Use predefined priorities from `ExecutionPriority` or create custom values.
     var priority: ExecutionPriority { get }
 
     /// Executes the middleware logic for a command.
