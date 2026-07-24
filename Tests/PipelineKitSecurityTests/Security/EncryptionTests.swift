@@ -160,16 +160,21 @@ final class EncryptionTests: XCTestCase {
         let encrypted1 = try await encryptor.encrypt(command1)
         let keyId1 = encrypted1.keyIdentifier
         
-        // Wait for rotation (key rotation interval is 0.1 seconds)
-        try? await Task.sleep(nanoseconds: 150_000_000) // 150ms
-        
         let command2 = PaymentCommand(
             cardNumber: "5555-6666-7777-8888",
             cvv: "222",
             amount: 75.0
         )
-        
-        let encrypted2 = try await encryptor.encrypt(command2)
+
+        // Rotation happens on the first encrypt after the interval elapses.
+        // Poll rather than a single fixed sleep so scheduling jitter or a
+        // swallowed cancellation can't reach the assertion before rotation.
+        let deadline = Date().addingTimeInterval(2.0)
+        var encrypted2 = try await encryptor.encrypt(command2)
+        while encrypted2.keyIdentifier == keyId1 && Date() < deadline {
+            try await Task.sleep(nanoseconds: 50_000_000)
+            encrypted2 = try await encryptor.encrypt(command2)
+        }
         let keyId2 = encrypted2.keyIdentifier
         
         // Different keys should be used

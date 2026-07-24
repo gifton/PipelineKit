@@ -290,9 +290,11 @@ final class AuditLoggingMiddlewareTests: XCTestCase {
         // Clear to trigger recovery
         await logger.clear()
         
-        // Cancel health monitoring
+        // Cancel health monitoring and wait for the consumer to finish so the
+        // task doesn't outlive the test while still reading the stream.
         healthTask.cancel()
-        
+        _ = await healthTask.value
+
         // The health stream should have reported dropped events
         let droppedCount = await logger.droppedEventsCount
         XCTAssertEqual(droppedCount, 0, "Should be reset after clear")

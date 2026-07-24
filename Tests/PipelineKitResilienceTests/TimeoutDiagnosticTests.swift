@@ -86,12 +86,15 @@ final class TimeoutDiagnosticTests: XCTestCase {
     func testDirectTimeoutUtility() async throws {
         print("\n=== Direct Timeout Utility Test ===")
         
-        // Test the timeout utility directly
+        // Test the timeout utility directly.
+        // The operation must lose the race by a wide margin: with a 2x margin
+        // (0.1s vs 0.2s) a starved timeout continuation on a loaded CI runner
+        // can lose to the operation's completion (observed: success at 0.229s).
         do {
-            print("Testing withTimeout directly with 0.1s timeout on 0.2s operation...")
+            print("Testing withTimeout directly with 0.1s timeout on 5s operation...")
             let start = Date()
             _ = try await withTimeout(0.1) {
-                try await Task.sleep(nanoseconds: 200_000_000) // 0.2s
+                try await Task.sleep(nanoseconds: 5_000_000_000) // 5s; cancelled promptly on timeout
                 return "Should not reach here"
             }
             let elapsed = Date().timeIntervalSince(start)
@@ -137,7 +140,9 @@ final class TimeoutDiagnosticTests: XCTestCase {
         let timeoutMiddleware = TimeoutMiddleware(defaultTimeout: 0.05) // 50ms
         
         // SlowMiddleware has priority .custom (1000)
-        let slowMiddleware = SlowMiddleware(delay: 0.1, id: "SlowAfter") // 100ms
+        // Delay must exceed the timeout by seconds, not milliseconds, so a
+        // delayed timeout continuation can never lose the race to completion.
+        let slowMiddleware = SlowMiddleware(delay: 2.0, id: "SlowAfter")
         
         try await pipeline.addMiddleware(timeoutMiddleware)
         try await pipeline.addMiddleware(slowMiddleware)
@@ -161,10 +166,10 @@ final class TimeoutDiagnosticTests: XCTestCase {
             let elapsed = Date().timeIntervalSince(start)
             print("Failed after \(elapsed)s with error: \(error)")
             
-            // The timeout error should be thrown promptly (around 50ms)
-            // We allow up to 300ms for CI variability, but this is just for the error to be thrown
-            // The background operation may continue running - that's expected!
-            XCTAssertLessThan(elapsed, 0.3, "Timeout error should be thrown promptly: \(elapsed)s")
+            // The timeout error should be thrown promptly (around 50ms).
+            // Allow generous CI scheduling jitter; the bound stays well below the
+            // 2s middleware delay, so passing still proves the timeout fired.
+            XCTAssertLessThan(elapsed, 1.5, "Timeout error should be thrown promptly: \(elapsed)s")
             
             if let pipelineError = error as? PipelineError,
                case .timeout = pipelineError {
@@ -200,7 +205,7 @@ final class TimeoutDiagnosticTests: XCTestCase {
         }
         
         let timeoutMiddleware = TimeoutMiddleware(defaultTimeout: 0.05) // 50ms
-        let slowMiddleware = EarlySlowMiddleware(delay: 0.1) // 100ms
+        let slowMiddleware = EarlySlowMiddleware(delay: 2.0) // must lose the race by seconds
         
         try await pipeline.addMiddleware(timeoutMiddleware)
         try await pipeline.addMiddleware(slowMiddleware)
@@ -223,8 +228,9 @@ final class TimeoutDiagnosticTests: XCTestCase {
                 // cancellation model. The important thing is that we get the timeout error
                 // promptly, not that background operations are forcefully stopped.
                 
-                // We expect the timeout error to be thrown around 50ms, but allow up to 350ms for CI
-                XCTAssertLessThan(elapsed, 0.35, "Timeout error should be thrown promptly (elapsed: \(elapsed)s)")
+                // We expect the timeout error around 50ms; allow generous CI jitter
+                // while staying well below the 2s middleware delay.
+                XCTAssertLessThan(elapsed, 1.5, "Timeout error should be thrown promptly (elapsed: \(elapsed)s)")
                 print("✅ Timeout correctly detected at \(elapsed)s (background ops may continue)")
             } else {
                 XCTFail("Wrong error type: \(error)")
@@ -274,7 +280,7 @@ final class TimeoutDiagnosticTests: XCTestCase {
 
             func handle(_ command: TestCommand, context: CommandContext) async throws -> String {
                 print("[Handler] Starting slow operation")
-                try await Task.sleep(nanoseconds: 100_000_000) // 0.1s
+                try await Task.sleep(nanoseconds: 2_000_000_000) // must lose the race by seconds
                 print("[Handler] Completed")
                 return command.value
             }
@@ -295,8 +301,9 @@ final class TimeoutDiagnosticTests: XCTestCase {
             // Verify we got a timeout error promptly (around 50ms)
             if let pipelineError = error as? PipelineError,
                case .timeout = pipelineError {
-                // The timeout error should be thrown around 50ms, but we allow more for CI
-                XCTAssertLessThan(elapsed, 0.3, "Timeout should be detected promptly")
+                // The timeout error should be thrown around 50ms; allow generous CI
+                // jitter while staying well below the 2s handler delay.
+                XCTAssertLessThan(elapsed, 1.5, "Timeout should be detected promptly")
                 print("✅ Timeout correctly thrown at \(elapsed)s")
                 
                 // NOTE: The handler's Task.sleep may continue in the background.
