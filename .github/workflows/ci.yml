@@ -120,7 +120,7 @@ jobs:
       
       - name: Upload SwiftLint Results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: swiftlint-results
           path: swiftlint.json
@@ -166,7 +166,7 @@ jobs:
       run: swift build --configuration release
 
     - name: Upload Build Artifacts
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: build-macOS
         path: .build/release/
@@ -546,7 +546,7 @@ jobs:
 
     - name: Upload Performance Results
       if: always()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: performance-test-results
         path: |
@@ -691,7 +691,7 @@ jobs:
     - name: Upload Documentation Artifact
       # Only upload artifacts for main branch builds
       if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: documentation
         path: docs/
