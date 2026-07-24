@@ -31,6 +31,12 @@ updates:
       time: "09:00"
       timezone: "UTC"
     open-pull-requests-limit: 5
+    # One combined PR for all action bumps instead of one PR each —
+    # the per-ecosystem limit of 5 previously let the backlog stall.
+    groups:
+      github-actions:
+        patterns:
+          - "*"
     # reviewers: []  # Add reviewers when team is established
     # assignees: []  # Add assignees when needed
     labels:
