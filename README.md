@@ -2,7 +2,7 @@
 
 A high-performance, type-safe command-bus architecture for Swift 6 with built‑in observability, resilience, caching, and pooling. Designed for production pipelines with strong concurrency guarantees and modular, opt‑in features.
 
-[![Swift 6.1](https://img.shields.io/badge/Swift-6.1-orange.svg)](https://swift.org)
+[![Swift 6.2](https://img.shields.io/badge/Swift-6.2-orange.svg)](https://swift.org)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/Platform-iOS%20|%20macOS%20|%20tvOS%20|%20watchOS%20|%20visionOS-lightgrey.svg)](Package.swift)
 
@@ -18,6 +18,7 @@ A high-performance, type-safe command-bus architecture for Swift 6 with built‑
   - [PipelineKitSecurity](#pipelinekitsecurity)
   - [PipelineKitCache](#pipelinekitcache)
   - [PipelineKitPooling](#pipelinekitpooling)
+  - [PipelineKitTestSupport](#pipelinekittestsupport)
 - [Installation](#installation)
 - [Example Usages](#example-usages)
 - [Do's and Don'ts](#dos-and-donts)
@@ -417,17 +418,31 @@ defer { await pool.release(connection) }
 // Use connection...
 ```
 
+### PipelineKitTestSupport
+
+Test helpers for pipelines: mock middleware, test commands/handlers, and teardown utilities. Intended for use in test targets only.
+
+```swift
+// In Package.swift test target dependencies
+.testTarget(
+    name: "YourAppTests",
+    dependencies: ["YourApp", "PipelineKitTestSupport"]
+)
+```
+
+The package also ships a `test-unit` command plugin (`swift package test-unit`) that runs all unit test targets, excluding performance tests.
+
 ## Installation
 
 ### Requirements
 
-- **Swift 6.0+**
+- **Swift 6.2+**
 - **Platforms:**
-  - iOS 17.0+
-  - macOS 14.0+
-  - tvOS 17.0+
-  - watchOS 10.0+
-  - visionOS 1.0+
+  - iOS 26.0+
+  - macOS 26.0+
+  - tvOS 26.0+
+  - watchOS 26.0+
+  - visionOS 26.0+
 
 ### Swift Package Manager
 
@@ -435,7 +450,7 @@ Add to your `Package.swift`:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/gifton/PipelineKit.git", from: "0.3.1")
+    .package(url: "https://github.com/gifton/PipelineKit.git", from: "0.5.0")
 ]
 ```
 
@@ -501,7 +516,7 @@ import PipelineKit
 import PipelineKitObservability
 import PipelineKitResilience
 import PipelineKitSecurity
-import PipelineKitCaching
+import PipelineKitCache
 
 // Configure observability
 let observability = await ObservabilitySystem.production(
@@ -811,6 +826,8 @@ PipelineKit is designed for high-throughput, low-latency scenarios:
 | With BackPressure | 500K ops/sec | < 5μs |
 | With Full Stack | 200K ops/sec | < 10μs |
 
+Methodology and current numbers are tracked in [docs/benchmarks.md](docs/benchmarks.md); the benchmark suite itself lives in the `PipelineKitPerformanceTests` target.
+
 ### Memory Efficiency
 
 - **Zero-allocation hot path** for simple commands
@@ -828,7 +845,7 @@ PipelineKit is designed for high-throughput, low-latency scenarios:
 
 ## Contributing
 
-We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+We welcome contributions! Please open an issue or pull request on GitHub. For reporting security vulnerabilities, see [SECURITY.md](SECURITY.md).
 
 ### Development Setup
 
@@ -841,8 +858,10 @@ swift test
 
 ### Running Benchmarks
 
+Benchmarks are XCTest-based and live in the `PipelineKitPerformanceTests` target:
+
 ```bash
-swift package benchmark
+swift test --filter PipelineKitPerformanceTests
 ```
 
 ### Code Quality
