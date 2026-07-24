@@ -65,8 +65,8 @@ final class CreateUserHandler: CommandHandler {
 
 // 3. Configure Pipeline with Middleware
 let pipeline = StandardPipeline(handler: CreateUserHandler())
-await pipeline.addMiddleware(ValidationMiddleware())
-await pipeline.addMiddleware(LoggingMiddleware())
+try await pipeline.addMiddleware(ValidationMiddleware())
+try await pipeline.addMiddleware(LoggingMiddleware())
 
 // 4. Execute Command
 let user = try await pipeline.execute(
@@ -118,9 +118,11 @@ Middleware provides cross-cutting functionality that wraps command execution.
 ```swift
 protocol Middleware: Sendable {
     var priority: ExecutionPriority { get }
-    func execute<T: Command>(_ command: T, 
-                             context: CommandContext,
-                             next: (T, CommandContext) async throws -> T.Result) async throws -> T.Result
+    func execute<T: Command>(
+        _ command: T,
+        context: CommandContext,
+        next: @escaping @Sendable (T, CommandContext) async throws -> T.Result
+    ) async throws -> T.Result
 }
 ```
 
@@ -158,39 +160,38 @@ let user = context.userID
 #### Access Patterns
 
 ```swift
-@dynamicMemberLookup
-final class CommandContext: @unchecked Sendable {
-    // Property access for built-in keys (via @dynamicMemberLookup)
-    context.requestID = "req-123"
-    let id = context.requestID
+let context = CommandContext()
 
-    // Subscript for custom keys
-    let customKey = ContextKey<String>("custom")
-    context[customKey] = "value"
-    let value: String? = context[customKey]
+// Property access for built-in keys (via @dynamicMemberLookup over ContextKeys)
+context.requestID = "req-123"
+context.userID = "user-456"
+let id = context.requestID
 
-    // Built-in properties
-    var requestID: String? { get set }
-    var userID: String? { get set }
-    var correlationID: String? { get set }
-    var startTime: Date? { get set }
-    var metadata: [String: any Sendable] { get set }
-    var metrics: [String: any Sendable] { get set }
-}
+// Subscript for custom keys
+let customKey = ContextKey<String>("custom")
+context[customKey] = "value"
+let value: String? = context[customKey]
+
+// String-keyed metadata and metrics
+context.setMetadata("client-version", value: "2.0.0")
+let clientVersion = context.metadata["client-version"]
 ```
+
+Built-in keys (`requestID`, `userID`, `correlationID`, `startTime`, and more) are defined on the `ContextKeys` namespace and surfaced as properties on the context; `metadata` and `metrics` are string-keyed dictionaries with both property-style and method-style access.
 
 **All patterns are fully type-safe and work seamlessly together.** Choose the style that fits your codebase best.
 
 Event emission is provided via `PipelineKitObservability` (see that module). Core exposes the `EventEmitter` type and forwards to the configured emitter when set.
-```
 
 ### Pipeline
 
 The pipeline orchestrates command execution through middleware to handlers.
 
 ```swift
-actor StandardPipeline<C: Command, H: CommandHandler> where H.CommandType == C {
-    init(handler: H, maxConcurrency: Int? = nil)
+actor StandardPipeline<C: Command, H: CommandHandler>: Pipeline where H.CommandType == C {
+    init(handler: H, maxDepth: Int = 100)
+    init(handler: H, maxConcurrency: Int, maxDepth: Int = 100)
+    init(handler: H, options: PipelineOptions, maxDepth: Int = 100)
     func execute(_ command: C, context: CommandContext) async throws -> C.Result
     func addMiddleware(_ middleware: any Middleware) throws
 }
@@ -310,19 +311,22 @@ Prevents cascading failures:
 ```swift
 let breaker = CircuitBreakerMiddleware(
     failureThreshold: 5,
-    resetTimeout: 30.0,
-    halfOpenLimit: 3
+    recoveryTimeout: 30.0,
+    halfOpenSuccessThreshold: 3
 )
 ```
 
 #### Timeout
 Prevents hanging operations:
 ```swift
-let timeout = TimeoutMiddleware(
-    defaultTimeout: 5.0,
-    perCommandTimeouts: [
-        "SlowCommand": 30.0
-    ]
+let timeout = TimeoutMiddleware(defaultTimeout: 5.0)
+
+// Or with per-command timeouts
+let timeoutWithOverrides = TimeoutMiddleware(
+    configuration: TimeoutMiddleware.Configuration(
+        defaultTimeout: 5.0,
+        commandTimeouts: ["SlowCommand": 30.0]
+    )
 )
 ```
 
@@ -331,15 +335,14 @@ Automatic retry with backoff:
 ```swift
 let retry = RetryMiddleware(
     maxAttempts: 3,
-    backoff: .exponential(base: 2.0, maxDelay: 30.0),
-    retryableErrors: [NetworkError.self]
+    strategy: .exponential(baseDelay: 1.0, maxDelay: 30.0)
 )
 ```
 
 #### Bulkhead
 Isolates resources:
 ```swift
-let bulkhead = BulkheadMiddleware(maxConcurrent: 10)
+let bulkhead = BulkheadMiddleware(maxConcurrency: 10)
 ```
 
 ### PipelineKitSecurity
@@ -350,31 +353,31 @@ Security middleware for authentication, authorization, and audit.
 
 #### Authentication
 ```swift
-let auth = AuthenticationMiddleware { context in
-    guard let token = context.metadata["auth-token"] as? String else {
-        throw SecurityError.unauthorized
+let auth = AuthenticationMiddleware { userID in
+    guard let userID else {
+        throw PipelineError.authorization(reason: .invalidCredentials)
     }
-    let user = try await validateToken(token)
-    context.setUserID(user.id)
+    // Verify the user exists and is active, then return the validated ID
+    return try await userService.verify(userID)
 }
 ```
 
 #### Authorization
 ```swift
-let authz = AuthorizationMiddleware { command, context in
-    guard let userID = context.userID else {
-        return false
+let authz = AuthorizationMiddleware(
+    requiredRoles: ["orders.write"],
+    getUserRoles: { userID in
+        try await roleService.roles(for: userID)
     }
-    return await checkPermission(userID, for: command)
-}
+)
 ```
 
 #### Audit Logging
 ```swift
 let audit = AuditLoggingMiddleware(
-    logger: FileAuditLogger(path: "/var/log/audit.log"),
-    events: [.commandExecuted, .authenticationFailed, .authorizationDenied]
+    logger: ConsoleAuditLogger(verbose: true)
 )
+// Or InMemoryAuditLogger(maxEvents: 1000) for tests
 ```
 
 ### PipelineKitCache
@@ -384,14 +387,13 @@ Intelligent caching with automatic invalidation and compression.
 **Features:**
 ```swift
 let cache = CachingMiddleware(
-    storage: RedisCache(),
-    keyStrategy: .commandBased,
-    ttl: 300,
-    compression: .gzip
+    cache: InMemoryCache(maxSize: 1000),
+    keyGenerator: { command in String(describing: type(of: command)) },
+    ttl: 300
 )
 
 // Automatic caching based on command type
-pipeline.addMiddleware(cache)
+try await pipeline.addMiddleware(cache)
 ```
 
 Additional wrappers: `CachedMiddleware`, `ConditionalCachedMiddleware`, and in‑memory cache implementations for middleware or general data.
@@ -402,20 +404,22 @@ Object pooling for high-performance resource management.
 
 **Features:**
 ```swift
+let configuration = try ObjectPoolConfiguration(
+    maxSize: 50,
+    highWaterMark: 40,
+    lowWaterMark: 10
+)
+
 let pool = ObjectPool<DatabaseConnection>(
-    configuration: ObjectPoolConfiguration(
-        maxSize: 50,
-        highWaterMark: 40,
-        lowWaterMark: 10
-    ),
+    configuration: configuration,
     factory: { DatabaseConnection() },
-    reset: { conn in await conn.reset() }
+    reset: { conn in conn.prepareForReuse() } // synchronous reset
 )
 
 // Automatic resource management
 let connection = try await pool.acquire()
-defer { await pool.release(connection) }
 // Use connection...
+await pool.release(connection)
 ```
 
 ### PipelineKitTestSupport
@@ -532,10 +536,18 @@ let pipeline = StandardPipeline(
 
 // Add security middleware (order matters!)
 try await pipeline.addMiddleware(
-    AuthenticationMiddleware(validator: TokenValidator())
+    AuthenticationMiddleware { userID in
+        guard let userID else {
+            throw PipelineError.authorization(reason: .invalidCredentials)
+        }
+        return try await tokenValidator.validate(userID)
+    }
 )
 try await pipeline.addMiddleware(
-    AuthorizationMiddleware(policy: OrderPolicy())
+    AuthorizationMiddleware(
+        requiredRoles: ["orders.write"],
+        getUserRoles: { userID in try await roleService.roles(for: userID) }
+    )
 )
 try await pipeline.addMiddleware(
     AuditLoggingMiddleware(logger: productionLogger)
@@ -546,7 +558,7 @@ try await pipeline.addMiddleware(
     TimeoutMiddleware(defaultTimeout: 10.0)
 )
 try await pipeline.addMiddleware(
-    RetryMiddleware(maxAttempts: 3, backoff: .exponential())
+    RetryMiddleware(maxAttempts: 3, strategy: .exponential(baseDelay: 1.0, maxDelay: 30.0))
 )
 try await pipeline.addMiddleware(
     CircuitBreakerMiddleware(failureThreshold: 5)
@@ -555,14 +567,15 @@ try await pipeline.addMiddleware(
 // Add caching for read operations
 try await pipeline.addMiddleware(
     CachingMiddleware(
-        storage: RedisCache(),
+        cache: InMemoryCache(),
+        keyGenerator: { command in String(describing: type(of: command)) },
         shouldCache: { command in command is GetOrderCommand }
     )
 )
 
 // Execute with context
 let context = CommandContext()
-context.setRequestID(UUID().uuidString)
+context.requestID = UUID().uuidString
 context.setMetadata("auth-token", value: request.token)
 context.eventEmitter = observability.eventHub
 
@@ -584,7 +597,7 @@ actor EventProcessor {
             for await event in events {
                 group.addTask { [pipeline] in
                     let context = CommandContext()
-                    context.setCorrelationID(event.correlationId)
+                    context.correlationID = event.correlationId
                     
                     do {
                         _ = try await pipeline.execute(
@@ -633,8 +646,8 @@ struct UpdateUserCommand: Command {
 ```swift
 // ✅ GOOD - Using context for request metadata
 let context = CommandContext()
-context.setRequestID(UUID().uuidString)
-context.setUserID(authenticatedUser.id)
+context.requestID = UUID().uuidString
+context.userID = authenticatedUser.id
 context.setMetadata("client-version", value: "2.0.0")
 
 // ❌ BAD - Passing auth in every command
@@ -647,15 +660,15 @@ struct MyCommand: Command {
 #### DO: Order Middleware Correctly
 ```swift
 // ✅ GOOD - Correct order
-pipeline.addMiddleware(AuthenticationMiddleware())    // First: Who are you?
-pipeline.addMiddleware(AuthorizationMiddleware())     // Second: Can you do this?
-pipeline.addMiddleware(ValidationMiddleware())        // Third: Is the data valid?
-pipeline.addMiddleware(CachingMiddleware())          // Fourth: Check cache
-pipeline.addMiddleware(LoggingMiddleware())          // Last: Log everything
+try await pipeline.addMiddleware(authenticationMiddleware)  // First: Who are you?
+try await pipeline.addMiddleware(authorizationMiddleware)   // Second: Can you do this?
+try await pipeline.addMiddleware(validationMiddleware)      // Third: Is the data valid?
+try await pipeline.addMiddleware(cachingMiddleware)         // Fourth: Check cache
+try await pipeline.addMiddleware(loggingMiddleware)         // Last: Log everything
 
 // ❌ BAD - Wrong order
-pipeline.addMiddleware(CachingMiddleware())          // Cache before auth? No!
-pipeline.addMiddleware(AuthenticationMiddleware())   // Too late!
+try await pipeline.addMiddleware(cachingMiddleware)         // Cache before auth? No!
+try await pipeline.addMiddleware(authenticationMiddleware)  // Too late!
 ```
 
 #### DO: Handle Errors Gracefully
@@ -685,13 +698,13 @@ do {
 #### DO: Use Type-Safe Context Keys
 ```swift
 // ✅ GOOD - Type-safe keys
-extension ContextKey {
+extension ContextKeys {
     static let apiVersion = ContextKey<String>("api-version")
     static let requestSource = ContextKey<RequestSource>("request-source")
 }
 
-context[.apiVersion] = "v2"
-let version: String? = context[.apiVersion]
+context.apiVersion = "v2"
+let version = context.apiVersion
 
 // ❌ BAD - String-based keys with casting
 context.setMetadata("api-version", value: "v2")
@@ -762,7 +775,10 @@ struct GoodMiddleware: Middleware {
             return try await next(command, context)
         } catch {
             await context.emitCommandFailed(type: String(describing: T.self), error: error)
-            throw PipelineError.wrapped(error, context: extractContext(from: context))
+            throw PipelineError.executionFailed(
+                message: String(describing: error),
+                context: PipelineError.ErrorContext(commandType: String(describing: T.self))
+            )
         }
     }
 }
