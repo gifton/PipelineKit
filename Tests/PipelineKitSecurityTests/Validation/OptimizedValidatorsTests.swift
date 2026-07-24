@@ -200,7 +200,10 @@ final class OptimizedValidatorsTests: XCTestCase {
     
     // MARK: - Performance Comparison Test
     
-    func testPerformanceComparison() {
+    func testPerformanceComparison() throws {
+        #if targetEnvironment(simulator)
+        throw XCTSkip("Absolute wall-time bounds are not meaningful on emulated simulator runners")
+        #endif
         let emails = Array(repeating: [
             "test@example.com",
             "user.name@domain.co.uk",
