@@ -18,6 +18,13 @@ import os
 /// keep the actor (the executor overhead is not worth losing compile-time
 /// isolation).
 final class ActorVsLockBenchmark: XCTestCase {
+    override func setUpWithError() throws {
+        try super.setUpWithError()
+        #if targetEnvironment(simulator)
+        throw XCTSkip("Performance measurements are not meaningful on emulated simulator runners")
+        #endif
+    }
+
     private static let totalOps = 200_000
     private static let concurrency = 64
     private static let perTask = totalOps / concurrency

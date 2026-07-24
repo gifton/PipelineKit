@@ -5,6 +5,13 @@ import PipelineKitTestSupport
 
 /// Performance tests for BackPressure mechanisms
 final class BackPressurePerformanceTests: XCTestCase {
+    override func setUpWithError() throws {
+        try super.setUpWithError()
+        #if targetEnvironment(simulator)
+        throw XCTSkip("Performance measurements are not meaningful on emulated simulator runners")
+        #endif
+    }
+
     // MARK: - Uncontended Acquire Performance
     
     func testUncontendedAcquirePerformance() throws {

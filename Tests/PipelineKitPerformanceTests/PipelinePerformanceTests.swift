@@ -5,6 +5,13 @@ import PipelineKitTestSupport
 
 /// Performance tests for core pipeline operations
 final class PipelinePerformanceTests: XCTestCase {
+    override func setUpWithError() throws {
+        try super.setUpWithError()
+        #if targetEnvironment(simulator)
+        throw XCTSkip("Performance measurements are not meaningful on emulated simulator runners")
+        #endif
+    }
+
     // MARK: - Test Types
 
     private struct PerformanceCommand: Command {

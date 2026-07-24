@@ -4,6 +4,13 @@ import PipelineKitTestSupport
 
 /// Performance tests for CommandContext operations
 final class CommandContextPerformanceTests: XCTestCase {
+    override func setUpWithError() throws {
+        try super.setUpWithError()
+        #if targetEnvironment(simulator)
+        throw XCTSkip("Performance measurements are not meaningful on emulated simulator runners")
+        #endif
+    }
+
     // MARK: - Set Metadata Performance
     
     func testSetMetadataPerformance() throws {

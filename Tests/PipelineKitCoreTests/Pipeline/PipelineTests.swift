@@ -347,6 +347,9 @@ final class PipelineTests: XCTestCase {
     // MARK: - Performance Tests
     
     func testPipelinePerformance() async throws {
+        #if targetEnvironment(simulator)
+        throw XCTSkip("Absolute throughput floors are not meaningful on emulated simulator runners")
+        #endif
         // Measure pipeline execution performance
         let command = TestCommand(value: "test")
         let context = CommandContext()
