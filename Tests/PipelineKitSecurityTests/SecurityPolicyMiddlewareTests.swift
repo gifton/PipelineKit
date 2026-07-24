@@ -364,6 +364,9 @@ final class SecurityPolicyMiddlewareTests: XCTestCase {
     // MARK: - Performance Tests
     
     func testPolicyValidationPerformance() async throws {
+        #if targetEnvironment(simulator)
+        throw XCTSkip("Absolute throughput floors are not meaningful on emulated simulator runners")
+        #endif
         let middleware = SecurityPolicyMiddleware(policy: .default)
         let command = ValidCommand(text: "Performance test string")
         let context = CommandContext()
