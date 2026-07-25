@@ -95,7 +95,21 @@ public actor BackPressureSemaphore {
     private func startCleanupTask() {
         if cleanupTask == nil {
             cleanupTask = Task { [weak self] in
-                await self?.runCleanupLoop()
+                // Lifecycle: the strong reference to the actor must be scoped
+                // to each sweep and NEVER held across the sleep. The previous
+                // shape — `await self?.runCleanupLoop()` with the loop inside
+                // an actor method — upgraded the weak capture to a strong one
+                // for the duration of that never-returning call, so the task
+                // retained the actor forever, `deinit` (which cancels this
+                // task) could never run, and every semaphore that ran acquire()
+                // leaked itself plus a once-per-second timer task. With the
+                // loop out here, the actor can deinit while we sleep; deinit
+                // cancels this task, the sleep throws, and the loop exits.
+                while !Task.isCancelled {
+                    try? await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
+                    guard let self else { return }
+                    await self.cleanupExpiredWaiters()
+                }
             }
         }
     }
@@ -129,7 +143,7 @@ public actor BackPressureSemaphore {
         let waiterID = UUID()
         let enqueuedAt = Date()
 
-        return try await withTaskCancellationHandler {
+        let token = try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { continuation in
                 let waiter = Waiter(
                     id: waiterID,
@@ -145,6 +159,34 @@ public actor BackPressureSemaphore {
                 await self?.cancelWaiter(waiterID)
             }
         }
+
+        // Cancellation race fix (lost wakeup), ported from SimpleSemaphore
+        // (PR #73): `onCancel` merely *spawns* an unstructured task to run
+        // `cancelWaiter`, while a concurrent `SemaphoreToken.release()` spawns
+        // an unstructured task to run `release()`. Those two tasks race for the
+        // actor. If `release()` wins, it pops this (already-cancelled) waiter
+        // from the heap and resumes it with a fresh token, and the later
+        // `cancelWaiter` finds nothing to do — so a cancelled `acquire()` would
+        // return a token. Callers that rely on cancellation throwing may then
+        // strand the token (e.g. inside a completed `Task`'s result that is
+        // never consumed), trapping the permit forever and deadlocking every
+        // future waiter.
+        //
+        // Detect that outcome here, in the waiter's own task, where the
+        // cancellation flag is unambiguous: if `release()` won the race, the
+        // task's cancel flag was necessarily set *before* `onCancel` fired, so
+        // it is visible by the time we resume. Forward the permit (waking the
+        // next waiter, or restoring a permit) and honor cancellation by
+        // throwing. `SemaphoreToken.release()` is idempotent, and the pending
+        // `cancelWaiter` task remains a harmless no-op because `release()`
+        // already removed this waiter from the heap. If instead `cancelWaiter`
+        // won the race, the continuation above threw and this code is never
+        // reached.
+        if Task.isCancelled {
+            token.release()
+            throw CancellationError()
+        }
+        return token
     }
     
     /// Attempts to acquire with a timeout.
@@ -289,15 +331,7 @@ public actor BackPressureSemaphore {
     }
     
     // MARK: - Cleanup
-    
-    private func runCleanupLoop() async {
-        while !Task.isCancelled {
-            cleanupExpiredWaiters()
-            
-            try? await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
-        }
-    }
-    
+
     private func cleanupExpiredWaiters() {
         let now = Date()
         // Snapshot the heap (a value-typed array copy) so we can mutate the heap
