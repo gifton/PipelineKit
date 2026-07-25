@@ -17,10 +17,25 @@ All CI workflows have been updated to use:
 
 ## Important Configuration Decisions
 
-### 1. Parallel Test Execution Disabled
-- **Issue**: Tests hang when run with `--parallel` flag
-- **Solution**: Removed `--parallel` from all test commands
-- **TODO**: Investigate root cause - likely related to actor isolation or semaphore deadlocks
+### 1. Parallel Test Execution Re-enabled (July 2026)
+- **History**: `--parallel` was removed from all test commands because suites hung
+  (see Known Issues #1).
+- **Root cause (found July 2026)**: lost-wakeup races in the semaphores — a token
+  release racing a waiter's cancellation could resume the already-cancelled waiter
+  *with* the token, stranding the permit forever and parking every later acquire.
+  Fixed in `SimpleSemaphore` (#73) and `BackPressureSemaphore` (#74);
+  `AsyncSemaphore` had the tokenless variant, a swallowed signal (#76). Parallel
+  execution never *caused* the hangs — it only widened the race windows (the hang
+  reproduced in sequential runs too, at ~1/15 per full run).
+- **Evidence for re-enabling**: 50/50 clean local full-suite `--parallel` runs with
+  a hang-detection harness on main + #74 + #76 (a surviving 1/15 hang rate would
+  pass 50 runs with probability ~3%).
+- **If a hang recurs**: do NOT trust the log's last-started test (xctest stdout is
+  block-buffered through the swift-test pipe and trails reality by 1-3 suites).
+  Reproduce locally or get on the runner, and `sample <pid> 5` the live
+  PipelineKitPackageTests process(es) BEFORE killing them. Sequential fallback:
+  remove `--parallel` from the two per-target loop lines (`ci.yml`,
+  `ci-multiplatform.yml`).
 
 ### 2. Job Dependencies Removed
 - **Issue**: `needs: build` caused unnecessary job queuing
@@ -58,11 +73,22 @@ All CI workflows have been updated to use:
 
 ## Known Issues
 
-### 1. Parallel Test Hanging
-- **Symptom**: `swift test --parallel` hangs indefinitely
-- **Affected Tests**: All test suites when run together
-- **Workaround**: Run tests sequentially
-- **Impact**: Longer CI times (~45s vs potential ~15s with parallel)
+### 1. Parallel Test Hanging (resolved July 2026)
+- **Symptom**: `swift test --parallel` hung indefinitely (~1 in 15 full runs; the
+  same hang also occurred, less often, in sequential runs — issue #71).
+- **Root cause**: semaphore lost-wakeup races (#73 `SimpleSemaphore`,
+  #74 `BackPressureSemaphore`, #76 `AsyncSemaphore` tokenless variant):
+  cancellation and release both spawned unstructured tasks that raced for the
+  actor, and the losing interleaving trapped a permit forever.
+- **Resolution**: `--parallel` re-enabled in the per-target CI loops after 50/50
+  clean local harness runs (see Configuration Decisions #1).
+- **Impact (measured, July 2026)**: total per-target test phase 89s → 82s (~8%).
+  The old "~45s → ~15s" estimate predated today's larger suite; the big targets
+  (PipelineKitTests 36s → 29s, ResilienceTests 33s → 24s) are dominated by
+  wall-clock timing tests, which parallelism cannot compress. The primary value
+  of `--parallel` is removing the historical workaround and continuously
+  stress-testing the concurrency primitives (parallel runs widen race windows,
+  so a lost-wakeup regression surfaces sooner).
 
 ### 2. ParallelMiddlewareContextTests Crash (stale)
 - **Symptom**: SIGBUS (signal 10) crash in `testContextForkingPerformance` (historical)
@@ -87,11 +113,11 @@ All CI workflows have been updated to use:
 
 ## Performance Benchmarks
 
-Current CI timings (sequential):
+Current CI timings (July 2026, `--parallel` per-target loop):
 - Build: ~30s
-- Tests: ~45s
+- Tests: ~82s (was ~89s sequential; dominated by the timing-test-heavy
+  PipelineKitTests and PipelineKitResilienceTests targets)
 - Coverage: ~10s
-- Total: ~85s per configuration
 
 ## Linux Support
 

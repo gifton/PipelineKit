@@ -79,7 +79,9 @@ jobs:
             echo "Start time: $(date)"
 
             TARGET_EXIT_CODE=0
-            swift test --filter "$target" --enable-code-coverage || TARGET_EXIT_CODE=$?
+            # --parallel re-enabled after the semaphore lost-wakeup fixes
+            # (#73/#74/#76) — see CI_NOTES.md "Parallel Test Execution".
+            swift test --filter "$target" --enable-code-coverage --parallel || TARGET_EXIT_CODE=$?
 
             echo "End time: $(date) (exit code: $TARGET_EXIT_CODE)"
 
