@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **AsyncSemaphore could swallow a signal on cancellation**: when a `signal()` raced a
+  parked waiter's cancellation, the cancelled waiter could be resumed as signaled —
+  `wait()` returned normally in a cancelled task (violating its contract) and, because a
+  cancelled caller never signals back, the consumed wakeup was lost and effective
+  capacity shrank by one per occurrence. `wait()` (and `acquire(timeout:)`) now re-check
+  cancellation after resuming, forward the consumed signal to the next waiter, and
+  throw (respectively return `false`). The `wait()` doc now names the error actually
+  thrown on cancellation, `PipelineError.cancelled`.
 - **SimpleSemaphore lost-wakeup deadlock** (#73): when a parked waiter's cancellation
   raced a token release, the release path could resume the already-cancelled waiter
   *with* a token, so a cancelled `acquire()` returned success and the permit could be
