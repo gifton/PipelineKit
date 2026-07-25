@@ -30,10 +30,13 @@ public struct TraceMetadata: Sendable, Codable, Equatable {
 /// `nil`.
 public struct ExecutionContext: Sendable {
     public let trace: TraceMetadata
+    /// Present only when the caller attached a reporter for this execution.
+    public let progress: ProgressReporter?
 
     @TaskLocal public static var current: ExecutionContext?
 
-    public init(trace: TraceMetadata) {
+    public init(trace: TraceMetadata, progress: ProgressReporter? = nil) {
         self.trace = trace
+        self.progress = progress
     }
 }
