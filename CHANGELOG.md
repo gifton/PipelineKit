@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **BackPressureSemaphore lost wakeup on cancellation**: the same race fixed in
+  `SimpleSemaphore` (#73) existed in `BackPressureSemaphore.acquire()` — when a waiter's
+  cancellation raced a token release, the release path could resume the already-cancelled
+  waiter *with* a token, so a cancelled `acquire()` returned success and the permit could
+  be stranded forever. `acquire()` now re-checks cancellation after resuming, forwards the
+  permit, and throws `CancellationError`. Also fixed the cleanup task retaining the actor
+  for the lifetime of its timer loop, which prevented `deinit` from ever running and leaked
+  every semaphore (plus a once-per-second background task) past teardown.
 - **SimpleSemaphore lost-wakeup deadlock** (#73): when a parked waiter's cancellation
   raced a token release, the release path could resume the already-cancelled waiter
   *with* a token, so a cancelled `acquire()` returned success and the permit could be
