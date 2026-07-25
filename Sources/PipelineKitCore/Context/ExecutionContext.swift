@@ -40,3 +40,42 @@ public struct ExecutionContext: Sendable {
         self.progress = progress
     }
 }
+
+// MARK: - Snapshot / rebind (deferred-execution contract)
+
+extension ExecutionContext {
+    /// Codable persistence form of an `ExecutionContext`.
+    ///
+    /// Capability handles (`progress`) are deliberately excluded — they cannot
+    /// be serialized. A deferred executor persists the snapshot at enqueue and
+    /// attaches a fresh reporter at replay via `withRestored(_:progress:)`.
+    @frozen
+    public struct Snapshot: Sendable, Codable, Equatable {
+        public let trace: TraceMetadata
+
+        public init(trace: TraceMetadata) {
+            self.trace = trace
+        }
+    }
+
+    public func snapshot() -> Snapshot {
+        Snapshot(trace: trace)
+    }
+
+    /// Rebinds a restored context around `operation` on the current task.
+    ///
+    /// This is the replay half of the deferred-execution contract: task-locals
+    /// do not survive enqueue → dequeue (the work runs on a different task),
+    /// so the worker re-establishes the context explicitly.
+    public static func withRestored<T: Sendable>(
+        _ snapshot: Snapshot,
+        progress: ProgressReporter? = nil,
+        operation: () async throws -> T
+    ) async rethrows -> T {
+        try await ExecutionContext.$current.withValue(
+            ExecutionContext(trace: snapshot.trace, progress: progress)
+        ) {
+            try await operation()
+        }
+    }
+}
