@@ -304,14 +304,31 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: Pipeline where H.C
     private func executeWithContext(_ command: C, context: CommandContext) async throws -> C.Result {
         // Always initialize context first
         await initializeContextIfNeeded(context)
-        
-        // Fast path: No middleware
-        if middlewares.isEmpty {
-            return try await handler.handle(command, context: context)
+
+        // Bind the task-local ExecutionContext around the entire chain +
+        // handler (single binding site; middleware benefits too). Trace values
+        // come from the context the caller already populated via metadata.
+        let executionContext = ExecutionContext(
+            trace: TraceMetadata(
+                commandID: context[ContextKeys.commandID] ?? UUID(),
+                correlationID: context[ContextKeys.correlationID],
+                userID: context[ContextKeys.userID]
+            ),
+            progress: context[ContextKeys.progressReporter]
+        )
+        // Terminate the caller's progress stream on success AND throw;
+        // finish() is idempotent.
+        defer { executionContext.progress?.finish() }
+
+        return try await ExecutionContext.$current.withValue(executionContext) {
+            // Fast path: No middleware
+            if middlewares.isEmpty {
+                return try await handler.handle(command, context: context)
+            }
+
+            // Execute through middleware chain without copying middleware array
+            return try await executeWithMiddleware(command, context: context)
         }
-        
-        // Execute through middleware chain without copying middleware array
-        return try await executeWithMiddleware(command, context: context)
     }
     
     /// Initializes standard context values if not already set.
