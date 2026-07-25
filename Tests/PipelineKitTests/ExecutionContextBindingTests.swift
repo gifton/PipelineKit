@@ -28,6 +28,24 @@ private struct ThrowingHandler: CommandHandler {
     }
 }
 
+// Handler that fails once then succeeds on retry, reporting progress
+private actor AttemptTrackingHandler: CommandHandler {
+    private var attemptCount = 0
+
+    func handle(_ command: ProbeCommand, context: CommandContext) async throws -> TraceMetadata? {
+        attemptCount += 1
+        let count = attemptCount
+
+        if count == 1 {
+            ExecutionContext.current?.progress?.report(message: "attempt-1-failed")
+            throw ProbeError()
+        }
+        ExecutionContext.current?.progress?.report(message: "attempt-2-succeeded")
+        return deepHelperTrace()
+    }
+}
+
+
 // Actor to safely capture trace observed in middleware
 private actor TraceCapture: Sendable {
     private var captured: TraceMetadata? = nil
@@ -127,5 +145,64 @@ final class ExecutionContextBindingTests: XCTestCase {
         XCTAssertEqual(handlerSaw?.commandID, middlewareSaw?.commandID)
         XCTAssertEqual(handlerSaw?.correlationID, middlewareSaw?.correlationID)
         XCTAssertEqual(handlerSaw?.userID, middlewareSaw?.userID)
+    }
+
+    func testDynamicPipelineBindsSameTraceAsStandardPipeline() async throws {
+        let metadata = DefaultCommandMetadata(userID: "user-p", correlationID: "corr-p")
+
+        let standard = StandardPipeline(handler: ProbeHandler())
+        let viaStandard = try await standard.execute(
+            ProbeCommand(), context: CommandContext(metadata: metadata)
+        )
+
+        let dynamic = DynamicPipeline()
+        await dynamic.register(ProbeCommand.self, handler: ProbeHandler())
+        let viaDynamic = try await dynamic.execute(
+            ProbeCommand(), context: CommandContext(metadata: metadata)
+        )
+
+        XCTAssertNotNil(viaStandard)
+        XCTAssertEqual(viaStandard, viaDynamic, "Both pipelines must bind identical trace for the same metadata")
+    }
+
+    func testDynamicPipelineFinishesProgressStream() async throws {
+        let (stream, reporter) = ProgressReporter.makeStream()
+        let dynamic = DynamicPipeline()
+        await dynamic.register(ProbeCommand.self, handler: ProbeHandler())
+        let context = CommandContext(metadata: DefaultCommandMetadata())
+        context[ContextKeys.progressReporter] = reporter
+
+        _ = try await dynamic.execute(ProbeCommand(), context: context)
+
+        var messages: [String?] = []
+        for await update in stream { messages.append(update.message) }
+        XCTAssertEqual(messages, ["probing"])
+    }
+
+    func testDynamicPipelineDeliversProgressFromRetryAttempt() async throws {
+        let (stream, reporter) = ProgressReporter.makeStream()
+        let dynamic = DynamicPipeline()
+        let handler = AttemptTrackingHandler()
+        await dynamic.register(ProbeCommand.self, handler: handler)
+        let context = CommandContext(metadata: DefaultCommandMetadata())
+        context[ContextKeys.progressReporter] = reporter
+
+        // Use retry policy that retries on failure
+        let result = try await dynamic.send(
+            ProbeCommand(),
+            context: context,
+            retryPolicy: RetryPolicy(maxAttempts: 2)
+        )
+
+        // Should have succeeded on attempt 2
+        XCTAssertNotNil(result)
+
+        // Collect all progress messages from the stream
+        var messages: [String?] = []
+        for await update in stream { messages.append(update.message) }
+
+        // Stream should contain both messages and complete (not drop attempt-2 message)
+        XCTAssertEqual(messages, ["attempt-1-failed", "attempt-2-succeeded"],
+                       "Progress stream must deliver messages from all retry attempts before finishing")
     }
 }
