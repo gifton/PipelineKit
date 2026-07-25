@@ -8,6 +8,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **SimpleSemaphore lost-wakeup deadlock** (#73): when a parked waiter's cancellation
+  raced a token release, the release path could resume the already-cancelled waiter
+  *with* a token, so a cancelled `acquire()` returned success and the permit could be
+  stranded forever (the root cause of the long-standing ~1-in-15 "tests hang" CI
+  mystery, issue #71). `acquire()` now re-checks cancellation after resuming, forwards
+  the permit, and throws `CancellationError`.
+- **StatsD sampling was a no-op for short metric names** (#69): the sampling hash (raw
+  DJB2) never wraps `UInt64` for strings shorter than ~13 bytes, so the normalized hash
+  collapsed toward 0 and rate-based sampling kept *everything* for typical metric names.
+  Fixed with a splitmix64 finalizer — deterministic and stable across runs, now uniform.
+  **Behavior change**: which specific names fall inside a sampling rate changes (the old
+  behavior was degenerate); critical-pattern matching and rate 0.0/1.0 semantics are
+  unaffected.
 - **CI Stability**: Root-caused and fixed the flaky test-job failures first seen on the
   v0.5.0 release PR. The genuine failure was a timing race in
   `TimeoutDiagnosticTests.testDirectTimeoutUtility` (a 0.1s timeout racing a 0.2s
