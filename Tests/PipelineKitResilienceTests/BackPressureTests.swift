@@ -66,9 +66,14 @@ final class BackPressureTests: XCTestCase {
             strategy: .error(timeout: nil)
         )
         
-        // First acquisition should succeed
-        _ = try await semaphore.acquire()
-        
+        // First acquisition should succeed. The token must stay alive for the
+        // whole test: discarding it (`_ =`) deallocates it immediately, and
+        // SemaphoreToken's deinit auto-release spawns an unstructured task
+        // that races the second acquire — if it wins, the permit is restored
+        // and the second acquire succeeds instead of throwing (the flake seen
+        // in CI; deterministic with a sleep inserted between the acquires).
+        let holder = try await semaphore.acquire()
+
         // Second acquisition should fail immediately
         do {
             _ = try await semaphore.acquire()
@@ -81,6 +86,8 @@ final class BackPressureTests: XCTestCase {
                 XCTFail("Expected queueFull error, got \(error)")
             }
         }
+
+        holder.release()
     }
     
     func testSemaphoreTimeoutAcquisition() async throws {
