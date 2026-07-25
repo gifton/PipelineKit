@@ -130,7 +130,11 @@ public actor AsyncSemaphore {
     /// If resources are available (value > 0), this method decrements the count
     /// and returns immediately. Otherwise, it suspends until a resource is released.
     ///
-    /// - Throws: CancellationError if the task is cancelled while waiting
+    /// - Throws: `PipelineError.cancelled` if the task is cancelled while
+    ///   waiting. This holds in every interleaving: if a concurrent `signal()`
+    ///   resumes a waiter whose task was already cancelled, the consumed signal
+    ///   is forwarded to the next waiter (or restored to the count) and the
+    ///   cancelled `wait()` still throws.
     public func wait() async throws {
         // Check for cancellation before proceeding
         try Task.checkCancellation()
@@ -178,8 +182,42 @@ public actor AsyncSemaphore {
                 await self?.handleCancellationForWaiter(waiterId: waiterId)
             }
         }
+
+        // Cancellation race fix (mirror of SimpleSemaphore PR #73 /
+        // BackPressureSemaphore PR #74): `onCancel` above only *spawns* a task
+        // to run `handleCancellationForWaiter`, so a concurrent `signal()` can
+        // reach the actor first, extract this (already-cancelled) waiter from
+        // the heap, and resume it with `.signaled`; the later cancellation
+        // task finds the heap without it and no-ops. Without this re-check, a
+        // cancelled `wait()` would return normally — and since callers pair
+        // every *successful* wait() with a later signal() (and rightly skip
+        // the signal when wait() throws), the wakeup this waiter consumed
+        // would be swallowed: one resource permanently vanishes.
+        //
+        // The re-check runs in the waiter's own task, where the cancellation
+        // flag is unambiguous: if `signal()` won the race, the cancel flag was
+        // set before `onCancel` fired, so it is visible here. Forward the
+        // consumed signal — `signal()` is a synchronous same-actor call that
+        // wakes the next waiter or restores the count, so conservation is
+        // re-established before this method returns — and honor the contract
+        // by throwing the same error as every other cancellation path. All
+        // interleavings:
+        //   - Cancellation task wins: the continuation threw above; this code
+        //     is never reached, and the (awaited) signal restores a resource.
+        //   - signal() wins: resumed .signaled, re-signaled + thrown here; the
+        //     pending cancellation task no-ops (waiter no longer in the heap).
+        //   - Cancelled after resume, before this check: same as signal()
+        //     winning — the resource is forwarded, not double-consumed, and
+        //     the caller sees the throw and does not signal.
+        //   - No cancellation: the flag is false; return normally.
+        // We cannot resume ourselves: this waiter was already extracted, so
+        // the forwarded signal reaches only other waiters or the counter.
+        if Task.isCancelled {
+            signal()
+            throw PipelineError.cancelled(context: "Semaphore wait cancelled")
+        }
     }
-    
+
     /// Waits for a resource to become available with a timeout.
     ///
     /// If resources are available (value > 0), this method decrements the count
@@ -207,7 +245,7 @@ public actor AsyncSemaphore {
         }
         let waiterIdBox = WaiterIdBox()
         
-        return await withTaskCancellationHandler {
+        let acquired = await withTaskCancellationHandler {
             await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
                 let waiter = Waiter(seq: nextSeq, continuation: .timeout(continuation))
                 nextSeq &+= 1
@@ -244,6 +282,19 @@ public actor AsyncSemaphore {
                 await self?.handleCancellationForWaiter(waiterId: waiterId)
             }
         }
+
+        // Cancellation race fix: mirrors `wait()` above. If a concurrent
+        // `signal()` beat the spawned cancellation task, this cancelled waiter
+        // was resumed with `.signaled` and `acquired` is true — but the
+        // documented contract is "false if the task was cancelled", and a
+        // caller seeing false will never signal back. Forward the consumed
+        // signal (synchronous same-actor call) and report false. The timeout
+        // task was already cancelled by `signal()` via `cancelTimeout()`.
+        if acquired && Task.isCancelled {
+            signal()
+            return false
+        }
+        return acquired
     }
     
     /// Signals that a resource has been released.
