@@ -82,7 +82,13 @@ All CI workflows have been updated to use:
   actor, and the losing interleaving trapped a permit forever.
 - **Resolution**: `--parallel` re-enabled in the per-target CI loops after 50/50
   clean local harness runs (see Configuration Decisions #1).
-- **Impact**: per-target test phase ~45s → ~15s expected.
+- **Impact (measured, July 2026)**: total per-target test phase 89s → 82s (~8%).
+  The old "~45s → ~15s" estimate predated today's larger suite; the big targets
+  (PipelineKitTests 36s → 29s, ResilienceTests 33s → 24s) are dominated by
+  wall-clock timing tests, which parallelism cannot compress. The primary value
+  of `--parallel` is removing the historical workaround and continuously
+  stress-testing the concurrency primitives (parallel runs widen race windows,
+  so a lost-wakeup regression surfaces sooner).
 
 ### 2. ParallelMiddlewareContextTests Crash (stale)
 - **Symptom**: SIGBUS (signal 10) crash in `testContextForkingPerformance` (historical)
@@ -107,11 +113,11 @@ All CI workflows have been updated to use:
 
 ## Performance Benchmarks
 
-Current CI timings (sequential):
+Current CI timings (July 2026, `--parallel` per-target loop):
 - Build: ~30s
-- Tests: ~45s
+- Tests: ~82s (was ~89s sequential; dominated by the timing-test-heavy
+  PipelineKitTests and PipelineKitResilienceTests targets)
 - Coverage: ~10s
-- Total: ~85s per configuration
 
 ## Linux Support
 

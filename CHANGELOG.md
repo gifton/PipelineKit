@@ -47,12 +47,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   awaits its cancelled consumer task.
 
 ### Changed
-- **CI**: re-enabled `swift test --parallel` in the per-target test loops (expected
-  ~45s → ~15s per test phase). The historical parallel hang was the semaphore
-  lost-wakeup family (#73/#74/#76), verified fixed with 50/50 clean local
-  full-suite parallel runs under a hang-detection harness. Also widened the
-  wall-clock sanity bound in `OptimizedValidatorsTests.testPerformanceComparison`
-  (50ms → 0.5s), which flaked under parallel CPU contention.
+- **CI**: re-enabled `swift test --parallel` in the per-target test loops. The
+  historical parallel hang was the semaphore lost-wakeup family (#73/#74/#76),
+  verified fixed with 50/50 clean local full-suite parallel runs under a
+  hang-detection harness. Measured test-phase win is modest (89s → 82s; the big
+  targets are dominated by wall-clock timing tests) — the primary value is
+  removing the workaround and continuously stress-testing the concurrency
+  primitives. Also widened the wall-clock sanity bound in
+  `OptimizedValidatorsTests.testPerformanceComparison` (50ms → 0.5s), which
+  flaked under parallel CPU contention.
 - **Repo hygiene**: Removed `consolidated_library.md` (a 1.2 MB generated code-review
   dump with no references); reordered this changelog newest-first and repaired its
   version links; corrected stale claims in `.github/workflows/CI_NOTES.md`; aligned
