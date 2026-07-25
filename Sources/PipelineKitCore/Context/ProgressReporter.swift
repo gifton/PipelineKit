@@ -21,9 +21,13 @@ public struct ProgressUpdate: Sendable, Equatable {
 ///
 /// Create the pair with `makeStream`, attach the reporter to the
 /// `CommandContext` via `ContextKeys.progressReporter`, and consume the
-/// stream from the calling side. The pipeline finishes the stream when
-/// execution completes or throws. Reporting never blocks; `report` after
-/// `finish` is a no-op (`AsyncStream.Continuation` semantics).
+/// stream from the calling side. `StandardPipeline` and `DynamicPipeline`
+/// finish the stream when execution completes or throws (`DynamicPipeline`
+/// after its final retry attempt); other `Pipeline` conformers, such as
+/// `AnyStandardPipeline`, do not bind or finish it. Reporting never blocks;
+/// `report` after `finish` is a no-op (`AsyncStream.Continuation` semantics).
+/// Attach a given reporter to only one pipeline execution: whichever
+/// execution finishes first terminates the stream for all of them.
 public struct ProgressReporter: Sendable {
     private let continuation: AsyncStream<ProgressUpdate>.Continuation
 

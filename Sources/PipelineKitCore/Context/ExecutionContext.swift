@@ -18,8 +18,10 @@ public struct TraceMetadata: Sendable, Codable, Equatable {
     }
 }
 
-/// Task-local view of the current command execution, bound by the pipelines
-/// around the middleware chain and handler.
+/// Task-local view of the current command execution, bound by
+/// `StandardPipeline` around the middleware chain and handler, and by
+/// `DynamicPipeline` around its entire retry loop (all attempts, including
+/// backoff delays, observe the same context).
 ///
 /// Only immutable values and capability handles may be added as fields —
 /// never mutable shared state (see the design doc for why the whole
@@ -28,6 +30,11 @@ public struct TraceMetadata: Sendable, Codable, Equatable {
 /// `current` is `nil` outside pipeline execution and inside `Task.detached`
 /// (task-locals are not inherited by detached tasks); readers must tolerate
 /// `nil`.
+///
+/// Use a fresh `CommandContext` per pipeline execution: pipelines capture the
+/// context's attached `ProgressReporter` when binding, and the first
+/// (innermost) execution to complete finishes that reporter's stream, so a
+/// shared context silently drops the outer execution's later updates.
 public struct ExecutionContext: Sendable {
     public let trace: TraceMetadata
     /// Present only when the caller attached a reporter for this execution.
