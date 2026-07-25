@@ -52,14 +52,42 @@ public actor SimpleSemaphore {
         
         // Slow path: wait for a permit with proper cancellation support
         let waiterID = UUID()
-        
-        return try await withTaskCancellationHandler {
+
+        let token = try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { continuation in
                 waiters.append((id: waiterID, continuation: continuation))
             }
         } onCancel: {
             Task { await self.cancelWaiter(waiterID) }
         }
+
+        // Cancellation race fix (lost wakeup): `onCancel` merely *spawns* an
+        // unstructured task to run `cancelWaiter`, while a concurrent
+        // `SemaphoreToken.release()` spawns an unstructured task to run
+        // `_release`. Those two tasks race for the actor. If `_release` wins,
+        // it pops this (already-cancelled) waiter and resumes it with a fresh
+        // token, and the later `cancelWaiter` finds nothing to do — so a
+        // cancelled `acquire()` would return a token, violating the documented
+        // contract ("Throws CancellationError if the task is cancelled while
+        // waiting"). Callers that rely on that contract may then strand the
+        // token (e.g. inside a completed `Task`'s result that is never
+        // consumed), trapping the permit forever and deadlocking every future
+        // waiter.
+        //
+        // Detect that outcome here, in the waiter's own task, where the
+        // cancellation flag is unambiguous: if `_release` won the race, the
+        // task's cancel flag was necessarily set *before* `onCancel` fired,
+        // so it is visible by the time we resume. Forward the permit (waking
+        // the next waiter, or restoring a permit) and honor the contract by
+        // throwing. `release()` is idempotent, and the pending `cancelWaiter`
+        // task remains a harmless no-op because `_release` already removed
+        // this waiter. If instead `cancelWaiter` won the race, the
+        // continuation above threw and this code is never reached.
+        if Task.isCancelled {
+            token.release()
+            throw CancellationError()
+        }
+        return token
     }
     
     /// Attempts to acquire a permit without waiting.
