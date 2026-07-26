@@ -45,6 +45,17 @@ private actor AttemptTrackingHandler: CommandHandler {
     }
 }
 
+// Handler that reports then throws on every attempt — pins stream
+// termination when all retry attempts are exhausted.
+private actor AlwaysFailingHandler: CommandHandler {
+    private var attemptCount = 0
+
+    func handle(_ command: ProbeCommand, context: CommandContext) async throws -> TraceMetadata? {
+        attemptCount += 1
+        ExecutionContext.current?.progress?.report(message: "attempt-\(attemptCount)")
+        throw ProbeError()
+    }
+}
 
 // Actor to safely capture trace observed in middleware
 private actor TraceCapture: Sendable {
@@ -204,5 +215,33 @@ final class ExecutionContextBindingTests: XCTestCase {
         // Stream should contain both messages and complete (not drop attempt-2 message)
         XCTAssertEqual(messages, ["attempt-1-failed", "attempt-2-succeeded"],
                        "Progress stream must deliver messages from all retry attempts before finishing")
+    }
+
+    func testDynamicPipelineFinishesStreamWhenAllRetriesExhausted() async throws {
+        let (stream, reporter) = ProgressReporter.makeStream()
+        let dynamic = DynamicPipeline()
+        await dynamic.register(ProbeCommand.self, handler: AlwaysFailingHandler())
+        let context = CommandContext(metadata: DefaultCommandMetadata())
+        context[ContextKeys.progressReporter] = reporter
+
+        do {
+            _ = try await dynamic.send(
+                ProbeCommand(),
+                context: context,
+                retryPolicy: RetryPolicy(maxAttempts: 2)
+            )
+            XCTFail("AlwaysFailingHandler must exhaust retries and throw")
+        } catch is ProbeError {
+            // Expected: the final attempt's error propagates unwrapped.
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+
+        // The for-await loop terminating proves send() finished the stream
+        // after the final failed attempt.
+        var messages: [String?] = []
+        for await update in stream { messages.append(update.message) }
+        XCTAssertEqual(messages, ["attempt-1", "attempt-2"],
+                       "Stream must deliver every attempt's report, then finish, when retries are exhausted")
     }
 }
