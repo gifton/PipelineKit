@@ -197,18 +197,23 @@ public actor DynamicPipeline {
 
         // Bind the task-local ExecutionContext around the entire retry loop
         // and middleware chain + handler — ensures progress stream survives
-        // all retry attempts and finishes exactly once after final attempt.
+        // all retry attempts. Trace is never inherited from an enclosing
+        // execution.
+        let attached = commandContext[ContextKeys.progressReporter]
         let executionContext = ExecutionContext(
             trace: TraceMetadata(
                 commandID: commandContext[ContextKeys.commandID] ?? UUID(),
                 correlationID: commandContext[ContextKeys.correlationID],
                 userID: commandContext[ContextKeys.userID]
             ),
-            progress: commandContext[ContextKeys.progressReporter]
+            // Visibility: a nested execution whose context attaches no
+            // reporter inherits the enclosing execution's reporter.
+            progress: attached ?? ExecutionContext.current?.progress
         )
-        // Terminate the caller's progress stream once, after all retry attempts
-        // complete or fail; finish() is idempotent.
-        defer { executionContext.progress?.finish() }
+        // Ownership: finish only what THIS context attached, once, after all
+        // retry attempts complete or fail; finish() is idempotent. An
+        // inherited reporter belongs to the execution that attached it.
+        defer { attached?.finish() }
 
         return try await ExecutionContext.$current.withValue(executionContext) {
             try await withRetry(retryPolicy: retryPolicy, command: command) {

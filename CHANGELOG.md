@@ -20,6 +20,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   rebind contract for future deferred execution. Purely additive; `current` is `nil`
   outside pipeline execution and in detached tasks.
 
+### Changed
+- **Nested pipeline executions inherit the enclosing execution's progress reporter**:
+  when `StandardPipeline` or `DynamicPipeline` binds a `CommandContext` that attaches
+  no `ProgressReporter`, `ExecutionContext.current?.progress` now resolves to the
+  enclosing execution's reporter at any nesting depth, so inner executions report into
+  the outer stream with no caller wiring. Ownership is unchanged: only the execution
+  whose context attached the reporter finishes the stream.
+- **`ExecutionContext.withRestored` forwards caller isolation**: new
+  `isolation: isolated (any Actor)? = #isolation` parameter (mirroring
+  `TaskLocal.withValue`) and the result's `T: Sendable` bound is removed, so
+  actor-isolated callers can mutate their own state inside `operation`.
+  Source-compatible.
+- **`ProgressReporter.makeStream` now requires `bufferSize > 0`** (precondition):
+  `.bufferingNewest(0)` silently dropped every update, a footgun with no valid use.
+
 ## [0.5.1] - 2026-07-25
 
 ### Fixed

@@ -31,13 +31,19 @@ public struct TraceMetadata: Sendable, Codable, Equatable {
 /// (task-locals are not inherited by detached tasks); readers must tolerate
 /// `nil`.
 ///
-/// Use a fresh `CommandContext` per pipeline execution: pipelines capture the
-/// context's attached `ProgressReporter` when binding, and the first
-/// (innermost) execution to complete finishes that reporter's stream, so a
-/// shared context silently drops the outer execution's later updates.
+/// Nested executions inherit progress visibility: when a pipeline binds a
+/// `CommandContext` that attaches no reporter, `progress` resolves to the
+/// enclosing execution's reporter, at any nesting depth. Ownership does not
+/// flow with it — only the execution whose context attached the reporter
+/// finishes the stream. Trace is never inherited; each execution's
+/// `TraceMetadata` comes from its own context. Prefer a fresh
+/// `CommandContext` per execution: sharing one context makes the inner
+/// execution the attacher, so it finishes the stream early.
 public struct ExecutionContext: Sendable {
     public let trace: TraceMetadata
-    /// Present only when the caller attached a reporter for this execution.
+    /// The reporter attached by this execution's context, or inherited from
+    /// the enclosing execution when none was attached; `nil` when neither
+    /// exists. Only the attaching execution finishes the stream.
     public let progress: ProgressReporter?
 
     @TaskLocal public static var current: ExecutionContext?
@@ -74,15 +80,21 @@ extension ExecutionContext {
     /// This is the replay half of the deferred-execution contract: task-locals
     /// do not survive enqueue → dequeue (the work runs on a different task),
     /// so the worker re-establishes the context explicitly.
-    public static func withRestored<T: Sendable>(
+    ///
+    /// `operation` runs in the caller's isolation (`#isolation` by default,
+    /// mirroring `TaskLocal.withValue`), so actor-isolated callers may touch
+    /// their own state inside it. The restored context never inherits an
+    /// enclosing execution's reporter — `progress` is the only source.
+    public static func withRestored<T>(
         _ snapshot: Snapshot,
         progress: ProgressReporter? = nil,
+        isolation: isolated (any Actor)? = #isolation,
         operation: () async throws -> T
     ) async rethrows -> T {
         try await ExecutionContext.$current.withValue(
-            ExecutionContext(trace: snapshot.trace, progress: progress)
-        ) {
-            try await operation()
-        }
+            ExecutionContext(trace: snapshot.trace, progress: progress),
+            operation: operation,
+            isolation: isolation
+        )
     }
 }

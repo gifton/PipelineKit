@@ -45,6 +45,53 @@ private actor AttemptTrackingHandler: CommandHandler {
     }
 }
 
+// Handler that reports then throws on every attempt — pins stream
+// termination when all retry attempts are exhausted.
+private actor AlwaysFailingHandler: CommandHandler {
+    private var attemptCount = 0
+
+    func handle(_ command: ProbeCommand, context: CommandContext) async throws -> TraceMetadata? {
+        attemptCount += 1
+        ExecutionContext.current?.progress?.report(message: "attempt-\(attemptCount)")
+        throw ProbeError()
+    }
+}
+
+// Inner handler for nesting tests: reports into whatever reporter the
+// execution context resolves — inherited, if inheritance works.
+private struct InnerReportingHandler: CommandHandler {
+    func handle(_ command: ProbeCommand, context: CommandContext) async throws -> TraceMetadata? {
+        ExecutionContext.current?.progress?.report(message: "inner")
+        return deepHelperTrace()
+    }
+}
+
+// Outer handler that delegates to an inner StandardPipeline with a fresh
+// CommandContext (no reporter attached), then reports after the inner
+// execution returns.
+private struct StandardNestingHandler: CommandHandler {
+    let inner: StandardPipeline<ProbeCommand, InnerReportingHandler>
+
+    func handle(_ command: ProbeCommand, context: CommandContext) async throws -> TraceMetadata? {
+        _ = try await inner.execute(ProbeCommand(), context: CommandContext(metadata: DefaultCommandMetadata()))
+        // Reported AFTER the inner execution returned: only deliverable if
+        // the inner completion did not finish the inherited stream.
+        ExecutionContext.current?.progress?.report(message: "outer-after-inner")
+        return deepHelperTrace()
+    }
+}
+
+// Same shape with an inner DynamicPipeline — covers the send() binding
+// site's non-finish of inherited reporters, including its retry defer.
+private struct DynamicNestingHandler: CommandHandler {
+    let inner: DynamicPipeline
+
+    func handle(_ command: ProbeCommand, context: CommandContext) async throws -> TraceMetadata? {
+        _ = try await inner.send(ProbeCommand(), context: CommandContext(metadata: DefaultCommandMetadata()))
+        ExecutionContext.current?.progress?.report(message: "outer-after-inner")
+        return deepHelperTrace()
+    }
+}
 
 // Actor to safely capture trace observed in middleware
 private actor TraceCapture: Sendable {
@@ -204,5 +251,67 @@ final class ExecutionContextBindingTests: XCTestCase {
         // Stream should contain both messages and complete (not drop attempt-2 message)
         XCTAssertEqual(messages, ["attempt-1-failed", "attempt-2-succeeded"],
                        "Progress stream must deliver messages from all retry attempts before finishing")
+    }
+
+    func testDynamicPipelineFinishesStreamWhenAllRetriesExhausted() async throws {
+        let (stream, reporter) = ProgressReporter.makeStream()
+        let dynamic = DynamicPipeline()
+        await dynamic.register(ProbeCommand.self, handler: AlwaysFailingHandler())
+        let context = CommandContext(metadata: DefaultCommandMetadata())
+        context[ContextKeys.progressReporter] = reporter
+
+        do {
+            _ = try await dynamic.send(
+                ProbeCommand(),
+                context: context,
+                retryPolicy: RetryPolicy(maxAttempts: 2)
+            )
+            XCTFail("AlwaysFailingHandler must exhaust retries and throw")
+        } catch is ProbeError {
+            // Expected: the final attempt's error propagates unwrapped.
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+
+        // The for-await loop terminating proves send() finished the stream
+        // after the final failed attempt.
+        var messages: [String?] = []
+        for await update in stream { messages.append(update.message) }
+        XCTAssertEqual(messages, ["attempt-1", "attempt-2"],
+                       "Stream must deliver every attempt's report, then finish, when retries are exhausted")
+    }
+
+    func testNestedStandardPipelineInheritsReporterAndOuterOwnsStream() async throws {
+        let (stream, reporter) = ProgressReporter.makeStream()
+        let inner = StandardPipeline(handler: InnerReportingHandler())
+        let outer = StandardPipeline(handler: StandardNestingHandler(inner: inner))
+        let context = CommandContext(metadata: DefaultCommandMetadata())
+        context[ContextKeys.progressReporter] = reporter
+
+        _ = try await outer.execute(ProbeCommand(), context: context)
+
+        var messages: [String?] = []
+        for await update in stream { messages.append(update.message) }
+        // "inner" proves visibility inheritance; "outer-after-inner" proves
+        // the inner completion did not finish the stream; the loop
+        // terminating proves the outer execution did.
+        XCTAssertEqual(messages, ["inner", "outer-after-inner"],
+                       "Inner execution must report into the inherited stream without finishing it")
+    }
+
+    func testNestedDynamicPipelineInheritsReporterAndOuterOwnsStream() async throws {
+        let (stream, reporter) = ProgressReporter.makeStream()
+        let inner = DynamicPipeline()
+        await inner.register(ProbeCommand.self, handler: InnerReportingHandler())
+        let outer = StandardPipeline(handler: DynamicNestingHandler(inner: inner))
+        let context = CommandContext(metadata: DefaultCommandMetadata())
+        context[ContextKeys.progressReporter] = reporter
+
+        _ = try await outer.execute(ProbeCommand(), context: context)
+
+        var messages: [String?] = []
+        for await update in stream { messages.append(update.message) }
+        XCTAssertEqual(messages, ["inner", "outer-after-inner"],
+                       "DynamicPipeline.send must inherit the reporter without finishing it")
     }
 }

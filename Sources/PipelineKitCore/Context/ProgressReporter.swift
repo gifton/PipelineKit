@@ -26,16 +26,19 @@ public struct ProgressUpdate: Sendable, Equatable {
 /// after its final retry attempt); other `Pipeline` conformers, such as
 /// `AnyStandardPipeline`, do not bind or finish it. Reporting never blocks;
 /// `report` after `finish` is a no-op (`AsyncStream.Continuation` semantics).
-/// Attach a given reporter to only one pipeline execution: whichever
-/// execution finishes first terminates the stream for all of them.
+/// Only the execution whose `CommandContext` attached the reporter finishes
+/// the stream; nested executions that attach no reporter of their own
+/// inherit it for reporting but never finish it.
 public struct ProgressReporter: Sendable {
     private let continuation: AsyncStream<ProgressUpdate>.Continuation
 
     /// - Parameter bufferSize: Maximum buffered updates when the consumer is
-    ///   slow; the oldest are dropped first (`.bufferingNewest`).
+    ///   slow; the oldest are dropped first (`.bufferingNewest`). Must be > 0
+    ///   — `.bufferingNewest(0)` would silently drop every update.
     public static func makeStream(
         bufferSize: Int = 16
     ) -> (stream: AsyncStream<ProgressUpdate>, reporter: ProgressReporter) {
+        precondition(bufferSize > 0, "ProgressReporter.makeStream bufferSize must be > 0")
         var continuation: AsyncStream<ProgressUpdate>.Continuation!
         let stream = AsyncStream<ProgressUpdate>(bufferingPolicy: .bufferingNewest(bufferSize)) {
             continuation = $0
