@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **`ExecutionContext` task-local propagation**: `ExecutionContext.current` gives code
+  below the handler — repositories, loggers, helpers at any depth — implicit access to
+  immutable `TraceMetadata` (commandID/correlationID/userID) and an optional
+  `ProgressReporter` capability, bound by `StandardPipeline` around the middleware
+  chain + handler and by `DynamicPipeline` around its entire retry loop. Attach a
+  reporter via
+  `ContextKeys.progressReporter` and consume a bounded, lossy
+  `AsyncStream<ProgressUpdate>`; the pipeline terminates it on completion or throw.
+  `ExecutionContext.Snapshot` (Codable) + `withRestored(_:progress:)` define the
+  rebind contract for future deferred execution. Purely additive; `current` is `nil`
+  outside pipeline execution and in detached tasks.
+
 ## [0.5.1] - 2026-07-25
 
 ### Fixed

@@ -195,8 +195,25 @@ public actor DynamicPipeline {
     ) async throws -> T.Result {
         let commandContext = context ?? CommandContext()
 
-        return try await withRetry(retryPolicy: retryPolicy, command: command) {
-            try await self.executePipeline(command: command, context: commandContext)
+        // Bind the task-local ExecutionContext around the entire retry loop
+        // and middleware chain + handler — ensures progress stream survives
+        // all retry attempts and finishes exactly once after final attempt.
+        let executionContext = ExecutionContext(
+            trace: TraceMetadata(
+                commandID: commandContext[ContextKeys.commandID] ?? UUID(),
+                correlationID: commandContext[ContextKeys.correlationID],
+                userID: commandContext[ContextKeys.userID]
+            ),
+            progress: commandContext[ContextKeys.progressReporter]
+        )
+        // Terminate the caller's progress stream once, after all retry attempts
+        // complete or fail; finish() is idempotent.
+        defer { executionContext.progress?.finish() }
+
+        return try await ExecutionContext.$current.withValue(executionContext) {
+            try await withRetry(retryPolicy: retryPolicy, command: command) {
+                try await self.executePipeline(command: command, context: commandContext)
+            }
         }
     }
 
