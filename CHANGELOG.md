@@ -35,6 +35,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`ProgressReporter.makeStream` now requires `bufferSize > 0`** (precondition):
   `.bufferingNewest(0)` silently dropped every update, a footgun with no valid use.
 
+### Fixed
+- **`StandardPipeline` could leave an attached progress stream unfinished**: a throw
+  before the execution-context binding site — command-type mismatch, pre-start
+  cancellation, or back-pressure rejection — skipped `finish()`, hanging any consumer
+  iterating the stream. The finish obligation now lives at the `execute(_:context:)`
+  entry point and covers every exit path. `DynamicPipeline` was never affected.
+
 ## [0.5.1] - 2026-07-25
 
 ### Fixed

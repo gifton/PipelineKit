@@ -251,6 +251,14 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: Pipeline where H.C
     /// - Returns: The result from the command handler
     /// - Throws: Any error from middleware or the handler
     public func execute<T: Command>(_ command: T, context: CommandContext) async throws -> T.Result {
+        // Ownership: finish what THIS context attached, on every exit path —
+        // including throws before the execution-context binding site (type
+        // guard, pre-start cancellation, back-pressure rejection). An
+        // inherited reporter belongs to the execution that attached it;
+        // finish() is idempotent.
+        let attached = context[ContextKeys.progressReporter]
+        defer { attached?.finish() }
+
         guard let typedCommand = command as? C else {
             throw PipelineError.executionFailed(message: "Invalid command type provided to pipeline", context: nil)
         }
@@ -320,11 +328,8 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: Pipeline where H.C
             // reporter inherits the enclosing execution's reporter.
             progress: attached ?? ExecutionContext.current?.progress
         )
-        // Ownership: finish only what THIS context attached — an inherited
-        // reporter belongs to the execution that attached it. Runs on
-        // success AND throw; finish() is idempotent.
-        defer { attached?.finish() }
-
+        // Ownership of attached reporters (finish on every exit path) lives
+        // at the public execute(_:context:) entry point.
         return try await ExecutionContext.$current.withValue(executionContext) {
             // Fast path: No middleware
             if middlewares.isEmpty {

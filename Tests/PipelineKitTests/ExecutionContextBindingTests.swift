@@ -8,6 +8,34 @@ private func deepHelperTrace() -> TraceMetadata? {
     ExecutionContext.current?.trace
 }
 
+// A command type the ProbeHandler pipelines cannot handle — trips the
+// entry-point type guard.
+private struct MismatchedCommand: Command {
+    typealias Result = String
+}
+
+// Races draining `stream` against a timeout; returns true iff the stream
+// terminated (was finished) within `seconds`. Used by tests whose failure
+// mode is an unfinished stream — a plain for-await would hang the suite.
+private func streamTerminates(
+    _ stream: AsyncStream<ProgressUpdate>,
+    within seconds: UInt64 = 2
+) async -> Bool {
+    await withTaskGroup(of: Bool.self) { group in
+        group.addTask {
+            for await _ in stream { }
+            return true
+        }
+        group.addTask {
+            try? await Task.sleep(nanoseconds: seconds * 1_000_000_000)
+            return false
+        }
+        let first = await group.next() ?? false
+        group.cancelAll()
+        return first
+    }
+}
+
 private struct ProbeCommand: Command {
     typealias Result = TraceMetadata?
 }
@@ -313,5 +341,49 @@ final class ExecutionContextBindingTests: XCTestCase {
         for await update in stream { messages.append(update.message) }
         XCTAssertEqual(messages, ["inner", "outer-after-inner"],
                        "DynamicPipeline.send must inherit the reporter without finishing it")
+    }
+
+    func testStandardPipelineFinishesStreamOnTypeMismatch() async {
+        let (stream, reporter) = ProgressReporter.makeStream()
+        let pipeline = StandardPipeline(handler: ProbeHandler())
+        let context = CommandContext(metadata: DefaultCommandMetadata())
+        context[ContextKeys.progressReporter] = reporter
+
+        do {
+            _ = try await pipeline.execute(MismatchedCommand(), context: context)
+            XCTFail("Type-mismatched command must throw")
+        } catch is PipelineError {
+            // Expected: the type guard rejects the command before execution.
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+
+        let terminated = await streamTerminates(stream)
+        XCTAssertTrue(terminated, "Stream must finish when the type guard throws")
+    }
+
+    func testStandardPipelineFinishesStreamWhenCancelledBeforeStart() async {
+        let (stream, reporter) = ProgressReporter.makeStream()
+        let pipeline = StandardPipeline(handler: ProbeHandler())
+        let context = CommandContext(metadata: DefaultCommandMetadata())
+        context[ContextKeys.progressReporter] = reporter
+
+        let task = Task { () -> TraceMetadata? in
+            // Guarantee the cancel() below lands before execute starts, so
+            // the pre-start cancellation check throws deterministically.
+            while !Task.isCancelled { await Task.yield() }
+            return try await pipeline.execute(ProbeCommand(), context: context)
+        }
+        task.cancel()
+
+        do {
+            _ = try await task.value
+            XCTFail("Pre-cancelled execution must throw")
+        } catch {
+            // Expected: the pre-start cancellation check throws.
+        }
+
+        let terminated = await streamTerminates(stream)
+        XCTAssertTrue(terminated, "Stream must finish when pre-start cancellation throws")
     }
 }
