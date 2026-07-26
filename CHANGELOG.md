@@ -27,6 +27,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   enclosing execution's reporter at any nesting depth, so inner executions report into
   the outer stream with no caller wiring. Ownership is unchanged: only the execution
   whose context attached the reporter finishes the stream.
+- **`ExecutionContext.withRestored` forwards caller isolation**: new
+  `isolation: isolated (any Actor)? = #isolation` parameter (mirroring
+  `TaskLocal.withValue`) and the result's `T: Sendable` bound is removed, so
+  actor-isolated callers can mutate their own state inside `operation`.
+  Source-compatible.
 
 ## [0.5.1] - 2026-07-25
 

@@ -80,15 +80,21 @@ extension ExecutionContext {
     /// This is the replay half of the deferred-execution contract: task-locals
     /// do not survive enqueue → dequeue (the work runs on a different task),
     /// so the worker re-establishes the context explicitly.
-    public static func withRestored<T: Sendable>(
+    ///
+    /// `operation` runs in the caller's isolation (`#isolation` by default,
+    /// mirroring `TaskLocal.withValue`), so actor-isolated callers may touch
+    /// their own state inside it. The restored context never inherits an
+    /// enclosing execution's reporter — `progress` is the only source.
+    public static func withRestored<T>(
         _ snapshot: Snapshot,
         progress: ProgressReporter? = nil,
+        isolation: isolated (any Actor)? = #isolation,
         operation: () async throws -> T
     ) async rethrows -> T {
         try await ExecutionContext.$current.withValue(
-            ExecutionContext(trace: snapshot.trace, progress: progress)
-        ) {
-            try await operation()
-        }
+            ExecutionContext(trace: snapshot.trace, progress: progress),
+            operation: operation,
+            isolation: isolation
+        )
     }
 }
