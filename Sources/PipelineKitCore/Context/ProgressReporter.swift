@@ -33,10 +33,12 @@ public struct ProgressReporter: Sendable {
     private let continuation: AsyncStream<ProgressUpdate>.Continuation
 
     /// - Parameter bufferSize: Maximum buffered updates when the consumer is
-    ///   slow; the oldest are dropped first (`.bufferingNewest`).
+    ///   slow; the oldest are dropped first (`.bufferingNewest`). Must be > 0
+    ///   — `.bufferingNewest(0)` would silently drop every update.
     public static func makeStream(
         bufferSize: Int = 16
     ) -> (stream: AsyncStream<ProgressUpdate>, reporter: ProgressReporter) {
+        precondition(bufferSize > 0, "ProgressReporter.makeStream bufferSize must be > 0")
         var continuation: AsyncStream<ProgressUpdate>.Continuation!
         let stream = AsyncStream<ProgressUpdate>(bufferingPolicy: .bufferingNewest(bufferSize)) {
             continuation = $0

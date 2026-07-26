@@ -32,6 +32,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `TaskLocal.withValue`) and the result's `T: Sendable` bound is removed, so
   actor-isolated callers can mutate their own state inside `operation`.
   Source-compatible.
+- **`ProgressReporter.makeStream` now requires `bufferSize > 0`** (precondition):
+  `.bufferingNewest(0)` silently dropped every update, a footgun with no valid use.
 
 ## [0.5.1] - 2026-07-25
 
