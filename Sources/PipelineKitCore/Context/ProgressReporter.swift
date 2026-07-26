@@ -26,8 +26,9 @@ public struct ProgressUpdate: Sendable, Equatable {
 /// after its final retry attempt); other `Pipeline` conformers, such as
 /// `AnyStandardPipeline`, do not bind or finish it. Reporting never blocks;
 /// `report` after `finish` is a no-op (`AsyncStream.Continuation` semantics).
-/// Attach a given reporter to only one pipeline execution: whichever
-/// execution finishes first terminates the stream for all of them.
+/// Only the execution whose `CommandContext` attached the reporter finishes
+/// the stream; nested executions that attach no reporter of their own
+/// inherit it for reporting but never finish it.
 public struct ProgressReporter: Sendable {
     private let continuation: AsyncStream<ProgressUpdate>.Continuation
 

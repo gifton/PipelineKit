@@ -307,18 +307,23 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: Pipeline where H.C
 
         // Bind the task-local ExecutionContext around the entire chain +
         // handler (single binding site; middleware benefits too). Trace values
-        // come from the context the caller already populated via metadata.
+        // come from the context the caller already populated via metadata;
+        // trace is never inherited from an enclosing execution.
+        let attached = context[ContextKeys.progressReporter]
         let executionContext = ExecutionContext(
             trace: TraceMetadata(
                 commandID: context[ContextKeys.commandID] ?? UUID(),
                 correlationID: context[ContextKeys.correlationID],
                 userID: context[ContextKeys.userID]
             ),
-            progress: context[ContextKeys.progressReporter]
+            // Visibility: a nested execution whose context attaches no
+            // reporter inherits the enclosing execution's reporter.
+            progress: attached ?? ExecutionContext.current?.progress
         )
-        // Terminate the caller's progress stream on success AND throw;
-        // finish() is idempotent.
-        defer { executionContext.progress?.finish() }
+        // Ownership: finish only what THIS context attached — an inherited
+        // reporter belongs to the execution that attached it. Runs on
+        // success AND throw; finish() is idempotent.
+        defer { attached?.finish() }
 
         return try await ExecutionContext.$current.withValue(executionContext) {
             // Fast path: No middleware
