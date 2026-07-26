@@ -74,4 +74,17 @@ final class ExecutionContextSnapshotTests: XCTestCase {
         let count = await counter.count
         XCTAssertEqual(count, 1, "Operation must have run isolated to the actor")
     }
+
+    func testWithRestoredDoesNotInheritEnclosingReporter() async {
+        let (_, reporter) = ProgressReporter.makeStream()
+        let enclosing = ExecutionContext(trace: makeTrace(), progress: reporter)
+
+        await ExecutionContext.$current.withValue(enclosing) {
+            let progressInside = await ExecutionContext.withRestored(.init(trace: makeTrace())) {
+                ExecutionContext.current?.progress
+            }
+            XCTAssertNil(progressInside, "withRestored must not inherit the enclosing execution's reporter")
+        }
+        reporter.finish()
+    }
 }

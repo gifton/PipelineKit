@@ -110,13 +110,56 @@ private struct StandardNestingHandler: CommandHandler {
 }
 
 // Same shape with an inner DynamicPipeline — covers the send() binding
-// site's non-finish of inherited reporters, including its retry defer.
+// site's non-finish of inherited reporters.
 private struct DynamicNestingHandler: CommandHandler {
     let inner: DynamicPipeline
 
     func handle(_ command: ProbeCommand, context: CommandContext) async throws -> TraceMetadata? {
         _ = try await inner.send(ProbeCommand(), context: CommandContext(metadata: DefaultCommandMetadata()))
         ExecutionContext.current?.progress?.report(message: "outer-after-inner")
+        return deepHelperTrace()
+    }
+}
+
+// Appends each level's observed trace for the depth-3 nesting test.
+private actor TraceLog {
+    private(set) var traces: [TraceMetadata?] = []
+
+    func append(_ trace: TraceMetadata?) {
+        traces.append(trace)
+    }
+}
+
+// Delegating handler for arbitrary-depth nesting: logs its own trace,
+// recurses into `inner` with a fresh context, then reports after the
+// inner execution returns.
+private struct DepthNestingHandler: CommandHandler {
+    let level: String
+    let inner: (any Pipeline)?
+    let log: TraceLog
+
+    func handle(_ command: ProbeCommand, context: CommandContext) async throws -> TraceMetadata? {
+        await log.append(ExecutionContext.current?.trace)
+        if let inner {
+            _ = try await inner.execute(ProbeCommand(), context: CommandContext(metadata: DefaultCommandMetadata()))
+        }
+        ExecutionContext.current?.progress?.report(message: "\(level)-report")
+        return deepHelperTrace()
+    }
+}
+
+// Outer handler that swallows the inner execution's error, then reports —
+// pins that a throwing inner execution does not finish an inherited stream.
+private struct CatchingNestingHandler: CommandHandler {
+    let inner: StandardPipeline<ProbeCommand, ThrowingHandler>
+
+    func handle(_ command: ProbeCommand, context: CommandContext) async throws -> TraceMetadata? {
+        do {
+            _ = try await inner.execute(ProbeCommand(), context: CommandContext(metadata: DefaultCommandMetadata()))
+        } catch is ProbeError {
+            // Expected: the inner handler throws after reporting.
+        }
+        ExecutionContext.current?.progress?.report(message: "outer-after-inner-throw")
         return deepHelperTrace()
     }
 }
@@ -385,5 +428,45 @@ final class ExecutionContextBindingTests: XCTestCase {
 
         let terminated = await streamTerminates(stream)
         XCTAssertTrue(terminated, "Stream must finish when pre-start cancellation throws")
+    }
+
+    func testDepthThreeNestingInheritsReporterAndKeepsTracesDistinct() async throws {
+        let (stream, reporter) = ProgressReporter.makeStream()
+        let log = TraceLog()
+        let innermost = StandardPipeline(handler: DepthNestingHandler(level: "L3", inner: nil, log: log))
+        let middle = StandardPipeline(handler: DepthNestingHandler(level: "L2", inner: innermost, log: log))
+        let outermost = StandardPipeline(handler: DepthNestingHandler(level: "L1", inner: middle, log: log))
+        let context = CommandContext(metadata: DefaultCommandMetadata())
+        context[ContextKeys.progressReporter] = reporter
+
+        _ = try await outermost.execute(ProbeCommand(), context: context)
+
+        var messages: [String?] = []
+        for await update in stream { messages.append(update.message) }
+        // Each outer level reports AFTER its inner execution returned, so the
+        // full sequence arriving proves no intermediate completion finished
+        // the stream; the loop terminating proves the outermost did.
+        XCTAssertEqual(messages, ["L3-report", "L2-report", "L1-report"],
+                       "All three levels must report into the outermost stream")
+
+        let traces = await log.traces
+        XCTAssertEqual(traces.count, 3)
+        let ids = Set(traces.compactMap { $0?.commandID })
+        XCTAssertEqual(ids.count, 3, "Trace is never inherited — each level must observe its own commandID")
+    }
+
+    func testInnerThrowingExecutionDoesNotFinishInheritedStream() async throws {
+        let (stream, reporter) = ProgressReporter.makeStream()
+        let inner = StandardPipeline(handler: ThrowingHandler())
+        let outer = StandardPipeline(handler: CatchingNestingHandler(inner: inner))
+        let context = CommandContext(metadata: DefaultCommandMetadata())
+        context[ContextKeys.progressReporter] = reporter
+
+        _ = try await outer.execute(ProbeCommand(), context: context)
+
+        var messages: [String?] = []
+        for await update in stream { messages.append(update.message) }
+        XCTAssertEqual(messages, ["before-throw", "outer-after-inner-throw"],
+                       "A throwing inner execution must not finish the inherited stream")
     }
 }
