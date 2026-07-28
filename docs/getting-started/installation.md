@@ -13,7 +13,7 @@ PipelineKit supports multiple installation methods to fit your workflow.
 ### Xcode Integration
 
 1. Open your project in Xcode
-2. Go to **File** � **Add Package Dependencies...**
+2. Go to **File** → **Add Package Dependencies...**
 3. Enter the repository URL:
    ```
    https://github.com/gifton/PipelineKit.git
@@ -171,8 +171,8 @@ docker run --rm -it swift:6.2
 ### "No such module 'PipelineKit'"
 
 1. Ensure the package is properly added to your target dependencies
-2. Clean build folder: **Product** � **Clean Build Folder** (�K)
-3. Resolve packages: **File** � **Packages** � **Resolve Package Versions**
+2. Clean build folder: **Product** → **Clean Build Folder** (⇧⌘K)
+3. Resolve packages: **File** → **Packages** → **Resolve Package Versions**
 
 ### "Package.resolved file is corrupted"
 

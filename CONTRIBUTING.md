@@ -31,7 +31,8 @@ swift test --parallel --skip PipelineKitPerformanceTests
 # One module's tests (note the escaped dot — it anchors the target name)
 swift test --filter "PipelineKitCoreTests\."
 
-# The bundled command plugin: all unit test targets, performance excluded
+# The bundled command plugin: runs the unit test targets (excluding the
+# performance suite and PipelineKitTestSupportTests)
 swift package test-unit
 ```
 
@@ -57,7 +58,8 @@ swiftlint lint --strict
 ## Pull requests
 
 - Branch from `main`; keep PRs focused on one change.
-- CI must be green across the matrix (macOS, Linux, and lint jobs).
+- CI must be green (macOS build/test and lint jobs; Linux builds run as
+  advisory checks and do not gate merges).
 - Add a `CHANGELOG.md` entry under `[Unreleased]` for any user-visible change.
 - Documentation must mirror the shipped code: claims in docs are verified against
   source in review, and a capability the code doesn't have gets removed, not hedged.

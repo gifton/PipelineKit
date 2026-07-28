@@ -457,7 +457,7 @@ Test helpers for pipelines: mock middleware, test commands/handlers, and teardow
 )
 ```
 
-The package also ships a `test-unit` command plugin (`swift package test-unit`) that runs all unit test targets, excluding performance tests.
+The package also ships a `test-unit` command plugin (`swift package test-unit`) that runs the unit test targets, excluding the performance suite and `PipelineKitTestSupportTests`.
 
 ## Installation
 
