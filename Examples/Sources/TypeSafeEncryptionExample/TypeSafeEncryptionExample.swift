@@ -107,7 +107,7 @@ struct TypeSafeEncryptionExample {
         let encryptionService = MockEncryptionService()
         
         // Create encryption middleware
-        let encryptionMiddleware = EncryptionMiddleware(
+        let _ = EncryptionMiddleware(
             encryptionService: encryptionService,
             sensitiveFields: ["password", "metadata"]
         )
