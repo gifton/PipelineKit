@@ -1,113 +1,53 @@
-# Dependency Management Policy
+# Dependencies
 
-This document outlines PipelineKit's approach to managing third-party dependencies.
+PipelineKit's dependency inventory and management policy. Source of truth: `Package.swift`
+(declared ranges) and `Package.resolved` (currently resolved versions). This document is
+regenerated from both — if it disagrees with them, they win.
 
-## 📋 Current Dependencies
+**Last audited:** 2026-07-27
 
-| Package | Version | License | Purpose | Last Audited |
-|---------|---------|---------|---------|--------------|
-| [swift-syntax](https://github.com/apple/swift-syntax) | 510.0.3 (exact) | Apache-2.0 | Swift macro implementation | 2025-05-28 |
+## Direct dependencies
 
-## 🔒 Security Policy
+| Package | Declared | Resolved | License | Purpose |
+|---------|----------|----------|---------|---------|
+| [swift-atomics](https://github.com/apple/swift-atomics) | `from: 1.2.0` | 1.3.1 | Apache-2.0 | Lock-free atomic operations |
+| [swift-log](https://github.com/apple/swift-log) | `from: 1.5.4` | 1.14.0 | Apache-2.0 | Cross-platform logging facade |
+| [swift-crypto](https://github.com/apple/swift-crypto) | `from: 4.5.1` | 4.5.1 | Apache-2.0 | CryptoKit-compatible cryptography on non-Apple platforms |
+| [swift-docc-plugin](https://github.com/apple/swift-docc-plugin) | `from: 1.3.0` | 1.5.0 | Apache-2.0 | Documentation generation (build-time only, not linked into products) |
 
-### Dependency Selection Criteria
+## Transitive dependencies
 
-Before adding any dependency:
+| Package | Resolved | License | Brought in by |
+|---------|----------|---------|---------------|
+| [swift-asn1](https://github.com/apple/swift-asn1) | 1.4.0 | Apache-2.0 | swift-crypto |
+| [swift-docc-symbolkit](https://github.com/swiftlang/swift-docc-symbolkit) | 1.0.0 | Apache-2.0 | swift-docc-plugin |
 
-1. **Necessity**: Is it absolutely required?
-2. **Maintenance**: Is it actively maintained?
-3. **Security**: Does it have a good security track record?
-4. **License**: Is the license compatible?
-5. **Size**: What's the impact on binary size?
-6. **Alternatives**: Can we implement it ourselves?
+## Version pinning strategy
 
-### Version Pinning Strategy
+Dependencies are declared with `from:` (up-to-next-major) ranges, not exact pins:
 
-We use **exact version pinning** for all dependencies:
+- Upstream patch and minor releases — including security fixes — are picked up by
+  `swift package update` without a manifest change.
+- `Package.resolved` is committed, so CI and local builds are reproducible at the
+  resolved versions shown above until an explicit update.
 
-```swift
-.package(url: "...", exact: "X.Y.Z")
-```
+## Automated monitoring
 
-**Rationale:**
-- Reproducible builds
-- Predictable behavior
-- Controlled updates
-- Security audit consistency
+- **Dependabot** (`.github/dependabot.yml`): weekly checks of the Swift package
+  ecosystem and GitHub Actions, opening PRs with the `dependencies` label.
+- **Dependency updates land as PRs** and must pass the full CI matrix before merge.
 
-### Update Process
+## Adding a dependency
 
-1. **Regular Audits**: Run `Scripts/dependency-audit.sh` monthly
-2. **Security Alerts**: Monitor GitHub security advisories
-3. **Update Review**: All updates require:
-   - Security review
-   - Integration testing
-   - Performance benchmarking
-   - API stability check
+Before proposing a new dependency, open an issue covering:
 
-## 🛡️ Security Auditing
+1. **Necessity** — can the functionality reasonably live in this repo instead?
+2. **Maintenance** — is the package actively maintained?
+3. **License** — compatible with this project's MIT license?
+4. **Footprint** — build-time and binary-size impact.
 
-### Automated Checks
+## Audit log
 
-- **Weekly**: GitHub Dependabot alerts
-- **Monthly**: Full dependency audit
-- **Per PR**: Dependency change detection
-
-### Manual Review
-
-Run the audit script:
-```bash
-./Scripts/dependency-audit.sh
-```
-
-Generate SBOM (Software Bill of Materials):
-```bash
-swift package dump-package > sbom.json
-```
-
-### Known Vulnerabilities
-
-| CVE | Package | Status | Mitigation |
-|-----|---------|--------|------------|
-| None | - | - | - |
-
-## 📊 Dependency Metrics
-
-### Current State
-- **Total Dependencies**: 1
-- **Direct Dependencies**: 1
-- **Transitive Dependencies**: 0
-- **Security Vulnerabilities**: 0
-- **Outdated Packages**: 0
-
-### Size Impact
-- **swift-syntax**: ~15MB (build time only, not in final binary)
-
-## 🔄 Update Schedule
-
-| Dependency | Update Frequency | Notes |
-|------------|------------------|-------|
-| swift-syntax | With Swift releases | Pin to Swift version |
-
-## 📝 Audit Log
-
-| Date | Version | Auditor | Notes |
-|------|---------|---------|-------|
-| 2025-05-28 | 510.0.3 | CI | Initial audit, no issues found |
-
-## 🤝 Contributing
-
-When proposing new dependencies:
-
-1. Open an issue with justification
-2. Include security assessment
-3. Provide size/performance impact
-4. List alternatives considered
-5. Run audit script with changes
-
-## 📚 Resources
-
-- [Swift Package Manager Documentation](https://swift.org/package-manager/)
-- [GitHub Security Advisories](https://github.com/advisories)
-- [CVE Database](https://cve.mitre.org/)
-- [SPDX License List](https://spdx.org/licenses/)
+| Date | Auditor | Notes |
+|------|---------|-------|
+| 2026-07-27 | maintainer | Regenerated from Package.swift / Package.resolved; removed stale swift-syntax entry (no longer a dependency) and references to a nonexistent audit script. |

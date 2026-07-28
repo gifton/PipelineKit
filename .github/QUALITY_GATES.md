@@ -11,15 +11,18 @@ Quality gates ensure that all code meets our standards for security, performance
 ### 🔴 Critical (Blocking)
 These gates MUST pass for any PR to be merged:
 
-- **Build**: Code must compile on all supported platforms
-- **Tests**: All unit tests must pass (100% pass rate)
+- **Build**: Code must compile on macOS (the gating platform); Linux build
+  jobs in CI run with `continue-on-error: true` and are advisory only
+- **Tests**: All unit tests must pass on macOS (100% pass rate)
 - **Security**: No critical or high vulnerabilities detected
-- **Lint**: Code must pass SwiftLint with strict configuration
+- **Lint**: SwiftLint runs on every PR; violations currently warn rather than
+  fail the build (`ENFORCE_SWIFTLINT: false` in `ci.yml`)
 
 ### 🟡 Important (Warning)
 These gates SHOULD pass but can be overridden with justification:
 
-- **Coverage**: Minimum 80% code coverage
+- **Coverage**: Minimum 70% code coverage (tracked via `llvm-cov`/Codecov in
+  `ci.yml`; not yet enforced — `ENFORCE_COVERAGE: false`)
 - **Performance**: No performance regressions >10%
 - **Documentation**: Public APIs must be documented
 - **Size**: PR should be <500 lines of changes
@@ -35,16 +38,16 @@ These gates provide information but don't block:
 ## Quality Standards
 
 ### Code Quality
-- **Swift Version**: 6.0 with strict concurrency
+- **Swift Version**: 6.2 with strict concurrency
 - **Style Guide**: Swift API Design Guidelines
-- **Formatting**: swift-format with project configuration
+- **Linting**: SwiftLint (`.swiftlint.yml`) is the project's only linter/formatter tool
 - **Naming**: Clear, descriptive names following conventions
 
 ### Testing Standards
 - **Unit Tests**: Required for all public APIs
 - **Integration Tests**: Required for critical paths
 - **Performance Tests**: Required for performance-critical code
-- **Coverage Target**: 80% minimum, 90% goal
+- **Coverage Target**: 70% minimum, tracked but not yet enforced in CI
 
 ### Security Standards
 - **Authentication**: All sensitive operations require authentication
@@ -54,8 +57,9 @@ These gates provide information but don't block:
 - **Audit**: Security-relevant events logged
 
 ### Performance Standards
-- **Throughput**: >50,000 operations/second baseline
-- **Latency**: <1ms p99 for simple operations
+- **Regressions**: Tracked via XCTest performance tests in
+  `PipelineKitPerformanceTests` (see [docs/benchmarks.md](../docs/benchmarks.md));
+  no published throughput/latency baseline is currently maintained
 - **Memory**: No memory leaks detected
 - **Concurrency**: Thread-safe with actor isolation
 
@@ -65,7 +69,6 @@ These gates provide information but don't block:
 1. **Automated Checks**: GitHub Actions run all gates
 2. **Required Reviews**: 1+ approvals from maintainers
 3. **Status Checks**: All critical gates must pass
-4. **Comments**: Bot comments with quality report
 
 ### Releases
 1. **Full Test Suite**: All tests on all platforms
@@ -77,50 +80,27 @@ These gates provide information but don't block:
 ## Gate Configuration
 
 ### SwiftLint Rules
-```yaml
-included:
-  - Sources
-  - Tests
-excluded:
-  - .build
-  - docs
-rules:
-  line_length:
-    warning: 120
-    error: 150
-  file_length:
-    warning: 400
-    error: 600
-  function_body_length:
-    warning: 40
-    error: 60
-  cyclomatic_complexity:
-    warning: 10
-    error: 15
-```
+
+Rule configuration lives in [`.swiftlint.yml`](../.swiftlint.yml) at the repo
+root — treat that file as the source of truth rather than duplicating it here.
+Notably, `line_length`, `file_length`, `function_body_length`, and
+`cyclomatic_complexity` are currently in `disabled_rules`, so none of those
+have enforced thresholds today.
 
 ### Test Coverage
-```yaml
-coverage:
-  minimum: 80
-  target: 90
-  exclude:
-    - Tests/*
-    - Sources/*/Mocks/*
-    - Sources/*/Examples/*
-```
+
+Coverage is generated with `llvm-cov`/`llvm-profdata` and uploaded to Codecov
+in the `test` job of [`ci.yml`](workflows/ci.yml). The threshold is
+controlled by the `MINIMUM_COVERAGE` (currently `70`) and `ENFORCE_COVERAGE`
+(currently `false`) environment variables in that workflow.
 
 ### Security Scanning
-```yaml
-security:
-  tools:
-    - trivy
-    - trufflehog
-  severity:
-    block: [CRITICAL, HIGH]
-    warn: [MEDIUM]
-    info: [LOW, UNKNOWN]
-```
+
+The `security` job in [`ci.yml`](workflows/ci.yml) runs
+[Trivy](https://github.com/aquasecurity/trivy-action) (filesystem scan,
+config in [`.trivy.yaml`](../.trivy.yaml)) against `CRITICAL` and `HIGH`
+severity findings and uploads results as a SARIF report. No other security
+scanner (e.g. trufflehog) runs in an active workflow.
 
 ## Exemptions
 

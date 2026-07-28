@@ -252,13 +252,13 @@ final class MyHandler: CommandHandler {
 
 ### PipelineKitObservability
 
-Comprehensive observability with metrics, events, and distributed tracing.
+Comprehensive observability with metrics, events, and execution tracing.
 
 **Features:**
 - `ObservabilitySystem` – unified events + metrics orchestration
 - StatsD exporter (UDP) with batching and sampling
 - `EventHub` ↔ `MetricsStorage` integration (events can produce metrics)
-- `LoggingEmitter` – logs events via OSLog (Apple) or print/SwiftLog elsewhere
+- `LoggingEmitter` – logs events via OSLog (Apple) or `print` elsewhere
 
 Note: The default UDP transport uses Apple’s Network framework when available; on non‑Apple platforms you can plug in a different transport.
 
@@ -457,7 +457,7 @@ Test helpers for pipelines: mock middleware, test commands/handlers, and teardow
 )
 ```
 
-The package also ships a `test-unit` command plugin (`swift package test-unit`) that runs all unit test targets, excluding performance tests.
+The package also ships a `test-unit` command plugin (`swift package test-unit`) that runs the unit test targets, excluding the performance suite and `PipelineKitTestSupportTests`.
 
 ## Installation
 
@@ -477,7 +477,7 @@ Add to your `Package.swift`:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/gifton/PipelineKit.git", from: "0.5.0")
+    .package(url: "https://github.com/gifton/PipelineKit.git", from: "0.5.2")
 ]
 ```
 
@@ -854,61 +854,31 @@ struct GoodMiddleware: Middleware {
 
 ## Performance
 
-PipelineKit is designed for high-throughput, low-latency scenarios:
+PipelineKit is designed for high-throughput, low-latency dispatch: actor-based
+pipelines, lock-free atomics (swift-atomics) on hot paths, and opt-in back-pressure
+so you only pay for the control you use.
 
-### Benchmarks (M2 Pro)
+Benchmarks are XCTest `measure` suites in the `PipelineKitPerformanceTests` target;
+methodology and how to run them are documented in [docs/benchmarks.md](docs/benchmarks.md).
+Run them on your own hardware:
 
-| Operation | Throughput | Latency (p99) |
-|-----------|------------|---------------|
-| Simple Pipeline | 1.2M ops/sec | < 1μs |
-| With 5 Middleware | 800K ops/sec | < 2μs |
-| With BackPressure | 500K ops/sec | < 5μs |
-| With Full Stack | 200K ops/sec | < 10μs |
+```bash
+swift test -c release --filter PipelineKitPerformanceTests
+```
 
-Methodology and current numbers are tracked in [docs/benchmarks.md](docs/benchmarks.md); the benchmark suite itself lives in the `PipelineKitPerformanceTests` target.
+### Optimization tips
 
-### Memory Efficiency
-
-- **Zero-allocation hot path** for simple commands
-- **Object pooling** for expensive resources
-- **Automatic memory pressure handling**
-- **Concurrent-safe with minimal locking**
-
-### Optimization Tips
-
-1. **Use object pools** for expensive resources
-2. **Enable caching** for read-heavy workloads
-3. **Set appropriate concurrency limits**
-4. **Use priority queues** for critical operations
-5. **Monitor with built-in metrics**
+1. **Use object pools** (`PipelineKitPooling`) for expensive resources
+2. **Enable caching** (`PipelineKitCache`) for read-heavy workloads
+3. **Set concurrency limits** (`maxConcurrency` / back-pressure options) to match downstream capacity
+4. **Monitor with built-in metrics** (`PipelineKitObservability`)
 
 ## Contributing
 
-We welcome contributions! Please open an issue or pull request on GitHub. For reporting security vulnerabilities, see [SECURITY.md](SECURITY.md).
-
-### Development Setup
-
-```bash
-git clone https://github.com/gifton/PipelineKit.git
-cd PipelineKit
-swift build
-swift test
-```
-
-### Running Benchmarks
-
-Benchmarks are XCTest-based and live in the `PipelineKitPerformanceTests` target:
-
-```bash
-swift test --filter PipelineKitPerformanceTests
-```
-
-### Code Quality
-
-```bash
-swiftlint lint --strict
-swift-format lint --recursive Sources Tests
-```
+Contributions are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) for the
+development setup, test workflow, and PR conventions. All participation is governed
+by the [Code of Conduct](CODE_OF_CONDUCT.md). To report a security vulnerability,
+see [SECURITY.md](SECURITY.md).
 
 ## License
 

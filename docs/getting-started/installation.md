@@ -4,21 +4,21 @@ PipelineKit supports multiple installation methods to fit your workflow.
 
 ## Requirements
 
-- Swift 6.0 or later
-- Xcode 16.0 or later (for Xcode integration)
-- macOS 14.0+ / iOS 17.0+ / tvOS 17.0+ / watchOS 10.0+ / visionOS 1.0+
+- Swift 6.2 or later
+- Xcode 26.0 or later (for Xcode integration)
+- macOS 26.0+ / iOS 26.0+ / tvOS 26.0+ / watchOS 26.0+ / visionOS 26.0+
 
 ## Swift Package Manager (Recommended)
 
 ### Xcode Integration
 
 1. Open your project in Xcode
-2. Go to **File** � **Add Package Dependencies...**
+2. Go to **File** → **Add Package Dependencies...**
 3. Enter the repository URL:
    ```
    https://github.com/gifton/PipelineKit.git
    ```
-4. Choose version requirements (e.g., "Up to Next Major" from 0.3.1)
+4. Choose version requirements (e.g., "Up to Next Major" from 0.5.2)
 5. Click **Add Package**
 6. Select the products you want to add to your targets
 
@@ -27,19 +27,19 @@ PipelineKit supports multiple installation methods to fit your workflow.
 Add PipelineKit to your `Package.swift` manifest:
 
 ```swift
-// swift-tools-version: 6.0
+// swift-tools-version: 6.2
 import PackageDescription
 
 let package = Package(
     name: "YourPackage",
     platforms: [
-        .macOS(.v14),
-        .iOS(.v17),
-        .tvOS(.v17),
-        .watchOS(.v10)
+        .macOS(.v26),
+        .iOS(.v26),
+        .tvOS(.v26),
+        .watchOS(.v26)
     ],
     dependencies: [
-        .package(url: "https://github.com/gifton/PipelineKit.git", from: "0.3.1")
+        .package(url: "https://github.com/gifton/PipelineKit.git", from: "0.5.2")
     ],
     targets: [
         .target(
@@ -60,19 +60,19 @@ You can specify version requirements in several ways:
 
 ```swift
 // Exact version
-.package(url: "...", exact: "0.3.1")
+.package(url: "...", exact: "0.5.2")
 
 // Version range
-.package(url: "...", "0.3.1"..<"0.4.0")
+.package(url: "...", "0.5.2"..<"0.6.0")
 
 // From version
-.package(url: "...", from: "0.3.1")
+.package(url: "...", from: "0.5.2")
 
 // Up to next major
-.package(url: "...", .upToNextMajor(from: "0.3.1"))
+.package(url: "...", .upToNextMajor(from: "0.5.2"))
 
 // Up to next minor
-.package(url: "...", .upToNextMinor(from: "0.3.1"))
+.package(url: "...", .upToNextMinor(from: "0.5.2"))
 
 // Branch
 .package(url: "...", branch: "main")
@@ -115,24 +115,6 @@ swift package resolve
 swift build
 ```
 
-## CocoaPods
-
-**Note**: CocoaPods support is planned for a future release.
-
-```ruby
-# Podfile (Coming Soon)
-pod 'PipelineKit', '~> 0.3.1'
-```
-
-## Carthage
-
-**Note**: Carthage support is planned for a future release.
-
-```
-# Cartfile (Coming Soon)
-github "gifton/PipelineKit" ~> 0.3.1
-
-
 ## Manual Installation
 
 While not recommended, you can manually add PipelineKit to your project:
@@ -150,9 +132,7 @@ After installation, verify PipelineKit is working:
 ```swift
 import PipelineKit
 
-// Create a simple test
-let metadata = DefaultCommandMetadata(userID: "test")
-let context = CommandContext(metadata: metadata)
+let context = CommandContext()
 print("PipelineKit installed successfully!")
 ```
 
@@ -176,27 +156,23 @@ Or in Xcode:
 
 ### Linux
 
-PipelineKit builds on Linux. Ensure you have Swift 6.0+ installed. Some transports (e.g., UDP via Network framework) may require alternative backends on non‑Apple platforms:
+PipelineKit builds on Linux. Ensure you have Swift 6.2+ installed. Some transports (e.g., UDP via Network framework) may require alternative backends on non‑Apple platforms:
 
 ```bash
-# Ubuntu - install Swift 6.0+
+# Ubuntu - install Swift 6.2+
 # See https://swift.org/download/
 
 # Using Docker
-docker run --rm -it swift:6.0
+docker run --rm -it swift:6.2
 ```
-
-### Windows
-
-Windows support is experimental. Use the official Swift for Windows installer.
 
 ## Troubleshooting
 
 ### "No such module 'PipelineKit'"
 
 1. Ensure the package is properly added to your target dependencies
-2. Clean build folder: **Product** � **Clean Build Folder** (�K)
-3. Resolve packages: **File** � **Packages** � **Resolve Package Versions**
+2. Clean build folder: **Product** → **Clean Build Folder** (⇧⌘K)
+3. Resolve packages: **File** → **Packages** → **Resolve Package Versions**
 
 ### "Package.resolved file is corrupted"
 
