@@ -88,10 +88,12 @@ public actor ConcurrentPipeline: Pipeline {
     ///
     /// - Parameters:
     ///   - command: The command to execute.
-    ///   - metadata: Optional metadata for the command execution. If nil, default metadata is used.
+    ///   - context: The command context for this execution. If the context has an
+    ///     attached progress reporter, it is finished on every exit path.
     /// - Returns: The result of the command execution.
-    /// - Throws: `PipelineError.executionFailed` if no pipeline is registered for the command type,
-    ///           or any error thrown by the pipeline execution.
+    /// - Throws: `PipelineError.handlerNotFound` if no pipeline is registered for the
+    ///   command type, an error from back-pressure semaphore acquisition, or any error
+    ///   thrown by the routed pipeline.
     public func execute<T: Command>(
         _ command: T,
         context: CommandContext
@@ -130,11 +132,12 @@ public actor ConcurrentPipeline: Pipeline {
     ///
     /// - Parameters:
     ///   - command: The command to execute.
-    ///   - metadata: Optional metadata for the command execution. If nil, default metadata is used.
+    ///   - context: Optional command context. If nil, a fresh context is created.
     ///   - timeout: Maximum time to wait for semaphore acquisition, in seconds.
     /// - Returns: The result of the command execution.
-    /// - Throws: `PipelineError.executionFailed` if no pipeline is registered or timeout occurs,
-    ///           or any error thrown by the pipeline execution.
+    /// - Throws: `PipelineError.handlerNotFound` if no pipeline is registered for the
+    ///   command type, `PipelineError.timeout` if the semaphore cannot be acquired
+    ///   within `timeout`, or any error thrown by the routed pipeline.
     public func execute<T: Command>(
         _ command: T,
         context: CommandContext? = nil,
@@ -168,9 +171,11 @@ public actor ConcurrentPipeline: Pipeline {
     ///
     /// - Parameters:
     ///   - commands: An array of commands to execute concurrently.
-    ///   - metadata: Optional metadata for all command executions. If nil, default metadata is used.
+    ///   - context: Optional context shared by every command in the batch. If nil,
+    ///     each command gets its own fresh context.
     /// - Returns: An array of results corresponding to each command, preserving order.
-    /// - Throws: This method doesn't throw; individual command failures are captured in the results.
+    /// - Throws: Declared `throws` but does not currently throw: each command's
+    ///   failure is captured in its `Result` element rather than propagated.
     ///
     /// - Note: The order of results matches the order of input commands.
     public func executeConcurrently<T: Command>(
