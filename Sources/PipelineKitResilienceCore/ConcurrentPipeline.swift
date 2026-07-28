@@ -96,14 +96,22 @@ public actor ConcurrentPipeline: Pipeline {
         _ command: T,
         context: CommandContext
     ) async throws -> T.Result {
+        // Finish what this context attached, on every exit path — including
+        // the handler-not-found and semaphore throws below, which precede
+        // delegation. ConcurrentPipeline never binds an ExecutionContext; a
+        // delegated binder pipeline finishes the stream first and this
+        // repeat finish() is an idempotent no-op.
+        let attached = context[ContextKeys.progressReporter]
+        defer { attached?.finish() }
+
         let key = ObjectIdentifier(T.self)
         guard let pipeline = pipelines[key] else {
             throw PipelineError.handlerNotFound(commandType: String(describing: T.self))
         }
-        
+
         let token = try await semaphore.acquire()
         defer { _ = token } // Keep token alive until end of scope
-        
+
         return try await pipeline.execute(command, context: context)
     }
     
@@ -132,19 +140,25 @@ public actor ConcurrentPipeline: Pipeline {
         context: CommandContext? = nil,
         timeout: TimeInterval
     ) async throws -> T.Result {
+        let commandContext = context ?? CommandContext()
+        // Finish what this context attached, on every exit path — including
+        // the handler-not-found and timeout throws below (see
+        // execute(_:context:) for the ownership rationale).
+        let attached = commandContext[ContextKeys.progressReporter]
+        defer { attached?.finish() }
+
         let key = ObjectIdentifier(T.self)
         guard let pipeline = pipelines[key] else {
             throw PipelineError.handlerNotFound(commandType: String(describing: T.self))
         }
-        
+
         guard let token = try await semaphore.acquire(timeout: timeout) else {
             throw PipelineError.timeout(duration: timeout, command: command)
         }
-        
+
         defer { _ = token } // Keep token alive until end of scope
-        
-        let executionContext = context ?? CommandContext()
-        return try await pipeline.execute(command, context: executionContext)
+
+        return try await pipeline.execute(command, context: commandContext)
     }
     
     /// Executes multiple commands concurrently with individual error handling.

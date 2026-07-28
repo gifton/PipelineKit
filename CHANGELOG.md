@@ -41,6 +41,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   cancellation, or back-pressure rejection — skipped `finish()`, hanging any consumer
   iterating the stream. The finish obligation now lives at the `execute(_:context:)`
   entry point and covers every exit path. `DynamicPipeline` was never affected.
+- **`ConcurrentPipeline` could leave an attached progress stream unfinished**: its
+  handler-not-found, semaphore-acquire, and timeout throws all preceded delegation to
+  the wrapped pipeline, so a reporter attached to the context was never finished. Both
+  `execute` entry points now register the finish obligation first, covering every exit
+  path; when the delegated pipeline finishes the stream first, the repeat `finish()`
+  is a no-op.
 
 ## [0.5.1] - 2026-07-25
 
