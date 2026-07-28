@@ -589,7 +589,7 @@ jobs:
     name: Documentation
     runs-on: macos-26
     needs: swiftlint  # Don't depend on build to avoid cascade failures
-    timeout-minutes: 20
+    timeout-minutes: 30
     permissions:
       contents: read
       pages: write
@@ -613,102 +613,20 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-spm-docs-
           ${{ runner.os }}-spm-
-    
-    - name: Build Documentation
-      run: |
-        # Build documentation for all public targets
-        echo "Building documentation for PipelineKit..."
-        swift package --allow-writing-to-directory ./docs \
-          generate-documentation --target PipelineKit \
-          --output-path ./docs \
-          --disable-indexing \
-          --transform-for-static-hosting
 
-        # Also validate documentation for other public modules
-        echo "Validating documentation for PipelineKitSecurity..."
-        swift package generate-documentation --target PipelineKitSecurity
+    - name: Build Documentation Site
+      run: Scripts/build-docs-site.sh ./docs-site
 
-        echo "Validating documentation for PipelineKitCore..."
-        swift package generate-documentation --target PipelineKitCore
-
-        echo "Validating documentation for PipelineKitResilience..."
-        swift package generate-documentation --target PipelineKitResilience
-
-        echo "Validating documentation for PipelineKitCache..."
-        swift package generate-documentation --target PipelineKitCache
-
-        echo "Validating documentation for PipelineKitPooling..."
-        swift package generate-documentation --target PipelineKitPooling
-
-        echo "Validating documentation for PipelineKitObservability..."
-        swift package generate-documentation --target PipelineKitObservability
-
-    - name: Fix Documentation Filenames for Artifacts
-      # Only run sanitization when we need to upload/deploy
-      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-      run: |
-        # GitHub Actions artifacts don't allow certain characters in filenames
-        # Swift-DocC creates DIRECTORIES with colons for methods like send(_:context:)
-        # We must rename directories first (deepest first), then files
-        
-        if [ -d ./docs ]; then
-          echo "Sanitizing documentation structure for GitHub artifacts..."
-          
-          # Process directories from deepest to shallowest using -depth
-          # This ensures we rename child directories before their parents
-          find ./docs -depth -type d | while IFS= read -r dir; do
-            # Check if directory name contains problematic characters
-            if echo "$dir" | grep -q '[:"<>|*?]'; then
-              # Create new name by replacing problematic chars with underscores
-              newdir=$(echo "$dir" | sed 's/[:"<>|*?]/_/g')
-              
-              # Only rename if the directory still exists and new name is different
-              if [ -d "$dir" ] && [ "$dir" != "$newdir" ]; then
-                echo "Renaming directory: $(basename "$dir") -> $(basename "$newdir")"
-                mv "$dir" "$newdir" || echo "Warning: Could not rename $dir"
-              fi
-            fi
-          done
-          
-          # Now process any files with problematic characters
-          find ./docs -type f | while IFS= read -r file; do
-            # Check if filename contains problematic characters
-            if echo "$file" | grep -q '[:"<>|*?]'; then
-              # Create new name by replacing problematic chars with underscores
-              newfile=$(echo "$file" | sed 's/[:"<>|*?]/_/g')
-              
-              # Only rename if file still exists and new name is different
-              if [ -f "$file" ] && [ "$file" != "$newfile" ]; then
-                echo "Renaming file: $(basename "$file") -> $(basename "$newfile")"
-                mv "$file" "$newfile" || echo "Warning: Could not rename $file"
-              fi
-            fi
-          done
-          
-          echo "Documentation sanitization complete"
-        else
-          echo "No documentation directory found"
-        fi
-    
-    - name: Upload Documentation Artifact
-      # Only upload artifacts for main branch builds
-      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-      uses: actions/upload-artifact@v7
-      with:
-        name: documentation
-        path: docs/
-        retention-days: 30
-    
     - name: Setup Pages
       if: success() && github.event_name == 'push' && github.ref == 'refs/heads/main'
       uses: actions/configure-pages@v6
-    
+
     - name: Upload to GitHub Pages
       if: github.event_name == 'push' && github.ref == 'refs/heads/main'
       uses: actions/upload-pages-artifact@v5
       with:
-        path: ./docs
-    
+        path: ./docs-site
+
     - name: Deploy to GitHub Pages
       if: github.event_name == 'push' && github.ref == 'refs/heads/main'
       id: deployment

@@ -106,16 +106,12 @@ jobs:
         swift-version: ${{ env.SWIFT_VERSION }}
 
     - name: Build documentation
-      run: |
-        swift package generate-documentation \
-          --target PipelineKit \
-          --output-path ./docs-output \
-          --hosting-base-path PipelineKit
+      run: Scripts/build-docs-site.sh ./docs-site
 
     - name: Upload Pages artifact
       uses: actions/upload-pages-artifact@v5
       with:
-        path: ./docs-output
+        path: ./docs-site
 
     - name: Deploy to GitHub Pages
       uses: actions/deploy-pages@v5
