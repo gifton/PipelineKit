@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `ExecutionContext.Snapshot` (Codable) + `withRestored(_:progress:)` define the
   rebind contract for future deferred execution. Purely additive; `current` is `nil`
   outside pipeline execution and in detached tasks.
+- `CONTRIBUTING.md` (development setup, test workflow, PR conventions) and
+  `CODE_OF_CONDUCT.md` (Contributor Covenant v2.1).
 
 ### Changed
 - **Nested pipeline executions inherit the enclosing execution's progress reporter**:
@@ -34,6 +36,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Source-compatible.
 - **`ProgressReporter.makeStream` now requires `bufferSize > 0`** (precondition):
   `.bufferingNewest(0)` silently dropped every update, a footgun with no valid use.
+- **Documentation correctness pass**: `DEPENDENCIES.md` regenerated from
+  `Package.swift`/`Package.resolved` (the previous file listed a dependency the
+  package does not have); install instructions unified to `from: "0.5.2"` and
+  corrected to the shipped requirements (Swift 6.2, platform 26.0+ floors);
+  `ConcurrentPipeline` doc comments now name the errors actually thrown; the README
+  performance table was removed (its numbers had no reproducible source);
+  `BasicExample` and `AdvancedExample` are now real runnable programs and all
+  bundled examples build as executables (`swift build` in `Examples/`); maintainer
+  artifacts moved to `docs/internal/`, indexed by a new `docs/README.md`.
 
 ### Fixed
 - **`StandardPipeline` could leave an attached progress stream unfinished**: a throw
@@ -47,6 +58,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `execute` entry points now register the finish obligation first, covering every exit
   path; when the delegated pipeline finishes the stream first, the repeat `finish()`
   is a no-op.
+
+### Removed
+- CocoaPods and Carthage install instructions — both were "coming soon" promises;
+  neither is supported (no podspec or Cartfile ships).
+- `RELEASE_NOTES.md` and `RELEASE_NOTES_v0.3.0.md` — `CHANGELOG.md` is canonical.
+- The `OTLPExample`, `StatsDExample`, and `TypeSafeMetricsExample` bundled examples —
+  each demonstrated APIs that no shipped module provides (`OTLPExporter`, an
+  exporter-decorator layer, a typed-unit metrics algebra). Examples are documentation
+  and must compile against the shipped API; five buildable examples remain.
 
 ## [0.5.1] - 2026-07-25
 
