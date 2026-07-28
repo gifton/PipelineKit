@@ -37,9 +37,10 @@ import _ResilienceFoundation
 /// await concurrentPipeline.register(SendEmailCommand.self, pipeline: emailPipeline)
 ///
 /// // Execute commands - will suspend if capacity exceeded
+/// let context = CommandContext()
 /// let user = try await concurrentPipeline.execute(
 ///     CreateUserCommand(name: "John"),
-///     metadata: metadata
+///     context: context
 /// )
 /// ```
 public actor ConcurrentPipeline: Pipeline {
@@ -136,8 +137,9 @@ public actor ConcurrentPipeline: Pipeline {
     ///   - timeout: Maximum time to wait for semaphore acquisition, in seconds.
     /// - Returns: The result of the command execution.
     /// - Throws: `PipelineError.handlerNotFound` if no pipeline is registered for the
-    ///   command type, `PipelineError.timeout` if the semaphore cannot be acquired
-    ///   within `timeout`, or any error thrown by the routed pipeline.
+    ///   command type, `PipelineError.backPressure(reason: .timeout(duration:))` if the
+    ///   semaphore cannot be acquired within `timeout`, or any error thrown by the
+    ///   routed pipeline.
     public func execute<T: Command>(
         _ command: T,
         context: CommandContext? = nil,
