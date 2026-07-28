@@ -252,7 +252,7 @@ final class MyHandler: CommandHandler {
 
 ### PipelineKitObservability
 
-Comprehensive observability with metrics, events, and distributed tracing.
+Comprehensive observability with metrics, events, and execution tracing.
 
 **Features:**
 - `ObservabilitySystem` – unified events + metrics orchestration
