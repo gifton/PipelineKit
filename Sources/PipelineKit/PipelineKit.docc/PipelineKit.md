@@ -31,6 +31,8 @@ of PipelineKit's API), see the
 
 - <doc:GettingStarted>
 - <doc:Architecture>
+- <doc:MiddlewareGuide>
+- <doc:ExecutionContextAndProgress>
 
 ### Pipelines
 
