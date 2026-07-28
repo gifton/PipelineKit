@@ -258,7 +258,7 @@ Comprehensive observability with metrics, events, and distributed tracing.
 - `ObservabilitySystem` – unified events + metrics orchestration
 - StatsD exporter (UDP) with batching and sampling
 - `EventHub` ↔ `MetricsStorage` integration (events can produce metrics)
-- `LoggingEmitter` – logs events via OSLog (Apple) or print/SwiftLog elsewhere
+- `LoggingEmitter` – logs events via OSLog (Apple) or `print` elsewhere
 
 Note: The default UDP transport uses Apple’s Network framework when available; on non‑Apple platforms you can plug in a different transport.
 
@@ -854,33 +854,24 @@ struct GoodMiddleware: Middleware {
 
 ## Performance
 
-PipelineKit is designed for high-throughput, low-latency scenarios:
+PipelineKit is designed for high-throughput, low-latency dispatch: actor-based
+pipelines, lock-free atomics (swift-atomics) on hot paths, and opt-in back-pressure
+so you only pay for the control you use.
 
-### Benchmarks (M2 Pro)
+Benchmarks are XCTest `measure` suites in the `PipelineKitPerformanceTests` target;
+methodology and how to run them are documented in [docs/benchmarks.md](docs/benchmarks.md).
+Run them on your own hardware:
 
-| Operation | Throughput | Latency (p99) |
-|-----------|------------|---------------|
-| Simple Pipeline | 1.2M ops/sec | < 1μs |
-| With 5 Middleware | 800K ops/sec | < 2μs |
-| With BackPressure | 500K ops/sec | < 5μs |
-| With Full Stack | 200K ops/sec | < 10μs |
+```bash
+swift test -c release --filter PipelineKitPerformanceTests
+```
 
-Methodology and current numbers are tracked in [docs/benchmarks.md](docs/benchmarks.md); the benchmark suite itself lives in the `PipelineKitPerformanceTests` target.
+### Optimization tips
 
-### Memory Efficiency
-
-- **Zero-allocation hot path** for simple commands
-- **Object pooling** for expensive resources
-- **Automatic memory pressure handling**
-- **Concurrent-safe with minimal locking**
-
-### Optimization Tips
-
-1. **Use object pools** for expensive resources
-2. **Enable caching** for read-heavy workloads
-3. **Set appropriate concurrency limits**
-4. **Use priority queues** for critical operations
-5. **Monitor with built-in metrics**
+1. **Use object pools** (`PipelineKitPooling`) for expensive resources
+2. **Enable caching** (`PipelineKitCache`) for read-heavy workloads
+3. **Set concurrency limits** (`maxConcurrency` / back-pressure options) to match downstream capacity
+4. **Monitor with built-in metrics** (`PipelineKitObservability`)
 
 ## Contributing
 
