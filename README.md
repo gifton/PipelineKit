@@ -884,31 +884,10 @@ Methodology and current numbers are tracked in [docs/benchmarks.md](docs/benchma
 
 ## Contributing
 
-We welcome contributions! Please open an issue or pull request on GitHub. For reporting security vulnerabilities, see [SECURITY.md](SECURITY.md).
-
-### Development Setup
-
-```bash
-git clone https://github.com/gifton/PipelineKit.git
-cd PipelineKit
-swift build
-swift test
-```
-
-### Running Benchmarks
-
-Benchmarks are XCTest-based and live in the `PipelineKitPerformanceTests` target:
-
-```bash
-swift test --filter PipelineKitPerformanceTests
-```
-
-### Code Quality
-
-```bash
-swiftlint lint --strict
-swift-format lint --recursive Sources Tests
-```
+Contributions are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) for the
+development setup, test workflow, and PR conventions. All participation is governed
+by the [Code of Conduct](CODE_OF_CONDUCT.md). To report a security vulnerability,
+see [SECURITY.md](SECURITY.md).
 
 ## License
 
