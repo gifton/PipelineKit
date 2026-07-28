@@ -14,15 +14,17 @@ public protocol Middleware: Sendable {
     func execute<T: Command>(
         _ command: T,
         context: CommandContext,
-        next: @escaping MiddlewareNext<T>
+        next: @escaping @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result
 }
 ```
 
-`MiddlewareNext<T>` is `@Sendable (T, CommandContext) async throws -> T.Result`
-— calling it continues the chain; not calling it short-circuits execution
-(for example, returning a cached result or throwing a validation error).
-The pipeline enforces via ``NextGuard`` that `next` is called at most once.
+`next`'s type is also available as the shorthand `MiddlewareNext<T>` — used
+throughout this guide and the rest of the API — for
+`@Sendable (T, CommandContext) async throws -> T.Result`. Calling it
+continues the chain; not calling it short-circuits execution (for example,
+returning a cached result or throwing a validation error). The pipeline
+enforces via ``NextGuard`` that `next` is called at most once.
 
 ### A complete middleware
 
