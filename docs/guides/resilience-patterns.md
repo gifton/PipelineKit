@@ -15,31 +15,41 @@ This document provides guidance on using PipelineKit's resilience middleware eff
 
 ## Recommended Middleware Ordering
 
-When using multiple resilience patterns, **order matters**. Middleware executes in priority order (lower values first):
+When using multiple resilience patterns, **order matters**. Middleware executes
+in `ExecutionPriority` order (lower values first), and equal priorities
+preserve insertion order (stable ordering):
 
 ```
 Command → RateLimit → CircuitBreaker → Bulkhead → Timeout → Retry → Handler
 ```
 
-| Priority | Middleware | Rationale |
+`RateLimitingMiddleware` genuinely precedes the rest by priority — it's
+`.authentication` (100). But `CircuitBreakerMiddleware`, `BulkheadMiddleware`,
+`TimeoutMiddleware`, and `RetryMiddleware` all share the *same* priority,
+`.resilience` (250); there is no numeric distinction between them. Their
+relative order above is achieved by **insertion order** — call
+`addMiddleware` in the sequence you want them to run, not by picking
+different priority values.
+
+| Middleware | `ExecutionPriority` | Rationale |
 |----------|------------|-----------|
-| 50 | RateLimitingMiddleware | Reject early before consuming resources |
-| 100 | CircuitBreakerMiddleware | Fail fast for unhealthy dependencies |
-| 200 | BulkheadMiddleware | Isolate resources per partition |
-| 300 | TimeoutMiddleware | Bound maximum execution time |
-| 400 | RetryMiddleware | Retry transient failures (innermost) |
+| RateLimitingMiddleware | `.authentication` (100) | Reject early before consuming resources |
+| CircuitBreakerMiddleware | `.resilience` (250) | Fail fast for unhealthy dependencies |
+| BulkheadMiddleware | `.resilience` (250) | Isolate resources per partition |
+| TimeoutMiddleware | `.resilience` (250) | Bound maximum execution time |
+| RetryMiddleware | `.resilience` (250) | Retry transient failures (innermost) |
 
 ### Why This Order?
 
-1. **Rate Limiting First**: Prevents overload at the source. If you're rate-limited, there's no point in executing further.
+1. **Rate Limiting First**: Prevents overload at the source. If you're rate-limited, there's no point in executing further. This is enforced by priority — `.authentication` runs before `.resilience` regardless of insertion order.
 
-2. **Circuit Breaker Second**: If a downstream service is unhealthy, fail fast. Don't waste resources or queue capacity.
+2. **Circuit Breaker Second**: If a downstream service is unhealthy, fail fast. Don't waste resources or queue capacity. Add this middleware before Bulkhead/Timeout/Retry so it runs first among the `.resilience`-priority group.
 
 3. **Bulkhead Third**: Isolate concurrent operations by partition (tenant, service, etc.) to prevent one partition from starving others.
 
 4. **Timeout Fourth**: Bound the worst-case execution time. This applies to the retry loop as a whole.
 
-5. **Retry Last (Innermost)**: Retry transient failures from the handler. The retry loop is bounded by the timeout.
+5. **Retry Last (Innermost)**: Retry transient failures from the handler. The retry loop is bounded by the timeout. Since all four share `.resilience` priority, adding them to `addMiddleware` in this exact sequence is what actually produces this order.
 
 ## Choosing the Right Pattern
 
@@ -57,7 +67,7 @@ try await pipeline.addMiddleware(BulkheadMiddleware(
     )
 ))
 
-try await pipeline.addMiddleware(TimeoutMiddleware(timeout: 30.0))
+try await pipeline.addMiddleware(TimeoutMiddleware(defaultTimeout: 30.0))
 ```
 
 **Key considerations:**
@@ -74,12 +84,12 @@ For operations waiting on external systems:
 try await pipeline.addMiddleware(CircuitBreakerMiddleware(
     configuration: .init(
         failureThreshold: 5,
-        resetTimeout: 30.0,
-        halfOpenMaxAttempts: 3
+        recoveryTimeout: 30.0,
+        halfOpenSuccessThreshold: 3
     )
 ))
 
-try await pipeline.addMiddleware(TimeoutMiddleware(timeout: 10.0))
+try await pipeline.addMiddleware(TimeoutMiddleware(defaultTimeout: 10.0))
 
 try await pipeline.addMiddleware(RetryMiddleware(
     configuration: .init(
@@ -98,22 +108,29 @@ try await pipeline.addMiddleware(RetryMiddleware(
 
 ### Multi-Tenant Workloads
 
-For workloads shared across tenants:
+For workloads shared across tenants, use `PartitionedBulkheadMiddleware` —
+unlike `BulkheadMiddleware`'s `.tagged` mode (whose key extractor only sees
+the command), its `partitionExtractor` receives both the command and the
+`CommandContext`, so the partition key can come from request metadata:
 
 ```swift
-try await pipeline.addMiddleware(BulkheadMiddleware(
+try await pipeline.addMiddleware(PartitionedBulkheadMiddleware(
     configuration: .init(
-        maxConcurrency: 10,
-        isolationMode: .tagged { command in
-            (command as? TenantIdentifiable)?.tenantId ?? "default"
-        }
+        partitions: [
+            "tenant-a": .init(capacity: 10),
+            "tenant-b": .init(capacity: 10)
+        ],
+        partitionExtractor: { command, context in
+            context.commandMetadata.userID ?? "default"
+        },
+        defaultPartition: "tenant-a"
     )
 ))
 ```
 
 **Key considerations:**
 - Isolate resources per tenant to prevent starvation
-- Set per-tenant concurrency limits
+- Set per-tenant concurrency limits (`PartitionConfig.capacity`)
 - Consider per-tenant rate limiting for fair usage
 
 ### External API Integration
@@ -122,21 +139,20 @@ For calling third-party APIs with rate limits:
 
 ```swift
 try await pipeline.addMiddleware(RateLimitingMiddleware(
-    configuration: .init(
-        limit: 100,
-        window: .minute,
-        strategy: .slidingWindow
-    )
+    limiter: RateLimiter(strategy: .slidingWindow(windowSize: 60, maxRequests: 100)),
+    identifierExtractor: { _, context in
+        context.commandMetadata.userID ?? "anonymous"
+    }
 ))
 
 try await pipeline.addMiddleware(CircuitBreakerMiddleware(
     configuration: .init(
         failureThreshold: 5,
-        resetTimeout: 60.0
+        recoveryTimeout: 60.0
     )
 ))
 
-try await pipeline.addMiddleware(TimeoutMiddleware(timeout: 15.0))
+try await pipeline.addMiddleware(TimeoutMiddleware(defaultTimeout: 15.0))
 
 try await pipeline.addMiddleware(RetryMiddleware.forNetworkRequests())
 ```
@@ -158,8 +174,8 @@ let pipeline = StandardPipeline(
     options: .highThroughput()  // maxConcurrency: 50, maxOutstanding: 200
 )
 
-try await pipeline.addMiddleware(BulkheadMiddleware.highThroughput())
-try await pipeline.addMiddleware(TimeoutMiddleware(timeout: 5.0))
+try await pipeline.addMiddleware(BulkheadMiddleware(maxConcurrency: 50, maxQueueSize: 200))
+try await pipeline.addMiddleware(TimeoutMiddleware(defaultTimeout: 5.0))
 ```
 
 ### Low-Latency Pipeline
@@ -172,7 +188,7 @@ let pipeline = StandardPipeline(
     options: .lowLatency()  // maxConcurrency: 5, maxOutstanding: 10
 )
 
-try await pipeline.addMiddleware(TimeoutMiddleware(timeout: 1.0))
+try await pipeline.addMiddleware(TimeoutMiddleware(defaultTimeout: 1.0))
 ```
 
 ### Resilient External Service Call
@@ -180,17 +196,22 @@ try await pipeline.addMiddleware(TimeoutMiddleware(timeout: 1.0))
 Full resilience stack for unreliable external services:
 
 ```swift
-try await pipeline.addMiddleware(RateLimitingMiddleware(limit: 100, per: .minute))
+try await pipeline.addMiddleware(RateLimitingMiddleware(
+    limiter: RateLimiter(strategy: .slidingWindow(windowSize: 60, maxRequests: 100)),
+    identifierExtractor: { _, context in
+        context.commandMetadata.userID ?? "anonymous"
+    }
+))
 
 try await pipeline.addMiddleware(CircuitBreakerMiddleware(
     configuration: .init(
         failureThreshold: 5,
-        resetTimeout: 30.0,
+        recoveryTimeout: 30.0,
         triggeredByErrors: [.timeout, .networkError, .serverError]
     )
 ))
 
-try await pipeline.addMiddleware(TimeoutMiddleware(timeout: 10.0))
+try await pipeline.addMiddleware(TimeoutMiddleware(defaultTimeout: 10.0))
 
 try await pipeline.addMiddleware(RetryMiddleware(
     configuration: .init(
@@ -207,7 +228,7 @@ Appropriate for database calls with connection limits:
 ```swift
 let pipeline = StandardPipeline(handler: handler, maxConcurrency: 20)
 
-try await pipeline.addMiddleware(TimeoutMiddleware(timeout: 5.0))
+try await pipeline.addMiddleware(TimeoutMiddleware(defaultTimeout: 5.0))
 
 try await pipeline.addMiddleware(RetryMiddleware.forDatabaseOperations())
 ```
@@ -252,7 +273,7 @@ try await pipeline.addMiddleware(BackPressureMiddleware(
 try await pipeline.addMiddleware(BulkheadMiddleware(
     configuration: .init(
         maxConcurrency: 5,
-        isolationMode: .tagged { command in command.partitionKey }
+        isolationMode: .tagged { command in String(describing: type(of: command)) }
     )
 ))
 ```
@@ -275,7 +296,7 @@ try await pipeline.addMiddleware(BulkheadMiddleware(
 try await pipeline.addMiddleware(RetryMiddleware(maxAttempts: 10))
 
 // GOOD: Bound total retry time
-try await pipeline.addMiddleware(TimeoutMiddleware(timeout: 30.0))
+try await pipeline.addMiddleware(TimeoutMiddleware(defaultTimeout: 30.0))
 try await pipeline.addMiddleware(RetryMiddleware(
     configuration: .init(
         maxAttempts: 5,
@@ -286,7 +307,10 @@ try await pipeline.addMiddleware(RetryMiddleware(
 
 ### 2. Retry Non-Idempotent Operations
 
-```swift
+`ProcessPaymentCommand(...)` below is illustrative pseudocode (elided
+arguments), not literal compilable Swift.
+
+```text
 // BAD: Payment might be processed multiple times
 try await pipeline.addMiddleware(RetryMiddleware.aggressive())
 try await pipeline.execute(ProcessPaymentCommand(...))
@@ -305,7 +329,10 @@ try await pipeline.addMiddleware(RetryMiddleware(
 
 ### 3. Circuit Breaker on Local Operations
 
-```swift
+`CircuitBreakerMiddleware(...)` and `ValidateInputCommand(...)` below are
+illustrative pseudocode (elided arguments), not literal compilable Swift.
+
+```text
 // BAD: Circuit breaker on in-memory operations
 try await pipeline.addMiddleware(CircuitBreakerMiddleware(...))
 try await pipeline.execute(ValidateInputCommand(...))  // Pure CPU work
@@ -318,38 +345,40 @@ try await pipeline.execute(ValidateInputCommand(...))  // Pure CPU work
 
 ```swift
 // BAD: 100ms timeout on database operation
-try await pipeline.addMiddleware(TimeoutMiddleware(timeout: 0.1))
+try await pipeline.addMiddleware(TimeoutMiddleware(defaultTimeout: 0.1))
 
 // GOOD: Set timeouts based on measured P99 latency + margin
-try await pipeline.addMiddleware(TimeoutMiddleware(timeout: 5.0))
+try await pipeline.addMiddleware(TimeoutMiddleware(defaultTimeout: 5.0))
 ```
 
 ## Monitoring and Observability
 
-All resilience middleware emit events through PipelineKit's observability system. Subscribe to these events for monitoring:
+All resilience middleware emit events through PipelineKit's observability system. Subscribe by
+implementing `EventSubscriber` (a class-bound protocol) and registering it with an `EventHub`:
 
 ```swift
-let eventHub = EventHub.shared
-
-// Monitor circuit breaker state changes
-await eventHub.subscribe(CircuitBreakerSubscriber { event in
-    switch event.state {
-    case .open:
-        metrics.recordCircuitOpen(service: event.serviceName)
-    case .halfOpen:
-        metrics.recordCircuitHalfOpen(service: event.serviceName)
-    case .closed:
-        metrics.recordCircuitClosed(service: event.serviceName)
+final class ResilienceEventLogger: EventSubscriber {
+    func process(_ event: PipelineEvent) async {
+        switch event.name {
+        case PipelineEvent.Name.circuitOpened:
+            metrics.recordCircuitOpen(service: event.properties["service"]?.get(String.self))
+        case PipelineEvent.Name.circuitHalfOpen:
+            metrics.recordCircuitHalfOpen(service: event.properties["service"]?.get(String.self))
+        case PipelineEvent.Name.circuitClosed:
+            metrics.recordCircuitClosed(service: event.properties["service"]?.get(String.self))
+        case PipelineEvent.Name.middlewareRetry:
+            metrics.recordRetryAttempt(
+                command: event.properties["commandType"]?.get(String.self),
+                attempt: event.properties["attempt"]?.get(Int.self)
+            )
+        default:
+            break
+        }
     }
-})
-
-// Monitor retry attempts
-await eventHub.subscribe(name: .middlewareRetry) { event in
-    metrics.recordRetryAttempt(
-        command: event.properties["commandType"] as? String,
-        attempt: event.properties["attempt"] as? Int
-    )
 }
+
+let eventHub = EventHub()
+await eventHub.subscribe(ResilienceEventLogger())
 ```
 
 ## Performance Considerations
@@ -359,16 +388,11 @@ await eventHub.subscribe(name: .middlewareRetry) { event in
 Each middleware adds a small amount of latency. For ultra-low-latency paths:
 
 1. **Minimize middleware count**: Only add what's necessary
-2. **Use conditional middleware**: Skip middleware that doesn't apply
-
-```swift
-// Middleware only activates for specific commands
-struct NetworkCommand: Command, RequiresResilience {}
-
-try await pipeline.addMiddleware(
-    ConditionalRetryMiddleware()  // Only runs for RequiresResilience commands
-)
-```
+2. **Use conditional middleware**: Skip middleware that doesn't apply — wrap a
+   resilience middleware in a generic `ConditionalMiddleware<M: Middleware>`
+   that only forwards to it when a predicate matches; see
+   [Advanced Patterns](../tutorials/advanced-patterns.md#conditional-middleware-execution)
+   for the full pattern.
 
 ### Semaphore Choice
 

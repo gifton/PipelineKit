@@ -16,7 +16,7 @@ struct ConditionalMiddleware<M: Middleware>: Middleware {
     func execute<T: Command>(
         _ command: T,
         context: CommandContext,
-        next: @Sendable (T, CommandContext) async throws -> T.Result
+        next: @escaping @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
         if await condition(command, context) {
             return try await wrapped.execute(command, context: context, next: next)
@@ -57,7 +57,12 @@ struct PipelineFactory {
         environment: Environment
     ) async throws -> StandardPipeline<H.CommandType, H> {
         let builder = PipelineBuilder(handler: handler)
-        await builder.addAuthentication(AuthenticationMiddleware())
+        await builder.addAuthentication(AuthenticationMiddleware { userID in
+            guard let userID else {
+                throw PipelineError.authorization(reason: .invalidCredentials)
+            }
+            return userID
+        })
         await builder.addMiddleware(ValidationMiddleware())
 
         switch environment {
@@ -70,9 +75,8 @@ struct PipelineFactory {
             // Add rate limiting and concise logging for production
             await builder.addLogging(VerboseLoggingMiddleware())
             await builder.addRateLimiting(EnhancedRateLimitingMiddleware(
-                limiter: RateLimiter.tokenBucket(
-                    capacity: 100,
-                    refillRate: 10
+                limiter: RateLimiter(
+                    strategy: .tokenBucket(capacity: 100, refillRate: 10)
                 ),
                 identifierExtractor: { _, ctx in
                     ctx.commandMetadata.userID ?? "anonymous"
@@ -90,13 +94,21 @@ struct PipelineFactory {
 ```swift
 struct SecurityComposite: Middleware {
     let priority = ExecutionPriority.authentication
-    private let auth = AuthenticationMiddleware()
-    private let authz = AuthorizationMiddleware()
+    private let auth = AuthenticationMiddleware { userID in
+        guard let userID else {
+            throw PipelineError.authorization(reason: .invalidCredentials)
+        }
+        return userID
+    }
+    private let authz = AuthorizationMiddleware(
+        requiredRoles: [],
+        getUserRoles: { _ in [] }
+    )
 
     func execute<T: Command>(
         _ command: T,
         context: CommandContext,
-        next: @Sendable (T, CommandContext) async throws -> T.Result
+        next: @escaping @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result {
         return try await auth.execute(command, context: context) { c1, ctx1 in
             try await authz.execute(c1, context: ctx1, next: next)
@@ -112,8 +124,8 @@ import PipelineKitResilience
 
 let breaker = CircuitBreakerMiddleware(
     failureThreshold: 5,
-    resetTimeout: 30.0,
-    halfOpenLimit: 3
+    recoveryTimeout: 30.0,
+    halfOpenSuccessThreshold: 3
 )
 
 try await pipeline.addMiddleware(breaker)
