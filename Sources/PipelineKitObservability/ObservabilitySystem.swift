@@ -58,14 +58,49 @@ public actor ObservabilitySystem {
     /// Configuration
     private let config: Configuration
     
-    /// System-wide configuration
+    /// System-wide configuration: which of events, metrics, and logging are
+    /// active, and how events are converted into metrics.
     public struct Configuration: Sendable {
+        /// Whether `emit(_:)` forwards events to `eventHub`. When `false`,
+        /// `emit(_:)` is a no-op, which also suppresses the automatic
+        /// event-to-metric conversion and logging bridges (they only ever see
+        /// events that reach `eventHub`).
         public let enableEvents: Bool
+
+        /// Whether `init(configuration:)` subscribes a `MetricsEventBridge` to
+        /// `eventHub` during setup, and whether `recordCounter`/`recordGauge`/
+        /// `recordTimer` record into `metricsStorage` (and forward to StatsD, if
+        /// configured) or return immediately without recording.
         public let enableMetrics: Bool
+
+        /// Controls which events the automatic event-to-metric bridge converts,
+        /// and which of duration, count, and error metrics it generates. Only
+        /// consulted when `enableMetrics` is `true`.
         public let metricsGeneration: MetricsGenerationConfig
+
+        /// Whether `init(configuration:)` subscribes a logging bridge to
+        /// `eventHub` during setup, so that emitted events are also logged via a
+        /// `LoggingEmitter`.
         public let logEvents: Bool
+
+        /// The minimum level the logging bridge's `LoggingEmitter` logs at.
+        /// Only consulted when `logEvents` is `true`.
         public let logLevel: LoggingEmitter.Level
-        
+
+        /// Creates a system-wide configuration.
+        ///
+        /// - Parameters:
+        ///   - enableEvents: Whether emitted events are forwarded to `eventHub`.
+        ///     Defaults to `true`.
+        ///   - enableMetrics: Whether the automatic event-to-metric bridge is
+        ///     installed and whether the `recordCounter`/`recordGauge`/
+        ///     `recordTimer` methods record anything. Defaults to `true`.
+        ///   - metricsGeneration: Which events generate metrics, and which kinds.
+        ///     Defaults to `.default`.
+        ///   - logEvents: Whether a logging bridge is installed so events are
+        ///     also logged. Defaults to `true`.
+        ///   - logLevel: The minimum level the logging bridge logs at. Defaults
+        ///     to `.info`.
         public init(
             enableEvents: Bool = true,
             enableMetrics: Bool = true,
@@ -99,20 +134,38 @@ public actor ObservabilitySystem {
         )
     }
     
-    /// Creates a new observability system.
+    /// Creates a new observability system: a fresh `eventHub` and
+    /// `metricsStorage`, with itself registered as the hub's parent system (so
+    /// `CommandContext.observability` can find it back from the hub), and — per
+    /// `configuration` — the automatic event-to-metric bridge and/or logging
+    /// bridge already subscribed to `eventHub`.
+    ///
+    /// - Parameter configuration: Which of events, metrics, and logging are
+    ///   active. Defaults to `.development`.
     public init(configuration: Configuration = .development) async {
         self.config = configuration
         self.eventHub = EventHub()
         self.metricsStorage = MetricsStorage()
-        
+
         // Set this system as the parent of the event hub
         await eventHub.setParentSystem(self)
-        
+
         // Set up natural integration
         await setupIntegration()
     }
-    
-    /// Creates a production-ready observability system.
+
+    /// Creates a system using `Configuration.production` and immediately calls
+    /// `enableStatsD(host:port:prefix:globalTags:)` with the given StatsD
+    /// settings.
+    ///
+    /// - Parameters:
+    ///   - statsdHost: The StatsD server host. Defaults to `"localhost"`.
+    ///   - statsdPort: The StatsD server port. Defaults to `8125`.
+    ///   - prefix: An optional prefix prepended to every exported metric name.
+    ///     Defaults to `nil`.
+    ///   - globalTags: Tags attached to every metric sent to StatsD. Defaults to
+    ///     empty.
+    /// - Returns: The configured, StatsD-enabled system.
     public static func production(
         statsdHost: String = "localhost",
         statsdPort: Int = 8125,
@@ -132,7 +185,23 @@ public actor ObservabilitySystem {
         return system
     }
     
-    /// Enables StatsD export.
+    /// Creates a `StatsDExporter` for `host`/`port` and subscribes a dedicated
+    /// `MetricsEventBridge` (using `Configuration.metricsGeneration`) to
+    /// `eventHub` that forwards converted metrics to it. This is independent of
+    /// `Configuration.enableMetrics`: it subscribes the bridge unconditionally,
+    /// so events reaching `eventHub` generate StatsD metrics even if the
+    /// system's own local `metricsStorage` bridge was never installed.
+    /// `recordCounter`/`recordGauge`/`recordTimer`, however, still forward
+    /// directly to the exporter only when `Configuration.enableMetrics` is
+    /// `true` (they return early before reaching it otherwise).
+    ///
+    /// - Parameters:
+    ///   - host: The StatsD server host. Defaults to `"localhost"`.
+    ///   - port: The StatsD server port. Defaults to `8125`.
+    ///   - prefix: An optional prefix prepended to every exported metric name.
+    ///     Defaults to `nil`.
+    ///   - globalTags: Tags attached to every metric sent to StatsD. Defaults to
+    ///     empty.
     public func enableStatsD(
         host: String = "localhost",
         port: Int = 8125,
@@ -161,26 +230,41 @@ public actor ObservabilitySystem {
         }
     }
     
-    /// Records a counter metric.
+    /// Records a counter metric directly into `metricsStorage`, and forwards it
+    /// to StatsD if `enableStatsD(host:port:prefix:globalTags:)` was called.
+    /// No-op if `Configuration.enableMetrics` is `false`.
+    ///
+    /// - Parameters:
+    ///   - name: The metric name.
+    ///   - value: The amount to record. Defaults to `1.0`.
+    ///   - tags: Tags attached to the recorded snapshot. Defaults to empty.
     public func recordCounter(
         name: String,
         value: Double = 1.0,
         tags: [String: String] = [:]
     ) async {
         guard config.enableMetrics else { return }
-        
+
         let snapshot = MetricSnapshot.counter(name, value: value, tags: tags)
-        
+
         // Record locally
         await metricsStorage.record(snapshot)
-        
+
         // Forward to StatsD if configured
         if let exporter = statsdExporter {
             await exporter.record(snapshot)
         }
     }
-    
-    /// Records a gauge metric.
+
+    /// Records a gauge metric directly into `metricsStorage`, and forwards it to
+    /// StatsD if `enableStatsD(host:port:prefix:globalTags:)` was called. No-op
+    /// if `Configuration.enableMetrics` is `false`.
+    ///
+    /// - Parameters:
+    ///   - name: The metric name.
+    ///   - value: The gauge's current value.
+    ///   - tags: Tags attached to the recorded snapshot. Defaults to empty.
+    ///   - unit: An optional unit label for the value. Defaults to `nil`.
     public func recordGauge(
         name: String,
         value: Double,
@@ -188,63 +272,91 @@ public actor ObservabilitySystem {
         unit: String? = nil
     ) async {
         guard config.enableMetrics else { return }
-        
+
         let snapshot = MetricSnapshot.gauge(name, value: value, tags: tags, unit: unit)
-        
+
         // Record locally
         await metricsStorage.record(snapshot)
-        
+
         // Forward to StatsD if configured
         if let exporter = statsdExporter {
             await exporter.record(snapshot)
         }
     }
-    
-    /// Records a timer metric.
+
+    /// Records a timer metric directly into `metricsStorage`, and forwards it to
+    /// StatsD if `enableStatsD(host:port:prefix:globalTags:)` was called. No-op
+    /// if `Configuration.enableMetrics` is `false`.
+    ///
+    /// - Parameters:
+    ///   - name: The metric name.
+    ///   - duration: The measured duration, in seconds.
+    ///   - tags: Tags attached to the recorded snapshot. Defaults to empty.
     public func recordTimer(
         name: String,
         duration: TimeInterval,
         tags: [String: String] = [:]
     ) async {
         guard config.enableMetrics else { return }
-        
+
         let snapshot = MetricSnapshot.timer(name, duration: duration, tags: tags)
-        
+
         // Record locally
         await metricsStorage.record(snapshot)
-        
+
         // Forward to StatsD if configured
         if let exporter = statsdExporter {
             await exporter.record(snapshot)
         }
     }
-    
-    
-    /// Emits an event directly.
+
+
+    /// Forwards `event` to `eventHub`, which fans it out to any subscribed
+    /// bridges (metrics, logging, StatsD) and to `CommandContext.observability`
+    /// consumers. No-op if `Configuration.enableEvents` is `false`. Note that
+    /// this is not the only path events can reach `eventHub`: code holding the
+    /// hub directly (for example via `CommandContext.eventEmitter`, as set up by
+    /// `setupObservability(_:)`) can emit to it without going through this
+    /// method, bypassing this `enableEvents` check.
     ///
-    /// Events will automatically generate metrics based on configuration.
+    /// - Parameter event: The event to emit.
     public func emit(_ event: PipelineEvent) {
         guard config.enableEvents else { return }
         eventHub.emit(event)
     }
     
-    /// Gets current metrics.
+    /// Returns every metric snapshot currently held in `metricsStorage`, without
+    /// removing them — a later call to `getMetrics()` or `drainMetrics()` will
+    /// still see them.
+    ///
+    /// - Returns: All stored snapshots.
     public func getMetrics() async -> [MetricSnapshot] {
         await metricsStorage.getAll()
     }
-    
-    /// Drains and returns all metrics.
+
+    /// Returns every metric snapshot currently held in `metricsStorage` and
+    /// removes them from storage as part of the same call — unlike
+    /// `getMetrics()`, a subsequent call will not see snapshots already
+    /// returned by this one.
+    ///
+    /// - Returns: All snapshots that were stored at the time of the call.
     public func drainMetrics() async -> [MetricSnapshot] {
         await metricsStorage.drain()
     }
-    
-    /// Gets event hub statistics.
+
+    /// Returns a snapshot of `eventHub`'s counters (events emitted/delivered,
+    /// subscriptions, cleanup activity) as of the call.
+    ///
+    /// - Returns: The hub's current statistics.
     public func getEventStatistics() async -> EventHubStatistics {
         await eventHub.statistics
     }
-    
-    /// Gets the event hub for this system.
-    /// This is useful when setting up a CommandContext manually.
+
+    /// Returns `eventHub`, e.g. to assign as a `CommandContext.eventEmitter`
+    /// when setting up a context manually instead of via
+    /// `setupObservability(_:)`.
+    ///
+    /// - Returns: This system's event hub.
     public func getEventHub() -> EventHub {
         return eventHub
     }
@@ -300,19 +412,26 @@ public extension CommandContext {
         }
     }
     
-    /// Configures observability for this context.
+    /// Configures observability for this context: creates an
+    /// `ObservabilitySystem` from `config`, assigns its event hub as this
+    /// context's `eventEmitter`, and retains the system on the context (under
+    /// `ContextKey<ObservabilitySystem>.observabilitySystem`) so it stays alive
+    /// even though the hub only holds it weakly.
     ///
     /// This is the most natural way to add observability:
     /// ```swift
     /// let context = CommandContext()
-    /// context.setupObservability(.production)
-    /// 
+    /// await context.setupObservability(.production)
+    ///
     /// // Now events automatically generate metrics!
     /// await context.emitCommandStarted(type: "CreateUser")
-    /// 
+    ///
     /// // And you can access the full system:
-    /// let metrics = context.observability?.getMetrics()
+    /// let metrics = await context.observability?.getMetrics()
     /// ```
+    ///
+    /// - Parameter config: Which of events, metrics, and logging are active on
+    ///   the created system. Defaults to `.development`.
     func setupObservability(
         _ config: ObservabilitySystem.Configuration = .development
     ) async {
@@ -325,7 +444,28 @@ public extension CommandContext {
         self[.observabilitySystem] = system
     }
     
-    /// Records a counter metric through the context's observability system.
+    /// Emits a `"metric.counter.recorded"` event carrying `name`/`value`/`tags`
+    /// to `eventEmitter`; a no-op if the emitter is not an `EventHub` (e.g.
+    /// `setupObservability(_:)` was never called on this context).
+    ///
+    /// - Note: Unlike `ObservabilitySystem.recordCounter(name:value:tags:)`,
+    ///   this does not record a snapshot directly — it goes through the
+    ///   automatic `MetricsEventBridge`. Because `"metric.counter.recorded"`
+    ///   matches none of the bridge's named event patterns, it falls into the
+    ///   bridge's generic fallback, which — only when
+    ///   `ObservabilitySystem.Configuration.metricsGeneration.recordCounts` is
+    ///   `true` — records a `counter` snapshot literally named
+    ///   `"metric.counter.recorded"`, with `value` fixed at `1.0` and no tags.
+    ///   This method's `name`, `value`, and `tags` arguments are packed into the
+    ///   event's properties but are not read back out by that fallback, so they
+    ///   do not reach the resulting metric.
+    ///
+    /// - Parameters:
+    ///   - name: Included in the emitted event's properties (see note above).
+    ///   - value: Included in the emitted event's properties (see note above).
+    ///     Defaults to `1.0`.
+    ///   - tags: Included in the emitted event's properties (see note above).
+    ///     Defaults to empty.
     func recordCounter(
         name: String,
         value: Double = 1.0,
@@ -347,7 +487,29 @@ public extension CommandContext {
         }
     }
     
-    /// Records a gauge metric through the context's observability system.
+    /// Emits a `"metric.gauge.recorded"` event carrying `name`/`value`/`tags`/
+    /// `unit` to `eventEmitter`; a no-op if the emitter is not an `EventHub`
+    /// (e.g. `setupObservability(_:)` was never called on this context).
+    ///
+    /// - Note: Unlike `ObservabilitySystem.recordGauge(name:value:tags:unit:)`,
+    ///   this does not record a snapshot directly — it goes through the
+    ///   automatic `MetricsEventBridge`. Because `"metric.gauge.recorded"`
+    ///   matches none of the bridge's named event patterns, it falls into the
+    ///   bridge's generic fallback, which — only when
+    ///   `ObservabilitySystem.Configuration.metricsGeneration.recordCounts` is
+    ///   `true` — records a **`counter`** snapshot (not a gauge) literally
+    ///   named `"metric.gauge.recorded"`, with its value fixed at `1.0` and no
+    ///   tags. This method's `name`, `value`, `tags`, and `unit` arguments are
+    ///   packed into the event's properties but are not read back out by that
+    ///   fallback, so they do not reach the resulting metric.
+    ///
+    /// - Parameters:
+    ///   - name: Included in the emitted event's properties (see note above).
+    ///   - value: Included in the emitted event's properties (see note above).
+    ///   - tags: Included in the emitted event's properties (see note above).
+    ///     Defaults to empty.
+    ///   - unit: Included in the emitted event's properties when non-`nil` (see
+    ///     note above). Defaults to `nil`.
     func recordGauge(
         name: String,
         value: Double,
@@ -374,7 +536,28 @@ public extension CommandContext {
         }
     }
     
-    /// Records a timer metric through the context's observability system.
+    /// Emits a `"metric.timer.recorded"` event carrying `name`/`duration`/
+    /// `tags` to `eventEmitter`; a no-op if the emitter is not an `EventHub`
+    /// (e.g. `setupObservability(_:)` was never called on this context).
+    ///
+    /// - Note: Unlike `ObservabilitySystem.recordTimer(name:duration:tags:)`,
+    ///   this does not record a snapshot directly — it goes through the
+    ///   automatic `MetricsEventBridge`. Because `"metric.timer.recorded"`
+    ///   matches none of the bridge's named event patterns, it falls into the
+    ///   bridge's generic fallback, which — only when
+    ///   `ObservabilitySystem.Configuration.metricsGeneration.recordCounts` is
+    ///   `true` — records a **`counter`** snapshot (not a timer) literally
+    ///   named `"metric.timer.recorded"`, with its value fixed at `1.0` and no
+    ///   tags. This method's `name`, `duration`, and `tags` arguments are
+    ///   packed into the event's properties but are not read back out by that
+    ///   fallback, so they do not reach the resulting metric.
+    ///
+    /// - Parameters:
+    ///   - name: Included in the emitted event's properties (see note above).
+    ///   - duration: Included in the emitted event's properties, converted to
+    ///     milliseconds (see note above).
+    ///   - tags: Included in the emitted event's properties (see note above).
+    ///     Defaults to empty.
     func recordTimer(
         name: String,
         duration: TimeInterval,
@@ -401,7 +584,11 @@ public extension CommandContext {
 // MARK: - Convenience Extensions
 
 public extension ObservabilitySystem {
-    /// Creates a minimal system for testing.
+    /// Creates a system with events and metrics enabled, `.default`
+    /// `metricsGeneration`, and logging disabled — a quieter alternative to
+    /// `Configuration.development` for use in tests.
+    ///
+    /// - Returns: The configured system.
     static func test() async -> ObservabilitySystem {
         await ObservabilitySystem(configuration: Configuration(
             enableEvents: true,
@@ -411,13 +598,21 @@ public extension ObservabilitySystem {
             logLevel: .error
         ))
     }
-    
-    /// Subscribes a custom event subscriber.
+
+    /// Subscribes `subscriber` to `eventHub` directly, alongside any bridges
+    /// installed by `init(configuration:)` or `enableStatsD(host:port:prefix:
+    /// globalTags:)`. Unlike those bridges, `subscriber` is not retained by
+    /// this system — the caller is responsible for keeping it alive, since
+    /// `eventHub` itself only holds subscribers weakly.
+    ///
+    /// - Parameter subscriber: The subscriber to add.
     func subscribe(_ subscriber: any EventSubscriber) async {
         await eventHub.subscribe(subscriber)
     }
-    
-    /// Unsubscribes an event subscriber.
+
+    /// Removes `subscriber` from `eventHub`.
+    ///
+    /// - Parameter subscriber: The subscriber to remove.
     func unsubscribe(_ subscriber: any EventSubscriber) async {
         await eventHub.unsubscribe(subscriber)
     }

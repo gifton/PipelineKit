@@ -1,3 +1,10 @@
+//
+//  TestCounter.swift
+//  PipelineKit
+//
+//  Thread-safe counter actor for test assertions.
+//
+
 import Foundation
 
 /// Thread-safe counter for test purposes

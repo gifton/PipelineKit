@@ -1,3 +1,10 @@
+//
+//  TestPipeline.swift
+//  PipelineKit
+//
+//  Test pipeline with middleware mocking, delay, and failure injection.
+//
+
 import Foundation
 import XCTest
 import PipelineKit

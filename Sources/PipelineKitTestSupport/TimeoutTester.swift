@@ -1,3 +1,10 @@
+//
+//  TimeoutTester.swift
+//  PipelineKit
+//
+//  Utility for simulating timeout and delay scenarios in tests.
+//
+
 import Foundation
 import PipelineKit
 
