@@ -110,18 +110,30 @@ try await pipeline.addMiddleware(RetryMiddleware(
 
 For workloads shared across tenants, use `PartitionedBulkheadMiddleware` —
 unlike `BulkheadMiddleware`'s `.tagged` mode (whose key extractor only sees
-the command), its `partitionExtractor` receives both the command and the
-`CommandContext`, so the partition key can come from request metadata:
+the command, not the context), its `partitionExtractor` receives both the
+command and the `CommandContext`.
+
+`PartitionedBulkheadMiddleware` requires every partition to be declared up
+front in `partitions`, so this fits a small, known set of tenants (or tenant
+tiers) — it is **not** suited to unbounded or dynamically-discovered tenant
+counts, since any tenant ID that doesn't match a declared partition silently
+falls back to `defaultPartition` rather than getting its own isolated
+capacity. Tag the command itself with its tenant so the extractor has a
+real, meaningful key to route on:
 
 ```swift
+protocol TenantScoped {
+    var tenantID: String { get }
+}
+
 try await pipeline.addMiddleware(PartitionedBulkheadMiddleware(
     configuration: .init(
         partitions: [
             "tenant-a": .init(capacity: 10),
             "tenant-b": .init(capacity: 10)
         ],
-        partitionExtractor: { command, context in
-            context.commandMetadata.userID ?? "default"
+        partitionExtractor: { command, _ in
+            (command as? TenantScoped)?.tenantID ?? "tenant-a"
         },
         defaultPartition: "tenant-a"
     )
@@ -129,6 +141,8 @@ try await pipeline.addMiddleware(PartitionedBulkheadMiddleware(
 ```
 
 **Key considerations:**
+- Partitions are static and must be declared up front — enumerate your known
+  tenants (or tenant tiers) rather than deriving keys from unbounded request data
 - Isolate resources per tenant to prevent starvation
 - Set per-tenant concurrency limits (`PartitionConfig.capacity`)
 - Consider per-tenant rate limiting for fair usage
