@@ -857,11 +857,15 @@ public enum HealthCheckError: Error, Sendable {
 /// A `HealthCheck` that verifies an HTTP endpoint is reachable and returns the
 /// expected status code.
 public struct HTTPHealthCheck: HealthCheck {
+    /// This check's name, reported via `HealthCheck.name`.
     public let name: String
 
     /// The endpoint to request.
     public let url: URL
 
+    /// This check's `HealthCheck.timeout`; also applied as the request's
+    /// `URLRequest.timeoutInterval`. Ignored (like any `HealthCheck.timeout`) when
+    /// this instance is run as a sub-check nested inside a `CompositeHealthCheck`.
     public let timeout: TimeInterval?
 
     /// The HTTP status code that counts as healthy.
@@ -948,7 +952,13 @@ public protocol DatabaseConnection: Sendable {
 /// `DatabaseConnection` and query, a custom check closure, or (if neither is
 /// supplied) as an always-`.unknown` placeholder.
 public struct DatabaseHealthCheck: HealthCheck {
+    /// This check's name, reported via `HealthCheck.name`.
     public let name: String
+
+    /// This check's `HealthCheck.timeout`; not read anywhere inside `check()` itself
+    /// (the query is not bounded by it directly). Ignored (like any
+    /// `HealthCheck.timeout`) when this instance is run as a sub-check nested inside a
+    /// `CompositeHealthCheck`.
     public let timeout: TimeInterval?
 
     /// The query passed to `DatabaseConnection.executeQuery(_:)`. Stored but unused
@@ -1068,7 +1078,13 @@ public struct DatabaseHealthCheck: HealthCheck {
 /// A `HealthCheck` that runs other `HealthCheck`s concurrently and combines their
 /// results into a single outcome.
 public struct CompositeHealthCheck: HealthCheck {
+    /// This check's name, reported via `HealthCheck.name`.
     public let name: String
+
+    /// This check's own `HealthCheck.timeout`; bounds the composite as a whole, not
+    /// its individual sub-checks (see `check()`). Also ignored, like any
+    /// `HealthCheck.timeout`, when this composite is itself nested as a sub-check
+    /// inside another `CompositeHealthCheck`.
     public let timeout: TimeInterval?
 
     /// The sub-checks run concurrently on each `check()`.
@@ -1085,9 +1101,11 @@ public struct CompositeHealthCheck: HealthCheck {
     ///   - requireAll: If `true`, any single sub-check being `.unhealthy` marks the
     ///     composite `.unhealthy`. If `false`, the composite is only `.unhealthy` when
     ///     every sub-check is. Defaults to `true`.
-    ///   - timeout: This check's own `HealthCheck.timeout`; it does not bound the
-    ///     individual sub-checks, each of which is timed out (if at all) by its own
-    ///     `timeout`. Defaults to `nil`.
+    ///   - timeout: This check's own `HealthCheck.timeout` — the only timeout in
+    ///     play for this composite. `check()` calls each sub-check's `check()`
+    ///     directly, never reading its `timeout`, so nested sub-check `timeout`
+    ///     values are ignored and a hanging sub-check hangs the whole composite.
+    ///     Defaults to `nil`.
     public init(
         name: String,
         checks: [any HealthCheck],
