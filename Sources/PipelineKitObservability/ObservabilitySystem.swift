@@ -61,10 +61,11 @@ public actor ObservabilitySystem {
     /// System-wide configuration: which of events, metrics, and logging are
     /// active, and how events are converted into metrics.
     public struct Configuration: Sendable {
-        /// Whether `emit(_:)` forwards events to `eventHub`. When `false`,
-        /// `emit(_:)` is a no-op, which also suppresses the automatic
-        /// event-to-metric conversion and logging bridges (they only ever see
-        /// events that reach `eventHub`).
+        /// Whether `emit(_:)` forwards events to `eventHub`; when `false`,
+        /// `emit(_:)` is a no-op. This gates only that one method — it does not
+        /// control whether the metrics/logging bridges are installed (see
+        /// `enableMetrics`/`logEvents`) and has no effect on events delivered to
+        /// `eventHub` through any other path (see the caveat on `emit(_:)`).
         public let enableEvents: Bool
 
         /// Whether `init(configuration:)` subscribes a `MetricsEventBridge` to
@@ -90,8 +91,9 @@ public actor ObservabilitySystem {
         /// Creates a system-wide configuration.
         ///
         /// - Parameters:
-        ///   - enableEvents: Whether emitted events are forwarded to `eventHub`.
-        ///     Defaults to `true`.
+        ///   - enableEvents: Whether calls to `emit(_:)` are forwarded to
+        ///     `eventHub` (see that method's caveat about other paths into the
+        ///     hub). Defaults to `true`.
         ///   - enableMetrics: Whether the automatic event-to-metric bridge is
         ///     installed and whether the `recordCounter`/`recordGauge`/
         ///     `recordTimer` methods record anything. Defaults to `true`.
