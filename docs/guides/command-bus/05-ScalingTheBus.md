@@ -152,16 +152,23 @@ Not all tasks are instantaneous. A `GenerateSalesReportCommand` might take sever
 The Command-Bus pattern handles this beautifully. The `CommandBus` itself remains synchronous—it dispatches and returns immediately. The asynchronous work is contained entirely within the **Handler**.
 
 ### Background Processing Pattern
+
+`notificationService` below is used but was never declared — added it as an injected
+dependency, following the same constructor-injection pattern already used for
+`reportService`/`jobQueue` in this same handler.
+
 ```swift
 class GenerateSalesReportCommandHandler: CommandHandler {
     typealias CommandType = GenerateSalesReportCommand
 
     private let reportService: ReportService
     private let jobQueue: BackgroundJobQueue
+    private let notificationService: NotificationService
 
-    init(reportService: ReportService, jobQueue: BackgroundJobQueue) {
+    init(reportService: ReportService, jobQueue: BackgroundJobQueue, notificationService: NotificationService) {
         self.reportService = reportService
         self.jobQueue = jobQueue
+        self.notificationService = notificationService
     }
 
     func handle(command: GenerateSalesReportCommand) async throws {
@@ -221,7 +228,11 @@ protocol ProgressTrackingCommand: Command {
 
 class ProgressMiddleware: Middleware {
     private let progressStore: ProgressStore
-    
+
+    init(progressStore: ProgressStore) {
+        self.progressStore = progressStore
+    }
+
     func process(command: Command, next: () async throws -> Void) async throws {
         if let trackable = command as? ProgressTrackingCommand {
             await progressStore.start(trackingId: trackable.trackingId)
@@ -301,9 +312,20 @@ struct UserRegistrationSaga: Saga {
 ```
 
 ### Event-Driven Chaining
+
+Two missing pieces versus the naive version: the handler used `eventBus` without ever
+declaring it as a property, and the listener's `commandBus` had no initializer to set
+it. Added both as constructor-injected dependencies.
+
 ```swift
 // Instead of direct chaining, use events
 class CreateUserCommandHandler: CommandHandler {
+    private let eventBus: EventBus
+
+    init(eventBus: EventBus) {
+        self.eventBus = eventBus
+    }
+
     func handle(command: CreateUserCommand) async throws {
         // ... create user logic ...
 
@@ -319,7 +341,11 @@ class CreateUserCommandHandler: CommandHandler {
 // Separate listener handles the follow-up
 class UserCreatedEventListener {
     let commandBus: CommandBus
-    
+
+    init(commandBus: CommandBus) {
+        self.commandBus = commandBus
+    }
+
     func handle(event: UserCreatedEvent) async {
         let emailCommand = SendWelcomeEmailCommand(
             userId: event.userId,
@@ -429,6 +455,10 @@ class CachingCommandBus: CommandBus {
     private let cache = NSCache<NSString, BoxedAnyCommandHandler>()
     private let handlerFactory: HandlerFactory
     private let internalBus = DefaultCommandBus()
+
+    init(handlerFactory: HandlerFactory) {
+        self.handlerFactory = handlerFactory
+    }
 
     func register<H: CommandHandler>(handler: H) {
         internalBus.register(handler: handler)

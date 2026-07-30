@@ -22,10 +22,18 @@ For every `Command` in your system, there should be exactly one `CommandHandler`
 
 ## Swift Example: Creating a Command Handler
 
-Let's build a handler for our `CreateUserCommand`. We'll start with a generic `CommandHandler` protocol that uses an `associatedtype` to link it to a specific `Command`.
+Let's build a handler for our `CreateUserCommand`. We'll start with a generic `CommandHandler` protocol that uses an `associatedtype` to link it to a specific `Command`. Handlers in this chapter also receive a `CommandContext` — a minimal, chapter-local stand-in for per-request metadata (this toy series doesn't build out a real one; PipelineKit's actual `CommandContext` is a much richer type, but nothing below needs more than an empty placeholder).
 
 ```swift
 import Foundation
+
+// A minimal, chapter-local stand-in for per-request context. This toy series doesn't
+// build out a real one - PipelineKit's actual CommandContext carries request metadata,
+// correlation IDs, and more (see the README), but nothing in this chapter reads from or
+// writes to it, so an empty placeholder is enough.
+public final class CommandContext {
+    public init() {}
+}
 
 // A generic protocol for all command handlers.
 // It uses an `associatedtype` to strongly-type the command it can handle.
@@ -267,7 +275,11 @@ class HandlerRegistry {
 // With dependency injection
 class HandlerFactory {
     private let container: DependencyContainer
-    
+
+    init(container: DependencyContainer) {
+        self.container = container
+    }
+
     func createHandler<C: Command>(for commandType: C.Type) -> CommandHandler? {
         switch commandType {
         case is CreateUserCommand.Type:
@@ -292,6 +304,10 @@ class UserRegistrationHandler: CommandHandler {
     typealias CommandType = RegisterUserCommand
 
     private let commandBus: CommandBus
+
+    init(commandBus: CommandBus) {
+        self.commandBus = commandBus
+    }
 
     func handle(_ command: RegisterUserCommand, context: CommandContext) async throws -> Void {
         // Break down into smaller commands
