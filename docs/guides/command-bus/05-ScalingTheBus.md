@@ -416,15 +416,19 @@ actor BatchingCommandBus: CommandBus {
 
 ### Caching Frequently Used Handlers
 
-Two fixes versus the naive version: `register`/`add` were missing (same as Command
-Batching above), and `let handler: CommandHandler; ...; handler.handle(command: command)`
+Three fixes versus the naive version: `register`/`add` were missing (same as Command
+Batching above); `let handler: CommandHandler; ...; handler.handle(command: command)`
 doesn't compile — `CommandHandler`'s `associatedtype CommandType` means Swift can't call
 `.handle(command:)` on an erased `any CommandHandler` value without statically knowing its
-`CommandType` matches `command`'s type. [The Command Bus](03-CommandBus.md) hit the same
-problem building `DefaultCommandBus` and solved it with a small closure-based type-erasing
-box (`AnyCommandHandler`) that performs the type check at runtime instead — same pattern,
+`CommandType` matches `command`'s type; and `HandlerFactory` itself was never declared
+anywhere in this chapter. [The Command Bus](03-CommandBus.md) hit the type-erasure problem
+building `DefaultCommandBus` and solved it with a small closure-based type-erasing box
+(`AnyCommandHandler`) that performs the type check at runtime instead — same pattern,
 redeclared here since this chapter builds its own version. `NSCache` needs `AnyObject`
-values, so a small class wrapper boxes the (struct) `AnyCommandHandler`.
+values, so a small class wrapper boxes the (struct) `AnyCommandHandler`. `HandlerFactory`
+needs to return that same type-erased wrapper (not a bare `CommandHandler`, for the exact
+reason above), so — unlike a generic "bring your own" service — its shape is specific to
+this chapter; declared with the resolution logic left abstract for you to fill in.
 
 ```swift
 // Same type-erasure technique as DefaultCommandBus (03-CommandBus.md) — needed again
@@ -449,6 +453,15 @@ struct AnyCommandHandler {
 final class BoxedAnyCommandHandler {
     let handler: AnyCommandHandler
     init(_ handler: AnyCommandHandler) { self.handler = handler }
+}
+
+final class HandlerFactory {
+    func create<C: Command>(for command: C) -> AnyCommandHandler {
+        // Real implementations resolve and construct the concrete handler for
+        // `command`'s type (see "Handler Registration at Scale" above for patterns),
+        // then wrap it: `AnyCommandHandler(YourConcreteHandler(...))`.
+        fatalError("Resolve the concrete handler for \(type(of: command)) here.")
+    }
 }
 
 class CachingCommandBus: CommandBus {
