@@ -240,3 +240,7 @@ bower_components/
 xcshareddata/
 /jul-24-impl-plan.txt
 /.build2
+
+# Examples resolve against the local parent package; a lockfile here
+# guarantees nothing for consumers and drifts from the root lockfile.
+Examples/Package.resolved

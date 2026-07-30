@@ -617,6 +617,9 @@ jobs:
     - name: Build Documentation Site
       run: Scripts/build-docs-site.sh ./docs-site
 
+    - name: Check Documentation Coverage
+      run: Scripts/check-doc-coverage.sh
+
     - name: Setup Pages
       if: success() && github.event_name == 'push' && github.ref == 'refs/heads/main'
       uses: actions/configure-pages@v6
