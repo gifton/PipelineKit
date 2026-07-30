@@ -343,28 +343,103 @@ extension DefaultCommandBus {
 ## Advanced Bus Patterns
 
 ### 1. Priority Queue Bus
+
+Filled in what the sketch left out: `CommandBus` requires `register`/`add` too (only
+`dispatch` was shown), `internalBus` had no initializer, and `processQueue()` was called
+but never defined. `PrioritizedCommand`/`PriorityQueue` weren't declared either — added a
+minimal version of each.
+
 ```swift
+public protocol PrioritizedCommand: Command {
+    var priority: Int { get }
+}
+
+public final class PriorityQueue<T> {
+    private var storage: [T] = []
+    public init() {}
+    public func enqueue(_ element: T) { storage.append(element) }
+    public func dequeue() -> T? { storage.isEmpty ? nil : storage.removeFirst() }
+}
+
 public class PriorityCommandBus: CommandBus {
     private let internalBus: DefaultCommandBus
     private let priorityQueue = PriorityQueue<PrioritizedCommand>()
-    
+
+    public init(internalBus: DefaultCommandBus = DefaultCommandBus()) {
+        self.internalBus = internalBus
+    }
+
+    public func register<H: CommandHandler>(handler: H) {
+        internalBus.register(handler: handler)
+    }
+
+    public func add(middleware: Middleware) {
+        internalBus.add(middleware: middleware)
+    }
+
     public func dispatch<C: Command>(command: C) async throws {
         if let prioritized = command as? PrioritizedCommand {
             priorityQueue.enqueue(prioritized)
-            processQueue()
+            await processQueue()
         } else {
             try await internalBus.dispatch(command: command)
+        }
+    }
+
+    private func processQueue() async {
+        // Drain highest-priority-first would go here; this toy queue is FIFO.
+        while let next = priorityQueue.dequeue() {
+            try? await internalBus.dispatch(command: next)
         }
     }
 }
 ```
 
 ### 2. Event-Emitting Bus
+
+Same missing `register`/`add`/init issue as the Priority Queue Bus above, plus `EventBus`
+and the three event types it publishes aren't declared anywhere in this chapter — this
+foreshadows the concrete event system 04-PuttingItAllTogether.md builds; minimal local
+stand-ins here.
+
 ```swift
+public struct CommandDispatchedEvent {
+    public let command: Command
+}
+
+public struct CommandCompletedEvent {
+    public let command: Command
+}
+
+public struct CommandFailedEvent {
+    public let command: Command
+    public let error: Error
+}
+
+public actor EventBus {
+    public init() {}
+    public func publish(_ event: CommandDispatchedEvent) async {}
+    public func publish(_ event: CommandCompletedEvent) async {}
+    public func publish(_ event: CommandFailedEvent) async {}
+}
+
 public class EventEmittingCommandBus: CommandBus {
     private let internalBus: DefaultCommandBus
     private let eventBus: EventBus
-    
+
+    public init(internalBus: DefaultCommandBus = DefaultCommandBus(), eventBus: EventBus = EventBus()) {
+        self.internalBus = internalBus
+        self.eventBus = eventBus
+    }
+
+    public func register<H: CommandHandler>(handler: H) {
+        internalBus.register(handler: handler)
+    }
+
+    public func add(middleware: Middleware) {
+        internalBus.add(middleware: middleware)
+    }
+
     public func dispatch<C: Command>(command: C) async throws {
         await eventBus.publish(CommandDispatchedEvent(command: command))
         

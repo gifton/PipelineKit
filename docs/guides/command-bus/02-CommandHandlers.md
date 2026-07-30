@@ -29,8 +29,10 @@ import Foundation
 
 // A generic protocol for all command handlers.
 // It uses an `associatedtype` to strongly-type the command it can handle.
-// PipelineKit's actual protocol - your handlers should conform to this.
-public protocol CommandHandler: Sendable {
+// This is a simplified analogue of PipelineKit's actual protocol, not the shipped API -
+// the real CommandHandler adds a `Sendable` requirement (so handlers can safely cross
+// actor boundaries) that this chapter's plain classes and services don't support yet.
+public protocol CommandHandler {
     associatedtype CommandType: Command
     func handle(_ command: CommandType, context: CommandContext) async throws -> CommandType.Result
 }
@@ -178,8 +180,37 @@ struct CreateUserHandler: CommandHandler {
 ```
 
 ### 3. Compensation Actions
+
+This example referenced `userService`/`emailService`/`preferencesService` without ever
+declaring them as properties (or an initializer) on the handler — added those, plus
+minimal service types matching the elided `(/*...*/)` calls (a bare comment inside
+parens is an empty argument list, so each stub method below takes no arguments).
+
 ```swift
+class UserService {
+    func saveUser() async throws {}
+    func deleteUser(id: UUID) async throws {}
+}
+
+class EmailService {
+    func sendWelcome() async throws {}
+}
+
+class PreferencesService {
+    func createDefaults() async throws {}
+}
+
 class CreateUserCommandHandler: CommandHandler {
+    private let userService: UserService
+    private let emailService: EmailService
+    private let preferencesService: PreferencesService
+
+    init(userService: UserService, emailService: EmailService, preferencesService: PreferencesService) {
+        self.userService = userService
+        self.emailService = emailService
+        self.preferencesService = preferencesService
+    }
+
     func handle(_ command: CreateUserCommand, context: CommandContext) async throws -> Void {
         // Track what we've done for rollback
         var compensations: [() async throws -> Void] = []
