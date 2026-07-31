@@ -21,27 +21,40 @@ This document outlines essential security practices when using PipelineKit in pr
 PipelineKit implements multiple security layers. Never rely on a single security mechanism:
 
 ```swift
-// ✅ GOOD: Multiple security layers with actor-based builders
-let secureBuilder = SecurePipelineBuilder()  // Actor-based for thread safety
-await secureBuilder.withPipeline(.contextAware)
-await secureBuilder.add(ValidationMiddleware())           // Layer 1: Input validation
-await secureBuilder.add(ContextAuthenticationMiddleware()) // Layer 2: Identity verification
-await secureBuilder.add(ContextAuthorizationMiddleware())  // Layer 3: Permission checking
-await secureBuilder.add(RateLimitingMiddleware(           // Layer 4: Traffic control
-    limiter: RateLimiter(strategy: .slidingWindow(windowSize: 60, limit: 100))
-))
-await secureBuilder.add(SanitizationMiddleware())         // Layer 5: Data cleaning
-await secureBuilder.add(AuditLoggingMiddleware(           // Layer 6: Activity tracking
-    logger: AuditLogger()
-))
-await secureBuilder.add(EncryptionMiddleware(             // Layer 7: Data protection
-    service: EncryptionService()
-))
-let pipeline = await secureBuilder.build()
+// ✅ GOOD: Multiple security layers, composed with PipelineBuilder (actor-based for thread safety)
+struct CreateOrderCommand: Command {
+    typealias Result = String
+}
 
-// ❌ BAD: Single security layer, no actor isolation
-let pipeline = DefaultPipeline()
-pipeline.addMiddleware(ValidationMiddleware())
+struct CreateOrderHandler: CommandHandler {
+    typealias CommandType = CreateOrderCommand
+    func handle(_ command: CreateOrderCommand, context: CommandContext) async throws -> String {
+        "order-created"
+    }
+}
+
+let builder = PipelineBuilder(handler: CreateOrderHandler())
+await builder.with(ValidationMiddleware())                    // Layer 1: Input validation
+await builder.with(AuthenticationMiddleware { userID in       // Layer 2: Identity verification
+    guard let userID else { throw PipelineError.authentication(required: true) }
+    return userID
+})
+await builder.with(AuthorizationMiddleware(                   // Layer 3: Permission checking
+    requiredRoles: ["order.create"],
+    getUserRoles: { _ in ["order.create"] } // look up real roles from your user store
+))
+await builder.with(RateLimitingMiddleware(                    // Layer 4: Traffic control
+    limiter: RateLimiter(strategy: .slidingWindow(windowSize: 60, maxRequests: 100))
+))
+await builder.with(SanitizationMiddleware())                  // Layer 5: Data cleaning
+await builder.with(AuditLoggingMiddleware(                    // Layer 6: Activity tracking
+    logger: ConsoleAuditLogger.production
+))
+let pipeline = try await builder.build()
+
+// ❌ BAD: Single security layer, wired by hand with no ordering guarantees
+let insecurePipeline = StandardPipeline(handler: CreateOrderHandler())
+try await insecurePipeline.addMiddleware(ValidationMiddleware())
 ```
 
 ### Thread-Safe Security Components
@@ -49,40 +62,47 @@ pipeline.addMiddleware(ValidationMiddleware())
 All security-critical components use actor isolation:
 
 ```swift
-// Actor-based CommandBus with security middleware
-let bus = CommandBus()
-await bus.addMiddleware(RateLimitingMiddleware(
+// Actor-based dynamic pipeline (routes commands to handlers registered at runtime)
+let bus = DynamicPipeline()
+try await bus.addMiddleware(RateLimitingMiddleware(
     limiter: RateLimiter(
-        strategy: .adaptive(baseRate: 1000) { await getSystemLoad() }
+        strategy: .adaptive(baseRate: 1000, loadFactor: { await getSystemLoad() })
     )
 ))
-await bus.addMiddleware(CircuitBreakerMiddleware(
-    failureThreshold: 5,
-    timeout: 30.0,
-    resetTimeout: 300.0
+try await bus.addMiddleware(CircuitBreakerMiddleware(
+    configuration: .init(
+        failureThreshold: 5,
+        recoveryTimeout: 30.0,
+        resetTimeout: 300.0,
+        halfOpenSuccessThreshold: 3
+    )
 ))
-await bus.addMiddleware(RetryMiddleware(
-    maxAttempts: 3,
-    retryDelay: 1.0,
-    retryableErrors: [NetworkError.self, TimeoutError.self]
+try await bus.addMiddleware(RetryMiddleware(
+    configuration: .init(
+        maxAttempts: 3,
+        strategy: .exponentialJitter(baseDelay: 1.0, maxDelay: 30.0),
+        retryableErrors: [.timeout, .networkError]
+    )
 ))
 ```
 
 ### Middleware Execution Order
 
-**Critical**: Security middleware must execute in the correct order:
+**Critical**: Security middleware must execute in the correct order. PipelineKit sorts middleware
+by `ExecutionPriority` — lower raw values run earlier (outer), higher values run later (inner);
+ties preserve insertion order. There is no separate `SecurityOrder` type and no `.authorization`
+case — see the [Architecture Guide](architecture.md) for the full priority table used by every
+pipeline. A typical security stack, built from the real cases:
 
 ```swift
-public enum SecurityOrder {
-    case correlation = 10          // Request tracking
-    case authentication = 100     // Who are you?
-    case authorization = 200       // What can you do?
-    case validation = 300          // Is the input valid?
-    case sanitization = 310        // Clean the input
-    case rateLimiting = 320        // Traffic control
-    case encryption = 330          // Protect sensitive data
-    case auditLogging = 800        // Track everything
-}
+// Lower raw value = earlier (outer).
+let securityPriorities: [ExecutionPriority] = [
+    .authentication,  // 100 — who are you?
+    .validation,      // 200 — is the input valid? (AuthorizationMiddleware also uses this)
+    .resilience,      // 250 — circuit breakers, retry, rate limiting
+    .preProcessing,   // 300 — sanitization, encryption
+    .monitoring       // 350 — audit logging
+]
 ```
 
 ## ✅ Input Validation
@@ -93,43 +113,49 @@ Never trust user input. Validate all data at the entry point:
 
 ```swift
 struct CreateUserCommand: Command {
+    typealias Result = Void
+
     let email: String
     let username: String
     let password: String
     let age: Int
-    
+
     func validate() throws {
         // Email validation
         guard email.contains("@") && email.contains(".") else {
-            throw ValidationError.invalidField("email", reason: "Invalid email format")
+            throw PipelineError.validation(field: "email", reason: .invalidEmail)
         }
-        
+
         // Username constraints
         guard username.count >= 3 && username.count <= 50 else {
-            throw ValidationError.invalidField("username", reason: "Must be between 3-50 characters")
+            throw PipelineError.validation(field: "username", reason: .custom("Must be between 3-50 characters"))
         }
         guard username.allSatisfy({ $0.isLetter || $0.isNumber || $0 == "_" }) else {
-            throw ValidationError.invalidField("username", reason: "Must be alphanumeric")
+            throw PipelineError.validation(field: "username", reason: .invalidCharacters(field: "username"))
         }
-        
+
         // Password strength
         guard password.count >= 12 && password.count <= 128 else {
-            throw ValidationError.invalidField("password", reason: "Must be between 12-128 characters")
+            throw PipelineError.validation(field: "password", reason: .weakPassword)
         }
         guard password.rangeOfCharacter(from: .uppercaseLetters) != nil,
               password.rangeOfCharacter(from: .lowercaseLetters) != nil,
               password.rangeOfCharacter(from: .decimalDigits) != nil,
               password.rangeOfCharacter(from: .punctuationCharacters) != nil else {
-            throw ValidationError.invalidField("password", reason: "Must contain uppercase, lowercase, digit, and special character")
+            throw PipelineError.validation(field: "password", reason: .weakPassword)
         }
-        
+
         // Age validation
         guard age >= 13 && age <= 120 else {
-            throw ValidationError.invalidField("age", reason: "Must be between 13-120")
+            throw PipelineError.validation(field: "age", reason: .outOfRange(field: "age", min: 13, max: 120))
         }
     }
 }
 ```
+
+`validate()` is not a `Command` protocol requirement — it's a default no-op provided by a
+`Command` extension in `PipelineKitSecurity`. Overriding it, as above, is how `ValidationMiddleware`
+picks up per-command validation; the error cases come from `PipelineError.ValidationReason`.
 
 ### Custom Validation Functions
 
@@ -139,40 +165,40 @@ Create domain-specific validation functions:
 func validateCreditCard(_ value: String) throws {
     // Remove spaces and dashes
     let cleaned = value.replacingOccurrences(of: "[\\s-]", with: "", options: .regularExpression)
-    
+
     // Length check
     guard cleaned.count >= 13 && cleaned.count <= 19 else {
-        throw ValidationError.invalidField("creditCard", reason: "Invalid credit card length")
+        throw PipelineError.validation(field: "creditCard", reason: .custom("Invalid credit card length"))
     }
-    
+
     // Luhn algorithm check
     guard isValidLuhn(cleaned) else {
-        throw ValidationError.invalidField("creditCard", reason: "Invalid credit card number")
+        throw PipelineError.validation(field: "creditCard", reason: .custom("Invalid credit card number"))
     }
 }
 
 func validatePhoneNumber(_ value: String) throws {
     let pattern = #"^\+?[1-9]\d{1,14}$"#
     guard value.range(of: pattern, options: .regularExpression) != nil else {
-        throw ValidationError.invalidField("phoneNumber", reason: "Invalid phone number format")
+        throw PipelineError.validation(field: "phoneNumber", reason: .invalidFormat(expected: "E.164"))
     }
 }
 
 func validateStrongPassword(_ value: String) throws {
     guard value.count >= 12 && value.count <= 128 else {
-        throw ValidationError.invalidField("password", reason: "Must be 12-128 characters")
+        throw PipelineError.validation(field: "password", reason: .weakPassword)
     }
-    
-    let requirements = [
-        ("uppercase letter", CharacterSet.uppercaseLetters),
-        ("lowercase letter", CharacterSet.lowercaseLetters),
-        ("digit", CharacterSet.decimalDigits),
-        ("special character", CharacterSet.punctuationCharacters)
+
+    let requirements: [(String, CharacterSet)] = [
+        ("uppercase letter", .uppercaseLetters),
+        ("lowercase letter", .lowercaseLetters),
+        ("digit", .decimalDigits),
+        ("special character", .punctuationCharacters)
     ]
-    
+
     for (name, charset) in requirements {
         guard value.rangeOfCharacter(from: charset) != nil else {
-            throw ValidationError.invalidField("password", reason: "Must contain at least one \(name)")
+            throw PipelineError.validation(field: "password", reason: .custom("Must contain at least one \(name)"))
         }
     }
 }
@@ -184,24 +210,32 @@ Always sanitize user input to prevent injection attacks:
 
 ```swift
 struct ProcessContentCommand: Command {
+    typealias Result = Void
+
     var content: String
     var title: String
-    
-    mutating func sanitize() {
+
+    // `sanitize()` is non-mutating and returns a new value — it's a default no-op provided by
+    // a `Command` extension (`func sanitize() throws -> Self`), and `SanitizationMiddleware`
+    // calls it as `let sanitized = try command.sanitize()`, not by mutating the command in place.
+    func sanitize() throws -> Self {
+        var content = content
+        var title = title
+
         // Remove dangerous HTML tags
         content = content.replacingOccurrences(of: "<script", with: "&lt;script", options: [.caseInsensitive])
         content = content.replacingOccurrences(of: "</script>", with: "&lt;/script&gt;", options: [.caseInsensitive])
         content = content.replacingOccurrences(of: "<iframe", with: "&lt;iframe", options: [.caseInsensitive])
-        
+
         // Basic HTML entity encoding
         title = title.replacingOccurrences(of: "<", with: "&lt;")
         title = title.replacingOccurrences(of: ">", with: "&gt;")
         title = title.replacingOccurrences(of: "\"", with: "&quot;")
-        
+
         // Trim whitespace
         content = content.trimmingCharacters(in: .whitespacesAndNewlines)
         title = title.trimmingCharacters(in: .whitespacesAndNewlines)
-        
+
         // Enforce length limits
         if content.count > 10000 {
             content = String(content.prefix(10000))
@@ -209,6 +243,8 @@ struct ProcessContentCommand: Command {
         if title.count > 200 {
             title = String(title.prefix(200))
         }
+
+        return ProcessContentCommand(content: content, title: title)
     }
 }
 ```
@@ -221,83 +257,99 @@ Implement fine-grained permissions:
 
 ```swift
 struct CreatePaymentCommand: Command {
+    typealias Result = Void
     let amount: Double
     let recipientId: String
 }
 
 struct PaymentAuthorizationMiddleware: Middleware {
+    // There is no `.authorization` case on `ExecutionPriority`; the real `AuthorizationMiddleware`
+    // in PipelineKitSecurity uses `.validation` (200) — see ExecutionPriority.swift.
+    let priority: ExecutionPriority = .validation
+
     func execute<T: Command>(
         _ command: T,
-        metadata: CommandMetadata,
-        next: @Sendable (T, CommandMetadata) async throws -> T.Result
+        context: CommandContext,
+        next: @escaping MiddlewareNext<T>
     ) async throws -> T.Result {
-        
         guard let paymentCommand = command as? CreatePaymentCommand else {
-            return try await next(command, metadata)
+            return try await next(command, context)
         }
-        
-        guard let userMetadata = metadata as? DefaultCommandMetadata,
-              let user = await userService.getUser(userMetadata.userId) else {
-            throw AuthorizationError.unauthenticated
+
+        guard let userID = context.userID,
+              let user = await userService.getUser(userID) else {
+            throw PipelineError.authorization(reason: .invalidCredentials)
         }
-        
+
         // Check basic permission
         guard user.roles.contains("payment_creator") else {
-            throw AuthorizationError.forbidden("Insufficient permissions")
+            throw PipelineError.authorization(reason: .roleRequired(role: "payment_creator"))
         }
-        
+
         // Amount-based authorization
         if paymentCommand.amount > 10000 {
             guard user.roles.contains("high_value_payments") else {
-                throw AuthorizationError.forbidden("Cannot create high-value payments")
+                throw PipelineError.authorization(reason: .roleRequired(role: "high_value_payments"))
             }
         }
-        
+
         // Resource-based authorization
         if paymentCommand.recipientId != user.id {
             guard user.roles.contains("payment_to_others") else {
-                throw AuthorizationError.forbidden("Cannot send payments to others")
+                throw PipelineError.authorization(reason: .roleRequired(role: "payment_to_others"))
             }
         }
-        
-        return try await next(command, metadata)
+
+        return try await next(command, context)
     }
 }
 ```
 
+`context.userID` reads the authenticated user ID that middleware upstream (e.g.
+`AuthenticationMiddleware`) stored on `CommandContext`; `userService` above stands in for your own
+user lookup. Errors come from `PipelineError.AuthorizationReason` — there is no standalone
+`AuthorizationError` type.
+
 ### Context-Based Authorization
 
-Use command context for complex authorization logic:
+Use command context for complex authorization logic. `ContextKey` is a concrete generic type
+(`ContextKey<Value>`), not a protocol — declare typed keys as instances and read/write them
+through `CommandContext`'s subscript:
 
 ```swift
-struct UserKey: ContextKey {
-    typealias Value = User
+struct User {
+    let id: String
+    let organizationID: String
 }
 
-struct OrganizationKey: ContextKey {
-    typealias Value = Organization
+struct Organization {
+    let id: String
 }
 
-struct ResourceAuthorizationMiddleware: ContextAwareMiddleware {
+let userContextKey = ContextKey<User>("user")
+let organizationContextKey = ContextKey<Organization>("organization")
+
+struct ResourceAuthorizationMiddleware: Middleware {
+    let priority: ExecutionPriority = .validation
+
     func execute<T: Command>(
         _ command: T,
         context: CommandContext,
-        next: @Sendable (T, CommandContext) async throws -> T.Result
+        next: @escaping MiddlewareNext<T>
     ) async throws -> T.Result {
-        
-        guard let user = context.get(UserKey.self),
-              let organization = context.get(OrganizationKey.self) else {
-            throw AuthorizationError.unauthenticated
+        guard let user = context[userContextKey],
+              let organization = context[organizationContextKey] else {
+            throw PipelineError.authorization(reason: .invalidCredentials)
         }
-        
+
         // Check user belongs to organization
-        guard user.organizationId == organization.id else {
-            throw AuthorizationError.forbidden("User not in organization")
+        guard user.organizationID == organization.id else {
+            throw PipelineError.authorization(reason: .accessDenied(resource: "organization"))
         }
-        
+
         // Check organization-level permissions
         try await checkOrganizationPermissions(user, organization, command)
-        
+
         return try await next(command, context)
     }
 }
@@ -327,17 +379,19 @@ let commandLimiter = RateLimiter(
     strategy: .tokenBucket(capacity: 50, refillRate: 5),
     scope: .perCommand
 )
-
-// Different scopes for rate limiting
-let globalLimiter = RateLimiter(
-    strategy: .slidingWindow(windowSize: 60, limit: 10000),
-    scope: .global
-)
 ```
+
+`RateLimitStrategy.slidingWindow` takes `maxRequests:`, not `limit:`; available scopes are
+`.global`, `.perUser`, `.perCommand`, and `.perIP`.
 
 ### Rate Limiting Strategies by Use Case
 
 ```swift
+struct SearchCommand: Command { typealias Result = Void }
+struct GetUserCommand: Command { typealias Result = Void }
+struct SubmitPaymentCommand: Command { typealias Result = Void }
+struct DeleteUserCommand: Command { typealias Result = Void }
+
 // High-frequency operations (search, read)
 let readLimiter = RateLimiter(
     strategy: .tokenBucket(capacity: 1000, refillRate: 100)
@@ -345,7 +399,7 @@ let readLimiter = RateLimiter(
 
 // Medium-frequency operations (updates)
 let writeLimiter = RateLimiter(
-    strategy: .slidingWindow(windowSize: 60, limit: 50)
+    strategy: .slidingWindow(windowSize: 60, maxRequests: 50)
 )
 
 // Low-frequency sensitive operations (payments, admin actions)
@@ -355,30 +409,33 @@ let sensitiveLimiter = RateLimiter(
 
 // Custom rate limiting middleware
 struct CommandSpecificRateLimitingMiddleware: Middleware {
+    let priority: ExecutionPriority = .resilience
+
     func execute<T: Command>(
         _ command: T,
-        metadata: CommandMetadata,
-        next: @Sendable (T, CommandMetadata) async throws -> T.Result
+        context: CommandContext,
+        next: @escaping MiddlewareNext<T>
     ) async throws -> T.Result {
-        
         let limiter = selectLimiter(for: command)
-        let identifier = extractIdentifier(from: metadata, command: command)
-        
+        let identifier = context.userID ?? "anonymous"
+
         guard try await limiter.allowRequest(identifier: identifier) else {
-            throw RateLimitError.limitExceeded(
-                remaining: 0,
-                resetAt: Date().addingTimeInterval(60)
+            let status = await limiter.getStatus(identifier: identifier)
+            throw PipelineError.rateLimitExceeded(
+                limit: status.limit,
+                resetTime: status.resetAt,
+                retryAfter: status.resetAt.timeIntervalSinceNow
             )
         }
-        
-        return try await next(command, metadata)
+
+        return try await next(command, context)
     }
-    
+
     private func selectLimiter<T: Command>(for command: T) -> RateLimiter {
         switch command {
         case is SearchCommand, is GetUserCommand:
             return readLimiter
-        case is CreatePaymentCommand, is DeleteUserCommand:
+        case is SubmitPaymentCommand, is DeleteUserCommand:
             return sensitiveLimiter
         default:
             return writeLimiter
@@ -392,31 +449,28 @@ struct CommandSpecificRateLimitingMiddleware: Middleware {
 Protect against cascading failures:
 
 ```swift
-let circuitBreaker = CircuitBreaker(
-    failureThreshold: 5,        // Open after 5 failures
-    successThreshold: 3,        // Close after 3 successes in half-open
-    timeout: 30.0,              // Stay open for 30 seconds
-    resetTimeout: 300.0         // Reset failure count after 5 minutes
+let circuitBreaker = CircuitBreakerMiddleware(
+    configuration: .init(
+        failureThreshold: 5,        // Open after 5 failures
+        recoveryTimeout: 30.0,      // Stay open for 30 seconds
+        resetTimeout: 300.0,        // Reset failure count after 5 minutes
+        halfOpenSuccessThreshold: 3 // Close after 3 successes in half-open
+    )
 )
+
+let bus = DynamicPipeline()
+try await bus.addMiddleware(circuitBreaker)
 
 let secureDispatcher = SecureCommandDispatcher(
-    bus: commandBus,
-    rateLimiter: rateLimiter,
-    circuitBreaker: circuitBreaker
+    pipeline: bus,
+    rateLimiter: RateLimiter(strategy: .tokenBucket(capacity: 100, refillRate: 10))
 )
-
-// Monitor circuit breaker state
-Task {
-    while !Task.isCancelled {
-        let state = await secureDispatcher.getCircuitBreakerState()
-        if case .open = state {
-            logger.warning("Circuit breaker is open - service degraded")
-            await alertingService.sendAlert("Circuit breaker open")
-        }
-        try await Task.sleep(nanoseconds: 10_000_000_000) // 10 seconds
-    }
-}
 ```
+
+`CircuitBreakerMiddleware` does not expose its open/closed state publicly — there is no
+`getCircuitBreakerState()` on `SecureCommandDispatcher` or anywhere else. When the circuit is
+open it throws `PipelineError.middlewareError` from `execute(_:context:next:)` instead; handle
+that where you call `dispatch(_:metadata:)` if you need to react to an open circuit.
 
 ## 🔒 Data Encryption
 
@@ -426,12 +480,14 @@ Always encrypt sensitive data:
 
 ```swift
 struct PaymentCommand: Command {
+    typealias Result = Void
+
     var cardNumber: String
     var cvv: String
     var ssn: String
     let amount: Double
     let merchantId: String
-    
+
     // Mark sensitive fields
     var sensitiveFields: [String: Any] {
         [
@@ -440,7 +496,7 @@ struct PaymentCommand: Command {
             "ssn": ssn
         ]
     }
-    
+
     mutating func updateSensitiveFields(_ fields: [String: Any]) {
         if let cardNumber = fields["cardNumber"] as? String {
             self.cardNumber = cardNumber
@@ -457,117 +513,157 @@ struct PaymentCommand: Command {
 
 ### Key Management
 
-Implement secure key storage and rotation:
+Implement secure key storage and rotation with `CommandEncryptor`, which rotates keys
+automatically based on a configurable interval, backed by your own `KeyStore` conformer:
 
 ```swift
-// Configure encryption service with actor-based key store
-let keyStore = InMemoryKeyStore()  // Thread-safe actor
-await keyStore.generateKey(for: "payment-encryption")
+// A minimal in-memory KeyStore; back this with Keychain/HSM/KMS in production.
+actor DemoKeyStore: KeyStore {
+    private var keys: [String: SendableSymmetricKey] = [:]
+    private var latestIdentifier: String?
 
-let encryptionService = EncryptionService(keyStore: keyStore)
+    var currentKey: SendableSymmetricKey? {
+        latestIdentifier.flatMap { keys[$0] }
+    }
 
-// Use encryption middleware in pipeline
-let encryptionMiddleware = EncryptionMiddleware(
-    service: encryptionService
-)
+    var currentKeyIdentifier: String? {
+        latestIdentifier
+    }
+
+    func key(for identifier: String) async -> SendableSymmetricKey? {
+        keys[identifier]
+    }
+
+    func store(key: SendableSymmetricKey, identifier: String) async {
+        keys[identifier] = key
+        latestIdentifier = identifier
+    }
+
+    func removeExpiredKeys(before date: Date) async {
+        // No expiry tracking in this minimal example.
+    }
+}
+
+let keyStore = DemoKeyStore()
+let encryptor = await CommandEncryptor(keyStore: keyStore, keyRotationInterval: 86400) // 24 hours
 ```
+
+`InMemoryKeyStore` lives in `PipelineKitTestSupport` for test use only — production code
+supplies its own `KeyStore`, as above.
 
 ### Field-Level Encryption
 
-Implement encryption at the field level for granular control:
+`EncryptionMiddleware` automatically encrypts and decrypts only the fields you name, using any
+type conforming to the `EncryptionService` protocol. `PipelineKitSecurity`'s own AES-GCM
+implementation is internal, so production code supplies its own conformer — this one follows the
+same shape:
 
 ```swift
-// The EncryptionMiddleware automatically handles encryption/decryption
-// for commands that have sensitive fields
+import CryptoKit
 
-// Example usage in pipeline:
-let securePipeline = try SecurePipelineBuilder()
-    .withPipeline(.standard)
-    .add(ValidationMiddleware())
-    .add(EncryptionMiddleware(service: encryptionService))
-    .add(AuditLoggingMiddleware(logger: auditLogger))
-    .build()
-        decrypted.cvv = try await encryptor.decrypt(cvv, context: "payment.cvv")
-        decrypted.ssn = try await encryptor.decrypt(ssn, context: "user.ssn")
-        
-        return decrypted
+struct AESGCMEncryptionService: EncryptionService {
+    private let key = SymmetricKey(size: .bits256)
+
+    func encrypt<T: Encodable>(_ value: T) async throws -> EncryptedData {
+        let data = try JSONEncoder().encode(value)
+        let sealed = try AES.GCM.seal(data, using: key)
+        return EncryptedData(
+            ciphertext: sealed.ciphertext,
+            nonce: sealed.nonce.withUnsafeBytes { Data($0) },
+            tag: sealed.tag,
+            algorithm: "AES-GCM-256"
+        )
     }
+
+    func decrypt<T: Decodable>(_ data: EncryptedData, as type: T.Type) async throws -> T {
+        let box = try AES.GCM.SealedBox(
+            nonce: try AES.GCM.Nonce(data: data.nonce),
+            ciphertext: data.ciphertext,
+            tag: data.tag ?? Data()
+        )
+        let decrypted = try AES.GCM.open(box, using: key)
+        return try JSONDecoder().decode(type, from: decrypted)
+    }
+
+    func validate() async throws {}
 }
+
+let encryptionMiddleware = EncryptionMiddleware(
+    encryptionService: AESGCMEncryptionService(),
+    sensitiveFields: ["cardNumber", "cvv", "ssn"]
+)
 ```
 
 ## 📊 Audit Logging
 
 ### Comprehensive Audit Trail
 
-Log all security-relevant events:
+Log all security-relevant events. `AuditLoggingMiddleware` automatically records a
+`CommandLifecycleEvent` (start/complete/failed) for every command, tagged with the
+userID/sessionId already present on `CommandContext`:
 
 ```swift
-let auditLogger = AuditLogger(
-    destination: .file(url: URL(fileURLWithPath: "/var/log/security-audit.json")),
-    privacyLevel: .masked,
-    bufferSize: 1000,
-    flushInterval: 30.0
-)
-
-let auditMiddleware = AuditLoggingMiddleware(
-    logger: auditLogger,
-    metadataExtractor: { command, metadata in
-        var auditData: [String: String] = [:]
-        
-        // Extract IP address and user agent
-        if let httpMetadata = metadata as? HTTPCommandMetadata {
-            auditData["clientIP"] = httpMetadata.clientIP
-            auditData["userAgent"] = httpMetadata.userAgent
-        }
-        
-        // Command-specific audit data
-        switch command {
-        case let paymentCmd as PaymentCommand:
-            auditData["amount"] = String(paymentCmd.amount)
-            auditData["currency"] = "USD"
-            auditData["riskLevel"] = calculateRiskLevel(paymentCmd)
-            
-        case let userCmd as CreateUserCommand:
-            auditData["email"] = hashPII(userCmd.email)
-            auditData["registrationSource"] = "web"
-            
-        default:
-            break
-        }
-        
-        return auditData
-    }
-)
+let auditMiddleware = AuditLoggingMiddleware(logger: ConsoleAuditLogger.production)
 ```
+
+For fields beyond the built-in lifecycle event — risk scores, payment amounts, and so on — log a
+custom `AuditEvent` conformer directly from your own middleware or handler:
+
+```swift
+struct PaymentAuditEvent: AuditEvent {
+    let eventType = "payment.audit"
+    let timestamp = Date()
+    let eventMetadata: [String: any Sendable]
+}
+
+let logger = ConsoleAuditLogger.production
+await logger.log(PaymentAuditEvent(eventMetadata: [
+    "amount": "42.00",
+    "currency": "USD",
+    "riskLevel": "low"
+]))
+```
+
+`AuditLogger` is a protocol (`ConsoleAuditLogger` and `InMemoryAuditLogger` are the concrete
+conformers PipelineKitSecurity ships); it cannot be constructed directly, and
+`AuditLoggingMiddleware` takes only a `logger:` — there is no `metadataExtractor:` parameter.
 
 ### Security Event Monitoring
 
 Monitor for suspicious patterns:
 
 ```swift
-// Security monitoring patterns
-// Monitor command execution through audit logs and metrics
+// Failure counts must live in a reference type with its own synchronization: `execute(_:context:next:)`
+// is a non-mutating protocol requirement, so a struct can't carry `var` state mutated there.
+actor FailureCounter {
+    private var counts: [String: Int] = [:]
 
-// Example: Track failed operations
+    func increment(_ key: String) -> Int {
+        counts[key, default: 0] += 1
+        return counts[key]!
+    }
+}
+
 struct SecurityMetricsMiddleware: Middleware {
-    private let threshold: Int = 5
-    private var failureCounts = [String: Int]()
-    
+    let priority: ExecutionPriority = .monitoring
+    private let threshold = 5
+    private let failureCounts = FailureCounter()
+
     func execute<T: Command>(
         _ command: T,
-        metadata: CommandMetadata,
-        next: @Sendable (T, CommandMetadata) async throws -> T.Result
+        context: CommandContext,
+        next: @escaping MiddlewareNext<T>
     ) async throws -> T.Result {
         do {
-            return try await next(command, metadata)
+            return try await next(command, context)
         } catch {
             // Track failures by user
-            if let userMeta = metadata as? DefaultCommandMetadata {
-                failureCounts[userMeta.userId, default: 0] += 1
-                
-                if failureCounts[userMeta.userId, default: 0] >= threshold {
+            if let userID = context.userID {
+                let failures = await failureCounts.increment(userID)
+
+                if failures >= threshold {
                     // Log security event
-                    print("SECURITY: Multiple failures for user \(userMeta.userId)")
+                    print("SECURITY: Multiple failures for user \(userID)")
                 }
             }
             throw error
@@ -578,28 +674,30 @@ struct SecurityMetricsMiddleware: Middleware {
 
 ### Privacy-Compliant Logging
 
-Ensure audit logs comply with privacy regulations:
+Ensure audit logs comply with privacy regulations by wrapping a logger to mask or omit sensitive
+fields before they're persisted:
 
 ```swift
-// Configure privacy levels based on data sensitivity
-let gdprCompliantLogger = AuditLogger(
-    destination: .console,  // Use appropriate destination
-    privacyLevel: .masked,
-    bufferSize: 500
-)
+// GDPR-compliant audit logging: mask or omit sensitive fields before they reach the logger.
+struct MaskingAuditLogger: AuditLogger {
+    private let wrapped: any AuditLogger
 
-// Use with middleware
-let auditMiddleware = AuditLoggingMiddleware(
-    logger: gdprCompliantLogger,
-    includeCommandData: false  // Don't log sensitive command data
-)
-                await secureAuditStore.save(encrypted)
-            },
-            privacyLevel: .minimal,
-            bufferSize: 100
-        )
+    init(wrapping logger: any AuditLogger) {
+        self.wrapped = logger
+    }
+
+    func log(_ event: any AuditEvent) async {
+        struct MaskedEvent: AuditEvent {
+            let eventType: String
+            let timestamp: Date
+            let eventMetadata: [String: any Sendable] = ["masked": true]
+        }
+        await wrapped.log(MaskedEvent(eventType: event.eventType, timestamp: event.timestamp))
     }
 }
+
+let gdprCompliantLogger = MaskingAuditLogger(wrapping: ConsoleAuditLogger.production)
+let auditMiddleware = AuditLoggingMiddleware(logger: gdprCompliantLogger)
 ```
 
 ## ⚠️ Error Handling
@@ -610,68 +708,65 @@ Never expose sensitive information in error messages:
 
 ```swift
 struct SecureErrorMiddleware: Middleware {
+    let priority: ExecutionPriority = .errorHandling
+
     func execute<T: Command>(
         _ command: T,
-        metadata: CommandMetadata,
-        next: @Sendable (T, CommandMetadata) async throws -> T.Result
+        context: CommandContext,
+        next: @escaping MiddlewareNext<T>
     ) async throws -> T.Result {
-        
         do {
-            return try await next(command, metadata)
+            return try await next(command, context)
         } catch {
-            // Log the real error for debugging
-            logger.error("Command execution failed", metadata: [
-                "command": String(describing: T.self),
-                "error": String(describing: error),
-                "userId": (metadata as? DefaultCommandMetadata)?.userId ?? "unknown"
-            ])
-            
-            // Return sanitized error to client
+            // Log the real error for debugging (never sent to the client)
+            print("Command \(T.self) failed for user \(context.userID ?? "unknown"): \(error)")
+
+            // Return a sanitized error to the client
             throw sanitizeError(error)
         }
     }
-    
+
     private func sanitizeError(_ error: Error) -> Error {
         switch error {
-        case let validationError as ValidationError:
-            return validationError // These are safe to expose
-            
-        case let authError as AuthorizationError:
-            return authError // These are safe to expose
-            
-        case let rateLimitError as RateLimitError:
-            return rateLimitError // These are safe to expose
-            
+        case let pipelineError as PipelineError:
+            switch pipelineError {
+            case .validation, .authorization, .rateLimitExceeded:
+                return pipelineError // These are safe to expose
+
+            default:
+                // Hide implementation details
+                return PipelineError.executionFailed(message: "Internal server error", context: nil)
+            }
+
         default:
-            // Hide implementation details
-            return GenericError.internalServerError
+            return PipelineError.executionFailed(message: "Internal server error", context: nil)
         }
     }
 }
 ```
+
+There is no standalone `ValidationError`, `AuthorizationError`, `RateLimitError`, or
+`GenericError` type — every pipeline error is a case of the single `PipelineError` enum.
 
 ### Error Rate Monitoring
 
 Monitor error rates for security incidents:
 
 ```swift
-class ErrorRateMonitor {
+final class ErrorRateMonitor {
     private var errorCounts: [String: Int] = [:]
     private let lock = NSLock()
-    
+
     func recordError(commandType: String, error: Error) {
-        lock.withLock {
+        let count: Int = lock.withLock {
             errorCounts[commandType, default: 0] += 1
+            return errorCounts[commandType, default: 0]
         }
-        
+
         // Check for potential attacks
-        if errorCounts[commandType, default: 0] > 100 {
-            Task {
-                await alertService.send(.highErrorRate(
-                    commandType: commandType,
-                    count: errorCounts[commandType, default: 0]
-                ))
-            }
+        if count > 100 {
+            // Route to your alerting system (PagerDuty, Slack, etc.)
+            print("ALERT: high error rate for \(commandType): \(count) errors")
         }
     }
 }
@@ -681,35 +776,45 @@ class ErrorRateMonitor {
 
 ### Environment Configuration
 
-Use different security configurations for different environments:
+Use different security configurations for different environments. `AuditLevel` and
+`ValidationStrictness` are application-defined knobs, not PipelineKit types — define them to fit
+how your own audit/validation layers are configured:
 
 ```swift
+enum AuditLevel {
+    case comprehensive, moderate, minimal
+}
+
+enum ValidationStrictness {
+    case strict, lenient
+}
+
 struct SecurityConfiguration {
     let rateLimitStrategy: RateLimitStrategy
     let encryptionEnabled: Bool
     let auditLevel: AuditLevel
     let validationStrictness: ValidationStrictness
-    
+
     static var production: SecurityConfiguration {
-        return SecurityConfiguration(
-            rateLimitStrategy: .adaptive(baseRate: 1000) { await systemLoad() },
+        SecurityConfiguration(
+            rateLimitStrategy: .adaptive(baseRate: 1000, loadFactor: { await getSystemLoad() }),
             encryptionEnabled: true,
             auditLevel: .comprehensive,
             validationStrictness: .strict
         )
     }
-    
+
     static var staging: SecurityConfiguration {
-        return SecurityConfiguration(
+        SecurityConfiguration(
             rateLimitStrategy: .tokenBucket(capacity: 10000, refillRate: 1000),
             encryptionEnabled: true,
             auditLevel: .moderate,
             validationStrictness: .strict
         )
     }
-    
+
     static var development: SecurityConfiguration {
-        return SecurityConfiguration(
+        SecurityConfiguration(
             rateLimitStrategy: .tokenBucket(capacity: 100000, refillRate: 10000),
             encryptionEnabled: false,
             auditLevel: .minimal,
@@ -734,24 +839,12 @@ func performSecurityHealthCheck() async -> Bool {
 
 ### Monitoring and Alerting
 
-Set up comprehensive monitoring:
-
-```swift
-// Use MetricsMiddleware to track security metrics
-let metricsMiddleware = MetricsMiddleware()
-
-// The middleware automatically tracks:
-// - Command execution counts
-// - Success/failure rates
-// - Execution times
-// - Error types
-
-// Add to your pipeline for automatic tracking
-let monitoredPipeline = DefaultPipeline()
-monitoredPipeline.addMiddleware(metricsMiddleware)
-monitoredPipeline.addMiddleware(validationMiddleware)
-monitoredPipeline.addMiddleware(authMiddleware)
-```
+PipelineKit has no `MetricsMiddleware` or generic `DefaultPipeline` type. For execution-time
+observability, use `SignpostMiddleware` or `TracingMiddleware` from `PipelineKitObservability`, or
+subscribe an `EventSubscriber` to an `EventHub` (see
+[Security Observability](#-security-observability) below) to record command counts,
+success/failure rates, and durations from the events PipelineKit already emits
+(`PipelineEvent.Name.commandStarted/commandCompleted/commandFailed`).
 
 ## ✅ Security Checklist
 
@@ -801,24 +894,25 @@ monitoredPipeline.addMiddleware(authMiddleware)
 
 ### Regular Security Reviews
 
-Perform these checks regularly:
+Perform these checks regularly. The function names below are placeholders for your own review
+tooling, not PipelineKit APIs:
 
-```swift
+```text
 // Weekly security review
 struct WeeklySecurityReview {
     func perform() async {
         // Check for failed authentication patterns
         await reviewAuthenticationFailures()
-        
+
         // Analyze rate limiting effectiveness
         await reviewRateLimitingMetrics()
-        
+
         // Review audit logs for anomalies
         await reviewAuditLogs()
-        
+
         // Check encryption key rotation
         await reviewKeyRotationStatus()
-        
+
         // Validate security configurations
         await validateSecurityConfig()
     }
@@ -827,127 +921,116 @@ struct WeeklySecurityReview {
 
 ## 🔍 Security Observability
 
-Comprehensive security monitoring and alerting is critical for detecting and responding to threats:
+Comprehensive security monitoring and alerting is critical for detecting and responding to
+threats. PipelineKit's observability primitives are `ObservabilitySystem`, `EventHub`, and the
+`EventSubscriber` protocol — there is no `PipelineObserver`-based "security observer" API, no
+`SecurePipelineBuilder`, and no `.withObservability(observers:)` method.
 
 ### Security Event Tracking
 
 ```swift
-// Configure security-focused observability
-let securityObserver = SecurityObserver(
-    alertThresholds: .init(
-        failedAuthAttempts: 5,
-        rateLimitHits: 10,
-        suspiciousPatterns: 3
-    )
-)
+// Real observability wiring goes through ObservabilitySystem + EventHub, not a
+// "SecurePipelineBuilder.withObservability(observers:)" API (no such type exists).
+let observability = await ObservabilitySystem(configuration: .production)
 
-let pipeline = SecurePipelineBuilder()
-    .add(AuthenticationMiddleware())
-    .add(AuthorizationMiddleware())
-    .add(RateLimitingMiddleware())
-    .build()
-    .withObservability(observers: [securityObserver])
+// Subscribe a custom EventSubscriber (see "Real-time Security Monitoring" below) to react
+// to security-relevant events as they're emitted.
+// await observability.eventHub.subscribe(securityObserver)
 ```
 
 ### Real-time Security Monitoring
 
+Real subscription is via `EventSubscriber.process(_:)` — a class-bound, `Sendable` protocol —
+not a fabricated `PipelineObserver.pipelineDidFail(_:error:metadata:pipelineType:duration:)`:
+
 ```swift
-class SecurityObserver: PipelineObserver {
-    private let alertThresholds: AlertThresholds
-    private let alertService: AlertService
-    
-    func pipelineDidFail<T: Command>(_ command: T, error: Error, metadata: CommandMetadata, pipelineType: String, duration: TimeInterval) async {
-        // Track authentication failures
-        if let authError = error as? AuthenticationError {
-            await trackAuthFailure(metadata: metadata, error: authError)
-        }
-        
-        // Track authorization failures
-        if let authzError = error as? AuthorizationError {
-            await trackAuthorizationFailure(metadata: metadata, error: authzError)
-        }
-        
-        // Track rate limit violations
-        if let rateLimitError = error as? RateLimitError {
-            await trackRateLimitViolation(metadata: metadata, error: rateLimitError)
-        }
+struct AlertThresholds: Sendable {
+    let failedAuthAttempts: Int
+    let rateLimitHits: Int
+}
+
+actor FailureTracker {
+    private var counts: [String: Int] = [:]
+    func increment(_ key: String) -> Int {
+        counts[key, default: 0] += 1
+        return counts[key]!
     }
-    
-    private func trackAuthFailure(metadata: CommandMetadata, error: AuthenticationError) async {
-        let userId = metadata.userId ?? "unknown"
-        let ip = metadata.sourceIP ?? "unknown"
-        
-        // Increment failure counter
-        let failures = await failureTracker.increment(userId: userId, ip: ip)
-        
-        // Alert if threshold exceeded
+}
+
+final class SecurityObserver: EventSubscriber {
+    private let alertThresholds: AlertThresholds
+    private let failureTracker = FailureTracker()
+
+    init(alertThresholds: AlertThresholds) {
+        self.alertThresholds = alertThresholds
+    }
+
+    func process(_ event: PipelineEvent) async {
+        // React to command failures; the event carries whatever properties the
+        // emitting code attached (see `context.emitCommandFailed(type:error:)`).
+        guard event.name == PipelineEvent.Name.commandFailed else { return }
+
+        let userID = event.properties["userID"]?.get(String.self) ?? "unknown"
+        let errorType = event.properties["errorType"]?.get(String.self) ?? "unknown"
+
+        let failures = await failureTracker.increment(userID)
+
         if failures >= alertThresholds.failedAuthAttempts {
-            await alertService.sendSecurityAlert(.authenticationFailure(
-                userId: userId,
-                ip: ip,
-                attempts: failures,
-                severity: .high
-            ))
+            // Route to your alerting system (PagerDuty, Slack, etc.)
+            print("SECURITY ALERT: \(failures) failures for user \(userID) (\(errorType))")
         }
-        
-        // Log detailed security event
-        await securityLogger.log(.authenticationFailure, properties: [
-            "user_id": userId,
-            "source_ip": ip,
-            "failure_count": failures,
-            "error_type": error.type,
-            "timestamp": Date().timeIntervalSince1970
-        ])
     }
 }
 ```
 
 ### Security Audit Trail
 
-```swift
-// Comprehensive security audit logging
-let auditObserver = AuditLogObserver(
-    configuration: .init(
-        logLevel: .detailed,
-        includeRequestBody: false,  // Don't log sensitive data
-        includeResponseBody: false,
-        maskSensitiveFields: true,
-        retentionDays: 365         // Keep for compliance
-    )
-)
-
-// Track all security-relevant events
-pipeline.withObservability(observers: [auditObserver])
-```
+There is no `AuditLogObserver` type. Route security-relevant events to your audit trail the same
+way as any other audit event — via `AuditLoggingMiddleware` and a custom `AuditEvent`, as shown in
+[Audit Logging](#-audit-logging) above.
 
 ### Threat Detection Patterns
 
 ```swift
-struct ThreatDetectionMiddleware: ContextAwareMiddleware {
-    private let detector: ThreatDetector
-    
-    func execute<T: Command>(_ command: T, context: CommandContext, next: @Sendable (T, CommandContext) async throws -> T.Result) async throws -> T.Result {
+enum ThreatLevel: Int, Comparable {
+    case none = 0, low = 1, medium = 2, high = 3
+
+    static func < (lhs: ThreatLevel, rhs: ThreatLevel) -> Bool { lhs.rawValue < rhs.rawValue }
+}
+
+struct ThreatDetector: Sendable {
+    func analyze<T: Command>(command: T, context: CommandContext) async -> ThreatLevel { .none }
+}
+
+struct ThreatDetectionMiddleware: Middleware {
+    let priority: ExecutionPriority = .validation
+    private let detector = ThreatDetector()
+
+    func execute<T: Command>(
+        _ command: T,
+        context: CommandContext,
+        next: @escaping MiddlewareNext<T>
+    ) async throws -> T.Result {
         // Analyze command for threats
         let threatLevel = await detector.analyze(command: command, context: context)
-        
-        // Emit security events
-        await context.emitCustomEvent("security.threat_analysis", properties: [
+
+        // Emit security events through the real context event API (there is no
+        // `context.emitCustomEvent(...)`; the real method is `emitEvent(_:properties:)`).
+        await context.emitEvent("security.threat_analysis", properties: [
             "command_type": String(describing: T.self),
-            "threat_level": threatLevel.rawValue,
-            "indicators": threatLevel.indicators
+            "threat_level": threatLevel.rawValue
         ])
-        
+
         // Block high-risk commands
         if threatLevel >= .high {
-            await context.emitCustomEvent("security.threat_blocked", properties: [
+            await context.emitEvent("security.threat_blocked", properties: [
                 "command_type": String(describing: T.self),
-                "threat_level": threatLevel.rawValue,
-                "reason": threatLevel.reason
+                "threat_level": threatLevel.rawValue
             ])
-            
-            throw SecurityError.threatDetected(level: threatLevel)
+
+            throw PipelineError.securityPolicy(reason: .validationFailed(reason: "threat level \(threatLevel)"))
         }
-        
+
         return try await next(command, context)
     }
 }
@@ -955,8 +1038,11 @@ struct ThreatDetectionMiddleware: ContextAwareMiddleware {
 
 ### Security Metrics Dashboard
 
-```swift
-// Real-time security metrics
+The shape below is illustrative — build the actual tracking (success rates, blocked-threat
+counts, and so on) into your own `EventSubscriber`, since PipelineKit has no built-in
+`SecurityMetrics`/`SecurityReport` types:
+
+```text
 struct SecurityMetrics {
     let authenticationSuccessRate: Double
     let authorizationSuccessRate: Double
@@ -968,7 +1054,7 @@ struct SecurityMetrics {
 
 class SecurityMonitor {
     private let observer: SecurityObserver
-    
+
     func getMetrics() async -> SecurityMetrics {
         return SecurityMetrics(
             authenticationSuccessRate: await observer.getAuthSuccessRate(),
@@ -979,10 +1065,10 @@ class SecurityMonitor {
             averageResponseTime: await observer.getAverageResponseTime()
         )
     }
-    
+
     func generateSecurityReport() async -> SecurityReport {
         let metrics = await getMetrics()
-        
+
         return SecurityReport(
             period: .last24Hours,
             metrics: metrics,
@@ -995,43 +1081,45 @@ class SecurityMonitor {
 
 ### Incident Response
 
-Have a plan for security incidents:
+Have a plan for security incidents. The service calls below (`userService`, `edgeFirewall`,
+`alertService`, `securityMonitor`) stand in for your own operational tooling — PipelineKit does
+not ship an incident-response API:
 
-```swift
+```text
 class SecurityIncidentHandler {
     func handleIncident(_ incident: SecurityIncident) async {
         // Immediate response
         await immediateResponse(incident)
-        
+
         // Investigation
         await investigate(incident)
-        
+
         // Containment
         await contain(incident)
-        
+
         // Recovery
         await recover(incident)
-        
+
         // Post-incident review
         await postIncidentReview(incident)
     }
-    
+
     private func immediateResponse(_ incident: SecurityIncident) async {
         switch incident.severity {
         case .critical:
             // Immediately disable affected accounts
             await userService.disableAccount(incident.userId)
-            
-            // Rate limit the source
-            await rateLimiter.blockIdentifier(incident.sourceIP)
-            
+
+            // Block the source at your edge/WAF (RateLimiter has no blockIdentifier API)
+            await edgeFirewall.block(incident.sourceIP)
+
             // Alert security team
             await alertService.sendCriticalAlert(incident)
-            
+
         case .high:
             // Increase monitoring
             await securityMonitor.increaseMonitoring(incident.userId)
-            
+
         case .medium, .low:
             // Log for investigation
             await auditLogger.logSecurityIncident(incident)
@@ -1057,7 +1145,7 @@ PipelineKit follows strict dependency management practices:
 
 All dependencies use exact version pinning:
 
-```swift
+```text
 dependencies: [
     // Exact version for security and reproducibility
     .package(url: "https://github.com/apple/swift-syntax.git", exact: "510.0.3"),
