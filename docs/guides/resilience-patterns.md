@@ -8,7 +8,7 @@ This document provides guidance on using PipelineKit's resilience middleware eff
 |---------|---------|-------------|
 | **Rate Limiting** | Enforce request rate limits | External API limits, fair usage policies |
 | **Circuit Breaker** | Fail fast for unhealthy services | Downstream health matters |
-| **Bulkhead** | Isolate resources per partition | Multi-tenant, per-service isolation |
+| **Bulkhead** | Bound concurrency with a shared limit (`BulkheadMiddleware`); isolate per partition (`PartitionedBulkheadMiddleware`) | Multi-tenant, per-service isolation (via `PartitionedBulkheadMiddleware`) |
 | **Back-Pressure** | Throttle global throughput | Prevent system overload |
 | **Timeout** | Bound execution time | Worst-case latency bounds |
 | **Retry** | Handle transient failures | Network issues, temporary errors |
@@ -35,7 +35,7 @@ different priority values.
 |----------|------------|-----------|
 | RateLimitingMiddleware | `.authentication` (100) | Reject early before consuming resources |
 | CircuitBreakerMiddleware | `.resilience` (250) | Fail fast for unhealthy dependencies |
-| BulkheadMiddleware | `.resilience` (250) | Isolate resources per partition |
+| BulkheadMiddleware | `.resilience` (250) | Bound concurrent executions with a shared limit (see `PartitionedBulkheadMiddleware` for per-partition isolation) |
 | TimeoutMiddleware | `.resilience` (250) | Bound maximum execution time |
 | RetryMiddleware | `.resilience` (250) | Retry transient failures (innermost) |
 
@@ -45,7 +45,7 @@ different priority values.
 
 2. **Circuit Breaker Second**: If a downstream service is unhealthy, fail fast. Don't waste resources or queue capacity. Add this middleware before Bulkhead/Timeout/Retry so it runs first among the `.resilience`-priority group.
 
-3. **Bulkhead Third**: Isolate concurrent operations by partition (tenant, service, etc.) to prevent one partition from starving others.
+3. **Bulkhead Third**: Bound concurrent executions (or, with `PartitionedBulkheadMiddleware`, isolate them by partition — tenant, service, etc.) to prevent one workload from starving the rest.
 
 4. **Timeout Fourth**: Bound the worst-case execution time. This applies to the retry loop as a whole.
 
