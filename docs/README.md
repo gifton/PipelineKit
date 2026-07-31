@@ -12,9 +12,12 @@ https://gifton.github.io/PipelineKit/
 |------|----------------|
 | [getting-started/quick-start.md](getting-started/quick-start.md) | Your first command, handler, and pipeline |
 | [getting-started/installation.md](getting-started/installation.md) | Installing via Swift Package Manager |
+| [platform-support.md](platform-support.md) | Exact platform floors, what CI verifies per platform, Linux status |
 | [guides/architecture.md](guides/architecture.md) | How the pieces fit together |
 | [guides/performance.md](guides/performance.md) | Performance guidance |
 | [guides/resilience-patterns.md](guides/resilience-patterns.md) | Resilience middleware: rate limiting, circuit breakers, bulkheads, retries |
+| [guides/security-best-practices.md](guides/security-best-practices.md) | Hardening guidance: validation, authorization, rate limiting, encryption, audit logging |
+| [guides/enterprise-evaluation.md](guides/enterprise-evaluation.md) | Evaluating PipelineKit: 30-minute POC, stable-vs-newer map, where to report |
 | [guides/command-bus/](guides/command-bus/) | The command-bus book — an in-depth, multi-chapter guide |
 | [tutorials/](tutorials/) | Basic usage, custom middleware, advanced patterns |
 | [CONCURRENCY.md](CONCURRENCY.md) | The concurrency model and its guarantees |
@@ -22,7 +25,8 @@ https://gifton.github.io/PipelineKit/
 
 Project-level documents live at the repository root: [CHANGELOG](../CHANGELOG.md),
 [CONTRIBUTING](../CONTRIBUTING.md), [CODE_OF_CONDUCT](../CODE_OF_CONDUCT.md),
-[SECURITY](../SECURITY.md), [DEPENDENCIES](../DEPENDENCIES.md).
+[SECURITY](../SECURITY.md), [DEPENDENCIES](../DEPENDENCIES.md),
+[VERSIONING](../VERSIONING.md).
 
 ## Maintainer / internal
 

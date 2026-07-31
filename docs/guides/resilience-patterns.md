@@ -286,7 +286,8 @@ try await pipeline.addMiddleware(BackPressureMiddleware(
 - Limits concurrent executions with a single shared semaphore (`maxConcurrency`)
 - `.tagged` isolation mode records the tag as context metadata (`bulkheadTag`)
   for observability only — it does **not** give each tag its own capacity; all
-  tags still contend for the same shared limit
+  tags still contend for the same shared limit (tracked in
+  [#86](https://github.com/gifton/PipelineKit/issues/86))
 - For true per-partition isolation (e.g. multi-tenant systems), use
   `PartitionedBulkheadMiddleware` instead (see "Multi-Tenant Workloads" above)
 
