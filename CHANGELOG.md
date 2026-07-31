@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.2] - 2026-07-31
+
 ### Added
 - **`ExecutionContext` task-local propagation**: `ExecutionContext.current` gives code
   below the handler — repositories, loggers, helpers at any depth — implicit access to
@@ -305,7 +307,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Ensured all semaphore continuations are properly resumed to prevent resource leaks
 - Added proper task cancellation handling throughout concurrency primitives
 
-[Unreleased]: https://github.com/gifton/PipelineKit/compare/v0.5.1...HEAD
+[Unreleased]: https://github.com/gifton/PipelineKit/compare/v0.5.2...HEAD
+[0.5.2]: https://github.com/gifton/PipelineKit/releases/tag/v0.5.2
 [0.5.1]: https://github.com/gifton/PipelineKit/releases/tag/v0.5.1
 [0.5.0]: https://github.com/gifton/PipelineKit/releases/tag/v0.5.0
 [0.3.1]: https://github.com/gifton/PipelineKit/releases/tag/v0.3.1
