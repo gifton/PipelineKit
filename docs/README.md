@@ -15,6 +15,7 @@ https://gifton.github.io/PipelineKit/
 | [guides/architecture.md](guides/architecture.md) | How the pieces fit together |
 | [guides/performance.md](guides/performance.md) | Performance guidance |
 | [guides/resilience-patterns.md](guides/resilience-patterns.md) | Resilience middleware: rate limiting, circuit breakers, bulkheads, retries |
+| [guides/security-best-practices.md](guides/security-best-practices.md) | Hardening guidance: validation, authorization, rate limiting, encryption, audit logging |
 | [guides/command-bus/](guides/command-bus/) | The command-bus book — an in-depth, multi-chapter guide |
 | [tutorials/](tutorials/) | Basic usage, custom middleware, advanced patterns |
 | [CONCURRENCY.md](CONCURRENCY.md) | The concurrency model and its guarantees |
