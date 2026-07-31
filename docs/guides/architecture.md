@@ -34,9 +34,8 @@ public protocol CommandHandler: Sendable {
 ```swift
 @dynamicMemberLookup
 public final class CommandContext: @unchecked Sendable {
-    // Typed storage access
-    public func set<T: Sendable>(_ key: ContextKey<T>, value: T?)
-    public func get<T: Sendable>(_ key: ContextKey<T>) -> T?
+    // Typed storage access via subscript
+    public subscript<T: Sendable>(_ key: ContextKey<T>) -> T? { get set }
 
     // Built‑in properties (via dynamic member lookup)
     public var requestID: String? { get set }

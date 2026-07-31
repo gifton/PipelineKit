@@ -22,15 +22,25 @@ For every `Command` in your system, there should be exactly one `CommandHandler`
 
 ## Swift Example: Creating a Command Handler
 
-Let's build a handler for our `CreateUserCommand`. We'll start with a generic `CommandHandler` protocol that uses an `associatedtype` to link it to a specific `Command`.
+Let's build a handler for our `CreateUserCommand`. We'll start with a generic `CommandHandler` protocol that uses an `associatedtype` to link it to a specific `Command`. Handlers in this chapter also receive a `CommandContext` — a minimal, chapter-local stand-in for per-request metadata (this toy series doesn't build out a real one; PipelineKit's actual `CommandContext` is a much richer type, but nothing below needs more than an empty placeholder).
 
 ```swift
 import Foundation
 
+// A minimal, chapter-local stand-in for per-request context. This toy series doesn't
+// build out a real one - PipelineKit's actual CommandContext carries request metadata,
+// correlation IDs, and more (see the README), but nothing in this chapter reads from or
+// writes to it, so an empty placeholder is enough.
+public final class CommandContext {
+    public init() {}
+}
+
 // A generic protocol for all command handlers.
 // It uses an `associatedtype` to strongly-type the command it can handle.
-// PipelineKit's actual protocol - your handlers should conform to this.
-public protocol CommandHandler: Sendable {
+// This is a simplified analogue of PipelineKit's actual protocol, not the shipped API -
+// the real CommandHandler adds a `Sendable` requirement (so handlers can safely cross
+// actor boundaries) that this chapter's plain classes and services don't support yet.
+public protocol CommandHandler {
     associatedtype CommandType: Command
     func handle(_ command: CommandType, context: CommandContext) async throws -> CommandType.Result
 }
@@ -178,8 +188,37 @@ struct CreateUserHandler: CommandHandler {
 ```
 
 ### 3. Compensation Actions
+
+This example referenced `userService`/`emailService`/`preferencesService` without ever
+declaring them as properties (or an initializer) on the handler — added those, plus
+minimal service types matching the elided `(/*...*/)` calls (a bare comment inside
+parens is an empty argument list, so each stub method below takes no arguments).
+
 ```swift
+class UserService {
+    func saveUser() async throws {}
+    func deleteUser(id: UUID) async throws {}
+}
+
+class EmailService {
+    func sendWelcome() async throws {}
+}
+
+class PreferencesService {
+    func createDefaults() async throws {}
+}
+
 class CreateUserCommandHandler: CommandHandler {
+    private let userService: UserService
+    private let emailService: EmailService
+    private let preferencesService: PreferencesService
+
+    init(userService: UserService, emailService: EmailService, preferencesService: PreferencesService) {
+        self.userService = userService
+        self.emailService = emailService
+        self.preferencesService = preferencesService
+    }
+
     func handle(_ command: CreateUserCommand, context: CommandContext) async throws -> Void {
         // Track what we've done for rollback
         var compensations: [() async throws -> Void] = []
@@ -236,7 +275,11 @@ class HandlerRegistry {
 // With dependency injection
 class HandlerFactory {
     private let container: DependencyContainer
-    
+
+    init(container: DependencyContainer) {
+        self.container = container
+    }
+
     func createHandler<C: Command>(for commandType: C.Type) -> CommandHandler? {
         switch commandType {
         case is CreateUserCommand.Type:
@@ -261,6 +304,10 @@ class UserRegistrationHandler: CommandHandler {
     typealias CommandType = RegisterUserCommand
 
     private let commandBus: CommandBus
+
+    init(commandBus: CommandBus) {
+        self.commandBus = commandBus
+    }
 
     func handle(_ command: RegisterUserCommand, context: CommandContext) async throws -> Void {
         // Break down into smaller commands

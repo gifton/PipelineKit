@@ -1,3 +1,10 @@
+//
+//  TestSynchronizer.swift
+//  PipelineKit
+//
+//  Checkpoint-based synchronization utility for coordinating concurrent tests.
+//
+
 import Foundation
 import PipelineKit
 

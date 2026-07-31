@@ -220,6 +220,11 @@ struct ValidationMiddleware: Middleware {
     }
 }
 
+enum ValidationError: Error {
+    case emptyUsername
+    case invalidEmail
+}
+
 // Example usage
 struct CreateUserCommand: Command, Validatable {
     typealias Result = User
@@ -325,7 +330,7 @@ struct RetryMiddleware: Middleware {
             }
         }
         
-        throw lastError ?? PipelineError.middlewareFailure(RetryError.exhausted)
+        throw lastError ?? PipelineError.retryExhausted(attempts: maxAttempts, lastError: RetryError.exhausted)
     }
 }
 

@@ -186,8 +186,11 @@ Event emission is provided via `PipelineKitObservability` (see that module). Cor
 ### Pipeline
 
 The pipeline orchestrates command execution through middleware to handlers.
+This is an interface summary (bodyless signatures), not literal compilable
+code — see `Sources/PipelineKit/StandardPipeline.swift` for the real
+implementation.
 
-```swift
+```text
 actor StandardPipeline<C: Command, H: CommandHandler>: Pipeline where H.CommandType == C {
     init(handler: H, maxDepth: Int = 100)
     init(handler: H, maxConcurrency: Int, maxDepth: Int = 100)
@@ -220,7 +223,7 @@ import PipelineKit
 let pipeline = StandardPipeline(handler: MyHandler())
 
 // With concurrency limit
-let pipeline = StandardPipeline(handler: MyHandler(), maxConcurrency: 10)
+let pipelineWithLimit = StandardPipeline(handler: MyHandler(), maxConcurrency: 10)
 ```
 
 ### PipelineKitCore
@@ -511,6 +514,11 @@ struct CalculateCommand: Command {
     let operation: String
 }
 
+enum CalculationError: Error {
+    case divisionByZero
+    case unknownOperation
+}
+
 // 2. Create Handler
 final class CalculatorHandler: CommandHandler {
     func handle(_ command: CalculateCommand, context: CommandContext) async throws -> Double {
@@ -600,7 +608,7 @@ try await pipeline.addMiddleware(
 let context = CommandContext()
 context.requestID = UUID().uuidString
 context.setMetadata("auth-token", value: request.token)
-context.eventEmitter = observability.eventHub
+context.eventEmitter = await observability.eventHub
 
 let order = try await pipeline.execute(
     CreateOrderCommand(items: items, userId: userId),
@@ -614,7 +622,11 @@ let order = try await pipeline.execute(
 // Event-driven command processing
 actor EventProcessor {
     let pipeline: StandardPipeline<ProcessEventCommand, ProcessEventHandler>
-    
+
+    init(pipeline: StandardPipeline<ProcessEventCommand, ProcessEventHandler>) {
+        self.pipeline = pipeline
+    }
+
     func processEvents(_ events: AsyncStream<Event>) async {
         await withTaskGroup(of: Void.self) { group in
             for await event in events {
@@ -646,10 +658,14 @@ actor EventProcessor {
 
 ## Do's and Don'ts
 
+Each pair below contrasts a good and bad version of the same pattern; several
+reuse a type name across both halves or elide bodies with `...`, so the pair
+is illustrative pseudocode rather than a single compilable unit.
+
 ### ✅ DO's
 
 #### DO: Keep Commands Simple and Immutable
-```swift
+```text
 // ✅ GOOD - Simple data structure
 struct UpdateUserCommand: Command {
     typealias Result = User
@@ -737,7 +753,7 @@ let version = context.metadata["api-version"] as? String // Unsafe!
 ### ❌ DON'Ts
 
 #### DON'T: Make Handlers Stateful
-```swift
+```text
 // ❌ BAD - Stateful handler
 class BadHandler: CommandHandler {
     var requestCount = 0 // Don't store state!
@@ -753,17 +769,17 @@ class GoodHandler: CommandHandler {
     let metrics: MetricsCollector // Injected dependency
 
     func handle(_ command: MyCommand, context: CommandContext) async throws -> Result {
-        await metrics.incrementCounter("requests")
+        await metrics.recordCounter("requests", value: 1.0, tags: [:]) // MetricsCollector.recordCounter(_:value:tags:)
         // ...
     }
 }
 ```
 
 #### DON'T: Block in Middleware
-```swift
+```text
 // ❌ BAD - Blocking I/O
 struct BadMiddleware: Middleware {
-    func execute<T>(_ command: T, context: CommandContext, next: Next) async throws -> T.Result {
+    func execute<T: Command>(_ command: T, context: CommandContext, next: MiddlewareNext<T>) async throws -> T.Result {
         Thread.sleep(forTimeInterval: 1.0) // Never block!
         return try await next(command, context)
     }
@@ -771,7 +787,7 @@ struct BadMiddleware: Middleware {
 
 // ✅ GOOD - Async operations
 struct GoodMiddleware: Middleware {
-    func execute<T>(_ command: T, context: CommandContext, next: Next) async throws -> T.Result {
+    func execute<T: Command>(_ command: T, context: CommandContext, next: MiddlewareNext<T>) async throws -> T.Result {
         try await Task.sleep(for: .seconds(1)) // Async sleep
         return try await next(command, context)
     }
@@ -779,10 +795,10 @@ struct GoodMiddleware: Middleware {
 ```
 
 #### DON'T: Catch and Suppress Errors in Middleware
-```swift
+```text
 // ❌ BAD - Suppressing errors
 struct BadMiddleware: Middleware {
-    func execute<T>(_ command: T, context: CommandContext, next: Next) async throws -> T.Result {
+    func execute<T: Command>(_ command: T, context: CommandContext, next: MiddlewareNext<T>) async throws -> T.Result {
         do {
             return try await next(command, context)
         } catch {
@@ -793,7 +809,7 @@ struct BadMiddleware: Middleware {
 
 // ✅ GOOD - Transform or enhance errors
 struct GoodMiddleware: Middleware {
-    func execute<T>(_ command: T, context: CommandContext, next: Next) async throws -> T.Result {
+    func execute<T: Command>(_ command: T, context: CommandContext, next: MiddlewareNext<T>) async throws -> T.Result {
         do {
             return try await next(command, context)
         } catch {
@@ -808,7 +824,7 @@ struct GoodMiddleware: Middleware {
 ```
 
 #### DON'T: Create Massive Commands
-```swift
+```text
 // ❌ BAD - Kitchen sink command
 struct DoEverythingCommand: Command {
     let createUser: Bool
@@ -826,10 +842,10 @@ struct SendEmailCommand: Command { ... }
 ```
 
 #### DON'T: Mix Business Logic in Middleware
-```swift
+```text
 // ❌ BAD - Business logic in middleware
 struct BadMiddleware: Middleware {
-    func execute<T>(_ command: T, context: CommandContext, next: Next) async throws -> T.Result {
+    func execute<T: Command>(_ command: T, context: CommandContext, next: MiddlewareNext<T>) async throws -> T.Result {
         if let cmd = command as? CreateUserCommand {
             // Don't implement business logic here!
             if !isValidEmail(cmd.email) { ... }
@@ -842,11 +858,11 @@ struct BadMiddleware: Middleware {
 
 // ✅ GOOD - Keep middleware focused on cross-cutting concerns
 struct GoodMiddleware: Middleware {
-    func execute<T>(_ command: T, context: CommandContext, next: Next) async throws -> T.Result {
+    func execute<T: Command>(_ command: T, context: CommandContext, next: MiddlewareNext<T>) async throws -> T.Result {
         let start = Date()
         let result = try await next(command, context)
         let duration = Date().timeIntervalSince(start)
-        await metrics.recordTimer("command.duration", value: duration)
+        await metrics.recordTimer("command.duration", duration: duration, tags: [:]) // MetricsCollector.recordTimer(_:duration:tags:)
         return result
     }
 }

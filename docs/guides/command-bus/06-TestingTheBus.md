@@ -74,7 +74,13 @@ class CreateUserCommandTests: XCTestCase {
 ```
 
 ### Property-Based Testing
-```swift
+
+This one needs the [SwiftCheck](https://github.com/typelift/SwiftCheck) property-testing
+library, which isn't part of this toy series or any dependency it declares — the
+`property(...) <- forAll { ... }` syntax below is SwiftCheck's own DSL, not standard
+XCTest:
+
+```text
 import SwiftCheck
 
 class CommandPropertyTests: XCTestCase {
@@ -117,6 +123,10 @@ class MockUserService: UserServiceProtocol {
         saveUserCalled = true
         
         if let error = shouldThrowError {
+            // Fail only once, then clear: `testCompleteUserCreationFlow` below sets this
+            // to simulate "first attempt fails, retry succeeds." Without clearing it here,
+            // every retry attempt fails too and the retry-recovery scenario can never pass.
+            shouldThrowError = nil
             throw error
         }
         
@@ -241,6 +251,9 @@ class SpyMiddleware: Middleware {
 }
 
 // Mock handler for testing middleware
+// Fixed: `context: CommandContext` — same undefined-type defect as elsewhere in the
+// series; dropped to match this chapter's carried-forward `CommandHandler` (see
+// 03-CommandBus.md), which has no context parameter.
 class MockHandler: CommandHandler {
     typealias CommandType = TestCommand
 
@@ -248,7 +261,7 @@ class MockHandler: CommandHandler {
     var shouldThrow: Error?
     var delay: TimeInterval = 0
 
-    func handle(_ command: TestCommand, context: CommandContext) async throws -> Void {
+    func handle(command: TestCommand) async throws {
         handleCalled = true
 
         if delay > 0 {
@@ -445,6 +458,12 @@ let command = try CommandBuilder()
 ```
 
 ### Snapshot Testing
+
+`assertSnapshot(matching:as:)` is the real API of the
+[swift-snapshot-testing](https://github.com/pointfreeco/swift-snapshot-testing) library —
+add it as a package dependency to run this as written; everything else below (the
+`JSONEncoder` configuration) is self-contained.
+
 ```swift
 class CommandSnapshotTests: XCTestCase {
     func testCommandSerialization() throws {
@@ -467,7 +486,15 @@ class CommandSnapshotTests: XCTestCase {
 ```
 
 ### Contract Testing
-```swift
+
+Conceptual pseudo-code, not literal Swift: `UpdateUserCommand`/`DeleteUserCommand` and
+`CommandHandler.canHandle(_:)` aren't declared anywhere in this series, and — the deeper
+issue — `CommandHandler`'s `associatedtype CommandType` means Swift can't call a static
+method through an erased `any CommandContract.Type` like this without already knowing the
+concrete conformer, the same associated-type-existential limitation covered under
+[Solution 1: Convention-Based Registration](05-ScalingTheBus.md#solution-1-convention-based-registration).
+
+```text
 protocol CommandContract {
     static var exampleCommand: Self { get }
     static var expectedHandlerType: any CommandHandler.Type { get }
@@ -558,7 +585,11 @@ class MemoryTests: XCTestCase {
 ## Testing Best Practices
 
 ### 1. Test Naming Convention
-```swift
+
+Illustrating a naming pattern, not literal code — bare function signatures with no bodies
+and no enclosing type aren't valid Swift outside a protocol requirement:
+
+```text
 // Format: test_[condition]_[expectedResult]
 func test_whenUserAlreadyExists_throwsDuplicateError()
 func test_whenValidCommand_savesUserAndPublishesEvent()
@@ -566,7 +597,12 @@ func test_whenServiceFails_retriesThreeTimes()
 ```
 
 ### 2. Arrange-Act-Assert Pattern
-```swift
+
+Same as above — illustrating the three-comment structure, not a runnable test
+(`createTestCommand`/`configureMocks`/`performAction`/`verifyExpectations` are
+placeholders for whatever your own test actually does):
+
+```text
 func testExample() async throws {
     // Arrange - Set up test data and mocks
     let command = createTestCommand()
@@ -586,7 +622,11 @@ func testExample() async throws {
 - Use separate test instances for different scenarios
 
 ### 4. Async Testing
-```swift
+
+Same as above — illustrating two test *shapes* (async/await vs. callback-based), not
+runnable code (`asyncOperation`/`result`/`expected`/`performOperation` are placeholders):
+
+```text
 // Use async/await for cleaner async tests
 func testAsyncOperation() async throws {
     let result = try await asyncOperation()

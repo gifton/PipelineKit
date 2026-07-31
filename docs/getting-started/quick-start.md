@@ -104,11 +104,11 @@ Share data between middleware using context:
 // Define a context key
 let userKey = ContextKey<String>("user")
 
-// Set in middleware
-context.set(userKey, value: "john.doe")
+// Set in middleware (custom keys use subscript access)
+context[userKey] = "john.doe"
 
 // Get in another middleware
-if let user: String = context.get(userKey) {
+if let user: String = context[userKey] {
     print("User: \(user)")
 }
 ```
@@ -133,13 +133,20 @@ let pipeline = try await builder.build()
 
 ### Error Handling
 
+`isValid` below stands in for your own validation logic — implement it to match
+your command's requirements:
+
 ```swift
 struct ValidationMiddleware: Middleware {
     let priority = ExecutionPriority.validation
     
-    func execute<T: Command>(...) async throws -> T.Result {
+    func execute<T: Command>(
+        _ command: T,
+        context: CommandContext,
+        next: @Sendable (T, CommandContext) async throws -> T.Result
+    ) async throws -> T.Result {
         guard isValid(command) else {
-            throw PipelineError.validationFailed
+            throw PipelineError.validation(field: nil, reason: .custom("Validation failed"))
         }
         return try await next(command, context)
     }
@@ -154,9 +161,11 @@ struct ValidationMiddleware: Middleware {
 Cache expensive operations:
 
 ```swift
-let cached = ExpensiveMiddleware().cached(ttl: 300) // 5 minutes
+import PipelineKitCache
 
-let builder3 = PipelineBuilder(handler: handler)
+let cached = ExpensiveMiddleware().cached(ttl: 300, cache: InMemoryMiddlewareCache.shared) // 5 minutes
+
+let builder3 = PipelineBuilder(handler: CalculateHandler())
 await builder3.addMiddleware(cached)
 let pipeline = try await builder3.build()
 ```

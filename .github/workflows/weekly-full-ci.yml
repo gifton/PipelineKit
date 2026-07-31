@@ -183,21 +183,23 @@ jobs:
       with:
         xcode-version: 'latest-stable'
 
-    - name: Check Documentation Coverage
+    - name: Analyze Documentation (all public modules)
       run: |
-        swift package generate-documentation \
-          --target PipelineKit \
-          --output-path ./docs \
-          --disable-indexing \
-          --transform-for-static-hosting \
-          --analyze \
-          --level detailed
+        set -o pipefail
+        mkdir -p audit-logs
+        for TARGET in PipelineKit PipelineKitCore PipelineKitSecurity PipelineKitResilience PipelineKitCache PipelineKitPooling PipelineKitObservability; do
+          echo "=== Analyzing $TARGET ==="
+          swift package generate-documentation \
+            --target "$TARGET" \
+            --analyze \
+            --level detailed 2>&1 | tee "audit-logs/$TARGET.log"
+        done
 
     - name: Upload Documentation Report
       uses: actions/upload-artifact@v7
       with:
         name: documentation-audit
-        path: docs/
+        path: audit-logs/
         retention-days: 7
 
   # Compatibility testing

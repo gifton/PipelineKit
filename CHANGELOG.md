@@ -21,6 +21,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   outside pipeline execution and in detached tasks.
 - `CONTRIBUTING.md` (development setup, test workflow, PR conventions) and
   `CODE_OF_CONDUCT.md` (Contributor Covenant v2.1).
+- DocC catalog for the `PipelineKit` module (landing page + Getting Started,
+  Architecture, Middleware Guide, ExecutionContext & Progress articles); combined
+  DocC site publishing all seven public modules to GitHub Pages; per-PR
+  documentation-coverage gate with per-target ratchet floors
+  (`Scripts/check-doc-coverage.sh`).
 
 ### Changed
 - **Nested pipeline executions inherit the enclosing execution's progress reporter**:
@@ -45,6 +50,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `BasicExample` and `AdvancedExample` are now real runnable programs and all
   bundled examples build as executables (`swift build` in `Examples/`); maintainer
   artifacts moved to `docs/internal/`, indexed by a new `docs/README.md`.
+- **Docs site tooling and coverage fill**: Docs Pages deploys (per-PR/main and
+  release) unified behind `Scripts/build-docs-site.sh`; weekly documentation audit
+  extended to all seven public modules; doc-comment fill for
+  `HealthCheckMiddleware`, `PartitionedBulkheadMiddleware`, `ObservabilitySystem`,
+  and five `PipelineKitTestSupport` file banners (`ActorTestMiddleware`,
+  `TestCounter`, `TestPipeline`, `TestSynchronizer`, `TimeoutTester`); guide code
+  samples compile-verified (README, getting-started, guides, tutorials,
+  command-bus series); `ResiliencePatterns.md` moved to
+  `docs/guides/resilience-patterns.md`.
 
 ### Fixed
 - **`StandardPipeline` could leave an attached progress stream unfinished**: a throw
@@ -58,6 +72,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `execute` entry points now register the finish obligation first, covering every exit
   path; when the delegated pipeline finishes the stream first, the repeat `finish()`
   is a no-op.
+- **Method-level docs pages 404'd on the published site**: filename sanitization
+  ran before the Pages upload; release docs deploy was missing
+  `--transform-for-static-hosting`.
 
 ### Removed
 - CocoaPods and Carthage install instructions — both were "coming soon" promises;
@@ -67,6 +84,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   each demonstrated APIs that no shipped module provides (`OTLPExporter`, an
   exporter-decorator layer, a typed-unit metrics algebra). Examples are documentation
   and must compile against the shipped API; five buildable examples remain.
+- `Examples/Package.resolved` from version control (examples build against the
+  local parent; the lockfile drifted and guaranteed nothing).
 
 ## [0.5.1] - 2026-07-25
 

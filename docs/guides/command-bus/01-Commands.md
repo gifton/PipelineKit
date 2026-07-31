@@ -185,6 +185,7 @@ struct CalculatePriceCommand: Command {
     
     func calculateTotal() -> Decimal { // ❌ Don't do this!
         // ...
+        return 0
     }
 }
 ```

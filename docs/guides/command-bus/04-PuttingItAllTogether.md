@@ -122,7 +122,7 @@ enum ServiceError: Error {
 }
 
 // The Handler
-// Note: PipelineKit's actual handler signature is:
+// Note: unlike this simplified handler, PipelineKit's actual handler signature is:
 // func handle(_ command: CommandType, context: CommandContext) async throws -> CommandType.Result
 class CreateUserCommandHandler: CommandHandler {
     typealias CommandType = CreateUserCommand
@@ -135,7 +135,7 @@ class CreateUserCommandHandler: CommandHandler {
         self.eventBus = eventBus
     }
 
-    func handle(_ command: CreateUserCommand, context: CommandContext) async throws -> Void {
+    func handle(command: CreateUserCommand) async throws {
         print("▶️ [Handler] Processing user: \(command.username)")
         
         // Check for duplicates
@@ -354,7 +354,7 @@ let duplicateCommand = CreateUserCommand(
 
 do {
     try await commandBus.dispatch(command: duplicateCommand)
-} catch ServiceError.duplicateUser {
+} catch CommandBusError.handlerFailed(ServiceError.duplicateUser) {
     print("✓ Correctly rejected duplicate user\n")
 } catch {
     print("✗ Unexpected error: \(error)\n")

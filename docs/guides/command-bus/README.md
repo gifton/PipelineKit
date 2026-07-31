@@ -112,7 +112,12 @@ This guide is broken down by the major components of the pattern. Here's a quick
 
 ### Performance Benchmarks (Indicative)
 
-```swift
+Pseudo-code, not literal Swift: `bus`/`busWithMiddleware`/`NoOpCommand` are illustrative
+stand-ins, and every `dispatch` in this series is `async throws` — calling it from inside
+`Array.forEach`'s synchronous closure (as opposed to a `for` loop with `try await`) isn't
+valid regardless. The numbers are indicative, not measured output from this snippet.
+
+```text
 // Simple benchmark to understand overhead
 let commands = (0..<1000).map { NoOpCommand(id: $0) }
 

@@ -1,3 +1,10 @@
+//
+//  ActorTestMiddleware.swift
+//  PipelineKit
+//
+//  Actor-isolated test middleware for thread-safe execution tracking.
+//
+
 import Foundation
 import PipelineKit
 

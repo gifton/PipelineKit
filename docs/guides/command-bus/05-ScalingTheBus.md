@@ -34,6 +34,9 @@ Think of the command handling process as an onion:
 
 ### Common Middleware Use Cases
 
+`tags + [...]` below doesn't compile as written — `Dictionary` has no `+` operator in the
+standard library; use `merging(_:uniquingKeysWith:)` instead.
+
 ```swift
 // Performance monitoring with detailed metrics
 public struct MetricsMiddleware: Middleware {
@@ -56,7 +59,7 @@ public struct MetricsMiddleware: Middleware {
             metrics.counter("command.success", tags: tags)
         } catch {
             metrics.histogram("command.duration", value: timer.stop(), tags: tags)
-            metrics.counter("command.failure", tags: tags + ["error": String(describing: error)])
+            metrics.counter("command.failure", tags: tags.merging(["error": String(describing: error)]) { current, _ in current })
             throw error
         }
     }
@@ -85,7 +88,17 @@ commandBus.register(handler: UpdateOrderHandler())
 ```
 
 ### Solution 1: Convention-Based Registration
-```swift
+
+This one is conceptual pseudo-code, not literal Swift: reflection-based discovery
+(`Runtime.allTypes`, "Use Mirror or Sourcery...") is explicitly hypothetical, and even
+with real reflection, `CommandHandler`'s `associatedtype CommandType` means Swift can't
+`.init()` a handler through its existential type or pass it to `register<H:
+CommandHandler>` once it's been erased to `any AutoRegisterHandler` — the same
+associated-type limitation `AnyCommandHandler` (see [The Command Bus](03-CommandBus.md))
+exists to work around. Solution 2 below shows the version of this idea that's actually
+real, compilable Swift.
+
+```text
 protocol AutoRegisterHandler: CommandHandler {
     init(container: DependencyContainer)
 }
@@ -139,20 +152,26 @@ Not all tasks are instantaneous. A `GenerateSalesReportCommand` might take sever
 The Command-Bus pattern handles this beautifully. The `CommandBus` itself remains synchronous—it dispatches and returns immediately. The asynchronous work is contained entirely within the **Handler**.
 
 ### Background Processing Pattern
+
+`notificationService` below is used but was never declared — added it as an injected
+dependency, following the same constructor-injection pattern already used for
+`reportService`/`jobQueue` in this same handler.
+
 ```swift
 class GenerateSalesReportCommandHandler: CommandHandler {
     typealias CommandType = GenerateSalesReportCommand
 
     private let reportService: ReportService
     private let jobQueue: BackgroundJobQueue
+    private let notificationService: NotificationService
 
-    init(reportService: ReportService, jobQueue: BackgroundJobQueue) {
+    init(reportService: ReportService, jobQueue: BackgroundJobQueue, notificationService: NotificationService) {
         self.reportService = reportService
         self.jobQueue = jobQueue
+        self.notificationService = notificationService
     }
 
-    // Note: PipelineKit handlers receive context and return a Result type
-    func handle(_ command: GenerateSalesReportCommand, context: CommandContext) async throws -> Void {
+    func handle(command: GenerateSalesReportCommand) async throws {
         print("▶️ [Handler] Received report generation request")
         
         // Quick validation
@@ -209,7 +228,11 @@ protocol ProgressTrackingCommand: Command {
 
 class ProgressMiddleware: Middleware {
     private let progressStore: ProgressStore
-    
+
+    init(progressStore: ProgressStore) {
+        self.progressStore = progressStore
+    }
+
     func process(command: Command, next: () async throws -> Void) async throws {
         if let trackable = command as? ProgressTrackingCommand {
             await progressStore.start(trackingId: trackable.trackingId)
@@ -289,10 +312,21 @@ struct UserRegistrationSaga: Saga {
 ```
 
 ### Event-Driven Chaining
+
+Two missing pieces versus the naive version: the handler used `eventBus` without ever
+declaring it as a property, and the listener's `commandBus` had no initializer to set
+it. Added both as constructor-injected dependencies.
+
 ```swift
 // Instead of direct chaining, use events
 class CreateUserCommandHandler: CommandHandler {
-    func handle(_ command: CreateUserCommand, context: CommandContext) async throws -> Void {
+    private let eventBus: EventBus
+
+    init(eventBus: EventBus) {
+        self.eventBus = eventBus
+    }
+
+    func handle(command: CreateUserCommand) async throws {
         // ... create user logic ...
 
         // Emit event instead of dispatching next command
@@ -307,7 +341,11 @@ class CreateUserCommandHandler: CommandHandler {
 // Separate listener handles the follow-up
 class UserCreatedEventListener {
     let commandBus: CommandBus
-    
+
+    init(commandBus: CommandBus) {
+        self.commandBus = commandBus
+    }
+
     func handle(event: UserCreatedEvent) async {
         let emailCommand = SendWelcomeEmailCommand(
             userId: event.userId,
@@ -323,13 +361,29 @@ class UserCreatedEventListener {
 ## 5. Performance Optimization Strategies
 
 ### Command Batching
+
+`CommandBus` requires `register(handler:)` and `add(middleware:)` too (see [The Command
+Bus](03-CommandBus.md)) — the sketch below only showed `dispatch`. Filled those in,
+delegating to a plain `DefaultCommandBus` this batching bus wraps. They're marked
+`nonisolated` because `CommandBus`'s requirements are synchronous, and only a
+`nonisolated` method on an actor can be called without `await`.
+
 ```swift
 actor BatchingCommandBus: CommandBus {
     private var buffer: [any Command] = []
     private let batchSize = 100
     private let flushInterval: TimeInterval = 0.1
     private var flushTask: Task<Void, Never>?
-    
+    private let internalBus = DefaultCommandBus()
+
+    nonisolated func register<H: CommandHandler>(handler: H) {
+        internalBus.register(handler: handler)
+    }
+
+    nonisolated func add(middleware: Middleware) {
+        internalBus.add(middleware: middleware)
+    }
+
     func dispatch<C: Command>(command: C) async throws {
         buffer.append(command)
         
@@ -361,21 +415,82 @@ actor BatchingCommandBus: CommandBus {
 ```
 
 ### Caching Frequently Used Handlers
+
+Three fixes versus the naive version: `register`/`add` were missing (same as Command
+Batching above); `let handler: CommandHandler; ...; handler.handle(command: command)`
+doesn't compile — `CommandHandler`'s `associatedtype CommandType` means Swift can't call
+`.handle(command:)` on an erased `any CommandHandler` value without statically knowing its
+`CommandType` matches `command`'s type; and `HandlerFactory` itself was never declared
+anywhere in this chapter. [The Command Bus](03-CommandBus.md) hit the type-erasure problem
+building `DefaultCommandBus` and solved it with a small closure-based type-erasing box
+(`AnyCommandHandler`) that performs the type check at runtime instead — same pattern,
+redeclared here since this chapter builds its own version. `NSCache` needs `AnyObject`
+values, so a small class wrapper boxes the (struct) `AnyCommandHandler`. `HandlerFactory`
+needs to return that same type-erased wrapper (not a bare `CommandHandler`, for the exact
+reason above), so — unlike a generic "bring your own" service — its shape is specific to
+this chapter; declared with the resolution logic left abstract for you to fill in.
+
 ```swift
+// Same type-erasure technique as DefaultCommandBus (03-CommandBus.md) — needed again
+// here because Swift can't dispatch through an associated-type protocol existential.
+struct AnyCommandHandler {
+    private let _handle: (Command) async throws -> Void
+
+    init<H: CommandHandler>(_ handler: H) {
+        self._handle = { command in
+            if let specificCommand = command as? H.CommandType {
+                try await handler.handle(command: specificCommand)
+            }
+        }
+    }
+
+    func handle(command: Command) async throws {
+        try await _handle(command)
+    }
+}
+
+// NSCache needs AnyObject; AnyCommandHandler above is a struct, so box it.
+final class BoxedAnyCommandHandler {
+    let handler: AnyCommandHandler
+    init(_ handler: AnyCommandHandler) { self.handler = handler }
+}
+
+final class HandlerFactory {
+    func create<C: Command>(for command: C) -> AnyCommandHandler {
+        // Real implementations resolve and construct the concrete handler for
+        // `command`'s type (see "Handler Registration at Scale" above for patterns),
+        // then wrap it: `AnyCommandHandler(YourConcreteHandler(...))`.
+        fatalError("Resolve the concrete handler for \(type(of: command)) here.")
+    }
+}
+
 class CachingCommandBus: CommandBus {
-    private let cache = NSCache<NSString, AnyObject>()
+    private let cache = NSCache<NSString, BoxedAnyCommandHandler>()
     private let handlerFactory: HandlerFactory
-    
+    private let internalBus = DefaultCommandBus()
+
+    init(handlerFactory: HandlerFactory) {
+        self.handlerFactory = handlerFactory
+    }
+
+    func register<H: CommandHandler>(handler: H) {
+        internalBus.register(handler: handler)
+    }
+
+    func add(middleware: Middleware) {
+        internalBus.add(middleware: middleware)
+    }
+
     func dispatch<C: Command>(command: C) async throws {
         let commandType = String(describing: type(of: command))
         let cacheKey = NSString(string: commandType)
         
-        let handler: CommandHandler
+        let handler: AnyCommandHandler
         if let cached = cache.object(forKey: cacheKey) {
-            handler = cached as! CommandHandler
+            handler = cached.handler
         } else {
             handler = handlerFactory.create(for: command)
-            cache.setObject(handler as AnyObject, forKey: cacheKey)
+            cache.setObject(BoxedAnyCommandHandler(handler), forKey: cacheKey)
         }
         
         try await handler.handle(command: command)
@@ -416,6 +531,12 @@ public struct TracingMiddleware: Middleware {
 ```
 
 ### Health Checks
+
+`handlerCount` isn't part of the `CommandBus` protocol (from [The Command
+Bus](03-CommandBus.md)), and an extension can't read a stored property its protocol
+doesn't declare — rather than grow the shared protocol for the sake of one diagnostic
+field, dropped it. Status and latency are the actual point of a health check.
+
 ```swift
 extension CommandBus {
     func healthCheck() async -> HealthStatus {
@@ -428,8 +549,7 @@ extension CommandBus {
             
             return HealthStatus(
                 status: duration < 0.1 ? .healthy : .degraded,
-                latency: duration,
-                details: ["handler_count": handlerCount]
+                latency: duration
             )
         } catch {
             return HealthStatus(
