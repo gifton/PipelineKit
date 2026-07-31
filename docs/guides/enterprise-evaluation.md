@@ -11,7 +11,7 @@ report what.
   Linux: [Platform Support](../platform-support.md).
 - **Versioning promises** (what 0.x does and does not guarantee, and how
   to pin): [VERSIONING.md](../../VERSIONING.md).
-- PipelineKit is a source-distributed SwiftPM package with four
+- PipelineKit is a source-distributed SwiftPM package with four direct
   dependencies, all Apple-maintained ([DEPENDENCIES.md](../../DEPENDENCIES.md)).
   There are no binary artifacts to vet.
 
@@ -96,16 +96,26 @@ try await pipeline.addMiddleware(LoggingMiddleware())
 ### 5. Observability hookup (5 minutes)
 
 ```swift
+import Foundation
 import PipelineKitObservability
 
 let context = CommandContext()
 await context.setupObservability(.development)
 
+let start = Date()
 _ = try await pipeline.execute(GreetCommand(name: "world"), context: context)
 
-// Events emitted during execution generate metrics automatically.
+// PipelineKit doesn't emit command lifecycle events on its own — call the
+// emit helpers yourself (or use resilience middleware, which emits its own
+// events), and they're turned into metrics automatically.
+await context.emitCommandCompleted(
+    type: "GreetCommand",
+    duration: Date().timeIntervalSince(start)
+)
+
 let metrics = await context.observability?.getMetrics()
 print(metrics ?? [])
+// 2 entries: a "command.completed" counter and a "command.duration" timer.
 ```
 
 ## Integrating with an existing codebase
