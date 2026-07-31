@@ -66,6 +66,8 @@ All security-critical components use actor isolation:
 let bus = DynamicPipeline()
 try await bus.addMiddleware(RateLimitingMiddleware(
     limiter: RateLimiter(
+        // getSystemLoad() is your own implementation, reporting current load as 0.0–1.0 —
+        // not a PipelineKit API. RateLimitStrategy.adaptive just needs any such closure.
         strategy: .adaptive(baseRate: 1000, loadFactor: { await getSystemLoad() })
     )
 ))
@@ -90,9 +92,24 @@ try await bus.addMiddleware(RetryMiddleware(
 
 **Critical**: Security middleware must execute in the correct order. PipelineKit sorts middleware
 by `ExecutionPriority` — lower raw values run earlier (outer), higher values run later (inner);
-ties preserve insertion order. There is no separate `SecurityOrder` type and no `.authorization`
-case — see the [Architecture Guide](architecture.md) for the full priority table used by every
-pipeline. A typical security stack, built from the real cases:
+ties preserve insertion order (see the [Architecture Guide](architecture.md) for how the ordering
+mechanism itself works). There is no separate `SecurityOrder` type and no `.authorization` case;
+the real cases and raw values, in execution order, are:
+
+| Case | Raw value |
+|---|---|
+| `.authentication` | 100 |
+| `.validation` | 200 |
+| `.resilience` | 250 |
+| `.preProcessing` | 300 |
+| `.monitoring` | 350 |
+| `.processing` | 400 |
+| `.postProcessing` | 500 |
+| `.errorHandling` | 600 |
+| `.observability` | 700 |
+| `.custom` | 1000 |
+
+A typical security stack, built from the real cases:
 
 ```swift
 // Lower raw value = earlier (outer).
@@ -171,7 +188,7 @@ func validateCreditCard(_ value: String) throws {
         throw PipelineError.validation(field: "creditCard", reason: .custom("Invalid credit card length"))
     }
 
-    // Luhn algorithm check
+    // Luhn algorithm check — isValidLuhn is your own checksum implementation, not PipelineKit API.
     guard isValidLuhn(cleaned) else {
         throw PipelineError.validation(field: "creditCard", reason: .custom("Invalid credit card number"))
     }
@@ -276,8 +293,13 @@ struct PaymentAuthorizationMiddleware: Middleware {
             return try await next(command, context)
         }
 
-        guard let userID = context.userID,
-              let user = await userService.getUser(userID) else {
+        // `context.userID` is the caller-supplied, UNAUTHENTICATED value from CommandMetadata —
+        // never use it for an authorization decision. The authenticated identity is whatever
+        // AuthenticationMiddleware validated and stored under "authUserId"; read it the same way
+        // the real AuthorizationMiddleware does.
+        let metadata = context.getMetadata()
+        guard let authenticatedUserID = metadata["authUserId"] as? String,
+              let user = await userService.getUser(authenticatedUserID) else {
             throw PipelineError.authorization(reason: .invalidCredentials)
         }
 
@@ -305,9 +327,14 @@ struct PaymentAuthorizationMiddleware: Middleware {
 }
 ```
 
-`context.userID` reads the authenticated user ID that middleware upstream (e.g.
-`AuthenticationMiddleware`) stored on `CommandContext`; `userService` above stands in for your own
-user lookup. Errors come from `PipelineError.AuthorizationReason` — there is no standalone
+`context.userID` is seeded from the caller-supplied `CommandMetadata.userID` at
+`CommandContext.init(metadata:)` — before any middleware runs — so it is an unauthenticated,
+client-asserted value, not a verified identity. `AuthenticationMiddleware` never writes
+`context.userID`; after it calls your `authenticate` closure, it stores the *validated* result
+under a separate string-keyed metadata entry via `context.setMetadata("authUserId", value:)`,
+which is exactly what `context.getMetadata()["authUserId"]` reads back above (the same pattern
+the real `AuthorizationMiddleware` uses internally). `userService` stands in for your own user
+lookup. Errors come from `PipelineError.AuthorizationReason` — there is no standalone
 `AuthorizationError` type.
 
 ### Context-Based Authorization
@@ -347,7 +374,8 @@ struct ResourceAuthorizationMiddleware: Middleware {
             throw PipelineError.authorization(reason: .accessDenied(resource: "organization"))
         }
 
-        // Check organization-level permissions
+        // Check organization-level permissions — checkOrganizationPermissions is your own
+        // authorization logic, not PipelineKit API.
         try await checkOrganizationPermissions(user, organization, command)
 
         return try await next(command, context)
@@ -417,6 +445,10 @@ struct CommandSpecificRateLimitingMiddleware: Middleware {
         next: @escaping MiddlewareNext<T>
     ) async throws -> T.Result {
         let limiter = selectLimiter(for: command)
+        // `context.userID` is the unauthenticated, caller-supplied identity — fine here since
+        // a rate-limit key isn't an authorization decision (worst case a spoofed value just gets
+        // its own bucket); this mirrors RateLimitingMiddleware's own default identifier
+        // extractor, `context.commandMetadata.userID ?? "anonymous"`. Never use it to authorize.
         let identifier = context.userID ?? "anonymous"
 
         guard try await limiter.allowRequest(identifier: identifier) else {
@@ -657,7 +689,12 @@ struct SecurityMetricsMiddleware: Middleware {
         do {
             return try await next(command, context)
         } catch {
-            // Track failures by user
+            // Track failures by the CLAIMED (unauthenticated) identity in `context.userID`, not
+            // by the authenticated "authUserId" metadata key: this middleware also needs to
+            // count authentication failures, and "authUserId" is only ever set *after*
+            // AuthenticationMiddleware succeeds — a failed attempt never sets it. Counting the
+            // claimed identity is the correct choice for brute-force detection; just don't use
+            // this counter (or its key) to make an authorization decision.
             if let userID = context.userID {
                 let failures = await failureCounts.increment(userID)
 
@@ -718,7 +755,9 @@ struct SecureErrorMiddleware: Middleware {
         do {
             return try await next(command, context)
         } catch {
-            // Log the real error for debugging (never sent to the client)
+            // Log the real error for debugging (never sent to the client). `context.userID` here
+            // is the unauthenticated, caller-claimed identity — fine for a diagnostic log line
+            // (it labels who *said* they were making the request), but never treat it as verified.
             print("Command \(T.self) failed for user \(context.userID ?? "unknown"): \(error)")
 
             // Return a sanitized error to the client
@@ -797,6 +836,8 @@ struct SecurityConfiguration {
 
     static var production: SecurityConfiguration {
         SecurityConfiguration(
+            // getSystemLoad() is your own implementation (see the note in "Thread-Safe Security
+            // Components" above) — not a PipelineKit API.
             rateLimitStrategy: .adaptive(baseRate: 1000, loadFactor: { await getSystemLoad() }),
             encryptionEnabled: true,
             auditLevel: .comprehensive,
@@ -842,7 +883,7 @@ func performSecurityHealthCheck() async -> Bool {
 PipelineKit has no `MetricsMiddleware` or generic `DefaultPipeline` type. For execution-time
 observability, use `SignpostMiddleware` or `TracingMiddleware` from `PipelineKitObservability`, or
 subscribe an `EventSubscriber` to an `EventHub` (see
-[Security Observability](#-security-observability) below) to record command counts,
+[Security Observability](#security-observability) below) to record command counts,
 success/failure rates, and durations from the events PipelineKit already emits
 (`PipelineEvent.Name.commandStarted/commandCompleted/commandFailed`).
 
@@ -970,6 +1011,10 @@ final class SecurityObserver: EventSubscriber {
         // emitting code attached (see `context.emitCommandFailed(type:error:)`).
         guard event.name == PipelineEvent.Name.commandFailed else { return }
 
+        // "userID" here is whatever `context.emitCommandFailed` copied from the unauthenticated
+        // `context.userID` (see the note in "Role-Based Access Control (RBAC)" above) — that's
+        // the right identity to alert on for security monitoring, since it also catches failed
+        // authentication attempts, but never use this signal to make an authorization decision.
         let userID = event.properties["userID"]?.get(String.self) ?? "unknown"
         let errorType = event.properties["errorType"]?.get(String.self) ?? "unknown"
 
@@ -987,7 +1032,7 @@ final class SecurityObserver: EventSubscriber {
 
 There is no `AuditLogObserver` type. Route security-relevant events to your audit trail the same
 way as any other audit event — via `AuditLoggingMiddleware` and a custom `AuditEvent`, as shown in
-[Audit Logging](#-audit-logging) above.
+[Audit Logging](#audit-logging) above.
 
 ### Threat Detection Patterns
 
