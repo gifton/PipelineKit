@@ -1011,10 +1011,12 @@ final class SecurityObserver: EventSubscriber {
         // emitting code attached (see `context.emitCommandFailed(type:error:)`).
         guard event.name == PipelineEvent.Name.commandFailed else { return }
 
-        // "userID" here is whatever `context.emitCommandFailed` copied from the unauthenticated
-        // `context.userID` (see the note in "Role-Based Access Control (RBAC)" above) — that's
-        // the right identity to alert on for security monitoring, since it also catches failed
-        // authentication attempts, but never use this signal to make an authorization decision.
+        // "userID" here is whatever the emitting code chose to attach via the `properties:`
+        // parameter — `emitCommandFailed` itself doesn't auto-populate a "userID" field (only
+        // `emitCommandStarted` does, copying it from `context.userID`). If your code populates it
+        // from `context.userID` too, the same unauthenticated caveat applies (see the note in
+        // "Role-Based Access Control (RBAC)" above): fine for alerting/monitoring, since it also
+        // catches failed authentication attempts, but never use it for an authorization decision.
         let userID = event.properties["userID"]?.get(String.self) ?? "unknown"
         let errorType = event.properties["errorType"]?.get(String.self) ?? "unknown"
 
