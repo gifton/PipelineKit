@@ -26,8 +26,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   DocC site publishing all seven public modules to GitHub Pages; per-PR
   documentation-coverage gate with per-target ratchet floors
   (`Scripts/check-doc-coverage.sh`).
+- `VERSIONING.md`: the 0.x compatibility promises, SwiftPM pinning semantics
+  (`from:` accepts source-breaking 0.x minors; the range form does not), and the
+  untagged-1.0.0 explanation.
+- `docs/platform-support.md`: exact platform floors and what CI actually
+  verifies per platform (tvOS/visionOS are declared floors with no CI lane;
+  Linux is best-effort and non-blocking); README links it.
+- `docs/guides/enterprise-evaluation.md`: a 30-minute proof-of-concept path and
+  an honest stable-vs-newer surface map, linking the tracked known issues.
 
 ### Changed
+- Root `SECURITY.md` is now a standard security policy (supported versions,
+  private vulnerability reporting — newly enabled on the repository, scope).
+  The former best-practices content moved to
+  `docs/guides/security-best-practices.md` and was corrected against the
+  shipped API and real CI automation: middleware examples use the real
+  `execute(_:context:next:)` protocol, the fabricated `SecurityOrder` enum and
+  `HTTPCommandMetadata` are gone, and dependency/automation claims now state
+  what actually runs; context.userID is clarified as unauthenticated.
 - **Nested pipeline executions inherit the enclosing execution's progress reporter**:
   when `StandardPipeline` or `DynamicPipeline` binds a `CommandContext` that attaches
   no `ProgressReporter`, `ExecutionContext.current?.progress` now resolves to the
