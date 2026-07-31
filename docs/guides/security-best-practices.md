@@ -1,6 +1,9 @@
-# Security Best Practices for PipelineKit
+# PipelineKit Security Best Practices
 
-This document outlines essential security practices when using PipelineKit in production environments. Following these guidelines will help ensure your application remains secure against common threats.
+This guide covers security practices and patterns for applications built on PipelineKit —
+validation, authorization, rate limiting, encryption, audit logging, and related middleware. It is
+guidance for hardening *your* application, not PipelineKit's security policy. To report a
+vulnerability in PipelineKit itself, see the root [`SECURITY.md`](../../SECURITY.md).
 
 ## 🛡️ Table of Contents
 
@@ -1179,40 +1182,55 @@ class SecurityIncidentHandler {
 
 ### Dependency Management
 
-PipelineKit follows strict dependency management practices:
+PipelineKit keeps its dependency surface small — four direct dependencies, all Apple-maintained —
+and relies on real, verifiable automation to track updates and vulnerabilities:
 
-```bash
-# Dependency audit runs automatically on CI
-# See .github/workflows/dependency-audit.yml
+- **Dependabot** (`.github/dependabot.yml`) checks the Swift package ecosystem and GitHub Actions
+  weekly (Mondays, 09:00 UTC) and opens PRs labeled `dependencies`.
+- **Trivy filesystem scan** — the `Security Scan` job in `.github/workflows/ci.yml` — runs on every
+  push to `main`/`develop`/`test-ci` and on every pull request against `main`/`develop`, uploading
+  results as SARIF via `github/codeql-action/upload-sarif`.
+- **Trivy deep scan** — the `Deep Security Audit` job in `.github/workflows/weekly-full-ci.yml` —
+  runs weekly (`cron: '0 3 * * 0'`, Sundays 3 AM UTC), scanning all severities and uploading SARIF.
 
-# SBOM is generated automatically during dependency audit
-```
+There is no `dependency-audit.yml` workflow in the active workflow set (an earlier version was
+retired to `.github/workflows/.archived/`, which GitHub Actions does not execute) and no automated
+SBOM generation currently runs.
 
 ### Version Pinning
 
-All dependencies use exact version pinning:
+All four direct dependencies are resolved with `from:` (SemVer up-to-next-major), not exact pins:
 
 ```text
 dependencies: [
-    // Exact version for security and reproducibility
-    .package(url: "https://github.com/apple/swift-syntax.git", exact: "510.0.3"),
+    .package(url: "https://github.com/apple/swift-atomics.git", from: "1.2.0"),
+    .package(url: "https://github.com/apple/swift-log.git", from: "1.5.4"),
+    .package(url: "https://github.com/apple/swift-crypto.git", from: "4.5.1"),
+    .package(url: "https://github.com/apple/swift-docc-plugin", from: "1.3.0"),
 ]
 ```
 
+`Package.resolved` is committed, so CI and local builds are reproducible at the resolved versions
+until an explicit `swift package update`. Full inventory, resolved versions, and licenses (direct
+and transitive) live in [`DEPENDENCIES.md`](../../DEPENDENCIES.md).
+
 ### Automated Auditing
 
-- **Weekly**: Automated dependency scans via GitHub Actions
-- **Monthly**: Full security audit with vulnerability scanning
-- **Per-PR**: Dependency change detection and review
+- **Weekly**: Dependabot version-update checks (`.github/dependabot.yml`) and a Trivy deep scan
+  across all severities (`Deep Security Audit` job in `weekly-full-ci.yml`).
+- **Per-PR / per-push**: Trivy filesystem scan, `CRITICAL`/`HIGH` severities (`Security Scan` job
+  in `ci.yml`).
+
+No monthly automation exists in the current workflow set.
 
 ### Supply Chain Security
 
-1. **Minimal Dependencies**: Only essential, well-maintained packages
-2. **Trusted Sources**: Prefer first-party (Apple) packages
-3. **License Compliance**: Apache-2.0 and MIT compatible only
-4. **SBOM Generation**: Track all components for compliance
+1. **Minimal Dependencies**: Only four direct dependencies, all Apple-maintained.
+2. **Trusted Sources**: Every direct and transitive dependency is a first-party Apple package.
+3. **License Compliance**: every current dependency (direct and transitive) is Apache-2.0, which
+   is compatible with PipelineKit's own MIT license.
 
-See [DEPENDENCIES.md](../DEPENDENCIES.md) for full dependency policy.
+See [DEPENDENCIES.md](../../DEPENDENCIES.md) for the full dependency inventory and policy.
 
 ## 🔗 Additional Resources
 
