@@ -10,7 +10,7 @@ targets, exactly as declared in
 |----------|-----------------|------------------|
 | macOS | 26.0 | Built and tested on every PR (SwiftPM, debug + release) |
 | iOS | 26.0 | Tested on a 26.x simulator on every PR |
-| watchOS | 26.0 | Built for a 26.x simulator on every PR (build only, no test run) |
+| watchOS | 26.0 | Built for a 26.x simulator on every PR (build only, no test run; advisory — the job is non-blocking) |
 | tvOS | 26.0 | Declared floor only — no CI lane exercises tvOS |
 | visionOS | 26.0 | Declared floor only — no CI lane exercises visionOS |
 
