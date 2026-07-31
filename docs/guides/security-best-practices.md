@@ -1226,7 +1226,9 @@ No monthly automation exists in the current workflow set.
 ### Supply Chain Security
 
 1. **Minimal Dependencies**: Only four direct dependencies, all Apple-maintained.
-2. **Trusted Sources**: Every direct and transitive dependency is a first-party Apple package.
+2. **Trusted Sources**: All four direct dependencies, plus the transitive `swift-asn1`, are hosted
+   under `github.com/apple`; the remaining transitive dependency, `swift-docc-symbolkit`, is hosted
+   under `github.com/swiftlang` (the Swift.org organization) — no third-party dependencies.
 3. **License Compliance**: every current dependency (direct and transitive) is Apache-2.0, which
    is compatible with PipelineKit's own MIT license.
 
