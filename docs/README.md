@@ -23,7 +23,8 @@ https://gifton.github.io/PipelineKit/
 
 Project-level documents live at the repository root: [CHANGELOG](../CHANGELOG.md),
 [CONTRIBUTING](../CONTRIBUTING.md), [CODE_OF_CONDUCT](../CODE_OF_CONDUCT.md),
-[SECURITY](../SECURITY.md), [DEPENDENCIES](../DEPENDENCIES.md).
+[SECURITY](../SECURITY.md), [DEPENDENCIES](../DEPENDENCIES.md),
+[VERSIONING](../VERSIONING.md).
 
 ## Maintainer / internal
 

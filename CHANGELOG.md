@@ -207,6 +207,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > Note: this release was published without a `v1.0.0` tag and versioning subsequently
 > returned to the 0.x series.
+> See [VERSIONING.md](VERSIONING.md) for the current versioning policy.
 
 ### Breaking
 - Renamed metadata initialisms for clarity and Swift guidelines compliance:
