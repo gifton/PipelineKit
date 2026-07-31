@@ -635,7 +635,8 @@ let encryptionMiddleware = EncryptionMiddleware(
 
 Log all security-relevant events. `AuditLoggingMiddleware` automatically records a
 `CommandLifecycleEvent` (start/complete/failed) for every command, tagged with the
-userID/sessionId already present on `CommandContext`:
+`authUserId`/`sessionId` entries read from `context.getMetadata()` — the same authenticated-identity
+metadata described above, not the unauthenticated `context.userID`:
 
 ```swift
 let auditMiddleware = AuditLoggingMiddleware(logger: ConsoleAuditLogger.production)
@@ -887,8 +888,11 @@ PipelineKit has no `MetricsMiddleware` or generic `DefaultPipeline` type. For ex
 observability, use `SignpostMiddleware` or `TracingMiddleware` from `PipelineKitObservability`, or
 subscribe an `EventSubscriber` to an `EventHub` (see
 [Security Observability](#security-observability) below) to record command counts,
-success/failure rates, and durations from the events PipelineKit already emits
-(`PipelineEvent.Name.commandStarted/commandCompleted/commandFailed`).
+success/failure rates, and durations from command lifecycle events your own code emits via the
+`CommandContext` emit helpers — `emitCommandStarted`/`emitCommandCompleted`/`emitCommandFailed`
+(`PipelineEvent.Name.commandStarted/commandCompleted/commandFailed`). PipelineKit itself never
+calls these; only resilience middleware emits its own `middlewareStarted`/`middlewareCompleted`/
+`middlewareFailed` events automatically.
 
 ## ✅ Security Checklist
 
