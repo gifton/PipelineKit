@@ -12,6 +12,7 @@ https://gifton.github.io/PipelineKit/
 |------|----------------|
 | [getting-started/quick-start.md](getting-started/quick-start.md) | Your first command, handler, and pipeline |
 | [getting-started/installation.md](getting-started/installation.md) | Installing via Swift Package Manager |
+| [platform-support.md](platform-support.md) | Exact platform floors, what CI verifies per platform, Linux status |
 | [guides/architecture.md](guides/architecture.md) | How the pieces fit together |
 | [guides/performance.md](guides/performance.md) | Performance guidance |
 | [guides/resilience-patterns.md](guides/resilience-patterns.md) | Resilience middleware: rate limiting, circuit breakers, bulkheads, retries |

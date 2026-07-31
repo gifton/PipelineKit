@@ -474,6 +474,9 @@ The package also ships a `test-unit` command plugin (`swift package test-unit`) 
   - watchOS 26.0+
   - visionOS 26.0+
 
+Why the floors are this high, what CI verifies per platform, and the
+status of Linux: see [Platform Support](docs/platform-support.md).
+
 ### Swift Package Manager
 
 Add to your `Package.swift`:
