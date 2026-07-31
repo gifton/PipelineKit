@@ -50,12 +50,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `BasicExample` and `AdvancedExample` are now real runnable programs and all
   bundled examples build as executables (`swift build` in `Examples/`); maintainer
   artifacts moved to `docs/internal/`, indexed by a new `docs/README.md`.
-- Docs Pages deploys (per-PR/main and release) unified behind
-  `Scripts/build-docs-site.sh`; weekly documentation audit extended to all seven
-  public modules; doc-comment fill for `HealthCheckMiddleware`,
-  `PartitionedBulkheadMiddleware`, `ObservabilitySystem`; guide code samples
-  compile-verified (README, getting-started, guides, tutorials, command-bus
-  series); `ResiliencePatterns.md` moved to `docs/guides/resilience-patterns.md`.
+- **Docs site tooling and coverage fill**: Docs Pages deploys (per-PR/main and
+  release) unified behind `Scripts/build-docs-site.sh`; weekly documentation audit
+  extended to all seven public modules; doc-comment fill for
+  `HealthCheckMiddleware`, `PartitionedBulkheadMiddleware`, `ObservabilitySystem`,
+  and five `PipelineKitTestSupport` file banners (`ActorTestMiddleware`,
+  `TestCounter`, `TestPipeline`, `TestSynchronizer`, `TimeoutTester`); guide code
+  samples compile-verified (README, getting-started, guides, tutorials,
+  command-bus series); `ResiliencePatterns.md` moved to
+  `docs/guides/resilience-patterns.md`.
 
 ### Fixed
 - **`StandardPipeline` could leave an attached progress stream unfinished**: a throw
@@ -69,8 +72,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `execute` entry points now register the finish obligation first, covering every exit
   path; when the delegated pipeline finishes the stream first, the repeat `finish()`
   is a no-op.
-- Method-level pages on the published docs site 404'd (filename sanitization ran
-  before the Pages upload); release docs deploy was missing
+- **Method-level docs pages 404'd on the published site**: filename sanitization
+  ran before the Pages upload; release docs deploy was missing
   `--transform-for-static-hosting`.
 
 ### Removed

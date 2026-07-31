@@ -108,10 +108,14 @@ try await pipeline.addMiddleware(RetryMiddleware(
 
 ### Multi-Tenant Workloads
 
-For workloads shared across tenants, use `PartitionedBulkheadMiddleware` —
-unlike `BulkheadMiddleware`'s `.tagged` mode (whose key extractor only sees
-the command, not the context), its `partitionExtractor` receives both the
-command and the `CommandContext`.
+For workloads shared across tenants, use `PartitionedBulkheadMiddleware`.
+`BulkheadMiddleware`'s `.tagged` mode is **not** per-tenant isolation: it
+records the tag as context metadata (`bulkheadTag`) for observability, but
+every tag still contends for the same single `maxConcurrency` semaphore, so
+one noisy tenant can still starve the others. `PartitionedBulkheadMiddleware`
+gives each declared partition its own capacity, and its `partitionExtractor`
+also receives both the command and the `CommandContext` (unlike `.tagged`'s
+command-only key extractor).
 
 `PartitionedBulkheadMiddleware` requires every partition to be declared up
 front in `partitions`, so this fits a small, known set of tenants (or tenant
@@ -279,9 +283,12 @@ try await pipeline.addMiddleware(BackPressureMiddleware(
 
 ### `BulkheadMiddleware`
 
-- Isolates resources by partition (tag)
-- Prevents one partition from consuming all resources
-- Essential for multi-tenant systems
+- Limits concurrent executions with a single shared semaphore (`maxConcurrency`)
+- `.tagged` isolation mode records the tag as context metadata (`bulkheadTag`)
+  for observability only — it does **not** give each tag its own capacity; all
+  tags still contend for the same shared limit
+- For true per-partition isolation (e.g. multi-tenant systems), use
+  `PartitionedBulkheadMiddleware` instead (see "Multi-Tenant Workloads" above)
 
 ```swift
 try await pipeline.addMiddleware(BulkheadMiddleware(
@@ -298,7 +305,7 @@ try await pipeline.addMiddleware(BulkheadMiddleware(
 |----------|---------------------|
 | Simple concurrency limit | `StandardPipeline(maxConcurrency:)` |
 | Advanced queue management | `BackPressureMiddleware` |
-| Multi-tenant isolation | `BulkheadMiddleware` |
+| Multi-tenant isolation | `PartitionedBulkheadMiddleware` |
 | Multiple isolation levels | Combine `StandardPipeline` + `BulkheadMiddleware` |
 
 ## Anti-Patterns to Avoid
@@ -368,7 +375,9 @@ try await pipeline.addMiddleware(TimeoutMiddleware(defaultTimeout: 5.0))
 ## Monitoring and Observability
 
 All resilience middleware emit events through PipelineKit's observability system. Subscribe by
-implementing `EventSubscriber` (a class-bound protocol) and registering it with an `EventHub`:
+implementing `EventSubscriber` (a class-bound protocol) and registering it with an `EventHub`.
+The example below assumes a `metrics` service of your own (StatsD client, in-memory counters,
+etc.) that exposes the `record*` methods called from `process(_:)`:
 
 ```swift
 final class ResilienceEventLogger: EventSubscriber {

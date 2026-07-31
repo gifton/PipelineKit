@@ -18,14 +18,19 @@ import Foundation
 /// ## Execution Order
 ///
 /// Middleware execution order is determined by the `priority` property. The pipeline
-/// sorts middleware by priority before building the execution chain. Standard priorities
-/// include:
-/// - `.authentication` (1000): Verify user identity
-/// - `.authorization` (900): Check permissions
-/// - `.validation` (800): Validate command data
-/// - `.preProcessing` (500): Transform or enrich data
-/// - `.postProcessing` (100): Process results
-/// - `.custom` (0): Default priority
+/// sorts middleware by priority before building the execution chain — lower raw
+/// values run earlier (outer), higher values run later (inner). Standard priorities,
+/// in execution order (see `ExecutionPriority` for the full list):
+/// - `.authentication` (100): Authentication and security checks
+/// - `.validation` (200): Input validation and sanitization
+/// - `.resilience` (250): Circuit breakers, retry, timeout
+/// - `.preProcessing` (300): Transformation, decompression
+/// - `.monitoring` (350): Monitoring and audit logging
+/// - `.processing` (400): Main business logic processing
+/// - `.postProcessing` (500): Caching, metrics, logging
+/// - `.errorHandling` (600): Error handling and recovery
+/// - `.observability` (700): Logging, metrics, tracing
+/// - `.custom` (1000): Custom user-defined priority (default)
 ///
 /// ## Thread Safety
 ///

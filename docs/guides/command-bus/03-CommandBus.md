@@ -8,6 +8,8 @@ The **Command Bus** is the central dispatcher. It receives a `Command` and route
 
 This implementation includes **Middleware** support. A middleware pipeline allows you to execute code *before* and *after* a handler runs, making it perfect for handling cross-cutting concerns like logging, caching, or authentication without polluting your business logic.
 
+> **Note:** Chapter 2's toy `CommandContext` and context-taking handler protocol are dropped from here on — this chapter and those that follow use a simpler, context-free `CommandHandler` so the examples can focus on routing and middleware composition.
+
 ## The Onion Architecture 🧅
 
 Think of the command handling process as an onion:

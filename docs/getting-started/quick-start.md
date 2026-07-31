@@ -133,6 +133,9 @@ let pipeline = try await builder.build()
 
 ### Error Handling
 
+`isValid` below stands in for your own validation logic — implement it to match
+your command's requirements:
+
 ```swift
 struct ValidationMiddleware: Middleware {
     let priority = ExecutionPriority.validation
