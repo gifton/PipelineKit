@@ -158,8 +158,12 @@ public actor ConcurrentPipeline: Pipeline {
             throw PipelineError.handlerNotFound(commandType: String(describing: T.self))
         }
 
+        // acquire(timeout:) throws .backPressure(.timeout) on timeout and never
+        // returns nil in practice (its nil path is unreachable); the guard keeps
+        // the Optional signature honest while matching the documented contract
+        // on the defensive branch.
         guard let token = try await semaphore.acquire(timeout: timeout) else {
-            throw PipelineError.timeout(duration: timeout, command: command)
+            throw PipelineError.backPressure(reason: .timeout(duration: timeout))
         }
 
         defer { _ = token } // Keep token alive until end of scope
