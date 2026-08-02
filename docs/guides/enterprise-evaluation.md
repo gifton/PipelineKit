@@ -164,14 +164,11 @@ longest-exercised, not guaranteed-frozen.
   (`userId` → `userID`).
 - **Newest surface** — `ExecutionContext` task-local propagation and
   progress reporting ship in 0.5.2. Treat as the least-settled API.
-- **Known issues** — four correctness bugs found during the documentation
+- **Known issues** — two correctness bugs found during the documentation
   verification pass are tracked openly:
-  [#85](https://github.com/gifton/PipelineKit/issues/85) (context metric
-  recorders), [#86](https://github.com/gifton/PipelineKit/issues/86)
-  (tagged bulkhead), [#87](https://github.com/gifton/PipelineKit/issues/87)
-  (health-check error identity),
-  [#88](https://github.com/gifton/PipelineKit/issues/88) (unreachable
-  timeout). Read them before relying on the affected surfaces.
+  [#86](https://github.com/gifton/PipelineKit/issues/86) (tagged bulkhead),
+  [#87](https://github.com/gifton/PipelineKit/issues/87) (health-check error
+  identity). Read them before relying on the affected surfaces.
 
 ## Where to report what
 

@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- `CommandContext.recordCounter`/`recordGauge`/`recordTimer` now actually
+  record the caller's metric: `MetricsEventBridge` handles the explicit
+  `metric.*.recorded` events (bypassing the derived-metric config gates, so
+  explicit records also work under `.production`) instead of dropping the
+  name, value, and tags in its generic fallback. ([#85])
+- `ConcurrentPipeline.execute(_:context:timeout:)`: removed the unreachable,
+  misleading `PipelineError.timeout` branch; the defensive path now matches
+  the documented `.backPressure(.timeout)` contract. ([#88])
+
 ## [0.5.2] - 2026-07-31
 
 ### Added
@@ -313,3 +323,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [0.5.0]: https://github.com/gifton/PipelineKit/releases/tag/v0.5.0
 [0.3.1]: https://github.com/gifton/PipelineKit/releases/tag/v0.3.1
 [0.2.0]: https://github.com/gifton/PipelineKit/releases/tag/v0.2.0
+[#85]: https://github.com/gifton/PipelineKit/issues/85
+[#88]: https://github.com/gifton/PipelineKit/issues/88
