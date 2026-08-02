@@ -30,8 +30,28 @@ final class ConcurrentPipelineErrorContractTests: XCTestCase {
                 timeout: 5.0
             )
         }
-        // Let the first execution take the slot.
-        try await Task.sleep(nanoseconds: 200_000_000)
+
+        // Deterministically confirm the first execution has taken the only
+        // concurrency slot before proceeding, instead of a bare sleep: under
+        // --parallel test execution a fixed delay can elapse before `running`
+        // is even scheduled on a loaded runner, letting the second execute
+        // below win the semaphore's fast path and never exercise the timeout
+        // branch this test exists to pin. Poll capacity stats with a bounded
+        // total wait instead.
+        var slotTaken = false
+        for _ in 0..<200 { // 200 * 10ms = ~2s bounded wait
+            if await pipeline.getCapacityStats().activeOperations >= 1 {
+                slotTaken = true
+                break
+            }
+            try await Task.sleep(nanoseconds: 10_000_000)
+        }
+        guard slotTaken else {
+            running.cancel()
+            _ = try? await running.value
+            XCTFail("First execution never took the concurrency slot within the bounded wait")
+            return
+        }
 
         do {
             _ = try await pipeline.execute(
