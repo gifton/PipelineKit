@@ -453,8 +453,13 @@ public extension CommandContext {
     /// - Note: `MetricsEventBridge` records this as a counter snapshot with
     ///   this method's `name`, `value`, and `tags`. As direct user intent it
     ///   bypasses the derived-metric configuration gates
-    ///   (`includePatterns`/`recordCounts`), so it works under `.production`;
-    ///   only `MetricsGenerationConfig.enabled == false` disables it.
+    ///   (`includePatterns`/`excludePatterns`/`recordCounts`), so it works
+    ///   under `.production`. It is disabled when either
+    ///   `ObservabilitySystem.Configuration.enableMetrics` is `false` (then
+    ///   `setupIntegration()` never subscribes a `MetricsEventBridge`, so no
+    ///   bridge exists to convert the event) or
+    ///   `MetricsGenerationConfig.enabled` is `false` (the subscribed
+    ///   bridge's `process(_:)` returns immediately).
     ///
     /// - Parameters:
     ///   - name: The metric name to record.
@@ -488,8 +493,13 @@ public extension CommandContext {
     /// - Note: `MetricsEventBridge` records this as a gauge snapshot with this
     ///   method's `name`, `value`, `tags`, and `unit`. As direct user intent it
     ///   bypasses the derived-metric configuration gates
-    ///   (`includePatterns`/`recordCounts`), so it works under `.production`;
-    ///   only `MetricsGenerationConfig.enabled == false` disables it.
+    ///   (`includePatterns`/`excludePatterns`/`recordCounts`), so it works
+    ///   under `.production`. It is disabled when either
+    ///   `ObservabilitySystem.Configuration.enableMetrics` is `false` (then
+    ///   `setupIntegration()` never subscribes a `MetricsEventBridge`, so no
+    ///   bridge exists to convert the event) or
+    ///   `MetricsGenerationConfig.enabled` is `false` (the subscribed
+    ///   bridge's `process(_:)` returns immediately).
     ///
     /// - Parameters:
     ///   - name: The metric name to record.
@@ -532,8 +542,13 @@ public extension CommandContext {
     ///   before being packed into the event and is recorded as-is (unit
     ///   `"ms"`) — the bridge does not re-convert it. As direct user intent it
     ///   bypasses the derived-metric configuration gates
-    ///   (`includePatterns`/`recordCounts`), so it works under `.production`;
-    ///   only `MetricsGenerationConfig.enabled == false` disables it.
+    ///   (`includePatterns`/`excludePatterns`/`recordCounts`), so it works
+    ///   under `.production`. It is disabled when either
+    ///   `ObservabilitySystem.Configuration.enableMetrics` is `false` (then
+    ///   `setupIntegration()` never subscribes a `MetricsEventBridge`, so no
+    ///   bridge exists to convert the event) or
+    ///   `MetricsGenerationConfig.enabled` is `false` (the subscribed
+    ///   bridge's `process(_:)` returns immediately).
     ///
     /// - Parameters:
     ///   - name: The metric name to record.
