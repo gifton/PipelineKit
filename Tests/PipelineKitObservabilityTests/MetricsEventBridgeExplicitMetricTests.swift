@@ -114,8 +114,8 @@ final class MetricsEventBridgeExplicitMetricTests: XCTestCase {
         await context.setupObservability(.production)
         await context.recordCounter(name: "orders.placed", value: 2.0, tags: ["region": "us"])
 
-        // Event delivery may be asynchronous — poll briefly (mirror the
-        // waiting idiom used in ObservabilitySystemTests.swift if it differs).
+        // EventHub.emit() awaits full subscriber fan-out, so delivery is
+        // synchronous; the poll is belt-and-braces robustness only.
         var hit: MetricSnapshot?
         for _ in 0..<50 {
             let metrics = await context.observability?.getMetrics() ?? []

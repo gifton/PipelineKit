@@ -459,7 +459,11 @@ public extension CommandContext {
     ///   `setupIntegration()` never subscribes a `MetricsEventBridge`, so no
     ///   bridge exists to convert the event) or
     ///   `MetricsGenerationConfig.enabled` is `false` (the subscribed
-    ///   bridge's `process(_:)` returns immediately).
+    ///   bridge's `process(_:)` returns immediately). However,
+    ///   `enableStatsD(host:port:prefix:globalTags:)` is independent of
+    ///   `enableMetrics` and subscribes a separate bridge unconditionally, so
+    ///   metrics reach StatsD even if the local `metricsStorage` bridge is not
+    ///   installed.
     ///
     /// - Parameters:
     ///   - name: The metric name to record.
@@ -499,7 +503,11 @@ public extension CommandContext {
     ///   `setupIntegration()` never subscribes a `MetricsEventBridge`, so no
     ///   bridge exists to convert the event) or
     ///   `MetricsGenerationConfig.enabled` is `false` (the subscribed
-    ///   bridge's `process(_:)` returns immediately).
+    ///   bridge's `process(_:)` returns immediately). However,
+    ///   `enableStatsD(host:port:prefix:globalTags:)` is independent of
+    ///   `enableMetrics` and subscribes a separate bridge unconditionally, so
+    ///   metrics reach StatsD even if the local `metricsStorage` bridge is not
+    ///   installed.
     ///
     /// - Parameters:
     ///   - name: The metric name to record.
@@ -548,7 +556,11 @@ public extension CommandContext {
     ///   `setupIntegration()` never subscribes a `MetricsEventBridge`, so no
     ///   bridge exists to convert the event) or
     ///   `MetricsGenerationConfig.enabled` is `false` (the subscribed
-    ///   bridge's `process(_:)` returns immediately).
+    ///   bridge's `process(_:)` returns immediately). However,
+    ///   `enableStatsD(host:port:prefix:globalTags:)` is independent of
+    ///   `enableMetrics` and subscribes a separate bridge unconditionally, so
+    ///   metrics reach StatsD even if the local `metricsStorage` bridge is not
+    ///   installed.
     ///
     /// - Parameters:
     ///   - name: The metric name to record.
