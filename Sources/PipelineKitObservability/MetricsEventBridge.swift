@@ -89,7 +89,13 @@ public final class MetricsEventBridge: EventSubscriber, Sendable {
     /// Processes an event and generates appropriate metrics.
     public func process(_ event: PipelineEvent) async {
         guard config.enabled else { return }
-        
+
+        // Explicit metric events carry direct user intent from
+        // CommandContext.record{Counter,Gauge,Timer}: they bypass the
+        // include/exclude patterns and recordCounts gate, which govern
+        // derived metrics only.
+        if await recordExplicitMetric(from: event) { return }
+
         // Check exclusion patterns first
         for pattern in config.excludePatterns where event.name.contains(pattern) {
             return
@@ -111,6 +117,37 @@ public final class MetricsEventBridge: EventSubscriber, Sendable {
         await generateMetrics(for: event)
     }
     
+    /// Records the explicit metric events emitted by `CommandContext`'s
+    /// `recordCounter`/`recordGauge`/`recordTimer`. Returns `false` when the
+    /// event is not one of the three explicit names or its payload is
+    /// malformed — the caller then falls through to derived-metric handling.
+    private func recordExplicitMetric(from event: PipelineEvent) async -> Bool {
+        let type: String
+        switch event.name {
+        case "metric.counter.recorded": type = "counter"
+        case "metric.gauge.recorded": type = "gauge"
+        case "metric.timer.recorded": type = "timer"
+        default: return false
+        }
+        guard let name = event.properties["metric_name"]?.get(String.self),
+              let value = event.properties["metric_value"]?.get(Double.self) else {
+            return false
+        }
+        let tags = event.properties["metric_tags"]?.get([String: String].self) ?? [:]
+        let unit = event.properties["metric_unit"]?.get(String.self)
+        // Timer values arrive already in milliseconds (CommandContext converts);
+        // use the memberwise init — MetricSnapshot.timer(duration:) would
+        // multiply by 1000 again.
+        await recorder.record(MetricSnapshot(
+            name: name,
+            type: type,
+            value: value,
+            tags: tags,
+            unit: unit
+        ))
+        return true
+    }
+
     private func generateMetrics(for event: PipelineEvent) async {
         let tags = extractTags(from: event)
         

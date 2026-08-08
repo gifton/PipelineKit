@@ -450,24 +450,25 @@ public extension CommandContext {
     /// to `eventEmitter`; a no-op if the emitter is not an `EventHub` (e.g.
     /// `setupObservability(_:)` was never called on this context).
     ///
-    /// - Note: Unlike `ObservabilitySystem.recordCounter(name:value:tags:)`,
-    ///   this does not record a snapshot directly — it goes through the
-    ///   automatic `MetricsEventBridge`. Because `"metric.counter.recorded"`
-    ///   matches none of the bridge's named event patterns, it falls into the
-    ///   bridge's generic fallback, which — only when
-    ///   `ObservabilitySystem.Configuration.metricsGeneration.recordCounts` is
-    ///   `true` — records a `counter` snapshot literally named
-    ///   `"metric.counter.recorded"`, with `value` fixed at `1.0` and no tags.
-    ///   This method's `name`, `value`, and `tags` arguments are packed into the
-    ///   event's properties but are not read back out by that fallback, so they
-    ///   do not reach the resulting metric.
+    /// - Note: `MetricsEventBridge` records this as a counter snapshot with
+    ///   this method's `name`, `value`, and `tags`. As direct user intent it
+    ///   bypasses the derived-metric configuration gates
+    ///   (`includePatterns`/`excludePatterns`/`recordCounts`), so it works
+    ///   under `.production`. It is disabled when either
+    ///   `ObservabilitySystem.Configuration.enableMetrics` is `false` (then
+    ///   `setupIntegration()` never subscribes a `MetricsEventBridge`, so no
+    ///   bridge exists to convert the event) or
+    ///   `MetricsGenerationConfig.enabled` is `false` (the subscribed
+    ///   bridge's `process(_:)` returns immediately). However,
+    ///   `enableStatsD(host:port:prefix:globalTags:)` is independent of
+    ///   `enableMetrics` and subscribes a separate bridge unconditionally, so
+    ///   metrics reach StatsD even if the local `metricsStorage` bridge is not
+    ///   installed.
     ///
     /// - Parameters:
-    ///   - name: Included in the emitted event's properties (see note above).
-    ///   - value: Included in the emitted event's properties (see note above).
-    ///     Defaults to `1.0`.
-    ///   - tags: Included in the emitted event's properties (see note above).
-    ///     Defaults to empty.
+    ///   - name: The metric name to record.
+    ///   - value: The counter increment. Defaults to `1.0`.
+    ///   - tags: Dimensional tags for the metric. Defaults to empty.
     func recordCounter(
         name: String,
         value: Double = 1.0,
@@ -493,25 +494,27 @@ public extension CommandContext {
     /// `unit` to `eventEmitter`; a no-op if the emitter is not an `EventHub`
     /// (e.g. `setupObservability(_:)` was never called on this context).
     ///
-    /// - Note: Unlike `ObservabilitySystem.recordGauge(name:value:tags:unit:)`,
-    ///   this does not record a snapshot directly — it goes through the
-    ///   automatic `MetricsEventBridge`. Because `"metric.gauge.recorded"`
-    ///   matches none of the bridge's named event patterns, it falls into the
-    ///   bridge's generic fallback, which — only when
-    ///   `ObservabilitySystem.Configuration.metricsGeneration.recordCounts` is
-    ///   `true` — records a **`counter`** snapshot (not a gauge) literally
-    ///   named `"metric.gauge.recorded"`, with its value fixed at `1.0` and no
-    ///   tags. This method's `name`, `value`, `tags`, and `unit` arguments are
-    ///   packed into the event's properties but are not read back out by that
-    ///   fallback, so they do not reach the resulting metric.
+    /// - Note: `MetricsEventBridge` records this as a gauge snapshot with this
+    ///   method's `name`, `value`, `tags`, and `unit`. As direct user intent it
+    ///   bypasses the derived-metric configuration gates
+    ///   (`includePatterns`/`excludePatterns`/`recordCounts`), so it works
+    ///   under `.production`. It is disabled when either
+    ///   `ObservabilitySystem.Configuration.enableMetrics` is `false` (then
+    ///   `setupIntegration()` never subscribes a `MetricsEventBridge`, so no
+    ///   bridge exists to convert the event) or
+    ///   `MetricsGenerationConfig.enabled` is `false` (the subscribed
+    ///   bridge's `process(_:)` returns immediately). However,
+    ///   `enableStatsD(host:port:prefix:globalTags:)` is independent of
+    ///   `enableMetrics` and subscribes a separate bridge unconditionally, so
+    ///   metrics reach StatsD even if the local `metricsStorage` bridge is not
+    ///   installed.
     ///
     /// - Parameters:
-    ///   - name: Included in the emitted event's properties (see note above).
-    ///   - value: Included in the emitted event's properties (see note above).
-    ///   - tags: Included in the emitted event's properties (see note above).
-    ///     Defaults to empty.
-    ///   - unit: Included in the emitted event's properties when non-`nil` (see
-    ///     note above). Defaults to `nil`.
+    ///   - name: The metric name to record.
+    ///   - value: The gauge's current value.
+    ///   - tags: Dimensional tags for the metric. Defaults to empty.
+    ///   - unit: An optional unit label for the value, propagated to the
+    ///     recorded snapshot. Defaults to `nil`.
     func recordGauge(
         name: String,
         value: Double,
@@ -542,24 +545,28 @@ public extension CommandContext {
     /// `tags` to `eventEmitter`; a no-op if the emitter is not an `EventHub`
     /// (e.g. `setupObservability(_:)` was never called on this context).
     ///
-    /// - Note: Unlike `ObservabilitySystem.recordTimer(name:duration:tags:)`,
-    ///   this does not record a snapshot directly — it goes through the
-    ///   automatic `MetricsEventBridge`. Because `"metric.timer.recorded"`
-    ///   matches none of the bridge's named event patterns, it falls into the
-    ///   bridge's generic fallback, which — only when
-    ///   `ObservabilitySystem.Configuration.metricsGeneration.recordCounts` is
-    ///   `true` — records a **`counter`** snapshot (not a timer) literally
-    ///   named `"metric.timer.recorded"`, with its value fixed at `1.0` and no
-    ///   tags. This method's `name`, `duration`, and `tags` arguments are
-    ///   packed into the event's properties but are not read back out by that
-    ///   fallback, so they do not reach the resulting metric.
+    /// - Note: `MetricsEventBridge` records this as a timer snapshot with this
+    ///   method's `name` and `tags`. `duration` is converted to milliseconds
+    ///   before being packed into the event and is recorded as-is (unit
+    ///   `"ms"`) — the bridge does not re-convert it. As direct user intent it
+    ///   bypasses the derived-metric configuration gates
+    ///   (`includePatterns`/`excludePatterns`/`recordCounts`), so it works
+    ///   under `.production`. It is disabled when either
+    ///   `ObservabilitySystem.Configuration.enableMetrics` is `false` (then
+    ///   `setupIntegration()` never subscribes a `MetricsEventBridge`, so no
+    ///   bridge exists to convert the event) or
+    ///   `MetricsGenerationConfig.enabled` is `false` (the subscribed
+    ///   bridge's `process(_:)` returns immediately). However,
+    ///   `enableStatsD(host:port:prefix:globalTags:)` is independent of
+    ///   `enableMetrics` and subscribes a separate bridge unconditionally, so
+    ///   metrics reach StatsD even if the local `metricsStorage` bridge is not
+    ///   installed.
     ///
     /// - Parameters:
-    ///   - name: Included in the emitted event's properties (see note above).
-    ///   - duration: Included in the emitted event's properties, converted to
-    ///     milliseconds (see note above).
-    ///   - tags: Included in the emitted event's properties (see note above).
-    ///     Defaults to empty.
+    ///   - name: The metric name to record.
+    ///   - duration: The measured duration, in seconds; recorded in
+    ///     milliseconds with unit `"ms"`.
+    ///   - tags: Dimensional tags for the metric. Defaults to empty.
     func recordTimer(
         name: String,
         duration: TimeInterval,
