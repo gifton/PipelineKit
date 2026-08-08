@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.3] - 2026-08-08
+
 ### Fixed
 - `CommandContext.recordCounter`/`recordGauge`/`recordTimer` now actually
   record the caller's metric: `MetricsEventBridge` handles the explicit
@@ -317,7 +319,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Ensured all semaphore continuations are properly resumed to prevent resource leaks
 - Added proper task cancellation handling throughout concurrency primitives
 
-[Unreleased]: https://github.com/gifton/PipelineKit/compare/v0.5.2...HEAD
+[Unreleased]: https://github.com/gifton/PipelineKit/compare/v0.5.3...HEAD
+[0.5.3]: https://github.com/gifton/PipelineKit/releases/tag/v0.5.3
 [0.5.2]: https://github.com/gifton/PipelineKit/releases/tag/v0.5.2
 [0.5.1]: https://github.com/gifton/PipelineKit/releases/tag/v0.5.1
 [0.5.0]: https://github.com/gifton/PipelineKit/releases/tag/v0.5.0
