@@ -41,7 +41,7 @@ struct SubmitOrderHandler: CommandHandler {
 
 // MARK: - Custom middleware
 
-struct OrderValidationMiddleware: Middleware {
+struct OrderValidationMiddleware: Middleware, NextGuardWarningSuppressing {
     let priority = ExecutionPriority.validation
 
     func execute<T: Command>(

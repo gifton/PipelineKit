@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Rejection paths of `BackPressureMiddleware`, `CircuitBreakerMiddleware`,
+  `RateLimitingMiddleware`, `EnhancedRateLimitingMiddleware`,
+  `BulkheadMiddleware`, `PartitionedBulkheadMiddleware`,
+  `HealthCheckMiddleware`, `ValidationMiddleware`, and
+  `SecurityPolicyMiddleware` no longer emit false debug
+  "NextGuard deallocated without calling next()" warnings: all nine now
+  conform to `NextGuardWarningSuppressing`, matching the caching and auth
+  middlewares.
+
 ## [0.5.3] - 2026-08-08
 
 ### Fixed

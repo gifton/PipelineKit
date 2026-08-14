@@ -11,7 +11,7 @@ import PipelineKit
 /// )
 /// let middleware = RateLimitingMiddleware(limiter: limiter)
 /// ```
-public struct RateLimitingMiddleware: Middleware {
+public struct RateLimitingMiddleware: Middleware, NextGuardWarningSuppressing {
     public let priority: ExecutionPriority = .authentication
     private let limiter: RateLimiter
     private let identifierExtractor: @Sendable (any Command, CommandContext) async -> String

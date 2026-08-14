@@ -30,7 +30,7 @@ import os
 ///   - Network operations: 5-10 failures before opening
 ///   - Database operations: 2-5 failures before opening
 ///   - Critical services: 1-3 failures with longer recovery timeout
-public struct CircuitBreakerMiddleware: Middleware {
+public struct CircuitBreakerMiddleware: Middleware, NextGuardWarningSuppressing {
     public let priority: ExecutionPriority = .resilience
     
     // MARK: - Internal State
