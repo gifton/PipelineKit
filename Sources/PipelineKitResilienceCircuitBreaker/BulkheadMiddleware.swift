@@ -191,8 +191,10 @@ public struct BulkheadMiddleware: Middleware {
                 startTime: startTime
             )
 
-        // Deprecation warning on this match is expected and accepted: the case
-        // stays functional until its removal in 0.6.
+        // This case is deprecated (#86) but the match must stay exhaustive so
+        // .tagged keeps working until its removal in 0.6. Swift's deprecation
+        // diagnostic fires at construction sites, not on this pattern match, so
+        // no warning appears here — that's expected.
         case let .tagged(keyExtractor):
             let tag = keyExtractor(command)
             return try await executeTaggedIsolation(
