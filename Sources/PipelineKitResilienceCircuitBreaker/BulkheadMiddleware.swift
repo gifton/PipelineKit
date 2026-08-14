@@ -127,6 +127,7 @@ public struct BulkheadMiddleware: Middleware {
         case taskGroup(priority: TaskPriority?)
 
         /// Use tagged isolation for different command types
+        @available(*, deprecated, message: "Tagged mode never provided per-tag isolation — every tag contends on the same shared semaphore, and the tag is recorded only as context metadata (#86). For real per-tenant capacity use PartitionedBulkheadMiddleware with allowBorrowing: false. This mode will be removed in 0.6.")
         case tagged(keyExtractor: @Sendable (any Command) -> String)
     }
 
@@ -190,6 +191,8 @@ public struct BulkheadMiddleware: Middleware {
                 startTime: startTime
             )
 
+        // Deprecation warning on this match is expected and accepted: the case
+        // stays functional until its removal in 0.6.
         case let .tagged(keyExtractor):
             let tag = keyExtractor(command)
             return try await executeTaggedIsolation(
