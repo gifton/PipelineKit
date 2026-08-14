@@ -104,18 +104,23 @@ public struct PartitionedBulkheadMiddleware: Middleware {
 
         /// Whether `execute(_:context:next:)` may borrow spare capacity from other
         /// partitions when a command's own partition is full (see
-        /// `maxBorrowPercentage`).
+        /// `reservedCapacityPercentage`).
         public let allowBorrowing: Bool
 
         /// The fraction (`0.0`–`1.0`) of a lending partition's capacity that is
         /// reserved for that partition's own commands and never lent out.
         ///
-        /// Despite the property name, this is a *reservation*, not a borrowing cap:
-        /// a candidate partition may lend from `capacity - activeCount -
-        /// (capacity * maxBorrowPercentage)` of its capacity, so with the default
-        /// `0.2`, up to ~80% of an otherwise-idle partition's capacity can be lent
-        /// to other partitions, not 20%.
-        public let maxBorrowPercentage: Double
+        /// With the default `0.2`, up to ~80% of an otherwise-idle partition's
+        /// capacity can be lent to other partitions.
+        public let reservedCapacityPercentage: Double
+
+        /// Deprecated alias for ``reservedCapacityPercentage``.
+        ///
+        /// Despite the historical name, this value has always been the lender's
+        /// *reserved* (non-lendable) share, not a borrowing cap — renamed to say
+        /// what it does. The semantics are unchanged.
+        @available(*, deprecated, renamed: "reservedCapacityPercentage")
+        public var maxBorrowPercentage: Double { reservedCapacityPercentage }
 
         /// Whether `execute(_:context:next:)` records per-partition context
         /// metadata and emits `middleware.partitioned_bulkhead_execution` /
@@ -132,9 +137,9 @@ public struct PartitionedBulkheadMiddleware: Middleware {
         ///     in `partitions` for commands to succeed when they fall back to it.
         ///   - allowBorrowing: Whether to allow borrowing capacity from other
         ///     partitions. Defaults to `true`.
-        ///   - maxBorrowPercentage: The fraction of a lending partition's capacity
-        ///     reserved for its own use (see the property documentation for the
-        ///     resulting lendable share). Defaults to `0.2`.
+        ///   - reservedCapacityPercentage: The fraction of a lending partition's
+        ///     capacity reserved for its own use (see the property documentation
+        ///     for the resulting lendable share). Defaults to `0.2`.
         ///   - emitMetrics: Whether to record context metadata and emit middleware
         ///     events. Defaults to `true`.
         public init(
@@ -142,15 +147,35 @@ public struct PartitionedBulkheadMiddleware: Middleware {
             partitionExtractor: @escaping @Sendable (any Command, CommandContext) async -> String,
             defaultPartition: String = "default",
             allowBorrowing: Bool = true,
-            maxBorrowPercentage: Double = 0.2,
+            reservedCapacityPercentage: Double = 0.2,
             emitMetrics: Bool = true
         ) {
             self.partitions = partitions
             self.partitionExtractor = partitionExtractor
             self.defaultPartition = defaultPartition
             self.allowBorrowing = allowBorrowing
-            self.maxBorrowPercentage = maxBorrowPercentage
+            self.reservedCapacityPercentage = reservedCapacityPercentage
             self.emitMetrics = emitMetrics
+        }
+
+        /// Deprecated: use `init(partitions:partitionExtractor:defaultPartition:allowBorrowing:reservedCapacityPercentage:emitMetrics:)`.
+        @available(*, deprecated, message: "maxBorrowPercentage has always been the reserved (non-lendable) share — use reservedCapacityPercentage, which has identical semantics.")
+        public init(
+            partitions: [String: PartitionConfig],
+            partitionExtractor: @escaping @Sendable (any Command, CommandContext) async -> String,
+            defaultPartition: String = "default",
+            allowBorrowing: Bool = true,
+            maxBorrowPercentage: Double,
+            emitMetrics: Bool = true
+        ) {
+            self.init(
+                partitions: partitions,
+                partitionExtractor: partitionExtractor,
+                defaultPartition: defaultPartition,
+                allowBorrowing: allowBorrowing,
+                reservedCapacityPercentage: maxBorrowPercentage,
+                emitMetrics: emitMetrics
+            )
         }
     }
 
@@ -179,7 +204,7 @@ public struct PartitionedBulkheadMiddleware: Middleware {
 
     /// Convenience initializer that builds a `Configuration` from just the
     /// partitions and extractor, using default values (borrowing enabled,
-    /// `maxBorrowPercentage` `0.2`, `defaultPartition` `"default"`, metrics
+    /// `reservedCapacityPercentage` `0.2`, `defaultPartition` `"default"`, metrics
     /// enabled) for everything else.
     ///
     /// - Parameters:
@@ -215,7 +240,7 @@ public struct PartitionedBulkheadMiddleware: Middleware {
     ///    capacity`) — the command runs right away.
     /// 2. **Borrowed** (only if `Configuration.allowBorrowing` is `true`): another
     ///    partition has capacity available to lend (see
-    ///    `Configuration.maxBorrowPercentage`) — the command runs using that
+    ///    `Configuration.reservedCapacityPercentage`) — the command runs using that
     ///    partition's slot, and the slot is released back to the lending
     ///    partition afterward.
     /// 3. **Queued** (only if the partition's `PartitionConfig.queueSize` is
@@ -491,8 +516,8 @@ private actor PartitionManager {
         // Find partitions with available capacity
         for (key, partition) in partitions where key != requestingPartition {
             let stats = await partition.getStats()
-            let borrowableCapacity = Int(Double(stats.capacity) * configuration.maxBorrowPercentage)
-            let availableForBorrowing = stats.capacity - stats.activeCount - borrowableCapacity
+            let reservedCapacity = Int(Double(stats.capacity) * configuration.reservedCapacityPercentage)
+            let availableForBorrowing = stats.capacity - stats.activeCount - reservedCapacity
 
             if availableForBorrowing > 0 {
                 let acquired = await partition.tryAcquire()
