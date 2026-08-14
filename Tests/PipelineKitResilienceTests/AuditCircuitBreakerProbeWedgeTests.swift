@@ -2,20 +2,22 @@
 //  AuditCircuitBreakerProbeWedgeTests.swift
 //  PipelineKit
 //
-//  Audit evidence tests (2026-08): demonstrate a liveness defect found during the
-//  pre-integration audit.
+//  Audit evidence tests (2026-08): pin the fixed behavior for a liveness defect
+//  found during the pre-integration audit (#92).
 //
-//  Defect: when the single half-open probe request throws an error that
-//  `shouldTriggerCircuit` classifies as non-triggering (e.g. `CancellationError`,
-//  hardcoded to `false`), the breaker records neither success nor failure. The
-//  `probeInProgress` flag — set when the probe was admitted — is never cleared, and
-//  the `.halfOpen` branch of `allowRequest()` has no time-based escape. The breaker
-//  then rejects every subsequent request forever while reporting half-open.
+//  Former defect: when the single half-open probe request threw an error that
+//  `shouldTriggerCircuit` classified as non-triggering (e.g. `CancellationError`,
+//  hardcoded to `false`), the breaker recorded neither success nor failure. The
+//  `probeInProgress` flag — set when the probe was admitted — was never cleared, and
+//  the `.halfOpen` branch of `allowRequest()` had no time-based escape. The breaker
+//  then rejected every subsequent request forever while reporting half-open.
 //
-//  `testWedge_...` PASSES while the defect exists (it pins the buggy behavior as
-//  evidence). When the defect is fixed, it will fail and should be replaced by the
-//  inverse assertion. `testControl_...` proves the harness itself is sound: absent
-//  an abandoned probe, the breaker recovers normally.
+//  Fix: `State` now classifies admission via `admitRequest() -> Admission`, and
+//  `execute` guarantees resolution of an admitted probe — via `abandonProbe()` in a
+//  `defer` — on every exit path, including a non-triggering error. `testAbandoned...`
+//  pins that recovery: an abandoned probe releases its slot so the next request
+//  becomes the new probe and can close the circuit. `testControl_...` proves the
+//  harness itself is sound: absent an abandoned probe, the breaker recovers normally.
 //
 
 import XCTest
@@ -75,40 +77,32 @@ final class AuditCircuitBreakerProbeWedgeTests: XCTestCase {
         XCTAssertEqual(after, "closed-ok")
     }
 
-    /// Evidence of the defect: a probe abandoned via a non-triggering error
-    /// (CancellationError) wedges the breaker permanently — no amount of waiting
-    /// re-admits traffic.
-    func testWedge_AbandonedProbeRejectsAllTrafficForever_KnownDefect() async throws {
+    /// After the fix: a probe abandoned via a non-triggering error releases the
+    /// probe slot; the next request becomes the new probe and closes the circuit.
+    func testAbandonedProbeReleasesProbeSlot() async throws {
         let breaker = makeBreaker()
         await trip(breaker)
 
         try await Task.sleep(nanoseconds: 200_000_000) // > recoveryTimeout
 
-        // The probe IS admitted (open -> halfOpen) — we observe its own error, not a
-        // fast-fail rejection — then aborts with a non-triggering error.
+        // Probe admitted (open -> halfOpen), then abandoned without an outcome.
         do {
             _ = try await breaker.execute(ProbeCommand(), context: CommandContext()) { _, _ in
                 throw CancellationError()
             }
             XCTFail("probe should rethrow its own error")
         } catch is CancellationError {
-            // expected: admitted, then aborted; neither recordSuccess nor recordFailure ran
+            // expected: admitted, then abandoned
         } catch {
             XCTFail("probe was rejected instead of admitted: \(error)")
         }
 
-        // From here on the breaker is wedged: every request is rejected no matter how
-        // long we wait (each wait is 2x the recovery timeout).
-        for round in 1...3 {
-            try await Task.sleep(nanoseconds: 200_000_000)
-            do {
-                _ = try await breaker.execute(ProbeCommand(), context: CommandContext()) { _, _ in "should-not-run" }
-                XCTFail("round \(round): breaker recovered — defect appears FIXED; " +
-                        "invert this test into a recovery assertion and delete the wedge pin")
-            } catch let error as PipelineError {
-                // expected: fast-fail rejection — the wedge persists
-                _ = error
-            }
-        }
+        // The abandoned probe released its slot: this request is admitted as
+        // the new probe and its success closes the circuit.
+        let recovered = try await breaker.execute(ProbeCommand(), context: CommandContext()) { _, _ in "recovered" }
+        XCTAssertEqual(recovered, "recovered")
+
+        let after = try await breaker.execute(ProbeCommand(), context: CommandContext()) { _, _ in "closed-ok" }
+        XCTAssertEqual(after, "closed-ok")
     }
 }
