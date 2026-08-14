@@ -19,18 +19,23 @@ import PipelineKit
 /// ## Usage
 ///
 /// ```swift
+/// enum AuthError: Error {
+///     case missingCredentials
+///     case userInactive
+/// }
+///
 /// let authMiddleware = AuthenticationMiddleware { userId in
 ///     // Validate user credentials
 ///     guard let userId = userId else {
-///         throw AuthenticationError.missingCredentials
+///         throw AuthError.missingCredentials
 ///     }
-///     
+///
 ///     // Verify user exists and is active
 ///     let user = try await userService.verify(userId)
 ///     guard user.isActive else {
-///         throw AuthenticationError.userInactive
+///         throw AuthError.userInactive
 ///     }
-///     
+///
 ///     return user.id
 /// }
 ///
@@ -54,7 +59,7 @@ import PipelineKit
 /// - Note: This middleware has `.authentication` priority, ensuring it runs
 ///   before authorization and business logic middleware.
 ///
-/// - SeeAlso: `AuthenticationError`, `Middleware`
+/// - SeeAlso: `Middleware`
 /// AuthenticationMiddleware conforms to NextGuardWarningSuppressing because it
 /// intentionally short-circuits the pipeline by throwing when authentication fails,
 /// without calling `next()`. This is expected behavior for security middleware.
@@ -69,7 +74,7 @@ public struct AuthenticationMiddleware: Middleware, NextGuardWarningSuppressing 
     ///
     /// - Parameter authenticate: An async function that validates user credentials.
     ///   It receives an optional user ID and returns the validated user ID.
-    ///   Should throw `AuthenticationError` for authentication failures.
+    ///   Should throw your own error type for authentication failures; the middleware rethrows it unchanged.
     public init(authenticate: @escaping @Sendable (String?) async throws -> String) {
         self.authenticate = authenticate
     }
@@ -83,8 +88,7 @@ public struct AuthenticationMiddleware: Middleware, NextGuardWarningSuppressing 
     ///
     /// - Returns: The result from the command execution chain
     ///
-    /// - Throws: `AuthenticationError` if authentication fails, or any error
-    ///   from the downstream chain
+    /// - Throws: Whatever your `authenticate` closure throws when authentication fails, or any error from the downstream chain.
     public func execute<T: Command>(
         _ command: T,
         context: CommandContext,
