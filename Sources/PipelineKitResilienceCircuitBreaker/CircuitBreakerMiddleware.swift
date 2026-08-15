@@ -48,7 +48,17 @@ public struct CircuitBreakerMiddleware: Middleware, NextGuardWarningSuppressing 
             case open(until: Date)
             case halfOpen
         }
-        
+
+        /// How `admitRequest()` classified a request.
+        enum Admission: Equatable {
+            case rejected
+            case normal
+            /// This request is the single half-open probe; its outcome — and only
+            /// its outcome — drives half-open state transitions, and `execute`
+            /// guarantees the probe slot is released on every exit path.
+            case probe
+        }
+
         #if canImport(os)
         private let lock = OSAllocatedUnfairLock()
         #else
@@ -66,8 +76,8 @@ public struct CircuitBreakerMiddleware: Middleware, NextGuardWarningSuppressing 
             self.configuration = configuration
         }
         
-        /// Check if a request should be allowed
-        func allowRequest() -> Bool {
+        /// Classify and admit/reject a request.
+        func admitRequest() -> Admission {
             lock.lock(); defer { lock.unlock() }
             switch state {
             case .closed:
@@ -77,28 +87,28 @@ public struct CircuitBreakerMiddleware: Middleware, NextGuardWarningSuppressing 
                     failureCount = 0
                     lastFailureTime = nil
                 }
-                return true
-                
+                return .normal
+
             case .open(let until):
                 if Date() >= until {
-                    // Transition to half-open
+                    // Transition to half-open; this request becomes the probe.
                     state = .halfOpen
                     halfOpenSuccessCount = 0
                     probeInProgress = true
-                    return true
+                    return .probe
                 }
-                return false
-                
+                return .rejected
+
             case .halfOpen:
                 // Only allow one probe request at a time
-                guard !probeInProgress else { return false }
+                guard !probeInProgress else { return .rejected }
                 probeInProgress = true
-                return true
+                return .probe
             }
         }
         
         /// Record a successful request
-        func recordSuccess() {
+        func recordSuccess(asProbe: Bool) {
             lock.lock(); defer { lock.unlock() }
             switch state {
             case .closed:
@@ -110,9 +120,10 @@ public struct CircuitBreakerMiddleware: Middleware, NextGuardWarningSuppressing 
                 break
                 
             case .halfOpen:
+                guard asProbe else { return }
                 halfOpenSuccessCount += 1
                 probeInProgress = false
-                
+
                 if halfOpenSuccessCount >= configuration.halfOpenSuccessThreshold {
                     // Transition to closed
                     state = .closed
@@ -122,12 +133,12 @@ public struct CircuitBreakerMiddleware: Middleware, NextGuardWarningSuppressing 
                 }
             }
         }
-        
+
         /// Record a failed request
-        func recordFailure() {
+        func recordFailure(asProbe: Bool) {
             lock.lock(); defer { lock.unlock() }
             let now = Date()
-            
+
             switch state {
             case .closed:
                 // Reset count if timeout expired
@@ -148,13 +159,24 @@ public struct CircuitBreakerMiddleware: Middleware, NextGuardWarningSuppressing 
                 state = .open(until: now.addingTimeInterval(configuration.recoveryTimeout))
                 
             case .halfOpen:
+                guard asProbe else { return }
                 // Single failure in half-open reopens the circuit
                 state = .open(until: now.addingTimeInterval(configuration.recoveryTimeout))
                 halfOpenSuccessCount = 0
                 probeInProgress = false
             }
         }
-        
+
+        /// Releases the probe slot when a probe exits without an outcome
+        /// (e.g. a cancelled or otherwise non-triggering error), so the next
+        /// request becomes the new probe instead of the breaker rejecting
+        /// traffic forever.
+        func abandonProbe() {
+            lock.lock(); defer { lock.unlock() }
+            guard case .halfOpen = state else { return }
+            probeInProgress = false
+        }
+
         /// Get current state for monitoring
         func getCurrentState() -> String {
             lock.lock(); defer { lock.unlock() }
@@ -244,9 +266,9 @@ public struct CircuitBreakerMiddleware: Middleware, NextGuardWarningSuppressing 
         next: @escaping MiddlewareNext<T>
     ) async throws -> T.Result {
         let commandType = String(describing: type(of: command))
-        
-        // Check if request is allowed
-        guard state.allowRequest() else {
+
+        let admission = state.admitRequest()
+        guard admission != .rejected else {
             // Circuit is open - fail fast
             throw PipelineError.middlewareError(
                 middleware: "CircuitBreakerMiddleware",
@@ -258,21 +280,27 @@ public struct CircuitBreakerMiddleware: Middleware, NextGuardWarningSuppressing 
                 )
             )
         }
-        
+
+        var outcomeRecorded = false
+        defer {
+            // A probe that exits without recording an outcome (non-triggering
+            // error, cancellation) must release the probe slot, or the breaker
+            // stays half-open and rejects all traffic forever.
+            if admission == .probe && !outcomeRecorded {
+                state.abandonProbe()
+            }
+        }
+
         do {
-            // Execute the command
             let result = try await next(command, context)
-            
-            // Record success
-            state.recordSuccess()
-            
+            outcomeRecorded = true
+            state.recordSuccess(asProbe: admission == .probe)
             return result
         } catch {
-            // Check if error should trigger circuit breaker
             if shouldTriggerCircuit(for: error) {
-                state.recordFailure()
+                outcomeRecorded = true
+                state.recordFailure(asProbe: admission == .probe)
             }
-            
             throw error
         }
     }
