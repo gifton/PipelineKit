@@ -4,7 +4,7 @@ import Atomics
 import _ResilienceFoundation
 
 /// Middleware that enforces back-pressure limits on command execution
-public actor BackPressureMiddleware: Middleware {
+public actor BackPressureMiddleware: Middleware, NextGuardWarningSuppressing {
     public let priority: ExecutionPriority = .preProcessing
     
     private let semaphore: BackPressureSemaphore
