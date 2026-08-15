@@ -18,6 +18,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   in 0.6.
 
 ### Fixed
+- `CircuitBreakerMiddleware`: a half-open probe that exited via a
+  non-triggering error (e.g. cancellation) left the probe slot claimed
+  forever, permanently rejecting all traffic; abandoned probes now release
+  the slot. Half-open transitions are now driven solely by the probe's
+  outcome — stale requests admitted before the circuit opened can no longer
+  close it, admit extra probes, or re-open it. ([#92])
 - `AuthenticationMiddleware` documentation no longer references
   `AuthenticationError`, a type that does not exist; the middleware rethrows
   whatever the `authenticate` closure throws, and the docs now say so.
@@ -344,3 +350,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [#85]: https://github.com/gifton/PipelineKit/issues/85
 [#86]: https://github.com/gifton/PipelineKit/issues/86
 [#88]: https://github.com/gifton/PipelineKit/issues/88
+[#92]: https://github.com/gifton/PipelineKit/issues/92

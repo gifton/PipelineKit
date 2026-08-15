@@ -6,7 +6,7 @@ import os
 
 /// Microbenchmark isolating the per-operation overhead of an `actor` vs a
 /// lock-protected `final class` for a trivial *synchronous* state mutation under
-/// heavy concurrency. This mirrors the shape of `CircuitBreaker.State.allowRequest`
+/// heavy concurrency. This mirrors the shape of `CircuitBreaker.State.admitRequest`
 /// (increment + threshold compare, no I/O) and is the gate for whether converting
 /// that internal actor to a lock is worth it.
 ///
