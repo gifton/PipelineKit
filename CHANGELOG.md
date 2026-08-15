@@ -24,6 +24,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the slot. Half-open transitions are now driven solely by the probe's
   outcome — stale requests admitted before the circuit opened can no longer
   close it, admit extra probes, or re-open it. ([#92])
+- Rejection paths of `BackPressureMiddleware`, `CircuitBreakerMiddleware`,
+  `RateLimitingMiddleware`, `EnhancedRateLimitingMiddleware`,
+  `BulkheadMiddleware`, `PartitionedBulkheadMiddleware`,
+  `HealthCheckMiddleware`, `ValidationMiddleware`, and
+  `SecurityPolicyMiddleware` no longer emit false debug
+  "NextGuard deallocated without calling next()" warnings: all nine now
+  conform to `NextGuardWarningSuppressing`, matching the caching and auth
+  middlewares.
 - `AuthenticationMiddleware` documentation no longer references
   `AuthenticationError`, a type that does not exist; the middleware rethrows
   whatever the `authenticate` closure throws, and the docs now say so.

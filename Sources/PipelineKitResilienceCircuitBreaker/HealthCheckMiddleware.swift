@@ -30,7 +30,7 @@ import PipelineKitCore
 /// )
 /// pipeline.use(middleware)
 /// ```
-public struct HealthCheckMiddleware: Middleware {
+public struct HealthCheckMiddleware: Middleware, NextGuardWarningSuppressing {
     /// Runs in the `.resilience` priority band, alongside circuit breakers, retries,
     /// and timeouts.
     public let priority: ExecutionPriority = .resilience
