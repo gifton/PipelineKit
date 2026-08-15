@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Deprecated
+- `PartitionedBulkheadMiddleware.Configuration.maxBorrowPercentage` (and its
+  init parameter): renamed to `reservedCapacityPercentage` — the value has
+  always been the lender's *reserved* share, not a borrowing cap. Semantics
+  unchanged; the old spellings forward and will be removed in 0.6.
+- `BulkheadMiddleware.IsolationMode.tagged`: never provided per-tag isolation
+  (all tags share one semaphore; the tag is context metadata only, [#86]).
+  Use `PartitionedBulkheadMiddleware` with `allowBorrowing: false`. Removal
+  in 0.6.
+
 ### Fixed
 - `CircuitBreakerMiddleware`: a half-open probe that exited via a
   non-triggering error (e.g. cancellation) left the probe slot claimed
@@ -22,6 +32,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   "NextGuard deallocated without calling next()" warnings: all nine now
   conform to `NextGuardWarningSuppressing`, matching the caching and auth
   middlewares.
+- `AuthenticationMiddleware` documentation no longer references
+  `AuthenticationError`, a type that does not exist; the middleware rethrows
+  whatever the `authenticate` closure throws, and the docs now say so.
 
 ## [0.5.3] - 2026-08-08
 
@@ -343,5 +356,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [0.3.1]: https://github.com/gifton/PipelineKit/releases/tag/v0.3.1
 [0.2.0]: https://github.com/gifton/PipelineKit/releases/tag/v0.2.0
 [#85]: https://github.com/gifton/PipelineKit/issues/85
+[#86]: https://github.com/gifton/PipelineKit/issues/86
 [#88]: https://github.com/gifton/PipelineKit/issues/88
 [#92]: https://github.com/gifton/PipelineKit/issues/92

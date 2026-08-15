@@ -115,7 +115,9 @@ every tag still contends for the same single `maxConcurrency` semaphore, so
 one noisy tenant can still starve the others. `PartitionedBulkheadMiddleware`
 gives each declared partition its own capacity, and its `partitionExtractor`
 also receives both the command and the `CommandContext` (unlike `.tagged`'s
-command-only key extractor).
+command-only key extractor). As of 0.5.4, `.tagged` is deprecated and will
+be removed in 0.6; use `PartitionedBulkheadMiddleware` with `allowBorrowing:
+false` for real per-tenant capacity.
 
 `PartitionedBulkheadMiddleware` requires every partition to be declared up
 front in `partitions`, so this fits a small, known set of tenants (or tenant
@@ -287,7 +289,9 @@ try await pipeline.addMiddleware(BackPressureMiddleware(
 - `.tagged` isolation mode records the tag as context metadata (`bulkheadTag`)
   for observability only — it does **not** give each tag its own capacity; all
   tags still contend for the same shared limit (tracked in
-  [#86](https://github.com/gifton/PipelineKit/issues/86))
+  [#86](https://github.com/gifton/PipelineKit/issues/86)). As of 0.5.4, `.tagged`
+  is deprecated and will be removed in 0.6; use `PartitionedBulkheadMiddleware`
+  with `allowBorrowing: false` for real per-tenant capacity.
 - For true per-partition isolation (e.g. multi-tenant systems), use
   `PartitionedBulkheadMiddleware` instead (see "Multi-Tenant Workloads" above)
 

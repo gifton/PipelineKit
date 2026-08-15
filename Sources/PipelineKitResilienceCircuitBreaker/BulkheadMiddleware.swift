@@ -127,6 +127,7 @@ public struct BulkheadMiddleware: Middleware, NextGuardWarningSuppressing {
         case taskGroup(priority: TaskPriority?)
 
         /// Use tagged isolation for different command types
+        @available(*, deprecated, message: "Tagged mode never provided per-tag isolation — every tag contends on the same shared semaphore, and the tag is recorded only as context metadata (#86). For real per-tenant capacity use PartitionedBulkheadMiddleware with allowBorrowing: false. This mode will be removed in 0.6.")
         case tagged(keyExtractor: @Sendable (any Command) -> String)
     }
 
@@ -190,6 +191,10 @@ public struct BulkheadMiddleware: Middleware, NextGuardWarningSuppressing {
                 startTime: startTime
             )
 
+        // This case is deprecated (#86) but the match must stay exhaustive so
+        // .tagged keeps working until its removal in 0.6. Swift's deprecation
+        // diagnostic fires at construction sites, not on this pattern match, so
+        // no warning appears here — that's expected.
         case let .tagged(keyExtractor):
             let tag = keyExtractor(command)
             return try await executeTaggedIsolation(
