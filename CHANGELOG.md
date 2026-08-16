@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- `NextGuard` debug diagnostics are now error-exit aware: middleware that
+  throws without calling `next()` no longer emits the false "deallocated
+  without calling next()" warning — the middleware chain now marks the guard
+  before rethrowing. `NextGuardWarningSuppressing` is only needed for
+  middleware that *returns* a result without calling `next()` on a normal
+  path (e.g. cache hits). Debug-only; release builds are unchanged. ([#97])
+
+### Removed
+- `NextGuardWarningSuppressing` conformance removed from the twelve
+  throw-based short-circuiting middlewares (`BackPressureMiddleware`,
+  `CircuitBreakerMiddleware`, `RateLimitingMiddleware`,
+  `EnhancedRateLimitingMiddleware`, `BulkheadMiddleware`,
+  `PartitionedBulkheadMiddleware`, `HealthCheckMiddleware`,
+  `ValidationMiddleware`, `SecurityPolicyMiddleware`,
+  `AuthenticationMiddleware`, `AuthorizationMiddleware`,
+  `MockAuthenticationMiddleware`), re-arming the dropped-chain diagnostic
+  for those types. Observable only to code checking
+  `is any NextGuardWarningSuppressing`; the cache middlewares keep the
+  conformance. ([#97])
+
 ## [0.5.4] - 2026-08-15
 
 ### Deprecated
@@ -362,3 +383,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [#86]: https://github.com/gifton/PipelineKit/issues/86
 [#88]: https://github.com/gifton/PipelineKit/issues/88
 [#92]: https://github.com/gifton/PipelineKit/issues/92
+[#97]: https://github.com/gifton/PipelineKit/issues/97

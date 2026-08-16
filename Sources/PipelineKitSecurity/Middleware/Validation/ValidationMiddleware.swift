@@ -21,7 +21,7 @@ import PipelineKit
 ///     priority: ExecutionPriority.validation.rawValue
 /// )
 /// ```
-public struct ValidationMiddleware: Middleware, NextGuardWarningSuppressing {
+public struct ValidationMiddleware: Middleware {
     public let priority: ExecutionPriority = .validation
     
     public init() {}

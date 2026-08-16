@@ -69,7 +69,7 @@ public struct SecurityPolicy: Sendable {
 /// 
 /// This middleware applies configured security policies to all commands,
 /// providing an additional layer of protection beyond basic validation.
-public struct SecurityPolicyMiddleware: Middleware, NextGuardWarningSuppressing {
+public struct SecurityPolicyMiddleware: Middleware {
     public let priority: ExecutionPriority = .custom
     private let policy: SecurityPolicy
     
