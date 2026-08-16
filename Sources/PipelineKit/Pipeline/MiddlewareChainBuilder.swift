@@ -45,20 +45,25 @@ enum MiddlewareChainBuilder {
                         }
                     }
 
-                    // Create NextGuard lazily, only when middleware will actually execute
-                    let wrappedNext: @Sendable (T, CommandContext) async throws -> T.Result
+                    // Unsafe middleware opts out of NextGuard entirely
                     if isUnsafe {
-                        wrappedNext = previous
-                    } else {
-                        let nextGuard = NextGuard<T>(
-                            previous,
-                            identifier: middlewareName,
-                            suppressDeinitWarning: suppress
-                        )
-                        wrappedNext = nextGuard.callAsFunction
+                        return try await middleware.execute(cmd, context: ctx, next: previous)
                     }
 
-                    return try await middleware.execute(cmd, context: ctx, next: wrappedNext)
+                    // Create NextGuard lazily, only when middleware will actually execute
+                    let nextGuard = NextGuard<T>(
+                        previous,
+                        identifier: middlewareName,
+                        suppressDeinitWarning: suppress
+                    )
+                    do {
+                        return try await middleware.execute(cmd, context: ctx, next: nextGuard.callAsFunction)
+                    } catch {
+                        // An error exit is caller-visible — never a silently
+                        // dropped chain; keep the debug deinit warning quiet
+                        nextGuard.markErrorExit()
+                        throw error
+                    }
                 }
             }
         }
@@ -95,20 +100,25 @@ enum MiddlewareChainBuilder {
                     }
                 }
 
-                // Create NextGuard lazily, only when middleware will actually execute
-                let wrappedNext: @Sendable (T, CommandContext) async throws -> T.Result
+                // Unsafe middleware opts out of NextGuard entirely
                 if isUnsafe {
-                    wrappedNext = previous
-                } else {
-                    let nextGuard = NextGuard<T>(
-                        previous,
-                        identifier: middlewareName,
-                        suppressDeinitWarning: suppress
-                    )
-                    wrappedNext = nextGuard.callAsFunction
+                    return try await middleware.execute(cmd, context: ctx, next: previous)
                 }
 
-                return try await middleware.execute(cmd, context: ctx, next: wrappedNext)
+                // Create NextGuard lazily, only when middleware will actually execute
+                let nextGuard = NextGuard<T>(
+                    previous,
+                    identifier: middlewareName,
+                    suppressDeinitWarning: suppress
+                )
+                do {
+                    return try await middleware.execute(cmd, context: ctx, next: nextGuard.callAsFunction)
+                } catch {
+                    // An error exit is caller-visible — never a silently
+                    // dropped chain; keep the debug deinit warning quiet
+                    nextGuard.markErrorExit()
+                    throw error
+                }
             }
         }
         return chain
