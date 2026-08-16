@@ -349,7 +349,7 @@ with:
 - [ ] **Step 5: Run the new tests to verify they pass**
 
 Run: `swift test --filter "NextGuardErrorExitTests" 2>&1 | tail -10`
-Expected: PASS (6 tests).
+Expected: PASS (5 tests).
 
 - [ ] **Step 6: Regression — module suites + release compile-out**
 

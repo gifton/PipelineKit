@@ -212,7 +212,7 @@ The main module provides the core pipeline implementation with production-ready 
 - `PipelineBuilder` – fluent builder for assembling pipelines
 - `SimpleSemaphore` – basic concurrency control (acquire is `async throws`)
 - `NextGuard` – ensures middleware `next` is called exactly once
-- `NextGuardWarningSuppressing` – opt‑in to suppress debug‑only warnings for intentional short‑circuits (e.g., cache hits)
+- `NextGuardWarningSuppressing` – opt‑in to suppress debug‑only deinit warnings only for middleware that returns a result without calling `next()` (e.g., cache hits); since 0.6, throw‑based short‑circuits are detected automatically and don't need it
 
 SwiftLog is used for internal logging; on Apple, you can bootstrap `swift-log-oslog` for OSLog output.
 
@@ -916,7 +916,7 @@ PipelineKit is released under the MIT License. See [LICENSE](LICENSE) for detail
 - NextGuard safety:
   - Default: ensures `next` is called exactly once; throws on multiple/concurrent calls.
   - `UnsafeMiddleware`: opt‑out for custom patterns (use with care).
-  - `NextGuardWarningSuppressing`: suppresses debug‑only deinit warnings for intentional short‑circuits (e.g., cache hits).
+  - `NextGuardWarningSuppressing`: suppresses debug‑only deinit warnings only for middleware that returns a result without calling `next()` (e.g., cache hits). Since 0.6, throw‑based short‑circuits (rejections, validation failures, timeouts/cancellation) are detected automatically by the chain and don't need this.
 - AnySendable: type‑erased Sendable value container (not Equatable/Hashable by design). Extract concrete values via `get(_:)` to compare.
 - Platform support:
   - Apple platforms fully supported per Package.swift.

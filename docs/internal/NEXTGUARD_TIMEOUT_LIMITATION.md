@@ -58,7 +58,7 @@ Instead of heuristics, PipelineKit uses explicit controls:
 
 1) Keep warnings enabled in development; they catch real bugs (missed/duplicate `next()` calls).
 
-2) For middleware that intentionally short‑circuits (e.g., cache hits), conform to `NextGuardWarningSuppressing` to suppress debug‑only deinit warnings for that middleware.
+2) For middleware that intentionally RETURNS a result without calling `next()` on a normal path (e.g., cache hits), conform to `NextGuardWarningSuppressing` to suppress debug‑only deinit warnings for that middleware. Since 0.6, throw‑based short‑circuits (rejections, validation failures, timeouts/cancellation) are detected automatically by the middleware chain and never need this conformance.
 
 3) In CI or specialized tests, register a no‑op warning handler via `NextGuardConfiguration.setWarningHandler(_:)`.
 

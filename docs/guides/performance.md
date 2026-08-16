@@ -60,7 +60,7 @@ print("ops/s: \(Int(10_000 / max(duration, 0.0001)))")
 
 - Avoid capturing large objects in closures
 - Use `ExecutionPriority` to enforce sensible order
-- For short‑circuiting middleware (e.g., caching), adopt `NextGuardWarningSuppressing`
+- For middleware that returns a result without calling `next()` (e.g., caching), adopt `NextGuardWarningSuppressing`; since 0.6, throw‑based short‑circuits are detected automatically and don't need it
 
 ## Troubleshooting
 

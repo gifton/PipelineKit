@@ -96,7 +96,7 @@ Command → Pipeline → [Middleware…] → Handler → Result
 - Stable ordering: middleware sorted by ExecutionPriority; ties preserve insertion order
 - Concurrency limits: StandardPipeline can be constructed with maxConcurrency or PipelineOptions
 - Back‑pressure: for advanced scenarios, compose resilience middleware (e.g., bulkhead) from PipelineKitResilience
-- NextGuard: ensures `next` is called exactly once; use UnsafeMiddleware to opt‑out, and NextGuardWarningSuppressing to suppress debug‑only deinit warnings for intentional short‑circuits
+- NextGuard: ensures `next` is called exactly once; use UnsafeMiddleware to opt‑out. NextGuardWarningSuppressing suppresses debug‑only deinit warnings only for middleware that returns a result without calling `next()` on a normal path (e.g., cache hits) — since 0.6, throw‑based short‑circuits are detected automatically and don't need it
 
 ## Caching
 

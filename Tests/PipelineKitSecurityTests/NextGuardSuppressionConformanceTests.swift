@@ -9,6 +9,7 @@
 import XCTest
 import PipelineKitCore
 import PipelineKitSecurity
+import PipelineKitTestSupport
 
 final class NextGuardSuppressionConformanceTests: XCTestCase {
     func testThrowBasedSecurityMiddlewaresDoNotSuppressNextGuardWarnings() {
@@ -16,5 +17,6 @@ final class NextGuardSuppressionConformanceTests: XCTestCase {
         XCTAssertFalse(SecurityPolicyMiddleware.self is any NextGuardWarningSuppressing.Type)
         XCTAssertFalse(AuthenticationMiddleware.self is any NextGuardWarningSuppressing.Type)
         XCTAssertFalse(AuthorizationMiddleware.self is any NextGuardWarningSuppressing.Type)
+        XCTAssertFalse(MockAuthenticationMiddleware.self is any NextGuardWarningSuppressing.Type)
     }
 }

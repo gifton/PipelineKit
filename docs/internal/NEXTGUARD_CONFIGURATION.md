@@ -22,7 +22,7 @@ NextGuardConfiguration.setWarningHandler { message in
 
 ### Intentional Short‑Circuiting
 
-If a middleware intentionally short‑circuits without calling `next()` (e.g., cache hit), conform to `NextGuardWarningSuppressing` to suppress debug‑only deinit warnings for that middleware:
+If a middleware intentionally RETURNS a result without calling `next()` on a normal path (e.g., cache hit), conform to `NextGuardWarningSuppressing` to suppress debug‑only deinit warnings for that middleware. Since 0.6, throw‑based short‑circuits (rejections, validation failures, timeouts/cancellation) are detected automatically by the middleware chain and need no conformance:
 
 ```swift
 struct MyCachingMiddleware: Middleware, NextGuardWarningSuppressing {
@@ -57,7 +57,7 @@ NextGuardConfiguration.setWarningHandler { _ in /* no‑op in CI */ }
 ## Best Practices
 
 1. Keep warnings enabled in development; they catch real middleware bugs.
-2. Use `NextGuardWarningSuppressing` for legitimate short‑circuits (e.g., caching, deduplication paths).
+2. Use `NextGuardWarningSuppressing` only for middleware that returns a result without calling `next()` (e.g., caching, deduplication paths); throw‑based short‑circuits are detected automatically since 0.6 and don't need it.
 3. Configure warning handler at app startup; avoid flipping settings during runtime.
 4. In CI, you can silence warnings by setting a no‑op handler.
 
