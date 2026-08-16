@@ -134,4 +134,4 @@ let conditional = ConditionalCachedMiddleware(
 
 ## Notes
 - Use `ExecutionPriority` to place middleware correctly; equal priorities preserve insertion order.
-- For middleware that intentionally short‑circuits without calling `next()` (e.g., cache hits), conform to `NextGuardWarningSuppressing` to suppress debug‑only deinit warnings.
+- For middleware that intentionally RETURNS a result without calling `next()` on a normal path (e.g., cache hits), conform to `NextGuardWarningSuppressing` to suppress debug‑only deinit warnings. Since 0.6, throw‑based short‑circuits (rejections, validation failures, timeouts/cancellation) are detected automatically by the middleware chain and don't need this.

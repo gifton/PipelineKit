@@ -31,7 +31,7 @@ import PipelineKitCore
 ///     }
 /// )
 /// ```
-public struct PartitionedBulkheadMiddleware: Middleware, NextGuardWarningSuppressing {
+public struct PartitionedBulkheadMiddleware: Middleware {
     /// Runs in the `.resilience` priority band, alongside circuit breakers, retries,
     /// and timeouts.
     public let priority: ExecutionPriority = .resilience

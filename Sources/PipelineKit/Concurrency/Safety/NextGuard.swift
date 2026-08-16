@@ -35,7 +35,17 @@ public final class NextGuard<T: Command>: Sendable {
     
     /// Whether to suppress deinit warnings when `next` was never called
     private let suppressDeinitWarning: Bool
-    
+
+    #if DEBUG
+    /// Set when the guarded middleware invocation exited by throwing.
+    ///
+    /// An error exit is always caller-visible — never a silently dropped
+    /// chain — so the deinit warning would be noise. The chain builder marks
+    /// the guard before rethrowing. Debug-only: release builds carry no
+    /// deinit diagnostics.
+    private let errorExit = ManagedAtomic<Bool>(false)
+    #endif
+
     /// Creates a new NextGuard wrapping the given next closure.
     ///
     /// - Parameters:
@@ -106,7 +116,19 @@ public final class NextGuard<T: Command>: Sendable {
     ) async throws -> T.Result {
         try await self(command, context)
     }
-    
+
+    /// Records that the middleware invocation guarded by this instance exited
+    /// by throwing, suppressing the debug never-called-next deinit warning.
+    ///
+    /// Called by `MiddlewareChainBuilder` before rethrowing. A throw is always
+    /// observed by the caller, so it can never be the silently-dropped-chain
+    /// bug the warning exists to catch. No-op in release builds.
+    func markErrorExit() {
+        #if DEBUG
+        errorExit.store(true, ordering: .relaxed)
+        #endif
+    }
+
     #if DEBUG
     /// Debug-only check that next was called before deallocation
     deinit {
@@ -118,6 +140,11 @@ public final class NextGuard<T: Command>: Sendable {
             // Check if task was cancelled
             if Task.isCancelled {
                 return // Cancellation is acceptable
+            }
+            // Error exits are marked by the chain builder and are
+            // caller-visible — never a silent drop
+            if errorExit.load(ordering: .relaxed) {
+                return
             }
             // Respect per-instance suppression
             if suppressDeinitWarning {

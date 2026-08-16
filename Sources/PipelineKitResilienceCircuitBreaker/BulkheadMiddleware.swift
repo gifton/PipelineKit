@@ -57,7 +57,7 @@ import _ResilienceFoundation
 /// 3. Bulkhead (isolate resources)
 /// 4. Timeout (bound execution time)
 /// 5. Retry (handle transient failures)
-public struct BulkheadMiddleware: Middleware, NextGuardWarningSuppressing {
+public struct BulkheadMiddleware: Middleware {
     public let priority: ExecutionPriority = .resilience
 
     // MARK: - Configuration

@@ -224,10 +224,14 @@ public protocol UnsafeMiddleware: Middleware {
 
 /// A marker protocol for middleware that want to suppress NextGuard deinit warnings.
 ///
-/// Conform when middleware may intentionally not call `next` under normal,
-/// non-error conditions and the lack of a call should not surface as a debug warning
-/// (for example, caching or fast-path short-circuiting). This affects only debug
-/// deinit warnings; it does not change NextGuard's runtime safety checks.
+/// Conform only when middleware may intentionally RETURN a result without
+/// calling `next` on a normal, non-error path (for example, serving a cache
+/// hit). Middleware that short-circuits by THROWING does not need this: the
+/// chain builder detects error exits and suppresses the debug warning
+/// automatically — a throw is always caller-visible, so conforming a
+/// throw-based middleware only disarms the diagnostic that catches a
+/// genuinely dropped chain. This affects only debug deinit warnings; it does
+/// not change NextGuard's runtime safety checks.
 public protocol NextGuardWarningSuppressing: Middleware {
     // Marker protocol - no additional requirements
 }

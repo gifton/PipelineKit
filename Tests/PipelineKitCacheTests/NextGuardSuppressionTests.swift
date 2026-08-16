@@ -44,4 +44,15 @@ final class NextGuardSuppressionTests: XCTestCase {
         let warnings = await collector.snapshot()
         XCTAssertTrue(warnings.isEmpty, "Expected no NextGuard warnings, got: \(warnings)")
     }
+
+    /// Pins that the cache middlewares KEEP NextGuardWarningSuppressing (#97):
+    /// they return a result without calling next() on a cache hit — the one
+    /// legitimate use of the marker after the chain builder learned to detect
+    /// error exits on its own.
+    func testCacheMiddlewaresRetainNextGuardSuppression() {
+        XCTAssertTrue(CachingMiddleware.self is any NextGuardWarningSuppressing.Type)
+        XCTAssertTrue(SimpleCachingMiddleware.self is any NextGuardWarningSuppressing.Type)
+        XCTAssertTrue(CachedMiddleware<CachingMiddleware>.self is any NextGuardWarningSuppressing.Type)
+        XCTAssertTrue(ConditionalCachedMiddleware<CachingMiddleware>.self is any NextGuardWarningSuppressing.Type)
+    }
 }

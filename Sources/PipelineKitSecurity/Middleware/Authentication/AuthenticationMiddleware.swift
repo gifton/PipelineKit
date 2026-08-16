@@ -60,10 +60,7 @@ import PipelineKit
 ///   before authorization and business logic middleware.
 ///
 /// - SeeAlso: `Middleware`
-/// AuthenticationMiddleware conforms to NextGuardWarningSuppressing because it
-/// intentionally short-circuits the pipeline by throwing when authentication fails,
-/// without calling `next()`. This is expected behavior for security middleware.
-public struct AuthenticationMiddleware: Middleware, NextGuardWarningSuppressing {
+public struct AuthenticationMiddleware: Middleware {
     /// Priority ensures authentication happens early in the pipeline.
     public let priority: ExecutionPriority = .authentication
     
