@@ -67,7 +67,7 @@ let package = Package(
         // swift-crypto - CryptoKit-compatible APIs for non-Apple platforms
         // Security: Maintained by Apple, used for Linux compatibility
         // License: Apache-2.0
-        .package(url: "https://github.com/apple/swift-crypto.git", from: "4.5.1"),
+        .package(url: "https://github.com/apple/swift-crypto.git", from: "5.0.3"),
         // swift-docc-plugin 1.3.0 - For documentation generation
         // Security: No known vulnerabilities
         // License: Apache-2.0
