@@ -356,33 +356,15 @@ final class PipelineTests: XCTestCase {
         
         let middleware = TestMiddleware(id: "perf", transform: { $0 })
         
-        let clock = ContinuousClock()
-        var iterations = 1000
-        var durationSeconds = 0.0
-        var matchingResults = 0
-        for attempt in 0..<8 {
-            matchingResults = 0
-            let start = clock.now
+        let opsPerSecond = try await ThroughputMeasurement.measure(iterations: 1000) { iterations in
+            var matchingResults = 0
             for _ in 0..<iterations {
                 let result = try await middleware.execute(command, context: context) { cmd, _ in
                     try await cmd.execute()
                 }
                 if result == "TEST" { matchingResults += 1 }
             }
-            let elapsed = start.duration(to: clock.now).components
-            durationSeconds = Double(elapsed.seconds) + Double(elapsed.attoseconds) / 1e18
-            if durationSeconds > 0 { break }
-            if attempt < 7 { iterations *= 2 }
-        }
-        XCTAssertEqual(matchingResults, iterations)
-        guard durationSeconds.isFinite, durationSeconds > 0 else {
-            XCTFail("Unable to measure a positive finite duration")
-            return
-        }
-        let opsPerSecond = Double(iterations) / durationSeconds
-        guard opsPerSecond.isFinite, opsPerSecond > 0 else {
-            XCTFail("Unable to measure a positive finite throughput")
-            return
+            return matchingResults
         }
         print("Pipeline performance: \(opsPerSecond) ops/sec")
         XCTAssertGreaterThan(opsPerSecond, 10000)

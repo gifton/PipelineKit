@@ -371,33 +371,15 @@ final class SecurityPolicyMiddlewareTests: XCTestCase {
         let command = ValidCommand(text: "Performance test string")
         let context = CommandContext()
         
-        let clock = ContinuousClock()
-        var iterations = 10000
-        var durationSeconds = 0.0
-        var matchingResults = 0
-        for attempt in 0..<8 {
-            matchingResults = 0
-            let start = clock.now
+        let opsPerSecond = try await ThroughputMeasurement.measure(iterations: 10000) { iterations in
+            var matchingResults = 0
             for _ in 0..<iterations {
                 let result = try await middleware.execute(command, context: context) { cmd, _ in
                     try await cmd.execute()
                 }
                 if result == "Performance test string" { matchingResults += 1 }
             }
-            let elapsed = start.duration(to: clock.now).components
-            durationSeconds = Double(elapsed.seconds) + Double(elapsed.attoseconds) / 1e18
-            if durationSeconds > 0 { break }
-            if attempt < 7 { iterations *= 2 }
-        }
-        XCTAssertEqual(matchingResults, iterations)
-        guard durationSeconds.isFinite, durationSeconds > 0 else {
-            XCTFail("Unable to measure a positive finite duration")
-            return
-        }
-        let opsPerSecond = Double(iterations) / durationSeconds
-        guard opsPerSecond.isFinite, opsPerSecond > 0 else {
-            XCTFail("Unable to measure a positive finite throughput")
-            return
+            return matchingResults
         }
         print("Security policy validation performance: \(opsPerSecond) ops/sec")
         XCTAssertGreaterThan(opsPerSecond, 50000)
