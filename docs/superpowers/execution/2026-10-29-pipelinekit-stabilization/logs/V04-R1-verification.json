@@ -1,0 +1,205 @@
+{
+  "base": "7776d0febdcc340fd69844f25942c61fff7a3c5c",
+  "files": {
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py": "9fad75b0f9d7216c7467bab2d3b9fd341ef5e2313fd4365c491234eafb480dd0",
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/v04_process_fixtures.py": "0e40ead7a766b1eef9173e4ba63e207735b1644a7bbae6eb935640ee8715214c",
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/v04_identity_checks.py": "25b1b4af6711e138b1d7b6877f88387f6a2e3362f59ba9ef242c04aba25e4503",
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/v04_source_state.py": "7ea8864b3adcf53ff49747d92f4440c5360b215ad90d388ec6a03f3aaf858d75",
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/V04HangFixture/Package.swift": "2c58cb1210321ada885f043172448ec9860bc3479a682ec3e456fbb5abed09d9",
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/V04HangFixture/Tests/HangFixtureTests/HangingTests.swift": "646c605efdee08a7ec7a902b4a5e9f174dd644dbd924075b234b5db4b8427d9f"
+  },
+  "changed_source_files": [
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/v04_identity_checks.py"
+  ],
+  "unchanged_source_files": [
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py",
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/v04_process_fixtures.py",
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/v04_source_state.py",
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/V04HangFixture/Package.swift",
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/V04HangFixture/Tests/HangFixtureTests/HangingTests.swift"
+  ],
+  "retained_baseline_checks": 8,
+  "prior_evidence_hashes_verified": 285,
+  "results": {
+    "V04-R1-001-red": {
+      "exit_status": 1,
+      "elapsed_seconds": 0.469,
+      "setup_failure_observations": [
+        {
+          "fault": "readiness",
+          "identity": {
+            "pid": 57536,
+            "ppid": 57535,
+            "pgid": 57535,
+            "state": 2,
+            "start": [
+              1793403462,
+              29324
+            ]
+          },
+          "cleanup_calls": 0,
+          "joined_returncode": null,
+          "still_alive": true,
+          "cleanup_actions": [],
+          "emergency_cleanup_actions_before_assertion": []
+        }
+      ],
+      "external_watchdog_actions": []
+    },
+    "V04-R1-002-green": {
+      "exit_status": 0,
+      "elapsed_seconds": 7.244,
+      "setup_failure_observations": [
+        {
+          "fault": "inspection",
+          "identity": {
+            "pid": 57695,
+            "ppid": 57676,
+            "pgid": 57676,
+            "state": 2,
+            "start": [
+              1793403505,
+              514190
+            ]
+          },
+          "cleanup_calls": 1,
+          "joined_returncode": -9,
+          "still_alive": false,
+          "cleanup_actions": [
+            {
+              "identity": {
+                "pid": 57695,
+                "ppid": 57676,
+                "pgid": 57676,
+                "state": 2,
+                "start": [
+                  1793403505,
+                  514190
+                ]
+              },
+              "signal": 15,
+              "result": "sent"
+            },
+            {
+              "identity": {
+                "pid": 57695,
+                "ppid": 57676,
+                "pgid": 57676,
+                "state": 2,
+                "start": [
+                  1793403505,
+                  514190
+                ]
+              },
+              "signal": 9,
+              "result": "sent"
+            }
+          ],
+          "emergency_cleanup_actions_before_assertion": []
+        },
+        {
+          "fault": "owner_construction",
+          "identity": {
+            "pid": 57718,
+            "ppid": 57676,
+            "pgid": 57676,
+            "state": 2,
+            "start": [
+              1793403505,
+              895805
+            ]
+          },
+          "cleanup_calls": 1,
+          "joined_returncode": -9,
+          "still_alive": false,
+          "cleanup_actions": [
+            {
+              "identity": {
+                "pid": 57718,
+                "ppid": 57676,
+                "pgid": 57676,
+                "state": 2,
+                "start": [
+                  1793403505,
+                  895805
+                ]
+              },
+              "signal": 15,
+              "result": "sent"
+            },
+            {
+              "identity": {
+                "pid": 57718,
+                "ppid": 57676,
+                "pgid": 57676,
+                "state": 2,
+                "start": [
+                  1793403505,
+                  895805
+                ]
+              },
+              "signal": 9,
+              "result": "sent"
+            }
+          ],
+          "emergency_cleanup_actions_before_assertion": []
+        },
+        {
+          "fault": "readiness",
+          "identity": {
+            "pid": 57719,
+            "ppid": 57676,
+            "pgid": 57676,
+            "state": 2,
+            "start": [
+              1793403506,
+              290063
+            ]
+          },
+          "cleanup_calls": 1,
+          "joined_returncode": -9,
+          "still_alive": false,
+          "cleanup_actions": [
+            {
+              "identity": {
+                "pid": 57719,
+                "ppid": 57676,
+                "pgid": 57676,
+                "state": 2,
+                "start": [
+                  1793403506,
+                  290063
+                ]
+              },
+              "signal": 15,
+              "result": "sent"
+            },
+            {
+              "identity": {
+                "pid": 57719,
+                "ppid": 57676,
+                "pgid": 57676,
+                "state": 2,
+                "start": [
+                  1793403506,
+                  290063
+                ]
+              },
+              "signal": 9,
+              "result": "sent"
+            }
+          ],
+          "emergency_cleanup_actions_before_assertion": []
+        }
+      ],
+      "external_watchdog_actions": []
+    }
+  },
+  "post_run_exact_identities_checked": 17,
+  "owned_live_survivors": [],
+  "notes": [
+    "Setup fault injection uses actual subprocesses; cleanup instrumentation wraps the real SafetyOwner cleanup.",
+    "The emergency owner protects red/failure paths but its actions are empty when the green oracle is evaluated.",
+    "No runner, process-matrix harness, Swift fixture, dependency or platform-setting change; no real hang or broad-suite rerun."
+  ]
+}

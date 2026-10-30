@@ -87,3 +87,29 @@ Self-review checked parent revalidation, PID reuse rejection, per-signal identit
 The intended-path list matches the staged set exactly: 293 paths (six source/fixture utilities, this report, VALIDATION.md and 285 retained evidence files). All six staged source blobs match the final tested manifest, and all 284 pre-inventory evidence hashes match `V04-evidence-inventory.json`. No audit, audit-guide, controller-plan/progress/closure, dependency, build-cache or unrelated source path is staged. The only remaining tracked unstaged change is the controller's validation-plan amendment.
 
 `git diff --check` passed before staging. The staged check excluding raw `.log` files passed. The unrestricted staged check reports only an extra trailing blank line in `V04-009-xctest-harness.log`, `V04-013-xctest-harness.log` and `V04-017-xctest-harness.log`; those raw output bytes are intentionally retained unchanged.
+
+
+## V04-R1 — setup-failure cleanup review fix
+
+Independent review of `7776d0febdcc340fd69844f25942c61fff7a3c5c` identified an Important defect in the identity fixture: unittest skips `tearDown` when `setUp` fails, so its launched sentinel could survive a readiness, inspection or ownership-construction failure. The review's no-process reproduction was verified against the setup path, then replaced by a retained real-process regression for the fix.
+
+`IdentityChecks.setUp` now registers `self.safety.cleanup` with `addCleanup` immediately after constructing `SafetyOwner`, before creating a directory or launching work. `tearDown` retains the sentinel survival/no-signal assertions and no longer owns cleanup. This gives the fixture one registered cleanup owner across successful tests and failed setup.
+
+The new `SetupFailureCleanupChecks` tests readiness, inspection and owner-construction failures after launching an actual acknowledged sentinel. Each test invokes the real inner unittest lifecycle and wraps the real cleanup only to count calls. It asserts that the exact sentinel is no longer alive and its Popen return code is already -9 without polling/waiting in the oracle, as well as exactly one cleanup invocation. A separately registered emergency owner retains the launch identity before failure injection; it protects red/failing runs. Its actions must be empty when the passing assertions run, so neither emergency cleanup nor the external watchdog can make the regression pass. Each primary cleanup records actual TERM/KILL actions; the sentinel's normal TERM-refusing behavior exercises escalation and settlement.
+
+Commands ran from `/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization`:
+
+```sh
+python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/v04_source_state.py V04-R1-001-red
+python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id V04-R1-001-red --timeout 30 -- python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/v04_identity_checks.py --prefix V04-R1-001 --case test_setup_readiness_failure_settles_fixture
+python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/v04_source_state.py V04-R1-002-green
+python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id V04-R1-002-green --timeout 60 -- python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/v04_identity_checks.py --prefix V04-R1-002
+```
+
+RED: one test failed with `setup failure left the real fixture alive`. PID 57536/start `[1793403462, 29324]` was still alive, cleanup calls were 0 and joined returncode was null after the injected readiness failure. The separate emergency cleanup then settled it. The external watchdog completed with root/runner 1 in 0.469 s, no timeout and no termination actions; both owned outcomes were gone. This is a behavioral regression, not a compiler or fixture-launch failure.
+
+GREEN: the complete focused suite passed 13/13 tests in 7.152 s (root/runner 0, elapsed 7.244 s). The three new cases observed cleanup calls 1, joined returncode -9 and `still_alive: false` for each actual sentinel: inspection PID 57695, owner construction PID 57718 and readiness PID 57719. Their emergency action lists were empty at the oracle. The external watchdog again took no termination action. No warning was observed. `logs/V04-R1-verification.json` parsed these raw observations and independently rechecked all 17 exact identities from the red/green runs, finding zero live survivors.
+
+Only `repros/v04_identity_checks.py` changed among the six implementation/fixture sources. Its final SHA-256 is `25b1b4af6711e138b1d7b6877f88387f6a2e3362f59ba9ef242c04aba25e4503`, bound by `logs/V04-R1-002-green-source-state.json`. The runner remains `9fad75b0f9d7216c7467bab2d3b9fd341ef5e2313fd4365c491234eafb480dd0`; the process harness, Swift fixture, source-state helper and all eight manifest/pin/history inputs are unchanged. All 285 prior evidence hashes were verified unchanged. The accepted process matrix and real XCTest evidence therefore remain applicable; no matrix, real hang, Swift build or PipelineKit suite was rerun for this fixture-only repair.
+
+Self-review checked cleanup registration before launch, absence of teardown cleanup duplication, all three post-launch setup boundaries, actual settlement before the emergency oracle, complete suite selection, and exact source/evidence preservation. `git diff --check` passed. Known macOS/observation limitations are unchanged; this fix does not claim independent review acceptance, platform closure or I01 completion. The controller's validation-plan edit remains excluded.

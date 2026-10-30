@@ -1,0 +1,19 @@
+test_setup_readiness_failure_settles_fixture (__main__.SetupFailureCleanupChecks.test_setup_readiness_failure_settles_fixture) ... FAIL
+
+======================================================================
+FAIL: test_setup_readiness_failure_settles_fixture (__main__.SetupFailureCleanupChecks.test_setup_readiness_failure_settles_fixture)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/v04_identity_checks.py", line 189, in test_setup_readiness_failure_settles_fixture
+    self.assert_setup_failure_is_cleaned("readiness")
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/v04_identity_checks.py", line 183, in assert_setup_failure_is_cleaned
+    self.assertFalse(observation["still_alive"], "setup failure left the real fixture alive")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: True is not false : setup failure left the real fixture alive
+
+----------------------------------------------------------------------
+Ran 1 test in 0.363s
+
+FAILED (failures=1)
+{"fault": "readiness", "identity": {"pid": 57536, "ppid": 57535, "pgid": 57535, "state": 2, "start": [1793403462, 29324]}, "cleanup_calls": 0, "joined_returncode": null, "still_alive": true, "cleanup_actions": [], "emergency_cleanup_actions_before_assertion": []}

@@ -271,3 +271,20 @@ Host verification is macOS 27.0.1 arm64/Xcode 27.2/Swift 6.4.2/Python 3.14.1. `l
 Limits: this execution helper is macOS-only and fails unsupported platforms before launch; Linux and minimum-floor execution remain gaps. An unobserved instant daemonization may evade polling. Identity read and signal are separate syscalls, so a final PID-reuse race cannot be excluded. Unverifiable identities are not signaled; initial identity/inspection failures can prevent safe cleanup and must remain failures. Zombies are non-executing, with non-child reaping owned by the actual parent. Runner SIGKILL/host failure can bypass cleanup; unavailable evidence storage can prevent final metadata persistence. This is observed-descendant cleanup for cooperative validation, not a universal containment/security guarantee. Independent acceptance and I01 remain controller-owned.
 
 V04 staging verification matched all 293 intended paths and all six tested source blobs; the controller's plan edit is excluded. Non-log staged whitespace checks passed. The unrestricted check flags only an extra trailing blank line in the three retained XCTest harness raw logs (V04-009/013/017); original bytes were preserved. `logs/V04-evidence-inventory.json` records 284 prior evidence hashes, all rechecked before commit.
+
+## V04-R1 — independent cleanup after identity-fixture setup failure
+
+Review of `7776d0f` found that unittest skips teardown when setup fails. The identity fixture now registers `SafetyOwner.cleanup` with `addCleanup` immediately after constructing its owner, before launch; teardown retains only sentinel assertions. Three regressions inject readiness, inspection and owner-construction failure after a real sentinel has acknowledged readiness. Each checks actual exact-identity settlement and already-joined returncode -9, exactly one primary cleanup invocation, and no emergency cleanup action at the oracle. A separately registered emergency owner protects failing regression runs.
+
+Exact commands (worktree root):
+
+```sh
+python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/v04_source_state.py V04-R1-001-red
+python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id V04-R1-001-red --timeout 30 -- python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/v04_identity_checks.py --prefix V04-R1-001 --case test_setup_readiness_failure_settles_fixture
+python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/v04_source_state.py V04-R1-002-green
+python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id V04-R1-002-green --timeout 60 -- python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/v04_identity_checks.py --prefix V04-R1-002
+```
+
+V04-R1-001 is a meaningful runtime red: cleanup calls 0, real sentinel still alive, unjoined returncode null; one assertion failed. Its emergency owner settled the fixture before the external watchdog returned root/runner 1 in 0.469 s with no timeout or termination actions. V04-R1-002 passed the complete 13-test identity/error suite in 7.152 s (runner 0 in 7.244 s). Each new setup-failure case independently observed a dead, joined sentinel and exactly one cleanup invocation before emergency cleanup; the external watchdog took no termination action. No warning was observed. Exact post-run checks of 17 retained identities found no live survivor.
+
+Final source hash for the sole modified fixture is `25b1b4af6711e138b1d7b6877f88387f6a2e3362f59ba9ef242c04aba25e4503`; `logs/V04-R1-002-green-source-state.json` and `logs/V04-R1-verification.json` bind the code, red/green observations and unchanged scope. Runner/main process harness/Swift fixtures and eight retained manifest/pin/history inputs are unchanged, as are all 285 prior evidence hashes. The accepted matrix/XCTest evidence remains valid; no repeated real hang or broad suite ran. Details are appended to [the implementation report](reports/V04-implementer.md). Controller review/acceptance and existing platform limitations remain separate.

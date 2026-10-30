@@ -22,6 +22,7 @@ PREFIX = ""
 class IdentityChecks(unittest.TestCase):
     def setUp(self):
         self.safety = SafetyOwner()
+        self.addCleanup(self.safety.cleanup)
         self.directory = Path(tempfile.mkdtemp(prefix="v04-identity-"))
         fixture = Path(__file__).with_name("v04_process_fixtures.py")
         self.sentinel = self.safety.launch([sys.executable, str(fixture), "--worker", "sentinel",
@@ -32,11 +33,8 @@ class IdentityChecks(unittest.TestCase):
         self.owner = runner.OwnedProcesses(runner.DarwinProcesses(), io.StringIO(), time.monotonic())
 
     def tearDown(self):
-        try:
-            self.assertTrue(alive(self.current), "unrelated sentinel was terminated")
-            self.assertFalse((self.directory / "sentinel-signaled.json").exists(), "sentinel was signaled")
-        finally:
-            self.safety.cleanup()
+        self.assertTrue(alive(self.current), "unrelated sentinel was terminated")
+        self.assertFalse((self.directory / "sentinel-signaled.json").exists(), "sentinel was signaled")
 
     def test_reused_pid_identity_is_not_signaled(self):
         stale = {**self.current, "start": [self.current["start"][0] - 1, self.current["start"][1]]}
@@ -135,13 +133,77 @@ class IdentityChecks(unittest.TestCase):
         self.assertFalse(marker.exists())
 
 
+class SetupFailureCleanupChecks(unittest.TestCase):
+    def assert_setup_failure_is_cleaned(self, fault):
+        emergency = SafetyOwner()
+        self.addCleanup(emergency.cleanup)
+        tested_safety = SafetyOwner()
+        original_launch = tested_safety.launch
+        original_wait = wait_for
+        marker = "V04-R1 injected setup " + fault + " failure"
+
+        def launch(*args, **kwargs):
+            process = original_launch(*args, **kwargs)
+            # The emergency owner is independent of the inner unittest lifecycle.
+            emergency.children.append(process)
+            for identity in tested_safety.identities.values():
+                emergency.retain(identity)
+            return process
+
+        def failed_readiness(predicate):
+            original_wait(predicate)  # Acknowledge the real sentinel before injecting failure.
+            raise RuntimeError(marker)
+
+        with contextlib.ExitStack() as stack:
+            stack.enter_context(patch.object(sys.modules[__name__], "SafetyOwner", return_value=tested_safety))
+            stack.enter_context(patch.object(tested_safety, "launch", side_effect=launch))
+            cleanup = stack.enter_context(patch.object(tested_safety, "cleanup", wraps=tested_safety.cleanup))
+            if fault == "readiness":
+                stack.enter_context(patch.object(sys.modules[__name__], "wait_for", side_effect=failed_readiness))
+            elif fault == "inspection":
+                stack.enter_context(patch.object(sys.modules[__name__], "inspect", side_effect=RuntimeError(marker)))
+            else:
+                stack.enter_context(patch.object(runner, "OwnedProcesses", side_effect=RuntimeError(marker)))
+            inner = IdentityChecks("test_reused_pid_identity_is_not_signaled")
+            result = unittest.TestResult()
+            inner.run(result)
+
+        self.assertEqual(len(result.errors), 1)
+        self.assertIn(marker, result.errors[0][1])
+        self.assertEqual(len(tested_safety.children), 1)
+        process = tested_safety.children[0]
+        identity = next(value for value in tested_safety.identities.values() if value["pid"] == process.pid)
+        observation = dict(fault=fault, identity=identity, cleanup_calls=cleanup.call_count,
+                           joined_returncode=process.returncode, still_alive=alive(identity),
+                           cleanup_actions=tested_safety.actions,
+                           emergency_cleanup_actions_before_assertion=emergency.actions)
+        print(json.dumps(observation))
+        self.assertFalse(observation["still_alive"], "setup failure left the real fixture alive")
+        self.assertEqual(process.returncode, -signal.SIGKILL, "independent cleanup did not join the TERM-refusing sentinel")
+        self.assertEqual(cleanup.call_count, 1, "fixture must have one cleanup owner")
+        self.assertEqual(emergency.actions, [], "emergency cleanup must not supply the passing oracle")
+
+    def test_setup_readiness_failure_settles_fixture(self):
+        self.assert_setup_failure_is_cleaned("readiness")
+
+    def test_setup_inspection_failure_settles_fixture(self):
+        self.assert_setup_failure_is_cleaned("inspection")
+
+    def test_setup_owner_construction_failure_settles_fixture(self):
+        self.assert_setup_failure_is_cleaned("owner_construction")
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--prefix", required=True)
     parser.add_argument("--case")
     args = parser.parse_args()
     PREFIX = args.prefix
-    suite = (unittest.TestSuite([IdentityChecks(args.case)]) if args.case else
-             unittest.defaultTestLoader.loadTestsFromTestCase(IdentityChecks))
+    if args.case:
+        selected = IdentityChecks if hasattr(IdentityChecks, args.case) else SetupFailureCleanupChecks
+        suite = unittest.TestSuite([selected(args.case)])
+    else:
+        suite = unittest.TestSuite(unittest.defaultTestLoader.loadTestsFromTestCase(case)
+                                   for case in (IdentityChecks, SetupFailureCleanupChecks))
     result = unittest.TextTestRunner(verbosity=2).run(suite)
     sys.exit(0 if result.wasSuccessful() else 1)
