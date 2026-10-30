@@ -132,7 +132,7 @@ let securityPriorities: [ExecutionPriority] = [
 Never trust user input. Validate all data at the entry point:
 
 ```swift
-struct CreateUserCommand: Command {
+struct CreateUserCommand: ValidatableCommand {
     typealias Result = Void
 
     let email: String
@@ -140,7 +140,7 @@ struct CreateUserCommand: Command {
     let password: String
     let age: Int
 
-    func validate() throws {
+    func validate() async throws {
         // Email validation
         guard email.contains("@") && email.contains(".") else {
             throw PipelineError.validation(field: "email", reason: .invalidEmail)
@@ -173,9 +173,12 @@ struct CreateUserCommand: Command {
 }
 ```
 
-`validate()` is not a `Command` protocol requirement — it's a default no-op provided by a
-`Command` extension in `PipelineKitSecurity`. Overriding it, as above, is how `ValidationMiddleware`
-picks up per-command validation; the error cases come from `PipelineError.ValidationReason`.
+`validate()` is an async requirement of `ValidatableCommand` in `PipelineKitSecurity`.
+Declare that conformance explicitly; a same-named method on an unrelated `Command` does not
+opt into validation. `ValidationMiddleware()` rejects missing conformance before invoking
+the next stage and propagates validation errors unchanged. For a deliberately mixed command
+set, `ValidationMiddleware(requirement: .ifPresent)` invokes conforming commands and allows
+unrelated commands through. There is no default no-op validation witness.
 
 ### Custom Validation Functions
 
@@ -226,48 +229,33 @@ func validateStrongPassword(_ value: String) throws {
 
 ### Input Sanitization
 
-Always sanitize user input to prevent injection attacks:
+Sanitization is an application-defined transformation. Implement `SanitizableCommand` and
+return the value the handler should receive. This example normalizes text and limits its
+length; it does not establish that the output is safe in every rendering or query context.
 
 ```swift
-struct ProcessContentCommand: Command {
+struct ProcessContentCommand: SanitizableCommand {
     typealias Result = Void
 
-    var content: String
-    var title: String
+    let content: String
+    let title: String
 
-    // `sanitize()` is non-mutating and returns a new value — it's a default no-op provided by
-    // a `Command` extension (`func sanitize() throws -> Self`), and `SanitizationMiddleware`
-    // calls it as `let sanitized = try command.sanitize()`, not by mutating the command in place.
-    func sanitize() throws -> Self {
-        var content = content
-        var title = title
-
-        // Remove dangerous HTML tags
-        content = content.replacingOccurrences(of: "<script", with: "&lt;script", options: [.caseInsensitive])
-        content = content.replacingOccurrences(of: "</script>", with: "&lt;/script&gt;", options: [.caseInsensitive])
-        content = content.replacingOccurrences(of: "<iframe", with: "&lt;iframe", options: [.caseInsensitive])
-
-        // Basic HTML entity encoding
-        title = title.replacingOccurrences(of: "<", with: "&lt;")
-        title = title.replacingOccurrences(of: ">", with: "&gt;")
-        title = title.replacingOccurrences(of: "\"", with: "&quot;")
-
-        // Trim whitespace
-        content = content.trimmingCharacters(in: .whitespacesAndNewlines)
-        title = title.trimmingCharacters(in: .whitespacesAndNewlines)
-
-        // Enforce length limits
-        if content.count > 10000 {
-            content = String(content.prefix(10000))
-        }
-        if title.count > 200 {
-            title = String(title.prefix(200))
-        }
-
-        return ProcessContentCommand(content: content, title: title)
+    func sanitize() async throws -> Self {
+        let content = content.trimmingCharacters(in: .whitespacesAndNewlines)
+        let title = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        return Self(content: String(content.prefix(10000)), title: String(title.prefix(200)))
     }
 }
 ```
+
+`SanitizationMiddleware()` requires this capability and passes its returned value downstream.
+Use `SanitizationMiddleware(requirement: .ifPresent)` only when unrelated commands should
+pass through unchanged. Calls made directly by application code now use `try await` for
+both `validate()` and `sanitize()`.
+
+Validation's intrinsic priority is 200 and sanitization's is 300, so validation normally
+runs first. When validation needs normalized input, use explicit builder ordering, as shown
+in the [stabilization migration draft](../migrations/first-stabilization-batch.md).
 
 ## 🔐 Authorization & Authentication
 

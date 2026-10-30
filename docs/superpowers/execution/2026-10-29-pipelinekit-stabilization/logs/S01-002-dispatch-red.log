@@ -1,0 +1,430 @@
+Building for debugging...
+[Computing dependencies]
+[Pre-planning 1 / 1026]
+[Planning deferred tasks]
+[1 / 1]
+[6 / 72] PipelineKitSecurity
+[11 / 77] PipelineKitSecurity
+[18 / 84] PipelineKitSecurity
+[24 / 86] PipelineKitTestSupport
+[34 / 93] PipelineKitTestSupport
+[38 / 80] PipelineKitTests-product
+[56 / 87] PipelineKitPoolingTests-product
+[60 / 89] PipelineKitObservabilityTests-product
+[60 / 89] PipelineKitTestSupportTests-product
+[77 / 153] PipelineKitResilienceTests-product
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/NextGuardSuppressionTests.swift:53:46: warning: 'is' test is always true
+51 |     /// error exits on its own.
+52 |     func testCacheMiddlewaresRetainNextGuardSuppression() {
+53 |         XCTAssertTrue(CachingMiddleware.self is any NextGuardWarningSuppressing.Type)
+   |                                              `- warning: 'is' test is always true
+54 |         XCTAssertTrue(SimpleCachingMiddleware.self is any NextGuardWarningSuppressing.Type)
+55 |         XCTAssertTrue(CachedMiddleware<CachingMiddleware>.self is any NextGuardWarningSuppressing.Type)
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/NextGuardSuppressionTests.swift:54:52: warning: 'is' test is always true
+52 |     func testCacheMiddlewaresRetainNextGuardSuppression() {
+53 |         XCTAssertTrue(CachingMiddleware.self is any NextGuardWarningSuppressing.Type)
+54 |         XCTAssertTrue(SimpleCachingMiddleware.self is any NextGuardWarningSuppressing.Type)
+   |                                                    `- warning: 'is' test is always true
+55 |         XCTAssertTrue(CachedMiddleware<CachingMiddleware>.self is any NextGuardWarningSuppressing.Type)
+56 |         XCTAssertTrue(ConditionalCachedMiddleware<CachingMiddleware>.self is any NextGuardWarningSuppressing.Type)
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/NextGuardSuppressionTests.swift:55:64: warning: 'is' test is always true
+53 |         XCTAssertTrue(CachingMiddleware.self is any NextGuardWarningSuppressing.Type)
+54 |         XCTAssertTrue(SimpleCachingMiddleware.self is any NextGuardWarningSuppressing.Type)
+55 |         XCTAssertTrue(CachedMiddleware<CachingMiddleware>.self is any NextGuardWarningSuppressing.Type)
+   |                                                                `- warning: 'is' test is always true
+56 |         XCTAssertTrue(ConditionalCachedMiddleware<CachingMiddleware>.self is any NextGuardWarningSuppressing.Type)
+57 |     }
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/NextGuardSuppressionTests.swift:56:75: warning: 'is' test is always true
+54 |         XCTAssertTrue(SimpleCachingMiddleware.self is any NextGuardWarningSuppressing.Type)
+55 |         XCTAssertTrue(CachedMiddleware<CachingMiddleware>.self is any NextGuardWarningSuppressing.Type)
+56 |         XCTAssertTrue(ConditionalCachedMiddleware<CachingMiddleware>.self is any NextGuardWarningSuppressing.Type)
+   |                                                                           `- warning: 'is' test is always true
+57 |     }
+58 | }
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitPerformanceTests/PipelinePerformanceTests.swift:66:13: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+ 64 |             expectation.expectedFulfillmentCount = 1000
+ 65 | 
+ 66 |             Task {
+    |             |- warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+    |             `- note: to silence this warning, handle the error inside the task, or store/discard the task value explicitly
+ 67 |                 for _ in 0..<1000 {
+ 68 |                     _ = try await pipeline.execute(command, context: context)
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitPerformanceTests/PipelinePerformanceTests.swift:82:9: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+ 80 | 
+ 81 |         let setupExpectation = expectation(description: "Setup")
+ 82 |         Task {
+    |         |- warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+    |         `- note: to silence this warning, handle the error inside the task, or store/discard the task value explicitly
+ 83 |             try await pipeline.addMiddleware(middleware)
+ 84 |             setupExpectation.fulfill()
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitPerformanceTests/PipelinePerformanceTests.swift:99:13: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+ 97 |             expectation.expectedFulfillmentCount = 1000
+ 98 | 
+ 99 |             Task {
+    |             |- warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+    |             `- note: to silence this warning, handle the error inside the task, or store/discard the task value explicitly
+100 |                 for _ in 0..<1000 {
+101 |                     _ = try await pipeline.execute(command, context: context)
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitPerformanceTests/PipelinePerformanceTests.swift:115:9: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+113 |         // Add 5 middleware components
+114 |         let setupExpectation = expectation(description: "Setup middleware")
+115 |         Task {
+    |         |- warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+    |         `- note: to silence this warning, handle the error inside the task, or store/discard the task value explicitly
+116 |             for i in 0..<5 {
+117 |                 let priority: ExecutionPriority = switch i {
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitPerformanceTests/PipelinePerformanceTests.swift:141:13: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+139 |             expectation.expectedFulfillmentCount = 1000
+140 | 
+141 |             Task {
+    |             |- warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+    |             `- note: to silence this warning, handle the error inside the task, or store/discard the task value explicitly
+142 |                 for _ in 0..<1000 {
+143 |                     _ = try await pipeline.execute(command, context: context)
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitPerformanceTests/PipelinePerformanceTests.swift:201:13: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+199 |             expectation.expectedFulfillmentCount = 100
+200 | 
+201 |             Task {
+    |             |- warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+    |             `- note: to silence this warning, handle the error inside the task, or store/discard the task value explicitly
+202 |                 for _ in 0..<100 {
+203 |                     _ = try await pipeline.execute(command, context: context)
+
+[#NoUseUnstructuredThrowingTask]: <https://docs.swift.org/compiler/documentation/diagnostics/no-use-throwing-unstructured-task>
+[85 / 153] PipelineKitTests-product
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionMiddlewareTests.swift:80:28: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+ 78 |         let handler: @Sendable (DataProcessingCommand, CommandContext) async throws -> ProcessingResult = { cmd, ctx in
+ 79 |             // Verify compression was applied
+ 80 |             let metadata = await ctx.getMetadata()
+    |                            `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+ 81 |             if let applied = metadata["compression.applied"] as? Bool, applied {
+ 82 |                 XCTAssertEqual(metadata["compression.algorithm"] as? String, "zlib")
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionMiddlewareTests.swift:124:28: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+122 |         let handler: @Sendable (DataProcessingCommand, CommandContext) async throws -> ProcessingResult = { cmd, ctx in
+123 |             // Verify compression was NOT applied
+124 |             let metadata = await ctx.getMetadata()
+    |                            `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+125 |             XCTAssertNil(metadata["compression.applied"])
+126 |             XCTAssertFalse(cmd.operation.contains("compressed"))
+
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/SimpleCachingMiddlewareTests.swift:423:13: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+421 |             expectation.expectedFulfillmentCount = iterations
+422 | 
+423 |             Task {
+    |             |- warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+    |             `- note: to silence this warning, handle the error inside the task, or store/discard the task value explicitly
+424 |                 let pipeline = StandardPipeline(handler: TestHandler())
+425 |                 try await pipeline.addMiddleware(cache)
+
+[#NoUseUnstructuredThrowingTask]: <https://docs.swift.org/compiler/documentation/diagnostics/no-use-throwing-unstructured-task>
+[96 / 152] PipelineKitTests-product
+[103 / 154] PipelineKitTests-product
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCoreTests/Middleware/MiddlewareTests.swift:138:25: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+136 |         
+137 |         _ = try await middleware.execute(command, context: context) { _, ctx in
+138 |             let value = await ctx.getMetadata("test") as? String
+    |                         `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+139 |             XCTAssertEqual(value, "modified")
+140 |             return "done"
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCoreTests/Pipeline/PipelineTests.swift:241:32: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+239 |             try await middleware2.execute(cmd, context: ctx) { c, finalCtx in
+240 |                 // Verify context has both values
+241 |                 let metadata = await finalCtx.getMetadata()
+    |                                `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+242 |                 XCTAssertEqual(metadata["key1"] as? String, "value1")
+243 |                 XCTAssertEqual(metadata["key2"] as? String, "value2")
+
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>
+[111 / 154] PipelineKitSecurityTests-product
+[118 / 154] PipelineKitTests-product
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/AuthorizationMiddlewareTests.swift:117:9: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+115 |         // Test editor (has both roles)
+116 |         let editorContext = CommandContext()
+117 |         await editorContext.setMetadata("authUserId", value: "editor")
+    |         `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+118 |         
+119 |         let editorResult = try await middleware.execute(command, context: editorContext) { cmd, _ in
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/AuthorizationMiddlewareTests.swift:126:9: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+124 |         // Test reader (missing write role)
+125 |         let readerContext = CommandContext()
+126 |         await readerContext.setMetadata("authUserId", value: "reader")
+    |         `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+127 |         
+128 |         do {
+
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>
+[129 / 158] PipelineKitPerformanceTests-product
+[143 / 163] PipelineKitCacheTests-product
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/TimeoutMiddlewareCompileTests.swift:14:9: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+12 | 
+13 |         // Create a dummy execute call to verify non-escaping constraint
+14 |         Task {
+   |         |- warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+   |         `- note: to silence this warning, handle the error inside the task, or store/discard the task value explicitly
+15 |             let command = DummyCommand()
+16 |             let context = CommandContext()
+
+[#NoUseUnstructuredThrowingTask]: <https://docs.swift.org/compiler/documentation/diagnostics/no-use-throwing-unstructured-task>
+[150 / 163] PipelineKitResilienceTests-product
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCoreTests/Middleware/MiddlewareTests.swift:138:25: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+136 |         
+137 |         _ = try await middleware.execute(command, context: context) { _, ctx in
+138 |             let value = await ctx.getMetadata("test") as? String
+    |                         `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+139 |             XCTAssertEqual(value, "modified")
+140 |             return "done"
+
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCoreTests/Pipeline/PipelineTests.swift:241:32: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+239 |             try await middleware2.execute(cmd, context: ctx) { c, finalCtx in
+240 |                 // Verify context has both values
+241 |                 let metadata = await finalCtx.getMetadata()
+    |                                `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+242 |                 XCTAssertEqual(metadata["key1"] as? String, "value1")
+243 |                 XCTAssertEqual(metadata["key2"] as? String, "value2")
+
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>
+[154 / 166] PipelineKitCoreTests-product
+[160 / 167] PipelineKitSecurityTests-product
+[162 / 168] PipelineKitResilienceTests-product
+[168 / 168] PipelineKitCoreTests-product
+Build complete! (4.22 sec)
+Test Suite 'Selected tests' started at 2026-10-30 14:15:19.715.
+Test Suite 'PipelineKitTests.xctest' started at 2026-10-30 14:15:19.716.
+Test Suite 'PipelineKitTests.xctest' passed at 2026-10-30 14:15:19.716.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 14:15:19.716.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 14:15:19.793.
+Test Suite 'PipelineKitTestSupportTests.xctest' started at 2026-10-30 14:15:19.794.
+Test Suite 'PipelineKitTestSupportTests.xctest' passed at 2026-10-30 14:15:19.794.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 14:15:19.794.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 14:15:19.853.
+Test Suite 'PipelineKitSecurityTests.xctest' started at 2026-10-30 14:15:19.853.
+Test Suite 'SecurityCapabilityContractTests' started at 2026-10-30 14:15:19.853.
+Test Case '-[PipelineKitSecurityTests.SecurityCapabilityContractTests testCombinedCapabilitiesReachHandlerWithTransformedFields]' started.
+2026-10-30T14:15:19-0700 warning PipelineKit.Core: [PipelineKit] SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features.
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:112: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testCombinedCapabilitiesReachHandlerWithTransformedFields] : XCTAssertEqual failed: ("Payload(title: "  Report  ", body: "  CONTENT  ")") is not equal to ("Payload(title: "Report", body: "content")") - standard
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:115: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testCombinedCapabilitiesReachHandlerWithTransformedFields] : XCTAssertEqual failed: ("["handler"]") is not equal to ("["validate", "sanitize", "handler"]") - standard
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:112: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testCombinedCapabilitiesReachHandlerWithTransformedFields] : XCTAssertEqual failed: ("Payload(title: "  Report  ", body: "  CONTENT  ")") is not equal to ("Payload(title: "Report", body: "content")") - anyStandard
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:115: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testCombinedCapabilitiesReachHandlerWithTransformedFields] : XCTAssertEqual failed: ("["handler"]") is not equal to ("["validate", "sanitize", "handler"]") - anyStandard
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:112: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testCombinedCapabilitiesReachHandlerWithTransformedFields] : XCTAssertEqual failed: ("Payload(title: "  Report  ", body: "  CONTENT  ")") is not equal to ("Payload(title: "Report", body: "content")") - dynamic
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:115: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testCombinedCapabilitiesReachHandlerWithTransformedFields] : XCTAssertEqual failed: ("["handler"]") is not equal to ("["validate", "sanitize", "handler"]") - dynamic
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:112: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testCombinedCapabilitiesReachHandlerWithTransformedFields] : XCTAssertEqual failed: ("Payload(title: "  Report  ", body: "  CONTENT  ")") is not equal to ("Payload(title: "Report", body: "content")") - builderPlainFirst
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:115: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testCombinedCapabilitiesReachHandlerWithTransformedFields] : XCTAssertEqual failed: ("["named", "handler"]") is not equal to ("["validate", "sanitize", "named", "handler"]") - builderPlainFirst
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:112: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testCombinedCapabilitiesReachHandlerWithTransformedFields] : XCTAssertEqual failed: ("Payload(title: "  Report  ", body: "  CONTENT  ")") is not equal to ("Payload(title: "Report", body: "content")") - builderNamedFirst
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:115: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testCombinedCapabilitiesReachHandlerWithTransformedFields] : XCTAssertEqual failed: ("["named", "handler"]") is not equal to ("["validate", "sanitize", "named", "handler"]") - builderNamedFirst
+Test Case '-[PipelineKitSecurityTests.SecurityCapabilityContractTests testCombinedCapabilitiesReachHandlerWithTransformedFields]' failed (0.166 seconds).
+Test Case '-[PipelineKitSecurityTests.SecurityCapabilityContractTests testGenericPipelineInvokesValidationWitness]' started.
+2026-10-30T14:15:20-0700 warning PipelineKit.Core: [PipelineKit] SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features.
+2026-10-30T14:15:20-0700 warning PipelineKit.Core: [PipelineKit] SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features.
+2026-10-30T14:15:20-0700 warning PipelineKit.Core: [PipelineKit] SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features.
+2026-10-30T14:15:20-0700 warning PipelineKit.Core: [PipelineKit] SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features.
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:25: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testGenericPipelineInvokesValidationWitness] : XCTAssertEqual failed: ("["handler"]") is not equal to ("["validate", "handler"]") - standard
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:18: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testGenericPipelineInvokesValidationWitness] : XCTAssertFalse failed - standard must propagate the validation error
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:25: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testGenericPipelineInvokesValidationWitness] : XCTAssertEqual failed: ("["handler"]") is not equal to ("["validate"]") - standard
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:26: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testGenericPipelineInvokesValidationWitness] : XCTAssertEqual failed: ("1") is not equal to ("0") - standard
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:25: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testGenericPipelineInvokesValidationWitness] : XCTAssertEqual failed: ("["handler"]") is not equal to ("["validate", "handler"]") - standard
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:18: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testGenericPipelineInvokesValidationWitness] : XCTAssertFalse failed - standard must propagate the validation error
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:25: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testGenericPipelineInvokesValidationWitness] : XCTAssertEqual failed: ("["handler"]") is not equal to ("["validate"]") - standard
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:26: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testGenericPipelineInvokesValidationWitness] : XCTAssertEqual failed: ("1") is not equal to ("0") - standard
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:25: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testGenericPipelineInvokesValidationWitness] : XCTAssertEqual failed: ("["handler"]") is not equal to ("["validate", "handler"]") - anyStandard
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:18: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testGenericPipelineInvokesValidationWitness] : XCTAssertFalse failed - anyStandard must propagate the validation error
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:25: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testGenericPipelineInvokesValidationWitness] : XCTAssertEqual failed: ("["handler"]") is not equal to ("["validate"]") - anyStandard
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:26: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testGenericPipelineInvokesValidationWitness] : XCTAssertEqual failed: ("1") is not equal to ("0") - anyStandard
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:25: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testGenericPipelineInvokesValidationWitness] : XCTAssertEqual failed: ("["handler"]") is not equal to ("["validate", "handler"]") - anyStandard
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:18: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testGenericPipelineInvokesValidationWitness] : XCTAssertFalse failed - anyStandard must propagate the validation error
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:25: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testGenericPipelineInvokesValidationWitness] : XCTAssertEqual failed: ("["handler"]") is not equal to ("["validate"]") - anyStandard
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:26: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testGenericPipelineInvokesValidationWitness] : XCTAssertEqual failed: ("1") is not equal to ("0") - anyStandard
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:25: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testGenericPipelineInvokesValidationWitness] : XCTAssertEqual failed: ("["handler"]") is not equal to ("["validate", "handler"]") - dynamic
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:18: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testGenericPipelineInvokesValidationWitness] : XCTAssertFalse failed - dynamic must propagate the validation error
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:25: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testGenericPipelineInvokesValidationWitness] : XCTAssertEqual failed: ("["handler"]") is not equal to ("["validate"]") - dynamic
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:26: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testGenericPipelineInvokesValidationWitness] : XCTAssertEqual failed: ("1") is not equal to ("0") - dynamic
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:25: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testGenericPipelineInvokesValidationWitness] : XCTAssertEqual failed: ("["handler"]") is not equal to ("["validate", "handler"]") - dynamic
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:18: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testGenericPipelineInvokesValidationWitness] : XCTAssertFalse failed - dynamic must propagate the validation error
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:25: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testGenericPipelineInvokesValidationWitness] : XCTAssertEqual failed: ("["handler"]") is not equal to ("["validate"]") - dynamic
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:26: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testGenericPipelineInvokesValidationWitness] : XCTAssertEqual failed: ("1") is not equal to ("0") - dynamic
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:25: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testGenericPipelineInvokesValidationWitness] : XCTAssertEqual failed: ("["named", "handler"]") is not equal to ("["validate", "named", "handler"]") - builderPlainFirst
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:18: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testGenericPipelineInvokesValidationWitness] : XCTAssertFalse failed - builderPlainFirst must propagate the validation error
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:25: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testGenericPipelineInvokesValidationWitness] : XCTAssertEqual failed: ("["named", "handler"]") is not equal to ("["validate"]") - builderPlainFirst
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:26: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testGenericPipelineInvokesValidationWitness] : XCTAssertEqual failed: ("1") is not equal to ("0") - builderPlainFirst
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:25: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testGenericPipelineInvokesValidationWitness] : XCTAssertEqual failed: ("["named", "handler"]") is not equal to ("["validate", "named", "handler"]") - builderPlainFirst
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:18: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testGenericPipelineInvokesValidationWitness] : XCTAssertFalse failed - builderPlainFirst must propagate the validation error
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:25: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testGenericPipelineInvokesValidationWitness] : XCTAssertEqual failed: ("["named", "handler"]") is not equal to ("["validate"]") - builderPlainFirst
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:26: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testGenericPipelineInvokesValidationWitness] : XCTAssertEqual failed: ("1") is not equal to ("0") - builderPlainFirst
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:25: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testGenericPipelineInvokesValidationWitness] : XCTAssertEqual failed: ("["named", "handler"]") is not equal to ("["validate", "named", "handler"]") - builderNamedFirst
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:18: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testGenericPipelineInvokesValidationWitness] : XCTAssertFalse failed - builderNamedFirst must propagate the validation error
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:25: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testGenericPipelineInvokesValidationWitness] : XCTAssertEqual failed: ("["named", "handler"]") is not equal to ("["validate"]") - builderNamedFirst
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:26: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testGenericPipelineInvokesValidationWitness] : XCTAssertEqual failed: ("1") is not equal to ("0") - builderNamedFirst
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:25: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testGenericPipelineInvokesValidationWitness] : XCTAssertEqual failed: ("["named", "handler"]") is not equal to ("["validate", "named", "handler"]") - builderNamedFirst
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:18: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testGenericPipelineInvokesValidationWitness] : XCTAssertFalse failed - builderNamedFirst must propagate the validation error
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:25: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testGenericPipelineInvokesValidationWitness] : XCTAssertEqual failed: ("["named", "handler"]") is not equal to ("["validate"]") - builderNamedFirst
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:26: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testGenericPipelineInvokesValidationWitness] : XCTAssertEqual failed: ("1") is not equal to ("0") - builderNamedFirst
+Test Case '-[PipelineKitSecurityTests.SecurityCapabilityContractTests testGenericPipelineInvokesValidationWitness]' failed (0.004 seconds).
+Test Case '-[PipelineKitSecurityTests.SecurityCapabilityContractTests testGenericPipelinePassesReturnedSanitizedValue]' started.
+2026-10-30T14:15:20-0700 warning PipelineKit.Core: [PipelineKit] SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features.
+2026-10-30T14:15:20-0700 warning PipelineKit.Core: [PipelineKit] SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features.
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:40: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testGenericPipelinePassesReturnedSanitizedValue] : XCTAssertEqual failed: ("Payload(title: "  Report  ", body: "  CONTENT  ")") is not equal to ("Payload(title: "Report", body: "content")") - standard
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:44: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testGenericPipelinePassesReturnedSanitizedValue] : XCTAssertEqual failed: ("["handler"]") is not equal to ("["sanitize", "handler"]") - standard
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:40: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testGenericPipelinePassesReturnedSanitizedValue] : XCTAssertEqual failed: ("Payload(title: "  Report  ", body: "  CONTENT  ")") is not equal to ("Payload(title: "Report", body: "content")") - standard
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:44: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testGenericPipelinePassesReturnedSanitizedValue] : XCTAssertEqual failed: ("["handler"]") is not equal to ("["sanitize", "handler"]") - standard
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:40: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testGenericPipelinePassesReturnedSanitizedValue] : XCTAssertEqual failed: ("Payload(title: "  Report  ", body: "  CONTENT  ")") is not equal to ("Payload(title: "Report", body: "content")") - anyStandard
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:44: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testGenericPipelinePassesReturnedSanitizedValue] : XCTAssertEqual failed: ("["handler"]") is not equal to ("["sanitize", "handler"]") - anyStandard
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:40: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testGenericPipelinePassesReturnedSanitizedValue] : XCTAssertEqual failed: ("Payload(title: "  Report  ", body: "  CONTENT  ")") is not equal to ("Payload(title: "Report", body: "content")") - anyStandard
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:44: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testGenericPipelinePassesReturnedSanitizedValue] : XCTAssertEqual failed: ("["handler"]") is not equal to ("["sanitize", "handler"]") - anyStandard
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:40: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testGenericPipelinePassesReturnedSanitizedValue] : XCTAssertEqual failed: ("Payload(title: "  Report  ", body: "  CONTENT  ")") is not equal to ("Payload(title: "Report", body: "content")") - dynamic
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:44: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testGenericPipelinePassesReturnedSanitizedValue] : XCTAssertEqual failed: ("["handler"]") is not equal to ("["sanitize", "handler"]") - dynamic
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:40: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testGenericPipelinePassesReturnedSanitizedValue] : XCTAssertEqual failed: ("Payload(title: "  Report  ", body: "  CONTENT  ")") is not equal to ("Payload(title: "Report", body: "content")") - dynamic
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:44: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testGenericPipelinePassesReturnedSanitizedValue] : XCTAssertEqual failed: ("["handler"]") is not equal to ("["sanitize", "handler"]") - dynamic
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:40: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testGenericPipelinePassesReturnedSanitizedValue] : XCTAssertEqual failed: ("Payload(title: "  Report  ", body: "  CONTENT  ")") is not equal to ("Payload(title: "Report", body: "content")") - builderPlainFirst
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:44: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testGenericPipelinePassesReturnedSanitizedValue] : XCTAssertEqual failed: ("["named", "handler"]") is not equal to ("["sanitize", "named", "handler"]") - builderPlainFirst
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:40: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testGenericPipelinePassesReturnedSanitizedValue] : XCTAssertEqual failed: ("Payload(title: "  Report  ", body: "  CONTENT  ")") is not equal to ("Payload(title: "Report", body: "content")") - builderPlainFirst
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:44: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testGenericPipelinePassesReturnedSanitizedValue] : XCTAssertEqual failed: ("["named", "handler"]") is not equal to ("["sanitize", "named", "handler"]") - builderPlainFirst
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:40: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testGenericPipelinePassesReturnedSanitizedValue] : XCTAssertEqual failed: ("Payload(title: "  Report  ", body: "  CONTENT  ")") is not equal to ("Payload(title: "Report", body: "content")") - builderNamedFirst
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:44: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testGenericPipelinePassesReturnedSanitizedValue] : XCTAssertEqual failed: ("["named", "handler"]") is not equal to ("["sanitize", "named", "handler"]") - builderNamedFirst
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:40: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testGenericPipelinePassesReturnedSanitizedValue] : XCTAssertEqual failed: ("Payload(title: "  Report  ", body: "  CONTENT  ")") is not equal to ("Payload(title: "Report", body: "content")") - builderNamedFirst
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:44: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testGenericPipelinePassesReturnedSanitizedValue] : XCTAssertEqual failed: ("["named", "handler"]") is not equal to ("["sanitize", "named", "handler"]") - builderNamedFirst
+Test Case '-[PipelineKitSecurityTests.SecurityCapabilityContractTests testGenericPipelinePassesReturnedSanitizedValue]' failed (0.002 seconds).
+Test Case '-[PipelineKitSecurityTests.SecurityCapabilityContractTests testIfPresentAllowsUnrelatedCommand]' started.
+2026-10-30T14:15:20-0700 warning PipelineKit.Core: [PipelineKit] SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features.
+Test Case '-[PipelineKitSecurityTests.SecurityCapabilityContractTests testIfPresentAllowsUnrelatedCommand]' passed (0.000 seconds).
+Test Case '-[PipelineKitSecurityTests.SecurityCapabilityContractTests testMissingRequiredCapabilityRejectsBeforeHandler]' started.
+2026-10-30T14:15:20-0700 warning PipelineKit.Core: [PipelineKit] SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features.
+2026-10-30T14:15:20-0700 warning PipelineKit.Core: [PipelineKit] SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features.
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:80: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testMissingRequiredCapabilityRejectsBeforeHandler] : failed - standard must reject missing capability
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:85: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testMissingRequiredCapabilityRejectsBeforeHandler] : XCTAssertEqual failed: ("["handler"]") is not equal to ("[]") - standard
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:86: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testMissingRequiredCapabilityRejectsBeforeHandler] : XCTAssertEqual failed: ("1") is not equal to ("0") - standard
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:80: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testMissingRequiredCapabilityRejectsBeforeHandler] : failed - standard must reject missing capability
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:85: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testMissingRequiredCapabilityRejectsBeforeHandler] : XCTAssertEqual failed: ("["handler"]") is not equal to ("[]") - standard
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:86: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testMissingRequiredCapabilityRejectsBeforeHandler] : XCTAssertEqual failed: ("1") is not equal to ("0") - standard
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:80: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testMissingRequiredCapabilityRejectsBeforeHandler] : failed - anyStandard must reject missing capability
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:85: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testMissingRequiredCapabilityRejectsBeforeHandler] : XCTAssertEqual failed: ("["handler"]") is not equal to ("[]") - anyStandard
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:86: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testMissingRequiredCapabilityRejectsBeforeHandler] : XCTAssertEqual failed: ("1") is not equal to ("0") - anyStandard
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:80: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testMissingRequiredCapabilityRejectsBeforeHandler] : failed - anyStandard must reject missing capability
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:85: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testMissingRequiredCapabilityRejectsBeforeHandler] : XCTAssertEqual failed: ("["handler"]") is not equal to ("[]") - anyStandard
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:86: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testMissingRequiredCapabilityRejectsBeforeHandler] : XCTAssertEqual failed: ("1") is not equal to ("0") - anyStandard
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:80: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testMissingRequiredCapabilityRejectsBeforeHandler] : failed - dynamic must reject missing capability
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:85: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testMissingRequiredCapabilityRejectsBeforeHandler] : XCTAssertEqual failed: ("["handler"]") is not equal to ("[]") - dynamic
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:86: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testMissingRequiredCapabilityRejectsBeforeHandler] : XCTAssertEqual failed: ("1") is not equal to ("0") - dynamic
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:80: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testMissingRequiredCapabilityRejectsBeforeHandler] : failed - dynamic must reject missing capability
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:85: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testMissingRequiredCapabilityRejectsBeforeHandler] : XCTAssertEqual failed: ("["handler"]") is not equal to ("[]") - dynamic
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:86: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testMissingRequiredCapabilityRejectsBeforeHandler] : XCTAssertEqual failed: ("1") is not equal to ("0") - dynamic
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:80: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testMissingRequiredCapabilityRejectsBeforeHandler] : failed - builderPlainFirst must reject missing capability
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:85: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testMissingRequiredCapabilityRejectsBeforeHandler] : XCTAssertEqual failed: ("["named", "handler"]") is not equal to ("[]") - builderPlainFirst
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:86: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testMissingRequiredCapabilityRejectsBeforeHandler] : XCTAssertEqual failed: ("1") is not equal to ("0") - builderPlainFirst
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:80: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testMissingRequiredCapabilityRejectsBeforeHandler] : failed - builderPlainFirst must reject missing capability
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:85: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testMissingRequiredCapabilityRejectsBeforeHandler] : XCTAssertEqual failed: ("["named", "handler"]") is not equal to ("[]") - builderPlainFirst
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:86: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testMissingRequiredCapabilityRejectsBeforeHandler] : XCTAssertEqual failed: ("1") is not equal to ("0") - builderPlainFirst
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:80: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testMissingRequiredCapabilityRejectsBeforeHandler] : failed - builderNamedFirst must reject missing capability
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:85: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testMissingRequiredCapabilityRejectsBeforeHandler] : XCTAssertEqual failed: ("["named", "handler"]") is not equal to ("[]") - builderNamedFirst
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:86: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testMissingRequiredCapabilityRejectsBeforeHandler] : XCTAssertEqual failed: ("1") is not equal to ("0") - builderNamedFirst
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:80: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testMissingRequiredCapabilityRejectsBeforeHandler] : failed - builderNamedFirst must reject missing capability
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:85: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testMissingRequiredCapabilityRejectsBeforeHandler] : XCTAssertEqual failed: ("["named", "handler"]") is not equal to ("[]") - builderNamedFirst
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:86: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testMissingRequiredCapabilityRejectsBeforeHandler] : XCTAssertEqual failed: ("1") is not equal to ("0") - builderNamedFirst
+Test Case '-[PipelineKitSecurityTests.SecurityCapabilityContractTests testMissingRequiredCapabilityRejectsBeforeHandler]' failed (0.003 seconds).
+Test Case '-[PipelineKitSecurityTests.SecurityCapabilityContractTests testSanitizationFailureRejectsBeforeHandler]' started.
+2026-10-30T14:15:20-0700 warning PipelineKit.Core: [PipelineKit] SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features.
+2026-10-30T14:15:20-0700 warning PipelineKit.Core: [PipelineKit] SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features.
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:59: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testSanitizationFailureRejectsBeforeHandler] : failed - standard must propagate the sanitization error
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:64: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testSanitizationFailureRejectsBeforeHandler] : XCTAssertEqual failed: ("["handler"]") is not equal to ("["sanitize"]") - standard
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:65: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testSanitizationFailureRejectsBeforeHandler] : XCTAssertEqual failed: ("1") is not equal to ("0") - standard
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:59: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testSanitizationFailureRejectsBeforeHandler] : failed - standard must propagate the sanitization error
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:64: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testSanitizationFailureRejectsBeforeHandler] : XCTAssertEqual failed: ("["handler"]") is not equal to ("["sanitize"]") - standard
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:65: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testSanitizationFailureRejectsBeforeHandler] : XCTAssertEqual failed: ("1") is not equal to ("0") - standard
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:59: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testSanitizationFailureRejectsBeforeHandler] : failed - anyStandard must propagate the sanitization error
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:64: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testSanitizationFailureRejectsBeforeHandler] : XCTAssertEqual failed: ("["handler"]") is not equal to ("["sanitize"]") - anyStandard
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:65: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testSanitizationFailureRejectsBeforeHandler] : XCTAssertEqual failed: ("1") is not equal to ("0") - anyStandard
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:59: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testSanitizationFailureRejectsBeforeHandler] : failed - anyStandard must propagate the sanitization error
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:64: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testSanitizationFailureRejectsBeforeHandler] : XCTAssertEqual failed: ("["handler"]") is not equal to ("["sanitize"]") - anyStandard
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:65: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testSanitizationFailureRejectsBeforeHandler] : XCTAssertEqual failed: ("1") is not equal to ("0") - anyStandard
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:59: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testSanitizationFailureRejectsBeforeHandler] : failed - dynamic must propagate the sanitization error
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:64: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testSanitizationFailureRejectsBeforeHandler] : XCTAssertEqual failed: ("["handler"]") is not equal to ("["sanitize"]") - dynamic
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:65: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testSanitizationFailureRejectsBeforeHandler] : XCTAssertEqual failed: ("1") is not equal to ("0") - dynamic
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:59: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testSanitizationFailureRejectsBeforeHandler] : failed - dynamic must propagate the sanitization error
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:64: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testSanitizationFailureRejectsBeforeHandler] : XCTAssertEqual failed: ("["handler"]") is not equal to ("["sanitize"]") - dynamic
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:65: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testSanitizationFailureRejectsBeforeHandler] : XCTAssertEqual failed: ("1") is not equal to ("0") - dynamic
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:59: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testSanitizationFailureRejectsBeforeHandler] : failed - builderPlainFirst must propagate the sanitization error
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:64: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testSanitizationFailureRejectsBeforeHandler] : XCTAssertEqual failed: ("["named", "handler"]") is not equal to ("["sanitize"]") - builderPlainFirst
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:65: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testSanitizationFailureRejectsBeforeHandler] : XCTAssertEqual failed: ("1") is not equal to ("0") - builderPlainFirst
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:59: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testSanitizationFailureRejectsBeforeHandler] : failed - builderPlainFirst must propagate the sanitization error
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:64: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testSanitizationFailureRejectsBeforeHandler] : XCTAssertEqual failed: ("["named", "handler"]") is not equal to ("["sanitize"]") - builderPlainFirst
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:65: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testSanitizationFailureRejectsBeforeHandler] : XCTAssertEqual failed: ("1") is not equal to ("0") - builderPlainFirst
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:59: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testSanitizationFailureRejectsBeforeHandler] : failed - builderNamedFirst must propagate the sanitization error
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:64: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testSanitizationFailureRejectsBeforeHandler] : XCTAssertEqual failed: ("["named", "handler"]") is not equal to ("["sanitize"]") - builderNamedFirst
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:65: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testSanitizationFailureRejectsBeforeHandler] : XCTAssertEqual failed: ("1") is not equal to ("0") - builderNamedFirst
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:59: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testSanitizationFailureRejectsBeforeHandler] : failed - builderNamedFirst must propagate the sanitization error
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:64: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testSanitizationFailureRejectsBeforeHandler] : XCTAssertEqual failed: ("["named", "handler"]") is not equal to ("["sanitize"]") - builderNamedFirst
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift:65: error: -[PipelineKitSecurityTests.SecurityCapabilityContractTests testSanitizationFailureRejectsBeforeHandler] : XCTAssertEqual failed: ("1") is not equal to ("0") - builderNamedFirst
+Test Case '-[PipelineKitSecurityTests.SecurityCapabilityContractTests testSanitizationFailureRejectsBeforeHandler]' failed (0.003 seconds).
+Test Suite 'SecurityCapabilityContractTests' failed at 2026-10-30 14:15:20.031.
+	 Executed 6 tests, with 130 failures (0 unexpected) in 0.178 (0.178) seconds
+Test Suite 'ValidationDispatchTests' started at 2026-10-30 14:15:20.032.
+Test Case '-[PipelineKitSecurityTests.ValidationDispatchTests testDirectValidation]' started.
+Test Case '-[PipelineKitSecurityTests.ValidationDispatchTests testDirectValidation]' passed (0.000 seconds).
+Test Case '-[PipelineKitSecurityTests.ValidationDispatchTests testGenericMethodDispatch]' started.
+Test Case '-[PipelineKitSecurityTests.ValidationDispatchTests testGenericMethodDispatch]' passed (0.000 seconds).
+Test Case '-[PipelineKitSecurityTests.ValidationDispatchTests testProtocolWitnessTable]' started.
+Test Case '-[PipelineKitSecurityTests.ValidationDispatchTests testProtocolWitnessTable]' passed (0.000 seconds).
+Test Case '-[PipelineKitSecurityTests.ValidationDispatchTests testValidationThroughMiddleware]' started.
+Test Case '-[PipelineKitSecurityTests.ValidationDispatchTests testValidationThroughMiddleware]' passed (0.000 seconds).
+Test Suite 'ValidationDispatchTests' passed at 2026-10-30 14:15:20.032.
+	 Executed 4 tests, with 0 failures (0 unexpected) in 0.001 (0.001) seconds
+Test Suite 'PipelineKitSecurityTests.xctest' failed at 2026-10-30 14:15:20.032.
+	 Executed 10 tests, with 130 failures (0 unexpected) in 0.178 (0.179) seconds
+Test Suite 'Selected tests' failed at 2026-10-30 14:15:20.032.
+	 Executed 10 tests, with 130 failures (0 unexpected) in 0.178 (0.180) seconds
+[TestValidationCommand] validate() called with value: valid
+[TestValidationCommand] validate() called with value: 
+[TestValidationCommand] validate() called with value: invalid
+Test Suite 'Selected tests' started at 2026-10-30 14:15:20.110.
+Test Suite 'PipelineKitResilienceTests.xctest' started at 2026-10-30 14:15:20.111.
+Test Suite 'PipelineKitResilienceTests.xctest' passed at 2026-10-30 14:15:20.111.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 14:15:20.111.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 14:15:20.187.
+Test Suite 'PipelineKitPoolingTests.xctest' started at 2026-10-30 14:15:20.187.
+Test Suite 'PipelineKitPoolingTests.xctest' passed at 2026-10-30 14:15:20.187.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 14:15:20.187.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 14:15:20.263.
+Test Suite 'PipelineKitPerformanceTests.xctest' started at 2026-10-30 14:15:20.263.
+Test Suite 'PipelineKitPerformanceTests.xctest' passed at 2026-10-30 14:15:20.264.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 14:15:20.264.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 14:15:20.338.
+Test Suite 'PipelineKitObservabilityTests.xctest' started at 2026-10-30 14:15:20.339.
+Test Suite 'PipelineKitObservabilityTests.xctest' passed at 2026-10-30 14:15:20.339.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 14:15:20.339.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 14:15:20.414.
+Test Suite 'PipelineKitCoreTests.xctest' started at 2026-10-30 14:15:20.415.
+Test Suite 'PipelineKitCoreTests.xctest' passed at 2026-10-30 14:15:20.415.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 14:15:20.415.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 14:15:20.490.
+Test Suite 'PipelineKitCacheTests.xctest' started at 2026-10-30 14:15:20.491.
+Test Suite 'PipelineKitCacheTests.xctest' passed at 2026-10-30 14:15:20.491.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 14:15:20.491.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Note: Some test targets reported failures:
+  - PipelineKitSecurityTests (XCTest)

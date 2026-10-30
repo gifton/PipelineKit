@@ -1,46 +1,40 @@
-import Foundation
 import PipelineKit
 
-/// Middleware that validates commands before execution.
-/// 
-/// This middleware automatically validates any command by calling its
-/// validate() method, providing a security layer that ensures
-/// only valid data is processed.
-/// 
-/// Example:
+/// Invokes a command's `ValidatableCommand` witness before calling the next stage.
+///
+/// By default, a command without the capability throws
+/// `SecurityCapabilityError.missingValidation(commandType:)`. Use `.ifPresent`
+/// explicitly when a pipeline is intended to accept unrelated command types.
+/// Validation errors propagate unchanged; see
+/// `SecurityCapabilityContractTests.testGenericPipelineInvokesValidationWitness`.
+///
 /// ```swift
-/// let pipeline = DynamicPipeline()
-/// await pipeline.addMiddleware(ValidationMiddleware())
-/// ```
-/// 
-/// For proper security, use with priority ordering:
-/// ```swift
-/// let pipeline = AnyStandardPipeline(handler: handler)
-/// try await pipeline.addMiddleware(
-///     ValidationMiddleware(),
-///     priority: ExecutionPriority.validation.rawValue
-/// )
+/// let pipeline = StandardPipeline(handler: handler)
+/// try await pipeline.addMiddleware(ValidationMiddleware())
 /// ```
 public struct ValidationMiddleware: Middleware {
     public let priority: ExecutionPriority = .validation
-    
-    public init() {}
-    
+    private let requirement: SecurityCapabilityRequirement
+
+    /// Creates validation middleware with an explicit policy for absent capability.
+    /// - Parameter requirement: Defaults to rejecting commands without `ValidatableCommand`.
+    public init(requirement: SecurityCapabilityRequirement = .required) {
+        self.requirement = requirement
+    }
+
     public func execute<T: Command>(
         _ command: T,
         context: CommandContext,
         next: @escaping MiddlewareNext<T>
     ) async throws -> T.Result {
-        // All commands now have validate() as a protocol requirement
-        // with a default implementation that does nothing
-        do {
-            try command.validate()
-        } catch {
-            // Re-throw the validation error
-            throw error
+        guard let validatable = command as? any ValidatableCommand else {
+            if case .required = requirement {
+                throw SecurityCapabilityError.missingValidation(commandType: String(reflecting: T.self))
+            }
+            return try await next(command, context)
         }
-        
-        // Continue to next middleware/handler
+
+        try await validatable.validate()
         return try await next(command, context)
     }
 }

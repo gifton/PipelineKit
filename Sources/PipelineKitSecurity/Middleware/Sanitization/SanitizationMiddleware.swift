@@ -1,76 +1,57 @@
-import Foundation
 import PipelineKit
 
-/// Middleware that sanitizes commands before execution.
-/// 
-/// This middleware automatically sanitizes any command by calling its
-/// sanitize() method, providing a security layer that cleans
-/// potentially dangerous input data such as:
-/// - HTML/JavaScript injection attempts
-/// - SQL injection patterns  
-/// - Path traversal sequences
-/// - Control characters
-/// - Excessive whitespace
-/// 
-/// ## What Sanitization Does
-/// 
-/// The default sanitization (via Command extension) returns the command unchanged.
-/// Commands that need sanitization should override the `sanitize()` method to:
-/// - Strip or escape HTML tags
-/// - Remove script content
-/// - Normalize Unicode characters
-/// - Trim excessive whitespace
-/// - Validate and clean file paths
-/// 
-/// ## Usage Examples
-/// 
+/// Passes the value returned by a command's `SanitizableCommand` witness downstream.
+///
+/// By default, a command without the capability throws
+/// `SecurityCapabilityError.missingSanitization(commandType:)`. Use `.ifPresent`
+/// explicitly when a pipeline is intended to accept unrelated command types.
+/// Sanitization is application-defined transformation, not a universal injection defense.
+///
 /// ```swift
-/// // Basic usage with standard pipeline
-/// let pipeline = StandardPipeline(
-///     handler: handler,
-///     middleware: [
-///         SanitizationMiddleware(),
-///         AuthenticationMiddleware(...),
-///         // other middleware
-///     ]
-/// )
-/// 
-/// // Custom command with sanitization
-/// struct CreatePostCommand: Command {
+/// import Foundation
+/// import PipelineKitSecurity
+///
+/// struct CreatePostCommand: SanitizableCommand {
+///     typealias Result = String
 ///     let title: String
-///     let content: String
-///     
-///     func sanitize() throws -> Self {
-///         CreatePostCommand(
-///             title: title.trimmingCharacters(in: .whitespacesAndNewlines)
-///                          .replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression),
-///             content: content.replacingOccurrences(of: "<script[^>]*>.*?</script>", with: "", options: .regularExpression)
-///         )
+///
+///     func sanitize() async throws -> Self {
+///         Self(title: title.trimmingCharacters(in: .whitespacesAndNewlines))
 ///     }
 /// }
 /// ```
-/// 
-/// ## Security Best Practices
-/// 
-/// - Place SanitizationMiddleware early in the pipeline (before processing)
-/// - Combine with validation middleware for defense in depth
-/// - Log sanitization events for security auditing
-/// - Consider using allow-lists rather than deny-lists for input validation
+///
+/// The returned value replaces the input to the next stage; see
+/// `SecurityCapabilityContractTests.testGenericPipelinePassesReturnedSanitizedValue`.
 public struct SanitizationMiddleware: Middleware {
     public let priority: ExecutionPriority = .preProcessing
-    
-    public init() {}
-    
+    private let requirement: SecurityCapabilityRequirement
+
+    /// Creates sanitization middleware with an explicit policy for absent capability.
+    /// - Parameter requirement: Defaults to rejecting commands without `SanitizableCommand`.
+    public init(requirement: SecurityCapabilityRequirement = .required) {
+        self.requirement = requirement
+    }
+
     public func execute<T: Command>(
         _ command: T,
         context: CommandContext,
         next: @escaping MiddlewareNext<T>
     ) async throws -> T.Result {
-        // All commands now have sanitize() via extension
-        // The default implementation returns self, so this is safe
-        let sanitized = try command.sanitize()
-        
-        // Continue with sanitized command
-        return try await next(sanitized, context)
+        guard let sanitizable = command as? any SanitizableCommand else {
+            if case .required = requirement {
+                throw SecurityCapabilityError.missingSanitization(commandType: String(reflecting: T.self))
+            }
+            return try await next(command, context)
+        }
+
+        let sanitized = try await sanitizable.sanitize()
+        guard let typedCommand = sanitized as? T else {
+            throw SecurityCapabilityError.invalidSanitizedType(
+                expected: String(reflecting: T.self),
+                actual: String(reflecting: type(of: sanitized))
+            )
+        }
+        return try await next(typedCommand, context)
     }
 }

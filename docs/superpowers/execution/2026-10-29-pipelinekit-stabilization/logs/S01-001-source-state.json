@@ -1,0 +1,23 @@
+{
+  "head": "de0c8370ee60d8d773c9d0abda5fc5b2bd14c92f",
+  "branch": "fix/stabilization-batch-1",
+  "status": "?? Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift\n?? audit/\n?? docs/PIPELINEKIT_AUDIT_GUIDE.md\n",
+  "tracked_source_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "tracked_source_diff": "",
+  "files": {
+    "Package.swift": "dc9a6bfda7eb64fe7e65c22e9419178b8a7b29295c16db9a2b503f3e030b5ed9",
+    "Sources/PipelineKitSecurity/Command+Security.swift": "895dff24e51deeadefe877550a987da7550c34b1e7ec46c962b64a073c980b3b",
+    "Sources/PipelineKitSecurity/SecurityCapabilityError.swift": null,
+    "Sources/PipelineKitSecurity/Middleware/Validation/ValidationMiddleware.swift": "b176b742a27c73da584bffe56a14f1ab612d994949b8b9192dd7de9623b9619c",
+    "Sources/PipelineKitSecurity/Middleware/Sanitization/SanitizationMiddleware.swift": "332d7b5f145f8f801469bab2d6792ec15c2f2572f027617a04833c88a5c3732b",
+    "Sources/PipelineKitSecurity/Policies/SecurityPolicy.swift": "a36f9c7daecaf769023553d7542c0092df4687c9457c7d6136bd2f334db7ebca",
+    "Sources/PipelineKitSecurity/Middleware/Encryption/EncryptionMiddleware.swift": "39f9721d990b839bb2bfbf87637ac7bd830dacc6d2bdb04cd98b88d47f378fe9",
+    "Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift": "93119274177fad576d167b5f68725e4dc6953d52c59cb442620dc396d060170f",
+    "Tests/PipelineKitSecurityTests/ValidationDispatchTests.swift": "f1a74bdcc897f223b79213e5da2202885bac00bba2fe2a8ee10ae68f4680ff5e",
+    "Tests/PipelineKitSecurityTests/Security/ValidationTests.swift": "5b17b107353cfb9fab8ddbe09001bf20fd0e3ce2b40a33b9d280612228729af0",
+    "Tests/PipelineKitSecurityTests/Security/SanitizationTests.swift": "9f502bf0685f4038610bcb1dfaf1b0e4e80d4e45e77941ccbad93c6f8d9879fd",
+    "Tests/PipelineKitTests/Pipeline/BuilderCompositionContractTests.swift": "3dae12bd5fad65b1c08aea2f50a3aac364121f08258845b6602c8fdafc90455f",
+    "docs/guides/security-best-practices.md": "b595c391d9fec89761f77722b7bfc2b92884e9fb1e147ef434288b88d5ac9e84",
+    "docs/migrations/first-stabilization-batch.md": null
+  }
+}
