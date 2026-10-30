@@ -1,4 +1,5 @@
 import XCTest
+import PipelineKitTestSupport
 @testable import PipelineKitCore
 
 final class CancellationErrorTests: XCTestCase {
@@ -15,54 +16,45 @@ final class CancellationErrorTests: XCTestCase {
         }
     }
     
-    func testCheckCancellationWhenCancelled() async throws {
-        // Create a task that we can cancel
-        let task = Task {
-            try await Task.sleep(nanoseconds: 100_000_000) // 100ms
-            
-            // After cancellation, checkCancellation should throw
-            do {
-                try Task.checkCancellation()
-                XCTFail("Should throw when task is cancelled")
-            } catch {
-                // Verify it's the correct error
-                if case PipelineError.cancelled(let context) = error {
-                    XCTAssertNil(context)
-                } else {
-                    XCTFail("Wrong error type: \(error)")
+    private func assertCancelled(contexts: [String?], file: StaticString = #filePath, line: UInt = #line) async {
+        let synchronizer = TestSynchronizer()
+        let task = Task { () -> (reached: Bool, errors: [any Error]) in
+            await synchronizer.signal("entered")
+            await synchronizer.wait(for: "release")
+            var errors: [any Error] = []
+            for context in contexts {
+                do {
+                    try Task<Never, Never>.checkCancellation(context: context)
+                } catch {
+                    errors.append(error)
                 }
             }
+            return (true, errors)
         }
-        
-        // Cancel the task
+        await synchronizer.wait(for: "entered")
         task.cancel()
-        
-        // Wait for task to complete
-        _ = try? await task.value
-    }
-    
-    func testCheckCancellationWithContext() async throws {
-        let testContext = "Processing user request"
-        
-        let task = Task {
-            try await Task.sleep(nanoseconds: 10_000_000) // 10ms
-            
-            do {
-                try Task.checkCancellation(context: testContext)
-                XCTFail("Should throw when task is cancelled")
-            } catch {
-                if case PipelineError.cancelled(let context) = error {
-                    XCTAssertEqual(context, testContext)
-                } else {
-                    XCTFail("Wrong error type: \(error)")
-                }
+        await synchronizer.signal("release")
+        let result = await task.value
+        await synchronizer.reset()
+        XCTAssertTrue(result.reached, file: file, line: line)
+        XCTAssertEqual(result.errors.count, contexts.count, file: file, line: line)
+        for (error, expected) in zip(result.errors, contexts) {
+            guard case PipelineError.cancelled(let actual) = error else {
+                XCTFail("Wrong error type: \(error)", file: file, line: line)
+                continue
             }
+            XCTAssertEqual(actual, expected, file: file, line: line)
         }
-        
-        task.cancel()
-        _ = try? await task.value
     }
-    
+
+    func testCheckCancellationWhenCancelled() async {
+        await assertCancelled(contexts: [nil])
+    }
+
+    func testCheckCancellationWithContext() async {
+        await assertCancelled(contexts: ["Processing user request"])
+    }
+
     // MARK: - Integration Tests
     
     func testCheckCancellationInAsyncContext() async {
@@ -102,74 +94,19 @@ final class CancellationErrorTests: XCTestCase {
     }
     
     func testCheckCancellationMultipleTimes() async {
-        let task = Task {
-            try await Task.sleep(nanoseconds: 10_000_000) // 10ms
-            
-            var errorCount = 0
-            
-            // Check multiple times - should consistently throw
-            for i in 0..<5 {
-                do {
-                    try Task.checkCancellation(context: "Check \(i)")
-                } catch {
-                    errorCount += 1
-                    if case PipelineError.cancelled = error {
-                        // Expected
-                    } else {
-                        XCTFail("Wrong error type")
-                    }
-                }
-            }
-            
-            XCTAssertEqual(errorCount, 5, "Should throw every time when cancelled")
-        }
-        
-        task.cancel()
-        _ = try? await task.value
+        await assertCancelled(contexts: (0..<5).map { "Check \($0)" })
     }
-    
+
     // MARK: - Edge Cases
-    
+
     func testCheckCancellationWithEmptyContext() async {
-        let task = Task {
-            try await Task.sleep(nanoseconds: 10_000_000) // 10ms
-            
-            do {
-                try Task.checkCancellation(context: "")
-            } catch {
-                if case PipelineError.cancelled(let context) = error {
-                    XCTAssertEqual(context, "")
-                } else {
-                    XCTFail("Wrong error type")
-                }
-            }
-        }
-        
-        task.cancel()
-        _ = try? await task.value
+        await assertCancelled(contexts: [""])
     }
-    
+
     func testCheckCancellationWithLongContext() async {
-        let longContext = String(repeating: "a", count: 10000)
-        
-        let task = Task {
-            try await Task.sleep(nanoseconds: 10_000_000) // 10ms
-            
-            do {
-                try Task.checkCancellation(context: longContext)
-            } catch {
-                if case PipelineError.cancelled(let context) = error {
-                    XCTAssertEqual(context?.count, 10000)
-                } else {
-                    XCTFail("Wrong error type")
-                }
-            }
-        }
-        
-        task.cancel()
-        _ = try? await task.value
+        await assertCancelled(contexts: [String(repeating: "a", count: 10000)])
     }
-    
+
     // MARK: - Performance Tests
     
     func testCheckCancellationPerformance() async {

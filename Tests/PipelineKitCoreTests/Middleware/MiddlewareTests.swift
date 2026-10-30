@@ -280,20 +280,36 @@ final class MiddlewareTests: XCTestCase {
         let command = TestCommand(input: "perf")
         let context = CommandContext()
         
-        let iterations = 10000
-        let start = Date()
-        
-        for _ in 0..<iterations {
-            _ = try await middleware.execute(command, context: context) { cmd, _ in
-                try await cmd.execute()
+        let clock = ContinuousClock()
+        var iterations = 10000
+        var durationSeconds = 0.0
+        var matchingResults = 0
+        for attempt in 0..<8 {
+            matchingResults = 0
+            let start = clock.now
+            for _ in 0..<iterations {
+                let result = try await middleware.execute(command, context: context) { cmd, _ in
+                    try await cmd.execute()
+                }
+                if result == "Result: perf" { matchingResults += 1 }
             }
+            let elapsed = start.duration(to: clock.now).components
+            durationSeconds = Double(elapsed.seconds) + Double(elapsed.attoseconds) / 1e18
+            if durationSeconds > 0 { break }
+            if attempt < 7 { iterations *= 2 }
         }
-        
-        let duration = Date().timeIntervalSince(start)
-        let opsPerSecond = Double(iterations) / duration
-        
-        print("Middleware performance: \(Int(opsPerSecond)) ops/sec")
-        XCTAssertGreaterThan(opsPerSecond, 20000) // Should handle at least 20k ops/sec
+        XCTAssertEqual(matchingResults, iterations)
+        guard durationSeconds.isFinite, durationSeconds > 0 else {
+            XCTFail("Unable to measure a positive finite duration")
+            return
+        }
+        let opsPerSecond = Double(iterations) / durationSeconds
+        guard opsPerSecond.isFinite, opsPerSecond > 0 else {
+            XCTFail("Unable to measure a positive finite throughput")
+            return
+        }
+        print("Middleware performance: \(opsPerSecond) ops/sec")
+        XCTAssertGreaterThan(opsPerSecond, 20000)
     }
     
     // MARK: - Memory Management Tests
