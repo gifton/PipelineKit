@@ -1,4 +1,4 @@
-# V01 validation
+# Stabilization validation
 
 Source base: `ddffb41d617c57197c70407701c017c987be0900` (audited source `a93a713d937e25f68855f22b0720f33c93329b09`). Toolchain/platform: Swift 6.4.2, Xcode 27.2, macOS 27.0.1, arm64. Run metadata and full output are in `logs/`; the process-group watchdog command is `python3 repros/run_check.py --id ID --timeout SECONDS -- COMMAND...` from this directory's worktree root (with its full relative path).
 
@@ -24,3 +24,7 @@ Fix base `9fb5083`. Shared package-scoped `ThroughputMeasurement` validates each
 - V01-F1-005: same selection with `swift test -c release`; 42 cases passed, exit 0, 25.162 s. No watchdog timeout. Each used the existing runner and 600-second timeout; JSON and raw logs supply exact command and timestamps. Normalized comparison to X002 reported no new warnings.
 
 The final source file SHA-256s are `5ae7a3a67ef5694204a78f71464ddae6429553cbe655a9d4359cb02804f33019` (helper), `6bd35fc84bd46145b7d1942a7c73963417baf583894b586cf79100e7f1465c0c` (helper tests), `11037d3837be1eed69a9ed1b2a36ad62b662723a05bf1a1393e6ec447a90f2ce` (pipeline), `a37252a0b1a191aad22161bdc83591028da65c5eb08b1b229aa13e139561319c` (middleware), and `6ad68231d151536130a20670babb1aee2bde365150cd562075cdaf5be3c2233e` (security). The optimized rates remain observations, not benchmark claims.
+
+## V01 independent task disposition
+
+Initial implementation 9fb5083 received two Important findings. Fix 1f4402f addressed both, with deterministic red/green evidence. Fresh Astra/max scoped re-review approved R1/R2 and found no new breakage. [Implementation](reports/V01-implementation.md), [initial review](reports/V01-review.md), [fix review](reports/V01-rereview-1.md). PK-T001/LS-007 are task-verified; final I01 integration remains pending.
