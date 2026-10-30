@@ -1,0 +1,35 @@
+{
+  "id": "V04-016-unsupported",
+  "cwd": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization",
+  "command": [
+    "/opt/homebrew/opt/python@3.14/bin/python3.14",
+    "-c",
+    "from pathlib import Path; Path('/var/folders/_c/7_fgg5v57d56kt4wd9bcsdj40000gn/T/v04-identity-i55s1c7m/should-not-exist').touch()"
+  ],
+  "started_utc": "2026-10-30T23:25:12.905619+00:00",
+  "elapsed_seconds": 0.0,
+  "exit_status": null,
+  "watchdog_timeout": false,
+  "log": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/V04-016-unsupported.log",
+  "runner_exit_status": 125,
+  "runner_error": "RuntimeError: owned-process inspection supports macOS only; no command started",
+  "cleanup": {
+    "settled": true,
+    "survivors": [],
+    "outcomes": [],
+    "inspection_errors": []
+  },
+  "event_errors": [],
+  "completion_reason": "runner_error",
+  "unexpected_descendants": [],
+  "owned_processes": [],
+  "termination_actions": [],
+  "process_events": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/V04-016-unsupported.processes.jsonl",
+  "ownership_backend": "macOS libproc PID + start timeval",
+  "containment_limits": [
+    "Only lineages observed before reparenting are owned; instant unobserved daemonization can escape.",
+    "Identity check and kill are separate syscalls; PID reuse in that interval cannot be excluded.",
+    "Zombie means no executing process; non-child zombie reaping belongs to its parent.",
+    "SIGKILL of the runner or host failure can bypass cleanup; Linux is unsupported and unvalidated."
+  ]
+}

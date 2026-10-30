@@ -1,0 +1,157 @@
+{
+  "host": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
+  "python": "3.14.1 (main, Dec  2 2025, 12:51:37) [Clang 17.0.0 (clang-1700.4.4.1)]",
+  "commands": [
+    {
+      "command": [
+        "sw_vers"
+      ],
+      "exit_status": 0,
+      "output": "ProductName:\t\tmacOS\nProductVersion:\t\t27.0.1\nBuildVersion:\t\t26A434\n"
+    },
+    {
+      "command": [
+        "uname",
+        "-a"
+      ],
+      "exit_status": 0,
+      "output": "Darwin mac.lan 27.0.0 Darwin Kernel Version 27.0.0: Tue Aug 11 21:05:42 PDT 2026; root:xnu-13432.1.9~1/RELEASE_ARM64_T6031 arm64\n"
+    },
+    {
+      "command": [
+        "xcodebuild",
+        "-version"
+      ],
+      "exit_status": 0,
+      "output": "Xcode 27.2\nBuild version 27B52\n"
+    },
+    {
+      "command": [
+        "swift",
+        "--version"
+      ],
+      "exit_status": 0,
+      "output": "swift-driver version: 1.168.6 Apple Swift version 6.4.2 (swiftlang-6.4.2.1.9 clang-2100.4.1.1)\nTarget: arm64-apple-macosx27.0.0\n"
+    },
+    {
+      "command": [
+        "xcrun",
+        "--show-sdk-path"
+      ],
+      "exit_status": 0,
+      "output": "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk\n"
+    },
+    {
+      "command": [
+        "xcrun",
+        "clang",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/V04-proc-layout.c",
+        "-o",
+        "/var/folders/_c/7_fgg5v57d56kt4wd9bcsdj40000gn/T/v04-layout-frj3jcqv/proc-layout"
+      ],
+      "exit_status": 0,
+      "output": ""
+    },
+    {
+      "command": [
+        "/var/folders/_c/7_fgg5v57d56kt4wd9bcsdj40000gn/T/v04-layout-frj3jcqv/proc-layout"
+      ],
+      "exit_status": 0,
+      "output": "{\"size\":136,\"pid\":12,\"ppid\":16,\"pgid\":100,\"start_sec\":120,\"start_usec\":128}\n"
+    }
+  ],
+  "headers": {
+    "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/sys/proc_info.h": {
+      "sha256": "e427fa96b348537b21552b9de71e01039410bcad2cedee5584c5e5fddafd70fc",
+      "selected_lines": [
+        {
+          "line": 56,
+          "text": "#define PROC_PPID_ONLY          6"
+        },
+        {
+          "line": 63,
+          "text": "\tuint32_t                pbi_pid;"
+        },
+        {
+          "line": 64,
+          "text": "\tuint32_t                pbi_ppid;"
+        },
+        {
+          "line": 75,
+          "text": "\tuint32_t                pbi_pgid;"
+        },
+        {
+          "line": 80,
+          "text": "\tuint64_t                pbi_start_tvsec;"
+        },
+        {
+          "line": 81,
+          "text": "\tuint64_t                pbi_start_tvusec;"
+        },
+        {
+          "line": 89,
+          "text": "\tuint32_t                pbsi_status;            /* p_stat value, SZOMB, SRUN, etc */"
+        },
+        {
+          "line": 716,
+          "text": "/* Flavors for proc_pidinfo() */"
+        },
+        {
+          "line": 723,
+          "text": "#define PROC_PIDTBSDINFO                3"
+        },
+        {
+          "line": 724,
+          "text": "#define PROC_PIDTBSDINFO_SIZE           (sizeof(struct proc_bsdinfo))"
+        }
+      ]
+    },
+    "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/sys/proc.h": {
+      "sha256": "593af71b2740ba6248995691280bcb15f8900d46b1d9868f7345084aa0692949",
+      "selected_lines": [
+        {
+          "line": 152,
+          "text": "#define SZOMB   5               /* Awaiting collection by parent. */"
+        }
+      ]
+    },
+    "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/libproc.h": {
+      "sha256": "246d87709fc6b9157ce5cf3c475656ac48e0e1ae8bbdc46cf45acd34294448cd",
+      "selected_lines": [
+        {
+          "line": 92,
+          "text": "int proc_listpids(uint32_t type, uint32_t typeinfo, void *buffer, int buffersize) __OSX_AVAILABLE_STARTING(__MAC_10_5, __IPHONE_2_0);"
+        },
+        {
+          "line": 96,
+          "text": "int proc_pidinfo(int pid, int flavor, uint64_t arg, void *buffer, int buffersize) __OSX_AVAILABLE_STARTING(__MAC_10_5, __IPHONE_2_0);"
+        }
+      ]
+    }
+  },
+  "native_layout": {
+    "size": 136,
+    "pid": 12,
+    "ppid": 16,
+    "pgid": 100,
+    "start_sec": 120,
+    "start_usec": 128
+  },
+  "python_layout": {
+    "size": 136,
+    "pid": 12,
+    "ppid": 16,
+    "pgid": 100,
+    "start_sec": 120,
+    "start_usec": 128
+  },
+  "layout_matches": true,
+  "c_source_sha256": "c67f7b9d6f0ad18b3e32c204deb3ff5b49e3cd12242080b0065d571e331c015b",
+  "fixtures": {
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/V04HangFixture/Package.swift": "2c58cb1210321ada885f043172448ec9860bc3479a682ec3e456fbb5abed09d9",
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/V04HangFixture/Tests/HangFixtureTests/HangingTests.swift": "646c605efdee08a7ec7a902b4a5e9f174dd644dbd924075b234b5db4b8427d9f"
+  },
+  "prebuilt_test_executables": {
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/V04HangFixture/.build/out/Products/Debug/HangFixtureTests.xctest/Contents/MacOS/HangFixtureTests": "c3bc77d225099834689a9ba5b78eb0ca80b2866e6be5b6b306248ee12783b205"
+  }
+}

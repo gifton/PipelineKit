@@ -1,0 +1,287 @@
+{
+  "cwd": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization",
+  "commands": [
+    {
+      "id": "V04-001-red",
+      "command": [
+        "python3",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/v04_process_fixtures.py",
+        "--prefix",
+        "V04-001-red",
+        "--old",
+        "--cases",
+        "escape"
+      ],
+      "outcome": "Expected runtime red: detached owned child survived timeout124; sentinel survived and independent cleanup settled."
+    },
+    {
+      "id": "V04-002-first",
+      "command": [
+        "python3",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/v04_process_fixtures.py",
+        "--prefix",
+        "V04-002-first",
+        "--cases",
+        "escape",
+        "parent_exit",
+        "runner_error"
+      ],
+      "outcome": "3/3 initial fixtures passed; parent-exit success status subsequently superseded by controller ruling."
+    },
+    {
+      "id": "V04-003-build",
+      "command": [
+        "python3",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py",
+        "--id",
+        "V04-003-build",
+        "--timeout",
+        "120",
+        "--",
+        "swift",
+        "build",
+        "--build-tests",
+        "--package-path",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/V04HangFixture"
+      ],
+      "outcome": "Build-only success0; isolated fixture prebuilt in7.952s."
+    },
+    {
+      "id": "V04-004-root-red",
+      "command": [
+        "python3",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/v04_process_fixtures.py",
+        "--prefix",
+        "V04-004-root-red",
+        "--cases",
+        "parent_exit"
+      ],
+      "outcome": "Expected runtime red: runner0 versus required125 after root0 plus live child."
+    },
+    {
+      "id": "V04-005-matrix",
+      "command": [
+        "python3",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/v04_process_fixtures.py",
+        "--prefix",
+        "V04-005-matrix"
+      ],
+      "outcome": "9/9 intermediate process scenarios passed."
+    },
+    {
+      "id": "V04-006-identity",
+      "command": [
+        "python3",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py",
+        "--id",
+        "V04-006-identity",
+        "--timeout",
+        "60",
+        "--",
+        "python3",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/v04_identity_checks.py",
+        "--prefix",
+        "V04-006"
+      ],
+      "outcome": "8/8 intermediate identity/CLI/error tests passed."
+    },
+    {
+      "id": "V04-007-build-control",
+      "command": [
+        "python3",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py",
+        "--id",
+        "V04-007-build-control",
+        "--timeout",
+        "120",
+        "--",
+        "swift",
+        "build",
+        "--build-tests",
+        "--package-path",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/V04HangFixture"
+      ],
+      "outcome": "Build-only success0; final Swift fixture with normal control prebuilt in3.301s."
+    },
+    {
+      "id": "V04-008-xctest-harness",
+      "command": [
+        "python3",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py",
+        "--id",
+        "V04-008-xctest-harness",
+        "--timeout",
+        "40",
+        "--",
+        "python3",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/v04_process_fixtures.py",
+        "--prefix",
+        "V04-008",
+        "--cases",
+        "xctest",
+        "xctest_normal",
+        "--swift-package",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/V04HangFixture"
+      ],
+      "outcome": "Invocation failure1: outer ID collided with harness log name; rejected before Swift launch, preserved."
+    },
+    {
+      "id": "V04-009-probes",
+      "command": [
+        "python3",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py",
+        "--id",
+        "V04-009-probes",
+        "--timeout",
+        "40",
+        "--",
+        "python3",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/v04_process_fixtures.py",
+        "--prefix",
+        "V04-009",
+        "--cases",
+        "xctest",
+        "xctest_normal",
+        "--swift-package",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/V04HangFixture"
+      ],
+      "outcome": "2/2 intermediate real XCTest controls passed."
+    },
+    {
+      "id": "V04-010-event-red",
+      "command": [
+        "python3",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py",
+        "--id",
+        "V04-010-event-red",
+        "--timeout",
+        "30",
+        "--",
+        "python3",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/v04_identity_checks.py",
+        "--prefix",
+        "V04-010",
+        "--case",
+        "test_event_write_failure_does_not_abort_kill_escalation"
+      ],
+      "outcome": "Expected runtime red: event-stream write failure interrupted KILL escalation; independent cleanup settled."
+    },
+    {
+      "id": "V04-011-matrix",
+      "command": [
+        "python3",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/v04_process_fixtures.py",
+        "--prefix",
+        "V04-011-matrix"
+      ],
+      "outcome": "10/10 intermediate process scenarios passed."
+    },
+    {
+      "id": "V04-012-identity",
+      "command": [
+        "python3",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py",
+        "--id",
+        "V04-012-identity",
+        "--timeout",
+        "60",
+        "--",
+        "python3",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/v04_identity_checks.py",
+        "--prefix",
+        "V04-012"
+      ],
+      "outcome": "9/9 intermediate identity/CLI/error tests passed."
+    },
+    {
+      "id": "V04-013-probes",
+      "command": [
+        "python3",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py",
+        "--id",
+        "V04-013-probes",
+        "--timeout",
+        "40",
+        "--",
+        "python3",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/v04_process_fixtures.py",
+        "--prefix",
+        "V04-013",
+        "--cases",
+        "xctest",
+        "xctest_normal",
+        "--swift-package",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/V04HangFixture"
+      ],
+      "outcome": "2/2 intermediate real XCTest controls passed."
+    },
+    {
+      "id": "V04-014-identity-order-red",
+      "command": [
+        "python3",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py",
+        "--id",
+        "V04-014-identity-order-red",
+        "--timeout",
+        "30",
+        "--",
+        "python3",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/v04_identity_checks.py",
+        "--prefix",
+        "V04-014",
+        "--case",
+        "test_observed_lineage_does_not_require_start_clock_order"
+      ],
+      "outcome": "Expected boundary-injection assertion red: verified lineage rejected by start-token ordering."
+    },
+    {
+      "id": "V04-015-matrix",
+      "command": [
+        "python3",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/v04_process_fixtures.py",
+        "--prefix",
+        "V04-015-matrix"
+      ],
+      "outcome": "Authoritative final10/10 process cases passed; all sentinels survived un-signaled and all independent cleanup settled."
+    },
+    {
+      "id": "V04-016-identity",
+      "command": [
+        "python3",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py",
+        "--id",
+        "V04-016-identity",
+        "--timeout",
+        "60",
+        "--",
+        "python3",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/v04_identity_checks.py",
+        "--prefix",
+        "V04-016"
+      ],
+      "outcome": "Authoritative final10/10 identity/CLI/error tests passed; runner0,5.906s."
+    },
+    {
+      "id": "V04-017-probes",
+      "command": [
+        "python3",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py",
+        "--id",
+        "V04-017-probes",
+        "--timeout",
+        "40",
+        "--",
+        "python3",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/v04_process_fixtures.py",
+        "--prefix",
+        "V04-017",
+        "--cases",
+        "xctest",
+        "xctest_normal",
+        "--swift-package",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/V04HangFixture"
+      ],
+      "outcome": "Authoritative final2/2 real XCTest controls passed: hang124 at6.021s with no owned survivor; normal0 with one XCTest passed."
+    }
+  ]
+}

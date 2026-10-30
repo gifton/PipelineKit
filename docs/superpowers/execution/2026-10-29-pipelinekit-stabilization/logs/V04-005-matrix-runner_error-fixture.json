@@ -1,0 +1,295 @@
+{
+  "id": "V04-005-matrix-runner_error",
+  "mode": "runner_error",
+  "fixture_directory": "/var/folders/_c/7_fgg5v57d56kt4wd9bcsdj40000gn/T/V04-005-matrix-runner_error-swk1qwhs",
+  "old_runner": false,
+  "invocation": [
+    "/opt/homebrew/opt/python@3.14/bin/python3.14",
+    "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/v04_process_fixtures.py",
+    "--inject",
+    "runner_error",
+    "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py",
+    "--id",
+    "V04-005-matrix-runner_error",
+    "--timeout",
+    "3",
+    "--",
+    "/opt/homebrew/opt/python@3.14/bin/python3.14",
+    "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/v04_process_fixtures.py",
+    "--worker",
+    "runner_error",
+    "/var/folders/_c/7_fgg5v57d56kt4wd9bcsdj40000gn/T/V04-005-matrix-runner_error-swk1qwhs"
+  ],
+  "owned_before_detach_acknowledged": true,
+  "detached": {
+    "pid": 46256,
+    "ppid": 46253,
+    "pgid": 46256,
+    "state": 2,
+    "start": [
+      1793402219,
+      613677
+    ]
+  },
+  "runner_status": 125,
+  "metadata": {
+    "id": "V04-005-matrix-runner_error",
+    "cwd": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization",
+    "command": [
+      "/opt/homebrew/opt/python@3.14/bin/python3.14",
+      "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/v04_process_fixtures.py",
+      "--worker",
+      "runner_error",
+      "/var/folders/_c/7_fgg5v57d56kt4wd9bcsdj40000gn/T/V04-005-matrix-runner_error-swk1qwhs"
+    ],
+    "started_utc": "2026-10-30T23:16:59.552743+00:00",
+    "elapsed_seconds": 0.194,
+    "exit_status": -15,
+    "watchdog_timeout": false,
+    "log": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/V04-005-matrix-runner_error.log",
+    "runner_exit_status": 125,
+    "runner_error": "RuntimeError: V04 injected observation error after acknowledged detach",
+    "cleanup": {
+      "settled": true,
+      "survivors": [],
+      "outcomes": [
+        {
+          "identity": {
+            "pid": 46253,
+            "start": [
+              1793402219,
+              553666
+            ]
+          },
+          "state": "gone"
+        },
+        {
+          "identity": {
+            "pid": 46256,
+            "start": [
+              1793402219,
+              613677
+            ]
+          },
+          "state": "gone"
+        }
+      ],
+      "inspection_errors": [],
+      "term_grace_seconds": 2.0,
+      "kill_grace_seconds": 3.0
+    },
+    "completion_reason": "runner_error",
+    "unexpected_descendants": [],
+    "owned_processes": [
+      {
+        "identity": {
+          "pid": 46253,
+          "start": [
+            1793402219,
+            553666
+          ]
+        },
+        "observed_parent": null,
+        "first_seen_seconds": 0.003161,
+        "observations": [
+          {
+            "ppid": 46250,
+            "pgid": 46253,
+            "state": 2
+          }
+        ]
+      },
+      {
+        "identity": {
+          "pid": 46256,
+          "start": [
+            1793402219,
+            613677
+          ]
+        },
+        "observed_parent": {
+          "pid": 46253,
+          "start": [
+            1793402219,
+            553666
+          ]
+        },
+        "first_seen_seconds": 0.078753,
+        "observations": [
+          {
+            "ppid": 46253,
+            "pgid": 46253,
+            "state": 2
+          },
+          {
+            "ppid": 46253,
+            "pgid": 46256,
+            "state": 2
+          }
+        ]
+      }
+    ],
+    "termination_actions": [
+      {
+        "identity": {
+          "pid": 46253,
+          "start": [
+            1793402219,
+            553666
+          ]
+        },
+        "signal": "SIGTERM",
+        "elapsed_seconds": 0.162248,
+        "verified_before_signal": {
+          "pid": 46253,
+          "start": [
+            1793402219,
+            553666
+          ],
+          "ppid": 46250,
+          "pgid": 46253,
+          "state": 2
+        },
+        "result": "sent"
+      },
+      {
+        "identity": {
+          "pid": 46256,
+          "start": [
+            1793402219,
+            613677
+          ]
+        },
+        "signal": "SIGTERM",
+        "elapsed_seconds": 0.162412,
+        "verified_before_signal": {
+          "pid": 46256,
+          "start": [
+            1793402219,
+            613677
+          ],
+          "ppid": 46253,
+          "pgid": 46256,
+          "state": 2
+        },
+        "result": "sent"
+      }
+    ],
+    "process_events": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/V04-005-matrix-runner_error.processes.jsonl",
+    "ownership_backend": "macOS libproc PID + start timeval",
+    "containment_limits": [
+      "Only lineages observed before reparenting are owned; instant unobserved daemonization can escape.",
+      "Identity check and kill are separate syscalls; PID reuse in that interval cannot be excluded.",
+      "Zombie means no executing process; non-child zombie reaping belongs to its parent.",
+      "SIGKILL of the runner or host failure can bypass cleanup; Linux is unsupported and unvalidated."
+    ]
+  },
+  "owned_survivors_before_independent_cleanup": [],
+  "sentinel_survived": true,
+  "sentinel_was_signaled": false,
+  "owned_after_cleanup": {
+    "settled": true,
+    "survivors": [],
+    "outcomes": [
+      {
+        "identity": {
+          "pid": 46253,
+          "start": [
+            1793402219,
+            553666
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 46256,
+          "start": [
+            1793402219,
+            613677
+          ]
+        },
+        "state": "gone"
+      }
+    ],
+    "inspection_errors": [],
+    "term_grace_seconds": 2.0,
+    "kill_grace_seconds": 3.0
+  },
+  "passed": true,
+  "independent_cleanup": {
+    "settled": true,
+    "actions": [
+      {
+        "identity": {
+          "pid": 46245,
+          "ppid": 45685,
+          "pgid": 45685,
+          "state": 2,
+          "start": [
+            1793402219,
+            409732
+          ]
+        },
+        "signal": 15,
+        "result": "sent"
+      },
+      {
+        "identity": {
+          "pid": 46245,
+          "ppid": 45685,
+          "pgid": 45685,
+          "state": 2,
+          "start": [
+            1793402219,
+            409732
+          ]
+        },
+        "signal": 9,
+        "result": "sent"
+      }
+    ],
+    "identities": [
+      {
+        "pid": 46245,
+        "ppid": 45685,
+        "pgid": 45685,
+        "state": 2,
+        "start": [
+          1793402219,
+          409732
+        ]
+      },
+      {
+        "pid": 46250,
+        "ppid": 45685,
+        "pgid": 45685,
+        "state": 2,
+        "start": [
+          1793402219,
+          483231
+        ]
+      },
+      {
+        "pid": 46253,
+        "ppid": 46250,
+        "pgid": 46253,
+        "state": 2,
+        "start": [
+          1793402219,
+          553666
+        ]
+      },
+      {
+        "pid": 46256,
+        "ppid": 46253,
+        "pgid": 46253,
+        "state": 2,
+        "start": [
+          1793402219,
+          613677
+        ]
+      }
+    ]
+  }
+}

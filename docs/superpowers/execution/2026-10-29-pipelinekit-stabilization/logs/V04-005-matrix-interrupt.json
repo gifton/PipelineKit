@@ -1,0 +1,152 @@
+{
+  "id": "V04-005-matrix-interrupt",
+  "cwd": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization",
+  "command": [
+    "/opt/homebrew/opt/python@3.14/bin/python3.14",
+    "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/v04_process_fixtures.py",
+    "--worker",
+    "interrupt",
+    "/var/folders/_c/7_fgg5v57d56kt4wd9bcsdj40000gn/T/V04-005-matrix-interrupt-2n5jnnzk"
+  ],
+  "started_utc": "2026-10-30T23:17:00.206898+00:00",
+  "elapsed_seconds": 0.181,
+  "exit_status": -15,
+  "watchdog_timeout": false,
+  "log": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/V04-005-matrix-interrupt.log",
+  "runner_exit_status": 143,
+  "runner_error": "Interrupted: runner received SIGTERM",
+  "cleanup": {
+    "settled": true,
+    "survivors": [],
+    "outcomes": [
+      {
+        "identity": {
+          "pid": 46276,
+          "start": [
+            1793402220,
+            207350
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 46279,
+          "start": [
+            1793402220,
+            277543
+          ]
+        },
+        "state": "gone"
+      }
+    ],
+    "inspection_errors": [],
+    "term_grace_seconds": 2.0,
+    "kill_grace_seconds": 3.0
+  },
+  "completion_reason": "interrupted",
+  "unexpected_descendants": [],
+  "owned_processes": [
+    {
+      "identity": {
+        "pid": 46276,
+        "start": [
+          1793402220,
+          207350
+        ]
+      },
+      "observed_parent": null,
+      "first_seen_seconds": 0.002118,
+      "observations": [
+        {
+          "ppid": 46274,
+          "pgid": 46276,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 46279,
+        "start": [
+          1793402220,
+          277543
+        ]
+      },
+      "observed_parent": {
+        "pid": 46276,
+        "start": [
+          1793402220,
+          207350
+        ]
+      },
+      "first_seen_seconds": 0.094998,
+      "observations": [
+        {
+          "ppid": 46276,
+          "pgid": 46276,
+          "state": 2
+        },
+        {
+          "ppid": 46276,
+          "pgid": 46279,
+          "state": 2
+        }
+      ]
+    }
+  ],
+  "termination_actions": [
+    {
+      "identity": {
+        "pid": 46276,
+        "start": [
+          1793402220,
+          207350
+        ]
+      },
+      "signal": "SIGTERM",
+      "elapsed_seconds": 0.158507,
+      "verified_before_signal": {
+        "pid": 46276,
+        "start": [
+          1793402220,
+          207350
+        ],
+        "ppid": 46274,
+        "pgid": 46276,
+        "state": 2
+      },
+      "result": "sent"
+    },
+    {
+      "identity": {
+        "pid": 46279,
+        "start": [
+          1793402220,
+          277543
+        ]
+      },
+      "signal": "SIGTERM",
+      "elapsed_seconds": 0.158645,
+      "verified_before_signal": {
+        "pid": 46279,
+        "start": [
+          1793402220,
+          277543
+        ],
+        "ppid": 46276,
+        "pgid": 46279,
+        "state": 2
+      },
+      "result": "sent"
+    }
+  ],
+  "process_events": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/V04-005-matrix-interrupt.processes.jsonl",
+  "ownership_backend": "macOS libproc PID + start timeval",
+  "containment_limits": [
+    "Only lineages observed before reparenting are owned; instant unobserved daemonization can escape.",
+    "Identity check and kill are separate syscalls; PID reuse in that interval cannot be excluded.",
+    "Zombie means no executing process; non-child zombie reaping belongs to its parent.",
+    "SIGKILL of the runner or host failure can bypass cleanup; Linux is unsupported and unvalidated."
+  ]
+}

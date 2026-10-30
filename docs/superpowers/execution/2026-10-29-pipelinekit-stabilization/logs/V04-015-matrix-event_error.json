@@ -1,0 +1,155 @@
+{
+  "id": "V04-015-matrix-event_error",
+  "cwd": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization",
+  "command": [
+    "/opt/homebrew/opt/python@3.14/bin/python3.14",
+    "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/v04_process_fixtures.py",
+    "--worker",
+    "event_error",
+    "/var/folders/_c/7_fgg5v57d56kt4wd9bcsdj40000gn/T/V04-015-matrix-event_error-bwehuil2"
+  ],
+  "started_utc": "2026-10-30T23:25:22.414175+00:00",
+  "elapsed_seconds": 0.165,
+  "exit_status": -15,
+  "watchdog_timeout": false,
+  "log": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/V04-015-matrix-event_error.log",
+  "runner_exit_status": 125,
+  "runner_error": "RuntimeError: owned-process event recording failed",
+  "cleanup": {
+    "settled": true,
+    "survivors": [],
+    "outcomes": [
+      {
+        "identity": {
+          "pid": 51137,
+          "start": [
+            1793402722,
+            414719
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 51138,
+          "start": [
+            1793402722,
+            464798
+          ]
+        },
+        "state": "gone"
+      }
+    ],
+    "inspection_errors": [],
+    "term_grace_seconds": 2.0,
+    "kill_grace_seconds": 3.0
+  },
+  "event_errors": [
+    "ValueError: I/O operation on closed file."
+  ],
+  "completion_reason": "runner_error",
+  "unexpected_descendants": [],
+  "owned_processes": [
+    {
+      "identity": {
+        "pid": 51137,
+        "start": [
+          1793402722,
+          414719
+        ]
+      },
+      "observed_parent": null,
+      "first_seen_seconds": 0.002015,
+      "observations": [
+        {
+          "ppid": 51136,
+          "pgid": 51137,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 51138,
+        "start": [
+          1793402722,
+          464798
+        ]
+      },
+      "observed_parent": {
+        "pid": 51137,
+        "start": [
+          1793402722,
+          414719
+        ]
+      },
+      "first_seen_seconds": 0.071197,
+      "observations": [
+        {
+          "ppid": 51137,
+          "pgid": 51137,
+          "state": 2
+        },
+        {
+          "ppid": 51137,
+          "pgid": 51138,
+          "state": 2
+        }
+      ]
+    }
+  ],
+  "termination_actions": [
+    {
+      "identity": {
+        "pid": 51137,
+        "start": [
+          1793402722,
+          414719
+        ]
+      },
+      "signal": "SIGTERM",
+      "elapsed_seconds": 0.142779,
+      "verified_before_signal": {
+        "pid": 51137,
+        "start": [
+          1793402722,
+          414719
+        ],
+        "ppid": 51136,
+        "pgid": 51137,
+        "state": 2
+      },
+      "result": "sent"
+    },
+    {
+      "identity": {
+        "pid": 51138,
+        "start": [
+          1793402722,
+          464798
+        ]
+      },
+      "signal": "SIGTERM",
+      "elapsed_seconds": 0.142814,
+      "verified_before_signal": {
+        "pid": 51138,
+        "start": [
+          1793402722,
+          464798
+        ],
+        "ppid": 51137,
+        "pgid": 51138,
+        "state": 2
+      },
+      "result": "sent"
+    }
+  ],
+  "process_events": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/V04-015-matrix-event_error.processes.jsonl",
+  "ownership_backend": "macOS libproc PID + start timeval",
+  "containment_limits": [
+    "Only lineages observed before reparenting are owned; instant unobserved daemonization can escape.",
+    "Identity check and kill are separate syscalls; PID reuse in that interval cannot be excluded.",
+    "Zombie means no executing process; non-child zombie reaping belongs to its parent.",
+    "SIGKILL of the runner or host failure can bypass cleanup; Linux is unsupported and unvalidated."
+  ]
+}

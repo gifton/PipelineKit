@@ -1,0 +1,150 @@
+{
+  "id": "V04-002-first-escape",
+  "cwd": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization",
+  "command": [
+    "/opt/homebrew/opt/python@3.14/bin/python3.14",
+    "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/v04_process_fixtures.py",
+    "--worker",
+    "escape",
+    "/var/folders/_c/7_fgg5v57d56kt4wd9bcsdj40000gn/T/V04-002-first-escape-0ek0fluk"
+  ],
+  "started_utc": "2026-10-30T23:13:19.528437+00:00",
+  "elapsed_seconds": 3.024,
+  "exit_status": -15,
+  "watchdog_timeout": true,
+  "log": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/V04-002-first-escape.log",
+  "runner_exit_status": 124,
+  "runner_error": null,
+  "cleanup": {
+    "settled": true,
+    "survivors": [],
+    "outcomes": [
+      {
+        "identity": {
+          "pid": 43172,
+          "start": [
+            1793401999,
+            528909
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 43174,
+          "start": [
+            1793401999,
+            581151
+          ]
+        },
+        "state": "gone"
+      }
+    ],
+    "inspection_errors": [],
+    "term_grace_seconds": 2.0,
+    "kill_grace_seconds": 3.0
+  },
+  "owned_processes": [
+    {
+      "identity": {
+        "pid": 43172,
+        "start": [
+          1793401999,
+          528909
+        ]
+      },
+      "observed_parent": null,
+      "first_seen_seconds": 0.002224,
+      "observations": [
+        {
+          "ppid": 43171,
+          "pgid": 43172,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 43174,
+        "start": [
+          1793401999,
+          581151
+        ]
+      },
+      "observed_parent": {
+        "pid": 43172,
+        "start": [
+          1793401999,
+          528909
+        ]
+      },
+      "first_seen_seconds": 0.078248,
+      "observations": [
+        {
+          "ppid": 43172,
+          "pgid": 43172,
+          "state": 2
+        },
+        {
+          "ppid": 43172,
+          "pgid": 43174,
+          "state": 2
+        }
+      ]
+    }
+  ],
+  "termination_actions": [
+    {
+      "identity": {
+        "pid": 43172,
+        "start": [
+          1793401999,
+          528909
+        ]
+      },
+      "signal": "SIGTERM",
+      "elapsed_seconds": 3.003531,
+      "verified_before_signal": {
+        "pid": 43172,
+        "start": [
+          1793401999,
+          528909
+        ],
+        "ppid": 43171,
+        "pgid": 43172,
+        "state": 2
+      },
+      "result": "sent"
+    },
+    {
+      "identity": {
+        "pid": 43174,
+        "start": [
+          1793401999,
+          581151
+        ]
+      },
+      "signal": "SIGTERM",
+      "elapsed_seconds": 3.003616,
+      "verified_before_signal": {
+        "pid": 43174,
+        "start": [
+          1793401999,
+          581151
+        ],
+        "ppid": 43172,
+        "pgid": 43174,
+        "state": 2
+      },
+      "result": "sent"
+    }
+  ],
+  "process_events": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/V04-002-first-escape.processes.jsonl",
+  "ownership_backend": "macOS libproc PID + start timeval",
+  "containment_limits": [
+    "Only lineages observed before reparenting are owned; instant unobserved daemonization can escape.",
+    "Identity check and kill are separate syscalls; PID reuse in that interval cannot be excluded.",
+    "Zombie means no executing process; non-child zombie reaping belongs to its parent.",
+    "SIGKILL of the runner or host failure can bypass cleanup; Linux is unsupported and unvalidated."
+  ]
+}

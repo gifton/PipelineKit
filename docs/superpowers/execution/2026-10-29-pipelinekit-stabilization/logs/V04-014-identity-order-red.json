@@ -1,0 +1,104 @@
+{
+  "id": "V04-014-identity-order-red",
+  "cwd": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization",
+  "command": [
+    "python3",
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/v04_identity_checks.py",
+    "--prefix",
+    "V04-014",
+    "--case",
+    "test_observed_lineage_does_not_require_start_clock_order"
+  ],
+  "started_utc": "2026-10-30T23:24:55.066810+00:00",
+  "elapsed_seconds": 0.501,
+  "exit_status": 1,
+  "watchdog_timeout": false,
+  "log": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/V04-014-identity-order-red.log",
+  "runner_exit_status": 1,
+  "runner_error": null,
+  "cleanup": {
+    "settled": true,
+    "survivors": [],
+    "outcomes": [
+      {
+        "identity": {
+          "pid": 50909,
+          "start": [
+            1793402695,
+            67279
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 50910,
+          "start": [
+            1793402695,
+            159720
+          ]
+        },
+        "state": "gone"
+      }
+    ],
+    "inspection_errors": [],
+    "term_grace_seconds": 2.0,
+    "kill_grace_seconds": 3.0
+  },
+  "event_errors": [],
+  "completion_reason": "root_exit",
+  "unexpected_descendants": [],
+  "owned_processes": [
+    {
+      "identity": {
+        "pid": 50909,
+        "start": [
+          1793402695,
+          67279
+        ]
+      },
+      "observed_parent": null,
+      "first_seen_seconds": 0.002201,
+      "observations": [
+        {
+          "ppid": 50882,
+          "pgid": 50909,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 50910,
+        "start": [
+          1793402695,
+          159720
+        ]
+      },
+      "observed_parent": {
+        "pid": 50909,
+        "start": [
+          1793402695,
+          67279
+        ]
+      },
+      "first_seen_seconds": 0.103362,
+      "observations": [
+        {
+          "ppid": 50909,
+          "pgid": 50909,
+          "state": 2
+        }
+      ]
+    }
+  ],
+  "termination_actions": [],
+  "process_events": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/V04-014-identity-order-red.processes.jsonl",
+  "ownership_backend": "macOS libproc PID + start timeval",
+  "containment_limits": [
+    "Only lineages observed before reparenting are owned; instant unobserved daemonization can escape.",
+    "Identity check and kill are separate syscalls; PID reuse in that interval cannot be excluded.",
+    "Zombie means no executing process; non-child zombie reaping belongs to its parent.",
+    "SIGKILL of the runner or host failure can bypass cleanup; Linux is unsupported and unvalidated."
+  ]
+}

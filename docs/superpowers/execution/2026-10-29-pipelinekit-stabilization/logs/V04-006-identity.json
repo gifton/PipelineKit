@@ -1,0 +1,373 @@
+{
+  "id": "V04-006-identity",
+  "cwd": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization",
+  "command": [
+    "python3",
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/v04_identity_checks.py",
+    "--prefix",
+    "V04-006"
+  ],
+  "started_utc": "2026-10-30T23:16:45.063380+00:00",
+  "elapsed_seconds": 3.254,
+  "exit_status": 0,
+  "watchdog_timeout": false,
+  "log": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/V04-006-identity.log",
+  "runner_exit_status": 0,
+  "runner_error": null,
+  "cleanup": {
+    "settled": true,
+    "survivors": [],
+    "outcomes": [
+      {
+        "identity": {
+          "pid": 45706,
+          "start": [
+            1793402205,
+            63986
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 45709,
+          "start": [
+            1793402205,
+            160168
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 45714,
+          "start": [
+            1793402205,
+            546773
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 45716,
+          "start": [
+            1793402205,
+            615024
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 45721,
+          "start": [
+            1793402205,
+            960592
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 45726,
+          "start": [
+            1793402206,
+            349473
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 45728,
+          "start": [
+            1793402206,
+            759146
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 45736,
+          "start": [
+            1793402207,
+            157937
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 45748,
+          "start": [
+            1793402207,
+            542896
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 45759,
+          "start": [
+            1793402207,
+            917628
+          ]
+        },
+        "state": "gone"
+      }
+    ],
+    "inspection_errors": [],
+    "term_grace_seconds": 2.0,
+    "kill_grace_seconds": 3.0
+  },
+  "completion_reason": "root_exit",
+  "unexpected_descendants": [],
+  "owned_processes": [
+    {
+      "identity": {
+        "pid": 45706,
+        "start": [
+          1793402205,
+          63986
+        ]
+      },
+      "observed_parent": null,
+      "first_seen_seconds": 0.003497,
+      "observations": [
+        {
+          "ppid": 45684,
+          "pgid": 45706,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 45709,
+        "start": [
+          1793402205,
+          160168
+        ]
+      },
+      "observed_parent": {
+        "pid": 45706,
+        "start": [
+          1793402205,
+          63986
+        ]
+      },
+      "first_seen_seconds": 0.115005,
+      "observations": [
+        {
+          "ppid": 45706,
+          "pgid": 45706,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 45714,
+        "start": [
+          1793402205,
+          546773
+        ]
+      },
+      "observed_parent": {
+        "pid": 45706,
+        "start": [
+          1793402205,
+          63986
+        ]
+      },
+      "first_seen_seconds": 0.500156,
+      "observations": [
+        {
+          "ppid": 45706,
+          "pgid": 45706,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 45716,
+        "start": [
+          1793402205,
+          615024
+        ]
+      },
+      "observed_parent": {
+        "pid": 45706,
+        "start": [
+          1793402205,
+          63986
+        ]
+      },
+      "first_seen_seconds": 0.553546,
+      "observations": [
+        {
+          "ppid": 45706,
+          "pgid": 45716,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 45721,
+        "start": [
+          1793402205,
+          960592
+        ]
+      },
+      "observed_parent": {
+        "pid": 45706,
+        "start": [
+          1793402205,
+          63986
+        ]
+      },
+      "first_seen_seconds": 0.913122,
+      "observations": [
+        {
+          "ppid": 45706,
+          "pgid": 45706,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 45726,
+        "start": [
+          1793402206,
+          349473
+        ]
+      },
+      "observed_parent": {
+        "pid": 45706,
+        "start": [
+          1793402205,
+          63986
+        ]
+      },
+      "first_seen_seconds": 1.296244,
+      "observations": [
+        {
+          "ppid": 45706,
+          "pgid": 45706,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 45728,
+        "start": [
+          1793402206,
+          759146
+        ]
+      },
+      "observed_parent": {
+        "pid": 45706,
+        "start": [
+          1793402205,
+          63986
+        ]
+      },
+      "first_seen_seconds": 1.720318,
+      "observations": [
+        {
+          "ppid": 45706,
+          "pgid": 45706,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 45736,
+        "start": [
+          1793402207,
+          157937
+        ]
+      },
+      "observed_parent": {
+        "pid": 45706,
+        "start": [
+          1793402205,
+          63986
+        ]
+      },
+      "first_seen_seconds": 2.105369,
+      "observations": [
+        {
+          "ppid": 45706,
+          "pgid": 45706,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 45748,
+        "start": [
+          1793402207,
+          542896
+        ]
+      },
+      "observed_parent": {
+        "pid": 45706,
+        "start": [
+          1793402205,
+          63986
+        ]
+      },
+      "first_seen_seconds": 2.482418,
+      "observations": [
+        {
+          "ppid": 45706,
+          "pgid": 45706,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 45759,
+        "start": [
+          1793402207,
+          917628
+        ]
+      },
+      "observed_parent": {
+        "pid": 45706,
+        "start": [
+          1793402205,
+          63986
+        ]
+      },
+      "first_seen_seconds": 2.876618,
+      "observations": [
+        {
+          "ppid": 45706,
+          "pgid": 45706,
+          "state": 2
+        }
+      ]
+    }
+  ],
+  "termination_actions": [],
+  "process_events": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/V04-006-identity.processes.jsonl",
+  "ownership_backend": "macOS libproc PID + start timeval",
+  "containment_limits": [
+    "Only lineages observed before reparenting are owned; instant unobserved daemonization can escape.",
+    "Identity check and kill are separate syscalls; PID reuse in that interval cannot be excluded.",
+    "Zombie means no executing process; non-child zombie reaping belongs to its parent.",
+    "SIGKILL of the runner or host failure can bypass cleanup; Linux is unsupported and unvalidated."
+  ]
+}

@@ -1,0 +1,17 @@
+test_observed_lineage_does_not_require_start_clock_order (__main__.IdentityChecks.test_observed_lineage_does_not_require_start_clock_order) ... FAIL
+
+======================================================================
+FAIL: test_observed_lineage_does_not_require_start_clock_order (__main__.IdentityChecks.test_observed_lineage_does_not_require_start_clock_order)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/v04_identity_checks.py", line 73, in test_observed_lineage_does_not_require_start_clock_order
+    self.assertIn(runner.key(child), self.owner.records,
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                  "verified current parent/child identity must not depend on clock ordering")
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: (50910, (1793402695, 159720)) not found in {(2000000000, (1793402696, 159720)): {'identity': {'pid': 2000000000, 'start': [1793402696, 159720]}, 'observed_parent': None, 'first_seen_seconds': 6.4e-05, 'observations': [{'ppid': 1, 'pgid': 50909, 'state': 2}]}} : verified current parent/child identity must not depend on clock ordering
+
+----------------------------------------------------------------------
+Ran 1 test in 0.384s
+
+FAILED (failures=1)

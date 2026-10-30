@@ -1,0 +1,153 @@
+{
+  "id": "V04-011-matrix-interrupt",
+  "cwd": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization",
+  "command": [
+    "/opt/homebrew/opt/python@3.14/bin/python3.14",
+    "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/v04_process_fixtures.py",
+    "--worker",
+    "interrupt",
+    "/var/folders/_c/7_fgg5v57d56kt4wd9bcsdj40000gn/T/V04-011-matrix-interrupt-ujaad7li"
+  ],
+  "started_utc": "2026-10-30T23:19:52.231287+00:00",
+  "elapsed_seconds": 0.165,
+  "exit_status": -15,
+  "watchdog_timeout": false,
+  "log": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/V04-011-matrix-interrupt.log",
+  "runner_exit_status": 143,
+  "runner_error": "Interrupted: runner received SIGTERM",
+  "cleanup": {
+    "settled": true,
+    "survivors": [],
+    "outcomes": [
+      {
+        "identity": {
+          "pid": 47942,
+          "start": [
+            1793402392,
+            231800
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 47943,
+          "start": [
+            1793402392,
+            284316
+          ]
+        },
+        "state": "gone"
+      }
+    ],
+    "inspection_errors": [],
+    "term_grace_seconds": 2.0,
+    "kill_grace_seconds": 3.0
+  },
+  "event_errors": [],
+  "completion_reason": "interrupted",
+  "unexpected_descendants": [],
+  "owned_processes": [
+    {
+      "identity": {
+        "pid": 47942,
+        "start": [
+          1793402392,
+          231800
+        ]
+      },
+      "observed_parent": null,
+      "first_seen_seconds": 0.002157,
+      "observations": [
+        {
+          "ppid": 47940,
+          "pgid": 47942,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 47943,
+        "start": [
+          1793402392,
+          284316
+        ]
+      },
+      "observed_parent": {
+        "pid": 47942,
+        "start": [
+          1793402392,
+          231800
+        ]
+      },
+      "first_seen_seconds": 0.054182,
+      "observations": [
+        {
+          "ppid": 47942,
+          "pgid": 47942,
+          "state": 2
+        },
+        {
+          "ppid": 47942,
+          "pgid": 47943,
+          "state": 2
+        }
+      ]
+    }
+  ],
+  "termination_actions": [
+    {
+      "identity": {
+        "pid": 47942,
+        "start": [
+          1793402392,
+          231800
+        ]
+      },
+      "signal": "SIGTERM",
+      "elapsed_seconds": 0.135023,
+      "verified_before_signal": {
+        "pid": 47942,
+        "start": [
+          1793402392,
+          231800
+        ],
+        "ppid": 47940,
+        "pgid": 47942,
+        "state": 2
+      },
+      "result": "sent"
+    },
+    {
+      "identity": {
+        "pid": 47943,
+        "start": [
+          1793402392,
+          284316
+        ]
+      },
+      "signal": "SIGTERM",
+      "elapsed_seconds": 0.135095,
+      "verified_before_signal": {
+        "pid": 47943,
+        "start": [
+          1793402392,
+          284316
+        ],
+        "ppid": 47942,
+        "pgid": 47943,
+        "state": 2
+      },
+      "result": "sent"
+    }
+  ],
+  "process_events": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/V04-011-matrix-interrupt.processes.jsonl",
+  "ownership_backend": "macOS libproc PID + start timeval",
+  "containment_limits": [
+    "Only lineages observed before reparenting are owned; instant unobserved daemonization can escape.",
+    "Identity check and kill are separate syscalls; PID reuse in that interval cannot be excluded.",
+    "Zombie means no executing process; non-child zombie reaping belongs to its parent.",
+    "SIGKILL of the runner or host failure can bypass cleanup; Linux is unsupported and unvalidated."
+  ]
+}

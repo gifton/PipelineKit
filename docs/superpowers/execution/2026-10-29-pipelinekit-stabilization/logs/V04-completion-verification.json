@@ -1,0 +1,162 @@
+{
+  "source_checks": {
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py": {
+      "expected": "6d37c283e306f08e173d4708d26042007fa91cce0dff91bfc95b56f6ce967d12",
+      "actual": "6d37c283e306f08e173d4708d26042007fa91cce0dff91bfc95b56f6ce967d12",
+      "matches": true
+    },
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/v04_process_fixtures.py": {
+      "expected": "0e40ead7a766b1eef9173e4ba63e207735b1644a7bbae6eb935640ee8715214c",
+      "actual": "0e40ead7a766b1eef9173e4ba63e207735b1644a7bbae6eb935640ee8715214c",
+      "matches": true
+    },
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/v04_identity_checks.py": {
+      "expected": "b2e2b21d0f0e5a6a80dca1c56c8e60ec2f779bdb96429e437a064058b973d7b9",
+      "actual": "b2e2b21d0f0e5a6a80dca1c56c8e60ec2f779bdb96429e437a064058b973d7b9",
+      "matches": true
+    },
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/v04_source_state.py": {
+      "expected": "7ea8864b3adcf53ff49747d92f4440c5360b215ad90d388ec6a03f3aaf858d75",
+      "actual": "7ea8864b3adcf53ff49747d92f4440c5360b215ad90d388ec6a03f3aaf858d75",
+      "matches": true
+    },
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/V04HangFixture/Package.swift": {
+      "expected": "2c58cb1210321ada885f043172448ec9860bc3479a682ec3e456fbb5abed09d9",
+      "actual": "2c58cb1210321ada885f043172448ec9860bc3479a682ec3e456fbb5abed09d9",
+      "matches": true
+    },
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/V04HangFixture/Tests/HangFixtureTests/HangingTests.swift": {
+      "expected": "646c605efdee08a7ec7a902b4a5e9f174dd644dbd924075b234b5db4b8427d9f",
+      "actual": "646c605efdee08a7ec7a902b4a5e9f174dd644dbd924075b234b5db4b8427d9f",
+      "matches": true
+    }
+  },
+  "retained_checks": {
+    "Package.swift": {
+      "initial": "f9e66a25c968fd8d4a1461efd4c4a62fcc0e1e63bcca2f0bd617e8edd9f18adb",
+      "actual": "f9e66a25c968fd8d4a1461efd4c4a62fcc0e1e63bcca2f0bd617e8edd9f18adb",
+      "matches": true
+    },
+    "Package.resolved": {
+      "initial": "f3fa663ca0f1c77b0b5019bce908ef38a95911202c5f1c16de2d4fe01965ddc4",
+      "actual": "f3fa663ca0f1c77b0b5019bce908ef38a95911202c5f1c16de2d4fe01965ddc4",
+      "matches": true
+    },
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer/Package.resolved": {
+      "initial": "f3fa663ca0f1c77b0b5019bce908ef38a95911202c5f1c16de2d4fe01965ddc4",
+      "actual": "f3fa663ca0f1c77b0b5019bce908ef38a95911202c5f1c16de2d4fe01965ddc4",
+      "matches": true
+    },
+    "audit/pipelinekit/2026-10-28-a93a713-local/repros/run_check.py": {
+      "initial": "2a64e1d686e0e88766f7da3cea541f813660324fa7ffb8ce2ef9a05404f43381",
+      "actual": "2a64e1d686e0e88766f7da3cea541f813660324fa7ffb8ce2ef9a05404f43381",
+      "matches": true
+    },
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/O01-010-lost-deadline-mutant.json": {
+      "initial": "7f87bdc066c0c114ea14d803c6d7a3e37790fe89ef80eecfbadf65b2fc168807",
+      "actual": "7f87bdc066c0c114ea14d803c6d7a3e37790fe89ef80eecfbadf65b2fc168807",
+      "matches": true
+    },
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/O01-010-lost-deadline-mutant.log": {
+      "initial": "404c3e724d5479898e0713991d81d8255b451d152e566ecf37fee53a75147266",
+      "actual": "404c3e724d5479898e0713991d81d8255b451d152e566ecf37fee53a75147266",
+      "matches": true
+    },
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/O01-watchdog-orphan-cleanup.json": {
+      "initial": "d83460fb3be610dc1530bb1b3d0531da124f4a0e67466eb477ab988d80bc2e18",
+      "actual": "d83460fb3be610dc1530bb1b3d0531da124f4a0e67466eb477ab988d80bc2e18",
+      "matches": true
+    },
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/reports/O01-review.md": {
+      "initial": "2d5853e425789407b3dd4a1f00e860694a42a07b2a155ebf8828f2e6313d4047",
+      "actual": "2d5853e425789407b3dd4a1f00e860694a42a07b2a155ebf8828f2e6313d4047",
+      "matches": true
+    }
+  },
+  "matrix": [
+    {
+      "file": "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/V04-011-matrix-cleanup_failure-fixture.json",
+      "sha256": "8267a275b56ba7493aed755b251de88dfd122b0532457b4b18c1768cd857d183",
+      "case": "cleanup_failure",
+      "status": 125,
+      "cleanup_settled": false,
+      "independent_cleanup_settled": true
+    },
+    {
+      "file": "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/V04-011-matrix-escape-fixture.json",
+      "sha256": "056172763ebddf0ada58eefe5c34d47461cea2c7c8a5c513d15b240c3670f21a",
+      "case": "escape",
+      "status": 124,
+      "cleanup_settled": true,
+      "independent_cleanup_settled": true
+    },
+    {
+      "file": "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/V04-011-matrix-event_error-fixture.json",
+      "sha256": "06df2ccc57b7dd3808575a0cfcf619d3fcb3aeb0d8bcc0bdd6751fccd50480d5",
+      "case": "event_error",
+      "status": 125,
+      "cleanup_settled": true,
+      "independent_cleanup_settled": true
+    },
+    {
+      "file": "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/V04-011-matrix-interrupt-fixture.json",
+      "sha256": "cefa899f2bd769c64dc4fb5de5d453874775d331c9154c061d31469717ff2094",
+      "case": "interrupt",
+      "status": 143,
+      "cleanup_settled": true,
+      "independent_cleanup_settled": true
+    },
+    {
+      "file": "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/V04-011-matrix-nonzero-fixture.json",
+      "sha256": "e5e9064011d6debf36fcb54e78927dc2a36a056b8ac5f76549661b422a5d1052",
+      "case": "nonzero",
+      "status": 23,
+      "cleanup_settled": true,
+      "independent_cleanup_settled": true
+    },
+    {
+      "file": "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/V04-011-matrix-ordinary_timeout-fixture.json",
+      "sha256": "517bb9ae3654da895ca328b433c45131f2eb9b161eaecbbcc6d761d07585f711",
+      "case": "ordinary_timeout",
+      "status": 124,
+      "cleanup_settled": true,
+      "independent_cleanup_settled": true
+    },
+    {
+      "file": "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/V04-011-matrix-parent_exit-fixture.json",
+      "sha256": "60c94ef5dba8843b1395958009cf9d3133b8a66706340832f937f819ba9aca14",
+      "case": "parent_exit",
+      "status": 125,
+      "cleanup_settled": true,
+      "independent_cleanup_settled": true
+    },
+    {
+      "file": "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/V04-011-matrix-refuse_term-fixture.json",
+      "sha256": "7224ce9e32a6c55b05ded4cee8da91e53998312898fea25a2c78cfb1038b0cf7",
+      "case": "refuse_term",
+      "status": 124,
+      "cleanup_settled": true,
+      "independent_cleanup_settled": true
+    },
+    {
+      "file": "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/V04-011-matrix-runner_error-fixture.json",
+      "sha256": "63ccbc88f6b1ef8285066c58d4dd1362bf2912c18be2a713802bb451cd7da7cd",
+      "case": "runner_error",
+      "status": 125,
+      "cleanup_settled": true,
+      "independent_cleanup_settled": true
+    },
+    {
+      "file": "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/V04-011-matrix-zero-fixture.json",
+      "sha256": "3589735384923cd07118d04d286bfc4ed55f32d126c020eefa1ccf046077d012",
+      "case": "zero",
+      "status": 0,
+      "cleanup_settled": true,
+      "independent_cleanup_settled": true
+    }
+  ],
+  "all_fixture_identities_checked": 165,
+  "verified_owned_live_survivors": [],
+  "observed_fixture_build_test_warnings": [],
+  "note": "This recheck targets only retained exact identities; no process names, workspace search or signals."
+}

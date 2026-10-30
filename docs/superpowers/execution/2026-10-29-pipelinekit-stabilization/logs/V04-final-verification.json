@@ -1,0 +1,187 @@
+{
+  "source_checks": {
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py": {
+      "expected": "9fad75b0f9d7216c7467bab2d3b9fd341ef5e2313fd4365c491234eafb480dd0",
+      "actual": "9fad75b0f9d7216c7467bab2d3b9fd341ef5e2313fd4365c491234eafb480dd0",
+      "matches": true
+    },
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/v04_process_fixtures.py": {
+      "expected": "0e40ead7a766b1eef9173e4ba63e207735b1644a7bbae6eb935640ee8715214c",
+      "actual": "0e40ead7a766b1eef9173e4ba63e207735b1644a7bbae6eb935640ee8715214c",
+      "matches": true
+    },
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/v04_identity_checks.py": {
+      "expected": "c1044e2210b261bf41fe02d00f0429416f99ae72d39ce76f9adde8036f7f51d4",
+      "actual": "c1044e2210b261bf41fe02d00f0429416f99ae72d39ce76f9adde8036f7f51d4",
+      "matches": true
+    },
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/v04_source_state.py": {
+      "expected": "7ea8864b3adcf53ff49747d92f4440c5360b215ad90d388ec6a03f3aaf858d75",
+      "actual": "7ea8864b3adcf53ff49747d92f4440c5360b215ad90d388ec6a03f3aaf858d75",
+      "matches": true
+    },
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/V04HangFixture/Package.swift": {
+      "expected": "2c58cb1210321ada885f043172448ec9860bc3479a682ec3e456fbb5abed09d9",
+      "actual": "2c58cb1210321ada885f043172448ec9860bc3479a682ec3e456fbb5abed09d9",
+      "matches": true
+    },
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/V04HangFixture/Tests/HangFixtureTests/HangingTests.swift": {
+      "expected": "646c605efdee08a7ec7a902b4a5e9f174dd644dbd924075b234b5db4b8427d9f",
+      "actual": "646c605efdee08a7ec7a902b4a5e9f174dd644dbd924075b234b5db4b8427d9f",
+      "matches": true
+    }
+  },
+  "retained_checks": {
+    "Package.swift": {
+      "initial": "f9e66a25c968fd8d4a1461efd4c4a62fcc0e1e63bcca2f0bd617e8edd9f18adb",
+      "actual": "f9e66a25c968fd8d4a1461efd4c4a62fcc0e1e63bcca2f0bd617e8edd9f18adb",
+      "matches": true
+    },
+    "Package.resolved": {
+      "initial": "f3fa663ca0f1c77b0b5019bce908ef38a95911202c5f1c16de2d4fe01965ddc4",
+      "actual": "f3fa663ca0f1c77b0b5019bce908ef38a95911202c5f1c16de2d4fe01965ddc4",
+      "matches": true
+    },
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer/Package.resolved": {
+      "initial": "f3fa663ca0f1c77b0b5019bce908ef38a95911202c5f1c16de2d4fe01965ddc4",
+      "actual": "f3fa663ca0f1c77b0b5019bce908ef38a95911202c5f1c16de2d4fe01965ddc4",
+      "matches": true
+    },
+    "audit/pipelinekit/2026-10-28-a93a713-local/repros/run_check.py": {
+      "initial": "2a64e1d686e0e88766f7da3cea541f813660324fa7ffb8ce2ef9a05404f43381",
+      "actual": "2a64e1d686e0e88766f7da3cea541f813660324fa7ffb8ce2ef9a05404f43381",
+      "matches": true
+    },
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/O01-010-lost-deadline-mutant.json": {
+      "initial": "7f87bdc066c0c114ea14d803c6d7a3e37790fe89ef80eecfbadf65b2fc168807",
+      "actual": "7f87bdc066c0c114ea14d803c6d7a3e37790fe89ef80eecfbadf65b2fc168807",
+      "matches": true
+    },
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/O01-010-lost-deadline-mutant.log": {
+      "initial": "404c3e724d5479898e0713991d81d8255b451d152e566ecf37fee53a75147266",
+      "actual": "404c3e724d5479898e0713991d81d8255b451d152e566ecf37fee53a75147266",
+      "matches": true
+    },
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/O01-watchdog-orphan-cleanup.json": {
+      "initial": "d83460fb3be610dc1530bb1b3d0531da124f4a0e67466eb477ab988d80bc2e18",
+      "actual": "d83460fb3be610dc1530bb1b3d0531da124f4a0e67466eb477ab988d80bc2e18",
+      "matches": true
+    },
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/reports/O01-review.md": {
+      "initial": "2d5853e425789407b3dd4a1f00e860694a42a07b2a155ebf8828f2e6313d4047",
+      "actual": "2d5853e425789407b3dd4a1f00e860694a42a07b2a155ebf8828f2e6313d4047",
+      "matches": true
+    }
+  },
+  "matrix": [
+    {
+      "file": "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/V04-015-matrix-cleanup_failure-fixture.json",
+      "sha256": "dbee788f0a6e0948a6032fb0bbc61aa704bd560ebb3e202fec3e014cb98bf5ee",
+      "case": "cleanup_failure",
+      "status": 125,
+      "cleanup_settled": false,
+      "independent_cleanup_settled": true
+    },
+    {
+      "file": "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/V04-015-matrix-escape-fixture.json",
+      "sha256": "fcb03929bacb8b1219e587ed183b42fd908128fc7e5da418b7e7dea38151d219",
+      "case": "escape",
+      "status": 124,
+      "cleanup_settled": true,
+      "independent_cleanup_settled": true
+    },
+    {
+      "file": "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/V04-015-matrix-event_error-fixture.json",
+      "sha256": "267da32302d4d58dc43cabc8208318300032e837d87a51d4c7fadfa37335d7c5",
+      "case": "event_error",
+      "status": 125,
+      "cleanup_settled": true,
+      "independent_cleanup_settled": true
+    },
+    {
+      "file": "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/V04-015-matrix-interrupt-fixture.json",
+      "sha256": "bb60fc76ac5f4f4b797d803c6e6bb2a55872d06f25bdf17d03cd487c81ec2a1b",
+      "case": "interrupt",
+      "status": 143,
+      "cleanup_settled": true,
+      "independent_cleanup_settled": true
+    },
+    {
+      "file": "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/V04-015-matrix-nonzero-fixture.json",
+      "sha256": "224aa224da815be4defc1b8fd3a2138c3b11de7dc28aa02cd042701c78099aa0",
+      "case": "nonzero",
+      "status": 23,
+      "cleanup_settled": true,
+      "independent_cleanup_settled": true
+    },
+    {
+      "file": "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/V04-015-matrix-ordinary_timeout-fixture.json",
+      "sha256": "40a5fabb64fd97e0ebedb941ac14240dd7191d9c5787e0d300b420a2844fe40f",
+      "case": "ordinary_timeout",
+      "status": 124,
+      "cleanup_settled": true,
+      "independent_cleanup_settled": true
+    },
+    {
+      "file": "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/V04-015-matrix-parent_exit-fixture.json",
+      "sha256": "da58ca50646b95674cad82bdc01a35fa6ec977215f3773682f233d20ab6a036c",
+      "case": "parent_exit",
+      "status": 125,
+      "cleanup_settled": true,
+      "independent_cleanup_settled": true
+    },
+    {
+      "file": "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/V04-015-matrix-refuse_term-fixture.json",
+      "sha256": "fa4cbd2509805809c880a169205f4582fbaeddf597a12694206f3b3fc7c42066",
+      "case": "refuse_term",
+      "status": 124,
+      "cleanup_settled": true,
+      "independent_cleanup_settled": true
+    },
+    {
+      "file": "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/V04-015-matrix-runner_error-fixture.json",
+      "sha256": "83aef91307e16b107164e0e3e284c27daaf8bd2d5bf4316a934d5a5f23f1c0d4",
+      "case": "runner_error",
+      "status": 125,
+      "cleanup_settled": true,
+      "independent_cleanup_settled": true
+    },
+    {
+      "file": "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/V04-015-matrix-zero-fixture.json",
+      "sha256": "47506a132c61d8d11a83d1a25601c365bd42accfacbf5f1d50d46ab7f150eaff",
+      "case": "zero",
+      "status": 0,
+      "cleanup_settled": true,
+      "independent_cleanup_settled": true
+    }
+  ],
+  "real_xctest_controls": {
+    "xctest": {
+      "fixture_report_sha256": "361701736bd5a9d0e13ec2bc608ee5f703f5b664c42b12023da15d285ee8bc04",
+      "elapsed_seconds": 6.021,
+      "runner_exit_status": 124,
+      "root_exit_status": -15,
+      "xctest_identity": {
+        "pid": 51127,
+        "ppid": 51092,
+        "pgid": 51127,
+        "state": 2,
+        "start": [
+          1793402720,
+          461256
+        ]
+      }
+    },
+    "xctest_normal": {
+      "fixture_report_sha256": "6b7e1368fc6517ffc027d18da99a75811c49214e91bab1921a499be133f856e5",
+      "elapsed_seconds": 1.193,
+      "runner_exit_status": 0,
+      "root_exit_status": 0,
+      "xctest_identity": null
+    }
+  },
+  "all_fixture_identities_checked": 237,
+  "verified_owned_live_survivors": [],
+  "observed_fixture_build_test_warnings": [],
+  "note": "Rechecked only exact retained identities, without process-name/workspace searches or signals."
+}
