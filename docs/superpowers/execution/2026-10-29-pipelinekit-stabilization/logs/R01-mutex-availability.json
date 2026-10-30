@@ -1,0 +1,29 @@
+{
+  "checked_utc": "2026-10-30T22:03:01.250417+00:00",
+  "scope": "Controller resolution of reviewer platform-floor question; API availability only",
+  "package_manifest": "Package.swift",
+  "package_manifest_sha256": "f9e66a25c968fd8d4a1461efd4c4a62fcc0e1e63bcca2f0bd617e8edd9f18adb",
+  "swift_tools_floor": "6.2",
+  "declared_apple_platform_floors": {
+    "iOS": 26,
+    "macOS": 26,
+    "tvOS": 26,
+    "watchOS": 26,
+    "visionOS": 26
+  },
+  "sdk_interface": "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/lib/swift/Synchronization.swiftmodule/arm64e-apple-macos.swiftinterface",
+  "sdk_interface_sha256": "265dca2bc3bc3a529622c71274347790f712fd1259d7e4d9a6b61d571a6f9488",
+  "mutex_declaration_line": 7839,
+  "initializer_line": 7845,
+  "with_lock_line": 7855,
+  "sdk_availability": {
+    "macOS": 15,
+    "iOS": 18,
+    "watchOS": 11,
+    "tvOS": 18,
+    "visionOS": 2
+  },
+  "swift_language_primary_source": "https://github.com/swiftlang/swift-evolution/blob/main/proposals/0433-mutex.md",
+  "proposal_status": "Implemented (Swift 6.0)",
+  "conclusion": "The Mutex API predates declared toolchain/platform floors. This is not execution on Swift 6.2, OS 26 or Linux; those validation gaps remain for I01."
+}
