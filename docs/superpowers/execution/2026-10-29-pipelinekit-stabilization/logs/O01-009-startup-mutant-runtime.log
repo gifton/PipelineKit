@@ -1,0 +1,72 @@
+Building for debugging...
+[Computing dependencies]
+[Using on-disk description]
+[10 / 17] PipelineKitTestSupportTests-product
+[10 / 15] PipelineKitObservabilityTests-product
+[12 / 17] PipelineKitObservabilityTests-product
+[16 / 19] PipelineKitObservabilityTests-product
+[18 / 22] PipelineKitObservabilityTests-product
+Build complete! (1.56 sec)
+Test Suite 'Selected tests' started at 2026-10-30 15:20:47.745.
+Test Suite 'PipelineKitTests.xctest' started at 2026-10-30 15:20:47.746.
+Test Suite 'PipelineKitTests.xctest' passed at 2026-10-30 15:20:47.746.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 15:20:47.746.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 15:20:47.821.
+Test Suite 'PipelineKitTestSupportTests.xctest' started at 2026-10-30 15:20:47.822.
+Test Suite 'PipelineKitTestSupportTests.xctest' passed at 2026-10-30 15:20:47.822.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 15:20:47.822.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 15:20:47.896.
+Test Suite 'PipelineKitSecurityTests.xctest' started at 2026-10-30 15:20:47.897.
+Test Suite 'PipelineKitSecurityTests.xctest' passed at 2026-10-30 15:20:47.897.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 15:20:47.897.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 15:20:47.973.
+Test Suite 'PipelineKitResilienceTests.xctest' started at 2026-10-30 15:20:47.973.
+Test Suite 'PipelineKitResilienceTests.xctest' passed at 2026-10-30 15:20:47.973.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 15:20:47.973.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 15:20:48.047.
+Test Suite 'PipelineKitPoolingTests.xctest' started at 2026-10-30 15:20:48.048.
+Test Suite 'PipelineKitPoolingTests.xctest' passed at 2026-10-30 15:20:48.048.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 15:20:48.048.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 15:20:48.124.
+Test Suite 'PipelineKitPerformanceTests.xctest' started at 2026-10-30 15:20:48.124.
+Test Suite 'PipelineKitPerformanceTests.xctest' passed at 2026-10-30 15:20:48.125.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 15:20:48.125.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 15:20:48.182.
+Test Suite 'PipelineKitObservabilityTests.xctest' started at 2026-10-30 15:20:48.182.
+Test Suite 'UDPTransportLifecycleTests' started at 2026-10-30 15:20:48.182.
+Test Case '-[PipelineKitObservabilityTests.UDPTransportLifecycleTests testSetupTerminalStateMatrix]' started.
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/UDPTransportLifecycleTests.swift:59: error: -[PipelineKitObservabilityTests.UDPTransportLifecycleTests testSetupTerminalStateMatrix] : XCTAssertEqual failed: ("Optional("success")") is not equal to ("Optional("connection:fixture-start")") - failed-cancelled
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/UDPTransportLifecycleTests.swift:73: error: -[PipelineKitObservabilityTests.UDPTransportLifecycleTests testSetupTerminalStateMatrix] : XCTAssertEqual failed: ("closed") is not equal to ("connection:fixture-start") - failed-cancelled
+Test Case '-[PipelineKitObservabilityTests.UDPTransportLifecycleTests testSetupTerminalStateMatrix]' failed (0.173 seconds).
+Test Suite 'UDPTransportLifecycleTests' failed at 2026-10-30 15:20:48.355.
+	 Executed 1 test, with 2 failures (0 unexpected) in 0.173 (0.173) seconds
+Test Suite 'PipelineKitObservabilityTests.xctest' failed at 2026-10-30 15:20:48.355.
+	 Executed 1 test, with 2 failures (0 unexpected) in 0.173 (0.173) seconds
+Test Suite 'Selected tests' failed at 2026-10-30 15:20:48.355.
+	 Executed 1 test, with 2 failures (0 unexpected) in 0.173 (0.174) seconds
+Test Suite 'Selected tests' started at 2026-10-30 15:20:48.432.
+Test Suite 'PipelineKitCoreTests.xctest' started at 2026-10-30 15:20:48.433.
+Test Suite 'PipelineKitCoreTests.xctest' passed at 2026-10-30 15:20:48.433.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 15:20:48.433.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 15:20:48.508.
+Test Suite 'PipelineKitCacheTests.xctest' started at 2026-10-30 15:20:48.509.
+Test Suite 'PipelineKitCacheTests.xctest' passed at 2026-10-30 15:20:48.509.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 15:20:48.509.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Note: Some test targets reported failures:
+  - PipelineKitObservabilityTests (XCTest)

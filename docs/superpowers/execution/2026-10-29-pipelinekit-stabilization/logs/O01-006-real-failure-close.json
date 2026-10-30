@@ -1,0 +1,18 @@
+{
+  "id": "O01-006-real-failure-close",
+  "cwd": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization",
+  "command": [
+    "swift",
+    "run",
+    "--package-path",
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer",
+    "--force-resolved-versions",
+    "Consumer",
+    "udp-failure-close"
+  ],
+  "started_utc": "2026-10-30T22:19:01.759419+00:00",
+  "elapsed_seconds": 4.549,
+  "exit_status": 0,
+  "watchdog_timeout": false,
+  "log": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/O01-006-real-failure-close.log"
+}

@@ -1,0 +1,257 @@
+Building for debugging...
+[Computing dependencies]
+[Pre-planning 1 / 1026]
+[Planning deferred tasks]
+[1 / 2]
+[5 / 13] PipelineKitObservability
+[8 / 16] PipelineKitObservability
+[14 / 16] PipelineKitObservability
+[17 / 18] _ResilienceCore
+[24 / 25] _ResilienceCore
+[28 / 29] PipelineKitResilience
+[32 / 33] PipelineKitSecurity
+[43 / 44] PipelineKitSecurity
+[47 / 48] PipelineKitTestSupport
+[56 / 57] PipelineKitTestSupport
+[59 / 59] PipelineKitTestSupport
+[61 / 62] PipelineKitTests-product
+[77 / 78] PipelineKitTests-product
+[81 / 85] PipelineKitTests-product
+[84 / 87] PipelineKitTestSupportTests-product
+[87 / 90] PipelineKitTestSupportTests-product
+[91 / 92] PipelineKitTestSupportTests-product
+[95 / 98] PipelineKitSecurityTests-product
+[105 / 108] PipelineKitSecurityTests-product
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/AuthorizationMiddlewareTests.swift:117:9: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+115 |         // Test editor (has both roles)
+116 |         let editorContext = CommandContext()
+117 |         await editorContext.setMetadata("authUserId", value: "editor")
+    |         `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+118 |         
+119 |         let editorResult = try await middleware.execute(command, context: editorContext) { cmd, _ in
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/AuthorizationMiddlewareTests.swift:126:9: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+124 |         // Test reader (missing write role)
+125 |         let readerContext = CommandContext()
+126 |         await readerContext.setMetadata("authUserId", value: "reader")
+    |         `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+127 |         
+128 |         do {
+
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>
+[109 / 110] PipelineKitSecurityTests-product
+[113 / 116] PipelineKitResilienceTests-product
+[130 / 133] PipelineKitResilienceTests-product
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/TimeoutMiddlewareCompileTests.swift:14:9: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+12 | 
+13 |         // Create a dummy execute call to verify non-escaping constraint
+14 |         Task {
+   |         |- warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+   |         `- note: to silence this warning, handle the error inside the task, or store/discard the task value explicitly
+15 |             let command = DummyCommand()
+16 |             let context = CommandContext()
+
+[#NoUseUnstructuredThrowingTask]: <https://docs.swift.org/compiler/documentation/diagnostics/no-use-throwing-unstructured-task>
+[134 / 135] PipelineKitResilienceTests-product
+[138 / 139] PipelineKitPooling
+[141 / 142] PipelineKitPooling
+[146 / 148] PipelineKitPoolingTests-product
+[149 / 150] PipelineKitPoolingTests-product
+[152 / 153] PipelineKitCache
+[157 / 158] PipelineKitCache
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Sources/PipelineKitCache/CachingMiddleware.swift:222:47: warning: use of protocol 'Decodable' as a type must be written 'any Decodable'; this will be an error in a future Swift language mode [#ExistentialAny]
+220 |             // For other Decodable types, try generic decoding
+221 |             // Note: We use Decodable.Type here (not `any Decodable.Type`) because we need to call init on it
+222 |             if let decodableType = T.self as? Decodable.Type {
+    |                                               `- warning: use of protocol 'Decodable' as a type must be written 'any Decodable'; this will be an error in a future Swift language mode [#ExistentialAny]
+223 |                 let value = try decodableType.init(from: try container.superDecoder(forKey: .result))
+224 |                 guard let typedValue = value as? T else {
+
+[#ExistentialAny]: <https://docs.swift.org/compiler/documentation/diagnostics/existential-any>
+[162 / 164] PipelineKitPerformanceTests-product
+[165 / 167] PipelineKitPerformanceTests-product
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitPerformanceTests/PipelinePerformanceTests.swift:66:13: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+ 64 |             expectation.expectedFulfillmentCount = 1000
+ 65 | 
+ 66 |             Task {
+    |             |- warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+    |             `- note: to silence this warning, handle the error inside the task, or store/discard the task value explicitly
+ 67 |                 for _ in 0..<1000 {
+ 68 |                     _ = try await pipeline.execute(command, context: context)
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitPerformanceTests/PipelinePerformanceTests.swift:82:9: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+ 80 | 
+ 81 |         let setupExpectation = expectation(description: "Setup")
+ 82 |         Task {
+    |         |- warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+    |         `- note: to silence this warning, handle the error inside the task, or store/discard the task value explicitly
+ 83 |             try await pipeline.addMiddleware(middleware)
+ 84 |             setupExpectation.fulfill()
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitPerformanceTests/PipelinePerformanceTests.swift:99:13: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+ 97 |             expectation.expectedFulfillmentCount = 1000
+ 98 | 
+ 99 |             Task {
+    |             |- warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+    |             `- note: to silence this warning, handle the error inside the task, or store/discard the task value explicitly
+100 |                 for _ in 0..<1000 {
+101 |                     _ = try await pipeline.execute(command, context: context)
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitPerformanceTests/PipelinePerformanceTests.swift:115:9: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+113 |         // Add 5 middleware components
+114 |         let setupExpectation = expectation(description: "Setup middleware")
+115 |         Task {
+    |         |- warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+    |         `- note: to silence this warning, handle the error inside the task, or store/discard the task value explicitly
+116 |             for i in 0..<5 {
+117 |                 let priority: ExecutionPriority = switch i {
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitPerformanceTests/PipelinePerformanceTests.swift:141:13: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+139 |             expectation.expectedFulfillmentCount = 1000
+140 | 
+141 |             Task {
+    |             |- warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+    |             `- note: to silence this warning, handle the error inside the task, or store/discard the task value explicitly
+142 |                 for _ in 0..<1000 {
+143 |                     _ = try await pipeline.execute(command, context: context)
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitPerformanceTests/PipelinePerformanceTests.swift:201:13: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+199 |             expectation.expectedFulfillmentCount = 100
+200 | 
+201 |             Task {
+    |             |- warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+    |             `- note: to silence this warning, handle the error inside the task, or store/discard the task value explicitly
+202 |                 for _ in 0..<100 {
+203 |                     _ = try await pipeline.execute(command, context: context)
+
+[#NoUseUnstructuredThrowingTask]: <https://docs.swift.org/compiler/documentation/diagnostics/no-use-throwing-unstructured-task>
+[169 / 170] PipelineKitPerformanceTests-product
+[173 / 184] PipelineKitObservabilityTests-product
+error: SwiftCompile normal arm64 /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/UDPTransportLifecycleTests.swift failed with a nonzero exit code. Command line:     cd /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees
+    builtin-SwiftPerFileCompile UDPTransportLifecycleTests.swift
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/UDPTransportLifecycleTests.swift:61:77: error: capture of 'self' with non-Sendable type 'UDPTransportLifecycleTests' in a '@Sendable' closure [#SendableClosureCaptures]
+  4 | 
+  5 | @MainActor
+  6 | final class UDPTransportLifecycleTests: XCTestCase {
+    |             `- note: class 'UDPTransportLifecycleTests' does not conform to the 'Sendable' protocol
+  7 |     private let payload = Data("lifecycle:1|c".utf8)
+  8 | 
+    :
+ 59 |             driver.emit(.ready)
+ 60 |             driver.emit(.cancelled)
+ 61 |             let afterClose = await ledger.record { try await transport.send(self.payload) }
+    |                                                                             `- error: capture of 'self' with non-Sendable type 'UDPTransportLifecycleTests' in a '@Sendable' closure [#SendableClosureCaptures]
+ 62 |             XCTAssertEqual(afterClose, "closed", scenario)
+ 63 |             let pending = await transport.pendingOperationCount
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/UDPTransportLifecycleTests.swift:82:79: error: capture of 'self' with non-Sendable type 'UDPTransportLifecycleTests' in a '@Sendable' closure [#SendableClosureCaptures]
+  4 | 
+  5 | @MainActor
+  6 | final class UDPTransportLifecycleTests: XCTestCase {
+    |             `- note: class 'UDPTransportLifecycleTests' does not conform to the 'Sendable' protocol
+  7 |     private let payload = Data("lifecycle:1|c".utf8)
+  8 | 
+    :
+ 80 |             let transport = try await readyTransport(driver: driver, sleeper: sleeper)
+ 81 |             let ledger = UDPSettlementLedger()
+ 82 |             let first = Task { await ledger.record { try await transport.send(self.payload) } }
+    |                                                                               `- error: capture of 'self' with non-Sendable type 'UDPTransportLifecycleTests' in a '@Sendable' closure [#SendableClosureCaptures]
+ 83 |             await driver.waitForSends(1)
+ 84 |             let second = Task { await ledger.record { try await transport.send(self.payload) } }
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/UDPTransportLifecycleTests.swift:84:80: error: capture of 'self' with non-Sendable type 'UDPTransportLifecycleTests' in a '@Sendable' closure [#SendableClosureCaptures]
+  4 | 
+  5 | @MainActor
+  6 | final class UDPTransportLifecycleTests: XCTestCase {
+    |             `- note: class 'UDPTransportLifecycleTests' does not conform to the 'Sendable' protocol
+  7 |     private let payload = Data("lifecycle:1|c".utf8)
+  8 | 
+    :
+ 82 |             let first = Task { await ledger.record { try await transport.send(self.payload) } }
+ 83 |             await driver.waitForSends(1)
+ 84 |             let second = Task { await ledger.record { try await transport.send(self.payload) } }
+    |                                                                                `- error: capture of 'self' with non-Sendable type 'UDPTransportLifecycleTests' in a '@Sendable' closure [#SendableClosureCaptures]
+ 85 |             await driver.waitForSends(2)
+ 86 |             await sleeper.waitForPending(2)
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/UDPTransportLifecycleTests.swift:106:72: error: capture of 'self' with non-Sendable type 'UDPTransportLifecycleTests' in a '@Sendable' closure [#SendableClosureCaptures]
+  4 | 
+  5 | @MainActor
+  6 | final class UDPTransportLifecycleTests: XCTestCase {
+    |             `- note: class 'UDPTransportLifecycleTests' does not conform to the 'Sendable' protocol
+  7 |     private let payload = Data("lifecycle:1|c".utf8)
+  8 | 
+    :
+104 |             driver.emit(.ready)
+105 |             await transport.close()
+106 |             let later = await ledger.record { try await transport.send(self.payload) }
+    |                                                                        `- error: capture of 'self' with non-Sendable type 'UDPTransportLifecycleTests' in a '@Sendable' closure [#SendableClosureCaptures]
+107 |             XCTAssertEqual(later, "closed")
+108 |             let pending = await transport.pendingOperationCount
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/UDPTransportLifecycleTests.swift:128:71: error: capture of 'self' with non-Sendable type 'UDPTransportLifecycleTests' in a '@Sendable' closure [#SendableClosureCaptures]
+  4 | 
+  5 | @MainActor
+  6 | final class UDPTransportLifecycleTests: XCTestCase {
+    |             `- note: class 'UDPTransportLifecycleTests' does not conform to the 'Sendable' protocol
+  7 |     private let payload = Data("lifecycle:1|c".utf8)
+  8 | 
+    :
+126 |             let send = Task {
+127 |                 await gate.wait()
+128 |                 return await ledger.record { try await transport.send(self.payload) }
+    |                                                                       `- error: capture of 'self' with non-Sendable type 'UDPTransportLifecycleTests' in a '@Sendable' closure [#SendableClosureCaptures]
+129 |             }
+130 |             await gate.waitForEntry()
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/UDPTransportLifecycleTests.swift:142:82: error: capture of 'self' with non-Sendable type 'UDPTransportLifecycleTests' in a '@Sendable' closure [#SendableClosureCaptures]
+  4 | 
+  5 | @MainActor
+  6 | final class UDPTransportLifecycleTests: XCTestCase {
+    |             `- note: class 'UDPTransportLifecycleTests' does not conform to the 'Sendable' protocol
+  7 |     private let payload = Data("lifecycle:1|c".utf8)
+  8 | 
+    :
+140 |             XCTAssertEqual(result, beforeRegistration ? "cancelled" : "success")
+141 |             if !beforeRegistration {
+142 |                 let next = Task { await ledger.record { try await transport.send(self.payload) } }
+    |                                                                                  `- error: capture of 'self' with non-Sendable type 'UDPTransportLifecycleTests' in a '@Sendable' closure [#SendableClosureCaptures]
+143 |                 await driver.waitForSends(2)
+144 |                 await sleeper.waitForPending(1)
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/UDPTransportLifecycleTests.swift:194:85: error: capture of 'self' with non-Sendable type 'UDPTransportLifecycleTests' in a '@Sendable' closure [#SendableClosureCaptures]
+  4 | 
+  5 | @MainActor
+  6 | final class UDPTransportLifecycleTests: XCTestCase {
+    |             `- note: class 'UDPTransportLifecycleTests' does not conform to the 'Sendable' protocol
+  7 |     private let payload = Data("lifecycle:1|c".utf8)
+  8 | 
+    :
+192 |             let transport = try await readyTransport(driver: driver, sleeper: sleeper, configuration: .init(maxRetries: 1))
+193 |             let ledger = UDPSettlementLedger()
+194 |             let batch = Task { await ledger.record { try await transport.sendBatch([self.payload, self.payload, self.payload]) } }
+    |                                                                                     `- error: capture of 'self' with non-Sendable type 'UDPTransportLifecycleTests' in a '@Sendable' closure [#SendableClosureCaptures]
+195 |             await driver.waitForSends(3)
+196 |             await sleeper.waitForPending(3)
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/UDPTransportLifecycleTests.swift:218:78: error: capture of 'self' with non-Sendable type 'UDPTransportLifecycleTests' in a '@Sendable' closure [#SendableClosureCaptures]
+  4 | 
+  5 | @MainActor
+  6 | final class UDPTransportLifecycleTests: XCTestCase {
+    |             `- note: class 'UDPTransportLifecycleTests' does not conform to the 'Sendable' protocol
+  7 |     private let payload = Data("lifecycle:1|c".utf8)
+  8 | 
+    :
+216 |             let transport = try await readyTransport(driver: driver, sleeper: sleeper)
+217 |             let ledger = UDPSettlementLedger()
+218 |             let send = Task { await ledger.record { try await transport.send(self.payload) } }
+    |                                                                              `- error: capture of 'self' with non-Sendable type 'UDPTransportLifecycleTests' in a '@Sendable' closure [#SendableClosureCaptures]
+219 |             await driver.waitForSends(1)
+220 |             await sleeper.waitForPending(1)
+
+[#SendableClosureCaptures]: <https://docs.swift.org/compiler/documentation/diagnostics/sendable-closure-captures>
+Failed frontend command:
+/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swift-frontend -frontend -c /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Intermediates.noindex/PipelineKit.build/Debug/PipelineKitObservabilityTests-p.build/DerivedSources/test_entry_point.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/AggregationTests.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/CommandContextObservabilityTests.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/EventHubLeakTests.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/EventHubParentSystemTests.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/ExecutionTracerTests.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/MetricsEventBridgeExplicitMetricTests.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/MetricsFacadeTests.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/MetricsStorageTests.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/ObservabilityIntegrationTests.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/ObservabilitySystemTests.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/PrometheusExporterTests.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/SamplingTests.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/StatsDExporterTests.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/Support/ScriptedUDPConnection.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/TestHelpers.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/TypeSafeMetricTests.swift -primary-file /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/UDPTransportLifecycleTests.swift -emit-dependencies-path /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Intermediates.noindex/PipelineKit.build/Debug/PipelineKitObservabilityTests-p.build/Objects-normal/arm64/UDPTransportLifecycleTests.d -emit-const-values-path /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Intermediates.noindex/PipelineKit.build/Debug/PipelineKitObservabilityTests-p.build/Objects-normal/arm64/UDPTransportLifecycleTests.swiftconstvalues -emit-reference-dependencies-path /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Intermediates.noindex/PipelineKit.build/Debug/PipelineKitObservabilityTests-p.build/Objects-normal/arm64/UDPTransportLifecycleTests.swiftdeps -serialize-diagnostics-path /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Intermediates.noindex/PipelineKit.build/Debug/PipelineKitObservabilityTests-p.build/Objects-normal/arm64/UDPTransportLifecycleTests.dia -target arm64-apple-macos26.0 -module-can-import-version Network 5000.0.36 6681.41.1 -module-can-import-version Testing 2403 0 -module-can-import-version XCTest 25435 0 -disable-cross-import-overlay-search -swift-module-cross-import Testing /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks/Testing.framework/Modules/Testing.swiftcrossimport/AppKit.swiftoverlay -swift-module-cross-import Testing /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks/Testing.framework/Modules/Testing.swiftcrossimport/CoreGraphics.swiftoverlay -swift-module-cross-import Testing /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks/Testing.framework/Modules/Testing.swiftcrossimport/CoreImage.swiftoverlay -swift-module-cross-import Testing /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks/Testing.framework/Modules/Testing.swiftcrossimport/CoreTransferable.swiftoverlay -swift-module-cross-import Testing /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks/Testing.framework/Modules/Testing.swiftcrossimport/Foundation.swiftoverlay -load-resolved-plugin /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib/swift/host/plugins/libFoundationMacros.dylib\#/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/bin/swift-plugin-server\#FoundationMacros -load-resolved-plugin /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib/swift/host/plugins/libObservationMacros.dylib\#/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/bin/swift-plugin-server\#ObservationMacros -load-resolved-plugin /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib/swift/host/plugins/libPreviewsMacros.dylib\#/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/bin/swift-plugin-server\#PreviewsMacros -load-resolved-plugin /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib/swift/host/plugins/libSwiftMacros.dylib\#/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/bin/swift-plugin-server\#SwiftMacros -load-resolved-plugin /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib/swift/host/plugins/libSwiftUIMacros.dylib\#/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/bin/swift-plugin-server\#SwiftUIMacros -load-resolved-plugin /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing/libTestingMacros.dylib\#\#TestingMacros -disable-implicit-swift-modules -Xcc -fno-implicit-modules -Xcc -fno-implicit-module-maps -explicit-swift-module-map-file /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Intermediates.noindex/PipelineKit.build/Debug/PipelineKitObservabilityTests-p.build/Objects-normal/arm64/PipelineKitObservabilityTests-dependencies-1.json -Xllvm -aarch64-use-tbi -enable-objc-interop -stack-check -sdk /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.2.sdk -I /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Products/Debug -Isystem /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib -F /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Products/Debug/PackageFrameworks -F /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Products/Debug -F /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks -module-cache-path /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Intermediates.noindex/SwiftExplicitPrecompiledModules -no-color-diagnostics -Xcc -fno-color-diagnostics -enable-testing -g -debug-info-format\=dwarf -dwarf-version\=5 -swift-version 6 -Onone -D SWIFT_PACKAGE -D DEBUG -D Xcode -serialize-debugging-options -enable-experimental-feature StrictConcurrency -enable-experimental-feature DebugDescriptionMacro -empty-abi-descriptor -validate-clang-modules-once -clang-build-session-file /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/ModuleCache.noindex/Session.modulevalidation -Xcc -working-directory -Xcc /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees -enable-anonymous-context-mangled-names -file-compilation-dir /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees -Xcc -fmodule-map-file\=/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/checkouts/swift-atomics/Sources/_AtomicsShims/include/module.modulemap -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -Xcc -ivfsstatcache -Xcc /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/SDKStatCaches.noindex/macosx27.2-26B118-a0facfad118c1a7a18f0aad9463f6549a7ff82d74745d5ef33555b35c4238456.sdkstatcache -Xcc -fmodules-prune-interval\=86400 -Xcc -fmodules-prune-after\=345600 -Xcc -I/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/checkouts/swift-atomics/Sources/_AtomicsShims/include -Xcc -I/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Products/Debug/include -Xcc -I/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Intermediates.noindex/PipelineKit.build/Debug/PipelineKitObservabilityTests-p.build/DerivedSources-normal/arm64 -Xcc -I/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Intermediates.noindex/PipelineKit.build/Debug/PipelineKitObservabilityTests-p.build/DerivedSources/arm64 -Xcc -I/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Intermediates.noindex/PipelineKit.build/Debug/PipelineKitObservabilityTests-p.build/DerivedSources -Xcc -DSWIFT_PACKAGE -Xcc -DDEBUG\=1 -no-auto-bridging-header-chaining -module-name PipelineKitObservabilityTests -package-name pipelinekit_stabilization -const-gather-protocols-file /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Intermediates.noindex/PipelineKit.build/Debug/PipelineKitObservabilityTests-p.build/Objects-normal/arm64/PipelineKitObservabilityTests_const_extract_protocols.json -disable-clang-spi -clang-target arm64-apple-macos27.2 -target-sdk-version 27.2 -target-sdk-name macosx27.2 -in-process-plugin-server-path /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/libSwiftInProcPluginServer.dylib -parse-as-library -o /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Intermediates.noindex/PipelineKit.build/Debug/PipelineKitObservabilityTests-p.build/Objects-normal/arm64/UDPTransportLifecycleTests.o -debug-module-path /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Intermediates.noindex/PipelineKit.build/Debug/PipelineKitObservabilityTests-p.build/Objects-normal/arm64/PipelineKitObservabilityTests.swiftmodule -index-unit-output-path /PipelineKit.build/Debug/PipelineKitObservabilityTests-p.build/Objects-normal/arm64/UDPTransportLifecycleTests.o -index-store-path /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out -index-system-modules
+[190 / 201] PipelineKitObservabilityTests-product
+error: Build failed
+error: fatalError

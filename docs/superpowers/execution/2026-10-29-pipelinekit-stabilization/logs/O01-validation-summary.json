@@ -1,0 +1,536 @@
+{
+  "base": "de0a1e0c4e78edb226d28556e94022b1531d82bb",
+  "runs": [
+    {
+      "id": "O01-001-api-red",
+      "cwd": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization",
+      "command": [
+        "swift",
+        "test",
+        "--filter",
+        "UDPTransportLifecycleTests"
+      ],
+      "started_utc": "2026-10-30T22:12:50.377351+00:00",
+      "elapsed_seconds": 7.746,
+      "exit_status": 1,
+      "watchdog_timeout": false,
+      "log": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/O01-001-api-red.log",
+      "classification": "API compile red: missing new UDPConnectionDriver/UDPConnectionState seam; no runtime test executed.",
+      "exact_command": [
+        "python3",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py",
+        "--id",
+        "O01-001-api-red",
+        "--timeout",
+        "600",
+        "--",
+        "swift",
+        "test",
+        "--filter",
+        "UDPTransportLifecycleTests"
+      ]
+    },
+    {
+      "id": "O01-002-first-implementation",
+      "cwd": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization",
+      "command": [
+        "swift",
+        "test",
+        "--filter",
+        "UDPTransportLifecycleTests"
+      ],
+      "started_utc": "2026-10-30T22:15:02.637943+00:00",
+      "elapsed_seconds": 12.501,
+      "exit_status": 1,
+      "watchdog_timeout": false,
+      "log": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/O01-002-first-implementation.log",
+      "classification": "Test compile failure: Sendable closures captured XCTest self; production compiled. Fixed with immutable payload capture.",
+      "exact_command": [
+        "python3",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py",
+        "--id",
+        "O01-002-first-implementation",
+        "--timeout",
+        "600",
+        "--",
+        "swift",
+        "test",
+        "--filter",
+        "UDPTransportLifecycleTests"
+      ]
+    },
+    {
+      "id": "O01-003-scripted",
+      "cwd": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization",
+      "command": [
+        "swift",
+        "test",
+        "--filter",
+        "UDPTransportLifecycleTests"
+      ],
+      "started_utc": "2026-10-30T22:15:40.897393+00:00",
+      "elapsed_seconds": 9.318,
+      "exit_status": 0,
+      "watchdog_timeout": false,
+      "log": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/O01-003-scripted.log",
+      "classification": "7 lifecycle tests passed; initial implementation.",
+      "exact_command": [
+        "python3",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py",
+        "--id",
+        "O01-003-scripted",
+        "--timeout",
+        "90",
+        "--",
+        "swift",
+        "test",
+        "--filter",
+        "UDPTransportLifecycleTests"
+      ]
+    },
+    {
+      "id": "O01-004-real-udp-close",
+      "cwd": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization",
+      "command": [
+        "swift",
+        "run",
+        "--package-path",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer",
+        "Consumer",
+        "udp-close"
+      ],
+      "started_utc": "2026-10-30T22:17:38.097737+00:00",
+      "elapsed_seconds": 16.253,
+      "exit_status": 0,
+      "watchdog_timeout": false,
+      "log": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/O01-004-real-udp-close.log",
+      "classification": "Preliminary only: 38-byte receipt and close twice passed, but fresh Consumer resolved newer compatible dependencies. Superseded by pinned runs.",
+      "exact_command": [
+        "python3",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py",
+        "--id",
+        "O01-004-real-udp-close",
+        "--timeout",
+        "600",
+        "--",
+        "swift",
+        "run",
+        "--package-path",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer",
+        "Consumer",
+        "udp-close"
+      ]
+    },
+    {
+      "id": "O01-005-real-pinned",
+      "cwd": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization",
+      "command": [
+        "swift",
+        "run",
+        "--package-path",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer",
+        "--force-resolved-versions",
+        "Consumer",
+        "udp-close"
+      ],
+      "started_utc": "2026-10-30T22:18:45.726962+00:00",
+      "elapsed_seconds": 6.787,
+      "exit_status": 0,
+      "watchdog_timeout": false,
+      "log": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/O01-005-real-pinned.log",
+      "classification": "Pinned root dependency versions: exact 38-byte receipt, close twice, exit 0.",
+      "exact_command": [
+        "python3",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py",
+        "--id",
+        "O01-005-real-pinned",
+        "--timeout",
+        "600",
+        "--",
+        "swift",
+        "run",
+        "--package-path",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer",
+        "--force-resolved-versions",
+        "Consumer",
+        "udp-close"
+      ]
+    },
+    {
+      "id": "O01-006-real-failure-close",
+      "cwd": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization",
+      "command": [
+        "swift",
+        "run",
+        "--package-path",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer",
+        "--force-resolved-versions",
+        "Consumer",
+        "udp-failure-close"
+      ],
+      "started_utc": "2026-10-30T22:19:01.759419+00:00",
+      "elapsed_seconds": 4.549,
+      "exit_status": 0,
+      "watchdog_timeout": false,
+      "log": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/O01-006-real-failure-close.log",
+      "classification": "Pinned real oversized datagram produced Network EMSGSIZE; failure then close twice, exit 0.",
+      "exact_command": [
+        "python3",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py",
+        "--id",
+        "O01-006-real-failure-close",
+        "--timeout",
+        "60",
+        "--",
+        "swift",
+        "run",
+        "--package-path",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer",
+        "--force-resolved-versions",
+        "Consumer",
+        "udp-failure-close"
+      ]
+    },
+    {
+      "id": "O01-007-expanded-scripted",
+      "cwd": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization",
+      "command": [
+        "swift",
+        "test",
+        "--filter",
+        "UDPTransportLifecycleTests"
+      ],
+      "started_utc": "2026-10-30T22:19:43.095100+00:00",
+      "elapsed_seconds": 5.638,
+      "exit_status": 1,
+      "watchdog_timeout": false,
+      "log": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/O01-007-expanded-scripted.log",
+      "classification": "Test compile failure: optional dictionary expectation in ternary; no runtime test executed.",
+      "exact_command": [
+        "python3",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py",
+        "--id",
+        "O01-007-expanded-scripted",
+        "--timeout",
+        "60",
+        "--",
+        "swift",
+        "test",
+        "--filter",
+        "UDPTransportLifecycleTests"
+      ]
+    },
+    {
+      "id": "O01-008-failed-startup-mutant",
+      "cwd": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization",
+      "command": [
+        "swift",
+        "test",
+        "--filter",
+        "UDPTransportLifecycleTests.testSetupTerminalStateMatrix"
+      ],
+      "started_utc": "2026-10-30T22:20:29.594544+00:00",
+      "elapsed_seconds": 5.498,
+      "exit_status": 1,
+      "watchdog_timeout": false,
+      "log": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/O01-008-failed-startup-mutant.log",
+      "classification": "Same optional-expectation compile failure while startup mutant installed; not behavioral-red evidence.",
+      "exact_command": [
+        "python3",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py",
+        "--id",
+        "O01-008-failed-startup-mutant",
+        "--timeout",
+        "60",
+        "--",
+        "swift",
+        "test",
+        "--filter",
+        "UDPTransportLifecycleTests.testSetupTerminalStateMatrix"
+      ]
+    },
+    {
+      "id": "O01-009-startup-mutant-runtime",
+      "cwd": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization",
+      "command": [
+        "swift",
+        "test",
+        "--filter",
+        "UDPTransportLifecycleTests.testSetupTerminalStateMatrix"
+      ],
+      "started_utc": "2026-10-30T22:20:41.045171+00:00",
+      "elapsed_seconds": 7.989,
+      "exit_status": 1,
+      "watchdog_timeout": false,
+      "log": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/O01-009-startup-mutant-runtime.log",
+      "classification": "Runtime red: 1 setup matrix test, 2 expected assertion failures (success/closed instead of connection:fixture-start); all fixture tasks joined.",
+      "exact_command": [
+        "python3",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py",
+        "--id",
+        "O01-009-startup-mutant-runtime",
+        "--timeout",
+        "60",
+        "--",
+        "swift",
+        "test",
+        "--filter",
+        "UDPTransportLifecycleTests.testSetupTerminalStateMatrix"
+      ]
+    },
+    {
+      "id": "O01-010-lost-deadline-mutant",
+      "cwd": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization",
+      "command": [
+        "swift",
+        "test",
+        "--filter",
+        "UDPTransportLifecycleTests.testMissingSendCallbackSettlesOnTimeoutOrClose"
+      ],
+      "started_utc": "2026-10-30T22:21:39.247811+00:00",
+      "elapsed_seconds": 30.041,
+      "exit_status": -15,
+      "watchdog_timeout": true,
+      "log": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/O01-010-lost-deadline-mutant.log",
+      "classification": "Deliberate no-deadline mutant did not finish: supervisor watchdog_timeout=true, exit -15, runner exit 124. XCTest escaped process group; exact owned PID 21879 was separately terminated and verified absent.",
+      "exact_command": [
+        "python3",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py",
+        "--id",
+        "O01-010-lost-deadline-mutant",
+        "--timeout",
+        "30",
+        "--",
+        "swift",
+        "test",
+        "--filter",
+        "UDPTransportLifecycleTests.testMissingSendCallbackSettlesOnTimeoutOrClose"
+      ]
+    },
+    {
+      "id": "O01-011-focused-debug",
+      "cwd": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization",
+      "command": [
+        "swift",
+        "test",
+        "--filter",
+        "UDPTransportLifecycleTests"
+      ],
+      "started_utc": "2026-10-30T22:22:44.454754+00:00",
+      "elapsed_seconds": 8.021,
+      "exit_status": 0,
+      "watchdog_timeout": false,
+      "log": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/O01-011-focused-debug.log",
+      "classification": "8 lifecycle tests passed, restored final production state.",
+      "exact_command": [
+        "python3",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py",
+        "--id",
+        "O01-011-focused-debug",
+        "--timeout",
+        "600",
+        "--",
+        "swift",
+        "test",
+        "--filter",
+        "UDPTransportLifecycleTests"
+      ]
+    },
+    {
+      "id": "O01-012-focused-release",
+      "cwd": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization",
+      "command": [
+        "swift",
+        "test",
+        "-c",
+        "release",
+        "--filter",
+        "UDPTransportLifecycleTests"
+      ],
+      "started_utc": "2026-10-30T22:31:49.320525+00:00",
+      "elapsed_seconds": 28.514,
+      "exit_status": 0,
+      "watchdog_timeout": false,
+      "log": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/O01-012-focused-release.log",
+      "classification": "Same 8 lifecycle tests passed in Release.",
+      "exact_command": [
+        "python3",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py",
+        "--id",
+        "O01-012-focused-release",
+        "--timeout",
+        "600",
+        "--",
+        "swift",
+        "test",
+        "-c",
+        "release",
+        "--filter",
+        "UDPTransportLifecycleTests"
+      ]
+    },
+    {
+      "id": "O01-013-final-real-close",
+      "cwd": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization",
+      "command": [
+        "swift",
+        "run",
+        "--package-path",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer",
+        "--force-resolved-versions",
+        "Consumer",
+        "udp-close"
+      ],
+      "started_utc": "2026-10-30T22:32:31.552250+00:00",
+      "elapsed_seconds": 6.179,
+      "exit_status": 0,
+      "watchdog_timeout": false,
+      "log": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/O01-013-final-real-close.log",
+      "classification": "Authoritative pinned ordinary-import consumer: ready, exact 38-byte receipt, two transport closes, listener close acknowledged, callback window survived; exit 0.",
+      "exact_command": [
+        "python3",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py",
+        "--id",
+        "O01-013-final-real-close",
+        "--timeout",
+        "600",
+        "--",
+        "swift",
+        "run",
+        "--package-path",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer",
+        "--force-resolved-versions",
+        "Consumer",
+        "udp-close"
+      ]
+    },
+    {
+      "id": "O01-014-final-real-failure",
+      "cwd": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization",
+      "command": [
+        "swift",
+        "run",
+        "--package-path",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer",
+        "--force-resolved-versions",
+        "Consumer",
+        "udp-failure-close"
+      ],
+      "started_utc": "2026-10-30T22:32:48.939776+00:00",
+      "elapsed_seconds": 5.214,
+      "exit_status": 0,
+      "watchdog_timeout": false,
+      "log": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/O01-014-final-real-failure.log",
+      "classification": "Authoritative pinned ordinary-import consumer: ready, real EMSGSIZE reported, two transport closes, listener close acknowledged, callback window survived; exit 0.",
+      "exact_command": [
+        "python3",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py",
+        "--id",
+        "O01-014-final-real-failure",
+        "--timeout",
+        "600",
+        "--",
+        "swift",
+        "run",
+        "--package-path",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer",
+        "--force-resolved-versions",
+        "Consumer",
+        "udp-failure-close"
+      ]
+    },
+    {
+      "id": "O01-015-full-debug",
+      "cwd": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization",
+      "command": [
+        "swift",
+        "test",
+        "--parallel",
+        "--skip",
+        "PipelineKitPerformanceTests"
+      ],
+      "started_utc": "2026-10-30T22:33:12.994057+00:00",
+      "elapsed_seconds": 21.188,
+      "exit_status": 0,
+      "watchdog_timeout": false,
+      "log": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/O01-015-full-debug.log",
+      "classification": "1019 distinct XCTest progress entries and 20 Swift Testing cases passed; one full Debug non-performance run at final production source.",
+      "exact_command": [
+        "python3",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py",
+        "--id",
+        "O01-015-full-debug",
+        "--timeout",
+        "600",
+        "--",
+        "swift",
+        "test",
+        "--parallel",
+        "--skip",
+        "PipelineKitPerformanceTests"
+      ]
+    },
+    {
+      "id": "O01-016-completion-debug",
+      "cwd": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization",
+      "command": [
+        "swift",
+        "test",
+        "--filter",
+        "UDPTransportLifecycleTests"
+      ],
+      "started_utc": "2026-10-30T22:35:20.159350+00:00",
+      "elapsed_seconds": 9.364,
+      "exit_status": 0,
+      "watchdog_timeout": false,
+      "log": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/O01-016-completion-debug.log",
+      "classification": "8 lifecycle tests passed with final test-only duplicate-success/late-failure callback assertion while a later send remains pending.",
+      "exact_command": [
+        "python3",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py",
+        "--id",
+        "O01-016-completion-debug",
+        "--timeout",
+        "600",
+        "--",
+        "swift",
+        "test",
+        "--filter",
+        "UDPTransportLifecycleTests"
+      ]
+    },
+    {
+      "id": "O01-017-completion-release",
+      "cwd": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization",
+      "command": [
+        "swift",
+        "test",
+        "-c",
+        "release",
+        "--filter",
+        "UDPTransportLifecycleTests"
+      ],
+      "started_utc": "2026-10-30T22:36:13.973029+00:00",
+      "elapsed_seconds": 24.212,
+      "exit_status": 0,
+      "watchdog_timeout": false,
+      "log": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/O01-017-completion-release.log",
+      "classification": "Same final 8 lifecycle tests passed in Release.",
+      "exact_command": [
+        "python3",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py",
+        "--id",
+        "O01-017-completion-release",
+        "--timeout",
+        "600",
+        "--",
+        "swift",
+        "test",
+        "-c",
+        "release",
+        "--filter",
+        "UDPTransportLifecycleTests"
+      ]
+    }
+  ]
+}

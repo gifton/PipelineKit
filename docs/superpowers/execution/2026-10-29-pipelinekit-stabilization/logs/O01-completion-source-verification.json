@@ -1,0 +1,10 @@
+{
+  "manifest": "O01-completion-source-state.json",
+  "file_count": 11,
+  "mismatches": {},
+  "tracked_relevant_diff_matches": true,
+  "changed_since_O01_final": [
+    "Tests/PipelineKitObservabilityTests/UDPTransportLifecycleTests.swift"
+  ],
+  "validation_note": "O01-016/017 cover added duplicate-success callback assertions. O01-015 full suite and O01-013/014 real consumer runs retain identical production and Consumer hashes; controller explicitly directed no unnecessary broad or real rerun for this test-only extension."
+}
