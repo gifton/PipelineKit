@@ -4,7 +4,7 @@ Finding dispositions below distinguish task verification from the final I01 inte
 
 | ID | Status | Source change | Test | Old evidence | New result / configuration | Independent challenge | Limitation |
 |---|---|---|---|---|---|---|---|
-| PK-F001 | open | pending | pending | Original findings register | pending | pending | pending |
+| PK-F001 | task verified; I01 pending | 9b78e43: single builder sequence retains every stage | BuilderCompositionContractTests: 507 builder pair configurations; real rejecting fixture; dispatch matrices | C01-001: behavioral stage/order failures at unchanged production source | C01-003: 8 passed; C01-004: 18 passed; C01-005: 988 XCTest +20 Swift Testing, Swift 6.4.2 Debug | [C01 review](reports/C01-review.md), approved | Actual S01/I01 security integration pending; existing compiler warnings retained |
 | PK-F004 | open | pending | pending | Original findings register | pending | pending | pending |
 | PK-F006 | open | pending | pending | Original findings register | pending | pending | pending |
 | SCP-01 | open | pending | pending | Original findings register | pending | pending | pending |
@@ -21,7 +21,7 @@ Finding dispositions below distinguish task verification from the final I01 inte
 | OBS-002 | open | pending | pending | Original findings register | pending | pending | pending |
 | OBS-004 | open | pending | pending | Original findings register | pending | pending | pending |
 | OBS-008 | open | pending | pending | Original findings register | pending | pending | pending |
-| PK-F002 | open | pending | pending | Original findings register | pending | pending | pending |
+| PK-F002 | task verified; I01 pending | 9b78e43: effective priority and stable ordinal retained through build/mutation | BuilderCompositionContractTests: explicit-vs-intrinsic order, ties, mutation, removal and introspection | C01-001: behavioral stage/order failures at unchanged production source | C01-003: 8 passed; C01-004: 18 passed; C01-005: 988 XCTest +20 Swift Testing, Swift 6.4.2 Debug | [C01 review](reports/C01-review.md), approved | Actual S01/I01 security integration pending; existing compiler warnings retained |
 | PK-F003 | open | pending | pending | Original findings register | pending | pending | pending |
 | PK-F005 | open | pending | pending | Original findings register | pending | pending | pending |
 | PK-F007 | open | pending | pending | Original findings register | pending | pending | pending |
