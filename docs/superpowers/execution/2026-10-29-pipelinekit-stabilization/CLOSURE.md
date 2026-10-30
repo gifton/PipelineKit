@@ -37,7 +37,7 @@ Finding dispositions below distinguish task verification from the final I01 inte
 | OBS-003 | open | pending | pending | Original findings register | pending | pending | pending |
 | OBS-007 | open | pending | pending | Original findings register | pending | pending | pending |
 | OBS-011 | open | pending | pending | Original findings register | pending | pending | pending |
-| SUP-002 | open | pending | pending | Original findings register | pending | pending | pending |
+| SUP-002 | task verified; I01 pending | 672a09c: CapturingEmitter requires matching String values | CapturingEmitterContractTests | V02-001: missing-key and non-string failures reproduced | V02-002: 2 passed; V02-003: 980 XCTest records +20 Swift Testing, Swift 6.4.2 Debug | [V02 review](reports/V02-review.md), no findings | Final integration pending |
 | CI-002 | open | pending | pending | Original findings register | pending | pending | pending |
 | CI-004 | open | pending | pending | Original findings register | pending | pending | pending |
 | LS-007 | task verified; I01 pending | 9fb5083: five gated cancellation assertion paths | CancellationErrorTests (all nine cases) | Source-confirmed skipped assertion paths | V01-002/003 and V01-004 passed; exact package overload, reached state and contexts asserted | [V01 review](reports/V01-review.md) accepted all five paths | Source evidence of old vacuity; no fabricated production failure |
