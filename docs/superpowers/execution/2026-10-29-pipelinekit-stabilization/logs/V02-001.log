@@ -1,0 +1,82 @@
+Building for debugging...
+[Computing dependencies]
+[Pre-planning 1 / 1026]
+[Planning deferred tasks]
+[22 / 140] Atomics
+[27 / 135] Crypto
+[32 / 129] PipelineKit
+[36 / 136] _ResilienceFoundation
+[44 / 139] _RateLimiting
+[53 / 133] PipelineKitResilience
+[57 / 140] PipelineKitPooling
+[63 / 134] PipelineKitTestSupport
+[65 / 135] PipelineKitTestSupport
+[85 / 96] PipelineKitTestSupportTests-product
+[87 / 98] PipelineKitTestSupportTests-product
+[93 / 97] PipelineKitTestSupportTests-product
+Build complete! (3.36 sec)
+Test Suite 'Selected tests' started at 2026-10-30 13:26:27.359.
+Test Suite 'PipelineKitTests.xctest' started at 2026-10-30 13:26:27.360.
+Test Suite 'PipelineKitTests.xctest' passed at 2026-10-30 13:26:27.360.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 13:26:27.360.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 13:26:27.423.
+Test Suite 'PipelineKitTestSupportTests.xctest' started at 2026-10-30 13:26:27.424.
+Test Suite 'CapturingEmitterContractTests' started at 2026-10-30 13:26:27.424.
+Test Case '-[PipelineKitTestSupportTests.CapturingEmitterContractTests testExpectedPropertiesRequirePresentStringValues]' started.
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitTestSupportTests/CapturingEmitterContractTests.swift:20: error: -[PipelineKitTestSupportTests.CapturingEmitterContractTests testExpectedPropertiesRequirePresentStringValues] : XCTAssertNil failed: "PipelineEvent(name: "event", properties: ["count": AnySendable<Int>(3), "extra": AnySendable<String>("allowed"), "status": AnySendable<String>("ready")], correlationID: "first", sequenceID: 1, timestamp: 2026-10-30 20:26:27 +0000)"
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitTestSupportTests/CapturingEmitterContractTests.swift:21: error: -[PipelineKitTestSupportTests.CapturingEmitterContractTests testExpectedPropertiesRequirePresentStringValues] : XCTAssertNil failed: "PipelineEvent(name: "event", properties: ["count": AnySendable<Int>(3), "extra": AnySendable<String>("allowed"), "status": AnySendable<String>("ready")], correlationID: "first", sequenceID: 1, timestamp: 2026-10-30 20:26:27 +0000)"
+Test Case '-[PipelineKitTestSupportTests.CapturingEmitterContractTests testExpectedPropertiesRequirePresentStringValues]' failed (0.176 seconds).
+Test Case '-[PipelineKitTestSupportTests.CapturingEmitterContractTests testNilAndEmptyPropertiesMatchByName]' started.
+Test Case '-[PipelineKitTestSupportTests.CapturingEmitterContractTests testNilAndEmptyPropertiesMatchByName]' passed (0.000 seconds).
+Test Suite 'CapturingEmitterContractTests' failed at 2026-10-30 13:26:27.600.
+	 Executed 2 tests, with 2 failures (0 unexpected) in 0.176 (0.176) seconds
+Test Suite 'PipelineKitTestSupportTests.xctest' failed at 2026-10-30 13:26:27.600.
+	 Executed 2 tests, with 2 failures (0 unexpected) in 0.176 (0.176) seconds
+Test Suite 'Selected tests' failed at 2026-10-30 13:26:27.600.
+	 Executed 2 tests, with 2 failures (0 unexpected) in 0.176 (0.177) seconds
+Test Suite 'Selected tests' started at 2026-10-30 13:26:27.682.
+Test Suite 'PipelineKitSecurityTests.xctest' started at 2026-10-30 13:26:27.683.
+Test Suite 'PipelineKitSecurityTests.xctest' passed at 2026-10-30 13:26:27.683.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 13:26:27.683.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 13:26:27.765.
+Test Suite 'PipelineKitResilienceTests.xctest' started at 2026-10-30 13:26:27.766.
+Test Suite 'PipelineKitResilienceTests.xctest' passed at 2026-10-30 13:26:27.766.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 13:26:27.766.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 13:26:27.847.
+Test Suite 'PipelineKitPoolingTests.xctest' started at 2026-10-30 13:26:27.848.
+Test Suite 'PipelineKitPoolingTests.xctest' passed at 2026-10-30 13:26:27.848.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 13:26:27.848.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 13:26:27.930.
+Test Suite 'PipelineKitPerformanceTests.xctest' started at 2026-10-30 13:26:27.931.
+Test Suite 'PipelineKitPerformanceTests.xctest' passed at 2026-10-30 13:26:27.931.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 13:26:27.931.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 13:26:28.011.
+Test Suite 'PipelineKitObservabilityTests.xctest' started at 2026-10-30 13:26:28.012.
+Test Suite 'PipelineKitObservabilityTests.xctest' passed at 2026-10-30 13:26:28.012.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 13:26:28.012.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 13:26:28.093.
+Test Suite 'PipelineKitCoreTests.xctest' started at 2026-10-30 13:26:28.094.
+Test Suite 'PipelineKitCoreTests.xctest' passed at 2026-10-30 13:26:28.094.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 13:26:28.094.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 13:26:28.175.
+Test Suite 'PipelineKitCacheTests.xctest' started at 2026-10-30 13:26:28.176.
+Test Suite 'PipelineKitCacheTests.xctest' passed at 2026-10-30 13:26:28.176.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 13:26:28.176.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Note: Some test targets reported failures:
+  - PipelineKitTestSupportTests (XCTest)

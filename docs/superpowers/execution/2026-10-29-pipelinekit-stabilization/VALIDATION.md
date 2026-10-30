@@ -28,3 +28,13 @@ The final source file SHA-256s are `5ae7a3a67ef5694204a78f71464ddae6429553cbe655
 ## V01 independent task disposition
 
 Initial implementation 9fb5083 received two Important findings. Fix 1f4402f addressed both, with deterministic red/green evidence. Fresh Astra/max scoped re-review approved R1/R2 and found no new breakage. [Implementation](reports/V01-implementation.md), [initial review](reports/V01-review.md), [fix review](reports/V01-rereview-1.md). PK-T001/LS-007 are task-verified; final I01 integration remains pending.
+
+## V02: strict event-property matching
+
+Base `6c6c6c707b7da5d02ec105900890acd11851cddd`; the worktree initially had only untracked `audit/` and `docs/PIPELINEKIT_AUDIT_GUIDE.md`. V02-001 ran with only the new contract test added; V02-002 and V02-003 ran with that test and the matcher fix. The final source and test SHA-256s are `ff0a203c3461c99cbf87bd25755d8be15fe17a777505befc60f414eb0062c86c` and `909097dde1fef42296b5ce691758ec1346fa708f943cfbad467e9d2928caa79e`, respectively.
+
+- V02-001: `swift test --filter CapturingEmitterContractTests`, exit 1; the missing-key and integer-value negative controls failed as expected (2 failures in 2 tests).
+- V02-002: same command, exit 0; 2 tests passed, including strict values, extra properties, name selection and first matching event.
+- V02-003: `swift test --parallel --skip PipelineKitPerformanceTests`, exit 0; 980 XCTest progress records and 20 Swift Testing cases passed.
+
+All runs used the bounded `repros/run_check.py` runner, a 600-second timeout and no watchdog timeout. Their logs and metadata record commands and timing. No compiler warnings appeared in these incremental runs; consequently no new warnings were observed relative to the supplied baseline. A repository search found no existing matcher consumers outside its definition; V02-003 covers the existing observability tests. SUP-002 task verification is complete; final closure remains controller-owned.
