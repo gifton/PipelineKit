@@ -98,36 +98,50 @@ private enum LifetimeScenario: CaseIterable {
     case neverExecuted, success, throwing, middlewareMutation
 }
 
-private func typedLifetimeWitness(_ scenario: LifetimeScenario) async throws -> LifetimeWitness {
-    let handler = LifetimeHandler(shouldThrow: scenario == .throwing)
-    let pipeline = StandardPipeline(handler: handler)
-    let witness = LifetimeWitness(pipeline: pipeline, handler: handler)
-    if scenario != .neverExecuted {
-        try await pipeline.addMiddleware(AppendMiddleware(suffix: "!"))
-        do {
-            let result = try await pipeline.execute(EchoCommand(value: "x"), context: .test())
-            XCTAssertEqual(result, "x!")
-            if scenario == .throwing { XCTFail("Expected handler error") }
-        } catch LifetimeError.expected {
-            if scenario != .throwing { XCTFail("Unexpected handler error") }
-        }
-    }
-    if scenario == .middlewareMutation {
-        try await pipeline.addMiddleware(AppendMiddleware(suffix: "?"))
-        let result = try await pipeline.execute(EchoCommand(value: "x"), context: .test())
-        XCTAssertEqual(result, "x?!")
-    }
-    return witness
+private enum LifetimeRoute: CaseIterable {
+    case typed, erased
 }
 
-private func erasedLifetimeWitness(_ scenario: LifetimeScenario) async throws -> LifetimeWitness {
+private enum LifetimePipeline {
+    case typed(StandardPipeline<EchoCommand, LifetimeHandler>)
+    case erased(AnyStandardPipeline)
+
+    var object: AnyObject {
+        switch self {
+        case .typed(let pipeline): pipeline
+        case .erased(let pipeline): pipeline
+        }
+    }
+
+    func addMiddleware(_ middleware: AppendMiddleware) async throws {
+        switch self {
+        case .typed(let pipeline): try await pipeline.addMiddleware(middleware)
+        case .erased(let pipeline): try await pipeline.addMiddleware(middleware)
+        }
+    }
+
+    func execute() async throws -> String {
+        switch self {
+        case .typed(let pipeline):
+            try await pipeline.execute(EchoCommand(value: "x"), context: .test())
+        case .erased(let pipeline):
+            try await pipeline.execute(EchoCommand(value: "x"), context: .test())
+        }
+    }
+}
+
+private func lifetimeWitness(_ scenario: LifetimeScenario, route: LifetimeRoute) async throws -> LifetimeWitness {
     let handler = LifetimeHandler(shouldThrow: scenario == .throwing)
-    let pipeline = AnyStandardPipeline(handler: handler)
-    let witness = LifetimeWitness(pipeline: pipeline, handler: handler)
+    let pipeline: LifetimePipeline
+    switch route {
+    case .typed: pipeline = .typed(StandardPipeline(handler: handler))
+    case .erased: pipeline = .erased(AnyStandardPipeline(handler: handler))
+    }
+    let witness = LifetimeWitness(pipeline: pipeline.object, handler: handler)
     if scenario != .neverExecuted {
         try await pipeline.addMiddleware(AppendMiddleware(suffix: "!"))
         do {
-            let result = try await pipeline.execute(EchoCommand(value: "x"), context: .test())
+            let result = try await pipeline.execute()
             XCTAssertEqual(result, "x!")
             if scenario == .throwing { XCTFail("Expected handler error") }
         } catch LifetimeError.expected {
@@ -136,7 +150,7 @@ private func erasedLifetimeWitness(_ scenario: LifetimeScenario) async throws ->
     }
     if scenario == .middlewareMutation {
         try await pipeline.addMiddleware(AppendMiddleware(suffix: "?"))
-        let result = try await pipeline.execute(EchoCommand(value: "x"), context: .test())
+        let result = try await pipeline.execute()
         XCTAssertEqual(result, "x?!")
     }
     return witness
@@ -147,12 +161,11 @@ private func erasedLifetimeWitness(_ scenario: LifetimeScenario) async throws ->
 final class StandardPipelineChainCacheTests: XCTestCase {
     func testCachedPipelineReleasesAfterExecution() async throws {
         for scenario in LifetimeScenario.allCases {
-            let typed = try await typedLifetimeWitness(scenario)
-            XCTAssertNil(typed.pipeline, "Typed pipeline retained in \(scenario)")
-            XCTAssertNil(typed.handler, "Typed handler retained in \(scenario)")
-            let erased = try await erasedLifetimeWitness(scenario)
-            XCTAssertNil(erased.pipeline, "Erased pipeline retained in \(scenario)")
-            XCTAssertNil(erased.handler, "Erased handler retained in \(scenario)")
+            for route in LifetimeRoute.allCases {
+                let witness = try await lifetimeWitness(scenario, route: route)
+                XCTAssertNil(witness.pipeline, "\(route) pipeline retained in \(scenario)")
+                XCTAssertNil(witness.handler, "\(route) handler retained in \(scenario)")
+            }
         }
     }
 
