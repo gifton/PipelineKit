@@ -1,0 +1,33 @@
+# V01 report
+
+Status: DONE_WITH_CONCERNS. Commit `9fb5083` on `fix/stabilization-batch-1`; starting HEAD `ddffb41d617c57197c70407701c017c987be0900`, audited source `a93a713d937e25f68855f22b0720f33c93329b09`. Initial status contained only untracked `audit/`, `docs/PIPELINEKIT_AUDIT_GUIDE.md`, and controller execution evidence; these were not staged. No production code changed.
+
+## Changes and self-review
+
+- `Tests/PipelineKitCoreTests/Errors/CancellationErrorTests.swift`: five named cases use `TestSynchronizer` to acknowledge child entry, cancel, release, join and reset, then assert reached and every actual error's type/context; the repeated case checks count against five distinct expected contexts. Explicit `Task<Never, Never>.checkCancellation(context:)` selects the package overload. Nonthrowing checkpoints prevent cancellation from bypassing the intended API.
+- `Tests/PipelineKitCoreTests/Pipeline/PipelineTests.swift`, `Tests/PipelineKitCoreTests/Middleware/MiddlewareTests.swift`, `Tests/PipelineKitSecurityTests/SecurityPolicyMiddlewareTests.swift`: mechanically discovered all three `Int(opsPerSecond)` conversions using `rg -n 'Int\([^\n]*(throughput|rate|operationsPer|opsPer|perSecond)' Tests`; no such conversions remain. Each verifies every returned value, uses `ContinuousClock`, retries zero samples with doubled work, checks finite positive duration and rate, reports the Double without trapping, and preserves host throughput floors and simulator skips. The other PipelineTests suite had no timing conversion. The very high measured middleware rate suggests optimization; these tests are functional guards, not defensible performance benchmarks.
+- `docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/`: initialized 37 open rows in CLOSURE.md with original audit links; VALIDATION.md records source, log IDs, commands, counts and limitations; copied watchdog and V01 raw logs/metadata. No audit artifacts or audit guide were committed.
+
+## Evidence and verification
+
+All checks invoked `python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id ID --timeout 600 --` followed by the command below, with the approved escalation prefix, in the designated worktree. Full logs and JSON metadata are in the execution `logs/` directory.
+
+- V01-001: `swift test -c release --filter PipelineKitCoreTests.PipelineTests/testPipelinePerformance`; unmodified test passed once in 31.215 s, exit 0, no watchdog timeout. Historical audit crash did not reproduce on Swift 6.4.2/Xcode 27.2; do not confuse this with the audit's observed crash.
+- V01-002: `swift test --filter CancellationErrorTests`; nine cases pass in 9.119 s, exit 0. Red evidence for the test repair is the original `try await Task.sleep` preceding the assertions and the parent swallowing the thrown cancellation with `try?`; no invented production defect was introduced. Cancellation diff SHA-256 `560795e8ad206197560a72fc5a361c93748e788ad72a629c84581f87c0b1a348`. Other test edits began while the build was running; cancellation file itself was stable.
+- V01-003: `swift test -c release --filter 'PipelineKitCoreTests.PipelineTests|PipelineKitTests.PipelineTests|CancellationErrorTests|PipelineKitCoreTests.MiddlewareTests/testMiddlewarePerformance|SecurityPolicyMiddlewareTests/testPolicyValidationPerformance'`; 29 XCTest cases passed (7 higher-level pipeline, 21 core, 1 security), exit 0, 22.640 s. All three repaired performance sites executed.
+- V01-004: `swift test --parallel --skip PipelineKitPerformanceTests`; 973 XCTest progress records and 20 Swift Testing cases, all passed, exit 0, 19.782 s. V01-003/004 used four-test-file diff SHA-256 `32de37bf59bdc429b70f25be729da3d69e3c9940c952f20729ffabf751217b1c`.
+- Swift 6.4.2, Xcode 27.2, macOS 27.0.1 arm64. Normalizing warning paths and changed line numbers against X002 found no newly introduced warning; unchanged cancellation helper tasks and unrelated files retain baseline warnings. `git diff --check` for source passed; cached check detects whitespace in verbatim compiler diagnostic excerpts in raw logs, preserved as evidence.
+
+Concerns: no injected production failure was used to simulate a red cancellation test; the source-level skipped path is the documented red evidence. The `ContinuousClock` retry path did not encounter zero elapsed duration on this host; its bounded failure path is not separately injected. Optimizer effects make throughput figures unsuitable as benchmarks. All 37 ledger entries intentionally remain open pending review and later task evidence.
+
+## V01 review fix 1
+
+Fix base `9fb5083`. Shared package-scoped `ThroughputMeasurement` validates each batch before considering its duration, so a mismatched zero-duration batch fails rather than being discarded. All three callers retain their workloads and floors. Injected duration samples exercise zero→positive doubling, bounded exhaustion, mismatched first batch, invalid durations/rate and iteration overflow. The helper uses the real clock by default; injected durations are used only by its focused tests.
+
+- V01-F1-001: `swift test --filter ThroughputMeasurementTests`, exit 1 because the new helper did not yet exist; compilation evidence only.
+- V01-F1-002: same command, exit 1 against a temporary helper using the old ordering, with a mismatch discarded during repeated zero durations.
+- V01-F1-003: same command, exit 1 against the old ordering with zero then positive durations. `testMismatchInZeroDurationBatchFailsBeforeRetry` failed because the helper returned success and ran batches `[3, 6]`; this is the exact review counterexample.
+- V01-F1-004: `swift test --filter 'ThroughputMeasurementTests|PipelineKitCoreTests.PipelineTests|PipelineKitCoreTests.MiddlewareTests|SecurityPolicyMiddlewareTests'`; 42 cases passed (5 helper, 21 core, 16 security), exit 0, 8.585 s.
+- V01-F1-005: same selection with `swift test -c release`; 42 cases passed, exit 0, 25.162 s. No watchdog timeout. Each used the existing runner and 600-second timeout; JSON and raw logs supply exact command and timestamps. Normalized comparison to X002 reported no new warnings.
+
+The final source file SHA-256s are `5ae7a3a67ef5694204a78f71464ddae6429553cbe655a9d4359cb02804f33019` (helper), `6bd35fc84bd46145b7d1942a7c73963417baf583894b586cf79100e7f1465c0c` (helper tests), `11037d3837be1eed69a9ed1b2a36ad62b662723a05bf1a1393e6ec447a90f2ce` (pipeline), `a37252a0b1a191aad22161bdc83591028da65c5eb08b1b229aa13e139561319c` (middleware), and `6ad68231d151536130a20670babb1aee2bde365150cd562075cdaf5be3c2233e` (security). The optimized rates remain observations, not benchmark claims.
