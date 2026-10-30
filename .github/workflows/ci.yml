@@ -575,6 +575,7 @@ jobs:
         severity: 'CRITICAL,HIGH'
         format: 'sarif'
         output: 'trivy-results.sarif'
+        exit-code: '1'
         trivy-config: .trivy.yaml
         token-setup-trivy: ${{ secrets.GITHUB_TOKEN }}
 
@@ -643,75 +644,13 @@ jobs:
     if: always()
     timeout-minutes: 5
     steps:
+      - uses: actions/checkout@v7
       - name: Check Status
-        run: |
-          echo "## CI Status Report"
-          echo ""
-          echo "### Job Results:"
-          echo "- Build (macOS): ${{ needs.build.result }}"
-          echo "- Build (Linux): ${{ needs.build-linux.result }}"
-          echo "- Test (macOS): ${{ needs.test.result }}"
-          echo "- Build (Linux - extra): ${{ needs.test-linux.result }}"
-          echo "- SwiftLint: ${{ needs.swiftlint.result }}"
-          echo "- Stress Test: ${{ needs.stress-test.result }}"
-          echo "- Performance: ${{ needs.performance.result }}"
-          echo "- Security: ${{ needs.security.result }}"
-          echo "- Documentation: ${{ needs.documentation.result }}"
-          echo ""
-          
-          # Count failures
-          CRITICAL_FAILURES=0
-          
-          # Critical jobs that must pass (excluding cancelled/skipped)
-          if [ "${{ needs.build.result }}" != "success" ] && [ "${{ needs.build.result }}" != "cancelled" ] && [ "${{ needs.build.result }}" != "skipped" ]; then
-            echo "❌ macOS build failed (critical)"
-            CRITICAL_FAILURES=$((CRITICAL_FAILURES + 1))
-          elif [ "${{ needs.build.result }}" == "cancelled" ]; then
-            echo "⚠️ macOS build was cancelled"
-          fi
-          
-          if [ "${{ needs.test.result }}" != "success" ] && [ "${{ needs.test.result }}" != "cancelled" ] && [ "${{ needs.test.result }}" != "skipped" ]; then
-            echo "❌ macOS tests failed (critical)"
-            CRITICAL_FAILURES=$((CRITICAL_FAILURES + 1))
-          elif [ "${{ needs.test.result }}" == "cancelled" ]; then
-            echo "⚠️ macOS tests were cancelled"
-          fi
-          
-          if [ "${{ needs.swiftlint.result }}" != "success" ] && [ "${{ needs.swiftlint.result }}" != "cancelled" ] && [ "${{ needs.swiftlint.result }}" != "skipped" ]; then
-            echo "❌ SwiftLint failed (critical)"
-            CRITICAL_FAILURES=$((CRITICAL_FAILURES + 1))
-          elif [ "${{ needs.swiftlint.result }}" == "cancelled" ]; then
-            echo "⚠️ SwiftLint was cancelled"
-          fi
-          
-          # Linux can fail for now (experimental)
-          if [ "${{ needs.build-linux.result }}" != "success" ]; then
-            echo "⚠️ Linux build failed (non-blocking)"
-          fi
-          
-          if [ "${{ needs.test-linux.result }}" != "success" ]; then
-            echo "⚠️ Linux extra build failed (non-blocking)"
-          fi
-          
-          # Check for cancelled jobs
-          CANCELLED_JOBS=0
-          for result in "${{ needs.build.result }}" "${{ needs.test.result }}" "${{ needs.swiftlint.result }}" "${{ needs.stress-test.result }}" "${{ needs.performance.result }}" "${{ needs.security.result }}" "${{ needs.documentation.result }}"; do
-            if [ "$result" == "cancelled" ]; then
-              CANCELLED_JOBS=$((CANCELLED_JOBS + 1))
-            fi
-          done
-          
-          # Exit with failure if any critical job failed
-          if [ $CRITICAL_FAILURES -gt 0 ]; then
-            echo ""
-            echo "❌ CI failed with $CRITICAL_FAILURES critical failures"
-            exit 1
-          elif [ $CANCELLED_JOBS -gt 0 ]; then
-            echo ""
-            echo "⚠️ CI completed with $CANCELLED_JOBS cancelled jobs (not a failure)"
-            echo "Jobs may have been cancelled due to workflow cancellation or timeouts."
-            exit 0
-          else
-            echo ""
-            echo "✅ All critical CI checks passed!"
-          fi
+        env:
+          BUILD_RESULT: ${{ needs.build.result }}
+          TEST_RESULT: ${{ needs.test.result }}
+          SWIFTLINT_RESULT: ${{ needs.swiftlint.result }}
+          SECURITY_RESULT: ${{ needs.security.result }}
+          BUILD_LINUX_RESULT: ${{ needs.build-linux.result }}
+          TEST_LINUX_RESULT: ${{ needs.test-linux.result }}
+        run: bash Scripts/ci/check-required-status.sh

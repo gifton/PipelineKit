@@ -1,0 +1,45 @@
+......FF.........
+======================================================================
+FAIL: test_icu_quoted_literal_filter (__main__.RunnerTests.test_icu_quoted_literal_filter)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Scripts/ci/tests/test_validation_gates.py", line 81, in test_icu_quoted_literal_filter
+    self.assertEqual(calls[-1], ['test', '--filter', '^(?:PipelineKitCoreTests\\.CancellationErrorTests/testCancel)$'])
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Lists differ: ['tes[20 chars]:PipelineKitCoreTests\\.CancellationErrorTests\\/testCancel)$'] != ['tes[20 chars]:PipelineKitCoreTests\\.CancellationErrorTests/testCancel)$']
+
+First differing element 2:
+'^(?:PipelineKitCoreTests\\.CancellationErrorTests\\/testCancel)$'
+'^(?:PipelineKitCoreTests\\.CancellationErrorTests/testCancel)$'
+
+  ['test',
+   '--filter',
+-  '^(?:PipelineKitCoreTests\\.CancellationErrorTests\\/testCancel)$']
+?                                                    --
+
++  '^(?:PipelineKitCoreTests\\.CancellationErrorTests/testCancel)$']
+
+======================================================================
+FAIL: test_intersection (__main__.RunnerTests.test_intersection)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Scripts/ci/tests/test_validation_gates.py", line 65, in test_intersection
+    self.assertEqual(calls[-1], ['test', '--filter', '^(?:PipelineKitCoreTests\\.CancellationErrorTests/testCancel)$'])
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Lists differ: ['tes[20 chars]:PipelineKitCoreTests\\.CancellationErrorTests\\/testCancel)$'] != ['tes[20 chars]:PipelineKitCoreTests\\.CancellationErrorTests/testCancel)$']
+
+First differing element 2:
+'^(?:PipelineKitCoreTests\\.CancellationErrorTests\\/testCancel)$'
+'^(?:PipelineKitCoreTests\\.CancellationErrorTests/testCancel)$'
+
+  ['test',
+   '--filter',
+-  '^(?:PipelineKitCoreTests\\.CancellationErrorTests\\/testCancel)$']
+?                                                    --
+
++  '^(?:PipelineKitCoreTests\\.CancellationErrorTests/testCancel)$']
+
+----------------------------------------------------------------------
+Ran 17 tests in 5.767s
+
+FAILED (failures=2)
