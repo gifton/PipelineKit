@@ -88,6 +88,10 @@ The intended-path list matches the staged set exactly: 293 paths (six source/fix
 
 `git diff --check` passed before staging. The staged check excluding raw `.log` files passed. The unrestricted staged check reports only an extra trailing blank line in `V04-009-xctest-harness.log`, `V04-013-xctest-harness.log` and `V04-017-xctest-harness.log`; those raw output bytes are intentionally retained unchanged.
 
+## Commit and final handoff
+
+Created `7776d0febdcc340fd69844f25942c61fff7a3c5c` — `fix(validation): settle owned descendants after watchdog timeout`. Verified all six committed source blobs match the tested final manifest; index is empty. Remaining tracked change is the controller-owned validation-plan amendment; preserved untracked audit/guide remain untouched. No push or merge. Status: DONE within the documented macOS observed-lineage contract; independent review/acceptance pending with controller.
+
 
 ## V04-R1 — setup-failure cleanup review fix
 
@@ -113,3 +117,5 @@ GREEN: the complete focused suite passed 13/13 tests in 7.152 s (root/runner 0, 
 Only `repros/v04_identity_checks.py` changed among the six implementation/fixture sources. Its final SHA-256 is `25b1b4af6711e138b1d7b6877f88387f6a2e3362f59ba9ef242c04aba25e4503`, bound by `logs/V04-R1-002-green-source-state.json`. The runner remains `9fad75b0f9d7216c7467bab2d3b9fd341ef5e2313fd4365c491234eafb480dd0`; the process harness, Swift fixture, source-state helper and all eight manifest/pin/history inputs are unchanged. All 285 prior evidence hashes were verified unchanged. The accepted process matrix and real XCTest evidence therefore remain applicable; no matrix, real hang, Swift build or PipelineKit suite was rerun for this fixture-only repair.
 
 Self-review checked cleanup registration before launch, absence of teardown cleanup duplication, all three post-launch setup boundaries, actual settlement before the emergency oracle, complete suite selection, and exact source/evidence preservation. `git diff --check` passed. Known macOS/observation limitations are unchanged; this fix does not claim independent review acceptance, platform closure or I01 completion. The controller's validation-plan edit remains excluded.
+
+V04-R1 fix commit: `bab7847554781840c63e93132ea29f807fc6b0a0` — `test(validation): clean identity fixtures after setup failure`. All 22 staged paths were intended; staged whitespace checks passed without exclusions, all six committed source blobs match the tested manifest, and the index is empty. Controller plan amendment remains unstaged; no push/merge or approval wait occurred. Fix status: DONE, ready for scoped re-review.
