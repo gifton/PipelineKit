@@ -1,0 +1,587 @@
+Building for production...
+[Computing dependencies]
+[Pre-planning 1 / 1026]
+[Planning deferred tasks]
+[1 / 56] Atomics
+[17 / 84]
+[45 / 126]
+[55 / 149]
+[62 / 149]
+[67 / 149]
+[68 / 149]
+[73 / 149]
+[75 / 149]
+[78 / 149]
+[82 / 149]
+[84 / 149]
+[85 / 149]
+[87 / 149] Logging
+[96 / 149] Atomics
+[98 / 152]
+[99 / 152] Crypto
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Sources/PipelineKitCore/Context/ExecutionContext.swift:94:45: warning: 'withValue(_:operation:isolation:file:line:)' is deprecated: Prefer the 'nonisolated(nonsending)' overload with stricter execution on caller context semantics: withValue(_:operation:file:line:) [#DeprecatedDeclaration]
+ 92 |         operation: () async throws -> T
+ 93 |     ) async rethrows -> T {
+ 94 |         try await ExecutionContext.$current.withValue(
+    |                                             `- warning: 'withValue(_:operation:isolation:file:line:)' is deprecated: Prefer the 'nonisolated(nonsending)' overload with stricter execution on caller context semantics: withValue(_:operation:file:line:) [#DeprecatedDeclaration]
+ 95 |             ExecutionContext(trace: snapshot.trace, progress: progress),
+ 96 |             operation: operation,
+
+[#DeprecatedDeclaration]: <https://docs.swift.org/compiler/documentation/diagnostics/deprecated-declaration>
+[103 / 150] PipelineKitCore
+[111 / 154] PipelineKit
+[120 / 163] PipelineKitObservability
+[123 / 166]
+[124 / 166] _ResilienceFoundation
+[131 / 167] _RateLimiting
+[132 / 168] _RateLimiting
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Sources/PipelineKitResilienceCircuitBreaker/PartitionedBulkheadMiddleware.swift:502:32: warning: 'weak' ownership of capture 'partition' differs from implicitly-captured strong reference in outer scope [#ImplicitStrongCapture]
+498 |         // Try queueing if space available
+499 |         if await partition.canQueue() {
+500 |             let future: @Sendable () async throws -> @Sendable () async -> Void = {
+    |                                                                                   |- note: 'partition' implicitly strongly captured here
+    |                                                                                   `- note: add 'partition' as a capture list item to silence
+501 |                 try await partition.waitForResource()
+502 |                 return { [weak partition] in
+    |                                |- warning: 'weak' ownership of capture 'partition' differs from implicitly-captured strong reference in outer scope [#ImplicitStrongCapture]
+    |                                `- note: explicitly assign the capture list item to silence
+503 |                     await partition?.release()
+504 |                 }
+
+[#ImplicitStrongCapture]: <https://docs.swift.org/compiler/documentation/diagnostics/implicit-strong-capture>
+[134 / 167] _CircuitBreaker
+[136 / 166] PipelineKitObservability
+[143 / 173] _ResilienceCore
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Sources/PipelineKitCache/CachingMiddleware.swift:222:47: warning: use of protocol 'Decodable' as a type must be written 'any Decodable'; this will be an error in a future Swift language mode [#ExistentialAny]
+220 |             // For other Decodable types, try generic decoding
+221 |             // Note: We use Decodable.Type here (not `any Decodable.Type`) because we need to call init on it
+222 |             if let decodableType = T.self as? Decodable.Type {
+    |                                               `- warning: use of protocol 'Decodable' as a type must be written 'any Decodable'; this will be an error in a future Swift language mode [#ExistentialAny]
+223 |                 let value = try decodableType.init(from: try container.superDecoder(forKey: .result))
+224 |                 guard let typedValue = value as? T else {
+
+[#ExistentialAny]: <https://docs.swift.org/compiler/documentation/diagnostics/existential-any>
+[147 / 176] PipelineKitCache
+[162 / 181] _ResilienceCore
+[166 / 185] PipelineKitResilience
+[173 / 192] PipelineKitPooling
+[176 / 194] PipelineKitPooling
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Sources/PipelineKitSecurity/AuditLogger.swift:169:41: warning: 'withValue(_:operation:isolation:file:line:)' is deprecated: Prefer the 'nonisolated(nonsending)' overload with stricter execution on caller context semantics: withValue(_:operation:file:line:) [#DeprecatedDeclaration]
+167 |         operation: () async throws -> T
+168 |     ) async rethrows -> T {
+169 |         try await AuditContext.$current.withValue(context, operation: operation)
+    |                                         `- warning: 'withValue(_:operation:isolation:file:line:)' is deprecated: Prefer the 'nonisolated(nonsending)' overload with stricter execution on caller context semantics: withValue(_:operation:file:line:) [#DeprecatedDeclaration]
+170 |     }
+171 | }
+
+[#DeprecatedDeclaration]: <https://docs.swift.org/compiler/documentation/diagnostics/deprecated-declaration>
+[182 / 193] PipelineKitSecurity
+[188 / 196] PipelineKitTestSupport
+[204 / 227]
+[209 / 227]
+[212 / 227]
+[215 / 227]
+[218 / 227]
+[219 / 227]
+[220 / 227] PipelineKitTestSupport
+[235 / 249] PipelineKitPoolingTests-product
+[236 / 253] PipelineKitObservabilityTests-product
+[246 / 261]
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitPerformanceTests/BackPressurePerformanceTests.swift:27:13: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+ 25 |             expectation.expectedFulfillmentCount = 10000
+ 26 |             
+ 27 |             Task {
+    |             |- warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+    |             `- note: to silence this warning, handle the error inside the task, or store/discard the task value explicitly
+ 28 |                 for _ in 0..<10000 {
+ 29 |                     let token = try await semaphore.acquire()
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitPerformanceTests/PipelinePerformanceTests.swift:66:13: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+ 64 |             expectation.expectedFulfillmentCount = 1000
+ 65 | 
+ 66 |             Task {
+    |             |- warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+    |             `- note: to silence this warning, handle the error inside the task, or store/discard the task value explicitly
+ 67 |                 for _ in 0..<1000 {
+ 68 |                     _ = try await pipeline.execute(command, context: context)
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitPerformanceTests/PipelinePerformanceTests.swift:82:9: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+ 80 | 
+ 81 |         let setupExpectation = expectation(description: "Setup")
+ 82 |         Task {
+    |         |- warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+    |         `- note: to silence this warning, handle the error inside the task, or store/discard the task value explicitly
+ 83 |             try await pipeline.addMiddleware(middleware)
+ 84 |             setupExpectation.fulfill()
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitPerformanceTests/PipelinePerformanceTests.swift:99:13: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+ 97 |             expectation.expectedFulfillmentCount = 1000
+ 98 | 
+ 99 |             Task {
+    |             |- warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+    |             `- note: to silence this warning, handle the error inside the task, or store/discard the task value explicitly
+100 |                 for _ in 0..<1000 {
+101 |                     _ = try await pipeline.execute(command, context: context)
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitPerformanceTests/PipelinePerformanceTests.swift:115:9: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+113 |         // Add 5 middleware components
+114 |         let setupExpectation = expectation(description: "Setup middleware")
+115 |         Task {
+    |         |- warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+    |         `- note: to silence this warning, handle the error inside the task, or store/discard the task value explicitly
+116 |             for i in 0..<5 {
+117 |                 let priority: ExecutionPriority = switch i {
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitPerformanceTests/PipelinePerformanceTests.swift:141:13: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+139 |             expectation.expectedFulfillmentCount = 1000
+140 | 
+141 |             Task {
+    |             |- warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+    |             `- note: to silence this warning, handle the error inside the task, or store/discard the task value explicitly
+142 |                 for _ in 0..<1000 {
+143 |                     _ = try await pipeline.execute(command, context: context)
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitPerformanceTests/PipelinePerformanceTests.swift:201:13: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+199 |             expectation.expectedFulfillmentCount = 100
+200 | 
+201 |             Task {
+    |             |- warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+    |             `- note: to silence this warning, handle the error inside the task, or store/discard the task value explicitly
+202 |                 for _ in 0..<100 {
+203 |                     _ = try await pipeline.execute(command, context: context)
+
+[#NoUseUnstructuredThrowingTask]: <https://docs.swift.org/compiler/documentation/diagnostics/no-use-throwing-unstructured-task>
+[247 / 261] PipelineKitPerformanceTests-product
+[251 / 262] PipelineKitPoolingTests-product
+[253 / 262] PipelineKitPerformanceTests-product
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionMiddlewareTests.swift:80:28: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+ 78 |         let handler: @Sendable (DataProcessingCommand, CommandContext) async throws -> ProcessingResult = { cmd, ctx in
+ 79 |             // Verify compression was applied
+ 80 |             let metadata = await ctx.getMetadata()
+    |                            `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+ 81 |             if let applied = metadata["compression.applied"] as? Bool, applied {
+ 82 |                 XCTAssertEqual(metadata["compression.algorithm"] as? String, "zlib")
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionMiddlewareTests.swift:124:28: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+122 |         let handler: @Sendable (DataProcessingCommand, CommandContext) async throws -> ProcessingResult = { cmd, ctx in
+123 |             // Verify compression was NOT applied
+124 |             let metadata = await ctx.getMetadata()
+    |                            `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+125 |             XCTAssertNil(metadata["compression.applied"])
+126 |             XCTAssertFalse(cmd.operation.contains("compressed"))
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/NextGuardSuppressionTests.swift:53:46: warning: 'is' test is always true
+51 |     /// error exits on its own.
+52 |     func testCacheMiddlewaresRetainNextGuardSuppression() {
+53 |         XCTAssertTrue(CachingMiddleware.self is any NextGuardWarningSuppressing.Type)
+   |                                              `- warning: 'is' test is always true
+54 |         XCTAssertTrue(SimpleCachingMiddleware.self is any NextGuardWarningSuppressing.Type)
+55 |         XCTAssertTrue(CachedMiddleware<CachingMiddleware>.self is any NextGuardWarningSuppressing.Type)
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/NextGuardSuppressionTests.swift:54:52: warning: 'is' test is always true
+52 |     func testCacheMiddlewaresRetainNextGuardSuppression() {
+53 |         XCTAssertTrue(CachingMiddleware.self is any NextGuardWarningSuppressing.Type)
+54 |         XCTAssertTrue(SimpleCachingMiddleware.self is any NextGuardWarningSuppressing.Type)
+   |                                                    `- warning: 'is' test is always true
+55 |         XCTAssertTrue(CachedMiddleware<CachingMiddleware>.self is any NextGuardWarningSuppressing.Type)
+56 |         XCTAssertTrue(ConditionalCachedMiddleware<CachingMiddleware>.self is any NextGuardWarningSuppressing.Type)
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/NextGuardSuppressionTests.swift:55:64: warning: 'is' test is always true
+53 |         XCTAssertTrue(CachingMiddleware.self is any NextGuardWarningSuppressing.Type)
+54 |         XCTAssertTrue(SimpleCachingMiddleware.self is any NextGuardWarningSuppressing.Type)
+55 |         XCTAssertTrue(CachedMiddleware<CachingMiddleware>.self is any NextGuardWarningSuppressing.Type)
+   |                                                                `- warning: 'is' test is always true
+56 |         XCTAssertTrue(ConditionalCachedMiddleware<CachingMiddleware>.self is any NextGuardWarningSuppressing.Type)
+57 |     }
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/NextGuardSuppressionTests.swift:56:75: warning: 'is' test is always true
+54 |         XCTAssertTrue(SimpleCachingMiddleware.self is any NextGuardWarningSuppressing.Type)
+55 |         XCTAssertTrue(CachedMiddleware<CachingMiddleware>.self is any NextGuardWarningSuppressing.Type)
+56 |         XCTAssertTrue(ConditionalCachedMiddleware<CachingMiddleware>.self is any NextGuardWarningSuppressing.Type)
+   |                                                                           `- warning: 'is' test is always true
+57 |     }
+58 | }
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/SimpleCachingMiddlewareTests.swift:423:13: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+421 |             expectation.expectedFulfillmentCount = iterations
+422 | 
+423 |             Task {
+    |             |- warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+    |             `- note: to silence this warning, handle the error inside the task, or store/discard the task value explicitly
+424 |                 let pipeline = StandardPipeline(handler: TestHandler())
+425 |                 try await pipeline.addMiddleware(cache)
+
+[#NoUseUnstructuredThrowingTask]: <https://docs.swift.org/compiler/documentation/diagnostics/no-use-throwing-unstructured-task>
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>
+[253 / 262] PipelineKitCacheTests-product
+[255 / 262] PipelineKitCacheTests-product
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/AuthorizationMiddlewareTests.swift:117:9: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+115 |         // Test editor (has both roles)
+116 |         let editorContext = CommandContext()
+117 |         await editorContext.setMetadata("authUserId", value: "editor")
+    |         `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+118 |         
+119 |         let editorResult = try await middleware.execute(command, context: editorContext) { cmd, _ in
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/AuthorizationMiddlewareTests.swift:126:9: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+124 |         // Test reader (missing write role)
+125 |         let readerContext = CommandContext()
+126 |         await readerContext.setMetadata("authUserId", value: "reader")
+    |         `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+127 |         
+128 |         do {
+
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>
+[255 / 262] PipelineKitSecurityTests-product
+[257 / 263] PipelineKitSecurityTests-product
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/PrometheusExporterTests.swift:15:23: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+ 13 | 
+ 14 |     func testExportCounter() async throws {
+ 15 |         let storage = await MetricsStorage()
+    |                       `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+ 16 |         let counter = MetricSnapshot.counter("requests", value: 42, tags: ["endpoint": "/api"])
+ 17 |         await storage.record(counter)
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/PrometheusExporterTests.swift:27:23: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+ 25 | 
+ 26 |     func testExportCounterWithoutTags() async throws {
+ 27 |         let storage = await MetricsStorage()
+    |                       `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+ 28 |         let counter = MetricSnapshot.counter("simple_counter", value: 100)
+ 29 |         await storage.record(counter)
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/PrometheusExporterTests.swift:39:23: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+ 37 | 
+ 38 |     func testExportMultipleCountersWithSameName() async throws {
+ 39 |         let storage = await MetricsStorage()
+    |                       `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+ 40 | 
+ 41 |         await storage.record(MetricSnapshot.counter("requests", value: 10, tags: ["endpoint": "/api"]))
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/PrometheusExporterTests.swift:59:23: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+ 57 | 
+ 58 |     func testExportGauge() async throws {
+ 59 |         let storage = await MetricsStorage()
+    |                       `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+ 60 |         let gauge = MetricSnapshot.gauge("memory", value: 75.5, unit: "percentage")
+ 61 |         await storage.record(gauge)
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/PrometheusExporterTests.swift:71:23: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+ 69 | 
+ 70 |     func testExportGaugeWithTags() async throws {
+ 71 |         let storage = await MetricsStorage()
+    |                       `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+ 72 |         let gauge = MetricSnapshot.gauge(
+ 73 |             "cpu_usage",
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/PrometheusExporterTests.swift:91:23: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+ 89 | 
+ 90 |     func testExportTimer() async throws {
+ 91 |         let storage = await MetricsStorage()
+    |                       `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+ 92 |         let timer = MetricSnapshot.timer("query_duration", duration: 0.1255) // 125.5ms
+ 93 |         await storage.record(timer)
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/PrometheusExporterTests.swift:103:23: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+101 | 
+102 |     func testExportTimerWithTags() async throws {
+103 |         let storage = await MetricsStorage()
+    |                       `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+104 |         let timer = MetricSnapshot.timer(
+105 |             "request_duration",
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/PrometheusExporterTests.swift:121:23: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+119 | 
+120 |     func testNameSanitization() async throws {
+121 |         let storage = await MetricsStorage()
+    |                       `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+122 |         let counter = MetricSnapshot.counter("api.request-count", value: 1)
+123 |         await storage.record(counter)
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/PrometheusExporterTests.swift:134:23: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+132 | 
+133 |     func testComplexNameSanitization() async throws {
+134 |         let storage = await MetricsStorage()
+    |                       `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+135 |         let gauge = MetricSnapshot.gauge("my-app.metrics.cpu-usage", value: 50)
+136 |         await storage.record(gauge)
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/PrometheusExporterTests.swift:147:23: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+145 | 
+146 |     func testLabelValueEscaping() async throws {
+147 |         let storage = await MetricsStorage()
+    |                       `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+148 |         let counter = MetricSnapshot.counter(
+149 |             "requests",
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/PrometheusExporterTests.swift:164:23: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+162 | 
+163 |     func testBackslashEscaping() async throws {
+164 |         let storage = await MetricsStorage()
+    |                       `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+165 |         let gauge = MetricSnapshot.gauge(
+166 |             "path_metric",
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/PrometheusExporterTests.swift:181:23: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+179 | 
+180 |     func testExportMixedMetrics() async throws {
+181 |         let storage = await MetricsStorage()
+    |                       `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+182 | 
+183 |         await storage.record(MetricSnapshot.counter("api_requests", value: 100))
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/PrometheusExporterTests.swift:204:23: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+202 | 
+203 |     func testExportEmptyStorage() async throws {
+204 |         let storage = await MetricsStorage()
+    |                       `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+205 |         let exporter = PrometheusExporter(metricsStorage: storage)
+206 |         let output = await exporter.export()
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/PrometheusExporterTests.swift:214:23: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+212 | 
+213 |     func testExportAggregated() async throws {
+214 |         let storage = await MetricsStorage()
+    |                       `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+215 | 
+216 |         // Add multiple counter values
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/PrometheusExporterTests.swift:230:23: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+228 | 
+229 |     func testExportAggregatedGauges() async throws {
+230 |         let storage = await MetricsStorage()
+    |                       `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+231 | 
+232 |         // Add multiple gauge values - should keep latest
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/PrometheusExporterTests.swift:248:23: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+246 | 
+247 |     func testPrometheusFormatCompliance() async throws {
+248 |         let storage = await MetricsStorage()
+    |                       `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+249 | 
+250 |         await storage.record(MetricSnapshot.counter(
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/PrometheusExporterTests.swift:272:23: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+270 | 
+271 |     func testTagOrdering() async throws {
+272 |         let storage = await MetricsStorage()
+    |                       `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+273 | 
+274 |         await storage.record(MetricSnapshot.counter(
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/PrometheusExporterTests.swift:290:23: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+288 | 
+289 |     func testExportHistogram() async throws {
+290 |         let storage = await MetricsStorage()
+    |                       `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+291 |         let histogram = MetricSnapshot(
+292 |             name: "request_duration",
+
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>
+[259 / 264] PipelineKitObservabilityTests-product
+[259 / 264] PipelineKitCoreTests-product
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCoreTests/Context/EventEmissionTests.swift:194:28: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+192 |         
+193 |         // When
+194 |         let childContext = await parentContext.fork()
+    |                            `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+195 |         
+196 |         // Then - child should inherit the emitter
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCoreTests/Context/EventEmissionTests.swift:197:28: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+195 |         
+196 |         // Then - child should inherit the emitter
+197 |         let childEmitter = await childContext.eventEmitter
+    |                            `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+198 |         XCTAssertNotNil(childEmitter)
+199 |         
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCoreTests/Context/EventEmissionTests.swift:216:28: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+214 |         parentContext.eventEmitter = parentEmitter
+215 |         
+216 |         let childContext = await parentContext.fork()
+    |                            `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+217 |         let childEmitter = TestEventEmitter()
+218 |         childContext.eventEmitter = childEmitter
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCoreTests/Core/CommandContextThreadSafetyTests.swift:342:22: warning: immutable value 'key' was never used; consider replacing with '_' or removing it [#NoUsage]
+340 |                 XCTAssertGreaterThan(snapshot.count, 0)
+341 |                 // Each value should be either original or updated
+342 |                 for (key, value) in snapshot {
+    |                      `- warning: immutable value 'key' was never used; consider replacing with '_' or removing it [#NoUsage]
+343 |                     if let wrapper = value as? AnySendable,
+344 |                        let stringValue = wrapper.get(String.self) {
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCoreTests/Errors/CancellationErrorTests.swift:88:9: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+ 86 |         
+ 87 |         // Cancel after a short delay
+ 88 |         Task {
+    |         |- warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+    |         `- note: to silence this warning, handle the error inside the task, or store/discard the task value explicitly
+ 89 |             try await Task.sleep(nanoseconds: 25_000_000) // 25ms
+ 90 |             task.cancel()
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCoreTests/Errors/CancellationErrorTests.swift:170:9: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+168 |         
+169 |         // Cancel after 50ms
+170 |         Task {
+    |         |- warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+    |         `- note: to silence this warning, handle the error inside the task, or store/discard the task value explicitly
+171 |             try await Task.sleep(nanoseconds: 50_000_000)
+172 |             task.cancel()
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCoreTests/Middleware/MiddlewareTests.swift:138:25: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+136 |         
+137 |         _ = try await middleware.execute(command, context: context) { _, ctx in
+138 |             let value = await ctx.getMetadata("test") as? String
+    |                         `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+139 |             XCTAssertEqual(value, "modified")
+140 |             return "done"
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCoreTests/Pipeline/PipelineTests.swift:241:32: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+239 |             try await middleware2.execute(cmd, context: ctx) { c, finalCtx in
+240 |                 // Verify context has both values
+241 |                 let metadata = await finalCtx.getMetadata()
+    |                                `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+242 |                 XCTAssertEqual(metadata["key1"] as? String, "value1")
+243 |                 XCTAssertEqual(metadata["key2"] as? String, "value2")
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[#NoUseUnstructuredThrowingTask]: <https://docs.swift.org/compiler/documentation/diagnostics/no-use-throwing-unstructured-task>
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>
+[261 / 264] PipelineKitCoreTests-product
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/AsyncSemaphoreCancellationTests.swift:208:13: warning: immutable value 'i' was never used; consider replacing with '_' or removing it [#NoUsage]
+206 |         // Create many waiting tasks
+207 |         var tasks: [Task<Void, Never>] = []
+208 |         for i in 0..<20 {
+    |             `- warning: immutable value 'i' was never used; consider replacing with '_' or removing it [#NoUsage]
+209 |             let task = Task {
+210 |                 // Signal we're ready and wait at barrier
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/PartitionedBulkheadConfigurationTests.swift:35:31: warning: 'maxBorrowPercentage' is deprecated: renamed to 'reservedCapacityPercentage' [#DeprecatedDeclaration]
+33 |         )
+34 |         // Deprecation warnings below are expected: the test pins the shims.
+35 |         XCTAssertEqual(config.maxBorrowPercentage, 0.5, accuracy: .ulpOfOne)
+   |                               |- warning: 'maxBorrowPercentage' is deprecated: renamed to 'reservedCapacityPercentage' [#DeprecatedDeclaration]
+   |                               `- note: use 'reservedCapacityPercentage' instead
+36 | 
+37 |         let legacy = PartitionedBulkheadMiddleware.Configuration(
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/PartitionedBulkheadConfigurationTests.swift:37:52: warning: 'init(partitions:partitionExtractor:defaultPartition:allowBorrowing:maxBorrowPercentage:emitMetrics:)' is deprecated: maxBorrowPercentage has always been the reserved (non-lendable) share — use reservedCapacityPercentage, which has identical semantics. [#DeprecatedDeclaration]
+35 |         XCTAssertEqual(config.maxBorrowPercentage, 0.5, accuracy: .ulpOfOne)
+36 | 
+37 |         let legacy = PartitionedBulkheadMiddleware.Configuration(
+   |                                                    `- warning: 'init(partitions:partitionExtractor:defaultPartition:allowBorrowing:maxBorrowPercentage:emitMetrics:)' is deprecated: maxBorrowPercentage has always been the reserved (non-lendable) share — use reservedCapacityPercentage, which has identical semantics. [#DeprecatedDeclaration]
+38 |             partitions: Self.partitions,
+39 |             partitionExtractor: { _, _ in "default" },
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/TimeoutMiddlewareCompileTests.swift:14:9: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+12 | 
+13 |         // Create a dummy execute call to verify non-escaping constraint
+14 |         Task {
+   |         |- warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+   |         `- note: to silence this warning, handle the error inside the task, or store/discard the task value explicitly
+15 |             let command = DummyCommand()
+16 |             let context = CommandContext()
+
+[#DeprecatedDeclaration]: <https://docs.swift.org/compiler/documentation/diagnostics/deprecated-declaration>
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[#NoUseUnstructuredThrowingTask]: <https://docs.swift.org/compiler/documentation/diagnostics/no-use-throwing-unstructured-task>
+[269 / 274] PipelineKitResilienceTests-product
+[283 / 287] PipelineKitTests-product
+[285 / 287] PipelineKitResilienceTests-product
+[285 / 287] PipelineKitTests-product
+[289 / 291] PipelineKitTestSupportTests-product
+[293 / 295] PipelineKitSecurityTests-product
+[297 / 299] PipelineKitResilienceTests-product
+[301 / 303] PipelineKitPoolingTests-product
+[305 / 307] PipelineKitPerformanceTests-product
+[309 / 311] PipelineKitObservabilityTests-product
+[313 / 315] PipelineKitCoreTests-product
+[317 / 319] PipelineKitCacheTests-product
+Build complete! (25.27 sec)
+Test Suite 'Selected tests' started at 2026-10-30 16:49:09.823.
+Test Suite 'PipelineKitTests.xctest' started at 2026-10-30 16:49:09.824.
+Test Suite 'DynamicPipelineChainCacheTests' started at 2026-10-30 16:49:09.824.
+Test Case '-[PipelineKitTests.DynamicPipelineChainCacheTests testDynamicPipelineInvalidatesOnAddMiddleware]' started.
+Test Case '-[PipelineKitTests.DynamicPipelineChainCacheTests testDynamicPipelineInvalidatesOnAddMiddleware]' passed (0.001 seconds).
+Test Case '-[PipelineKitTests.DynamicPipelineChainCacheTests testDynamicPipelineInvalidatesOnHandlerReplace]' started.
+Test Case '-[PipelineKitTests.DynamicPipelineChainCacheTests testDynamicPipelineInvalidatesOnHandlerReplace]' passed (0.000 seconds).
+Test Case '-[PipelineKitTests.DynamicPipelineChainCacheTests testDynamicPipelineInvalidatesOnHandlerReRegister]' started.
+Test Case '-[PipelineKitTests.DynamicPipelineChainCacheTests testDynamicPipelineInvalidatesOnHandlerReRegister]' passed (0.000 seconds).
+Test Case '-[PipelineKitTests.DynamicPipelineChainCacheTests testDynamicPipelineInvalidatesOnUnregister]' started.
+Test Case '-[PipelineKitTests.DynamicPipelineChainCacheTests testDynamicPipelineInvalidatesOnUnregister]' passed (0.000 seconds).
+Test Case '-[PipelineKitTests.DynamicPipelineChainCacheTests testDynamicPipelineSendTwiceSucceeds]' started.
+Test Case '-[PipelineKitTests.DynamicPipelineChainCacheTests testDynamicPipelineSendTwiceSucceeds]' passed (0.000 seconds).
+Test Suite 'DynamicPipelineChainCacheTests' passed at 2026-10-30 16:49:09.826.
+	 Executed 5 tests, with 0 failures (0 unexpected) in 0.002 (0.002) seconds
+Test Suite 'StandardPipelineChainCacheTests' started at 2026-10-30 16:49:09.826.
+Test Case '-[PipelineKitTests.StandardPipelineChainCacheTests testCachedPipelineReleasesAfterExecution]' started.
+2026-10-30T16:49:09-0700 warning PipelineKit.Core: [PipelineKit] SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features.
+2026-10-30T16:49:09-0700 warning PipelineKit.Core: [PipelineKit] SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features.
+2026-10-30T16:49:09-0700 warning PipelineKit.Core: [PipelineKit] SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features.
+2026-10-30T16:49:09-0700 warning PipelineKit.Core: [PipelineKit] SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features.
+Test Case '-[PipelineKitTests.StandardPipelineChainCacheTests testCachedPipelineReleasesAfterExecution]' passed (0.001 seconds).
+Test Case '-[PipelineKitTests.StandardPipelineChainCacheTests testStandardPipelineInvalidatesOnAddMiddleware]' started.
+Test Case '-[PipelineKitTests.StandardPipelineChainCacheTests testStandardPipelineInvalidatesOnAddMiddleware]' passed (0.000 seconds).
+Test Case '-[PipelineKitTests.StandardPipelineChainCacheTests testStandardPipelineInvalidatesOnClearMiddlewares]' started.
+Test Case '-[PipelineKitTests.StandardPipelineChainCacheTests testStandardPipelineInvalidatesOnClearMiddlewares]' passed (0.000 seconds).
+Test Case '-[PipelineKitTests.StandardPipelineChainCacheTests testStandardPipelineRepeatedExecutionsAllSucceed]' started.
+Test Case '-[PipelineKitTests.StandardPipelineChainCacheTests testStandardPipelineRepeatedExecutionsAllSucceed]' passed (0.000 seconds).
+Test Case '-[PipelineKitTests.StandardPipelineChainCacheTests testStandardPipelineReusesChainAcrossExecutions]' started.
+Test Case '-[PipelineKitTests.StandardPipelineChainCacheTests testStandardPipelineReusesChainAcrossExecutions]' passed (0.000 seconds).
+Test Suite 'StandardPipelineChainCacheTests' passed at 2026-10-30 16:49:09.828.
+	 Executed 5 tests, with 0 failures (0 unexpected) in 0.001 (0.002) seconds
+Test Suite 'PipelineKitTests.xctest' passed at 2026-10-30 16:49:09.828.
+	 Executed 10 tests, with 0 failures (0 unexpected) in 0.003 (0.004) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 16:49:09.828.
+	 Executed 10 tests, with 0 failures (0 unexpected) in 0.003 (0.005) seconds
+Test Suite 'Selected tests' started at 2026-10-30 16:49:09.910.
+Test Suite 'PipelineKitTestSupportTests.xctest' started at 2026-10-30 16:49:09.911.
+Test Suite 'PipelineKitTestSupportTests.xctest' passed at 2026-10-30 16:49:09.911.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 16:49:09.911.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 16:49:09.994.
+Test Suite 'PipelineKitSecurityTests.xctest' started at 2026-10-30 16:49:09.995.
+Test Suite 'PipelineKitSecurityTests.xctest' passed at 2026-10-30 16:49:09.995.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 16:49:09.995.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 16:49:10.080.
+Test Suite 'PipelineKitResilienceTests.xctest' started at 2026-10-30 16:49:10.080.
+Test Suite 'PipelineKitResilienceTests.xctest' passed at 2026-10-30 16:49:10.080.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 16:49:10.081.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 16:49:10.165.
+Test Suite 'PipelineKitPoolingTests.xctest' started at 2026-10-30 16:49:10.166.
+Test Suite 'PipelineKitPoolingTests.xctest' passed at 2026-10-30 16:49:10.166.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 16:49:10.166.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 16:49:10.250.
+Test Suite 'PipelineKitPerformanceTests.xctest' started at 2026-10-30 16:49:10.251.
+Test Suite 'PipelineKitPerformanceTests.xctest' passed at 2026-10-30 16:49:10.251.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 16:49:10.251.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 16:49:10.334.
+Test Suite 'PipelineKitObservabilityTests.xctest' started at 2026-10-30 16:49:10.335.
+Test Suite 'PipelineKitObservabilityTests.xctest' passed at 2026-10-30 16:49:10.335.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 16:49:10.335.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 16:49:10.418.
+Test Suite 'PipelineKitCoreTests.xctest' started at 2026-10-30 16:49:10.419.
+Test Suite 'PipelineKitCoreTests.xctest' passed at 2026-10-30 16:49:10.419.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 16:49:10.419.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 16:49:10.502.
+Test Suite 'PipelineKitCacheTests.xctest' started at 2026-10-30 16:49:10.502.
+Test Suite 'PipelineKitCacheTests.xctest' passed at 2026-10-30 16:49:10.502.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 16:49:10.503.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds

@@ -296,3 +296,19 @@ Initial Astra/max review of `e82a1fb..7776d0f` accepted the runner/evidence cont
 Ruling: V04 must return a failed check if a zero-exit root leaves a live owned descendant requiring termination, while preserving root status and cleanup outcome separately — the spec requires joined fixture work, and cleanup success cannot certify unfinished tests — cost if wrong: a command intentionally leaving background children will need a separate workflow or explicit future contract rather than appearing as a passing bounded validation run. Parent-exit fixture asserts root0/runner125 with premature_root_exit.
 
 V04 is now accepted for the documented macOS observed-lineage contract, and subsequent bounded deliberate probes may use it. Controller updated O01's two rows to retain I01/platform limits while resolving the V04 prerequisite. This is not whole-branch or Linux/floor approval. Use runner_exit_status together with exit_status and cleanup outcome; root zero alone is insufficient. Historical audit runner and evidence remain unchanged. No new warning was observed in V04's isolated checks; existing PipelineKit diagnostic debt remains for final review.
+
+## C02 — PK-F003 cached terminal ownership
+
+Base `2bcfbd3a28a2f16cde0d48cd2123fb4bb84c0dda`, branch `fix/stabilization-batch-1`; clean tracked state at start, untracked historical `audit/` and audit guide untouched. Commands below ran in the stabilization worktree through `python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id ID --timeout 600 -- COMMAND`; each JSON, process trace and raw log are retained under `logs/`. All runs settled with no survivors, no termination actions and no watchdog timeout.
+
+| ID | COMMAND | Root / runner | Result |
+| --- | --- | --- | --- |
+| C02-RED-001 | `swift test --filter PipelineChainCacheTests` | 1 / 1 | 10 tests, 2 assertions failed: typed mutation pipeline and handler retained. Other executed scenarios originally lacked middleware and therefore used the fast path. |
+| C02-RED-002 | `swift test --filter PipelineChainCacheTests` | 1 / 1 | 10 tests, 6 assertions failed: both typed weak witnesses for success, throwing and mutation. Never-executed control and erased route passed. |
+| C02-DEBUG-001 | `swift test --filter PipelineChainCacheTests` | 0 / 0 | 10 tests, 0 failures. |
+| C02-RELEASE-001 | `swift test -c release --filter PipelineChainCacheTests` | 0 / 0 | 10 tests, 0 failures. |
+| C02-FULL-001 | `swift test --parallel --skip PipelineKitPerformanceTests` | 0 / 0 | 1,020 XCTest selections completed; Swift Testing 20 tests in 5 suites passed. |
+
+Source state: RED-001 source SHA-256 `c2c8a7ad2076c302fbd05c640c7198a184addf13497b52e42dee77b27464dd03`, test `1ac80c51dad569a50d00538426dc1accfaaa84e84aee5142a53750364dc438b0`, diff `reports/C02-red-001.diff` (reconstructed and hash verified). RED-002 same source, test `5b70d005fbdf32e1d07928f359783f53586c77090671b4b1e1ce663e70138bb2`, diff `reports/C02-red.diff`. All green runs source `89e3a9633d8ed5ee7b88671ab5f29af432a7162bfcdb5a04c45eb4ea8e85e1bf`, same final test hash; exact diff `reports/C02-final.diff`. No other tracked source changes at these states.
+
+Warning comparison against `.superpowers/sdd/2026-10-29-pipelinekit-stabilization/baseline-warnings.json`: RED-001 and Release each emitted 50 distinct compiler diagnostics, including two not textually in baseline at `Tests/PipelineKitCoreTests/Errors/CancellationErrorTests.swift:88:9` and `:170:9` (unused unstructured throwing task); corresponding same warnings exist at baseline lines 96 and 233. C02 does not modify that file. RED-002, Debug and full incremental logs emitted no compiler warnings; this does not establish a clean build. Platform and runner limits remain as in V04/I01.

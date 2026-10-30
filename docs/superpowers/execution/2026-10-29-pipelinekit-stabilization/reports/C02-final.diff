@@ -1,0 +1,112 @@
+diff --git a/Sources/PipelineKit/Pipeline/StandardPipeline.swift b/Sources/PipelineKit/Pipeline/StandardPipeline.swift
+index d18f0e2..fb39018 100644
+--- a/Sources/PipelineKit/Pipeline/StandardPipeline.swift
++++ b/Sources/PipelineKit/Pipeline/StandardPipeline.swift
+@@ -436,8 +436,9 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: Pipeline where H.C
+             chain = cached
+         } else {
+             // Build the middleware chain (no cancellation checks here to preserve existing behavior)
++            let handler: H = self.handler
+             let final: @Sendable (C, CommandContext) async throws -> C.Result = { cmd, ctx in
+-                try await self.handler.handle(cmd, context: ctx)
++                try await handler.handle(cmd, context: ctx)
+             }
+             let built = MiddlewareChainBuilder.build(
+                 middlewares: ContiguousArray(orderedEntries.map(\.middleware)),
+diff --git a/Tests/PipelineKitTests/PipelineChainCacheTests.swift b/Tests/PipelineKitTests/PipelineChainCacheTests.swift
+index 95b463a..38eb4ed 100644
+--- a/Tests/PipelineKitTests/PipelineChainCacheTests.swift
++++ b/Tests/PipelineKitTests/PipelineChainCacheTests.swift
+@@ -70,9 +70,92 @@ private struct AppendMiddleware: Middleware {
+     }
+ }
+ 
++private enum LifetimeError: Error { case expected }
++
++private final class LifetimeHandler: CommandHandler {
++    typealias CommandType = EchoCommand
++    let shouldThrow: Bool
++
++    init(shouldThrow: Bool) { self.shouldThrow = shouldThrow }
++
++    func handle(_ command: EchoCommand, context: CommandContext) async throws -> String {
++        if shouldThrow { throw LifetimeError.expected }
++        return command.value
++    }
++}
++
++private final class LifetimeWitness {
++    weak var pipeline: AnyObject?
++    weak var handler: LifetimeHandler?
++
++    init(pipeline: AnyObject, handler: LifetimeHandler) {
++        self.pipeline = pipeline
++        self.handler = handler
++    }
++}
++
++private enum LifetimeScenario: CaseIterable {
++    case neverExecuted, success, throwing, middlewareMutation
++}
++
++private func typedLifetimeWitness(_ scenario: LifetimeScenario) async throws -> LifetimeWitness {
++    let handler = LifetimeHandler(shouldThrow: scenario == .throwing)
++    let pipeline = StandardPipeline(handler: handler)
++    let witness = LifetimeWitness(pipeline: pipeline, handler: handler)
++    if scenario != .neverExecuted {
++        try await pipeline.addMiddleware(AppendMiddleware(suffix: "!"))
++        do {
++            let result = try await pipeline.execute(EchoCommand(value: "x"), context: .test())
++            XCTAssertEqual(result, "x!")
++            if scenario == .throwing { XCTFail("Expected handler error") }
++        } catch LifetimeError.expected {
++            if scenario != .throwing { XCTFail("Unexpected handler error") }
++        }
++    }
++    if scenario == .middlewareMutation {
++        try await pipeline.addMiddleware(AppendMiddleware(suffix: "?"))
++        let result = try await pipeline.execute(EchoCommand(value: "x"), context: .test())
++        XCTAssertEqual(result, "x?!")
++    }
++    return witness
++}
++
++private func erasedLifetimeWitness(_ scenario: LifetimeScenario) async throws -> LifetimeWitness {
++    let handler = LifetimeHandler(shouldThrow: scenario == .throwing)
++    let pipeline = AnyStandardPipeline(handler: handler)
++    let witness = LifetimeWitness(pipeline: pipeline, handler: handler)
++    if scenario != .neverExecuted {
++        try await pipeline.addMiddleware(AppendMiddleware(suffix: "!"))
++        do {
++            let result = try await pipeline.execute(EchoCommand(value: "x"), context: .test())
++            XCTAssertEqual(result, "x!")
++            if scenario == .throwing { XCTFail("Expected handler error") }
++        } catch LifetimeError.expected {
++            if scenario != .throwing { XCTFail("Unexpected handler error") }
++        }
++    }
++    if scenario == .middlewareMutation {
++        try await pipeline.addMiddleware(AppendMiddleware(suffix: "?"))
++        let result = try await pipeline.execute(EchoCommand(value: "x"), context: .test())
++        XCTAssertEqual(result, "x?!")
++    }
++    return witness
++}
++
+ // MARK: - StandardPipeline Cache Tests
+ 
+ final class StandardPipelineChainCacheTests: XCTestCase {
++    func testCachedPipelineReleasesAfterExecution() async throws {
++        for scenario in LifetimeScenario.allCases {
++            let typed = try await typedLifetimeWitness(scenario)
++            XCTAssertNil(typed.pipeline, "Typed pipeline retained in \(scenario)")
++            XCTAssertNil(typed.handler, "Typed handler retained in \(scenario)")
++            let erased = try await erasedLifetimeWitness(scenario)
++            XCTAssertNil(erased.pipeline, "Erased pipeline retained in \(scenario)")
++            XCTAssertNil(erased.handler, "Erased handler retained in \(scenario)")
++        }
++    }
++
+     /// Executing the same pipeline twice must succeed both times with identical results.
+     ///
+     /// This is the core safety property of caching: the cached chain creates fresh `NextGuard`

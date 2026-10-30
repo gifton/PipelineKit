@@ -436,8 +436,9 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: Pipeline where H.C
             chain = cached
         } else {
             // Build the middleware chain (no cancellation checks here to preserve existing behavior)
+            let handler: H = self.handler
             let final: @Sendable (C, CommandContext) async throws -> C.Result = { cmd, ctx in
-                try await self.handler.handle(cmd, context: ctx)
+                try await handler.handle(cmd, context: ctx)
             }
             let built = MiddlewareChainBuilder.build(
                 middlewares: ContiguousArray(orderedEntries.map(\.middleware)),
