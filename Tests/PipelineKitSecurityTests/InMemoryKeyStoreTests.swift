@@ -8,6 +8,38 @@ import XCTest
 @testable import PipelineKitTestSupport
 
 final class InMemoryKeyStoreTests: XCTestCase {
+    func testSnapshotKeyMatchesIdentifierDuringConcurrentStores() async throws {
+        let store = InMemoryKeyStore()
+        let initialSnapshot = await store.currentKeySnapshot
+        XCTAssertNil(initialSnapshot)
+        let keys: [String: SendableSymmetricKey] = Dictionary(uniqueKeysWithValues: (0..<100).map {
+            ("snapshot-\($0)", SendableSymmetricKey(size: .bits256))
+        })
+        await store.store(key: try XCTUnwrap(keys["snapshot-0"]), identifier: "snapshot-0")
+
+        let snapshots: [EncryptionKeySnapshot] = await withTaskGroup(of: EncryptionKeySnapshot?.self) { group in
+            for (identifier, key) in keys {
+                group.addTask {
+                    await store.store(key: key, identifier: identifier)
+                    return await store.currentKeySnapshot
+                }
+                group.addTask { await store.currentKeySnapshot }
+            }
+            var results: [EncryptionKeySnapshot] = []
+            for await snapshot in group {
+                if let snapshot { results.append(snapshot) }
+            }
+            return results
+        }
+
+        XCTAssertEqual(snapshots.count, 200)
+        for snapshot in snapshots {
+            let expectedKey = try XCTUnwrap(keys[snapshot.identifier])
+            XCTAssertTrue(snapshot.key.key == expectedKey.key,
+                          "Every snapshot must bind its identifier to the matching key")
+        }
+    }
+
     func testConcurrentAccess() async throws {
         let store = InMemoryKeyStore()
         let iterations = 100
@@ -44,8 +76,7 @@ final class InMemoryKeyStoreTests: XCTestCase {
             // Concurrent current key access
             for _ in 0..<iterations {
                 group.addTask {
-                    _ = await store.currentKey
-                    _ = await store.currentKeyIdentifier
+                    _ = await store.currentKeySnapshot
                 }
             }
         }
@@ -57,7 +88,7 @@ final class InMemoryKeyStoreTests: XCTestCase {
         }
         
         // Verify current key is one of the test keys
-        let currentIdentifier = await store.currentKeyIdentifier
+        let currentIdentifier = (await store.currentKeySnapshot)?.identifier
         XCTAssertTrue(expectedKeys.contains(currentIdentifier ?? ""),
                      "Current key should be one of the test keys")
     }
@@ -94,13 +125,13 @@ final class InMemoryKeyStoreTests: XCTestCase {
             // Concurrent access to current key
             for _ in 0..<iterations {
                 group.addTask {
-                    _ = await store.currentKey
+                    _ = await store.currentKeySnapshot
                 }
             }
         }
         
         // Verify current key is still accessible
-        let currentKey = await store.currentKey
+        let currentKey = await store.currentKeySnapshot
         XCTAssertNotNil(currentKey, "Should have a current key after concurrent operations")
     }
 
@@ -129,7 +160,7 @@ final class InMemoryKeyStoreTests: XCTestCase {
         XCTAssertNotNil(finalKey, "Key should exist after concurrent updates")
         
         // Verify it's the current key
-        let currentIdentifier = await store.currentKeyIdentifier
+        let currentIdentifier = (await store.currentKeySnapshot)?.identifier
         XCTAssertEqual(currentIdentifier, keyIdentifier,
                       "Last stored key should be current")
     }
@@ -157,7 +188,7 @@ final class InMemoryKeyStoreTests: XCTestCase {
                 }
                 
                 group.addTask {
-                    _ = await store.currentKey
+                    _ = await store.currentKeySnapshot
                 }
                 
                 group.addTask {
@@ -171,7 +202,7 @@ final class InMemoryKeyStoreTests: XCTestCase {
         let finalCurrentKey = await store.key(for: "current")
         XCTAssertNotNil(finalCurrentKey, "Current key should not be removed by expiration")
         
-        let currentIdentifier = await store.currentKeyIdentifier
+        let currentIdentifier = (await store.currentKeySnapshot)?.identifier
         XCTAssertEqual(currentIdentifier, "current",
                       "Current key identifier should remain unchanged")
     }
@@ -198,8 +229,7 @@ final class InMemoryKeyStoreTests: XCTestCase {
         
         let task3 = Task {
             for _ in 0..<100 {
-                _ = await store.currentKey
-                _ = await store.currentKeyIdentifier
+                _ = await store.currentKeySnapshot
             }
         }
         

@@ -1,9 +1,9 @@
 # First stabilization batch migration — draft
 
-This draft currently covers S01 validation and sanitization only. I01 owns the completed
-batch migration guide and compilation of its examples. The snippet below has not yet been
-compiled as a standalone migration example; the S01 contract suite exercises the same
-capability and pipeline APIs. Encryption and the remaining batch migrations are pending.
+This draft currently covers S01 validation/sanitization and S02 command encryption. I01
+owns the completed batch migration guide, compilation of all examples, and the consolidated
+Breaking entry. These snippets have not yet been compiled as standalone migration examples;
+the task contract suites exercise their public APIs. Remaining batch migrations are pending.
 
 ## Breaking: explicit validation and sanitization capabilities
 
@@ -74,6 +74,95 @@ or sanitization of every command.
 
 `SecurityValidatable` remains the separate security-policy protocol; `EncryptableCommand`
 remains the separate encryption-middleware protocol. Neither substitutes for the new
-capabilities. S01 temporarily retains the legacy encryption-only `Command` extension
-(`sensitiveFields` and `updateSensitiveFields`) so S02 can migrate its callers in one
-buildable change. This draft makes no claim that the legacy encryptor is repaired.
+capabilities. The encryption-only `Command` extension hooks `sensitiveFields` and
+`updateSensitiveFields` are also removed by S02; migrate encryptor callers as below.
+
+
+## Breaking: ciphertext-only complete commands and atomic key snapshots
+
+`CommandEncryptor.encrypt` and `decrypt` now require `T: Command & Codable`. Encode all
+state required to reconstruct your command. The encryptor JSON-encodes the complete command,
+seals it with AES-GCM-256, and reconstructs a new `T` by opening and decoding that payload.
+It no longer calls the extension-only `sensitiveFields` or `updateSensitiveFields` hooks.
+
+`EncryptedCommand<T>` contains only `encryptedData`, `keyIdentifier`, and `algorithm`.
+`T` is a phantom type; no command, redacted shell, closure, or plaintext reference is retained.
+Remove uses of `originalCommand` and replace the old initializer with the three-field one:
+
+```swift
+import Foundation
+import PipelineKit
+import PipelineKitSecurity
+
+struct StoredCommand: Command, Codable {
+    typealias Result = Void
+    let accountIdentifier: String
+    let payload: Data
+}
+
+func storeAndRestore(
+    _ command: StoredCommand,
+    using encryptor: CommandEncryptor
+) async throws -> StoredCommand {
+    let encrypted = try await encryptor.encrypt(command)
+    // Persist or transmit these three fields; retain the expected command type separately.
+    let restoredEnvelope = EncryptedCommand<StoredCommand>(
+        encryptedData: encrypted.encryptedData,
+        keyIdentifier: encrypted.keyIdentifier,
+        algorithm: encrypted.algorithm
+    )
+    return try await encryptor.decrypt(restoredEnvelope)
+}
+```
+
+Every `KeyStore` conformer must replace its separate `currentKey` and `currentKeyIdentifier`
+requirements with `var currentKeySnapshot: EncryptionKeySnapshot? { get async }`. Capture the
+key and identifier together under the store's isolation; never assemble a pair from independent
+async reads. Keep key lookup, storage and expiration methods. For example, this in-memory
+teaching store publishes a pair in the same actor turn as its key write:
+
+```swift
+import Foundation
+import PipelineKitSecurity
+
+actor ExampleVersionedKeyStore: KeyStore {
+    private var keys: [String: SendableSymmetricKey] = [:]
+    private var dates: [String: Date] = [:]
+    private(set) var currentKeySnapshot: EncryptionKeySnapshot?
+
+    func key(for identifier: String) -> SendableSymmetricKey? { keys[identifier] }
+
+    func store(key: SendableSymmetricKey, identifier: String) {
+        keys[identifier] = key
+        dates[identifier] = Date()
+        currentKeySnapshot = EncryptionKeySnapshot(key: key, identifier: identifier)
+    }
+
+    func removeExpiredKeys(before cutoff: Date) {
+        for (identifier, date) in dates where date < cutoff && identifier != currentKeySnapshot?.identifier {
+            keys.removeValue(forKey: identifier)
+            dates.removeValue(forKey: identifier)
+        }
+    }
+}
+```
+
+Use a fresh identifier for each stored key version and supply only 256-bit keys. Encryption
+captures one immutable pair; another encryptor rotating the same store does not change the
+identifier attached to an already captured key. Old keys remain available until the store
+explicitly expires them. Missing or expired keys fail with `.keyNotFound`; a key of the wrong
+size fails with `.invalidKey`. Decryption accepts only the exact `AES-GCM-256` algorithm label,
+and cryptographic authentication and Codable failures propagate instead of returning a
+retained original command.
+
+The previous partial-field ciphertext format is incompatible with complete-command decoding.
+Migrate before removing the old consumer or losing its original command objects: use that
+consumer and its keys to recover the complete application command, then re-encrypt it through
+the new Codable API. The old generic hooks could seal an empty JSON object, so old ciphertext
+alone is not evidence that lost command fields can be recovered. Keep both the original
+command data and required old keys until migration is verified; if either is already lost,
+recovery may be impossible. Migration validation should record counts and pass/fail results,
+never synthetic or real plaintext.
+
+The separate `EncryptionMiddleware` / `EncryptableCommand` custom-result path is unchanged;
+SCP-09 remains open. This change makes no key-memory zeroization promise.

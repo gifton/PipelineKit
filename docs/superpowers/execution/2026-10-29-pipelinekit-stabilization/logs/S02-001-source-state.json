@@ -1,0 +1,25 @@
+{
+  "head": "a6a704b7e5192232c511eb2af8b9ed866b7f8aa8",
+  "branch": "fix/stabilization-batch-1",
+  "status": " M Tests/PipelineKitSecurityTests/InMemoryKeyStoreTests.swift\n?? Tests/PipelineKitSecurityTests/CommandEncryptorContractTests.swift\n?? audit/\n?? docs/PIPELINEKIT_AUDIT_GUIDE.md\n?? docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/s02_source_state.py\n",
+  "tracked_production_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "tracked_production_diff": "",
+  "tracked_relevant_diff_sha256": "764e5a6b93975aa09827a547f954fffcc7dcb77c0974e0d926e0cc3973e5c554",
+  "files": {
+    "Package.swift": "dc9a6bfda7eb64fe7e65c22e9419178b8a7b29295c16db9a2b503f3e030b5ed9",
+    "Sources/PipelineKitSecurity/Command+Security.swift": "a3e803979baf58da70c675cc359545c085d8962628fefcdc09533b72ab9a2d3c",
+    "Sources/PipelineKitSecurity/Encryption/CommandEncryptor.swift": "219b264545f1a0e8903358969bcb877cb915ac47009efcd4a819bddd433b19f2",
+    "Sources/PipelineKitSecurity/Encryption/EncryptionKeySnapshot.swift": null,
+    "Sources/PipelineKitTestSupport/Mocks/InMemoryKeyStore.swift": "75d44d930c36c8d3f196735f40003a5cd773a578dec529137b32dce893f90747",
+    "Sources/PipelineKitSecurity/Middleware/Encryption/EncryptionMiddleware.swift": "39f9721d990b839bb2bfbf87637ac7bd830dacc6d2bdb04cd98b88d47f378fe9",
+    "Tests/PipelineKitSecurityTests/CommandEncryptorContractTests.swift": "8034a45fe66d574a2a06188d823229b3bae388a9e0c4825bbeb52dbc2498c488",
+    "Tests/PipelineKitSecurityTests/InMemoryKeyStoreTests.swift": "896d234da42cdb888a9b2e726b26976511f54ec1e13f9120dc0089adab990d18",
+    "Tests/PipelineKitSecurityTests/Security/EncryptionTests.swift": "469d0c61b85504005cb61523a4131d7a2384d0240112a5f9279a1949177ea432",
+    "docs/guides/security-best-practices.md": "9abb18754516e214f89037ebf01c86b3b323770e1c9535f2773023939fcc0804",
+    "docs/migrations/first-stabilization-batch.md": "2848cb8174fa5c2cff9e7e3b59954aef1739f3bfce3f32401d50e7d6e38a3225",
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/s02_source_state.py": "eca5f6d0914fafd0c4fe546ee2d2d215dae099c4854bec31f5fd0345d68ff0a5",
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/s02_original_command.swift": null,
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/s02_negative_consumer.py": null
+  },
+  "note": "Test/doc diffs identified by digest and individual file hashes; fixture payloads are not copied into evidence."
+}

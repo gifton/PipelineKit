@@ -1,0 +1,35 @@
+{
+  "final_logs": [
+    "S02-004-encryption-debug.log",
+    "S02-005-encryption-release.log",
+    "S02-006-debug-full.log"
+  ],
+  "normalization": "File path plus diagnostic text; ignore shifted line/column numbers.",
+  "existing": [
+    "Sources/PipelineKitCache/CachingMiddleware.swift: warning: use of protocol 'Decodable' as a type must be written 'any Decodable'; this will be an error in a future Swift language mode [#ExistentialAny]",
+    "Sources/PipelineKitCore/Context/ExecutionContext.swift: warning: 'withValue(_:operation:isolation:file:line:)' is deprecated: Prefer the 'nonisolated(nonsending)' overload with stricter execution on caller context semantics: withValue(_:operation:file:line:) [#DeprecatedDeclaration]",
+    "Sources/PipelineKitResilienceCircuitBreaker/PartitionedBulkheadMiddleware.swift: warning: 'weak' ownership of capture 'partition' differs from implicitly-captured strong reference in outer scope [#ImplicitStrongCapture]",
+    "Sources/PipelineKitSecurity/AuditLogger.swift: warning: 'withValue(_:operation:isolation:file:line:)' is deprecated: Prefer the 'nonisolated(nonsending)' overload with stricter execution on caller context semantics: withValue(_:operation:file:line:) [#DeprecatedDeclaration]",
+    "Tests/PipelineKitCacheTests/CompressionMiddlewareTests.swift: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]",
+    "Tests/PipelineKitCacheTests/NextGuardSuppressionTests.swift: warning: 'is' test is always true",
+    "Tests/PipelineKitCacheTests/SimpleCachingMiddlewareTests.swift: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]",
+    "Tests/PipelineKitCoreTests/Context/EventEmissionTests.swift: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]",
+    "Tests/PipelineKitCoreTests/Core/CommandContextThreadSafetyTests.swift: warning: immutable value 'key' was never used; consider replacing with '_' or removing it [#NoUsage]",
+    "Tests/PipelineKitCoreTests/Errors/CancellationErrorTests.swift: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]",
+    "Tests/PipelineKitCoreTests/Middleware/MiddlewareTests.swift: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]",
+    "Tests/PipelineKitCoreTests/Pipeline/PipelineTests.swift: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]",
+    "Tests/PipelineKitObservabilityTests/PrometheusExporterTests.swift: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]",
+    "Tests/PipelineKitPerformanceTests/BackPressurePerformanceTests.swift: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]",
+    "Tests/PipelineKitPerformanceTests/PipelinePerformanceTests.swift: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]",
+    "Tests/PipelineKitResilienceTests/AsyncSemaphoreCancellationTests.swift: warning: immutable value 'i' was never used; consider replacing with '_' or removing it [#NoUsage]",
+    "Tests/PipelineKitResilienceTests/PartitionedBulkheadConfigurationTests.swift: warning: 'init(partitions:partitionExtractor:defaultPartition:allowBorrowing:maxBorrowPercentage:emitMetrics:)' is deprecated: maxBorrowPercentage has always been the reserved (non-lendable) share \u2014 use reservedCapacityPercentage, which has identical semantics. [#DeprecatedDeclaration]",
+    "Tests/PipelineKitResilienceTests/PartitionedBulkheadConfigurationTests.swift: warning: 'maxBorrowPercentage' is deprecated: renamed to 'reservedCapacityPercentage' [#DeprecatedDeclaration]",
+    "Tests/PipelineKitResilienceTests/TimeoutMiddlewareCompileTests.swift: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]",
+    "Tests/PipelineKitSecurityTests/AuthorizationMiddlewareTests.swift: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]"
+  ],
+  "new": [],
+  "transient_new_in_S02_002": [
+    "Tests/PipelineKitSecurityTests/CommandEncryptorContractTests.swift: warning: weak variable 'original' was never mutated; consider changing to 'let' constant [#VariableNeverMutated::WeakMutability]"
+  ],
+  "transient_resolution": "Replaced weak local variable with a weak stored-property holder; does not require newer weak-let syntax."
+}

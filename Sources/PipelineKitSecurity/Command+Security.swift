@@ -25,27 +25,3 @@ public enum SecurityCapabilityRequirement: Sendable {
     /// Invoke the capability when present; explicitly allow unrelated commands through.
     case ifPresent
 }
-
-// MARK: - Encryption
-
-public extension Command {
-    /// Fields that should be encrypted.
-    ///
-    /// Default implementation returns empty dictionary.
-    /// Override this property to specify sensitive fields.
-    var sensitiveFields: [String: Any] {
-        // Default: no sensitive fields
-        return [:]
-    }
-    
-    /// Update the command with decrypted fields.
-    ///
-    /// Default implementation does nothing.
-    /// Override this method if your command has mutable sensitive fields.
-    ///
-    /// - Parameter fields: The decrypted field values
-    func updateSensitiveFields(_ fields: [String: Any]) {
-        // Default: no-op for immutable commands
-        // Commands that need this should make themselves mutable
-    }
-}

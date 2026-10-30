@@ -1,0 +1,12 @@
+{"negative": false, "command": ["swiftc", "-typecheck", "-swift-version", "6", "-I", "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Products/Debug", "-F", "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Products/Debug/PackageFrameworks", "-F", "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Products/Debug", "-Xcc", "-fmodule-map-file=/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/checkouts/swift-atomics/Sources/_AtomicsShims/include/module.modulemap", "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/s02_original_command.swift"], "exit_status": 0, "error_diagnostics": []}
+
+{"negative": true, "command": ["swiftc", "-typecheck", "-swift-version", "6", "-I", "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Products/Debug", "-F", "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Products/Debug/PackageFrameworks", "-F", "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Products/Debug", "-Xcc", "-fmodule-map-file=/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/checkouts/swift-atomics/Sources/_AtomicsShims/include/module.modulemap", "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/s02_original_command.swift", "-D", "REJECT_ORIGINAL_COMMAND"], "exit_status": 1, "error_diagnostics": ["value of type 'EncryptedCommand<ProbeCommand>' has no member 'originalCommand'"]}
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/s02_original_command.swift:15:21: error: value of type 'EncryptedCommand<ProbeCommand>' has no member 'originalCommand'
+13 | ) async throws -> ProbeCommand {
+14 | #if REJECT_ORIGINAL_COMMAND
+15 |     return envelope.originalCommand
+   |                     `- error: value of type 'EncryptedCommand<ProbeCommand>' has no member 'originalCommand'
+16 | #else
+17 |     return try await encryptor.decrypt(envelope)
+
+PASS: positive control compiled; negative consumer rejected only originalCommand access.

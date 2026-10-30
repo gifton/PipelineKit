@@ -499,10 +499,11 @@ that where you call `dispatch(_:metadata:)` if you need to react to an open circ
 
 ### Encrypting Sensitive Commands
 
-Always encrypt sensitive data:
+`CommandEncryptor` encodes the complete `Codable` command and returns a ciphertext-only
+envelope. Include every field needed to reconstruct the command in its Codable conformance:
 
 ```swift
-struct PaymentCommand: Command {
+struct PaymentCommand: Command, Codable {
     typealias Result = Void
 
     var cardNumber: String
@@ -511,26 +512,7 @@ struct PaymentCommand: Command {
     let amount: Double
     let merchantId: String
 
-    // Mark sensitive fields
-    var sensitiveFields: [String: Any] {
-        [
-            "cardNumber": cardNumber,
-            "cvv": cvv,
-            "ssn": ssn
-        ]
-    }
 
-    mutating func updateSensitiveFields(_ fields: [String: Any]) {
-        if let cardNumber = fields["cardNumber"] as? String {
-            self.cardNumber = cardNumber
-        }
-        if let cvv = fields["cvv"] as? String {
-            self.cvv = cvv
-        }
-        if let ssn = fields["ssn"] as? String {
-            self.ssn = ssn
-        }
-    }
 }
 ```
 
@@ -543,15 +525,7 @@ automatically based on a configurable interval, backed by your own `KeyStore` co
 // A minimal in-memory KeyStore; back this with Keychain/HSM/KMS in production.
 actor DemoKeyStore: KeyStore {
     private var keys: [String: SendableSymmetricKey] = [:]
-    private var latestIdentifier: String?
-
-    var currentKey: SendableSymmetricKey? {
-        latestIdentifier.flatMap { keys[$0] }
-    }
-
-    var currentKeyIdentifier: String? {
-        latestIdentifier
-    }
+    private(set) var currentKeySnapshot: EncryptionKeySnapshot?
 
     func key(for identifier: String) async -> SendableSymmetricKey? {
         keys[identifier]
@@ -559,7 +533,7 @@ actor DemoKeyStore: KeyStore {
 
     func store(key: SendableSymmetricKey, identifier: String) async {
         keys[identifier] = key
-        latestIdentifier = identifier
+        currentKeySnapshot = EncryptionKeySnapshot(key: key, identifier: identifier)
     }
 
     func removeExpiredKeys(before date: Date) async {
@@ -572,7 +546,15 @@ let encryptor = await CommandEncryptor(keyStore: keyStore, keyRotationInterval: 
 ```
 
 `InMemoryKeyStore` lives in `PipelineKitTestSupport` for test use only — production code
-supplies its own `KeyStore`, as above.
+supplies its own `KeyStore`, as above. Capture `currentKeySnapshot` atomically: separate
+reads of a key and its identifier can cross a rotation. Use a fresh identifier for every
+key version and retain older keys while their ciphertext must remain decryptable. Supplied
+keys must be 256 bits. Rotation by another encryptor may leave this encryptor using an older,
+still-stored pair; the envelope always names that captured pair.
+
+The old `sensitiveFields` / `updateSensitiveFields` hooks and `originalCommand` envelope
+property are removed. See the [migration draft](../migrations/first-stabilization-batch.md)
+for the incompatible legacy format and recovery limits.
 
 ### Field-Level Encryption
 
