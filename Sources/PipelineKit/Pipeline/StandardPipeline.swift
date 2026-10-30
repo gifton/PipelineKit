@@ -55,9 +55,8 @@ private let slog = PipelineKitLogger.core
 /// the middleware chain. This is useful for input normalization, default
 /// value injection, and request ID generation.
 public actor StandardPipeline<C: Command, H: CommandHandler>: Pipeline where H.CommandType == C {
-    /// The collection of middleware to execute in order.
-    /// Using ContiguousArray for better cache locality and performance.
-    private var middlewares: ContiguousArray<any Middleware> = []
+    /// Entries in insertion order; execution and introspection use `orderedEntries`.
+    private var middlewareEntries: ContiguousArray<MiddlewareEntry> = []
 
     /// Cached middleware closure chain.
     ///
@@ -67,7 +66,7 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: Pipeline where H.C
     /// executions (it does not bake a one-shot guard into its structure). The chain also closes
     /// over `self.handler`, which is immutable (`let`), so baking it in is safe.
     ///
-    /// Invalidated (set to `nil`) at every point that mutates `middlewares`.
+    /// Invalidated (set to `nil`) at every point that mutates `middlewareEntries`.
     private var cachedChain: (@Sendable (C, CommandContext) async throws -> C.Result)?
 
     /// The chain of command interceptors that run before middleware.
@@ -154,11 +153,20 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: Pipeline where H.C
     /// - Parameter middleware: The middleware to add
     /// - Throws: `PipelineError.maxDepthExceeded` if the maximum depth is reached
     public func addMiddleware(_ middleware: any Middleware) throws {
-        guard middlewares.count < maxDepth else {
-            throw PipelineError.maxDepthExceeded(depth: middlewares.count + 1, max: maxDepth)
+        try addMiddleware(middleware, effectivePriority: middleware.priority.rawValue)
+    }
+
+    /// Adds the original middleware with the builder's effective priority.
+    internal func addMiddleware(_ middleware: any Middleware, effectivePriority: Int) throws {
+        guard middlewareEntries.count < maxDepth else {
+            throw PipelineError.maxDepthExceeded(depth: middlewareEntries.count + 1, max: maxDepth)
         }
-        middlewares.append(middleware)
-        sortMiddlewareByPriority()
+        middlewareEntries.append(MiddlewareEntry(
+            middleware: middleware,
+            effectivePriority: effectivePriority,
+            insertionOrdinal: middlewareEntries.count
+        ))
+        cachedChain = nil
     }
     
     /// Adds multiple middleware to the pipeline at once.
@@ -168,11 +176,17 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: Pipeline where H.C
     /// - Parameter newMiddlewares: Array of middleware to add
     /// - Throws: `PipelineError.maxDepthExceeded` if adding would exceed maximum depth
     public func addMiddlewares(_ newMiddlewares: [any Middleware]) throws {
-        guard middlewares.count + newMiddlewares.count <= maxDepth else {
-            throw PipelineError.maxDepthExceeded(depth: middlewares.count + 1, max: maxDepth)
+        guard middlewareEntries.count + newMiddlewares.count <= maxDepth else {
+            throw PipelineError.maxDepthExceeded(depth: middlewareEntries.count + 1, max: maxDepth)
         }
-        middlewares.append(contentsOf: newMiddlewares)
-        sortMiddlewareByPriority()
+        for middleware in newMiddlewares {
+            middlewareEntries.append(MiddlewareEntry(
+                middleware: middleware,
+                effectivePriority: middleware.priority.rawValue,
+                insertionOrdinal: middlewareEntries.count
+            ))
+        }
+        cachedChain = nil
     }
     
     /// Removes all instances of a specific middleware type.
@@ -181,15 +195,23 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: Pipeline where H.C
     /// - Returns: The number of middleware instances removed
     @discardableResult
     public func removeMiddleware<M: Middleware>(ofType type: M.Type) -> Int {
-        let initialCount = middlewares.count
-        middlewares.removeAll { $0 is M }
+        let initialCount = middlewareEntries.count
+        middlewareEntries.removeAll { $0.middleware is M }
+        // Compact ordinals in insertion order so subsequent additions can use count.
+        middlewareEntries = ContiguousArray(middlewareEntries.enumerated().map { ordinal, entry in
+            MiddlewareEntry(
+                middleware: entry.middleware,
+                effectivePriority: entry.effectivePriority,
+                insertionOrdinal: ordinal
+            )
+        })
         cachedChain = nil  // Invalidate cached chain after mutation
-        return initialCount - middlewares.count
+        return initialCount - middlewareEntries.count
     }
 
     /// Removes all middleware from the pipeline.
     public func clearMiddlewares() {
-        middlewares.removeAll()
+        middlewareEntries.removeAll()
         cachedChain = nil  // Invalidate cached chain after mutation
     }
 
@@ -332,11 +354,11 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: Pipeline where H.C
         // at the public execute(_:context:) entry point.
         return try await ExecutionContext.$current.withValue(executionContext) {
             // Fast path: No middleware
-            if middlewares.isEmpty {
+            if middlewareEntries.isEmpty {
                 return try await handler.handle(command, context: context)
             }
 
-            // Execute through middleware chain without copying middleware array
+            // Execute through the middleware chain, rebuilding it after mutations.
             return try await executeWithMiddleware(command, context: context)
         }
     }
@@ -355,12 +377,12 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: Pipeline where H.C
 
     /// The current number of middleware in the pipeline.
     public var middlewareCount: Int {
-        middlewares.count
+        middlewareEntries.count
     }
 
     /// Returns the types of all middleware in the pipeline.
     public var middlewareTypes: [String] {
-        middlewares.map { String(describing: type(of: $0)) }
+        orderedEntries.map { String(describing: type(of: $0.middleware)) }
     }
 
     /// Checks if the pipeline contains middleware of a specific type.
@@ -368,7 +390,7 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: Pipeline where H.C
     /// - Parameter type: The middleware type to check for
     /// - Returns: True if the pipeline contains the specified middleware type
     public func hasMiddleware<M: Middleware>(ofType type: M.Type) -> Bool {
-        middlewares.contains { $0 is M }
+        middlewareEntries.contains { $0.middleware is M }
     }
 
     /// Checks if the pipeline contains an interceptor of a specific type.
@@ -385,8 +407,8 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: Pipeline where H.C
     /// Internal helper to get middleware information for visualization
     /// - Returns: Array of tuples containing (type, priority) for each middleware
     internal func getMiddlewareDetails() -> [(type: any Middleware.Type, priority: Int)] {
-        middlewares.map { middleware in
-            (type: type(of: middleware), priority: middleware.priority.rawValue)
+        orderedEntries.map { entry in
+            (type: type(of: entry.middleware), priority: entry.effectivePriority)
         }
     }
 
@@ -398,18 +420,9 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: Pipeline where H.C
 
     // MARK: - Private Methods
     
-    /// Sorts middleware by priority (lower values execute first),
-    /// preserving insertion order for equal priorities.
-    private func sortMiddlewareByPriority() {
-        let stabilized = middlewares.enumerated().sorted { lhs, rhs in
-            let lp = lhs.element.priority.rawValue
-            let rp = rhs.element.priority.rawValue
-            if lp != rp { return lp < rp }
-            return lhs.offset < rhs.offset
-        }
-        middlewares = ContiguousArray(stabilized.map { $0.element })
-        // Invalidate cached chain: covers addMiddleware/addMiddlewares which call this.
-        cachedChain = nil
+    /// Shared ordering for execution and introspection; the stored sequence remains insertion ordered.
+    private var orderedEntries: [MiddlewareEntry] {
+        middlewareEntries.sorted(by: MiddlewareEntry.isOrderedBefore)
     }
 
     /// Executes a command through a chain of middleware.
@@ -427,7 +440,7 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: Pipeline where H.C
                 try await self.handler.handle(cmd, context: ctx)
             }
             let built = MiddlewareChainBuilder.build(
-                middlewares: middlewares,
+                middlewares: ContiguousArray(orderedEntries.map(\.middleware)),
                 insertCancellationChecks: false,
                 final: final
             )
