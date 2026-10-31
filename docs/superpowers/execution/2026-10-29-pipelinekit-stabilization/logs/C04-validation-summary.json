@@ -56,7 +56,10 @@
       "xctest_passed_cases": 6,
       "xctest_progress_records": 0,
       "swift_testing_summaries": [],
-      "log_sha256": "2f75963ee02ac234cc5fca9dd8fc30d08dc0b29e17aa0542199cd20f5389d42d"
+      "log_sha256": "2f75963ee02ac234cc5fca9dd8fc30d08dc0b29e17aa0542199cd20f5389d42d",
+      "configuration_warning_source_lines": [],
+      "configuration_warning_count": 0,
+      "configuration_warning_kind_count": 0
     },
     "C04-002": {
       "command": [
@@ -109,7 +112,10 @@
       "xctest_passed_cases": 6,
       "xctest_progress_records": 0,
       "swift_testing_summaries": [],
-      "log_sha256": "5164b943ecd2421608908c51c44994ddedad355620bdd016679f0d74146b5aad"
+      "log_sha256": "5164b943ecd2421608908c51c44994ddedad355620bdd016679f0d74146b5aad",
+      "configuration_warning_source_lines": [],
+      "configuration_warning_count": 0,
+      "configuration_warning_kind_count": 0
     },
     "C04-003": {
       "command": [
@@ -139,11 +145,25 @@
       "compiler_warnings": [],
       "new_compiler_warnings": [],
       "runtime_warnings": [],
-      "configuration_warnings": [],
+      "configuration_warnings": [
+        "2026-10-30T17:37:28-0700 warning PipelineKit.Core: [PipelineKit] SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features.",
+        "2026-10-30T17:37:28-0700 warning PipelineKit.Core: [PipelineKit] SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features.",
+        "2026-10-30T17:37:28-0700 warning PipelineKit.Core: [PipelineKit] SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features.",
+        "2026-10-30T17:37:28-0700 warning PipelineKit.Core: [PipelineKit] SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features."
+      ],
       "xctest_passed_cases": 44,
       "xctest_progress_records": 0,
       "swift_testing_summaries": [],
-      "log_sha256": "18d2ee61a07bae6e1afb6d115d80116b049adaf8fcf309e780950456938e31da"
+      "log_sha256": "18d2ee61a07bae6e1afb6d115d80116b049adaf8fcf309e780950456938e31da",
+      "configuration_warning_source_lines": [
+        100,
+        101,
+        102,
+        103
+      ],
+      "configuration_warning_count": 4,
+      "configuration_warning_kind_count": 1,
+      "configuration_warning_disposition": "Known C02-N1 runtime-emitted configuration warning from the C02 lifetime fixture; already deferred at VALIDATION.md C02-R1 and C02 controller review disposition. Not a new C04 runtime/compiler defect."
     },
     "C04-004": {
       "command": [
@@ -180,7 +200,32 @@
       "swift_testing_summaries": [
         "Test run with 20 tests in 5 suites passed after 0.002 seconds."
       ],
-      "log_sha256": "abfba65b00fb0ec7967a9589b070dd259bc18b5cbf1113f7ce45c873fa99ccaf"
+      "log_sha256": "abfba65b00fb0ec7967a9589b070dd259bc18b5cbf1113f7ce45c873fa99ccaf",
+      "configuration_warning_source_lines": [],
+      "configuration_warning_count": 0,
+      "configuration_warning_kind_count": 0
     }
-  }
+  },
+  "warning_classification": "configuration_warnings preserves each occurrence, including configuration messages emitted during test runtime; runtime_warnings excludes these configuration messages. Compiler diagnostics are normalized and reported separately.",
+  "corrections": [
+    {
+      "id": "C04-N1",
+      "original_commit": "5aa23f5ea415958420af23ea7ca0e7e0e671357b",
+      "original_error": "The original summary left C04-003 runtime/configuration arrays empty and reports incorrectly claimed no runtime/configuration warnings. The extractor matched warning: or the warning symbol, missing SwiftLog warning PipelineKit.Core: messages.",
+      "verification": "Rescanned all four retained logs after Build complete! with case-insensitive word-boundary warn/warning or the warning symbol; inspected the four candidate lines and classified them as one known C02-N1 configuration-warning kind. Independently rechecked anchored compiler diagnostics against the normalized baseline. A whole-log severity/prefix scan also returned only the same four configuration messages.",
+      "runtime_scan_pattern": "(?i)\\bwarn(?:ing)?\\b|\u26a0",
+      "configuration_occurrences_by_run": {
+        "C04-001": 0,
+        "C04-002": 0,
+        "C04-003": 4,
+        "C04-004": 0
+      },
+      "known_debt": "C02-N1 remains deferred; this correction fixes only C04 reporting.",
+      "all_four_raw_log_hashes_match_original_summary": true,
+      "all_eight_final_source_state_hashes_match": true,
+      "source_or_test_changes": false,
+      "tests_rerun": false,
+      "configuration_scan_pattern": "(?i)(?:^warning:| warning [A-Za-z][A-Za-z0-9_.-]*:|\u26a0)"
+    }
+  ]
 }
