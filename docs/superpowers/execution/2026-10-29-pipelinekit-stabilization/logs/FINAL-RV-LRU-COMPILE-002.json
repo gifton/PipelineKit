@@ -1,0 +1,712 @@
+{
+  "id": "FINAL-RV-LRU-COMPILE-002",
+  "cwd": "/private/tmp/PipelineKit-final-review-lru-2c3001b",
+  "command": [
+    "python3",
+    "/private/tmp/PipelineKit-final-review-lru-2c3001b/compile.py"
+  ],
+  "started_utc": "2026-10-31T06:49:13.406687+00:00",
+  "elapsed_seconds": 1.787,
+  "exit_status": 0,
+  "watchdog_timeout": false,
+  "log": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/FINAL-RV-LRU-COMPILE-002.log",
+  "runner_exit_status": 0,
+  "runner_error": null,
+  "cleanup": {
+    "settled": true,
+    "survivors": [],
+    "outcomes": [
+      {
+        "identity": {
+          "pid": 21077,
+          "start": [
+            1793429353,
+            407252
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 21078,
+          "start": [
+            1793429353,
+            428401
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 21079,
+          "start": [
+            1793429353,
+            512357
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 21080,
+          "start": [
+            1793429353,
+            610077
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 21081,
+          "start": [
+            1793429353,
+            722311
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 21082,
+          "start": [
+            1793429353,
+            872560
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 21083,
+          "start": [
+            1793429353,
+            877340
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 21084,
+          "start": [
+            1793429353,
+            958324
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 21085,
+          "start": [
+            1793429354,
+            106999
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 21086,
+          "start": [
+            1793429354,
+            191873
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 21087,
+          "start": [
+            1793429354,
+            268183
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 21088,
+          "start": [
+            1793429354,
+            404175
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 21089,
+          "start": [
+            1793429354,
+            408978
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 21090,
+          "start": [
+            1793429354,
+            492053
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 21091,
+          "start": [
+            1793429354,
+            654168
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 21092,
+          "start": [
+            1793429354,
+            738905
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 21093,
+          "start": [
+            1793429354,
+            814754
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 21094,
+          "start": [
+            1793429354,
+            949114
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 21095,
+          "start": [
+            1793429354,
+            953697
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 21096,
+          "start": [
+            1793429355,
+            32226
+          ]
+        },
+        "state": "gone"
+      }
+    ],
+    "inspection_errors": [],
+    "term_grace_seconds": 2.0,
+    "kill_grace_seconds": 3.0
+  },
+  "event_errors": [],
+  "completion_reason": "root_exit",
+  "unexpected_descendants": [],
+  "owned_processes": [
+    {
+      "identity": {
+        "pid": 21077,
+        "start": [
+          1793429353,
+          407252
+        ]
+      },
+      "observed_parent": null,
+      "first_seen_seconds": 0.001601,
+      "observations": [
+        {
+          "ppid": 21066,
+          "pgid": 21077,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 21078,
+        "start": [
+          1793429353,
+          428401
+        ]
+      },
+      "observed_parent": {
+        "pid": 21077,
+        "start": [
+          1793429353,
+          407252
+        ]
+      },
+      "first_seen_seconds": 0.026986,
+      "observations": [
+        {
+          "ppid": 21077,
+          "pgid": 21077,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 21079,
+        "start": [
+          1793429353,
+          512357
+        ]
+      },
+      "observed_parent": {
+        "pid": 21078,
+        "start": [
+          1793429353,
+          428401
+        ]
+      },
+      "first_seen_seconds": 0.125513,
+      "observations": [
+        {
+          "ppid": 21078,
+          "pgid": 21079,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 21080,
+        "start": [
+          1793429353,
+          610077
+        ]
+      },
+      "observed_parent": {
+        "pid": 21078,
+        "start": [
+          1793429353,
+          428401
+        ]
+      },
+      "first_seen_seconds": 0.225223,
+      "observations": [
+        {
+          "ppid": 21078,
+          "pgid": 21080,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 21081,
+        "start": [
+          1793429353,
+          722311
+        ]
+      },
+      "observed_parent": {
+        "pid": 21078,
+        "start": [
+          1793429353,
+          428401
+        ]
+      },
+      "first_seen_seconds": 0.326374,
+      "observations": [
+        {
+          "ppid": 21078,
+          "pgid": 21081,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 21082,
+        "start": [
+          1793429353,
+          872560
+        ]
+      },
+      "observed_parent": {
+        "pid": 21078,
+        "start": [
+          1793429353,
+          428401
+        ]
+      },
+      "first_seen_seconds": 0.475753,
+      "observations": [
+        {
+          "ppid": 21078,
+          "pgid": 21082,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 21083,
+        "start": [
+          1793429353,
+          877340
+        ]
+      },
+      "observed_parent": {
+        "pid": 21082,
+        "start": [
+          1793429353,
+          872560
+        ]
+      },
+      "first_seen_seconds": 0.475838,
+      "observations": [
+        {
+          "ppid": 21082,
+          "pgid": 21082,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 21084,
+        "start": [
+          1793429353,
+          958324
+        ]
+      },
+      "observed_parent": {
+        "pid": 21078,
+        "start": [
+          1793429353,
+          428401
+        ]
+      },
+      "first_seen_seconds": 0.552663,
+      "observations": [
+        {
+          "ppid": 21078,
+          "pgid": 21084,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 21085,
+        "start": [
+          1793429354,
+          106999
+        ]
+      },
+      "observed_parent": {
+        "pid": 21077,
+        "start": [
+          1793429353,
+          407252
+        ]
+      },
+      "first_seen_seconds": 0.702373,
+      "observations": [
+        {
+          "ppid": 21077,
+          "pgid": 21077,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 21086,
+        "start": [
+          1793429354,
+          191873
+        ]
+      },
+      "observed_parent": {
+        "pid": 21085,
+        "start": [
+          1793429354,
+          106999
+        ]
+      },
+      "first_seen_seconds": 0.802035,
+      "observations": [
+        {
+          "ppid": 21085,
+          "pgid": 21086,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 21087,
+        "start": [
+          1793429354,
+          268183
+        ]
+      },
+      "observed_parent": {
+        "pid": 21085,
+        "start": [
+          1793429354,
+          106999
+        ]
+      },
+      "first_seen_seconds": 0.877417,
+      "observations": [
+        {
+          "ppid": 21085,
+          "pgid": 21087,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 21088,
+        "start": [
+          1793429354,
+          404175
+        ]
+      },
+      "observed_parent": {
+        "pid": 21085,
+        "start": [
+          1793429354,
+          106999
+        ]
+      },
+      "first_seen_seconds": 1.022777,
+      "observations": [
+        {
+          "ppid": 21085,
+          "pgid": 21088,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 21089,
+        "start": [
+          1793429354,
+          408978
+        ]
+      },
+      "observed_parent": {
+        "pid": 21088,
+        "start": [
+          1793429354,
+          404175
+        ]
+      },
+      "first_seen_seconds": 1.022874,
+      "observations": [
+        {
+          "ppid": 21088,
+          "pgid": 21088,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 21090,
+        "start": [
+          1793429354,
+          492053
+        ]
+      },
+      "observed_parent": {
+        "pid": 21085,
+        "start": [
+          1793429354,
+          106999
+        ]
+      },
+      "first_seen_seconds": 1.097216,
+      "observations": [
+        {
+          "ppid": 21085,
+          "pgid": 21090,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 21091,
+        "start": [
+          1793429354,
+          654168
+        ]
+      },
+      "observed_parent": {
+        "pid": 21077,
+        "start": [
+          1793429353,
+          407252
+        ]
+      },
+      "first_seen_seconds": 1.268533,
+      "observations": [
+        {
+          "ppid": 21077,
+          "pgid": 21077,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 21092,
+        "start": [
+          1793429354,
+          738905
+        ]
+      },
+      "observed_parent": {
+        "pid": 21091,
+        "start": [
+          1793429354,
+          654168
+        ]
+      },
+      "first_seen_seconds": 1.342682,
+      "observations": [
+        {
+          "ppid": 21091,
+          "pgid": 21092,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 21093,
+        "start": [
+          1793429354,
+          814754
+        ]
+      },
+      "observed_parent": {
+        "pid": 21091,
+        "start": [
+          1793429354,
+          654168
+        ]
+      },
+      "first_seen_seconds": 1.414818,
+      "observations": [
+        {
+          "ppid": 21091,
+          "pgid": 21093,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 21094,
+        "start": [
+          1793429354,
+          949114
+        ]
+      },
+      "observed_parent": {
+        "pid": 21091,
+        "start": [
+          1793429354,
+          654168
+        ]
+      },
+      "first_seen_seconds": 1.566467,
+      "observations": [
+        {
+          "ppid": 21091,
+          "pgid": 21094,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 21095,
+        "start": [
+          1793429354,
+          953697
+        ]
+      },
+      "observed_parent": {
+        "pid": 21094,
+        "start": [
+          1793429354,
+          949114
+        ]
+      },
+      "first_seen_seconds": 1.566553,
+      "observations": [
+        {
+          "ppid": 21094,
+          "pgid": 21094,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 21096,
+        "start": [
+          1793429355,
+          32226
+        ]
+      },
+      "observed_parent": {
+        "pid": 21091,
+        "start": [
+          1793429354,
+          654168
+        ]
+      },
+      "first_seen_seconds": 1.638138,
+      "observations": [
+        {
+          "ppid": 21091,
+          "pgid": 21096,
+          "state": 2
+        }
+      ]
+    }
+  ],
+  "termination_actions": [],
+  "process_events": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/FINAL-RV-LRU-COMPILE-002.processes.jsonl",
+  "ownership_backend": "macOS libproc PID + start timeval",
+  "containment_limits": [
+    "Only lineages observed before reparenting are owned; instant unobserved daemonization can escape.",
+    "Identity check and kill are separate syscalls; PID reuse in that interval cannot be excluded.",
+    "Zombie means no executing process; non-child zombie reaping belongs to its parent.",
+    "SIGKILL of the runner or host failure can bypass cleanup; Linux is unsupported and unvalidated."
+  ]
+}
