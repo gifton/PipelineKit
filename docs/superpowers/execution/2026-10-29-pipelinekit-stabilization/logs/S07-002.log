@@ -1,0 +1,88 @@
+Building for debugging...
+[Computing dependencies]
+[Using on-disk description]
+[1 / 1]
+[2 / 51] PipelineKitSecurity
+[4 / 53] PipelineKitSecurity
+[20 / 29] PipelineKitSecurityTests-product
+Build complete! (1.72 sec)
+Test Suite 'Selected tests' started at 2026-10-30 21:36:32.607.
+Test Suite 'PipelineKitTests.xctest' started at 2026-10-30 21:36:32.608.
+Test Suite 'PipelineKitTests.xctest' passed at 2026-10-30 21:36:32.608.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 21:36:32.608.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 21:36:32.687.
+Test Suite 'PipelineKitTestSupportTests.xctest' started at 2026-10-30 21:36:32.687.
+Test Suite 'PipelineKitTestSupportTests.xctest' passed at 2026-10-30 21:36:32.687.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 21:36:32.687.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 21:36:32.747.
+Test Suite 'PipelineKitSecurityTests.xctest' started at 2026-10-30 21:36:32.748.
+Test Suite 'AuditLoggingMiddlewareTests' started at 2026-10-30 21:36:32.748.
+Test Case '-[PipelineKitSecurityTests.AuditLoggingMiddlewareTests testAuditLoggingFailure]' started.
+Test Case '-[PipelineKitSecurityTests.AuditLoggingMiddlewareTests testAuditLoggingFailure]' passed (0.001 seconds).
+Test Case '-[PipelineKitSecurityTests.AuditLoggingMiddlewareTests testAuditLoggingSuccess]' started.
+Test Case '-[PipelineKitSecurityTests.AuditLoggingMiddlewareTests testAuditLoggingSuccess]' passed (0.015 seconds).
+Test Case '-[PipelineKitSecurityTests.AuditLoggingMiddlewareTests testConsoleLoggerFormatting]' started.
+Test Case '-[PipelineKitSecurityTests.AuditLoggingMiddlewareTests testConsoleLoggerFormatting]' passed (0.001 seconds).
+Test Case '-[PipelineKitSecurityTests.AuditLoggingMiddlewareTests testEventQuerying]' started.
+Test Case '-[PipelineKitSecurityTests.AuditLoggingMiddlewareTests testEventQuerying]' passed (0.000 seconds).
+Test Case '-[PipelineKitSecurityTests.AuditLoggingMiddlewareTests testHealthStream]' started.
+Test Case '-[PipelineKitSecurityTests.AuditLoggingMiddlewareTests testHealthStream]' passed (0.000 seconds).
+Test Case '-[PipelineKitSecurityTests.AuditLoggingMiddlewareTests testInMemoryLoggerCapacity]' started.
+Test Case '-[PipelineKitSecurityTests.AuditLoggingMiddlewareTests testInMemoryLoggerCapacity]' passed (0.000 seconds).
+Test Case '-[PipelineKitSecurityTests.AuditLoggingMiddlewareTests testSecurityAuditEvent]' started.
+Test Case '-[PipelineKitSecurityTests.AuditLoggingMiddlewareTests testSecurityAuditEvent]' passed (0.000 seconds).
+Test Case '-[PipelineKitSecurityTests.AuditLoggingMiddlewareTests testTraceContextPropagation]' started.
+Test Case '-[PipelineKitSecurityTests.AuditLoggingMiddlewareTests testTraceContextPropagation]' passed (0.000 seconds).
+Test Suite 'AuditLoggingMiddlewareTests' passed at 2026-10-30 21:36:32.766.
+	 Executed 8 tests, with 0 failures (0 unexpected) in 0.018 (0.018) seconds
+Test Suite 'ConsoleAuditLoggerIdentityTests' started at 2026-10-30 21:36:32.766.
+Test Case '-[PipelineKitSecurityTests.ConsoleAuditLoggerIdentityTests testProductionIdentityWhitelistUsesStandardContextKeys]' started.
+Test Case '-[PipelineKitSecurityTests.ConsoleAuditLoggerIdentityTests testProductionIdentityWhitelistUsesStandardContextKeys]' passed (0.000 seconds).
+Test Suite 'ConsoleAuditLoggerIdentityTests' passed at 2026-10-30 21:36:32.767.
+	 Executed 1 test, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'PipelineKitSecurityTests.xctest' passed at 2026-10-30 21:36:32.767.
+	 Executed 9 tests, with 0 failures (0 unexpected) in 0.018 (0.019) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 21:36:32.767.
+	 Executed 9 tests, with 0 failures (0 unexpected) in 0.018 (0.019) seconds
+[2026-10-30 21:36:32.765] AUDIT [command.completed] commandId=E53123CB-2A34-4219-9E7D-2EC0E9684172 commandType=TestCommand duration=1.234s userID=test-user
+[2026-10-30 21:36:32.765] AUDIT [command.completed] commandId=E53123CB-2A34-4219-9E7D-2EC0E9684172 commandType=TestCommand duration=1.234s userID=test-user
+Test Suite 'Selected tests' started at 2026-10-30 21:36:32.844.
+Test Suite 'PipelineKitResilienceTests.xctest' started at 2026-10-30 21:36:32.845.
+Test Suite 'PipelineKitResilienceTests.xctest' passed at 2026-10-30 21:36:32.845.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 21:36:32.845.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 21:36:32.923.
+Test Suite 'PipelineKitPoolingTests.xctest' started at 2026-10-30 21:36:32.924.
+Test Suite 'PipelineKitPoolingTests.xctest' passed at 2026-10-30 21:36:32.924.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 21:36:32.924.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 21:36:33.003.
+Test Suite 'PipelineKitPerformanceTests.xctest' started at 2026-10-30 21:36:33.004.
+Test Suite 'PipelineKitPerformanceTests.xctest' passed at 2026-10-30 21:36:33.004.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 21:36:33.004.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 21:36:33.081.
+Test Suite 'PipelineKitObservabilityTests.xctest' started at 2026-10-30 21:36:33.082.
+Test Suite 'PipelineKitObservabilityTests.xctest' passed at 2026-10-30 21:36:33.082.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 21:36:33.082.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 21:36:33.160.
+Test Suite 'PipelineKitCoreTests.xctest' started at 2026-10-30 21:36:33.161.
+Test Suite 'PipelineKitCoreTests.xctest' passed at 2026-10-30 21:36:33.161.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 21:36:33.161.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 21:36:33.239.
+Test Suite 'PipelineKitCacheTests.xctest' started at 2026-10-30 21:36:33.240.
+Test Suite 'PipelineKitCacheTests.xctest' passed at 2026-10-30 21:36:33.240.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 21:36:33.240.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds

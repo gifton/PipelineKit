@@ -1,0 +1,19 @@
+# S07 implementation: SCP-17
+
+Base: `1c336050721579e6b9de106661cae6d6ac48b507`, branch `fix/stabilization-batch-1`; clean tracked tree at start. Existing untracked `audit/` and `docs/PIPELINEKIT_AUDIT_GUIDE.md` preserved. Source changes: make the existing `formatEvent` internal for deterministic formatting verification and add only `userID` and `sessionID` to the existing nonverbose whitelist. `log` continues to call that same formatter; `production` selects nonverbose output. Existing `userId`/`sessionId` aliases remain. No stdout mutation is used.
+
+The test exercises the actual production preset, event formatting, sorted field filtering and output. Its literal expected suffix includes ordinary `commandType`/`resource`, both standard and legacy identity spellings, and excludes unrelated `password` and `payload` values. The exact comparison prevents broader disclosure via extra fields. Timestamp rendering is excluded because it uses the machine's time zone. Real event metadata enrichment uses `userID` and legacy `sessionId`; the generic event also exercises standard `sessionID` accepted by the specified contract. This verifies formatting rather than OS log delivery.
+
+## Evidence
+
+All runs use `python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id ID --timeout 600 -- COMMAND` at the base revision plus the stated local changes. JSON, raw logs and process traces are in `logs/`. No timeout; cleanup settled with no survivors and no termination actions on all three runs. Runner's documented lineage/identity limits apply.
+
+- `S07-001`: `swift test --filter ConsoleAuditLoggerIdentityTests`; source hash `3c8a6a90b2e4dd2bebbc5e506a3bd06b8442c82985403c97781300aba688c228` (access-only seam), test hash `e0793a827ed7e96e723d398146a909526af7ab516a750d22a765ff304cee93b7`. Root/runner 1/1; one test failed as expected. Actual suffix: `[identity.test] commandType=CreateUser resource=account sessionId=legacy-session userId=legacy-user`; expected additionally `sessionID=standard-session` and `userID=standard-user` in sorted position.
+- `S07-002`: `swift test --filter 'ConsoleAuditLoggerIdentityTests|AuditLoggingMiddlewareTests'`; root/runner 0/0, 9 XCTest cases passed (1 identity and 8 middleware).
+- `S07-003`: `swift test --parallel --skip PipelineKitPerformanceTests`; root/runner 0/0, 1108/1108 XCTest progress entries and 20 Swift Testing tests passed. Performance target intentionally excluded under worker contract; Release/platform integration owned by I01.
+
+Final source SHA-256 `7cc1fb88ac5f7c0f80059e96ad55264c389bf0691f12ffa339194a607c24c350`; test SHA-256 `e0793a827ed7e96e723d398146a909526af7ab516a750d22a765ff304cee93b7`. Both green runs use these same bytes. `git diff --check` passed for the tracked source diff; staged evidence check flags one trailing-whitespace line in the unmodified raw S07-001 compiler excerpt, retained verbatim.
+
+Diagnostics: RED incremental build emitted two compiler warnings, one each in `Tests/PipelineKitCoreTests/Middleware/MiddlewareTests.swift` and `Tests/PipelineKitCoreTests/Pipeline/PipelineTests.swift`, both `no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]`; both match baseline after ignoring positions. No compiler warnings or SwiftLog warning forms appeared in green logs; incremental build output does not establish a warning-free clean build. No runtime/configuration warnings appeared in these logs. C02-N1 and broader baseline diagnostic debt are separate.
+
+Self-review: whitelist matching uses exact keys, then sorted formatting; tests exercise the shared actual formatter and production configuration. Other metadata policy is unchanged. Audit log output itself remains subject to existing formatter semantics and OS logging behavior; OS delivery was not tested. Controller owns finding status and independent review. No substantive concern.
