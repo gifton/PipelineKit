@@ -1,0 +1,7 @@
+# S04 independent teardown probes
+
+Exact reviewer-authored source, manifest, watchdog and15 command/output/process records copied byte-for-byte from `/private/tmp/pipelinekit-s04-review-jhh4bmpi`. `preservation.json` records every copied SHA-256. No probe was rerun during preservation. Compiled binaries, dSYM and module-cache output are excluded; the exact build commands remain in001/006/011 JSON.
+
+The final evidence is main-thread002–005 and secondary-thread012–015: clear/drop ×3/100000 entries, exact current production source, Release optimization, all payloads released, root/runner0 and settled process cleanup. The corrected secondary source observes `Thread.isFinished` before normal return; its short polling delay alone is not completion evidence. Foundation reports an unchanged default stackSize of524288 bytes; this is not a measured platform-wide guarantee. Original006–010 called exit0 from the worker and are superseded only for thread settlement.
+
+This bounded check found no recursive teardown stack defect. It proves neither universal stack-depth bounds nor thread safety, sanitizer cleanliness, cross-platform behavior or performance. I01 remains responsible for final integration/platform validation. Paths in raw commands intentionally retain the original temporary location. Reproduction must use a new evidence ID and reconstruct the retained build commands at an appropriate temporary destination, preserving sources and flags; never overwrite these records.

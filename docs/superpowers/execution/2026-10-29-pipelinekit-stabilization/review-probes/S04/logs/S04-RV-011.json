@@ -1,0 +1,279 @@
+{
+  "id": "S04-RV-011",
+  "cwd": "/private/tmp/pipelinekit-s04-review-jhh4bmpi",
+  "command": [
+    "swiftc",
+    "-swift-version",
+    "6",
+    "-O",
+    "-g",
+    "-module-cache-path",
+    "/private/tmp/pipelinekit-s04-review-jhh4bmpi/module-cache",
+    "/private/tmp/pipelinekit-s04-review-jhh4bmpi/LRUStorage.swift",
+    "/private/tmp/pipelinekit-s04-review-jhh4bmpi/secondary-joined/main.swift",
+    "-o",
+    "/private/tmp/pipelinekit-s04-review-jhh4bmpi/secondary-joined/probe"
+  ],
+  "started_utc": "2026-10-31T03:49:05.743644+00:00",
+  "elapsed_seconds": 0.906,
+  "exit_status": 0,
+  "watchdog_timeout": false,
+  "log": "/private/tmp/pipelinekit-s04-review-jhh4bmpi/logs/S04-RV-011.log",
+  "runner_exit_status": 0,
+  "runner_error": null,
+  "cleanup": {
+    "settled": true,
+    "survivors": [],
+    "outcomes": [
+      {
+        "identity": {
+          "pid": 59064,
+          "start": [
+            1793418545,
+            744267
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 59065,
+          "start": [
+            1793418545,
+            835798
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 59066,
+          "start": [
+            1793418545,
+            997227
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 59067,
+          "start": [
+            1793418546,
+            180561
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 59068,
+          "start": [
+            1793418546,
+            504312
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 59069,
+          "start": [
+            1793418546,
+            511408
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 59070,
+          "start": [
+            1793418546,
+            577711
+          ]
+        },
+        "state": "gone"
+      }
+    ],
+    "inspection_errors": [],
+    "term_grace_seconds": 2.0,
+    "kill_grace_seconds": 3.0
+  },
+  "event_errors": [],
+  "completion_reason": "root_exit",
+  "unexpected_descendants": [],
+  "owned_processes": [
+    {
+      "identity": {
+        "pid": 59064,
+        "start": [
+          1793418545,
+          744267
+        ]
+      },
+      "observed_parent": null,
+      "first_seen_seconds": 0.002497,
+      "observations": [
+        {
+          "ppid": 59063,
+          "pgid": 59064,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 59065,
+        "start": [
+          1793418545,
+          835798
+        ]
+      },
+      "observed_parent": {
+        "pid": 59064,
+        "start": [
+          1793418545,
+          744267
+        ]
+      },
+      "first_seen_seconds": 0.11424,
+      "observations": [
+        {
+          "ppid": 59064,
+          "pgid": 59065,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 59066,
+        "start": [
+          1793418545,
+          997227
+        ]
+      },
+      "observed_parent": {
+        "pid": 59064,
+        "start": [
+          1793418545,
+          744267
+        ]
+      },
+      "first_seen_seconds": 0.264972,
+      "observations": [
+        {
+          "ppid": 59064,
+          "pgid": 59066,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 59067,
+        "start": [
+          1793418546,
+          180561
+        ]
+      },
+      "observed_parent": {
+        "pid": 59064,
+        "start": [
+          1793418545,
+          744267
+        ]
+      },
+      "first_seen_seconds": 0.446129,
+      "observations": [
+        {
+          "ppid": 59064,
+          "pgid": 59067,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 59068,
+        "start": [
+          1793418546,
+          504312
+        ]
+      },
+      "observed_parent": {
+        "pid": 59064,
+        "start": [
+          1793418545,
+          744267
+        ]
+      },
+      "first_seen_seconds": 0.765139,
+      "observations": [
+        {
+          "ppid": 59064,
+          "pgid": 59068,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 59069,
+        "start": [
+          1793418546,
+          511408
+        ]
+      },
+      "observed_parent": {
+        "pid": 59068,
+        "start": [
+          1793418546,
+          504312
+        ]
+      },
+      "first_seen_seconds": 0.795348,
+      "observations": [
+        {
+          "ppid": 59068,
+          "pgid": 59068,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 59070,
+        "start": [
+          1793418546,
+          577711
+        ]
+      },
+      "observed_parent": {
+        "pid": 59064,
+        "start": [
+          1793418545,
+          744267
+        ]
+      },
+      "first_seen_seconds": 0.855868,
+      "observations": [
+        {
+          "ppid": 59064,
+          "pgid": 59070,
+          "state": 2
+        }
+      ]
+    }
+  ],
+  "termination_actions": [],
+  "process_events": "/private/tmp/pipelinekit-s04-review-jhh4bmpi/logs/S04-RV-011.processes.jsonl",
+  "ownership_backend": "macOS libproc PID + start timeval",
+  "containment_limits": [
+    "Only lineages observed before reparenting are owned; instant unobserved daemonization can escape.",
+    "Identity check and kill are separate syscalls; PID reuse in that interval cannot be excluded.",
+    "Zombie means no executing process; non-child zombie reaping belongs to its parent.",
+    "SIGKILL of the runner or host failure can bypass cleanup; Linux is unsupported and unvalidated."
+  ]
+}
