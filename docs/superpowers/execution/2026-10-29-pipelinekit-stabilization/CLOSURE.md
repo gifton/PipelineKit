@@ -1,6 +1,8 @@
 # Stabilization closure ledger
 
-Finding dispositions below distinguish task verification from the final I01 integration gate. No batch-wide closure is implied by an individual task passing. Original evidence: [findings register](../../../../audit/pipelinekit/2026-10-28-a93a713-local/FINDINGS.md), [audit validation](../../../../audit/pipelinekit/2026-10-28-a93a713-local/VALIDATION.md), and [baseline manifest](../../../../audit/pipelinekit/2026-10-28-a93a713-local/baseline-manifest.json).
+The I01 local integration gate is approved by [fresh independent review](reports/I01-review.md) at `e274cf0`: all 37 selected findings have task evidence and available-host integration evidence. The final whole-branch review and controller acceptance remain pending. [All 84 current draft dispositions](reports/I01-dispositions.md) retain the 47 deferred findings as open. Swift 6.2/OS 26, Linux, hosted security/status gates and branch protection remain unverified release-readiness checks.
+
+The task snapshots below retain their original results and limits at the time of each task; their references to I01 pending are historical. Current integration counts, platform limits and individual final-suite evidence are in the [I01 report](reports/I01-implementer.md) and [machine-readable ledger](reports/I01-integration-ledger.json). No final batch acceptance is implied yet. Original evidence: [findings register](../../../../audit/pipelinekit/2026-10-28-a93a713-local/FINDINGS.md), [audit validation](../../../../audit/pipelinekit/2026-10-28-a93a713-local/VALIDATION.md), and [baseline manifest](../../../../audit/pipelinekit/2026-10-28-a93a713-local/baseline-manifest.json).
 
 | ID | Status | Source change | Test | Old evidence | New result / configuration | Independent challenge | Limitation |
 |---|---|---|---|---|---|---|---|

@@ -1234,3 +1234,9 @@ python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/i
 python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/i01_source_states.py
 python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/i01_verify_preservation.py
 ```
+
+### I01 independent task acceptance
+
+Fresh Astra/max [I01 review](reports/I01-review.md) approved local spec compliance and task quality at `e274cf0`, with no Critical or Important findings. The controller checked the I01-N3 report-only correction `c1d0c15`: the main workflow has advisory build-only Linux jobs, and the existing weekly workflows provide advisory Swift 6.2 Linux test routes. No runtime tests were rerun for this wording correction; all 359 final input, 117 raw-run and four XML hashes still match.
+
+I01-N1's runtime fixture warnings and I01-N2's inherited compiler diagnostics remain for final whole-branch triage. Original preservation is separately controller-checked. Cross-task invariant and gate-reachability challenge, the individual final closure verdicts and the final whole-branch review remain pending. Unavailable platform/hosted checks remain the explicit release-readiness gaps above; task acceptance does not certify them.
