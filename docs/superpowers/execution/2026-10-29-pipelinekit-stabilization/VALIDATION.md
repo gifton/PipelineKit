@@ -850,3 +850,11 @@ final consolidated release entry. Same mutable recorder reuse intentionally shar
 and callback state; no deep clone, retired-exporter auto-close, concurrent-record flush
 barrier, aggregation quiescence or UDP delivery guarantee is added. OBS-001/005/009 remain
 out of scope. Controller-owned CLOSURE/progress have not been edited.
+
+### O03 controller acceptance and independent challenge
+
+Fresh Astra/max review of5526f60..1c7adad approved spec compliance and quality with no Critical/Important findings; [report](reports/O03-review.md). Parent and reviewer independently matched all8 final hashes, raw duplicate-export red,26 focused Debug/Release cases,1080 unique XCTest progress records plus20 Swift Testing cases, root/runner statuses and settled cleanup. Reviewer also checked complete source text, original unsafe slots, unchanged package settings/resolution and live API callers. No tests were rerun during review.
+
+The review specifically checked snapshot capture before suspension, lifetime through record/flush, callback preparation and nil clearing before publication, retired-capture destruction after unlock, reentrant callbacks/destructors, no replay in either flush capability branch, and preservation of O02 timer/startup/close ownership. Existing19 baseline compiler kinds/49 Release occurrences remain deferred and separate from C02-N1; no new final warning kind was found.
+
+All cross-task limits have explicit I01 ownership: focused TSan, available floor/Linux/hosted checks, standalone Examples and every migration snippet, plus the consolidated Breaking entry. O02 aggregation quiescence remains unclaimed and OBS-001/005/009 remain open. OBS-007/008 are individually locally verified, not integration/release closure. Original checkout HEADa93a713 remains unchanged with no tracked modifications; no push/merge/release occurred. Chronological implementation rulings and their costs are collected in [DECISIONS.md](DECISIONS.md).
