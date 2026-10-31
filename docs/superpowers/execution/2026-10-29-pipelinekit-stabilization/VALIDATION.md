@@ -731,3 +731,15 @@ whitespace check passed. The unrestricted staged check reports trailing whitespa
 retained raw compiler diagnostic excerpts; those log bytes were preserved. Exactly 45 intended
 paths are staged (12 source/test/docs/helper/report paths and 33 O02 evidence files). The
 controller-owned plan edit and untracked original audit/guide are not staged.
+
+### O02 controller acceptance and independent challenge
+
+Fresh Astra/max review of a188b54..a5e6201 approved spec compliance and task quality with no Critical/Important findings; [report](reports/O02-review.md). Parent independently matched all18 final source hashes and new-file contents, consumer/root dependency pins, exact test/receipt counts and root/runner cleanup outcomes. The earlier parent parser erroneously treated new_files embedded text as hashes; corrected parsing uses files for SHA-256 and new_files for text equality, with zero mismatches. No source or evidence changed and no tests were rerun.
+
+The reviewer independently checked generation publication/failure ownership, retained nonempty batches, late/injected transport close, timer joining and live constructor migrations. API-red remains compile-only; the old first-batch loss remains source evidence. The consumer's transportClosed message is an intentional post-close negative control. Existing final Release19 compiler kinds/49 occurrences and the consumer TaskLocal deprecation remain baseline debt; C02-N1 is separate.
+
+Ruling: StatsD close marks closed and rejects new recording immediately, cancels owned timer/startup, then joins startup settlement and closes any late-produced transport before returning — resource ownership and deterministic cleanup require settlement, consistent with the design's no-hard-deadline constraint — cost if wrong: a cancellation-insensitive injected factory can delay close indefinitely; callers needing a bound require a cooperative dependency. Repeated/concurrent close shares terminal ownership; fixtures release the held factory after observing the closed state and then join all work.
+
+Review limit retained: MetricAggregator.forceFlush cancels but does not join its private timer; a caller-owned pre-close aggregation retry may repopulate the buffer afterward. Exporter closed guards prevent transport revival/post-close aggregate sends. This source-derived schedule does not establish full aggregation quiescence and is not a new runtime reproduction. CLOSURE and the I01 migration handoff retain it; OBS-001/005/009 remain open.
+
+Cross-task checks resolved by explicit I01 ownership: standalone Examples build, every migration snippet, next-minor Breaking entry, non-Network/floor/Linux execution where available, and final integration. The Examples build is now an explicit master-plan checkbox because root unit tests do not compile that package. Unavailable platform execution must remain a release-readiness gap. OBS-004 is locally task-verified, not batch-integrated.
