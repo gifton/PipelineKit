@@ -197,3 +197,58 @@ error if a wait would be required. Positive values round to the nearest attoseco
 positive value rounding to zero has the same no-wait behavior. Positive values that remain
 nonzero return the existing full-queue error when capacity is occupied and the queue limit is
 zero. Existing normal timeout, queue reuse, and handler-settlement policies are unchanged.
+
+## Breaking: one StatsD transport startup path
+
+`StatsDExporter.Configuration.useTransport` and the competing async exporter initializer
+are removed. All exporters use `MetricsTransport`; the default constructor is synchronous
+and lazy, and the first nonempty batch waits for readiness. Remove `useTransport:` and the
+constructor's `await`. Where startup must be validated before publishing the exporter,
+install its error callback first, then call `try await exporter.start()`:
+
+```swift
+import PipelineKitObservability
+
+func makeStatsD() async throws -> StatsDExporter {
+    let exporter = StatsDExporter(configuration: .init(host: "127.0.0.1", port: 8125))
+    await exporter.setErrorHandler { error in
+        print("Metrics export failed: \(error)")
+    }
+    do {
+        try await exporter.start()
+        return exporter
+    } catch {
+        await exporter.close()
+        throw error
+    }
+}
+
+func useInjectedTransport(_ transport: any MetricsTransport) async {
+    let exporter = StatsDExporter(configuration: .default, transport: transport)
+    await exporter.setErrorHandler(nil) // Callbacks can be cleared before publication.
+    await exporter.counter("synthetic.example")
+    await exporter.forceFlush()
+    await exporter.close()
+}
+```
+
+The injected initializer takes a nonoptional, already initialized transport and transfers
+its shutdown ownership to the exporter, even if no record or `start()` occurs. Concurrent
+nonempty batches and explicit `start()` share one startup generation. Startup errors are
+thrown by `start()` and reported through the configured callback; each failed batch reports
+its terminal error. A later batch can retry failed startup. This does not automatically replay
+failed batches or retry a terminal transport's failed sends. Platforms without Network report
+an explicit startup error instead of silently discarding default-exporter metrics.
+
+`close()` immediately rejects subsequent recording through the callback, discards buffered
+unsent records, cancels the exporter's flush timer and startup, and waits for their settlement
+and transport shutdown. A transport produced after close begins is closed by that startup's
+owner; repeated/concurrent close shares the same settlement. A cancellation-insensitive factory
+or transport can delay close indefinitely. Applications wanting a delivery attempt must quiesce
+producers, call `forceFlush()`, then `close()`; UDP completion does not acknowledge remote delivery.
+
+Sampling and aggregation semantics are unchanged; OBS-001, OBS-005 and OBS-009 remain open.
+The existing default configuration still disables aggregation. The public consumer mode
+`statsd-startup` compiles this construction/start/flush/close shape and verifies the first
+nonempty default-exporter batch on real loopback. I01 retains consolidated migration-example
+compilation, the next-minor **Breaking** changelog entry and platform integration checks.

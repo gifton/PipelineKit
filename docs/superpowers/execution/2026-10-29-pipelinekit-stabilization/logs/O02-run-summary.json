@@ -1,0 +1,178 @@
+{
+  "O02-001-api-red": {
+    "command": [
+      "swift",
+      "test",
+      "--filter",
+      "StatsDStartupContractTests"
+    ],
+    "elapsed_seconds": 7.218,
+    "exit_status": 1,
+    "runner_exit_status": 1,
+    "watchdog_timeout": false,
+    "cleanup_settled": true,
+    "survivors": [],
+    "cleanup_outcome_states": {
+      "gone": 134
+    },
+    "xctest_passed": 0,
+    "xctest_failed": 0,
+    "parallel_xctest_entries": 0,
+    "swift_testing_summary": []
+  },
+  "O02-002-first-implementation": {
+    "command": [
+      "swift",
+      "test",
+      "--filter",
+      "StatsDStartupContractTests"
+    ],
+    "elapsed_seconds": 4.811,
+    "exit_status": 1,
+    "runner_exit_status": 1,
+    "watchdog_timeout": false,
+    "cleanup_settled": true,
+    "survivors": [],
+    "cleanup_outcome_states": {
+      "gone": 126
+    },
+    "xctest_passed": 0,
+    "xctest_failed": 0,
+    "parallel_xctest_entries": 0,
+    "swift_testing_summary": []
+  },
+  "O02-003-startup-debug": {
+    "command": [
+      "swift",
+      "test",
+      "--filter",
+      "StatsDStartupContractTests"
+    ],
+    "elapsed_seconds": 11.693,
+    "exit_status": 0,
+    "runner_exit_status": 0,
+    "watchdog_timeout": false,
+    "cleanup_settled": true,
+    "survivors": [],
+    "cleanup_outcome_states": {
+      "gone": 314
+    },
+    "xctest_passed": 8,
+    "xctest_failed": 0,
+    "parallel_xctest_entries": 0,
+    "swift_testing_summary": []
+  },
+  "O02-004-late-close-mutant": {
+    "command": [
+      "swift",
+      "test",
+      "--filter",
+      "StatsDStartupContractTests.testCloseDuringStartupClosesLateTransport"
+    ],
+    "elapsed_seconds": 8.992,
+    "exit_status": 1,
+    "runner_exit_status": 1,
+    "watchdog_timeout": false,
+    "cleanup_settled": true,
+    "survivors": [],
+    "cleanup_outcome_states": {
+      "gone": 180
+    },
+    "xctest_passed": 0,
+    "xctest_failed": 1,
+    "parallel_xctest_entries": 0,
+    "swift_testing_summary": []
+  },
+  "O02-005-focused-debug": {
+    "command": [
+      "swift",
+      "test",
+      "--filter",
+      "StatsDStartupContractTests|StatsDExporterTests"
+    ],
+    "elapsed_seconds": 8.865,
+    "exit_status": 0,
+    "runner_exit_status": 0,
+    "watchdog_timeout": false,
+    "cleanup_settled": true,
+    "survivors": [],
+    "cleanup_outcome_states": {
+      "gone": 195
+    },
+    "xctest_passed": 29,
+    "xctest_failed": 0,
+    "parallel_xctest_entries": 0,
+    "swift_testing_summary": []
+  },
+  "O02-006-focused-release": {
+    "command": [
+      "swift",
+      "test",
+      "-c",
+      "release",
+      "--filter",
+      "StatsDStartupContractTests|StatsDExporterTests"
+    ],
+    "elapsed_seconds": 29.135,
+    "exit_status": 0,
+    "runner_exit_status": 0,
+    "watchdog_timeout": false,
+    "cleanup_settled": true,
+    "survivors": [],
+    "cleanup_outcome_states": {
+      "gone": 217
+    },
+    "xctest_passed": 29,
+    "xctest_failed": 0,
+    "parallel_xctest_entries": 0,
+    "swift_testing_summary": []
+  },
+  "O02-007-real-default-loopback": {
+    "command": [
+      "swift",
+      "run",
+      "--package-path",
+      "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer",
+      "--force-resolved-versions",
+      "Consumer",
+      "statsd-startup"
+    ],
+    "elapsed_seconds": 8.116,
+    "exit_status": 0,
+    "runner_exit_status": 0,
+    "watchdog_timeout": false,
+    "cleanup_settled": true,
+    "survivors": [],
+    "cleanup_outcome_states": {
+      "gone": 213
+    },
+    "xctest_passed": 0,
+    "xctest_failed": 0,
+    "parallel_xctest_entries": 0,
+    "swift_testing_summary": []
+  },
+  "O02-008-full-debug": {
+    "command": [
+      "swift",
+      "test",
+      "--parallel",
+      "--skip",
+      "PipelineKitPerformanceTests"
+    ],
+    "elapsed_seconds": 21.002,
+    "exit_status": 0,
+    "runner_exit_status": 0,
+    "watchdog_timeout": false,
+    "cleanup_settled": true,
+    "survivors": [],
+    "cleanup_outcome_states": {
+      "gone": 1217
+    },
+    "xctest_passed": 0,
+    "xctest_failed": 0,
+    "parallel_xctest_entries": 1066,
+    "swift_testing_summary": [
+      "Test run with 20 tests in 5 suites passed after 0.002 seconds."
+    ]
+  }
+}

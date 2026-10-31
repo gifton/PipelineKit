@@ -38,7 +38,7 @@ public enum Metrics {
             criticalPatterns: criticalPatterns
         )
         
-        let newExporter = await StatsDExporter(configuration: config)
+        let newExporter = StatsDExporter(configuration: config)
         
         // Set up error handling
         if let handler = errorHandler {

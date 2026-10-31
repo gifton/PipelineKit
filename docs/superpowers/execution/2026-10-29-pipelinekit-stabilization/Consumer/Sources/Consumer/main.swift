@@ -1,4 +1,5 @@
 import Foundation
+import Synchronization
 import PipelineKitObservability
 #if canImport(Darwin)
 import Darwin
@@ -69,6 +70,48 @@ struct LoopbackListener {
     func close() -> Int32 { Darwin.close(descriptor) }
 }
 
+func statsdStartup() async throws {
+    let listener = try LoopbackListener()
+    var listenerIsOpen = true
+    defer { if listenerIsOpen { _ = listener.close() } }
+    let failures = Mutex<[String]>([])
+    let exporter = StatsDExporter(configuration: .init(
+        host: "127.0.0.1", port: listener.port, maxBatchSize: 1
+    ))
+    await exporter.setErrorHandler { error in
+        failures.withLock { $0.append(String(describing: error)) }
+    }
+    // Exercise implicit readiness on the very first nonempty batch; no start()
+    // call or injected transport can prepare the route before this record.
+    let names = ["pipelinekit.startup.first", "pipelinekit.startup.second", "pipelinekit.startup.third"]
+    do {
+        for (index, name) in names.enumerated() {
+            await exporter.counter(name)
+            let expected = Data("\(name):1.0|c".utf8)
+            try listener.acknowledge(expected)
+            try emit(["mode": "statsd-startup", "phase": "receipt_acknowledged",
+                      "record": index + 1, "bytes": expected.count])
+        }
+        guard failures.withLock({ $0.isEmpty }) else { throw ConsumerFailure.expectedFailure }
+        try await exporter.start()
+        await exporter.forceFlush()
+        await exporter.close()
+        await exporter.close()
+        do {
+            try await exporter.start()
+            throw ConsumerFailure.expectedFailure
+        } catch TransportError.transportClosed {}
+        await exporter.setErrorHandler(nil)
+        let closed = listener.close()
+        listenerIsOpen = false
+        guard closed == 0 else { throw ConsumerFailure.socket("close", errno) }
+        try emit(["mode": "statsd-startup", "phase": "three_receipts_and_close_acknowledged"])
+    } catch {
+        await exporter.close()
+        throw error
+    }
+}
+
 func udpClose(expectSendFailure: Bool) async throws {
     let listener = try LoopbackListener()
     var listenerIsOpen = true
@@ -118,6 +161,7 @@ do {
     let mode = CommandLine.arguments.dropFirst().first ?? "udp-close"
     #if canImport(Darwin) && canImport(Network)
     switch mode {
+    case "statsd-startup": try await statsdStartup()
     case "udp-close": try await udpClose(expectSendFailure: false)
     case "udp-failure-close": try await udpClose(expectSendFailure: true)
     default: throw ConsumerFailure.unknownMode

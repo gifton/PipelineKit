@@ -589,3 +589,145 @@ Fresh Astra/max review approved spec compliance and quality with no Critical/Imp
 R-F02/R-F03/R-F04 are locally task-verified; I01 owns final integration, platform, sanitizer and performance checks. R-A06 has the gate source invariant and shared wrapper schedules. Old handoff occupancy has eight observed failures. R03-002’s empty stdout supports only an unresolved selected process and cleanup, not an observed expiry transition or exact runtime cause. Old donor/install interleavings remain source-only. R03-N1 is inherited compiler debt (six kinds/eight focused occurrences, zero new); C02-N1 is a separate runtime fixture-warning issue.
 
 Ruling: a 100% partition reserve retains the exact Int capacity, including values beyond Double’s exact-integer range; fractional percentages preserve the established truncated Double product with safe clamping — a rounded-down accidentally lendable slot or a conversion trap contradicts full-reserve semantics — cost if wrong: callers relying on an accidental spare slot at very large capacities lose that borrowing behavior and must choose an explicitly smaller reserve. Int.max/Int.max-1 tests are bounded evidence, not an exhaustive numeric proof; the full-reserve equality is also derivable from adjacent clamping logic. Original implementer may commit the validated state without another broad run.
+
+
+## O02 — one owned StatsD startup path (OBS-004)
+
+Base `a188b5471e9bf8b6bd424203199c778c716fa099`, branch `fix/stabilization-batch-1`.
+Initial tracked state was clean, apart from the preserved untracked audit/guide. The controller
+subsequently edited only the O02 plan file list; that edit is excluded from this task commit.
+The accepted O01 transport/driver and their evidence remain unchanged. The old default StatsD
+first-batch loss was **not reproduced at runtime**: the retained base-source excerpt shows
+`connect()` resuming immediately after `connection.start`, `sendLegacy` sending only when
+already connected, and connecting callers replacing one `connectionContinuation`. The new
+factory seam cannot execute on that base. O02-001 is API compile-red, not a behavioral finding.
+`logs/O02-baseline-and-platform-evidence.json` retains that distinction and hashes the historical
+V406 crash and accepted O01 real-loopback/failure evidence without changing any of those files.
+
+Default construction is now synchronous and lazy; injected construction synchronously owns
+an initialized transport. Both use `MetricsTransport`; `useTransport`, the competing async
+initializer and the legacy Network state machine are removed. One UUID-tagged startup task
+owns publication/failure cleanup. Nonempty flushes retain their batch locally while awaiting
+that shared result, then send or report one terminal error. Only the task mutates startup
+state, so an old caller resuming cannot clear a newer generation. A failed startup can retry
+on the next batch; failed batches are not automatically replayed and failed ready transports
+are not silently recreated. `start()` throws and reports failure. The optional error handler
+can be installed or cleared before publication, ready for O03's separate facade redesign.
+
+Controller-confirmed close contract: close marks the exporter closed immediately, cancels
+its timer/startup, discards unsent buffered records, and joins the shared cleanup task. The
+startup task alone closes a late-produced transport; a ready/injected transport is closed by
+the cleanup task. Repeated/concurrent close shares settlement, including injection closed
+before its first record/start. A cancellation-insensitive factory/transport may delay close
+indefinitely. No arbitrary-dependency deadline is promised. External record/start callers
+still own and join their own tasks. Quiesce producers and `forceFlush()` before close for a
+delivery attempt; UDP completion is not a remote acknowledgement. The exporter retains its
+flush timer handle through an in-flight flush so close can join it; a manual flush can leave
+a sleeping timer until its scheduled deadline or close. Sampling/aggregation code and the
+accepted UDP lifecycle implementation were not redesigned. OBS-001/005/009 remain open.
+
+### Exact validation
+
+All Swift commands ran from the isolated worktree through reviewed V04 `run_check.py` with
+unique IDs and approved Swift-cache escalation. All eight runs have `watchdog_timeout=false`,
+`cleanup.settled=true`, zero survivors, and only `gone` cleanup outcomes; the runner performed
+no termination. Root and runner statuses are recorded independently below and in raw JSON.
+
+| ID | Exact command | Root / runner; result |
+|---|---|---|
+| O02-001-api-red | `python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id O02-001-api-red --timeout 600 -- swift test --filter StatsDStartupContractTests` | 1 / 1; 7.218 s. Missing factory/lifecycle APIs and incompatible legacy initializer; zero runtime tests. |
+| O02-002-first-implementation | `python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id O02-002-first-implementation --timeout 90 -- swift test --filter StatsDStartupContractTests` | 1 / 1; 4.811 s. Swift rejects mutation of actor-isolated transport after delegating initializer. Corrected by initializing stored properties directly; no checking relaxation. |
+| O02-003-startup-debug | `python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id O02-003-startup-debug --timeout 90 -- swift test --filter StatsDStartupContractTests` | 0 / 0; 11.693 s. Initial 8 startup tests passed. |
+| O02-004-late-close-mutant | `python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id O02-004-late-close-mutant --timeout 90 -- swift test --filter StatsDStartupContractTests.testCloseDuringStartupClosesLateTransport` | 1 / 1; 8.992 s. One intended runtime assertion failure: omitted late transport close produces closes=0, expected 1. All fixture tasks joined; mutant restored. This is mutation sensitivity, not legacy first-batch reproduction. |
+| O02-005-focused-debug | `python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id O02-005-focused-debug --timeout 90 -- swift test --filter 'StatsDStartupContractTests\|StatsDExporterTests'` | 0 / 0; 8.865 s. Final 9 startup +20 exporter tests passed. |
+| O02-006-focused-release | `python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id O02-006-focused-release --timeout 600 -- swift test -c release --filter 'StatsDStartupContractTests\|StatsDExporterTests'` | 0 / 0; 29.135 s. Same final 29 tests passed. |
+| O02-007-real-default-loopback | `python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id O02-007-real-default-loopback --timeout 600 -- swift run --package-path docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer --force-resolved-versions Consumer statsd-startup` | 0 / 0; 8.116 s. Ordinary-import consumer received first/second/third default-exporter datagrams (31/32/31 bytes), then explicit start, flush, repeated close, post-close start rejection and listener-close acknowledgement. |
+| O02-008-full-debug | `python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id O02-008-full-debug --timeout 600 -- swift test --parallel --skip PipelineKitPerformanceTests` | 0 / 0; 21.002 s. 1,066 distinct XCTest progress entries +20 Swift Testing cases passed. All 1,217 observed process identities were gone at cleanup. One full suite at final substantive source. |
+
+The pipe in the two filter commands is one literal regex alternation inside the quoted shell
+argument (the table escapes it for Markdown); the raw metadata records the exact argv.
+No successful identical-source suite was repeated without a new check. Final test additions
+before O02-005 add shared explicit-start registration, a timer already awaiting startup, and
+stronger existing batching/interval/concurrent counts. The exporter tests use injected mocks
+and awaited async teardown; real default construction is independently exercised in O02-007.
+
+### Contract coverage and limits
+
+- `testConcurrentNonemptyBatchesWaitForOneStartup`: lazy factory count 0; three maxBatchSize=1
+  callers plus explicit start register against one factory; zero sends before readiness; three
+  distinct packets exactly once afterward; all callers/start join, zero waiters, factory settles.
+- `testStartupFailureSettlesEveryBatchAndCanRestart`: three nonempty callers each report failure;
+  next generation enters when the first prior failure is observed, prior callers join without
+  clearing it, and the next three distinct packets appear exactly once with factoryStarts=2.
+  The generation invariant is additionally visible in the sole publisher/UUID guard; the test
+  does not claim to force every possible old-waiter resumption order.
+- `testCloseDuringStartupClosesLateTransport`: acknowledge factory entry, three registered
+  waiters, closed state and factory cancellation; verify neither concurrent close has returned;
+  reject a new record; release the cancellation-insensitive factory; join every caller/close;
+  exactly one late transport close, zero sends, four reported closed failures, zero waiters.
+- `testRecordAfterCloseReportsFailure`: injected transport closes before any start/record;
+  post-close recording reports even at sampleRate=0; callback can be cleared; start still throws.
+- `testNonemptyForceFlushReportsStartupFailureAndRetries`: two buffered records form one failed
+  nonempty flush; a later third record forms the successful retry flush. Empty forceFlush is
+  not counted as startup or delivery evidence.
+- `testInjectedTransportIsReadyAndClosesOnce`: explicit readiness, three maxBatchSize=1 records,
+  exact packet count and repeated close. `testCloseDiscardsBufferedRecordsAndJoinsFlushTimer`
+  verifies buffered data is discarded; `testCloseJoinsTimerAlreadyWaitingForStartup` acknowledges
+  timer-driven factory entry and cancellation, releases it, then checks settlement through close.
+- `testExplicitStartAndDefaultBatchReportInvalidConfiguration` exercises the actual default
+  transport route on this host: explicit start throws/reports and a nonempty batch retries/reports.
+  The conditional `testDefaultConstructorReportsNetworkUnavailable` covers start and nonempty
+  recording when Network is absent. It was not executable on this macOS host; no Linux/container
+  runtime is available in the retained inventory. The source route awaits O01's explicit
+  `connectionFailed("Network framework not available")`, with no silent conditional exporter
+  branch. I01 owns runtime non-Network/minimum-platform validation.
+
+### Identity, warnings and migration
+
+`O02-001/002/003/004-*-source-state.json` preserve exact source hashes, tracked diff and new
+file text at each compile/initial-green/mutant state. `O02-final-source-state.json` binds all
+O02-005 through O02-008 runs. Post-run `O02-final-source-verification.json` reports zero hash
+mismatches and exact tracked-diff equality. Final relevant diff SHA-256:
+`5b6d030ab31090288c192d0706ed9c41041267fef020341a2bc78fda0562e70c`.
+Final exporter SHA-256: `19fee2bc1bb533a1ff28a52915282d72610769365428a826e200b989de4ea63f`.
+Startup tests SHA-256: `6fe4de1a5d0fcffc1f31fdf6f77efbbce05b4f3f9ef02c7a765d5552c4925d04`.
+Root and Consumer Package.resolved remain byte-identical to accepted O01:
+`f3fa663ca0f1c77b0b5019bce908ef38a95911202c5f1c16de2d4fe01965ddc4`.
+No dependency/tool/floor/concurrency setting changed. `o02_evidence_summary.py` regenerates
+run counts, warning classification, final source verification and retained source/platform
+limits from these exact logs; it does not rerun Swift or replace historical evidence.
+
+`O02-warnings.json` normalizes Swift compiler diagnostics by relative file path + diagnostic
+text, ignoring line/column shifts, and separately scans case-insensitive runtime/configuration
+warnings including SwiftLog severity prefixes. API-red emitted 12 unnecessary-await warnings
+for the absent new test APIs (one new path+text kind); those disappear after implementation.
+Initial green emitted 14 existing kinds/45 occurrences. Final Release emits 19 baseline kinds/
+49 occurrences; real consumer emits one existing TaskLocal deprecation; final focused/full
+Debug have no compiler diagnostics in their incremental output. Zero new final compiler kind
+and zero captured runtime/configuration-warning lines were observed. Expected exporter failure
+messages are counted separately. The consumer's trailing `[MetricsExporter] Error: transportClosed`
+comes from the intentional `start()` after close: expected negative-control output, not new error
+debt. This is
+not a clean global-warning-baseline claim; C02-N1 fixture warnings and baseline compiler debt
+remain separately deferred, and parallel successful-child output can be omitted by SwiftPM.
+
+All live removed initializer callers were searched and migrated: exporter mock helper,
+MetricsFacade, ObservabilitySystem, StatsDExporterTests and MetricsAggregationExample. Their
+old async default initializers used useTransport=false and provided no readiness validation,
+so removing await preserves their lazy intent. MetricsFacade's one-line constructor edit is
+its only change; O03 owns coherent configuration. The standalone Examples package was not built;
+its three constructor migrations were source-checked only, and the main full suite does not
+compile that separate package. I01 retains its package/example compilation. The migration draft documents explicit start,
+optional callback, injected shutdown ownership, failure/retry policy and forceFlush-before-close.
+The real consumer compiles the public default/start/flush/close shape; I01 retains consolidated
+migration-snippet compilation, the next-minor Breaking entry, sanitizer/platform/integration
+work and closure review. OBS-004 evidence is supplied for the controller; CLOSURE/progress were
+not edited. OBS-001/005/009 remain open; no remote CI, performance or UDP delivery guarantee is
+claimed. Original audit/guide, accepted O01 source/evidence and controller plan edit are excluded
+from this implementation commit.
+
+O02 precommit verification: `git diff --check` and the scoped staged source/test/docs/scripts
+whitespace check passed. The unrestricted staged check reports trailing whitespace only inside
+retained raw compiler diagnostic excerpts; those log bytes were preserved. Exactly 45 intended
+paths are staged (12 source/test/docs/helper/report paths and 33 O02 evidence files). The
+controller-owned plan edit and untracked original audit/guide are not staged.
