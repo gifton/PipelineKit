@@ -1031,3 +1031,7 @@ Fresh Astra/max review approved spec and quality with no findings; see [review](
 ## S07 — production audit identity whitelist
 
 Base `1c336050721579e6b9de106661cae6d6ac48b507`; source and test hashes, exact commands, expected red output, warning counts and limitations in [implementer report](reports/S07-implementer.md). S07-001 root/runner 1/1: one expected identity-filter failure. S07-002 root/runner 0/0: nine focused XCTest cases pass. S07-003 root/runner 0/0: 1108/1108 XCTest progress entries and 20 Swift Testing tests pass. All three watchdog cleanups settled without survivors or timeouts. Raw JSON, logs and process traces retained under `logs/S07-00*`. Controller owns SCP-17 status and review; I01 owns Release/platform integration.
+
+### S07 independent acceptance
+
+Fresh Astra/max [review](reports/S07-review.md) approved spec/quality, no Critical/Important findings. Parent and reviewer independently matched two final source hashes and raw old-policy assertion,9 focused passes,1108 unique full XCTest selections+20 Swift Testing, expected root/runner exits and settled cleanup. Red uses only an internal-access seam before whitelist repair. Formatting is covered; timestamp and OS delivery are not claimed. Two red-build unnecessary-await diagnostics are inherited baseline debt; C02-N1 remains separate. SCP-17 locally verified with I01 pending. No acceptance test rerun.
