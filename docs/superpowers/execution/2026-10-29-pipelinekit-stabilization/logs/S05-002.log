@@ -1,0 +1,145 @@
+Building for debugging...
+[Computing dependencies]
+[Using on-disk description]
+[1 / 1]
+[2 / 7] PipelineKitCacheTests-product
+error: SwiftCompile normal arm64 /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift failed with a nonzero exit code. Command line:     cd /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees
+    builtin-SwiftPerFileCompile CompressionCompletionContractTests.swift
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:30:102: error: extra argument 'maxOutputSize' in call
+ 28 |                             assertOutputLimitError(label) {
+ 29 |                                 try CompressionUtility.decompress(
+ 30 |                                     compressed, using: algorithm, originalSize: hint, maxOutputSize: limit
+    |                                                                                                      `- error: extra argument 'maxOutputSize' in call
+ 31 |                                 )
+ 32 |                             }
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:35:98: error: extra argument 'maxOutputSize' in call
+ 33 |                         } else {
+ 34 |                             let decoded = try CompressionUtility.decompress(
+ 35 |                                 compressed, using: algorithm, originalSize: hint, maxOutputSize: limit
+    |                                                                                                  `- error: extra argument 'maxOutputSize' in call
+ 36 |                             )
+ 37 |                             XCTAssertEqual(decoded, original, label)
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:43:66: error: extra argument 'maxOutputSize' in call
+ 41 |                 // Exercise an actually omitted hint as well as an explicit nil.
+ 42 |                 XCTAssertEqual(try CompressionUtility.decompress(
+ 43 |                     compressed, using: algorithm, maxOutputSize: count
+    |                                                                  `- error: extra argument 'maxOutputSize' in call
+ 44 |                 ), original)
+ 45 |             }
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:56:91: error: extra argument 'maxOutputSize' in call
+ 54 |                     for limit in [max(1, count), count + 1] {
+ 55 |                         let decoded = try CompressionUtility.decompress(
+ 56 |                             compressed, using: algorithm, originalSize: 0, maxOutputSize: limit
+    |                                                                                           `- error: extra argument 'maxOutputSize' in call
+ 57 |                         )
+ 58 |                         XCTAssertEqual(decoded, original, "\(algorithm), size \(count), limit \(limit)")
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:62:114: error: extra argument 'maxOutputSize' in call
+ 60 |                     if count > 1 {
+ 61 |                         assertOutputLimitError("\(algorithm), size \(count)") {
+ 62 |                             try CompressionUtility.decompress(compressed, using: algorithm, maxOutputSize: count - 1)
+    |                                                                                                                  `- error: extra argument 'maxOutputSize' in call
+ 63 |                         }
+ 64 |                     }
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:76:84: error: extra argument 'maxOutputSize' in call
+ 74 |                 let compressed = try CompressionUtility.compress(original, using: algorithm)
+ 75 |                 XCTAssertEqual(try CompressionUtility.decompress(
+ 76 |                     compressed, using: algorithm, originalSize: 17, maxOutputSize: count
+    |                                                                                    `- error: extra argument 'maxOutputSize' in call
+ 77 |                 ), original, "\(algorithm), size \(count)")
+ 78 |                 assertOutputLimitError("\(algorithm), size \(count)") {
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:79:106: error: extra argument 'maxOutputSize' in call
+ 77 |                 ), original, "\(algorithm), size \(count)")
+ 78 |                 assertOutputLimitError("\(algorithm), size \(count)") {
+ 79 |                     try CompressionUtility.decompress(compressed, using: algorithm, maxOutputSize: count - 1)
+    |                                                                                                          `- error: extra argument 'maxOutputSize' in call
+ 80 |                 }
+ 81 |             }
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:91:118: error: extra argument 'maxOutputSize' in call
+ 89 |                 for hint in [-1, Int.min] {
+ 90 |                     assertDecodeError("negative hint \(hint), \(algorithm)") {
+ 91 |                         try CompressionUtility.decompress(data, using: algorithm, originalSize: hint, maxOutputSize: 101)
+    |                                                                                                                      `- error: extra argument 'maxOutputSize' in call
+ 92 |                     }
+ 93 |                 }
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:96:98: error: extra argument 'maxOutputSize' in call
+ 94 |                 for limit in [0, -1, Int.min] {
+ 95 |                     assertDecodeError("nonpositive limit \(limit), \(algorithm)") {
+ 96 |                         try CompressionUtility.decompress(data, using: algorithm, maxOutputSize: limit)
+    |                                                                                                  `- error: extra argument 'maxOutputSize' in call
+ 97 |                     }
+ 98 |                 }
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:100:103: error: extra argument 'maxOutputSize' in call
+ 98 |                 }
+ 99 |             }
+100 |             XCTAssertEqual(try CompressionUtility.decompress(Data(), using: algorithm, maxOutputSize: 1), Data())
+    |                                                                                                       `- error: extra argument 'maxOutputSize' in call
+101 |         }
+102 |     }
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:111:90: error: extra argument 'maxOutputSize' in call
+109 |                 for limit in [101, Int.max] {
+110 |                     XCTAssertEqual(try CompressionUtility.decompress(
+111 |                         compressed, using: algorithm, originalSize: hint, maxOutputSize: limit
+    |                                                                                          `- error: extra argument 'maxOutputSize' in call
+112 |                     ), original, "\(algorithm), hint \(String(describing: hint)), limit \(limit)")
+113 |                 }
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:116:81: error: extra argument 'maxOutputSize' in call
+114 |             }
+115 |             XCTAssertEqual(try CompressionUtility.decompress(
+116 |                 Data(), using: algorithm, originalSize: Int.max, maxOutputSize: 1
+    |                                                                                 `- error: extra argument 'maxOutputSize' in call
+117 |             ), Data())
+118 |         }
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:138:103: error: extra argument 'maxOutputSize' in call
+136 |                     assertDecodeError("\(algorithm), malformed \(index), hint \(String(describing: hint))") {
+137 |                         try CompressionUtility.decompress(
+138 |                             data, using: algorithm, originalSize: hint, maxOutputSize: original.count + 1
+    |                                                                                                       `- error: extra argument 'maxOutputSize' in call
+139 |                         )
+140 |                     }
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:154:85: error: extra argument 'maxOutputSize' in call
+152 |                     assertDecodeError("\(algorithm), trailing \(trailing.count) bytes, limit \(limit)") {
+153 |                         try CompressionUtility.decompress(
+154 |                             compressed + trailing, using: algorithm, maxOutputSize: limit
+    |                                                                                     `- error: extra argument 'maxOutputSize' in call
+155 |                         )
+156 |                     }
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:199:18: error: generic parameter 'ContentType' could not be inferred
+197 |     // The public-API assertion above requires an explicit error for the same fixture.
+198 |     private func stallsWithoutFinalize(_ data: Data, algorithm: CompressionAlgorithm) throws -> Bool {
+199 |         try data.withUnsafeBytes { source in
+    |                  `- error: generic parameter 'ContentType' could not be inferred
+200 |             let sourcePointer = try XCTUnwrap(source.bindMemory(to: UInt8.self).baseAddress)
+201 |             let destination = UnsafeMutablePointer<UInt8>.allocate(capacity: 64)
+
+Foundation.Data.withUnsafeBytes:3:15: note: in call to function 'withUnsafeBytes'
+1 | struct Data {
+2 | @available(swift, deprecated: 5, message: "use `withUnsafeBytes<R>(_: (UnsafeRawBufferPointer) throws -> R) rethrows -> R` instead")
+3 |   public func withUnsafeBytes<ResultType, ContentType>(_ body: (UnsafePointer<ContentType>) throws -> ResultType) rethrows -> ResultType}
+  |               `- note: in call to function 'withUnsafeBytes'
+4 | 
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:200:54: error: value of type 'UnsafePointer<ContentType>' has no member 'bindMemory'
+198 |     private func stallsWithoutFinalize(_ data: Data, algorithm: CompressionAlgorithm) throws -> Bool {
+199 |         try data.withUnsafeBytes { source in
+200 |             let sourcePointer = try XCTUnwrap(source.bindMemory(to: UInt8.self).baseAddress)
+    |                                                      `- error: value of type 'UnsafePointer<ContentType>' has no member 'bindMemory'
+201 |             let destination = UnsafeMutablePointer<UInt8>.allocate(capacity: 64)
+202 |             defer { destination.deallocate() }
+Failed frontend command:
+/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swift-frontend -frontend -c /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Intermediates.noindex/PipelineKit.build/Debug/PipelineKitCacheTests-p.build/DerivedSources/test_entry_point.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CacheIdentityContractTests.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CachingMiddlewareTests.swift -primary-file /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionMiddlewareTests.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/LRUEvolutionTests.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/NextGuardSuppressionTests.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/SimpleCachingMiddlewareTests.swift -emit-dependencies-path /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Intermediates.noindex/PipelineKit.build/Debug/PipelineKitCacheTests-p.build/Objects-normal/arm64/CompressionCompletionContractTests.d -emit-const-values-path /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Intermediates.noindex/PipelineKit.build/Debug/PipelineKitCacheTests-p.build/Objects-normal/arm64/CompressionCompletionContractTests.swiftconstvalues -emit-reference-dependencies-path /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Intermediates.noindex/PipelineKit.build/Debug/PipelineKitCacheTests-p.build/Objects-normal/arm64/CompressionCompletionContractTests.swiftdeps -serialize-diagnostics-path /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Intermediates.noindex/PipelineKit.build/Debug/PipelineKitCacheTests-p.build/Objects-normal/arm64/CompressionCompletionContractTests.dia -target arm64-apple-macos26.0 -module-can-import-version Compression 18 0 -module-can-import-version Testing 2403 0 -module-can-import-version XCTest 25435 0 -disable-cross-import-overlay-search -swift-module-cross-import Testing /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks/Testing.framework/Modules/Testing.swiftcrossimport/AppKit.swiftoverlay -swift-module-cross-import Testing /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks/Testing.framework/Modules/Testing.swiftcrossimport/CoreGraphics.swiftoverlay -swift-module-cross-import Testing /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks/Testing.framework/Modules/Testing.swiftcrossimport/CoreImage.swiftoverlay -swift-module-cross-import Testing /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks/Testing.framework/Modules/Testing.swiftcrossimport/CoreTransferable.swiftoverlay -swift-module-cross-import Testing /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks/Testing.framework/Modules/Testing.swiftcrossimport/Foundation.swiftoverlay -load-resolved-plugin /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib/swift/host/plugins/libFoundationMacros.dylib\#/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/bin/swift-plugin-server\#FoundationMacros -load-resolved-plugin /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib/swift/host/plugins/libObservationMacros.dylib\#/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/bin/swift-plugin-server\#ObservationMacros -load-resolved-plugin /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib/swift/host/plugins/libPreviewsMacros.dylib\#/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/bin/swift-plugin-server\#PreviewsMacros -load-resolved-plugin /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib/swift/host/plugins/libSwiftMacros.dylib\#/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/bin/swift-plugin-server\#SwiftMacros -load-resolved-plugin /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib/swift/host/plugins/libSwiftUIMacros.dylib\#/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/bin/swift-plugin-server\#SwiftUIMacros -load-resolved-plugin /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing/libTestingMacros.dylib\#\#TestingMacros -disable-implicit-swift-modules -Xcc -fno-implicit-modules -Xcc -fno-implicit-module-maps -explicit-swift-module-map-file /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Intermediates.noindex/PipelineKit.build/Debug/PipelineKitCacheTests-p.build/Objects-normal/arm64/PipelineKitCacheTests-dependencies-1.json -Xllvm -aarch64-use-tbi -enable-objc-interop -stack-check -sdk /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.2.sdk -I /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Products/Debug -Isystem /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib -F /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Products/Debug/PackageFrameworks -F /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Products/Debug -F /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks -module-cache-path /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Intermediates.noindex/SwiftExplicitPrecompiledModules -no-color-diagnostics -Xcc -fno-color-diagnostics -enable-testing -g -debug-info-format\=dwarf -dwarf-version\=5 -swift-version 6 -Onone -D SWIFT_PACKAGE -D DEBUG -D Xcode -serialize-debugging-options -enable-experimental-feature StrictConcurrency -enable-experimental-feature DebugDescriptionMacro -empty-abi-descriptor -validate-clang-modules-once -clang-build-session-file /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/ModuleCache.noindex/Session.modulevalidation -Xcc -working-directory -Xcc /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees -enable-anonymous-context-mangled-names -file-compilation-dir /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees -Xcc -fmodule-map-file\=/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/checkouts/swift-atomics/Sources/_AtomicsShims/include/module.modulemap -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -Xcc -ivfsstatcache -Xcc /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/SDKStatCaches.noindex/macosx27.2-26B118-d56355c2f463f349a93388c94f7bc0b5a7ff82d74745d5ef33555b35c4238456.sdkstatcache -Xcc -fmodules-prune-interval\=86400 -Xcc -fmodules-prune-after\=345600 -Xcc -I/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/checkouts/swift-atomics/Sources/_AtomicsShims/include -Xcc -I/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Products/Debug/include -Xcc -I/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Intermediates.noindex/PipelineKit.build/Debug/PipelineKitCacheTests-p.build/DerivedSources-normal/arm64 -Xcc -I/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Intermediates.noindex/PipelineKit.build/Debug/PipelineKitCacheTests-p.build/DerivedSources/arm64 -Xcc -I/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Intermediates.noindex/PipelineKit.build/Debug/PipelineKitCacheTests-p.build/DerivedSources -Xcc -DSWIFT_PACKAGE -Xcc -DDEBUG\=1 -no-auto-bridging-header-chaining -module-name PipelineKitCacheTests -package-name pipelinekit_stabilization -const-gather-protocols-file /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Intermediates.noindex/PipelineKit.build/Debug/PipelineKitCacheTests-p.build/Objects-normal/arm64/PipelineKitCacheTests_const_extract_protocols.json -disable-clang-spi -clang-target arm64-apple-macos27.2 -target-sdk-version 27.2 -target-sdk-name macosx27.2 -in-process-plugin-server-path /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/libSwiftInProcPluginServer.dylib -parse-as-library -o /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Intermediates.noindex/PipelineKit.build/Debug/PipelineKitCacheTests-p.build/Objects-normal/arm64/CompressionCompletionContractTests.o -debug-module-path /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Intermediates.noindex/PipelineKit.build/Debug/PipelineKitCacheTests-p.build/Objects-normal/arm64/PipelineKitCacheTests.swiftmodule -index-unit-output-path /PipelineKit.build/Debug/PipelineKitCacheTests-p.build/Objects-normal/arm64/CompressionCompletionContractTests.o -index-store-path /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out -index-system-modules
+error: Build failed
+error: fatalError

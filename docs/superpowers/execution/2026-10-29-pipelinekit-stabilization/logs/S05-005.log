@@ -1,0 +1,126 @@
+Building for debugging...
+[Computing dependencies]
+[Using on-disk description]
+[1 / 1]
+[2 / 15] PipelineKitCache
+[4 / 17] PipelineKitCache
+[7 / 21] PipelineKitCache
+[12 / 18] PipelineKitCacheTests-product
+[17 / 22] PipelineKitPerformanceTests-product
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionMiddlewareTests.swift:80:28: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+ 78 |         let handler: @Sendable (DataProcessingCommand, CommandContext) async throws -> ProcessingResult = { cmd, ctx in
+ 79 |             // Verify compression was applied
+ 80 |             let metadata = await ctx.getMetadata()
+    |                            `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+ 81 |             if let applied = metadata["compression.applied"] as? Bool, applied {
+ 82 |                 XCTAssertEqual(metadata["compression.algorithm"] as? String, "zlib")
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionMiddlewareTests.swift:124:28: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+122 |         let handler: @Sendable (DataProcessingCommand, CommandContext) async throws -> ProcessingResult = { cmd, ctx in
+123 |             // Verify compression was NOT applied
+124 |             let metadata = await ctx.getMetadata()
+    |                            `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+125 |             XCTAssertNil(metadata["compression.applied"])
+126 |             XCTAssertFalse(cmd.operation.contains("compressed"))
+
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>
+[21 / 24] PipelineKitCacheTests-product
+[23 / 27] PipelineKitCacheTests-product
+Build complete! (1.96 sec)
+Test Suite 'Selected tests' started at 2026-10-30 20:58:11.309.
+Test Suite 'PipelineKitTests.xctest' started at 2026-10-30 20:58:11.310.
+Test Suite 'PipelineKitTests.xctest' passed at 2026-10-30 20:58:11.310.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 20:58:11.310.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 20:58:11.387.
+Test Suite 'PipelineKitTestSupportTests.xctest' started at 2026-10-30 20:58:11.388.
+Test Suite 'PipelineKitTestSupportTests.xctest' passed at 2026-10-30 20:58:11.388.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 20:58:11.388.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 20:58:11.465.
+Test Suite 'PipelineKitSecurityTests.xctest' started at 2026-10-30 20:58:11.467.
+Test Suite 'PipelineKitSecurityTests.xctest' passed at 2026-10-30 20:58:11.467.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 20:58:11.467.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.002) seconds
+Test Suite 'Selected tests' started at 2026-10-30 20:58:11.552.
+Test Suite 'PipelineKitResilienceTests.xctest' started at 2026-10-30 20:58:11.553.
+Test Suite 'PipelineKitResilienceTests.xctest' passed at 2026-10-30 20:58:11.553.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 20:58:11.553.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 20:58:11.636.
+Test Suite 'PipelineKitPoolingTests.xctest' started at 2026-10-30 20:58:11.637.
+Test Suite 'PipelineKitPoolingTests.xctest' passed at 2026-10-30 20:58:11.637.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 20:58:11.637.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 20:58:11.720.
+Test Suite 'PipelineKitPerformanceTests.xctest' started at 2026-10-30 20:58:11.721.
+Test Suite 'PipelineKitPerformanceTests.xctest' passed at 2026-10-30 20:58:11.721.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 20:58:11.721.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 20:58:11.800.
+Test Suite 'PipelineKitObservabilityTests.xctest' started at 2026-10-30 20:58:11.801.
+Test Suite 'PipelineKitObservabilityTests.xctest' passed at 2026-10-30 20:58:11.801.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 20:58:11.801.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 20:58:11.880.
+Test Suite 'PipelineKitCoreTests.xctest' started at 2026-10-30 20:58:11.881.
+Test Suite 'PipelineKitCoreTests.xctest' passed at 2026-10-30 20:58:11.881.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 20:58:11.881.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 20:58:11.941.
+Test Suite 'PipelineKitCacheTests.xctest' started at 2026-10-30 20:58:11.942.
+Test Suite 'CompressionCompletionContractTests' started at 2026-10-30 20:58:11.942.
+Test Case '-[PipelineKitCacheTests.CompressionCompletionContractTests testDecodeCompletesOrThrowsForEverySizeHintAndLimit]' started.
+Test Case '-[PipelineKitCacheTests.CompressionCompletionContractTests testDecodeCompletesOrThrowsForEverySizeHintAndLimit]' passed (0.016 seconds).
+Test Case '-[PipelineKitCacheTests.CompressionCompletionContractTests testExactLimitAtWorkingBufferBoundary]' started.
+Test Case '-[PipelineKitCacheTests.CompressionCompletionContractTests testExactLimitAtWorkingBufferBoundary]' passed (0.079 seconds).
+Test Case '-[PipelineKitCacheTests.CompressionCompletionContractTests testHugeHintsAndLimitsDoNotRequireHugeAllocation]' started.
+Test Case '-[PipelineKitCacheTests.CompressionCompletionContractTests testHugeHintsAndLimitsDoNotRequireHugeAllocation]' passed (0.000 seconds).
+Test Case '-[PipelineKitCacheTests.CompressionCompletionContractTests testInvalidArgumentsAreRejectedBeforeEmptyInputCompatibility]' started.
+Test Case '-[PipelineKitCacheTests.CompressionCompletionContractTests testInvalidArgumentsAreRejectedBeforeEmptyInputCompatibility]' passed (0.000 seconds).
+Test Case '-[PipelineKitCacheTests.CompressionCompletionContractTests testSmallPayloadRoundTrips]' started.
+Test Case '-[PipelineKitCacheTests.CompressionCompletionContractTests testSmallPayloadRoundTrips]' passed (0.001 seconds).
+Test Case '-[PipelineKitCacheTests.CompressionCompletionContractTests testTrailingAndConcatenatedStreamsAreRejected]' started.
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:152: error: -[PipelineKitCacheTests.CompressionCompletionContractTests testTrailingAndConcatenatedStreamsAreRejected] : XCTAssertThrowsError failed: did not throw an error - zlib, trailing 1 bytes, limit 100000
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:152: error: -[PipelineKitCacheTests.CompressionCompletionContractTests testTrailingAndConcatenatedStreamsAreRejected] : XCTAssertThrowsError failed: did not throw an error - zlib, trailing 1 bytes, limit 200000
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:152: error: -[PipelineKitCacheTests.CompressionCompletionContractTests testTrailingAndConcatenatedStreamsAreRejected] : XCTAssertThrowsError failed: did not throw an error - zlib, trailing 2 bytes, limit 100000
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:152: error: -[PipelineKitCacheTests.CompressionCompletionContractTests testTrailingAndConcatenatedStreamsAreRejected] : XCTAssertThrowsError failed: did not throw an error - zlib, trailing 2 bytes, limit 200000
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:152: error: -[PipelineKitCacheTests.CompressionCompletionContractTests testTrailingAndConcatenatedStreamsAreRejected] : XCTAssertThrowsError failed: did not throw an error - zlib, trailing 115 bytes, limit 100000
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:152: error: -[PipelineKitCacheTests.CompressionCompletionContractTests testTrailingAndConcatenatedStreamsAreRejected] : XCTAssertThrowsError failed: did not throw an error - zlib, trailing 115 bytes, limit 200000
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:152: error: -[PipelineKitCacheTests.CompressionCompletionContractTests testTrailingAndConcatenatedStreamsAreRejected] : XCTAssertThrowsError failed: did not throw an error - lzfse, trailing 1 bytes, limit 100000
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:152: error: -[PipelineKitCacheTests.CompressionCompletionContractTests testTrailingAndConcatenatedStreamsAreRejected] : XCTAssertThrowsError failed: did not throw an error - lzfse, trailing 1 bytes, limit 200000
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:152: error: -[PipelineKitCacheTests.CompressionCompletionContractTests testTrailingAndConcatenatedStreamsAreRejected] : XCTAssertThrowsError failed: did not throw an error - lzfse, trailing 2 bytes, limit 100000
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:152: error: -[PipelineKitCacheTests.CompressionCompletionContractTests testTrailingAndConcatenatedStreamsAreRejected] : XCTAssertThrowsError failed: did not throw an error - lzfse, trailing 2 bytes, limit 200000
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:152: error: -[PipelineKitCacheTests.CompressionCompletionContractTests testTrailingAndConcatenatedStreamsAreRejected] : XCTAssertThrowsError failed: did not throw an error - lzfse, trailing 204 bytes, limit 100000
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:152: error: -[PipelineKitCacheTests.CompressionCompletionContractTests testTrailingAndConcatenatedStreamsAreRejected] : XCTAssertThrowsError failed: did not throw an error - lzfse, trailing 204 bytes, limit 200000
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:152: error: -[PipelineKitCacheTests.CompressionCompletionContractTests testTrailingAndConcatenatedStreamsAreRejected] : XCTAssertThrowsError failed: did not throw an error - gzip, trailing 1 bytes, limit 100000
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:152: error: -[PipelineKitCacheTests.CompressionCompletionContractTests testTrailingAndConcatenatedStreamsAreRejected] : XCTAssertThrowsError failed: did not throw an error - gzip, trailing 1 bytes, limit 200000
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:152: error: -[PipelineKitCacheTests.CompressionCompletionContractTests testTrailingAndConcatenatedStreamsAreRejected] : XCTAssertThrowsError failed: did not throw an error - gzip, trailing 2 bytes, limit 100000
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:152: error: -[PipelineKitCacheTests.CompressionCompletionContractTests testTrailingAndConcatenatedStreamsAreRejected] : XCTAssertThrowsError failed: did not throw an error - gzip, trailing 2 bytes, limit 200000
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:152: error: -[PipelineKitCacheTests.CompressionCompletionContractTests testTrailingAndConcatenatedStreamsAreRejected] : XCTAssertThrowsError failed: did not throw an error - gzip, trailing 115 bytes, limit 100000
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:152: error: -[PipelineKitCacheTests.CompressionCompletionContractTests testTrailingAndConcatenatedStreamsAreRejected] : XCTAssertThrowsError failed: did not throw an error - gzip, trailing 115 bytes, limit 200000
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:152: error: -[PipelineKitCacheTests.CompressionCompletionContractTests testTrailingAndConcatenatedStreamsAreRejected] : XCTAssertThrowsError failed: did not throw an error - brotli, trailing 1 bytes, limit 100000
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:152: error: -[PipelineKitCacheTests.CompressionCompletionContractTests testTrailingAndConcatenatedStreamsAreRejected] : XCTAssertThrowsError failed: did not throw an error - brotli, trailing 1 bytes, limit 200000
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:152: error: -[PipelineKitCacheTests.CompressionCompletionContractTests testTrailingAndConcatenatedStreamsAreRejected] : XCTAssertThrowsError failed: did not throw an error - brotli, trailing 2 bytes, limit 100000
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:152: error: -[PipelineKitCacheTests.CompressionCompletionContractTests testTrailingAndConcatenatedStreamsAreRejected] : XCTAssertThrowsError failed: did not throw an error - brotli, trailing 2 bytes, limit 200000
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:152: error: -[PipelineKitCacheTests.CompressionCompletionContractTests testTrailingAndConcatenatedStreamsAreRejected] : XCTAssertThrowsError failed: did not throw an error - brotli, trailing 204 bytes, limit 100000
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:152: error: -[PipelineKitCacheTests.CompressionCompletionContractTests testTrailingAndConcatenatedStreamsAreRejected] : XCTAssertThrowsError failed: did not throw an error - brotli, trailing 204 bytes, limit 200000
+Test Case '-[PipelineKitCacheTests.CompressionCompletionContractTests testTrailingAndConcatenatedStreamsAreRejected]' failed (0.189 seconds).
+Test Case '-[PipelineKitCacheTests.CompressionCompletionContractTests testTruncatedCorruptAndStalledStreamsNeverReturnPrefixes]' started.
+Test Case '-[PipelineKitCacheTests.CompressionCompletionContractTests testTruncatedCorruptAndStalledStreamsNeverReturnPrefixes]' passed (0.002 seconds).
+Test Suite 'CompressionCompletionContractTests' failed at 2026-10-30 20:58:12.230.
+	 Executed 7 tests, with 24 failures (0 unexpected) in 0.288 (0.288) seconds
+Test Suite 'PipelineKitCacheTests.xctest' failed at 2026-10-30 20:58:12.230.
+	 Executed 7 tests, with 24 failures (0 unexpected) in 0.288 (0.288) seconds
+Test Suite 'Selected tests' failed at 2026-10-30 20:58:12.230.
+	 Executed 7 tests, with 24 failures (0 unexpected) in 0.288 (0.289) seconds
+Note: Some test targets reported failures:
+  - PipelineKitCacheTests (XCTest)

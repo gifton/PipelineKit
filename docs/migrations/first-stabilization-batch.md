@@ -1,6 +1,7 @@
 # First stabilization batch migration — draft
 
-This draft currently covers S01 validation/sanitization, S02 command encryption, S03 cache identity, and R02
+This draft currently covers S01 validation/sanitization, S02 command encryption, S03 cache identity,
+S05 bounded decompression, and R02
 bulkhead queue-timeout validation. I01
 owns the completed batch migration guide, compilation of all examples, and the consolidated
 Breaking entry. These snippets have not yet been compiled as standalone migration examples;
@@ -401,3 +402,53 @@ The task tests exercise all four APIs and their convenience paths in the root te
 No existing standalone `Examples/Sources` cache caller required migration. The snippets above
 are source-reviewed here; I01 owns compiling migration examples and the final platform matrix.
 S04 separately owns LRU predecessor cycles.
+
+## Breaking: complete bounded decompression (SCP-07)
+
+Every `CompressionUtility.decompress` call must now supply a positive `maxOutputSize`:
+
+```swift
+#if canImport(Compression)
+import Foundation
+import PipelineKitCache
+
+func decodeCachedPayload(_ compressed: Data, sizeHint: Int?) throws -> Data {
+    try CompressionUtility.decompress(
+        compressed,
+        using: .zlib,
+        originalSize: sizeHint,
+        maxOutputSize: 1_048_576
+    )
+}
+#endif
+```
+
+Choose the byte limit from the application's payload policy, independently of untrusted
+size metadata. `originalSize` remains optional and is only a nonnegative allocation hint;
+it neither defines the decoded length nor proves completion. Its initial allocation is
+capped at the limit and 64 KiB, including when the hint is `Int.max`. A negative hint or a
+nonpositive limit throws `CompressionError.decompressionFailed`, including for empty input.
+
+Successful decoding returns the entire single stream, including when its decoded size
+exactly equals the limit. A shorter output buffer no longer returns a successful prefix.
+Output beyond the limit throws `CompressionError.dataTooLarge(maxOutputSize)`. Invalid,
+truncated or stalled input and bytes following a complete stream throw
+`CompressionError.decompressionFailed`; concatenated streams must be framed separately
+before passing each compressed payload to this API. Invalid input must be rejected or
+replaced from a trusted source rather than retried by raising the output limit. The limit
+bounds returned bytes; it is not a bound on the codec's internal state or total process memory.
+
+The utility now compresses every nonempty payload, including sizes 1–100. It no longer
+returns unmarked raw bytes for those sizes. Empty input keeps its empty representation
+after argument validation. Middleware still applies its configured size threshold and
+uses the compressed result only when it is smaller. Old small utility outputs have no
+format marker: recover them using application-owned format/size metadata or regenerate
+them from trusted originals; do not infer that arbitrary failed decompression is raw data.
+
+Codec mappings and level behavior are unchanged: `.zlib` and `.gzip` use Apple's raw
+DEFLATE codec, `.lzfse` and `.brotli` use LZFSE, and `.lz4` uses Apple's framed LZ4.
+SCP-08 remains open; these aliases do not establish gzip or Brotli interoperability or
+working compression-level selection. The root contract suite compiles the new API and
+exercises all five cases on the Compression-capable host. The standalone Examples package
+has no decompression caller to migrate. I01 owns standalone Examples and migration-snippet
+compilation, platform integration, and the next-minor consolidated **Breaking** entry.

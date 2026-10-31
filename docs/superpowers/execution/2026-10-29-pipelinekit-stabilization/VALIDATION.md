@@ -910,3 +910,74 @@ The reviewer challenged a newly reachable risk: recursive destruction of long fo
 The controller preserved51 reviewer-authored source/manifest/watchdog/raw evidence files byte-for-byte in [review-probes/S04](review-probes/S04/README.md), independently checked5 source/probe/watchdog hashes and all15 runner outcomes, and verified completed-thread markers in012–015. `preservation.json` records copied hashes. Original001–010 remain intact;006–010 are superseded for thread settlement, not relabeled as joined. Compiled binaries/caches remain at the original temporary path and are excluded from the committed record.
 
 S04-N1 retains baseline compiler diagnostics (ten Release occurrences) and separate C02-N1 runtime fixture debt. I01 owns final platform/integration checks; lifetime/teardown evidence is not performance, thread-safety or sanitizer evidence. SCP-06 is locally task-verified.
+
+
+## S05 — SCP-07 complete bounded decompression
+
+Implementation/evidence base `6545ba3a0300ab4c5f655a0f397ac107c960aa70`; detailed implementation,
+self-review and limitations: [S05 report](reports/S05-implementer.md). The required positive
+maxOutputSize bounds returned bytes; originalSize is only a capped nonnegative allocation hint.
+Exact output limits succeed only at END; overflow is probed without returning the excess byte.
+Empty input validates arguments first. Nonempty small utility payloads are now encoded; middleware
+threshold/benefit decisions and SCP-08 mappings/levels are unchanged.
+
+All commands used the reviewed V04 runner from the isolated worktree with unique IDs:
+`python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id ID --timeout 600 -- COMMAND`.
+The two direct platform probes and version capture use timeout120. Every run's cleanup settled
+with no survivors, timeout, termination actions or runner error. Root/runner statuses:
+
+- S05-001: `swift test --filter CompressionCompletionContractTests`,1/1: old-API behavioral red,
+  2 tests/25 failures/0 unexpected. Ten successful-prefix returns; fifteen small-payload failures
+  (four byte mismatches and eleven caught errors recorded by XCTFail). Count all failure records,
+  not only lines containing XCTAssert. Retained V206b independently records100000→1150/17 prefixes;
+  its raw log/JSON match the original checkout byte-for-byte (`S05-retained-audit.json`).
+- S05-002/003: same focused command,1/1. New-signature compile-red;002 also exposed an ambiguous
+  fixture closure, corrected in003. No behavioral execution is claimed for either.
+- S05-004: same focused command,1/1; imported C-struct initializer build error, subsequently fixed.
+- S05-005: same focused command,1/1;7 tests/24 failures/0 unexpected. DEFLATE/LZFSE read-ahead
+  accepted trailing bytes despite END and zero src_size. This actual decoder failure is retained.
+- S05-P01: `swift docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/S05-stream-boundary.swift`,0/0;
+  24 direct Apple API traces characterize read-ahead and withholding the final byte. Prefix draining
+  waits for no progress before refill; final code retains the cursor and extends source size by one.
+  Unconsumed-prefix refill is source/contract-reviewed, not a dynamically observed path in P01.
+- S05-006: `swift test --filter CompressionCompletionContractTests`,0/0;8 tests/0 failures.
+- S05-007: `swift test --filter Compression`,1/1;14 tests/5 failures (2 unexpected throw records).
+  The small-LZ4 fixture incorrectly assumed a benefit. S05-P02 (`swift -e`, full source in JSON),0/0,
+  measured100 repeated bytes→6 DEFLATE/32 LZFSE/112 LZ4. This is a fixture correction, not a decoder defect.
+- S05-008: `swift test --filter Compression`,0/0;14 tests/0 failures after corrected benefit
+  expectations and cursor-preserving refill.
+- S05-009: `swift test --filter CompressionMiddlewareTests`,0/0;6 tests/0 failures after adding
+  the requested beneficial1024-byte LZ4 control alongside the exact100-byte no-benefit assertions.
+- S05-010: `swift test --parallel --skip PipelineKitPerformanceTests`,0/0;1102 unique XCTest
+  selections completed plus20 Swift Testing cases in5 suites. This is the single final substantive
+  full Debug run. The selector excludes the named performance target, not every performance-named method.
+- S05-ENV: `swift --version`,0/0; Apple Swift6.4.2 on arm64 macOS27.0.1 build26A434, SDK27.2.
+
+The completion suite uses all five enum aliases/three actual codecs with100000-byte compressible
+and independently generated high-entropy inputs; nil/17/n-1/n/n+1 hints, n-1/n/n+1 limits, omitted
+hints, Int.max bounded hints/limits,0/1/99/100/101 sizes,64KiB boundaries, invalid arguments,
+truncated/corrupt/stall fixtures, trailing/concatenated streams and encoded-empty streams. Its780
+public decode calls produce370 byte-for-byte complete results and410 explicit errors. Five raw
+nonfinal no-progress observations establish the stall fixtures. No positive prefix is counted as success.
+
+`logs/S05-validation-summary.json` retains exact commands, all source/log/metadata/process hashes,
+warning counts and the live-caller scan. Numbered source manifests/diffs bind every iterative state.
+Final production SHA256 `6978ba0fda8d3e364e6e50e1a111791ee83b61b458ffda398f4de228677318e8`;
+completion test `a76f4181de9d7a0287ed59ddab1a8e4cb01fd2857d01df177b00feb9c9934671`;
+final relevant diff `06618a02795bb9fbba22af1f1bd25c37577542d2a6c3c3b196e9745a6474261e`.
+The four final implementation/migration file hashes still match010. Source/report-scoped staged
+`git diff --cached --check` passed. The aggregate staged check reports only preserved whitespace
+in raw logs and captured diff context; those evidence bytes are intentionally retained.
+No original audit/guide or controller plan/closure/progress changes are staged by this task.
+
+Compiler warnings:003/005/008/009 each emitted two existing CompressionMiddlewareTests
+UnnecessaryEffectMarker records (eight occurrences, one baseline kind), zero new kinds; other
+runs emitted none. Runtime/configuration scanning, including SwiftLog `warning PipelineKit.Core:`,
+found zero emitted lines. Incremental compilation and suppression of successful parallel test
+output preclude a global clean-output claim. C02-N1 and existing compiler debt remain separate.
+
+The live existing decode test caller and migration signature are updated. No standalone Examples
+caller exists; root tests do not compile that separate package or Markdown snippets. I01 retains
+Examples/snippet compilation, next-minor Breaking entry, floor/Linux, Release/TSan and integration.
+Linux's absent Compression branch is unavailable, not a decoder pass. SCP-08 remains open. This
+entry supplies local SCP-07 implementation evidence; the controller owns closure and review status.

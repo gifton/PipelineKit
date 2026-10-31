@@ -1,0 +1,438 @@
+diff --git a/Sources/PipelineKitCache/CompressionMiddleware.swift b/Sources/PipelineKitCache/CompressionMiddleware.swift
+index 8d8738c..2f8b3ae 100644
+--- a/Sources/PipelineKitCache/CompressionMiddleware.swift
++++ b/Sources/PipelineKitCache/CompressionMiddleware.swift
+@@ -368,7 +368,11 @@ public final class CompressionUtility: Sendable {
+         return sourceSize + sourceSize / 100 + 16
+     }
+     
+-    /// Compress data using the specified algorithm.
++    /// Compress data using the specified algorithm, including nonempty small payloads.
++    ///
++    /// Empty input retains its empty representation. `testSmallPayloadRoundTrips` in
++    /// `CompressionCompletionContractTests` covers the empty and small-payload contract.
++    /// Middleware callers still decide whether compression is beneficial.
+     public static func compress(
+         _ data: Data,
+         using algorithm: CompressionAlgorithm,
+@@ -376,16 +380,16 @@ public final class CompressionUtility: Sendable {
+     ) throws -> Data {
+         guard !data.isEmpty else { return data }
+         
+-        // Skip compression for small data where overhead would make it larger
+-        // Most compression algorithms add ~12-20 bytes of metadata/headers
+-        guard data.count > 100 else { return data }
+-        
+         return try data.withUnsafeBytes { sourceBuffer in
+             guard let sourcePtr = sourceBuffer.bindMemory(to: UInt8.self).baseAddress else {
+                 throw CompressionError.compressionFailed("Invalid source data")
+             }
+             
+-            let destinationSize = maxCompressedSize(for: data.count)
++            let (sizeWithOverhead, overheadOverflow) = data.count.addingReportingOverflow(data.count / 100)
++            let (destinationSize, sizeOverflow) = sizeWithOverhead.addingReportingOverflow(16)
++            guard !overheadOverflow, !sizeOverflow else {
++                throw CompressionError.dataTooLarge(data.count)
++            }
+             let destinationBuffer = UnsafeMutablePointer<UInt8>.allocate(capacity: destinationSize)
+             defer { destinationBuffer.deallocate() }
+             
+@@ -410,38 +414,86 @@ public final class CompressionUtility: Sendable {
+         }
+     }
+     
+-    /// Decompress data using the specified algorithm.
++    /// Decode one complete compressed stream within a caller-selected output byte limit.
++    ///
++    /// - Parameters:
++    ///   - data: One compressed stream. Empty input returns empty after argument validation.
++    ///   - algorithm: The existing platform codec selected by `CompressionAlgorithm`.
++    ///   - originalSize: Optional nonnegative allocation hint, not an expected length or
++    ///     completion signal. The initial reservation is capped at `maxOutputSize` and 64 KiB.
++    ///   - maxOutputSize: Required positive maximum number of decoded bytes to return.
++    /// - Returns: All decoded bytes after the platform reports end-of-stream with no trailing
++    ///   input. `CompressionCompletionContractTests` exercises limits, hints and malformed input.
++    /// - Throws: `CompressionError.decompressionFailed` for invalid arguments, initialization
++    ///   failure, corrupt/truncated input, lack of progress or bytes following the first stream.
++    ///   `CompressionError.dataTooLarge(maxOutputSize)` if decoding produces an excess byte.
++    ///
++    /// The destination buffer is at most 64 KiB and no larger than the output limit.
++    /// The codec manages its own internal state. At the exact limit, one destination byte is
++    /// reused to distinguish completion from overflow; that byte is never appended to output.
+     public static func decompress(
+         _ data: Data,
+         using algorithm: CompressionAlgorithm,
+-        originalSize: Int? = nil
++        originalSize: Int? = nil,
++        maxOutputSize: Int
+     ) throws -> Data {
++        guard maxOutputSize > 0 else {
++            throw CompressionError.decompressionFailed("Maximum output size must be positive")
++        }
++        if let originalSize, originalSize < 0 {
++            throw CompressionError.decompressionFailed("Original size hint must be nonnegative")
++        }
+         guard !data.isEmpty else { return data }
+         
+-        return try data.withUnsafeBytes { sourceBuffer in
++        return try data.withUnsafeBytes { (sourceBuffer: UnsafeRawBufferPointer) in
+             guard let sourcePtr = sourceBuffer.bindMemory(to: UInt8.self).baseAddress else {
+                 throw CompressionError.decompressionFailed("Invalid source data")
+             }
+-            
+-            // Estimate decompressed size (use original if known)
+-            let destinationSize = originalSize ?? (data.count * 10)
+-            let destinationBuffer = UnsafeMutablePointer<UInt8>.allocate(capacity: destinationSize)
++
++            let bufferCapacity: Int = min(maxOutputSize, 64 * 1024)
++            let destinationBuffer = UnsafeMutablePointer<UInt8>.allocate(capacity: bufferCapacity)
+             defer { destinationBuffer.deallocate() }
+-            
+-            let decompressedSize = compression_decode_buffer(
+-                destinationBuffer,
+-                destinationSize,
+-                sourcePtr,
+-                data.count,
+-                nil,
+-                algorithm.foundationAlgorithm
++
++            var stream = compression_stream(
++                dst_ptr: destinationBuffer, dst_size: 0, src_ptr: sourcePtr, src_size: 0, state: nil
+             )
+-            
+-            guard decompressedSize > 0 else {
+-                throw CompressionError.decompressionFailed("Decompression returned no data")
++            guard compression_stream_init(&stream, COMPRESSION_STREAM_DECODE, algorithm.foundationAlgorithm) == COMPRESSION_STATUS_OK else {
++                throw CompressionError.decompressionFailed("Could not initialize decoder")
++            }
++            defer { compression_stream_destroy(&stream) }
++            stream.src_ptr = sourcePtr
++            stream.src_size = data.count
++
++            var output = Data(capacity: min(originalSize ?? bufferCapacity, bufferCapacity))
++            while true {
++                // Subtraction is safe because append below is guarded by the remaining capacity.
++                let remainingCapacity: Int = maxOutputSize - output.count
++                let offeredCapacity: Int = remainingCapacity > 0 ? min(bufferCapacity, remainingCapacity) : 1
++                let inputBefore: Int = stream.src_size
++                stream.dst_ptr = destinationBuffer
++                stream.dst_size = offeredCapacity
++
++                // All input is already supplied. FINALIZE makes incomplete input terminal.
++                let status = compression_stream_process(&stream, Int32(COMPRESSION_STREAM_FINALIZE.rawValue))
++                guard status == COMPRESSION_STATUS_OK || status == COMPRESSION_STATUS_END else {
++                    throw CompressionError.decompressionFailed("Invalid or incomplete compressed stream")
++                }
++                let produced: Int = offeredCapacity - stream.dst_size
++                guard produced <= remainingCapacity else {
++                    throw CompressionError.dataTooLarge(maxOutputSize)
++                }
++                output.append(destinationBuffer, count: produced)
++
++                if status == COMPRESSION_STATUS_END {
++                    guard stream.src_size == 0 else {
++                        throw CompressionError.decompressionFailed("Trailing bytes after compressed stream")
++                    }
++                    return output
++                }
++                guard stream.src_size < inputBefore || produced > 0 else {
++                    throw CompressionError.decompressionFailed("Decoder made no progress before completion")
++                }
+             }
+-            
+-            return Data(bytes: destinationBuffer, count: decompressedSize)
+         }
+     }
+     
+diff --git a/Tests/PipelineKitCacheTests/CompressionMiddlewareTests.swift b/Tests/PipelineKitCacheTests/CompressionMiddlewareTests.swift
+index 9c2955e..812f477 100644
+--- a/Tests/PipelineKitCacheTests/CompressionMiddlewareTests.swift
++++ b/Tests/PipelineKitCacheTests/CompressionMiddlewareTests.swift
+@@ -154,6 +154,48 @@ final class CompressionMiddlewareTests: XCTestCase {
+             XCTFail("Compression ratio calculation failed: \(error)")
+         }
+     }
++
++    func testSmallBeneficialPayloadUsesConfiguredThreshold() async throws {
++        let original = Data(repeating: 65, count: 100)
++        for algorithm in CompressionAlgorithm.allCases {
++            let middleware = CompressionMiddleware(algorithm: algorithm, minimumSize: 1, trackStatistics: false)
++            let context = CommandContext()
++            let result = try await middleware.execute(
++                DataProcessingCommand(data: original, operation: "small"), context: context
++            ) { command, handlerContext in
++                XCTAssertEqual(command.operation, "small.compressed")
++                XCTAssertEqual(handlerContext.getMetadata("compression.applied") as? Bool, true)
++                XCTAssertEqual(try CompressionUtility.decompress(
++                    command.data, using: algorithm, maxOutputSize: original.count
++                ), original)
++                return ProcessingResult(processedData: original, success: true)
++            }
++            XCTAssertEqual(context.getMetadata("compression.resultApplied") as? Bool, true)
++            XCTAssertEqual(try CompressionUtility.decompress(
++                result.processedData, using: algorithm, maxOutputSize: original.count
++            ), original)
++        }
++    }
++
++    func testSmallPayloadWithoutCompressionBenefitRemainsUncompressed() async throws {
++        let original = Data([0xA5])
++        for algorithm in CompressionAlgorithm.allCases {
++            let middleware = CompressionMiddleware(algorithm: algorithm, minimumSize: 1, trackStatistics: false)
++            let context = CommandContext()
++            let result = try await middleware.execute(
++                DataProcessingCommand(data: original, operation: "small"), context: context
++            ) { command, handlerContext in
++                XCTAssertEqual(command.operation, "small")
++                XCTAssertEqual(command.data, original)
++                XCTAssertNil(handlerContext.getMetadata("compression.applied"))
++                XCTAssertNil(handlerContext.getMetadata("compression.failed"))
++                return ProcessingResult(processedData: original, success: true)
++            }
++            XCTAssertEqual(result.processedData, original)
++            XCTAssertNil(context.getMetadata("compression.resultApplied"))
++            XCTAssertNil(context.getMetadata("compression.resultFailed"))
++        }
++    }
+     
+     func testCompressionDecompression() throws {
+         // Original data - use larger string to ensure compression benefit
+@@ -178,7 +220,8 @@ final class CompressionMiddlewareTests: XCTestCase {
+         let decompressed = try CompressionUtility.decompress(
+             compressed,
+             using: .lzfse,
+-            originalSize: originalData.count
++            originalSize: originalData.count,
++            maxOutputSize: originalData.count
+         )
+         
+         // Verify decompressed matches original
+diff --git a/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift b/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift
+new file mode 100644
+index 0000000..b678bfa
+--- /dev/null
++++ b/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift
+@@ -0,0 +1,223 @@
++#if canImport(Compression)
++import Compression
++import Foundation
++@testable import PipelineKitCache
++import XCTest
++
++final class CompressionCompletionContractTests: XCTestCase {
++    // Exercise every enum case: zlib/gzip currently use raw DEFLATE,
++    // lzfse/brotli use LZFSE, and lz4 uses Apple's framed LZ4.
++    // The aliases and ignored compression level remain the separate SCP-08 issue.
++    func testDecodeCompletesOrThrowsForEverySizeHintAndLimit() throws {
++        let count = 100_000
++        let fixtures = [
++            ("compressible", Data(repeating: 65, count: count)),
++            ("incompressible", makeIncompressibleData(count: count))
++        ]
++        let hints: [Int?] = [nil, 17, count - 1, count, count + 1]
++        for algorithm in CompressionAlgorithm.allCases {
++            for (name, original) in fixtures {
++                let compressed = try CompressionUtility.compress(original, using: algorithm)
++                if name == "incompressible" {
++                    XCTAssertGreaterThanOrEqual(compressed.count, original.count, "\(algorithm)")
++                }
++                for hint in hints {
++                    for limit in [count - 1, count, count + 1] {
++                        let label = "\(algorithm), \(name), hint \(String(describing: hint)), limit \(limit)"
++                        if limit < count {
++                            assertOutputLimitError(label) {
++                                try CompressionUtility.decompress(
++                                    compressed, using: algorithm, originalSize: hint, maxOutputSize: limit
++                                )
++                            }
++                        } else {
++                            let decoded = try CompressionUtility.decompress(
++                                compressed, using: algorithm, originalSize: hint, maxOutputSize: limit
++                            )
++                            XCTAssertEqual(decoded, original, label)
++                        }
++                    }
++                }
++                // Exercise an actually omitted hint as well as an explicit nil.
++                XCTAssertEqual(try CompressionUtility.decompress(
++                    compressed, using: algorithm, maxOutputSize: count
++                ), original)
++            }
++        }
++    }
++
++    func testSmallPayloadRoundTrips() throws {
++        for algorithm in CompressionAlgorithm.allCases {
++            for count in [0, 1, 99, 100, 101] {
++                for original in [Data(repeating: 65, count: count), makeIncompressibleData(count: count)] {
++                    let compressed = try CompressionUtility.compress(original, using: algorithm)
++                    for limit in [max(1, count), count + 1] {
++                        let decoded = try CompressionUtility.decompress(
++                            compressed, using: algorithm, originalSize: 0, maxOutputSize: limit
++                        )
++                        XCTAssertEqual(decoded, original, "\(algorithm), size \(count), limit \(limit)")
++                    }
++                    if count > 1 {
++                        assertOutputLimitError("\(algorithm), size \(count)") {
++                            try CompressionUtility.decompress(compressed, using: algorithm, maxOutputSize: count - 1)
++                        }
++                    }
++                }
++            }
++        }
++    }
++
++    func testExactLimitAtWorkingBufferBoundary() throws {
++        for algorithm in CompressionAlgorithm.allCases {
++            for count in [65_535, 65_536, 65_537] {
++                let original = makeIncompressibleData(count: count)
++                let compressed = try CompressionUtility.compress(original, using: algorithm)
++                XCTAssertEqual(try CompressionUtility.decompress(
++                    compressed, using: algorithm, originalSize: 17, maxOutputSize: count
++                ), original, "\(algorithm), size \(count)")
++                assertOutputLimitError("\(algorithm), size \(count)") {
++                    try CompressionUtility.decompress(compressed, using: algorithm, maxOutputSize: count - 1)
++                }
++            }
++        }
++    }
++
++    func testInvalidArgumentsAreRejectedBeforeEmptyInputCompatibility() throws {
++        for algorithm in CompressionAlgorithm.allCases {
++            let compressed = try CompressionUtility.compress(Data(repeating: 65, count: 101), using: algorithm)
++            for data in [Data(), compressed] {
++                for hint in [-1, Int.min] {
++                    assertDecodeError("negative hint \(hint), \(algorithm)") {
++                        try CompressionUtility.decompress(data, using: algorithm, originalSize: hint, maxOutputSize: 101)
++                    }
++                }
++                for limit in [0, -1, Int.min] {
++                    assertDecodeError("nonpositive limit \(limit), \(algorithm)") {
++                        try CompressionUtility.decompress(data, using: algorithm, maxOutputSize: limit)
++                    }
++                }
++            }
++            XCTAssertEqual(try CompressionUtility.decompress(Data(), using: algorithm, maxOutputSize: 1), Data())
++        }
++    }
++
++    func testHugeHintsAndLimitsDoNotRequireHugeAllocation() throws {
++        let original = Data(repeating: 65, count: 101)
++        for algorithm in CompressionAlgorithm.allCases {
++            let compressed = try CompressionUtility.compress(original, using: algorithm)
++            for hint: Int? in [nil, 0, Int.max] {
++                for limit in [101, Int.max] {
++                    XCTAssertEqual(try CompressionUtility.decompress(
++                        compressed, using: algorithm, originalSize: hint, maxOutputSize: limit
++                    ), original, "\(algorithm), hint \(String(describing: hint)), limit \(limit)")
++                }
++            }
++            XCTAssertEqual(try CompressionUtility.decompress(
++                Data(), using: algorithm, originalSize: Int.max, maxOutputSize: 1
++            ), Data())
++        }
++    }
++
++    func testTruncatedCorruptAndStalledStreamsNeverReturnPrefixes() throws {
++        let original = Data(repeating: 65, count: 100_000)
++        for algorithm in CompressionAlgorithm.allCases {
++            let compressed = try CompressionUtility.compress(original, using: algorithm)
++            let incompleteHeader = Data(compressed.prefix(1))
++            XCTAssertTrue(try stallsWithoutFinalize(incompleteHeader, algorithm: algorithm), "\(algorithm)")
++            let malformed = [
++                incompleteHeader,
++                Data(compressed.prefix(compressed.count / 2)),
++                Data(compressed.dropLast()),
++                Data(repeating: 0xFF, count: 32),
++                Data(repeating: 0xFF, count: 4) + compressed.dropFirst(4)
++            ]
++            for (index, data) in malformed.enumerated() {
++                for hint: Int? in [nil, 17, original.count] {
++                    assertDecodeError("\(algorithm), malformed \(index), hint \(String(describing: hint))") {
++                        try CompressionUtility.decompress(
++                            data, using: algorithm, originalSize: hint, maxOutputSize: original.count + 1
++                        )
++                    }
++                }
++            }
++        }
++    }
++
++    func testTrailingAndConcatenatedStreamsAreRejected() throws {
++        let original = Data(repeating: 65, count: 100_000)
++        for algorithm in CompressionAlgorithm.allCases {
++            let compressed = try CompressionUtility.compress(original, using: algorithm)
++            for trailing in [Data([0]), Data([0xFF, 0x13]), compressed] {
++                for limit in [original.count, original.count * 2] {
++                    assertDecodeError("\(algorithm), trailing \(trailing.count) bytes, limit \(limit)") {
++                        try CompressionUtility.decompress(
++                            compressed + trailing, using: algorithm, maxOutputSize: limit
++                        )
++                    }
++                }
++            }
++        }
++    }
++
++    private func assertOutputLimitError(
++        _ label: String, file: StaticString = #filePath, line: UInt = #line,
++        _ decode: () throws -> Data
++    ) {
++        XCTAssertThrowsError(try decode(), label, file: file, line: line) { error in
++            guard case CompressionError.dataTooLarge = error else {
++                return XCTFail("Expected output-limit error, got \(error): \(label)", file: file, line: line)
++            }
++        }
++    }
++
++    private func assertDecodeError(
++        _ label: String, file: StaticString = #filePath, line: UInt = #line,
++        _ decode: () throws -> Data
++    ) {
++        XCTAssertThrowsError(try decode(), label, file: file, line: line) { error in
++            guard case CompressionError.decompressionFailed = error else {
++                return XCTFail("Expected decode error, got \(error): \(label)", file: file, line: line)
++            }
++        }
++    }
++
++    // Independent of CompressionUtility and every codec: deterministic xorshift64* bytes.
++    // The 100,000-byte matrix asserts that these bytes do not compress below their input size.
++    private func makeIncompressibleData(count: Int) -> Data {
++        var state: UInt64 = 0xD1B5_4A32_D192_ED03
++        return Data((0..<count).map { _ in
++            state ^= state >> 12
++            state ^= state << 25
++            state ^= state >> 27
++            return UInt8(truncatingIfNeeded: (state &* 0x2545_F491_4F6C_DD1D) >> 56)
++        })
++    }
++
++    // Characterize a real incomplete fixture that can stall if FINALIZE is omitted.
++    // The public-API assertion above requires an explicit error for the same fixture.
++    private func stallsWithoutFinalize(_ data: Data, algorithm: CompressionAlgorithm) throws -> Bool {
++        try data.withUnsafeBytes { (source: UnsafeRawBufferPointer) in
++            let sourcePointer = try XCTUnwrap(source.bindMemory(to: UInt8.self).baseAddress)
++            let destination = UnsafeMutablePointer<UInt8>.allocate(capacity: 64)
++            defer { destination.deallocate() }
++            var stream = compression_stream(
++                dst_ptr: destination, dst_size: 0, src_ptr: sourcePointer, src_size: 0, state: nil
++            )
++            guard compression_stream_init(&stream, COMPRESSION_STREAM_DECODE, algorithm.foundationAlgorithm) == COMPRESSION_STATUS_OK else {
++                throw CompressionError.decompressionFailed("Fixture stream initialization failed")
++            }
++            defer { compression_stream_destroy(&stream) }
++            stream.src_ptr = sourcePointer
++            stream.src_size = data.count
++            for _ in 0..<4 {
++                let before = stream.src_size
++                stream.dst_ptr = destination
++                stream.dst_size = 64
++                guard compression_stream_process(&stream, 0) == COMPRESSION_STATUS_OK else { return false }
++                if stream.src_size == before && stream.dst_size == 64 { return true }
++            }
++            return false
++        }
++    }
++}
++#endif

@@ -1,0 +1,14 @@
+{
+  "head": "6545ba3a0300ab4c5f655a0f397ac107c960aa70",
+  "probe_path": "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/S05-stream-boundary.swift",
+  "probe_sha256": "718ca397c32da01b58018f0897dd5510f161d23c877dc1ba38fabadf25c40303",
+  "production_state_at_P01": "S05-005-source.json",
+  "note": "P01 invokes only Apple Compression, not PipelineKit. Probe hash recorded after execution; the retained probe source has not been edited since that run.",
+  "P02_source": "The complete inline Swift source is recorded in S05-P02.json command.",
+  "host": [
+    "ProductName:\t\tmacOS",
+    "ProductVersion:\t\t27.0.1",
+    "BuildVersion:\t\t26A434"
+  ],
+  "architecture": "arm64"
+}
