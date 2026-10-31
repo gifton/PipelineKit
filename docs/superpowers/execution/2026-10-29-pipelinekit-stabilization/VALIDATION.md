@@ -1009,3 +1009,13 @@ the probe source hash. All 67 protected implementation/migration/raw-source/prob
 byte-identical to implementation commit `7cd92081320f59163c596c7351345415ac4e1caa`.
 The counts were authored directly; the capture script records provenance and is not a matrix
 summarizer. S05-N2 compiler-warning debt and separate C02-N1 remain deferred.
+
+### S05 controller acceptance and independent challenge
+
+Fresh Astra/max review of6545ba3..7cd9208 approved spec compliance and quality with no Critical/Important findings; [report](reports/S05-review.md). It independently challenged the withheld-final-byte protocol, pending output after source exhaustion, cursor-sum/refill representability, one-byte overflow/completion probe, checked allocation, borrowed-pointer/defer lifetimes, all codec aliases, and newly reachable middleware benefit branches. The source/API invariant for retaining an unconsumed prefix is accepted without relabeling it as an observed native trace.
+
+S05-N1 exposed inflated authored matrix counts. Original implementer corrected only three tracked evidence files inb88e2b6, plus the scratch report:680 outcomes=270 successes+410 errors, with per-method derivations. Parent inspected that exact diff, independently summed the table, matched all4 final source hashes, all39 raw run artifact hashes and the P01 probe hash, and checked the working tree has no source/raw-evidence changes. No tests were rerun. The earlier review records the original discrepancy; it is now resolved by this documented correction.
+
+Actual validation remains00125 baseline failure records,00524 trailing failures,00814 Compression passes,0096 final middleware passes and0101102 unique XCTest selections+20 Swift Testing with final root/runner0 and settled cleanup.007 is the independently characterized LZ4 benefit-fixture failure; positive and negative LZ4 controls now pass without middleware behavior changes. API/build-red records remain separate from behavioral failures. Parent also checked the retained final diff and installed SDK-header hashes.
+
+S05-N2 retains eight occurrences of one preexisting unnecessary-await compiler kind, separate from C02-N1. I01 owns Release/TSan, available floor/Linux checks, standalone Examples/every migration snippet and consolidated Breaking/integration. Stream output limits are not total resident-memory or codec authentication guarantees; allocation/init failure paths are source-reviewed. The unchanged public maxCompressedSize estimate is not used by the new checked allocation and receives no broad numeric closure claim. SCP-08 remains open. SCP-07 is locally task-verified.
