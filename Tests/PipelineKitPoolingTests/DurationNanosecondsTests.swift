@@ -28,4 +28,20 @@ final class DurationNanosecondsTests: XCTestCase {
             XCTAssertEqual(durationNanosecondsClamped(duration), expected)
         }
     }
+    func testDurationNanosecondsClampsBeyondSignedSecondsComponents() {
+        let signedLimit = UInt64(Int64.max)
+        let cases: [(Duration, UInt64)] = [
+            (.seconds(signedLimit - 1), .max),
+            (.seconds(signedLimit), .max),
+            (.seconds(signedLimit + 1), .max),
+            (.seconds(UInt64.max), .max),
+            (Duration.zero - Duration.seconds(signedLimit), 0),
+            (Duration.zero - Duration.seconds(signedLimit + 1), 0),
+            (Duration.zero - Duration.seconds(UInt64.max), 0)
+        ]
+        for (duration, expected) in cases {
+            XCTAssertEqual(durationNanosecondsClamped(duration), expected)
+        }
+    }
+
 }
