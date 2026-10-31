@@ -65,9 +65,9 @@ Read the [master plan](2026-10-29-pipelinekit-stabilization.md) and [design](../
 
 ## Task R03: Migrate partition queues, cancellation and borrowing
 
-**Finding IDs:** R-F02, R-F03, R-F04. **Adjacent constraint:** R-A06 atomic waiter installation. **Dependencies:** R01; run R02's shared class harness here too.
+**Finding IDs:** R-F02, R-F03, R-F04. **Adjacent constraint:** R-A06 atomic waiter installation. **Dependencies:** R01 and R02; extend and run R02's shared class harness here too.
 
-**Files:** Modify `Sources/PipelineKitResilienceCircuitBreaker/PartitionedBulkheadMiddleware.swift`. Create `Tests/PipelineKitResilienceTests/PartitionedBulkheadAdmissionTests.swift`; extend `Tests/PipelineKitResilienceTests/PartitionedBulkheadConfigurationTests.swift`.
+**Files:** Modify `Sources/PipelineKitResilienceCircuitBreaker/PartitionedBulkheadMiddleware.swift`. Create `Tests/PipelineKitResilienceTests/PartitionedBulkheadAdmissionTests.swift`; extend `Tests/PipelineKitResilienceTests/PartitionedBulkheadConfigurationTests.swift` and `Tests/PipelineKitResilienceTests/BulkheadAdmissionConservationTests.swift` (add the partitioned wrapper to R02's shared matrix). Extend `Tests/PipelineKitResilienceTests/BulkheadMiddlewareTests.swift` for the shared timed-wrapper boundary/probe rows and `docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/r02_timeout_validation.py` to select ordinary/partitioned validation probes; preserve existing raw evidence.
 
 **Interfaces:** Each partition owns AdmissionGate and returns AdmissionLease. Replace the private queued acquisition closure/release-closure protocol with a lease-bearing result; consume `tryAcquire(reserving: Int)` for a donor and `acquire(timeout: Duration?)` for local queuing. Preserve existing public partition selector, metrics and reservedCapacityPercentage/maxBorrowPercentage alias semantics.
 
@@ -75,7 +75,7 @@ Read the [master plan](2026-10-29-pipelinekit-stabilization.md) and [design](../
 - [ ] Add `testTimedOutWaiterDoesNotWaitForHolderOrOrphanSibling`: hold A, install timed waiter B and untimed C, advance B's deadline while A remains held. B returns timeout before A releases; C stays pending, then enters after A releases. Join A/B/C and assert final active/queued zero. Add cancelled B and post-grant cancellation variants.
 - [ ] Add `testDonorReserveAndQueuePriorityAreAtomic`: two borrowers race for the final borrowable donor slot. Assert reserve remains intact, at most one borrower succeeds, donor-owned queued work is not bypassed, and releasing borrowed work restores the donor. Exercise borrowing enabled/disabled and alias configurations.
 - [ ] Run `swift test --filter PartitionedBulkheadAdmissionTests` under the watchdog. Expected old code fails conservation or timeout/sibling settlement; capture exact outcome and do not leave blocked tasks in the test runner.
-- [ ] Remove duplicate increment and raw waiter arrays/task-group timeout. Make queue selection/installation one gate operation. Borrow using atomic reservation acquisition, preserve established reserve rounding, and release the returned donor/local lease exactly once before wrapper return.
+- [ ] Remove duplicate increment and raw waiter arrays/task-group timeout. Make queue selection/installation one gate operation. Borrow using atomic reservation acquisition, preserve established reserve rounding, and release the returned donor/local lease exactly once before wrapper return. Reuse R02's internal checked queue-timeout normalization and its documented86,400-second positive maximum; extend the shared boundary matrix to both timed wrappers (ordinary and partitioned), with finite extreme negatives normalized to no-wait, and no legacy-timeout claim.
 - [ ] Run the new filter, configuration tests and the full BulkheadAdmissionConservationTests matrix with all three wrappers. Expected active-work/count equality and eventual settlement in every tested schedule.
 - [ ] Update three rows plus R-A06 note; commit `fix(bulkhead): own partition waiters and reserve donor capacity atomically`.
 

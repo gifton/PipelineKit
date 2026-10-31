@@ -124,6 +124,8 @@ Each waiter ID is immutable before cancellation registration. Grant, cancel and 
 
 `tryAcquire(reserving:)` checks and acquires atomically; donor borrowing cannot consume its configured reserve and does not jump an existing donor queue. Borrowed work releases the donor lease. Preserve existing reservation rounding and deprecated shared/tagged compatibility semantics. Wrappers await release on both success and error before returning; do not use unstructured defer tasks for normal release. Successful intentional fallback remains warning-suppressing (R-A01 adjacent constraint).
 
+Ordinary and partitioned bulkhead queue timeouts share checked normalization: nil is unbounded; finite nonpositive values mean no queue wait; positive finite values must not exceed86,400seconds; nonfinite values are invalid. Validate once before conversion and cache the Duration. This conservative 24-hour policy is an explicit behavior break, not a Swift duration limit. Document it in migration/Breaking guidance; unbounded waiting with application cancellation does not preserve a longer finite built-in deadline. Extend the same boundary/probe matrix across both timed wrappers; legacy Bulkhead has no timeout option.
+
 Use a package-only injected clock/sleeper seam for deterministic timer tests, plus production ContinuousClock defaults. The builder may choose the private waiter collection and exact timer seam signature, but must not replace the actor's single ownership rule with a task group around raw continuations.
 
 ### Health recovery
