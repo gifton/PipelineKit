@@ -1035,3 +1035,20 @@ Base `1c336050721579e6b9de106661cae6d6ac48b507`; source and test hashes, exact c
 ### S07 independent acceptance
 
 Fresh Astra/max [review](reports/S07-review.md) approved spec/quality, no Critical/Important findings. Parent and reviewer independently matched two final source hashes and raw old-policy assertion,9 focused passes,1108 unique full XCTest selections+20 Swift Testing, expected root/runner exits and settled cleanup. Red uses only an internal-access seam before whitelist repair. Formatting is covered; timestamp and OS delivery are not claimed. Two red-build unnecessary-await diagnostics are inherited baseline debt; C02-N1 remains separate. SCP-17 locally verified with I01 pending. No acceptance test rerun.
+
+
+## R04 — health re-evaluation from current evidence
+
+Base `d3d31014d0668a8aded29344e4b43eb739f0a6f0`. The [implementation report](reports/R04-implementer.md) records exact commands, source/test hashes, red output, branch matrix, callback/task acknowledgements and limitations. Each evaluation captures one injected Date, prunes the request window and recomputes suffixes; below minRequests it uses only a fresh probe or unknown. Request cutoff is inclusive; probe deadline at 2×checkInterval is exclusive. Public status types, successThreshold policy, block-only-unhealthy behavior and asynchronous notifications remain.
+
+| Run | Root / runner | Evidence |
+| --- | --- | --- |
+| R04-001-recovery-red | 1 / 1 | Retained fixture compilation error, not behavioral evidence. |
+| R04-002-recovery-red | 1 / 1 | Old stored-state logic with only clock/scheduling seams: 11 tests, 10 failed with 250 expected assertions; successThreshold control passed. |
+| R04-003-health-focused | 0 / 0 | 11 recovery tests plus 13 existing health selections: 21 passed, 3 existing HTTP skips, 0 failures. |
+| R04-004-branch-controls-red | 1 / 1 | Preserved old-seam source: 2 additional partial-window/sufficient-sample probe controls failed with 101 expected assertions. |
+| R04-005-debug-full | 0 / 0 | Final full Debug: 1,121 unique XCTest selections including all 13 recovery methods, 20 Swift Testing cases passed, no reported test failures. |
+
+All five watchdog runs report settled cleanup, no survivors, no termination, no timeout and no runner error. Raw logs/JSON/process traces and per-state source manifests are retained under exact R04 IDs; `logs/R04-evidence-summary.json` hashes the evidence. The full run command was `python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id R04-005-debug-full --timeout 600 -- swift test --parallel --skip PipelineKitPerformanceTests`. Final production hash is `480596a79a9e43b6bcb778137abd5d4d5bf26d627936d30443d682117f02974b`; final test hash is `e002a57da73d0b5906a62bdf7ae50a62a8d122377d19a75b6112ee02793d7f20`. Hashes were rechecked after validation; no identical passed suite was repeated.
+
+Two existing unnecessary-await compiler kinds occur once each in R04-002/003/004/005 (eight total occurrences); zero new compiler kinds. Runtime/configuration scans, including SwiftLog forms, observed zero warning lines, separately from compiler diagnostics. Incremental/parallel output does not establish a clean baseline; C02-N1 and compiler debt remain open. The internal disabled-loop seam was approved by the controller. Public scheduling is preserved by source trace only; automatic scheduling/monitor lifecycle was not runtime-verified, and R-F06 remains open. R-F07 is supplied for fresh review; the controller owns CLOSURE/progress and I01 owns integration matrices.
