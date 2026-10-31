@@ -12,6 +12,8 @@
 
 This is an implementation plan. **No production repairs have been made or validated by creating it.** Breaking changes are explicitly accepted by the owner. The changes are intended for a minor release under [VERSIONING.md](../../../VERSIONING.md); implementation does not include publishing or tagging that release.
 
+Execution status and finding-specific evidence are maintained separately in the [closure ledger](../execution/2026-10-29-pipelinekit-stabilization/CLOSURE.md), [validation record](../execution/2026-10-29-pipelinekit-stabilization/VALIDATION.md), and [implementation decisions](../execution/2026-10-29-pipelinekit-stabilization/DECISIONS.md). Task verification and final integration are distinct dispositions.
+
 ## Global Constraints
 
 - Swift tools version remains 6.2; preserve existing language/concurrency settings and declared platform floors.
