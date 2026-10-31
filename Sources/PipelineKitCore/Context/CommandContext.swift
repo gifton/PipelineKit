@@ -222,11 +222,13 @@ public final class CommandContext: @unchecked Sendable {
 
     /// Updates metrics with multiple key-value pairs
     public func updateMetrics(_ updates: [String: any Sendable]) {
-        var currentMetrics = getMetrics()
-        for (key, value) in updates {
-            currentMetrics[key] = value
+        withLock {
+            var currentMetrics: [String: any Sendable] = _storage[ContextKeys.metrics.name]?.get([String: any Sendable].self) ?? [:]
+            for (key, value) in updates {
+                currentMetrics[key] = value
+            }
+            _storage[ContextKeys.metrics.name] = AnySendable(currentMetrics)
         }
-        setMetrics(currentMetrics)
     }
 
     /// Records the execution time since the start time.
