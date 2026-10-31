@@ -1,0 +1,18 @@
+# O04 implementation report
+
+Base 7eea361fbaebb12199dcd9581a485ece170648f8, branch fix/stabilization-batch-1; initial tracked diff empty, only preserved untracked audit/ and docs/PIPELINEKIT_AUDIT_GUIDE.md. Timer input seconds now converts to milliseconds exactly once; typed-to-snapshot copies that value. Pool acquisition and release both call the same whole-second plus fractional checked conversion; nonpositive durations return zero and overflow saturates. Ownership and semaphore paths unchanged.
+
+Table-driven timer cases use independent expected milliseconds and check typed, converted and direct snapshots. Duration cases cover subsecond, whole/mixed seconds, a positive duration constructed with negative fraction, fractional truncation, nonpositive and both sides of the UInt64 bound. Both call sites share the tested helper. Search `rg -n 'components\.attoseconds|attoseconds\s*/|attoseconds\)' Sources` found the two former pool occurrences, now shared helper, and other products' uses; all other hits explicitly add seconds. No additional attoseconds-only occurrence found in this search. Acquisition/release observability dispatch is source-traced to the helper, not individually injected with synthetic durations.
+
+All commands used `python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id ID --timeout 600 --`:
+
+- O04-001 `swift test --filter TypeSafeMetricTests`: root/runner 1/1; initial test failed to compile due to optional snapshot values; corrected using XCTUnwrap. Not behavior red.
+- O04-002 same filter: 1/1; 22 tests, 8 expected assertion failures, including 0.25 vs 250 and 0.5 vs 500. Direct snapshot remained correct.
+- O04-003 `swift test --filter 'TypeSafeMetricTests|DurationNanosecondsTests'`: 1/1, new helper missing compiler diagnostic, not behavior red.
+- O04-004 `swift test --filter DurationNanosecondsTests`: 1/1, two tests with six expected assertions against temporary existing attoseconds-only conversion; 1 second returned 0, 1.25 seconds returned 250000000, and boundary values failed. The temporary conversion guarded negative input to avoid the original trapping cast.
+- O04-005 `swift test --filter 'TypeSafeMetricTests|DurationNanosecondsTests|ObjectPoolTests'`: 0/0; 40 tests pass (22 timer, 2 duration, 16 pool).
+- O04-006 `swift test --parallel --skip PipelineKitPerformanceTests`: 0/0; 1141 XCTest selections and 20 Swift Testing tests passed.
+
+All runs settled without survivors, timeout or runner error. Raw log, JSON and process trace per ID, final diff, red timer diff and red helper/test source are retained; source and artifact SHA-256 are in logs/O04-evidence-summary.json. O04-002 state is base plus red timer diff; O04-003 additionally has red duration tests and no helper; O04-004 adds the retained temporary helper. O04-005/006 share the final source hashes. O04-001 differs from O04-002 only in the three optional assertions lacking XCTUnwrap and the two test methods lacking throws. The initial timer test compile mistake is separate from behavioral evidence.
+
+O04-004 emitted two primary compiler warnings, one each in existing MiddlewareTests.swift and PipelineTests.swift, identical to entries in baseline-warnings.json ignoring line/column; others emitted no primary compiler warning. Captured runtime/configuration scan including `warning PipelineKit.Core:` found zero lines; incremental output is not a clean-baseline claim. C02-N1 remains separate. Release, platform and migration compilation belong to I01; controller owns closure/review. Self-review: diff checked, explicit integer arithmetic handles both multiply and addition overflow; no additional concerns.

@@ -1,0 +1,3 @@
+func durationNanosecondsClamped(_ duration: Duration) -> UInt64 {
+    UInt64(max(0, duration.components.attoseconds / 1_000_000_000))
+}

@@ -1,0 +1,154 @@
+Building for debugging...
+[Computing dependencies]
+[Using on-disk description]
+[1 / 1]
+[2 / 62] PipelineKitObservability
+[4 / 64] PipelineKitObservability
+[10 / 68] PipelineKitObservability
+[24 / 49] PipelineKitPooling
+[30 / 53] PipelineKitCacheTests-product
+[46 / 49] PipelineKitPerformanceTests-product
+Build complete! (1.94 sec)
+Test Suite 'Selected tests' started at 2026-10-30 22:35:33.725.
+Test Suite 'PipelineKitTests.xctest' started at 2026-10-30 22:35:33.726.
+Test Suite 'PipelineKitTests.xctest' passed at 2026-10-30 22:35:33.726.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 22:35:33.726.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 22:35:33.811.
+Test Suite 'PipelineKitTestSupportTests.xctest' started at 2026-10-30 22:35:33.812.
+Test Suite 'PipelineKitTestSupportTests.xctest' passed at 2026-10-30 22:35:33.812.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 22:35:33.812.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 22:35:33.897.
+Test Suite 'PipelineKitSecurityTests.xctest' started at 2026-10-30 22:35:33.898.
+Test Suite 'PipelineKitSecurityTests.xctest' passed at 2026-10-30 22:35:33.898.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 22:35:33.898.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 22:35:33.982.
+Test Suite 'PipelineKitResilienceTests.xctest' started at 2026-10-30 22:35:33.983.
+Test Suite 'PipelineKitResilienceTests.xctest' passed at 2026-10-30 22:35:33.983.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 22:35:33.983.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 22:35:34.067.
+Test Suite 'PipelineKitPoolingTests.xctest' started at 2026-10-30 22:35:34.068.
+Test Suite 'DurationNanosecondsTests' started at 2026-10-30 22:35:34.068.
+Test Case '-[PipelineKitPoolingTests.DurationNanosecondsTests testDurationNanosecondsClampsBoundaries]' started.
+Test Case '-[PipelineKitPoolingTests.DurationNanosecondsTests testDurationNanosecondsClampsBoundaries]' passed (0.000 seconds).
+Test Case '-[PipelineKitPoolingTests.DurationNanosecondsTests testDurationNanosecondsIncludesWholeSeconds]' started.
+Test Case '-[PipelineKitPoolingTests.DurationNanosecondsTests testDurationNanosecondsIncludesWholeSeconds]' passed (0.000 seconds).
+Test Suite 'DurationNanosecondsTests' passed at 2026-10-30 22:35:34.069.
+	 Executed 2 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'ObjectPoolTests' started at 2026-10-30 22:35:34.069.
+Test Case '-[PipelineKitPoolingTests.ObjectPoolTests testAcquirePooledAutoReturn]' started.
+Test Case '-[PipelineKitPoolingTests.ObjectPoolTests testAcquirePooledAutoReturn]' passed (0.105 seconds).
+Test Case '-[PipelineKitPoolingTests.ObjectPoolTests testAcquirePooledManualReturn]' started.
+Test Case '-[PipelineKitPoolingTests.ObjectPoolTests testAcquirePooledManualReturn]' passed (0.000 seconds).
+Test Case '-[PipelineKitPoolingTests.ObjectPoolTests testBasicAcquireRelease]' started.
+Test Case '-[PipelineKitPoolingTests.ObjectPoolTests testBasicAcquireRelease]' passed (0.000 seconds).
+Test Case '-[PipelineKitPoolingTests.ObjectPoolTests testClear]' started.
+Test Case '-[PipelineKitPoolingTests.ObjectPoolTests testClear]' passed (0.000 seconds).
+Test Case '-[PipelineKitPoolingTests.ObjectPoolTests testConcurrentAcquireRelease]' started.
+Test Case '-[PipelineKitPoolingTests.ObjectPoolTests testConcurrentAcquireRelease]' passed (0.002 seconds).
+Test Case '-[PipelineKitPoolingTests.ObjectPoolTests testConcurrentWithStatistics]' started.
+Test Case '-[PipelineKitPoolingTests.ObjectPoolTests testConcurrentWithStatistics]' passed (0.021 seconds).
+Test Case '-[PipelineKitPoolingTests.ObjectPoolTests testEmptyPoolAcquire]' started.
+Test Case '-[PipelineKitPoolingTests.ObjectPoolTests testEmptyPoolAcquire]' passed (0.000 seconds).
+Test Case '-[PipelineKitPoolingTests.ObjectPoolTests testFactoryThrows]' started.
+Test Case '-[PipelineKitPoolingTests.ObjectPoolTests testFactoryThrows]' passed (0.000 seconds).
+Test Case '-[PipelineKitPoolingTests.ObjectPoolTests testPoolSizeLimit]' started.
+Test Case '-[PipelineKitPoolingTests.ObjectPoolTests testPoolSizeLimit]' passed (0.000 seconds).
+Test Case '-[PipelineKitPoolingTests.ObjectPoolTests testPoolWithZeroMaxSize]' started.
+Test Case '-[PipelineKitPoolingTests.ObjectPoolTests testPoolWithZeroMaxSize]' passed (0.000 seconds).
+Test Case '-[PipelineKitPoolingTests.ObjectPoolTests testPreallocate]' started.
+Test Case '-[PipelineKitPoolingTests.ObjectPoolTests testPreallocate]' passed (0.000 seconds).
+Test Case '-[PipelineKitPoolingTests.ObjectPoolTests testRapidAcquireRelease]' started.
+Test Case '-[PipelineKitPoolingTests.ObjectPoolTests testRapidAcquireRelease]' passed (0.000 seconds).
+Test Case '-[PipelineKitPoolingTests.ObjectPoolTests testShrinkOperation]' started.
+Test Case '-[PipelineKitPoolingTests.ObjectPoolTests testShrinkOperation]' passed (0.000 seconds).
+Test Case '-[PipelineKitPoolingTests.ObjectPoolTests testShrinkWithNegativeTarget]' started.
+Test Case '-[PipelineKitPoolingTests.ObjectPoolTests testShrinkWithNegativeTarget]' passed (0.000 seconds).
+Test Case '-[PipelineKitPoolingTests.ObjectPoolTests testStatisticsDisabled]' started.
+Test Case '-[PipelineKitPoolingTests.ObjectPoolTests testStatisticsDisabled]' passed (0.000 seconds).
+Test Case '-[PipelineKitPoolingTests.ObjectPoolTests testStatisticsTracking]' started.
+Test Case '-[PipelineKitPoolingTests.ObjectPoolTests testStatisticsTracking]' passed (0.000 seconds).
+Test Suite 'ObjectPoolTests' passed at 2026-10-30 22:35:34.199.
+	 Executed 16 tests, with 0 failures (0 unexpected) in 0.129 (0.130) seconds
+Test Suite 'PipelineKitPoolingTests.xctest' passed at 2026-10-30 22:35:34.199.
+	 Executed 18 tests, with 0 failures (0 unexpected) in 0.130 (0.131) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 22:35:34.199.
+	 Executed 18 tests, with 0 failures (0 unexpected) in 0.130 (0.132) seconds
+Test Suite 'Selected tests' started at 2026-10-30 22:35:34.285.
+Test Suite 'PipelineKitPerformanceTests.xctest' started at 2026-10-30 22:35:34.286.
+Test Suite 'PipelineKitPerformanceTests.xctest' passed at 2026-10-30 22:35:34.286.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 22:35:34.286.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 22:35:34.370.
+Test Suite 'PipelineKitObservabilityTests.xctest' started at 2026-10-30 22:35:34.371.
+Test Suite 'TypeSafeMetricTests' started at 2026-10-30 22:35:34.371.
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testCounterDefaultValue]' started.
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testCounterDefaultValue]' passed (0.000 seconds).
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testCounterSpecificMethods]' started.
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testCounterSpecificMethods]' passed (0.000 seconds).
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testCounterToSnapshot]' started.
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testCounterToSnapshot]' passed (0.000 seconds).
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testCreateCounter]' started.
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testCreateCounter]' passed (0.000 seconds).
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testCreateGauge]' started.
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testCreateGauge]' passed (0.000 seconds).
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testCreateHistogram]' started.
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testCreateHistogram]' passed (0.000 seconds).
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testCreateTimer]' started.
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testCreateTimer]' passed (0.000 seconds).
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testEmptyMetricName]' started.
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testEmptyMetricName]' passed (0.000 seconds).
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testGaugeSpecificMethods]' started.
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testGaugeSpecificMethods]' passed (0.000 seconds).
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testGaugeToSnapshot]' started.
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testGaugeToSnapshot]' passed (0.000 seconds).
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testHistogramToSnapshot]' started.
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testHistogramToSnapshot]' passed (0.000 seconds).
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testLargeValues]' started.
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testLargeValues]' passed (0.000 seconds).
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testManyTags]' started.
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testManyTags]' passed (0.000 seconds).
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testMetricIsSendable]' started.
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testMetricIsSendable]' passed (0.000 seconds).
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testMetricKindRawValues]' started.
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testMetricKindRawValues]' passed (0.000 seconds).
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testMetricKindTypes]' started.
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testMetricKindTypes]' passed (0.000 seconds).
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testNegativeValues]' started.
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testNegativeValues]' passed (0.000 seconds).
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testTimerToSnapshot]' started.
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testTimerToSnapshot]' passed (0.000 seconds).
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testTimestampConversion]' started.
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testTimestampConversion]' passed (0.000 seconds).
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testTimestampDefault]' started.
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testTimestampDefault]' passed (0.000 seconds).
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testTypedAndSnapshotTimerUnitsAgree]' started.
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testTypedAndSnapshotTimerUnitsAgree]' passed (0.000 seconds).
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testZeroValues]' started.
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testZeroValues]' passed (0.000 seconds).
+Test Suite 'TypeSafeMetricTests' passed at 2026-10-30 22:35:34.374.
+	 Executed 22 tests, with 0 failures (0 unexpected) in 0.003 (0.004) seconds
+Test Suite 'PipelineKitObservabilityTests.xctest' passed at 2026-10-30 22:35:34.374.
+	 Executed 22 tests, with 0 failures (0 unexpected) in 0.003 (0.004) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 22:35:34.375.
+	 Executed 22 tests, with 0 failures (0 unexpected) in 0.003 (0.005) seconds
+Test Suite 'Selected tests' started at 2026-10-30 22:35:34.459.
+Test Suite 'PipelineKitCoreTests.xctest' started at 2026-10-30 22:35:34.460.
+Test Suite 'PipelineKitCoreTests.xctest' passed at 2026-10-30 22:35:34.460.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 22:35:34.460.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 22:35:34.545.
+Test Suite 'PipelineKitCacheTests.xctest' started at 2026-10-30 22:35:34.546.
+Test Suite 'PipelineKitCacheTests.xctest' passed at 2026-10-30 22:35:34.546.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 22:35:34.546.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds

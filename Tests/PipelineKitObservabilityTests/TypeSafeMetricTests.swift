@@ -30,7 +30,7 @@ final class TypeSafeMetricTests: XCTestCase {
         let timer = Metric<PipelineTimer>.timer(name, duration: duration, tags: ["method": "GET"])
         
         XCTAssertEqual(timer.name, name)
-        XCTAssertEqual(timer.value, duration) // Converted to milliseconds
+        XCTAssertEqual(timer.value, 123.0, accuracy: 1e-9)
         XCTAssertEqual(timer.unit, "ms")
         XCTAssertEqual(timer.tags["method"], "GET")
     }
@@ -81,16 +81,31 @@ final class TypeSafeMetricTests: XCTestCase {
         XCTAssertEqual(snapshot.unit, "MB")
     }
     
-    func testTimerToSnapshot() {
+    func testTimerToSnapshot() throws {
         let timer = Metric<PipelineTimer>.timer("timer.test", duration: 0.5)
         let snapshot = timer.toSnapshot()
         
         XCTAssertEqual(snapshot.name, "timer.test")
         XCTAssertEqual(snapshot.type, "timer")
-        XCTAssertEqual(snapshot.value, 0.5) // 0.5 seconds = 500ms
+        XCTAssertEqual(try XCTUnwrap(snapshot.value), 500.0, accuracy: 1e-9)
         XCTAssertEqual(snapshot.unit, "ms")
     }
     
+    func testTypedAndSnapshotTimerUnitsAgree() throws {
+        let cases: [(Double, Double)] = [(0, 0), (0.25, 250), (1, 1000), (1.25, 1250)]
+        for (seconds, milliseconds) in cases {
+            let typed = Metric<PipelineTimer>.timer("timer", duration: seconds)
+            let converted = typed.toSnapshot()
+            let snapshot = MetricSnapshot.timer("timer", duration: seconds)
+            XCTAssertEqual(typed.value, milliseconds, accuracy: 1e-9)
+            XCTAssertEqual(try XCTUnwrap(converted.value), milliseconds, accuracy: 1e-9)
+            XCTAssertEqual(try XCTUnwrap(snapshot.value), milliseconds, accuracy: 1e-9)
+            XCTAssertEqual(typed.unit, "ms")
+            XCTAssertEqual(converted.unit, "ms")
+            XCTAssertEqual(snapshot.unit, "ms")
+        }
+    }
+
     func testHistogramToSnapshot() {
         let histogram = Metric<Histogram>.histogram("hist.test", value: 75.0, unit: "percentile")
         let snapshot = histogram.toSnapshot()

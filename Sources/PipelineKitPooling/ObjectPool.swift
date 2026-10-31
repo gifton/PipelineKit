@@ -159,7 +159,7 @@ public actor ObjectPool<T: Sendable> {
                 await PoolObservability.shared.recordPoolAcquisition(
                     poolName: name,
                     wasHit: wasHit,
-                    latencyNanos: UInt64(latency.components.attoseconds / 1_000_000_000)
+                    latencyNanos: durationNanosecondsClamped(latency)
                 )
             }
         }
@@ -200,7 +200,7 @@ public actor ObjectPool<T: Sendable> {
                 await PoolObservability.shared.recordPoolRelease(
                     poolName: name,
                     wasEvicted: wasEvicted,
-                    latencyNanos: UInt64(latency.components.attoseconds / 1_000_000_000)
+                    latencyNanos: durationNanosecondsClamped(latency)
                 )
                 
                 // Update size metrics
