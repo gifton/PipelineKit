@@ -1,0 +1,1106 @@
+diff --git a/README.md b/README.md
+index 056282e..bc4b169 100644
+--- a/README.md
++++ b/README.md
+@@ -412,13 +412,30 @@ Intelligent caching with automatic invalidation and compression.
+ 
+ **Features:**
+ ```swift
++struct ProfileQuery: Command {
++    typealias Result = String
++    let accountID: String
++    let locale: String
++}
++
++// AuthenticationMiddleware must establish authUserId before protected caching.
++let profileKeys = ClosureCacheKeyGenerator { command, context, _ in
++    guard let query = command as? ProfileQuery,
++          let principal = context.getMetadata("authUserId") as? String else {
++        preconditionFailure("Expected an authenticated profile query")
++    }
++    return [query.accountID, query.locale, principal, "profile-format-v2"]
++        .map { "\($0.utf8.count):\($0)" }.joined()
++}
++
+ let cache = CachingMiddleware(
+     cache: InMemoryCache(maxSize: 1000),
+-    keyGenerator: { command in String(describing: type(of: command)) },
++    commandType: ProfileQuery.self,
++    keyGenerator: profileKeys,
+     ttl: 300
+ )
+ 
+-// Automatic caching based on command type
++// Only ProfileQuery results use the complete caller identity.
+ try await pipeline.addMiddleware(cache)
+ ```
+ 
+@@ -598,12 +615,22 @@ try await pipeline.addMiddleware(
+     CircuitBreakerMiddleware(failureThreshold: 5)
+ )
+ 
+-// Add caching for read operations
++// Add caching for read operations after authentication.
++struct GetOrderCommand: Command {
++    typealias Result = String
++    let orderID: String
++}
++let orderKeys = ClosureCacheKeyGenerator { command, context, _ in
++    guard let query = command as? GetOrderCommand,
++          let principal = context.getMetadata("authUserId") as? String else {
++        preconditionFailure("Expected an authenticated order query")
++    }
++    return [query.orderID, principal, "order-format-v1"]
++        .map { "\($0.utf8.count):\($0)" }.joined()
++}
+ try await pipeline.addMiddleware(
+     CachingMiddleware(
+-        cache: InMemoryCache(),
+-        keyGenerator: { command in String(describing: type(of: command)) },
+-        shouldCache: { command in command is GetOrderCommand }
++        cache: InMemoryCache(), commandType: GetOrderCommand.self, keyGenerator: orderKeys
+     )
+ )
+ 
+diff --git a/Sources/PipelineKitCache/CachedMiddleware.swift b/Sources/PipelineKitCache/CachedMiddleware.swift
+index 37e9aff..d942c07 100644
+--- a/Sources/PipelineKitCache/CachedMiddleware.swift
++++ b/Sources/PipelineKitCache/CachedMiddleware.swift
+@@ -17,12 +17,12 @@ public struct CachedMiddleware<M: Middleware>: Middleware, NextGuardWarningSuppr
+     /// - Parameters:
+     ///   - wrapped: The middleware to cache results for
+     ///   - cache: The cache implementation to use
+-    ///   - keyGenerator: Strategy for generating cache keys
++    ///   - keyGenerator: Complete caller identity; see `CacheKeyGenerator` for required inputs
+     ///   - ttl: Time to live for cached entries (default: 5 minutes)
+     public init(
+         wrapping middleware: M,
+         cache: any MiddlewareCache,
+-        keyGenerator: any CacheKeyGenerator = DefaultCacheKeyGenerator(),
++        keyGenerator: any CacheKeyGenerator,
+         ttl: TimeInterval = 300 // 5 minutes
+     ) {
+         self.wrapped = middleware
+@@ -37,11 +37,8 @@ public struct CachedMiddleware<M: Middleware>: Middleware, NextGuardWarningSuppr
+         context: CommandContext,
+         next: @escaping MiddlewareNext<T>
+     ) async throws -> T.Result {
+-        // Generate cache key
+-        let key = await keyGenerator.generateKey(
+-            for: command,
+-            context: context,
+-            middleware: String(describing: type(of: wrapped))
++        let key = await CacheKeyNamespace.generate(
++            for: command, context: context, middleware: String(reflecting: Self.self), using: keyGenerator
+         )
+         
+         // Check cache
+@@ -60,8 +57,16 @@ public struct CachedMiddleware<M: Middleware>: Middleware, NextGuardWarningSuppr
+     }
+ }
+ 
+-/// Protocol for cache key generation strategies
++/// Supplies the complete caller-owned identity for a cached result.
++///
++/// Include every result-varying command argument, verified principal/tenant, and
++/// relevant configuration or schema version. Authenticate before identity-bound
++/// caching. Correlation IDs and `Hashable.hashValue` alone are not identities.
++/// Use an unambiguous encoding for composite keys; intentional sharing must be
++/// explicit in the generator. The cache adds fully qualified command, result,
++/// and concrete caching middleware types; it cannot infer instance configuration.
+ public protocol CacheKeyGenerator: Sendable {
++    /// `middleware` is the fully qualified concrete caching middleware type.
+     func generateKey<T: Command>(
+         for command: T,
+         context: CommandContext,
+@@ -69,34 +74,21 @@ public protocol CacheKeyGenerator: Sendable {
+     ) async -> String
+ }
+ 
+-/// Default cache key generator using command type and parameters
+-public struct DefaultCacheKeyGenerator: CacheKeyGenerator {
+-    public init() {}
+-    
++/// Adapts an async closure to `CacheKeyGenerator` without implicit fallback keys.
++public struct ClosureCacheKeyGenerator: CacheKeyGenerator {
++    private let generate: @Sendable (any Command, CommandContext, String) async -> String
++
++    /// The closure must meet `CacheKeyGenerator`'s complete identity contract.
++    public init(_ generate: @escaping @Sendable (any Command, CommandContext, String) async -> String) {
++        self.generate = generate
++    }
++
+     public func generateKey<T: Command>(
+         for command: T,
+         context: CommandContext,
+         middleware: String
+     ) async -> String {
+-        // Create key from middleware name and command type
+-        var components = [
+-            "mw",
+-            middleware,
+-            String(describing: type(of: command))
+-        ]
+-        
+-        // Add command description if available
+-        if let describable = command as? any CustomStringConvertible {
+-            components.append(describable.description)
+-        }
+-        
+-        // Add user context if available
+-        let metadata = context.commandMetadata
+-        if let userID = metadata.userID {
+-            components.append("u:\(userID)")
+-        }
+-        
+-        return components.joined(separator: ":")
++        await generate(command, context, middleware)
+     }
+ }
+ 
+@@ -211,7 +203,7 @@ public extension Middleware {
+     /// Suggested TTL for cached results
+     var suggestedTTL: TimeInterval { 300 } // 5 minutes default
+     
+-    /// Generate a cache key for the given command
++    /// Optional application hint. Caching wrappers use only their explicit `CacheKeyGenerator`.
+     func cacheKey<T: Command>(for command: T, context: CommandContext) -> String? {
+         // Default implementation returns nil, meaning no custom cache key
+         return nil
+@@ -220,11 +212,13 @@ public extension Middleware {
+ 
+ // MARK: - Conditional Caching
+ 
+-/// Middleware wrapper that caches based on conditions
++/// Middleware wrapper that caches based on conditions and an explicit complete identity.
++/// See `CacheKeyGenerator` for the caller's identity obligations.
+ public struct ConditionalCachedMiddleware<M: Middleware>: Middleware, NextGuardWarningSuppressing where M: Sendable {
+     private let wrapped: M
+     private let cache: any MiddlewareCache
+     private let shouldCache: @Sendable (Any, CommandContext) async -> Bool
++    private let keyGenerator: any CacheKeyGenerator
+     private let ttl: TimeInterval
+ 
+     public let priority: ExecutionPriority
+@@ -232,6 +226,7 @@ public struct ConditionalCachedMiddleware<M: Middleware>: Middleware, NextGuardW
+     public init(
+         wrapping middleware: M,
+         cache: any MiddlewareCache,
++        keyGenerator: any CacheKeyGenerator,
+         ttl: TimeInterval = 300,
+         shouldCache: @escaping @Sendable (Any, CommandContext) async -> Bool
+     ) {
+@@ -239,6 +234,7 @@ public struct ConditionalCachedMiddleware<M: Middleware>: Middleware, NextGuardW
+         self.cache = cache
+         self.ttl = ttl
+         self.shouldCache = shouldCache
++        self.keyGenerator = keyGenerator
+         self.priority = middleware.priority
+     }
+     
+@@ -256,7 +252,9 @@ public struct ConditionalCachedMiddleware<M: Middleware>: Middleware, NextGuardW
+         }
+         
+         // Use caching logic
+-        let key = await generateKey(for: command, context: context)
++        let key = await CacheKeyNamespace.generate(
++            for: command, context: context, middleware: String(reflecting: Self.self), using: keyGenerator
++        )
+         
+         if let cached = await cache.get(key: key, type: T.Result.self) {
+             return cached
+@@ -267,15 +265,6 @@ public struct ConditionalCachedMiddleware<M: Middleware>: Middleware, NextGuardW
+         
+         return result
+     }
+-    
+-    private func generateKey<T: Command>(for command: T, context: CommandContext) async -> String {
+-        let metadata = context.commandMetadata
+-        let wrappedType = type(of: wrapped)
+-        let commandType = type(of: command)
+-        let corrID = metadata.correlationID ?? "none"
+-        
+-        return "conditional:\(wrappedType):\(commandType):\(corrID)"
+-    }
+ }
+ 
+ // MARK: - Builder Extensions
+@@ -284,11 +273,13 @@ public extension Middleware {
+     /// Wraps this middleware with caching
+     func cached(
+         ttl: TimeInterval = 300,
+-        cache: any MiddlewareCache
++        cache: any MiddlewareCache,
++        keyGenerator: any CacheKeyGenerator
+     ) -> CachedMiddleware<Self> {
+         return CachedMiddleware(
+             wrapping: self,
+             cache: cache,
++            keyGenerator: keyGenerator,
+             ttl: ttl
+         )
+     }
+@@ -297,11 +288,13 @@ public extension Middleware {
+     func cachedWhen(
+         ttl: TimeInterval = 300,
+         cache: any MiddlewareCache,
++        keyGenerator: any CacheKeyGenerator,
+         condition: @escaping @Sendable (Any, CommandContext) async -> Bool
+     ) -> ConditionalCachedMiddleware<Self> {
+         return ConditionalCachedMiddleware(
+             wrapping: self,
+             cache: cache,
++            keyGenerator: keyGenerator,
+             ttl: ttl,
+             shouldCache: condition
+         )
+diff --git a/Sources/PipelineKitCache/CachingMiddleware.swift b/Sources/PipelineKitCache/CachingMiddleware.swift
+index 59a1fdd..4a35f73 100644
+--- a/Sources/PipelineKitCache/CachingMiddleware.swift
++++ b/Sources/PipelineKitCache/CachingMiddleware.swift
+@@ -7,52 +7,17 @@ import PipelineKit
+ /// If found, it returns the cached result without executing the command.
+ /// Otherwise, it executes the command and caches the result for future use.
+ ///
+-/// ## Example Usage
+-/// ```swift
+-/// let cache = InMemoryCache<String, String>(maxSize: 1000)
+-/// let middleware = CachingMiddleware(
+-///     cache: cache,
+-///     keyGenerator: { command in
+-///         // Generate cache key from command
+-///         return "\(type(of: command))-\(command.hashValue)"
+-///     },
+-///     ttl: 300 // 5 minutes
+-/// )
+-/// ```
++/// An explicit `CacheKeyGenerator` must include all result-varying inputs,
++/// including verified principal/tenant and relevant configuration. The cache
++/// namespaces that key by fully qualified command, result, and middleware type.
++/// See `ClosureCacheKeyGenerator` for closure-based identity generation.
+ ///
+-/// ## Design Decision: @unchecked Sendable for Existential Types
+-///
+-/// This class uses `@unchecked Sendable` for the following reasons:
+-///
+-/// 1. **Existential Type Limitation**: The stored property `cache: any Cache`
+-///    uses an existential type. Swift currently cannot verify Sendable conformance through
+-///    existential types, even though the protocol requires Sendable.
+-///
+-/// 2. **All Properties Are Safe**:
+-///    - `cache`: Protocol requires Sendable conformance
+-///    - `keyGenerator`: @Sendable closure (explicitly thread-safe)
+-///    - `ttl`: TimeInterval? (Double?, inherently Sendable)
+-///    - `shouldCache`: @Sendable closure (explicitly thread-safe)
+-///
+-/// 3. **Protocol Guarantee**: Cache protocol explicitly requires Sendable, ensuring any
+-///    cache implementation is thread-safe. This provides compile-time safety for all
+-///    concrete cache types.
+-///
+-/// 4. **Immutable Design**: All properties are `let` constants, preventing mutation after
+-///    initialization and eliminating potential race conditions.
+-///
+-/// This is a known Swift limitation with existential types. The code is actually thread-safe,
+-/// but the compiler cannot verify this through the existential type system.
+-///
+-/// Thread Safety: This type is thread-safe because all properties are immutable (let constants).
+-/// The cache protocol requires Sendable conformance, and all closures are marked @Sendable.
+-/// Invariant: All properties must be initialized with thread-safe values. The Cache protocol
+-/// enforces Sendable conformance for any concrete implementation.
++/// Stored configuration is immutable; the backend and generator conform to Sendable.
+ public final class CachingMiddleware: Middleware, NextGuardWarningSuppressing, @unchecked Sendable {
+     public let priority: ExecutionPriority = .postProcessing // Caching happens after main processing
+     
+     private let cache: any Cache
+-    private let keyGenerator: @Sendable (any Command) -> String
++    private let keyGenerator: any CacheKeyGenerator
+     private let ttl: TimeInterval?
+     private let shouldCache: @Sendable (any Command) -> Bool
+     
+@@ -60,12 +25,12 @@ public final class CachingMiddleware: Middleware, NextGuardWarningSuppressing, @
+     ///
+     /// - Parameters:
+     ///   - cache: The cache backend to use
+-    ///   - keyGenerator: Function to generate cache keys from commands
++    ///   - keyGenerator: Complete caller identity; see `CacheKeyGenerator`
+     ///   - ttl: Time-to-live for cached entries (nil for no expiration)
+     ///   - shouldCache: Function to determine if a command should be cached (default: always true)
+     public init(
+         cache: any Cache,
+-        keyGenerator: @escaping @Sendable (any Command) -> String,
++        keyGenerator: any CacheKeyGenerator,
+         ttl: TimeInterval? = nil,
+         shouldCache: @escaping @Sendable (any Command) -> Bool = { _ in true }
+     ) {
+@@ -86,7 +51,9 @@ public final class CachingMiddleware: Middleware, NextGuardWarningSuppressing, @
+         }
+         
+         // Generate cache key
+-        let key = keyGenerator(command)
++        let key = await CacheKeyNamespace.generate(
++            for: command, context: context, middleware: String(reflecting: Self.self), using: keyGenerator
++        )
+         
+         // Check if cached result exists
+         if let cachedData = await cache.get(key: key) {
+@@ -278,39 +245,19 @@ private struct CacheWrapper<T>: Codable {
+ // MARK: - Convenience Initializers
+ 
+ public extension CachingMiddleware {
+-    /// Creates a caching middleware with simple string-based key generation.
+-    convenience init(
+-        cache: any Cache,
+-        ttl: TimeInterval? = nil
+-    ) {
+-        self.init(
+-            cache: cache,
+-            keyGenerator: { command in
+-                // Simple key generation using command type and hash
+-                "\(type(of: command))-\(String(describing: command).hashValue)"
+-            },
+-            ttl: ttl
+-        )
+-    }
+-    
+-    /// Creates a caching middleware for specific command types.
+-    convenience init<C: Command & Hashable>(
++    /// Caches only the selected command type using an explicit complete identity.
++    /// Other types bypass both key generation and the backend.
++    convenience init<C: Command>(
+         cache: any Cache,
+         commandType: C.Type,
++        keyGenerator: any CacheKeyGenerator,
+         ttl: TimeInterval? = nil
+     ) {
+         self.init(
+             cache: cache,
+-            keyGenerator: { command in
+-                if let hashableCommand = command as? C {
+-                    return "\(type(of: command))-\(hashableCommand.hashValue)"
+-                }
+-                return "\(type(of: command))-\(String(describing: command).hashValue)"
+-            },
++            keyGenerator: keyGenerator,
+             ttl: ttl,
+-            shouldCache: { command in
+-                command is C
+-            }
++            shouldCache: { command in command is C }
+         )
+     }
+ }
+diff --git a/Sources/PipelineKitCache/SimpleCachingMiddleware.swift b/Sources/PipelineKitCache/SimpleCachingMiddleware.swift
+index b399a11..715992a 100644
+--- a/Sources/PipelineKitCache/SimpleCachingMiddleware.swift
++++ b/Sources/PipelineKitCache/SimpleCachingMiddleware.swift
+@@ -24,32 +24,13 @@ import PipelineKitObservability
+ /// - Closures are `@Sendable`
+ /// - Primitives are `Sendable`
+ ///
+-/// ## Example Usage
+-/// ```swift
+-/// // Basic usage with 5-minute TTL
+-/// let cache = SimpleCachingMiddleware(ttl: 300)
+-/// try await pipeline.addMiddleware(cache)
++/// Supply an explicit `CacheKeyGenerator` including every result-varying
++/// argument, verified principal/tenant, and relevant configuration. Key generation
++/// is awaited before entering the synchronous storage lock. The cache adds fully
++/// qualified command, result, and middleware types to the caller's key.
+ ///
+-/// // With size limit and custom key generation
+-/// let cache = SimpleCachingMiddleware(
+-///     ttl: 600,
+-///     maxSize: 1000,
+-///     keyGenerator: { command in
+-///         if let hashable = command as? any Hashable {
+-///             return "\(type(of: command))-\(hashable.hashValue)"
+-///         }
+-///         return String(describing: type(of: command))
+-///     }
+-/// )
+-///
+-/// // Cache specific command types only
+-/// let cache = SimpleCachingMiddleware(
+-///     ttl: 300,
+-///     commandType: GetUserCommand.self
+-/// )
+-/// ```
+-///
+-/// ## Performance Characteristics
++/// ## Storage Performance Characteristics
++/// These costs exclude caller key generation and namespace construction.
+ /// - **Cache Hit**: O(1) dictionary lookup + O(1) LRU promotion
+ /// - **Cache Miss**: O(1) insertion + O(1) eviction (if needed)
+ /// - **Memory**: O(k) where k = number of cached entries
+@@ -79,7 +60,7 @@ public final class SimpleCachingMiddleware: Middleware, NextGuardWarningSuppress
+     public let priority: ExecutionPriority
+     private let ttl: TimeInterval
+     private let maxSize: Int?
+-    private let keyGenerator: @Sendable (Any) -> String
++    private let keyGenerator: any CacheKeyGenerator
+     private let shouldCache: @Sendable (Any) -> Bool
+ 
+     /// O(1) LRU-ordered backing store (doubly-linked list + dictionary).
+@@ -102,15 +83,13 @@ public final class SimpleCachingMiddleware: Middleware, NextGuardWarningSuppress
+     ///   - ttl: Time-to-live in seconds for cached entries
+     ///   - maxSize: Maximum number of entries to cache (nil = unlimited)
+     ///   - priority: Execution priority (default: `.preProcessing`)
+-    ///   - keyGenerator: Function to generate cache keys from commands (default: uses type name)
++    ///   - keyGenerator: Complete caller identity; see `CacheKeyGenerator`
+     ///   - shouldCache: Predicate to determine if a command should be cached (default: cache all)
+     public init(
+         ttl: TimeInterval,
+         maxSize: Int? = nil,
+         priority: ExecutionPriority = .preProcessing,
+-        keyGenerator: @escaping @Sendable (Any) -> String = { command in
+-            String(describing: type(of: command))
+-        },
++        keyGenerator: any CacheKeyGenerator,
+         shouldCache: @escaping @Sendable (Any) -> Bool = { _ in true }
+     ) {
+         self.ttl = ttl
+@@ -134,7 +113,9 @@ public final class SimpleCachingMiddleware: Middleware, NextGuardWarningSuppress
+             return try await next(command, context)
+         }
+ 
+-        let key = keyGenerator(command)
++        let key = await CacheKeyNamespace.generate(
++            for: command, context: context, middleware: String(reflecting: Self.self), using: keyGenerator
++        )
+ 
+         // Check cache (synchronous operation)
+         if let cachedResult = getCachedResult(for: key, as: C.Result.self) {
+@@ -266,64 +247,19 @@ public struct CacheStats: Sendable, Equatable {
+ // MARK: - Convenience Initializers
+ 
+ public extension SimpleCachingMiddleware {
+-    /// Creates a simple caching middleware with command-type-based key generation.
+-    ///
+-    /// This uses the command's type name as the cache key, which works well for
+-    /// commands where all instances should share the same cached result.
+-    ///
+-    /// - Parameters:
+-    ///   - ttl: Time-to-live in seconds for cached entries
+-    ///   - maxSize: Maximum number of entries to cache (nil = unlimited)
+-    convenience init(ttl: TimeInterval, maxSize: Int? = nil) {
+-        self.init(
+-            ttl: ttl,
+-            maxSize: maxSize,
+-            keyGenerator: { command in
+-                String(describing: type(of: command))
+-            }
+-        )
+-    }
+-
+-    /// Creates a simple caching middleware that only caches specific command types.
+-    ///
+-    /// Other command types will bypass the cache entirely.
+-    ///
+-    /// - Parameters:
+-    ///   - ttl: Time-to-live in seconds for cached entries
+-    ///   - maxSize: Maximum number of entries to cache (nil = unlimited)
+-    ///   - commandType: The specific command type to cache
++    /// Caches only the selected command type using an explicit complete identity.
++    /// Other types bypass both key generation and storage.
+     convenience init<C: Command>(
+         ttl: TimeInterval,
+         maxSize: Int? = nil,
+-        commandType: C.Type
++        commandType: C.Type,
++        keyGenerator: any CacheKeyGenerator
+     ) {
+         self.init(
+             ttl: ttl,
+             maxSize: maxSize,
++            keyGenerator: keyGenerator,
+             shouldCache: { command in command is C }
+         )
+     }
+-
+-    /// Creates a simple caching middleware with hashable-based key generation.
+-    ///
+-    /// For commands that conform to Hashable, this generates unique cache keys
+-    /// based on the command's hash value, allowing different command instances
+-    /// to have different cached results.
+-    ///
+-    /// - Parameters:
+-    ///   - ttl: Time-to-live in seconds for cached entries
+-    ///   - maxSize: Maximum number of entries to cache (nil = unlimited)
+-    ///   - useHashableKeys: If true, uses hash values for key generation
+-    convenience init(ttl: TimeInterval, maxSize: Int? = nil, useHashableKeys: Bool) {
+-        self.init(
+-            ttl: ttl,
+-            maxSize: maxSize,
+-            keyGenerator: { command in
+-                if useHashableKeys, let hashable = command as? any Hashable {
+-                    return "\(type(of: command))-\(hashable.hashValue)"
+-                }
+-                return String(describing: type(of: command))
+-            }
+-        )
+-    }
+ }
+diff --git a/Tests/PipelineKitCacheTests/CachingMiddlewareTests.swift b/Tests/PipelineKitCacheTests/CachingMiddlewareTests.swift
+index e2c14e4..a35df25 100644
+--- a/Tests/PipelineKitCacheTests/CachingMiddlewareTests.swift
++++ b/Tests/PipelineKitCacheTests/CachingMiddlewareTests.swift
+@@ -10,12 +10,7 @@ final class CachingMiddlewareTests: XCTestCase {
+         let cache = InMemoryCache(maxSize: 100)
+         let middleware = CachingMiddleware(
+             cache: cache,
+-            keyGenerator: { command in
+-                if let cmd = command as? CacheTestCommand {
+-                    return "test-\(cmd.id)"
+-                }
+-                return "unknown"
+-            },
++            keyGenerator: fixtureKey,
+             ttl: 60
+         )
+         
+@@ -50,12 +45,7 @@ final class CachingMiddlewareTests: XCTestCase {
+         let cache = InMemoryCache(maxSize: 100)
+         let middleware = CachingMiddleware(
+             cache: cache,
+-            keyGenerator: { command in
+-                if let cmd = command as? CacheTestCommand {
+-                    return cmd.id
+-                }
+-                return String(describing: type(of: command))
+-            },
++            keyGenerator: fixtureKey,
+             ttl: 60
+         )
+         
+@@ -87,6 +77,7 @@ final class CachingMiddlewareTests: XCTestCase {
+         let cache = InMemoryCache(maxSize: 100)
+         let middleware = CachingMiddleware(
+             cache: cache,
++            keyGenerator: fixtureKey,
+             ttl: 0.1 // 100ms TTL
+         )
+         
+@@ -122,12 +113,7 @@ final class CachingMiddlewareTests: XCTestCase {
+         let cache = InMemoryCache(maxSize: 100)
+         let middleware = CachingMiddleware(
+             cache: cache,
+-            keyGenerator: { command in
+-                if let cmd = command as? CacheTestCommand {
+-                    return cmd.id
+-                }
+-                return String(describing: type(of: command))
+-            },
++            keyGenerator: fixtureKey,
+             shouldCache: { command in
+                 // Only cache commands with specific IDs
+                 if let cmd = command as? CacheTestCommand {
+@@ -178,12 +164,7 @@ final class CachingMiddlewareTests: XCTestCase {
+     //     let cache = InMemoryCache(maxSize: 100)
+     //     let middleware = CachingMiddleware(
+     //         cache: cache,
+-    //         keyGenerator: { command in
+-    //             if let cmd = command as? CacheTestCommand {
+-    //                 return cmd.id
+-    //             }
+-    //             return String(describing: type(of: command))
+-    //         }
++    //         keyGenerator: fixtureKey
+     //     )
+     //     
+     //     let eventCollector = TestCacheEventCollector()
+@@ -223,12 +204,7 @@ final class CachingMiddlewareTests: XCTestCase {
+         let cache = InMemoryCache(maxSize: 2) // Small cache
+         let middleware = CachingMiddleware(
+             cache: cache,
+-            keyGenerator: { command in
+-                if let cmd = command as? CacheTestCommand {
+-                    return cmd.id
+-                }
+-                return String(describing: type(of: command))
+-            }
++            keyGenerator: fixtureKey
+         )
+         
+         let command1 = CacheTestCommand(id: "1", value: "first")
+@@ -334,3 +310,12 @@ private actor TestCacheEventCollector: PipelineObserver {
+         notifyWaiters()
+     }
+ }
++
++private let fixtureKey = ClosureCacheKeyGenerator { command, context, _ in
++    guard let command = command as? CacheTestCommand else {
++        preconditionFailure("Unexpected cache test command")
++    }
++    return String(decoding: try! JSONEncoder().encode([
++        "echo-v1", command.id, command.value, context.commandMetadata.userID
++    ] as [String?]), as: UTF8.self)
++}
+diff --git a/Tests/PipelineKitCacheTests/LRUEvolutionTests.swift b/Tests/PipelineKitCacheTests/LRUEvolutionTests.swift
+index ed0beea..aa98555 100644
+--- a/Tests/PipelineKitCacheTests/LRUEvolutionTests.swift
++++ b/Tests/PipelineKitCacheTests/LRUEvolutionTests.swift
+@@ -241,11 +241,13 @@ final class LRUEvolutionTests: XCTestCase {
+         let cache = SimpleCachingMiddleware(
+             ttl: 60,
+             maxSize: 2,
+-            keyGenerator: { command in
+-                if let cmd = command as? KeyedCommand {
+-                    return "k-\(cmd.key)"
++            keyGenerator: ClosureCacheKeyGenerator { command, context, _ in
++                guard let command = command as? KeyedCommand else {
++                    preconditionFailure("Unexpected LRU cache command")
+                 }
+-                return String(describing: type(of: command))
++                return String(decoding: try! JSONEncoder().encode([
++                    "keyed-v1", command.key, context.commandMetadata.userID
++                ] as [String?]), as: UTF8.self)
+             }
+         )
+ 
+diff --git a/Tests/PipelineKitCacheTests/NextGuardSuppressionTests.swift b/Tests/PipelineKitCacheTests/NextGuardSuppressionTests.swift
+index e32e6ba..76edd09 100644
+--- a/Tests/PipelineKitCacheTests/NextGuardSuppressionTests.swift
++++ b/Tests/PipelineKitCacheTests/NextGuardSuppressionTests.swift
+@@ -21,10 +21,16 @@ final class NextGuardSuppressionTests: XCTestCase {
+ 
+         // Build a pipeline with caching that uses a deterministic key
+         let cache = InMemoryCache(maxSize: 10)
+-        let key = "test-cache-key"
+         let caching = CachingMiddleware(
+             cache: cache,
+-            keyGenerator: { _ in key },
++            keyGenerator: ClosureCacheKeyGenerator { command, context, _ in
++                guard let command = command as? EchoCommand else {
++                    preconditionFailure("Unexpected next-guard cache command")
++                }
++                return String(decoding: try! JSONEncoder().encode([
++                    "handled-echo-v1", command.text, context.commandMetadata.userID
++                ] as [String?]), as: UTF8.self)
++            },
+             ttl: 60,
+             shouldCache: { _ in true }
+         )
+diff --git a/Tests/PipelineKitCacheTests/SimpleCachingMiddlewareTests.swift b/Tests/PipelineKitCacheTests/SimpleCachingMiddlewareTests.swift
+index d6802ca..0173971 100644
+--- a/Tests/PipelineKitCacheTests/SimpleCachingMiddlewareTests.swift
++++ b/Tests/PipelineKitCacheTests/SimpleCachingMiddlewareTests.swift
+@@ -38,10 +38,23 @@ final class SimpleCachingMiddlewareTests: XCTestCase {
+         }
+     }
+ 
++    private static let fixtureKey = ClosureCacheKeyGenerator { command, context, _ in
++        let fields: [String?]
++        switch command {
++        case let command as TestCommand:
++            fields = ["test-result-v1", command.id, context.commandMetadata.userID]
++        case let command as NumberCommand:
++            fields = ["double-v1", String(command.value), context.commandMetadata.userID]
++        default:
++            preconditionFailure("Unexpected simple cache test command")
++        }
++        return String(decoding: try! JSONEncoder().encode(fields), as: UTF8.self)
++    }
++
+     // MARK: - Basic Caching Tests
+ 
+     func testBasicCaching() async throws {
+-        let cache = SimpleCachingMiddleware(ttl: 60)
++        let cache = SimpleCachingMiddleware(ttl: 60, keyGenerator: Self.fixtureKey)
+         let pipeline = StandardPipeline(handler: TestHandler())
+         try await pipeline.addMiddleware(cache)
+ 
+@@ -64,7 +77,7 @@ final class SimpleCachingMiddlewareTests: XCTestCase {
+     }
+ 
+     func testCacheMiss() async throws {
+-        let cache = SimpleCachingMiddleware(ttl: 60)
++        let cache = SimpleCachingMiddleware(ttl: 60, keyGenerator: Self.fixtureKey)
+         let pipeline = StandardPipeline(handler: TestHandler())
+         try await pipeline.addMiddleware(cache)
+ 
+@@ -79,13 +92,13 @@ final class SimpleCachingMiddlewareTests: XCTestCase {
+         XCTAssertEqual(result2, "test-result")
+ 
+         let stats = cache.getStats()
+-        XCTAssertEqual(stats.totalEntries, 1) // Same command type
++        XCTAssertEqual(stats.totalEntries, 2) // Distinct command arguments have distinct keys
+     }
+ 
+     // MARK: - TTL Expiration Tests
+ 
+     func testTTLExpiration() async throws {
+-        let cache = SimpleCachingMiddleware(ttl: 0.1) // 100ms TTL
++        let cache = SimpleCachingMiddleware(ttl: 0.1, keyGenerator: Self.fixtureKey) // 100ms TTL
+         let pipeline = StandardPipeline(handler: TestHandler())
+         try await pipeline.addMiddleware(cache)
+ 
+@@ -110,7 +123,7 @@ final class SimpleCachingMiddlewareTests: XCTestCase {
+     }
+ 
+     func testRemoveExpired() async throws {
+-        let cache = SimpleCachingMiddleware(ttl: 0.1) // 100ms TTL
++        let cache = SimpleCachingMiddleware(ttl: 0.1, keyGenerator: Self.fixtureKey) // 100ms TTL
+         let pipeline = StandardPipeline(handler: TestHandler())
+         try await pipeline.addMiddleware(cache)
+ 
+@@ -145,12 +158,7 @@ final class SimpleCachingMiddlewareTests: XCTestCase {
+         let cache = SimpleCachingMiddleware(
+             ttl: 60,
+             maxSize: 2,
+-            keyGenerator: { command in
+-                if let cmd = command as? NumberCommand {
+-                    return "number-\(cmd.value)"
+-                }
+-                return String(describing: type(of: command))
+-            }
++            keyGenerator: Self.fixtureKey
+         )
+ 
+         let pipeline = StandardPipeline(handler: NumberHandler())
+@@ -184,12 +192,7 @@ final class SimpleCachingMiddlewareTests: XCTestCase {
+         // Use command value in key generation
+         let cache = SimpleCachingMiddleware(
+             ttl: 60,
+-            keyGenerator: { command in
+-                if let cmd = command as? NumberCommand {
+-                    return "number-\(cmd.value)"
+-                }
+-                return String(describing: type(of: command))
+-            }
++            keyGenerator: Self.fixtureKey
+         )
+ 
+         let pipeline = StandardPipeline(handler: NumberHandler())
+@@ -218,6 +221,7 @@ final class SimpleCachingMiddlewareTests: XCTestCase {
+         // Only cache even numbers
+         let cache = SimpleCachingMiddleware(
+             ttl: 60,
++            keyGenerator: Self.fixtureKey,
+             shouldCache: { command in
+                 if let cmd = command as? NumberCommand {
+                     return cmd.value.isMultiple(of: 2)
+@@ -245,7 +249,8 @@ final class SimpleCachingMiddlewareTests: XCTestCase {
+     func testCommandTypeConvenience() async throws {
+         let cache = SimpleCachingMiddleware(
+             ttl: 60,
+-            commandType: NumberCommand.self
++            commandType: NumberCommand.self,
++            keyGenerator: Self.fixtureKey
+         )
+ 
+         let pipeline = StandardPipeline(handler: NumberHandler())
+@@ -262,7 +267,7 @@ final class SimpleCachingMiddlewareTests: XCTestCase {
+     // MARK: - Cache Management Tests
+ 
+     func testClear() async throws {
+-        let cache = SimpleCachingMiddleware(ttl: 60)
++        let cache = SimpleCachingMiddleware(ttl: 60, keyGenerator: Self.fixtureKey)
+         let pipeline = StandardPipeline(handler: TestHandler())
+         try await pipeline.addMiddleware(cache)
+ 
+@@ -284,7 +289,7 @@ final class SimpleCachingMiddlewareTests: XCTestCase {
+     // MARK: - Thread Safety Tests
+ 
+     func testConcurrentAccess() async throws {
+-        let cache = SimpleCachingMiddleware(ttl: 60, maxSize: 100)
++        let cache = SimpleCachingMiddleware(ttl: 60, maxSize: 100, keyGenerator: Self.fixtureKey)
+         let pipeline = StandardPipeline(handler: NumberHandler())
+         try await pipeline.addMiddleware(cache)
+ 
+@@ -305,7 +310,7 @@ final class SimpleCachingMiddlewareTests: XCTestCase {
+     }
+ 
+     func testHighContentionCaching() async throws {
+-        let cache = SimpleCachingMiddleware(ttl: 60)
++        let cache = SimpleCachingMiddleware(ttl: 60, keyGenerator: Self.fixtureKey)
+         let pipeline = StandardPipeline(handler: TestHandler())
+         try await pipeline.addMiddleware(cache)
+ 
+@@ -329,7 +334,7 @@ final class SimpleCachingMiddlewareTests: XCTestCase {
+     // MARK: - Event Emission Tests
+ 
+     func testCacheEvents() async throws {
+-        let cache = SimpleCachingMiddleware(ttl: 60)
++        let cache = SimpleCachingMiddleware(ttl: 60, keyGenerator: Self.fixtureKey)
+         let pipeline = StandardPipeline(handler: TestHandler())
+         try await pipeline.addMiddleware(cache)
+ 
+@@ -360,7 +365,10 @@ final class SimpleCachingMiddlewareTests: XCTestCase {
+             }
+         }
+ 
+-        let cache = SimpleCachingMiddleware(ttl: 60)
++        let cache = SimpleCachingMiddleware(ttl: 60, keyGenerator: ClosureCacheKeyGenerator { command, context, _ in
++            precondition(command is OptionalCommand)
++            return String(decoding: try! JSONEncoder().encode(["always-nil-v1", context.commandMetadata.userID]), as: UTF8.self)
++        })
+         let pipeline = StandardPipeline(handler: OptionalHandler())
+         try await pipeline.addMiddleware(cache)
+ 
+@@ -395,7 +403,10 @@ final class SimpleCachingMiddlewareTests: XCTestCase {
+             }
+         }
+ 
+-        let cache = SimpleCachingMiddleware(ttl: 60)
++        let cache = SimpleCachingMiddleware(ttl: 60, keyGenerator: ClosureCacheKeyGenerator { command, context, _ in
++            precondition(command is ComplexCommand)
++            return String(decoding: try! JSONEncoder().encode(["fixed-complex-payload-v1", context.commandMetadata.userID]), as: UTF8.self)
++        })
+         let pipeline = StandardPipeline(handler: ComplexHandler())
+         try await pipeline.addMiddleware(cache)
+ 
+@@ -413,7 +424,7 @@ final class SimpleCachingMiddlewareTests: XCTestCase {
+     // MARK: - Performance Tests
+ 
+     func testCachingPerformance() throws {
+-        let cache = SimpleCachingMiddleware(ttl: 300)
++        let cache = SimpleCachingMiddleware(ttl: 300, keyGenerator: Self.fixtureKey)
+         let iterations = 10000
+ 
+         measure(metrics: [XCTClockMetric()]) {
+diff --git a/docs/getting-started/quick-start.md b/docs/getting-started/quick-start.md
+index 0bd47a9..4b41a21 100644
+--- a/docs/getting-started/quick-start.md
++++ b/docs/getting-started/quick-start.md
+@@ -163,7 +163,17 @@ Cache expensive operations:
+ ```swift
+ import PipelineKitCache
+ 
+-let cached = ExpensiveMiddleware().cached(ttl: 300, cache: InMemoryMiddlewareCache.shared) // 5 minutes
++let calculationKeys = ClosureCacheKeyGenerator { command, _, _ in
++    guard let query = command as? CalculateCommand else {
++        preconditionFailure("Expected CalculateCommand")
++    }
++    // The sum result depends on both operands and this algorithm version.
++    return [String(query.a), String(query.b), "sum-v1"]
++        .map { "\($0.utf8.count):\($0)" }.joined()
++}
++let cached = ExpensiveMiddleware().cached(
++    ttl: 300, cache: InMemoryMiddlewareCache.shared, keyGenerator: calculationKeys
++)
+ 
+ let builder3 = PipelineBuilder(handler: CalculateHandler())
+ await builder3.addMiddleware(cached)
+diff --git a/docs/guides/architecture.md b/docs/guides/architecture.md
+index 0791a05..fd01faf 100644
+--- a/docs/guides/architecture.md
++++ b/docs/guides/architecture.md
+@@ -105,10 +105,27 @@ Use PipelineKitCache for production caching.
+ ```swift
+ import PipelineKitCache
+ 
++struct ProfileQuery: Command {
++    typealias Result = String
++    let accountID: String
++    let locale: String
++}
++
++// AuthenticationMiddleware must establish authUserId before protected caching.
++let profileKeys = ClosureCacheKeyGenerator { command, context, _ in
++    guard let query = command as? ProfileQuery,
++          let principal = context.getMetadata("authUserId") as? String else {
++        preconditionFailure("Expected an authenticated profile query")
++    }
++    return [query.accountID, query.locale, principal, "profile-format-v2"]
++        .map { "\($0.utf8.count):\($0)" }.joined()
++}
++
+ let cache = InMemoryCache(maxSize: 1000)
+ let caching = CachingMiddleware(
+     cache: cache,
+-    keyGenerator: { cmd in "\(type(of: cmd)):\(String(describing: cmd).hashValue)" },
++    commandType: ProfileQuery.self,
++    keyGenerator: profileKeys,
+     ttl: 300
+ )
+ ```
+diff --git a/docs/migrations/first-stabilization-batch.md b/docs/migrations/first-stabilization-batch.md
+index bd23225..14242eb 100644
+--- a/docs/migrations/first-stabilization-batch.md
++++ b/docs/migrations/first-stabilization-batch.md
+@@ -1,6 +1,6 @@
+ # First stabilization batch migration — draft
+ 
+-This draft currently covers S01 validation/sanitization, S02 command encryption, and R02
++This draft currently covers S01 validation/sanitization, S02 command encryption, S03 cache identity, and R02
+ bulkhead queue-timeout validation. I01
+ owns the completed batch migration guide, compilation of all examples, and the consolidated
+ Breaking entry. These snippets have not yet been compiled as standalone migration examples;
+@@ -301,3 +301,103 @@ and explicitly flush each relevant exporter, and then close those it owns. This
+ no new aggregation-quiescence or UDP-delivery guarantee. The standalone Examples package has
+ no removed-slot or synchronous `configure(with:)` caller; its host/port convenience calls remain
+ source-compatible. I01 owns standalone example and migration-snippet compilation.
++
++
++## Breaking: explicit complete cache identity (SCP-04 / SCP-05)
++
++All four cache entry points now require `keyGenerator: any CacheKeyGenerator`:
++`CachedMiddleware`, `ConditionalCachedMiddleware`, `SimpleCachingMiddleware`, and
++`CachingMiddleware`. Their `.cached`, `.cachedWhen`, and `commandType:` convenience
++methods require it too. `DefaultCacheKeyGenerator`, the keyless initializers, and
++`useHashableKeys:` are removed. Closure callers must use `ClosureCacheKeyGenerator`;
++its async closure receives the command, context, and fully qualified concrete cache
++middleware type. Existing generic `CacheKeyGenerator` conformers keep their method signature.
++
++The caller must encode **every result-varying command argument, verified principal/tenant,
++and relevant configuration or result-schema version**. Authenticate and authorize before
++caching a protected result. Do not substitute `hashValue`, descriptions, type names, or
++correlation IDs for equality of those inputs. Include correlation only if the application's
++result contract varies by correlation. Intentional shared keys are an explicit application
++choice, valid only when the omitted fields cannot affect the result.
++
++This example uses an unambiguous length-prefixed caller key. `authUserId` is written by
++`AuthenticationMiddleware`; this application also establishes `verifiedTenantID` before
++caching. The guards diagnose incorrect pipeline configuration instead of silently supplying
++a shared identity. Extend the key whenever the command or handler gains a result-varying input.
++
++```swift
++import Foundation
++import PipelineKit
++import PipelineKitCache
++
++struct ProfileQuery: Command {
++    typealias Result = String
++    let accountID: String
++    let locale: String
++}
++
++struct ProfileStage: Middleware {
++    let priority: ExecutionPriority = .preProcessing
++    func execute<C: Command>(
++        _ command: C, context: CommandContext, next: @escaping MiddlewareNext<C>
++    ) async throws -> C.Result {
++        try await next(command, context)
++    }
++}
++
++let profileKeys = ClosureCacheKeyGenerator { command, context, _ in
++    guard let query = command as? ProfileQuery,
++          let principal = context.getMetadata("authUserId") as? String,
++          let tenant = context.getMetadata("verifiedTenantID") as? String else {
++        preconditionFailure("Profile caching requires a verified principal and tenant")
++    }
++    let fields = [query.accountID, query.locale, principal, tenant, "profile-format-v2"]
++    return fields.map { "\($0.utf8.count):\($0)" }.joined()
++}
++
++let memory = InMemoryMiddlewareCache()
++let bytes = InMemoryCache(maxSize: 1000)
++let wrapped = CachedMiddleware(
++    wrapping: ProfileStage(), cache: memory, keyGenerator: profileKeys, ttl: 300
++)
++let conditional = ConditionalCachedMiddleware(
++    wrapping: ProfileStage(), cache: memory, keyGenerator: profileKeys, ttl: 300,
++    shouldCache: { command, _ in command is ProfileQuery }
++)
++let simple = SimpleCachingMiddleware(
++    ttl: 300, maxSize: 1000, commandType: ProfileQuery.self, keyGenerator: profileKeys
++)
++let encoded = CachingMiddleware(
++    cache: bytes, commandType: ProfileQuery.self, keyGenerator: profileKeys, ttl: 300
++)
++let wrappedFactory = ProfileStage().cached(ttl: 300, cache: memory, keyGenerator: profileKeys)
++let conditionalFactory = ProfileStage().cachedWhen(
++    ttl: 300, cache: memory, keyGenerator: profileKeys,
++    condition: { command, _ in command is ProfileQuery }
++)
++```
++
++Use the unconditional wrappers only in pipelines whose commands the generator supports.
++The type-selective factories and conditional false branch bypass key generation and caching.
++Key generation can suspend and occurs before SimpleCachingMiddleware's synchronous storage lock.
++No cache API infers a fallback identity, inspects `Hashable`, or adds correlation implicitly.
++
++Every implementation applies the same internal framing:
++`utf8Length:commandType` + `utf8Length:resultType` + `utf8Length:middlewareType` +
++`utf8Length:callerKey`. Type names are fully qualified. Wrapper types include the wrapped
++middleware type. Different instances of the same middleware type still need caller keys that
++distinguish result-varying instance configuration. The generator's return is the caller portion,
++not the complete backend key; backend per-key removal still takes the complete stored key.
++
++**Invalidate all old cache contents when migrating**, including persistent or distributed
++backends. Old keys are incompatible with the new namespace. Call `invalidateAll()` on a
++`MiddlewareCache`, `clear()` on a `Cache`, and `clear()` on existing `SimpleCachingMiddleware`
++instances, as applicable. TTL, cache backend interfaces, and their removal/clear semantics
++remain; this change does not add invalidation fencing for in-flight fills or single-flight work.
++A deployment must also clear or version entries when result-varying application configuration
++changes without an accompanying key change.
++
++The task tests exercise all four APIs and their convenience paths in the root test package.
++No existing standalone `Examples/Sources` cache caller required migration. The snippets above
++are source-reviewed here; I01 owns compiling migration examples and the final platform matrix.
++S04 separately owns LRU predecessor cycles.
+diff --git a/docs/superpowers/plans/2026-10-29-pipelinekit-stabilization-security-cache.md b/docs/superpowers/plans/2026-10-29-pipelinekit-stabilization-security-cache.md
+index 49a1960..7806b4e 100644
+--- a/docs/superpowers/plans/2026-10-29-pipelinekit-stabilization-security-cache.md
++++ b/docs/superpowers/plans/2026-10-29-pipelinekit-stabilization-security-cache.md
+@@ -65,7 +65,7 @@ Read the [master plan](2026-10-29-pipelinekit-stabilization.md) and [design](../
+ 
+ **Finding IDs:** SCP-04, SCP-05. **Dependencies:** C01 for integration; independent of S02.
+ 
+-**Files:** Modify `Sources/PipelineKitCache/CachedMiddleware.swift`, `Sources/PipelineKitCache/CachingMiddleware.swift`, `Sources/PipelineKitCache/SimpleCachingMiddleware.swift`. Create `Sources/PipelineKitCache/CacheKeyNamespace.swift`, `Tests/PipelineKitCacheTests/CacheIdentityContractTests.swift`. Migrate existing `Tests/PipelineKitCacheTests/CachingMiddlewareTests.swift`, `Tests/PipelineKitCacheTests/SimpleCachingMiddlewareTests.swift`, `Tests/PipelineKitCacheTests/NextGuardSuppressionTests.swift`.
++**Files:** Modify `Sources/PipelineKitCache/CachedMiddleware.swift`, `Sources/PipelineKitCache/CachingMiddleware.swift`, `Sources/PipelineKitCache/SimpleCachingMiddleware.swift`. Create `Sources/PipelineKitCache/CacheKeyNamespace.swift`, `Tests/PipelineKitCacheTests/CacheIdentityContractTests.swift`. Migrate existing `Tests/PipelineKitCacheTests/CachingMiddlewareTests.swift`, `Tests/PipelineKitCacheTests/SimpleCachingMiddlewareTests.swift`, `Tests/PipelineKitCacheTests/NextGuardSuppressionTests.swift`, and the live cache-constructor callers in `Tests/PipelineKitCacheTests/LRUEvolutionTests.swift`. S04 retains ownership of LRU predecessor/lifetime changes.
+ 
+ **Interfaces:** All four constructors/factories require `keyGenerator: any CacheKeyGenerator` with no default. Add public `ClosureCacheKeyGenerator.init(_ generate: @escaping @Sendable (any Command, CommandContext, String) async -> String)`, implementing the existing generic protocol method. Internal `CacheKeyNamespace.encode(commandType: String, resultType: String, middleware: String, callerKey: String) -> String` uses UTF-8 length prefixes. Preserve existing TTL/cache backend parameters.
+ 
+diff --git a/docs/superpowers/plans/2026-10-29-pipelinekit-stabilization.md b/docs/superpowers/plans/2026-10-29-pipelinekit-stabilization.md
+index 4a91359..f2f3b3c 100644
+--- a/docs/superpowers/plans/2026-10-29-pipelinekit-stabilization.md
++++ b/docs/superpowers/plans/2026-10-29-pipelinekit-stabilization.md
+@@ -12,6 +12,8 @@
+ 
+ This is an implementation plan. **No production repairs have been made or validated by creating it.** Breaking changes are explicitly accepted by the owner. The changes are intended for a minor release under [VERSIONING.md](../../../VERSIONING.md); implementation does not include publishing or tagging that release.
+ 
++Execution status and finding-specific evidence are maintained separately in the [closure ledger](../execution/2026-10-29-pipelinekit-stabilization/CLOSURE.md), [validation record](../execution/2026-10-29-pipelinekit-stabilization/VALIDATION.md), and [implementation decisions](../execution/2026-10-29-pipelinekit-stabilization/DECISIONS.md). Task verification and final integration are distinct dispositions.
++
+ ## Global Constraints
+ 
+ - Swift tools version remains 6.2; preserve existing language/concurrency settings and declared platform floors.
+diff --git a/docs/tutorials/custom-middleware.md b/docs/tutorials/custom-middleware.md
+index b26edc7..b4d908b 100644
+--- a/docs/tutorials/custom-middleware.md
++++ b/docs/tutorials/custom-middleware.md
+@@ -110,13 +110,28 @@ try await pipeline.addMiddleware(rateLimit)
+ ```swift
+ import PipelineKitCache
+ 
++struct ProfileQuery: Command {
++    typealias Result = String
++    let accountID: String
++    let locale: String
++}
++
++// AuthenticationMiddleware must establish authUserId before protected caching.
++let profileKeys = ClosureCacheKeyGenerator { command, context, _ in
++    guard let query = command as? ProfileQuery,
++          let principal = context.getMetadata("authUserId") as? String else {
++        preconditionFailure("Expected an authenticated profile query")
++    }
++    return [query.accountID, query.locale, principal, "profile-format-v2"]
++        .map { "\($0.utf8.count):\($0)" }.joined()
++}
++
+ let cache = InMemoryCache(maxSize: 1000)
+ 
+ let caching = CachingMiddleware(
+     cache: cache,
+-    keyGenerator: { command in
+-        "\(type(of: command)):\(String(describing: command).hashValue)"
+-    },
++    commandType: ProfileQuery.self,
++    keyGenerator: profileKeys,
+     ttl: 300
+ )
+ 
+@@ -126,9 +141,10 @@ try await pipeline.addMiddleware(caching)
+ let conditional = ConditionalCachedMiddleware(
+     wrapping: caching,
+     cache: InMemoryMiddlewareCache.shared,
++    keyGenerator: profileKeys,
+     ttl: 300
+ ) { command, _ in
+-    command is GetUserCommand
++    command is ProfileQuery
+ }
+ ```
+ 

@@ -1,0 +1,167 @@
+Building for debugging...
+[Computing dependencies]
+[Using on-disk description]
+[3 / 9] PipelineKitCacheTests-product
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/NextGuardSuppressionTests.swift:59:46: warning: 'is' test is always true
+57 |     /// error exits on its own.
+58 |     func testCacheMiddlewaresRetainNextGuardSuppression() {
+59 |         XCTAssertTrue(CachingMiddleware.self is any NextGuardWarningSuppressing.Type)
+   |                                              `- warning: 'is' test is always true
+60 |         XCTAssertTrue(SimpleCachingMiddleware.self is any NextGuardWarningSuppressing.Type)
+61 |         XCTAssertTrue(CachedMiddleware<CachingMiddleware>.self is any NextGuardWarningSuppressing.Type)
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/NextGuardSuppressionTests.swift:60:52: warning: 'is' test is always true
+58 |     func testCacheMiddlewaresRetainNextGuardSuppression() {
+59 |         XCTAssertTrue(CachingMiddleware.self is any NextGuardWarningSuppressing.Type)
+60 |         XCTAssertTrue(SimpleCachingMiddleware.self is any NextGuardWarningSuppressing.Type)
+   |                                                    `- warning: 'is' test is always true
+61 |         XCTAssertTrue(CachedMiddleware<CachingMiddleware>.self is any NextGuardWarningSuppressing.Type)
+62 |         XCTAssertTrue(ConditionalCachedMiddleware<CachingMiddleware>.self is any NextGuardWarningSuppressing.Type)
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/NextGuardSuppressionTests.swift:61:64: warning: 'is' test is always true
+59 |         XCTAssertTrue(CachingMiddleware.self is any NextGuardWarningSuppressing.Type)
+60 |         XCTAssertTrue(SimpleCachingMiddleware.self is any NextGuardWarningSuppressing.Type)
+61 |         XCTAssertTrue(CachedMiddleware<CachingMiddleware>.self is any NextGuardWarningSuppressing.Type)
+   |                                                                `- warning: 'is' test is always true
+62 |         XCTAssertTrue(ConditionalCachedMiddleware<CachingMiddleware>.self is any NextGuardWarningSuppressing.Type)
+63 |     }
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/NextGuardSuppressionTests.swift:62:75: warning: 'is' test is always true
+60 |         XCTAssertTrue(SimpleCachingMiddleware.self is any NextGuardWarningSuppressing.Type)
+61 |         XCTAssertTrue(CachedMiddleware<CachingMiddleware>.self is any NextGuardWarningSuppressing.Type)
+62 |         XCTAssertTrue(ConditionalCachedMiddleware<CachingMiddleware>.self is any NextGuardWarningSuppressing.Type)
+   |                                                                           `- warning: 'is' test is always true
+63 |     }
+64 | }
+[12 / 17] PipelineKitCacheTests-product
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionMiddlewareTests.swift:80:28: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+ 78 |         let handler: @Sendable (DataProcessingCommand, CommandContext) async throws -> ProcessingResult = { cmd, ctx in
+ 79 |             // Verify compression was applied
+ 80 |             let metadata = await ctx.getMetadata()
+    |                            `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+ 81 |             if let applied = metadata["compression.applied"] as? Bool, applied {
+ 82 |                 XCTAssertEqual(metadata["compression.algorithm"] as? String, "zlib")
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionMiddlewareTests.swift:124:28: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+122 |         let handler: @Sendable (DataProcessingCommand, CommandContext) async throws -> ProcessingResult = { cmd, ctx in
+123 |             // Verify compression was NOT applied
+124 |             let metadata = await ctx.getMetadata()
+    |                            `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+125 |             XCTAssertNil(metadata["compression.applied"])
+126 |             XCTAssertFalse(cmd.operation.contains("compressed"))
+
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/SimpleCachingMiddlewareTests.swift:434:13: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+432 |             expectation.expectedFulfillmentCount = iterations
+433 | 
+434 |             Task {
+    |             |- warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+    |             `- note: to silence this warning, handle the error inside the task, or store/discard the task value explicitly
+435 |                 let pipeline = StandardPipeline(handler: TestHandler())
+436 |                 try await pipeline.addMiddleware(cache)
+
+[#NoUseUnstructuredThrowingTask]: <https://docs.swift.org/compiler/documentation/diagnostics/no-use-throwing-unstructured-task>
+[17 / 20] PipelineKitCacheTests-product
+[19 / 23] PipelineKitCacheTests-product
+Build complete! (1.65 sec)
+Test Suite 'Selected tests' started at 2026-10-30 20:19:48.866.
+Test Suite 'PipelineKitTests.xctest' started at 2026-10-30 20:19:48.867.
+Test Suite 'PipelineKitTests.xctest' passed at 2026-10-30 20:19:48.867.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 20:19:48.867.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 20:19:48.955.
+Test Suite 'PipelineKitTestSupportTests.xctest' started at 2026-10-30 20:19:48.955.
+Test Suite 'PipelineKitTestSupportTests.xctest' passed at 2026-10-30 20:19:48.955.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 20:19:48.955.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 20:19:49.036.
+Test Suite 'PipelineKitSecurityTests.xctest' started at 2026-10-30 20:19:49.037.
+Test Suite 'PipelineKitSecurityTests.xctest' passed at 2026-10-30 20:19:49.037.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 20:19:49.037.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 20:19:49.120.
+Test Suite 'PipelineKitResilienceTests.xctest' started at 2026-10-30 20:19:49.121.
+Test Suite 'PipelineKitResilienceTests.xctest' passed at 2026-10-30 20:19:49.121.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 20:19:49.121.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 20:19:49.207.
+Test Suite 'PipelineKitPoolingTests.xctest' started at 2026-10-30 20:19:49.208.
+Test Suite 'PipelineKitPoolingTests.xctest' passed at 2026-10-30 20:19:49.208.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 20:19:49.208.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 20:19:49.294.
+Test Suite 'PipelineKitPerformanceTests.xctest' started at 2026-10-30 20:19:49.295.
+Test Suite 'PipelineKitPerformanceTests.xctest' passed at 2026-10-30 20:19:49.295.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 20:19:49.295.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 20:19:49.381.
+Test Suite 'PipelineKitObservabilityTests.xctest' started at 2026-10-30 20:19:49.382.
+Test Suite 'PipelineKitObservabilityTests.xctest' passed at 2026-10-30 20:19:49.382.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 20:19:49.382.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 20:19:49.467.
+Test Suite 'PipelineKitCoreTests.xctest' started at 2026-10-30 20:19:49.468.
+Test Suite 'PipelineKitCoreTests.xctest' passed at 2026-10-30 20:19:49.468.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 20:19:49.468.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 20:19:49.531.
+Test Suite 'PipelineKitCacheTests.xctest' started at 2026-10-30 20:19:49.532.
+Test Suite 'CacheIdentityContractTests' started at 2026-10-30 20:19:49.532.
+Test Case '-[PipelineKitCacheTests.CacheIdentityContractTests testAuthenticatedBuilderPipelineUsesVerifiedPrincipal]' started.
+Test Case '-[PipelineKitCacheTests.CacheIdentityContractTests testAuthenticatedBuilderPipelineUsesVerifiedPrincipal]' passed (0.003 seconds).
+Test Case '-[PipelineKitCacheTests.CacheIdentityContractTests testCacheIdentityMatrix]' started.
+Test Case '-[PipelineKitCacheTests.CacheIdentityContractTests testCacheIdentityMatrix]' passed (0.001 seconds).
+Test Case '-[PipelineKitCacheTests.CacheIdentityContractTests testCallerCanExplicitlyIncludeCorrelation]' started.
+Test Case '-[PipelineKitCacheTests.CacheIdentityContractTests testCallerCanExplicitlyIncludeCorrelation]' passed (0.000 seconds).
+Test Case '-[PipelineKitCacheTests.CacheIdentityContractTests testCommandTypeFactoriesBypassOtherCommands]' started.
+Test Case '-[PipelineKitCacheTests.CacheIdentityContractTests testCommandTypeFactoriesBypassOtherCommands]' passed (0.000 seconds).
+Test Case '-[PipelineKitCacheTests.CacheIdentityContractTests testConditionalBranchesBypassKeyGenerationAndStorage]' started.
+Test Case '-[PipelineKitCacheTests.CacheIdentityContractTests testConditionalBranchesBypassKeyGenerationAndStorage]' passed (0.000 seconds).
+Test Case '-[PipelineKitCacheTests.CacheIdentityContractTests testEqualHashValuesDoNotShareResults]' started.
+Test Case '-[PipelineKitCacheTests.CacheIdentityContractTests testEqualHashValuesDoNotShareResults]' passed (0.001 seconds).
+Test Case '-[PipelineKitCacheTests.CacheIdentityContractTests testExplicitKeysStillNamespaceDifferentCommandAndResultTypes]' started.
+Test Case '-[PipelineKitCacheTests.CacheIdentityContractTests testExplicitKeysStillNamespaceDifferentCommandAndResultTypes]' passed (0.001 seconds).
+Test Case '-[PipelineKitCacheTests.CacheIdentityContractTests testNamespaceEncodingIsUnambiguous]' started.
+Test Case '-[PipelineKitCacheTests.CacheIdentityContractTests testNamespaceEncodingIsUnambiguous]' passed (0.002 seconds).
+Test Case '-[PipelineKitCacheTests.CacheIdentityContractTests testSharedBackendSeparatesMiddlewareTypesAndWrapperKinds]' started.
+Test Case '-[PipelineKitCacheTests.CacheIdentityContractTests testSharedBackendSeparatesMiddlewareTypesAndWrapperKinds]' passed (0.000 seconds).
+Test Case '-[PipelineKitCacheTests.CacheIdentityContractTests testTTLAndInvalidationPreserveIdentity]' started.
+Test Case '-[PipelineKitCacheTests.CacheIdentityContractTests testTTLAndInvalidationPreserveIdentity]' passed (0.000 seconds).
+Test Suite 'CacheIdentityContractTests' passed at 2026-10-30 20:19:49.542.
+	 Executed 10 tests, with 0 failures (0 unexpected) in 0.009 (0.010) seconds
+Test Suite 'PipelineKitCacheTests.xctest' passed at 2026-10-30 20:19:49.542.
+	 Executed 10 tests, with 0 failures (0 unexpected) in 0.009 (0.010) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 20:19:49.542.
+	 Executed 10 tests, with 0 failures (0 unexpected) in 0.009 (0.011) seconds
+S03 authenticated route=cached authenticationFirst=false handler=4 validation=5 authentication=6 keys=5
+S03 authenticated route=cached authenticationFirst=true handler=4 validation=5 authentication=6 keys=5
+S03 authenticated route=conditional authenticationFirst=false handler=4 validation=5 authentication=6 keys=5
+S03 authenticated route=conditional authenticationFirst=true handler=4 validation=5 authentication=6 keys=5
+S03 authenticated route=simple authenticationFirst=false handler=4 validation=5 authentication=6 keys=5
+S03 authenticated route=simple authenticationFirst=true handler=4 validation=5 authentication=6 keys=5
+S03 authenticated route=encoded authenticationFirst=false handler=4 validation=5 authentication=6 keys=5
+S03 authenticated route=encoded authenticationFirst=true handler=4 validation=5 authentication=6 keys=5
+S03 identity route=cached factory=false requests=7 handlerCalls=5
+S03 identity route=cached factory=true requests=7 handlerCalls=5
+S03 identity route=conditional factory=false requests=7 handlerCalls=5
+S03 identity route=conditional factory=true requests=7 handlerCalls=5
+S03 identity route=simple factory=false requests=7 handlerCalls=5
+S03 identity route=simple factory=true requests=7 handlerCalls=5
+S03 identity route=encoded factory=false requests=7 handlerCalls=5
+S03 identity route=encoded factory=true requests=7 handlerCalls=5
+S03 hash route=cached factory=false requests=3 handlerCalls=2
+S03 hash route=cached factory=true requests=3 handlerCalls=2
+S03 hash route=conditional factory=false requests=3 handlerCalls=2
+S03 hash route=conditional factory=true requests=3 handlerCalls=2
+S03 hash route=simple factory=false requests=3 handlerCalls=2
+S03 hash route=simple factory=true requests=3 handlerCalls=2
+S03 hash route=encoded factory=false requests=3 handlerCalls=2
+S03 hash route=encoded factory=true requests=3 handlerCalls=2

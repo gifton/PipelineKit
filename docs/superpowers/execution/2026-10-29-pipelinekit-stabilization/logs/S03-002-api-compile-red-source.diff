@@ -1,0 +1,13 @@
+diff --git a/docs/superpowers/plans/2026-10-29-pipelinekit-stabilization-security-cache.md b/docs/superpowers/plans/2026-10-29-pipelinekit-stabilization-security-cache.md
+index 49a1960..7806b4e 100644
+--- a/docs/superpowers/plans/2026-10-29-pipelinekit-stabilization-security-cache.md
++++ b/docs/superpowers/plans/2026-10-29-pipelinekit-stabilization-security-cache.md
+@@ -65,7 +65,7 @@ Read the [master plan](2026-10-29-pipelinekit-stabilization.md) and [design](../
+ 
+ **Finding IDs:** SCP-04, SCP-05. **Dependencies:** C01 for integration; independent of S02.
+ 
+-**Files:** Modify `Sources/PipelineKitCache/CachedMiddleware.swift`, `Sources/PipelineKitCache/CachingMiddleware.swift`, `Sources/PipelineKitCache/SimpleCachingMiddleware.swift`. Create `Sources/PipelineKitCache/CacheKeyNamespace.swift`, `Tests/PipelineKitCacheTests/CacheIdentityContractTests.swift`. Migrate existing `Tests/PipelineKitCacheTests/CachingMiddlewareTests.swift`, `Tests/PipelineKitCacheTests/SimpleCachingMiddlewareTests.swift`, `Tests/PipelineKitCacheTests/NextGuardSuppressionTests.swift`.
++**Files:** Modify `Sources/PipelineKitCache/CachedMiddleware.swift`, `Sources/PipelineKitCache/CachingMiddleware.swift`, `Sources/PipelineKitCache/SimpleCachingMiddleware.swift`. Create `Sources/PipelineKitCache/CacheKeyNamespace.swift`, `Tests/PipelineKitCacheTests/CacheIdentityContractTests.swift`. Migrate existing `Tests/PipelineKitCacheTests/CachingMiddlewareTests.swift`, `Tests/PipelineKitCacheTests/SimpleCachingMiddlewareTests.swift`, `Tests/PipelineKitCacheTests/NextGuardSuppressionTests.swift`, and the live cache-constructor callers in `Tests/PipelineKitCacheTests/LRUEvolutionTests.swift`. S04 retains ownership of LRU predecessor/lifetime changes.
+ 
+ **Interfaces:** All four constructors/factories require `keyGenerator: any CacheKeyGenerator` with no default. Add public `ClosureCacheKeyGenerator.init(_ generate: @escaping @Sendable (any Command, CommandContext, String) async -> String)`, implementing the existing generic protocol method. Internal `CacheKeyNamespace.encode(commandType: String, resultType: String, middleware: String, callerKey: String) -> String` uses UTF-8 length prefixes. Preserve existing TTL/cache backend parameters.
+ 

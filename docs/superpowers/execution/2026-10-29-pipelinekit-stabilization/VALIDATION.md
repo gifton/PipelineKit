@@ -858,3 +858,24 @@ Fresh Astra/max review of5526f60..1c7adad approved spec compliance and quality w
 The review specifically checked snapshot capture before suspension, lifetime through record/flush, callback preparation and nil clearing before publication, retired-capture destruction after unlock, reentrant callbacks/destructors, no replay in either flush capability branch, and preservation of O02 timer/startup/close ownership. Existing19 baseline compiler kinds/49 Release occurrences remain deferred and separate from C02-N1; no new final warning kind was found.
 
 All cross-task limits have explicit I01 ownership: focused TSan, available floor/Linux/hosted checks, standalone Examples and every migration snippet, plus the consolidated Breaking entry. O02 aggregation quiescence remains unclaimed and OBS-001/005/009 remain open. OBS-007/008 are individually locally verified, not integration/release closure. Original checkout HEADa93a713 remains unchanged with no tracked modifications; no push/merge/release occurred. Chronological implementation rulings and their costs are collected in [DECISIONS.md](DECISIONS.md).
+
+
+## S03 — explicit complete cache identity (2026-10-30)
+
+Base `7f6a684dcf8f3dc0317757fa9d919928c2fc98db`; implementation `75391161d8023f395914eedb4de3170d4b0788cb` on `fix/stabilization-batch-1`. All four cache APIs and their factories require `any CacheKeyGenerator`; ClosureCacheKeyGenerator preserves the generic async protocol. One UTF-8 length-prefixed namespace includes fully qualified command, result, concrete middleware, and caller key. All live callers and active documentation snippets now supply complete identities. Old contents must be invalidated. LRU ownership is S04; compiled migration/platform/final integration is I01. [Detailed implementation, coverage, retained source states and limits](reports/S03-implementer.md).
+
+Each command used `python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id ID --timeout 600 -- COMMAND` from the worktree. All runs settled, with no timeout, survivor or termination action.
+
+| ID | COMMAND | Root / runner | Evidence |
+| --- | --- | --- | --- |
+| S03-001-runtime-red | `swift test --filter CacheIdentityContractTests` | 1 / 1 | Unmodified baseline production: 3 tests, 13 expected argument/principal/hash/cross-type assertion failures. |
+| S03-002-api-compile-red | `swift test --filter CacheIdentityContractTests` | 1 / 1 | Missing new ClosureCacheKeyGenerator; API compile-red, zero runtime tests. |
+| S03-003-identity-green | `swift test --filter CacheIdentityContractTests` | 1 / 1 | Despite ID suffix, failed build from overbroad caller-edit regex; original fixture structure/assertions restored, then narrowly migrated. Preserved rather than represented as behavioral evidence. |
+| S03-004-identity-green | `swift test --filter CacheIdentityContractTests` | 0 / 0 | 10/10 contract tests passed. |
+| S03-005-cache-debug | `swift test --filter PipelineKitCacheTests` | 0 / 0 | 44/44 passed before final non-Hashable factory coverage strengthening. |
+| S03-006-cache-release | `swift test -c release --filter PipelineKitCacheTests` | 0 / 0 | 44/44 passed at final substantive state. |
+| S03-007-full-debug | `swift test --parallel --skip PipelineKitPerformanceTests` | 0 / 0 | 1,090 distinct XCTest selections, including all 44 cache tests; 20 Swift Testing cases passed. Final substantive Debug. |
+
+Actual matrix: 8 direct/factory identity cells (7 requests / 5 handler calls each), 8 deliberate-hash-collision cells (3 / 2 each), 8 authenticated builder-order cells (authentication6 / validation5 / key-generation5 / handler4 each), 1,296 namespace tuples, all four type/result isolation routes, middleware-type separation, explicit correlation inclusion/exclusion, conditional and type-selective bypasses, TTL and invalidation. Historical V207b/V208b remain hash-checked unchanged; new compile-red is separate from historical and fresh runtime-red. The new suite creates no concurrent tasks; inherited stress fixtures are not a race-proof claim.
+
+Final `logs/S03-final-verification.json` matches all 14 committed implementation/documentation hashes to tested source; source snapshots bind 33 files including unchanged manifests/pins and retained audit evidence. `logs/S03-results-and-warnings.json` retains raw log/metadata/process-event hashes and exact count details. Final Release warnings: 6 baseline kinds / 10 occurrences, zero new; final full captured output has no compiler/runtime warning messages. Runtime SwiftLog scanning is separate, and successful parallel child output may be suppressed; existing C02-N1 and compiler debt remain deferred. No standalone Examples package build or compiled Markdown examples is claimed. Controller owns CLOSURE/progress and review acceptance.
