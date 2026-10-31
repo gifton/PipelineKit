@@ -1,0 +1,22 @@
+{
+  "scope": "Compiler diagnostics only; normalize relative path and diagnostic text without line/column positions",
+  "runs": [
+    "V05-001",
+    "V05-002",
+    "V05-003",
+    "V05-NEG-001"
+  ],
+  "observed_count": 9,
+  "new": [],
+  "existing": [
+    "Sources/PipelineKitCache/CachingMiddleware.swift: warning: use of protocol 'Decodable' as a type must be written 'any Decodable'; this will be an error in a future Swift language mode [#ExistentialAny]",
+    "Sources/PipelineKitCore/Context/ExecutionContext.swift: warning: 'withValue(_:operation:isolation:file:line:)' is deprecated: Prefer the 'nonisolated(nonsending)' overload with stricter execution on caller context semantics: withValue(_:operation:file:line:) [#DeprecatedDeclaration]",
+    "Sources/PipelineKitResilienceCircuitBreaker/PartitionedBulkheadMiddleware.swift: warning: 'weak' ownership of capture 'partition' differs from implicitly-captured strong reference in outer scope [#ImplicitStrongCapture]",
+    "Sources/PipelineKitSecurity/AuditLogger.swift: warning: 'withValue(_:operation:isolation:file:line:)' is deprecated: Prefer the 'nonisolated(nonsending)' overload with stricter execution on caller context semantics: withValue(_:operation:file:line:) [#DeprecatedDeclaration]",
+    "Tests/PipelineKitCoreTests/Context/EventEmissionTests.swift: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]",
+    "Tests/PipelineKitCoreTests/Core/CommandContextThreadSafetyTests.swift: warning: immutable value 'key' was never used; consider replacing with '_' or removing it [#NoUsage]",
+    "Tests/PipelineKitCoreTests/Errors/CancellationErrorTests.swift: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]",
+    "Tests/PipelineKitCoreTests/Middleware/MiddlewareTests.swift: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]",
+    "Tests/PipelineKitCoreTests/Pipeline/PipelineTests.swift: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]"
+  ]
+}
