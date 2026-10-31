@@ -1,0 +1,523 @@
+Building for debugging...
+[Computing dependencies]
+[Pre-planning 1 / 1026]
+[Planning deferred tasks]
+[1 / 1]
+[1 / 68] PipelineKitCoreTests-product
+[15 / 32] PipelineKitTestSupportTests-product
+[23 / 34] PipelineKitObservabilityTests-product
+error: SwiftCompile normal arm64 /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/MetricsConfigurationContractTests.swift failed with a nonzero exit code. Command line:     cd /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees
+    builtin-SwiftPerFileCompile MetricsConfigurationContractTests.swift
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/MetricsConfigurationContractTests.swift:7:45: error: 'Configuration' is not a member type of enum 'PipelineKitObservability.Metrics'
+  5 | 
+  6 | final class MetricsConfigurationContractTests: XCTestCase {
+  7 |     private var savedConfiguration: Metrics.Configuration?
+    |                                             `- error: 'Configuration' is not a member type of enum 'PipelineKitObservability.Metrics'
+  8 | 
+  9 |     override func setUp() async throws {
+
+PipelineKitObservability.Metrics:1:13: note: 'Metrics' declared here
+ 1 | public enum Metrics {
+   |             `- note: 'Metrics' declared here
+ 2 |     nonisolated(unsafe) public static var storage: PipelineKitObservability.MetricsStorage
+ 3 |     nonisolated(unsafe) public static var exporter: any PipelineKitObservability.MetricRecorder
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/MetricsConfigurationContractTests.swift:297:38: error: cannot find type 'FlushableMetricRecorder' in scope
+295 | }
+296 | 
+297 | private actor ConfigurationRecorder: FlushableMetricRecorder {
+    |                                      `- error: cannot find type 'FlushableMetricRecorder' in scope
+298 |     private(set) var names: [String] = []
+299 |     private(set) var flushCount = 0
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/MetricsConfigurationContractTests.swift:10:38: error: type 'Metrics' has no member 'configuration'
+  8 | 
+  9 |     override func setUp() async throws {
+ 10 |         savedConfiguration = Metrics.configuration
+    |                                      `- error: type 'Metrics' has no member 'configuration'
+ 11 |         await Metrics.configure(.init(storage: MetricsStorage(), exporter: ConfigurationRecorder()))
+ 12 |     }
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/MetricsConfigurationContractTests.swift:11:33: error: missing argument label 'with:' in call
+  9 |     override func setUp() async throws {
+ 10 |         savedConfiguration = Metrics.configuration
+ 11 |         await Metrics.configure(.init(storage: MetricsStorage(), exporter: ConfigurationRecorder()))
+    |                                 `- error: missing argument label 'with:' in call
+ 12 |     }
+ 13 | 
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/MetricsConfigurationContractTests.swift:11:34: error: 'any MetricRecorder' cannot be constructed because it has no accessible initializers
+  9 |     override func setUp() async throws {
+ 10 |         savedConfiguration = Metrics.configuration
+ 11 |         await Metrics.configure(.init(storage: MetricsStorage(), exporter: ConfigurationRecorder()))
+    |                                  `- error: 'any MetricRecorder' cannot be constructed because it has no accessible initializers
+ 12 |     }
+ 13 | 
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/MetricsConfigurationContractTests.swift:15:61: error: missing argument label 'with:' in call
+ 13 | 
+ 14 |     override func tearDown() async throws {
+ 15 |         if let savedConfiguration { await Metrics.configure(savedConfiguration) }
+    |                                                             `- error: missing argument label 'with:' in call
+ 16 |         savedConfiguration = nil
+ 17 |     }
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/MetricsConfigurationContractTests.swift:25:33: error: missing argument label 'with:' in call
+ 23 |         let recorderB = ConfigurationRecorder()
+ 24 |         let gate = ConfigurationGate()
+ 25 |         await Metrics.configure(.init(storage: storageA, exporter: recorderA))
+    |                                 `- error: missing argument label 'with:' in call
+ 26 |         let recording = Task {
+ 27 |             await Metrics.record(.counter("generation.a"), afterStorage: { await gate.pause() })
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/MetricsConfigurationContractTests.swift:25:34: error: 'any MetricRecorder' cannot be constructed because it has no accessible initializers
+ 23 |         let recorderB = ConfigurationRecorder()
+ 24 |         let gate = ConfigurationGate()
+ 25 |         await Metrics.configure(.init(storage: storageA, exporter: recorderA))
+    |                                  `- error: 'any MetricRecorder' cannot be constructed because it has no accessible initializers
+ 26 |         let recording = Task {
+ 27 |             await Metrics.record(.counter("generation.a"), afterStorage: { await gate.pause() })
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/MetricsConfigurationContractTests.swift:27:27: error: type 'Metrics' has no member 'record'
+ 25 |         await Metrics.configure(.init(storage: storageA, exporter: recorderA))
+ 26 |         let recording = Task {
+ 27 |             await Metrics.record(.counter("generation.a"), afterStorage: { await gate.pause() })
+    |                           `- error: type 'Metrics' has no member 'record'
+ 28 |         }
+ 29 |         await gate.waitForEntry()
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/MetricsConfigurationContractTests.swift:30:33: error: missing argument label 'with:' in call
+ 28 |         }
+ 29 |         await gate.waitForEntry()
+ 30 |         await Metrics.configure(.init(storage: storageB, exporter: recorderB))
+    |                                 `- error: missing argument label 'with:' in call
+ 31 |         await gate.release()
+ 32 |         await recording.value
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/MetricsConfigurationContractTests.swift:30:34: error: 'any MetricRecorder' cannot be constructed because it has no accessible initializers
+ 28 |         }
+ 29 |         await gate.waitForEntry()
+ 30 |         await Metrics.configure(.init(storage: storageB, exporter: recorderB))
+    |                                  `- error: 'any MetricRecorder' cannot be constructed because it has no accessible initializers
+ 31 |         await gate.release()
+ 32 |         await recording.value
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/MetricsConfigurationContractTests.swift:32:9: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+ 30 |         await Metrics.configure(.init(storage: storageB, exporter: recorderB))
+ 31 |         await gate.release()
+ 32 |         await recording.value
+    |         `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+ 33 | 
+ 34 |         let storedA = await storageA.getAll()
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/MetricsConfigurationContractTests.swift:60:33: error: missing argument label 'with:' in call
+ 58 |         let recorderB = ConfigurationRecorder()
+ 59 |         let gate = ConfigurationGate()
+ 60 |         await Metrics.configure(.init(storage: storageA, exporter: recorderA))
+    |                                 `- error: missing argument label 'with:' in call
+ 61 |         let recording = Task {
+ 62 |             await Metrics.record(.counter("before.disable"), afterStorage: { await gate.pause() })
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/MetricsConfigurationContractTests.swift:60:34: error: 'any MetricRecorder' cannot be constructed because it has no accessible initializers
+ 58 |         let recorderB = ConfigurationRecorder()
+ 59 |         let gate = ConfigurationGate()
+ 60 |         await Metrics.configure(.init(storage: storageA, exporter: recorderA))
+    |                                  `- error: 'any MetricRecorder' cannot be constructed because it has no accessible initializers
+ 61 |         let recording = Task {
+ 62 |             await Metrics.record(.counter("before.disable"), afterStorage: { await gate.pause() })
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/MetricsConfigurationContractTests.swift:62:27: error: type 'Metrics' has no member 'record'
+ 60 |         await Metrics.configure(.init(storage: storageA, exporter: recorderA))
+ 61 |         let recording = Task {
+ 62 |             await Metrics.record(.counter("before.disable"), afterStorage: { await gate.pause() })
+    |                           `- error: type 'Metrics' has no member 'record'
+ 63 |         }
+ 64 |         await gate.waitForEntry()
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/MetricsConfigurationContractTests.swift:66:31: error: type 'Metrics' has no member 'configuration'
+ 64 |         await gate.waitForEntry()
+ 65 |         Metrics.disable()
+ 66 |         XCTAssertTrue(Metrics.configuration.storage === storageA)
+    |                               `- error: type 'Metrics' has no member 'configuration'
+ 67 |         await Metrics.counter("while.disabled")
+ 68 |         await Metrics.configure(.init(storage: storageB, exporter: recorderB))
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/MetricsConfigurationContractTests.swift:66:45: error: argument type '_' expected to be an instance of a class or class-constrained type
+ 64 |         await gate.waitForEntry()
+ 65 |         Metrics.disable()
+ 66 |         XCTAssertTrue(Metrics.configuration.storage === storageA)
+    |                                             `- error: argument type '_' expected to be an instance of a class or class-constrained type
+ 67 |         await Metrics.counter("while.disabled")
+ 68 |         await Metrics.configure(.init(storage: storageB, exporter: recorderB))
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/MetricsConfigurationContractTests.swift:68:33: error: missing argument label 'with:' in call
+ 66 |         XCTAssertTrue(Metrics.configuration.storage === storageA)
+ 67 |         await Metrics.counter("while.disabled")
+ 68 |         await Metrics.configure(.init(storage: storageB, exporter: recorderB))
+    |                                 `- error: missing argument label 'with:' in call
+ 69 |         await gate.release()
+ 70 |         await recording.value
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/MetricsConfigurationContractTests.swift:68:34: error: 'any MetricRecorder' cannot be constructed because it has no accessible initializers
+ 66 |         XCTAssertTrue(Metrics.configuration.storage === storageA)
+ 67 |         await Metrics.counter("while.disabled")
+ 68 |         await Metrics.configure(.init(storage: storageB, exporter: recorderB))
+    |                                  `- error: 'any MetricRecorder' cannot be constructed because it has no accessible initializers
+ 69 |         await gate.release()
+ 70 |         await recording.value
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/MetricsConfigurationContractTests.swift:70:9: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+ 68 |         await Metrics.configure(.init(storage: storageB, exporter: recorderB))
+ 69 |         await gate.release()
+ 70 |         await recording.value
+    |         `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+ 71 |         await Metrics.counter("after.configure")
+ 72 | 
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/MetricsConfigurationContractTests.swift:86:33: error: missing argument label 'with:' in call
+ 84 |         let recorder = ConfigurationRecorder()
+ 85 |         let storage = MetricsStorage()
+ 86 |         await Metrics.configure(.init(storage: storage, exporter: recorder))
+    |                                 `- error: missing argument label 'with:' in call
+ 87 |         await Metrics.counter("only.once")
+ 88 |         await Metrics.flush()
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/MetricsConfigurationContractTests.swift:86:34: error: 'any MetricRecorder' cannot be constructed because it has no accessible initializers
+ 84 |         let recorder = ConfigurationRecorder()
+ 85 |         let storage = MetricsStorage()
+ 86 |         await Metrics.configure(.init(storage: storage, exporter: recorder))
+    |                                  `- error: 'any MetricRecorder' cannot be constructed because it has no accessible initializers
+ 87 |         await Metrics.counter("only.once")
+ 88 |         await Metrics.flush()
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/MetricsConfigurationContractTests.swift:105:37: error: missing argument label 'with:' in call
+103 |             let recorderA = ConfigurationRecorder(flushGate: gate)
+104 |             let recorderB = ConfigurationRecorder()
+105 |             await Metrics.configure(.init(storage: storageA, exporter: recorderA))
+    |                                     `- error: missing argument label 'with:' in call
+106 |             await Metrics.counter("flush.a")
+107 |             let flushing = Task { await Metrics.flush() }
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/MetricsConfigurationContractTests.swift:105:38: error: 'any MetricRecorder' cannot be constructed because it has no accessible initializers
+103 |             let recorderA = ConfigurationRecorder(flushGate: gate)
+104 |             let recorderB = ConfigurationRecorder()
+105 |             await Metrics.configure(.init(storage: storageA, exporter: recorderA))
+    |                                      `- error: 'any MetricRecorder' cannot be constructed because it has no accessible initializers
+106 |             await Metrics.counter("flush.a")
+107 |             let flushing = Task { await Metrics.flush() }
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/MetricsConfigurationContractTests.swift:110:37: error: missing argument label 'with:' in call
+108 |             await gate.waitForEntry()
+109 |             if disableDuringFlush { Metrics.disable() }
+110 |             await Metrics.configure(.init(storage: storageB, exporter: recorderB))
+    |                                     `- error: missing argument label 'with:' in call
+111 |             await Metrics.counter("flush.b")
+112 |             await Metrics.flush()
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/MetricsConfigurationContractTests.swift:110:38: error: 'any MetricRecorder' cannot be constructed because it has no accessible initializers
+108 |             await gate.waitForEntry()
+109 |             if disableDuringFlush { Metrics.disable() }
+110 |             await Metrics.configure(.init(storage: storageB, exporter: recorderB))
+    |                                      `- error: 'any MetricRecorder' cannot be constructed because it has no accessible initializers
+111 |             await Metrics.counter("flush.b")
+112 |             await Metrics.flush()
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/MetricsConfigurationContractTests.swift:135:33: error: missing argument label 'with:' in call
+133 |         let storage = MetricsStorage()
+134 |         let recorder = ConfigurationRecorder(flushGate: gate)
+135 |         await Metrics.configure(.init(storage: storage, exporter: recorder))
+    |                                 `- error: missing argument label 'with:' in call
+136 |         await Metrics.counter("before.drain")
+137 |         let flushing = Task { await Metrics.flush() }
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/MetricsConfigurationContractTests.swift:135:34: error: 'any MetricRecorder' cannot be constructed because it has no accessible initializers
+133 |         let storage = MetricsStorage()
+134 |         let recorder = ConfigurationRecorder(flushGate: gate)
+135 |         await Metrics.configure(.init(storage: storage, exporter: recorder))
+    |                                  `- error: 'any MetricRecorder' cannot be constructed because it has no accessible initializers
+136 |         await Metrics.counter("before.drain")
+137 |         let flushing = Task { await Metrics.flush() }
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/MetricsConfigurationContractTests.swift:153:27: error: type 'Metrics' has no member 'record'
+151 |         await installReentrantCaptures(events: events)
+152 |         let recording = Task {
+153 |             await Metrics.record(.counter("retained"), afterStorage: { await gate.pause() })
+    |                           `- error: type 'Metrics' has no member 'record'
+154 |         }
+155 |         await gate.waitForEntry()
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/MetricsConfigurationContractTests.swift:156:33: error: missing argument label 'with:' in call
+154 |         }
+155 |         await gate.waitForEntry()
+156 |         await Metrics.configure(.init(storage: MetricsStorage(), exporter: ConfigurationRecorder()))
+    |                                 `- error: missing argument label 'with:' in call
+157 |         XCTAssertTrue(events.values.isEmpty, "The in-flight snapshot still owns both captures")
+158 |         await gate.release()
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/MetricsConfigurationContractTests.swift:156:34: error: 'any MetricRecorder' cannot be constructed because it has no accessible initializers
+154 |         }
+155 |         await gate.waitForEntry()
+156 |         await Metrics.configure(.init(storage: MetricsStorage(), exporter: ConfigurationRecorder()))
+    |                                  `- error: 'any MetricRecorder' cannot be constructed because it has no accessible initializers
+157 |         XCTAssertTrue(events.values.isEmpty, "The in-flight snapshot still owns both captures")
+158 |         await gate.release()
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/MetricsConfigurationContractTests.swift:159:9: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+157 |         XCTAssertTrue(events.values.isEmpty, "The in-flight snapshot still owns both captures")
+158 |         await gate.release()
+159 |         await recording.value
+    |         `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+160 |         XCTAssertEqual(events.values.first, "recorded:retained")
+161 |         XCTAssertEqual(events.values.sorted(), ["callback.released", "exporter.released", "recorded:retained"])
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/MetricsConfigurationContractTests.swift:173:37: error: missing argument label 'with:' in call
+171 |                 XCTAssertEqual(events.values, ["exporter.released"])
+172 |             }
+173 |             await Metrics.configure(.init(storage: MetricsStorage(), exporter: ConfigurationRecorder()))
+    |                                     `- error: missing argument label 'with:' in call
+174 |             XCTAssertEqual(events.values.sorted(), ["callback.released", "exporter.released"])
+175 |         }
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/MetricsConfigurationContractTests.swift:173:38: error: 'any MetricRecorder' cannot be constructed because it has no accessible initializers
+171 |                 XCTAssertEqual(events.values, ["exporter.released"])
+172 |             }
+173 |             await Metrics.configure(.init(storage: MetricsStorage(), exporter: ConfigurationRecorder()))
+    |                                      `- error: 'any MetricRecorder' cannot be constructed because it has no accessible initializers
+174 |             XCTAssertEqual(events.values.sorted(), ["callback.released", "exporter.released"])
+175 |         }
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/MetricsConfigurationContractTests.swift:186:33: error: missing argument label 'with:' in call
+184 |         let events = ConfigurationEvents()
+185 |         let callbackTask = Mutex<Task<Void, Never>?>(nil)
+186 |         await Metrics.configure(.init(storage: storage, exporter: exporter, errorHandler: { _ in
+    |                                 `- error: missing argument label 'with:' in call
+187 |             XCTAssertTrue(Metrics.configuration.storage === storage)
+188 |             Metrics.disable()
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/MetricsConfigurationContractTests.swift:186:34: error: 'any MetricRecorder' cannot be constructed because it has no accessible initializers
+184 |         let events = ConfigurationEvents()
+185 |         let callbackTask = Mutex<Task<Void, Never>?>(nil)
+186 |         await Metrics.configure(.init(storage: storage, exporter: exporter, errorHandler: { _ in
+    |                                  `- error: 'any MetricRecorder' cannot be constructed because it has no accessible initializers
+187 |             XCTAssertTrue(Metrics.configuration.storage === storage)
+188 |             Metrics.disable()
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/MetricsConfigurationContractTests.swift:200:31: error: type 'Metrics' has no member 'configuration'
+198 |         await task?.value
+199 |         XCTAssertEqual(events.values, ["callback"])
+200 |         XCTAssertTrue(Metrics.configuration.storage === replacementStorage)
+    |                               `- error: type 'Metrics' has no member 'configuration'
+201 |         await Metrics.counter("replacement")
+202 |         let names = await replacementRecorder.names
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/MetricsConfigurationContractTests.swift:200:45: error: argument type '_' expected to be an instance of a class or class-constrained type
+198 |         await task?.value
+199 |         XCTAssertEqual(events.values, ["callback"])
+200 |         XCTAssertTrue(Metrics.configuration.storage === replacementStorage)
+    |                                             `- error: argument type '_' expected to be an instance of a class or class-constrained type
+201 |         await Metrics.counter("replacement")
+202 |         let names = await replacementRecorder.names
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/MetricsConfigurationContractTests.swift:212:33: error: missing argument label 'with:' in call
+210 |         let exporter = StatsDExporter(configuration: statsDConfiguration(), transport: transport)
+211 |         await exporter.setErrorHandler { _ in events.append("stale") }
+212 |         await Metrics.configure(.init(storage: MetricsStorage(), exporter: exporter,
+    |                                 `- error: missing argument label 'with:' in call
+213 |                                       errorHandler: { _ in events.append("configured") }))
+214 |         await Metrics.counter("configured.failure")
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/MetricsConfigurationContractTests.swift:212:34: error: 'any MetricRecorder' cannot be constructed because it has no accessible initializers
+210 |         let exporter = StatsDExporter(configuration: statsDConfiguration(), transport: transport)
+211 |         await exporter.setErrorHandler { _ in events.append("stale") }
+212 |         await Metrics.configure(.init(storage: MetricsStorage(), exporter: exporter,
+    |                                  `- error: 'any MetricRecorder' cannot be constructed because it has no accessible initializers
+213 |                                       errorHandler: { _ in events.append("configured") }))
+214 |         await Metrics.counter("configured.failure")
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/MetricsConfigurationContractTests.swift:215:33: error: missing argument label 'with:' in call
+213 |                                       errorHandler: { _ in events.append("configured") }))
+214 |         await Metrics.counter("configured.failure")
+215 |         await Metrics.configure(.init(storage: MetricsStorage(), exporter: exporter))
+    |                                 `- error: missing argument label 'with:' in call
+216 |         await Metrics.counter("cleared.failure")
+217 |         XCTAssertEqual(events.values, ["configured"])
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/MetricsConfigurationContractTests.swift:215:34: error: 'any MetricRecorder' cannot be constructed because it has no accessible initializers
+213 |                                       errorHandler: { _ in events.append("configured") }))
+214 |         await Metrics.counter("configured.failure")
+215 |         await Metrics.configure(.init(storage: MetricsStorage(), exporter: exporter))
+    |                                  `- error: 'any MetricRecorder' cannot be constructed because it has no accessible initializers
+216 |         await Metrics.counter("cleared.failure")
+217 |         XCTAssertEqual(events.values, ["configured"])
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/MetricsConfigurationContractTests.swift:224:33: error: missing argument label 'with:' in call
+222 |         let storage = MetricsStorage()
+223 |         let events = ConfigurationEvents()
+224 |         await Metrics.configure(.init(storage: storage, exporter: ConfigurationRecorder(),
+    |                                 `- error: missing argument label 'with:' in call
+225 |                                       errorHandler: { _ in events.append("configured") }))
+226 |         await Metrics.configure(host: "127.0.0.1", port: 0, maxBatchSize: 1)
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/MetricsConfigurationContractTests.swift:224:34: error: 'any MetricRecorder' cannot be constructed because it has no accessible initializers
+222 |         let storage = MetricsStorage()
+223 |         let events = ConfigurationEvents()
+224 |         await Metrics.configure(.init(storage: storage, exporter: ConfigurationRecorder(),
+    |                                  `- error: 'any MetricRecorder' cannot be constructed because it has no accessible initializers
+225 |                                       errorHandler: { _ in events.append("configured") }))
+226 |         await Metrics.configure(host: "127.0.0.1", port: 0, maxBatchSize: 1)
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/MetricsConfigurationContractTests.swift:227:31: error: type 'Metrics' has no member 'configuration'
+225 |                                       errorHandler: { _ in events.append("configured") }))
+226 |         await Metrics.configure(host: "127.0.0.1", port: 0, maxBatchSize: 1)
+227 |         XCTAssertTrue(Metrics.configuration.storage === storage)
+    |                               `- error: type 'Metrics' has no member 'configuration'
+228 |         let hostExporter = try XCTUnwrap(Metrics.configuration.exporter as? StatsDExporter)
+229 |         await Metrics.counter("invalid.port")
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/MetricsConfigurationContractTests.swift:227:45: error: argument type '_' expected to be an instance of a class or class-constrained type
+225 |                                       errorHandler: { _ in events.append("configured") }))
+226 |         await Metrics.configure(host: "127.0.0.1", port: 0, maxBatchSize: 1)
+227 |         XCTAssertTrue(Metrics.configuration.storage === storage)
+    |                                             `- error: argument type '_' expected to be an instance of a class or class-constrained type
+228 |         let hostExporter = try XCTUnwrap(Metrics.configuration.exporter as? StatsDExporter)
+229 |         await Metrics.counter("invalid.port")
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/MetricsConfigurationContractTests.swift:228:50: error: type 'Metrics' has no member 'configuration'
+226 |         await Metrics.configure(host: "127.0.0.1", port: 0, maxBatchSize: 1)
+227 |         XCTAssertTrue(Metrics.configuration.storage === storage)
+228 |         let hostExporter = try XCTUnwrap(Metrics.configuration.exporter as? StatsDExporter)
+    |                                                  `- error: type 'Metrics' has no member 'configuration'
+229 |         await Metrics.counter("invalid.port")
+230 |         XCTAssertEqual(events.values, ["configured"])
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/MetricsConfigurationContractTests.swift:236:31: error: type 'Metrics' has no member 'configuration'
+234 |         let custom = StatsDExporter(configuration: statsDConfiguration(), transport: transport)
+235 |         await Metrics.configure(with: custom)
+236 |         XCTAssertTrue(Metrics.configuration.storage === storage)
+    |                               `- error: type 'Metrics' has no member 'configuration'
+237 |         await Metrics.counter("custom.failure")
+238 |         XCTAssertEqual(events.values, ["configured", "configured"])
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/MetricsConfigurationContractTests.swift:236:45: error: argument type '_' expected to be an instance of a class or class-constrained type
+234 |         let custom = StatsDExporter(configuration: statsDConfiguration(), transport: transport)
+235 |         await Metrics.configure(with: custom)
+236 |         XCTAssertTrue(Metrics.configuration.storage === storage)
+    |                                             `- error: argument type '_' expected to be an instance of a class or class-constrained type
+237 |         await Metrics.counter("custom.failure")
+238 |         XCTAssertEqual(events.values, ["configured", "configured"])
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/MetricsConfigurationContractTests.swift:235:9: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+233 |         let transport = try await MockTransport(configuration: .init(shouldFail: true))
+234 |         let custom = StatsDExporter(configuration: statsDConfiguration(), transport: transport)
+235 |         await Metrics.configure(with: custom)
+    |         `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+236 |         XCTAssertTrue(Metrics.configuration.storage === storage)
+237 |         await Metrics.counter("custom.failure")
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/MetricsConfigurationContractTests.swift:245:33: error: missing argument label 'with:' in call
+243 |         let transport = try await MockTransport(configuration: .init())
+244 |         let exporter = StatsDExporter(configuration: statsDConfiguration(maxBatchSize: 20), transport: transport)
+245 |         await Metrics.configure(.init(storage: MetricsStorage(), exporter: exporter))
+    |                                 `- error: missing argument label 'with:' in call
+246 |         await Metrics.counter("buffered")
+247 |         let before = await transport.getSendCount()
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/MetricsConfigurationContractTests.swift:245:34: error: 'any MetricRecorder' cannot be constructed because it has no accessible initializers
+243 |         let transport = try await MockTransport(configuration: .init())
+244 |         let exporter = StatsDExporter(configuration: statsDConfiguration(maxBatchSize: 20), transport: transport)
+245 |         await Metrics.configure(.init(storage: MetricsStorage(), exporter: exporter))
+    |                                  `- error: 'any MetricRecorder' cannot be constructed because it has no accessible initializers
+246 |         await Metrics.counter("buffered")
+247 |         let before = await transport.getSendCount()
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/MetricsConfigurationContractTests.swift:261:33: error: missing argument label 'with:' in call
+259 |         let storageA = MetricsStorage()
+260 |         let storageB = MetricsStorage()
+261 |         await Metrics.configure(.init(storage: storageA, exporter: exporter))
+    |                                 `- error: missing argument label 'with:' in call
+262 |         await Metrics.counter("shared.a")
+263 |         await Metrics.configure(.init(storage: storageB, exporter: exporter))
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/MetricsConfigurationContractTests.swift:261:34: error: 'any MetricRecorder' cannot be constructed because it has no accessible initializers
+259 |         let storageA = MetricsStorage()
+260 |         let storageB = MetricsStorage()
+261 |         await Metrics.configure(.init(storage: storageA, exporter: exporter))
+    |                                  `- error: 'any MetricRecorder' cannot be constructed because it has no accessible initializers
+262 |         await Metrics.counter("shared.a")
+263 |         await Metrics.configure(.init(storage: storageB, exporter: exporter))
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/MetricsConfigurationContractTests.swift:263:33: error: missing argument label 'with:' in call
+261 |         await Metrics.configure(.init(storage: storageA, exporter: exporter))
+262 |         await Metrics.counter("shared.a")
+263 |         await Metrics.configure(.init(storage: storageB, exporter: exporter))
+    |                                 `- error: missing argument label 'with:' in call
+264 |         await Metrics.counter("shared.b")
+265 |         await Metrics.flush()
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/MetricsConfigurationContractTests.swift:263:34: error: 'any MetricRecorder' cannot be constructed because it has no accessible initializers
+261 |         await Metrics.configure(.init(storage: storageA, exporter: exporter))
+262 |         await Metrics.counter("shared.a")
+263 |         await Metrics.configure(.init(storage: storageB, exporter: exporter))
+    |                                  `- error: 'any MetricRecorder' cannot be constructed because it has no accessible initializers
+264 |         await Metrics.counter("shared.b")
+265 |         await Metrics.flush()
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/MetricsConfigurationContractTests.swift:268:39: error: argument type 'ConfigurationRecorder' does not conform to expected type 'MetricRecorder'
+266 |         let packets = await transport.getMetricsAsStrings()
+267 |         XCTAssertEqual(packets, ["shared.a:1.0|c", "shared.b:1.0|c"])
+268 |         await Metrics.configure(with: ConfigurationRecorder())
+    |                                       `- error: argument type 'ConfigurationRecorder' does not conform to expected type 'MetricRecorder'
+269 |         let closed = await exporter.isClosed
+270 |         XCTAssertFalse(closed)
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/MetricsConfigurationContractTests.swift:273:24: error: 'flush' is inaccessible due to 'private' protection level
+271 |         // The caller still owns the retired exporter and can flush it explicitly.
+272 |         await exporter.counter("retired")
+273 |         await exporter.flush()
+    |                        `- error: 'flush' is inaccessible due to 'private' protection level
+274 |         let retainedPackets = await transport.getMetricsAsStrings()
+275 |         XCTAssertEqual(retainedPackets, ["shared.a:1.0|c", "shared.b:1.0|c", "retired:1.0|c"])
+
+PipelineKitObservability.StatsDExporter.flush:2:14: note: 'flush()' declared here
+1 | actor StatsDExporter {
+2 | private func flush() async}
+  |              `- note: 'flush()' declared here
+3 | 
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/MetricsConfigurationContractTests.swift:287:25: error: type 'Metrics' has no member 'configuration'
+285 |     private func installReentrantCaptures(events: ConfigurationEvents) async {
+286 |         let capture = ConfigurationReleaseProbe {
+287 |             _ = Metrics.configuration
+    |                         `- error: type 'Metrics' has no member 'configuration'
+288 |             Metrics.disable()
+289 |             events.append("callback.released")
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/MetricsConfigurationContractTests.swift:292:33: error: missing argument label 'with:' in call
+290 |         }
+291 |         let recorder = ReentrantLifetimeRecorder(events: events)
+292 |         await Metrics.configure(.init(storage: MetricsStorage(), exporter: recorder,
+    |                                 `- error: missing argument label 'with:' in call
+293 |                                       errorHandler: { [capture] _ in withExtendedLifetime(capture) {} }))
+294 |     }
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/MetricsConfigurationContractTests.swift:292:34: error: 'any MetricRecorder' cannot be constructed because it has no accessible initializers
+290 |         }
+291 |         let recorder = ReentrantLifetimeRecorder(events: events)
+292 |         await Metrics.configure(.init(storage: MetricsStorage(), exporter: recorder,
+    |                                  `- error: 'any MetricRecorder' cannot be constructed because it has no accessible initializers
+293 |                                       errorHandler: { [capture] _ in withExtendedLifetime(capture) {} }))
+294 |     }
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/MetricsConfigurationContractTests.swift:352:21: error: type 'Metrics' has no member 'configuration'
+350 |     func record(_ snapshot: MetricSnapshot) async { events.append("recorded:\(snapshot.name)") }
+351 |     deinit {
+352 |         _ = Metrics.configuration
+    |                     `- error: type 'Metrics' has no member 'configuration'
+353 |         Metrics.disable()
+354 |         events.append("exporter.released")
+
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>
+Failed frontend command:
+/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swift-frontend -frontend -c /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Intermediates.noindex/PipelineKit.build/Debug/PipelineKitObservabilityTests-p.build/DerivedSources/test_entry_point.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/AggregationTests.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/CommandContextObservabilityTests.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/EventHubLeakTests.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/EventHubParentSystemTests.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/ExecutionTracerTests.swift -primary-file /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/MetricsConfigurationContractTests.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/MetricsEventBridgeExplicitMetricTests.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/MetricsFacadeTests.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/MetricsStorageTests.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/ObservabilityIntegrationTests.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/ObservabilitySystemTests.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/PrometheusExporterTests.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/SamplingTests.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/StatsDExporterTests.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/StatsDStartupContractTests.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/Support/ScriptedUDPConnection.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/TestHelpers.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/TypeSafeMetricTests.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/UDPTransportLifecycleTests.swift -emit-dependencies-path /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Intermediates.noindex/PipelineKit.build/Debug/PipelineKitObservabilityTests-p.build/Objects-normal/arm64/MetricsConfigurationContractTests.d -emit-const-values-path /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Intermediates.noindex/PipelineKit.build/Debug/PipelineKitObservabilityTests-p.build/Objects-normal/arm64/MetricsConfigurationContractTests.swiftconstvalues -emit-reference-dependencies-path /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Intermediates.noindex/PipelineKit.build/Debug/PipelineKitObservabilityTests-p.build/Objects-normal/arm64/MetricsConfigurationContractTests.swiftdeps -serialize-diagnostics-path /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Intermediates.noindex/PipelineKit.build/Debug/PipelineKitObservabilityTests-p.build/Objects-normal/arm64/MetricsConfigurationContractTests.dia -target arm64-apple-macos26.0 -module-can-import-version Network 5000.0.36 6681.41.1 -module-can-import-version Testing 2403 0 -module-can-import-version XCTest 25435 0 -disable-cross-import-overlay-search -swift-module-cross-import Testing /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks/Testing.framework/Modules/Testing.swiftcrossimport/AppKit.swiftoverlay -swift-module-cross-import Testing /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks/Testing.framework/Modules/Testing.swiftcrossimport/CoreGraphics.swiftoverlay -swift-module-cross-import Testing /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks/Testing.framework/Modules/Testing.swiftcrossimport/CoreImage.swiftoverlay -swift-module-cross-import Testing /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks/Testing.framework/Modules/Testing.swiftcrossimport/CoreTransferable.swiftoverlay -swift-module-cross-import Testing /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks/Testing.framework/Modules/Testing.swiftcrossimport/Foundation.swiftoverlay -load-resolved-plugin /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib/swift/host/plugins/libFoundationMacros.dylib\#/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/bin/swift-plugin-server\#FoundationMacros -load-resolved-plugin /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib/swift/host/plugins/libObservationMacros.dylib\#/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/bin/swift-plugin-server\#ObservationMacros -load-resolved-plugin /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib/swift/host/plugins/libPreviewsMacros.dylib\#/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/bin/swift-plugin-server\#PreviewsMacros -load-resolved-plugin /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib/swift/host/plugins/libSwiftMacros.dylib\#/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/bin/swift-plugin-server\#SwiftMacros -load-resolved-plugin /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib/swift/host/plugins/libSwiftUIMacros.dylib\#/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/bin/swift-plugin-server\#SwiftUIMacros -load-resolved-plugin /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing/libTestingMacros.dylib\#\#TestingMacros -disable-implicit-swift-modules -Xcc -fno-implicit-modules -Xcc -fno-implicit-module-maps -explicit-swift-module-map-file /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Intermediates.noindex/PipelineKit.build/Debug/PipelineKitObservabilityTests-p.build/Objects-normal/arm64/PipelineKitObservabilityTests-dependencies-1.json -Xllvm -aarch64-use-tbi -enable-objc-interop -stack-check -sdk /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.2.sdk -I /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Products/Debug -Isystem /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib -F /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Products/Debug/PackageFrameworks -F /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Products/Debug -F /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks -module-cache-path /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Intermediates.noindex/SwiftExplicitPrecompiledModules -no-color-diagnostics -Xcc -fno-color-diagnostics -enable-testing -g -debug-info-format\=dwarf -dwarf-version\=5 -swift-version 6 -Onone -D SWIFT_PACKAGE -D DEBUG -D Xcode -serialize-debugging-options -enable-experimental-feature StrictConcurrency -enable-experimental-feature DebugDescriptionMacro -empty-abi-descriptor -validate-clang-modules-once -clang-build-session-file /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/ModuleCache.noindex/Session.modulevalidation -Xcc -working-directory -Xcc /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees -enable-anonymous-context-mangled-names -file-compilation-dir /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees -Xcc -fmodule-map-file\=/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/checkouts/swift-atomics/Sources/_AtomicsShims/include/module.modulemap -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -Xcc -ivfsstatcache -Xcc /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/SDKStatCaches.noindex/macosx27.2-26B118-d56355c2f463f349a93388c94f7bc0b5a7ff82d74745d5ef33555b35c4238456.sdkstatcache -Xcc -fmodules-prune-interval\=86400 -Xcc -fmodules-prune-after\=345600 -Xcc -I/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/checkouts/swift-atomics/Sources/_AtomicsShims/include -Xcc -I/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Products/Debug/include -Xcc -I/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Intermediates.noindex/PipelineKit.build/Debug/PipelineKitObservabilityTests-p.build/DerivedSources-normal/arm64 -Xcc -I/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Intermediates.noindex/PipelineKit.build/Debug/PipelineKitObservabilityTests-p.build/DerivedSources/arm64 -Xcc -I/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Intermediates.noindex/PipelineKit.build/Debug/PipelineKitObservabilityTests-p.build/DerivedSources -Xcc -DSWIFT_PACKAGE -Xcc -DDEBUG\=1 -no-auto-bridging-header-chaining -module-name PipelineKitObservabilityTests -package-name pipelinekit_stabilization -const-gather-protocols-file /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Intermediates.noindex/PipelineKit.build/Debug/PipelineKitObservabilityTests-p.build/Objects-normal/arm64/PipelineKitObservabilityTests_const_extract_protocols.json -disable-clang-spi -clang-target arm64-apple-macos27.2 -target-sdk-version 27.2 -target-sdk-name macosx27.2 -in-process-plugin-server-path /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/libSwiftInProcPluginServer.dylib -parse-as-library -o /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Intermediates.noindex/PipelineKit.build/Debug/PipelineKitObservabilityTests-p.build/Objects-normal/arm64/MetricsConfigurationContractTests.o -debug-module-path /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Intermediates.noindex/PipelineKit.build/Debug/PipelineKitObservabilityTests-p.build/Objects-normal/arm64/PipelineKitObservabilityTests.swiftmodule -index-unit-output-path /PipelineKit.build/Debug/PipelineKitObservabilityTests-p.build/Objects-normal/arm64/MetricsConfigurationContractTests.o -index-store-path /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out -index-system-modules
+error: Build failed
+error: fatalError

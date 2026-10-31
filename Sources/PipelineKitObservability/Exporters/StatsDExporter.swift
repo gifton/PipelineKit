@@ -2,7 +2,7 @@ import Foundation
 
 /// StatsD exporter with lazy transport startup and explicit shutdown.
 /// Call `forceFlush()` before `close()` to attempt delivery of buffered metrics.
-public actor StatsDExporter: MetricRecorder {
+public actor StatsDExporter: FlushableMetricRecorder {
     /// Configuration for the exporter.
     public struct Configuration: Sendable {
         public let host: String
@@ -355,7 +355,7 @@ public actor StatsDExporter: MetricRecorder {
         }
         buffer.append(line)
         if buffer.count >= configuration.maxBatchSize {
-            await flush()
+            await flushBuffer()
         } else {
             scheduleFlushIfNeeded()
         }
@@ -374,13 +374,13 @@ public actor StatsDExporter: MetricRecorder {
     }
 
     private func flushFromTimer() async {
-        await flush()
+        await flushBuffer()
         flushTask = nil
         scheduleFlushIfNeeded()
     }
 
     /// Each invocation retains its nonempty batch across readiness and send.
-    private func flush() async {
+    private func flushBuffer() async {
         guard !isClosed, !buffer.isEmpty else { return }
         let batch = buffer
         buffer.removeAll(keepingCapacity: true)
@@ -415,13 +415,18 @@ public actor StatsDExporter: MetricRecorder {
     }
     
     /// Forces a flush of buffered metrics.
+    public func flush() async {
+        await forceFlush()
+    }
+
+    /// Forces a flush of buffered metrics.
     public func forceFlush() async {
         guard !isClosed else { return }
         // Flush aggregated metrics first if enabled
         if aggregator != nil {
             await flushAggregatedMetrics()
         }
-        await flush()
+        await flushBuffer()
     }
     
     /// Flushes aggregated metrics from the aggregator.

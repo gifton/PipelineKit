@@ -1,18 +1,43 @@
 import Foundation
+import Synchronization
 
 /// Global metrics facade for convenient access.
 ///
 /// Provides a simple API for recording metrics without needing to
 /// manage storage and exporters directly.
 public enum Metrics {
-    /// Shared storage for metrics.
-    nonisolated(unsafe) public static var storage = MetricsStorage()
-    
-    /// Default StatsD exporter (mutable for runtime configuration).
-    nonisolated(unsafe) public static var exporter: any MetricRecorder = StatsDExporter(configuration: .default)
-    
-    /// Error handler for metric failures.
-    nonisolated(unsafe) public static var errorHandler: (@Sendable (any Error) -> Void)?
+    /// One configuration generation. Referenced storage and exporters are not cloned;
+    /// reusing a recorder intentionally shares its mutable state across generations.
+    public struct Configuration: Sendable {
+        public let storage: MetricsStorage
+        public let exporter: any MetricRecorder
+        /// Installed on StatsD exporters; custom recorders own their error reporting.
+        public let errorHandler: (@Sendable (any Error) -> Void)?
+
+        public init(
+            storage: MetricsStorage,
+            exporter: any MetricRecorder,
+            errorHandler: (@Sendable (any Error) -> Void)? = nil
+        ) {
+            self.storage = storage
+            self.exporter = exporter
+            self.errorHandler = errorHandler
+        }
+    }
+
+    private static let owner = MetricsConfigurationOwner()
+
+    /// Returns the current complete configuration snapshot.
+    public static var configuration: Configuration { owner.snapshot() }
+
+    /// Prepares error reporting before publishing one complete configuration.
+    /// Existing operations retain their snapshot; retired exporters are not closed.
+    public static func configure(_ configuration: Configuration) async {
+        if let statsD = configuration.exporter as? StatsDExporter {
+            await statsD.setErrorHandler(configuration.errorHandler)
+        }
+        owner.replace(with: configuration)
+    }
     
     /// Configures the metrics system with a new exporter.
     public static func configure(
@@ -26,6 +51,7 @@ public enum Metrics {
         sampleRatesByType: [String: Double] = [:],
         criticalPatterns: [String] = ["error", "timeout", "failure", "fatal", "panic"]
     ) async {
+        let previous = configuration
         let config = StatsDExporter.Configuration(
             host: host,
             port: port,
@@ -40,18 +66,15 @@ public enum Metrics {
         
         let newExporter = StatsDExporter(configuration: config)
         
-        // Set up error handling
-        if let handler = errorHandler {
-            await newExporter.setErrorHandler(handler)
-        }
-        
-        // Replace the static exporter
-        exporter = newExporter
+        await configure(Configuration(storage: previous.storage, exporter: newExporter,
+                                      errorHandler: previous.errorHandler))
     }
     
     /// Configures the metrics system with a custom exporter.
-    public static func configure(with customExporter: any MetricRecorder) {
-        exporter = customExporter
+    public static func configure(with customExporter: any MetricRecorder) async {
+        let previous = configuration
+        await configure(Configuration(storage: previous.storage, exporter: customExporter,
+                                      errorHandler: previous.errorHandler))
     }
     
     /// Records a counter metric.
@@ -61,8 +84,7 @@ public enum Metrics {
         tags: [String: String] = [:]
     ) async {
         let snapshot = MetricSnapshot.counter(name, value: value, tags: tags)
-        await storage.record(snapshot)
-        await exporter.record(snapshot)
+        await record(snapshot)
     }
     
     /// Records a gauge metric.
@@ -73,8 +95,7 @@ public enum Metrics {
         unit: String? = nil
     ) async {
         let snapshot = MetricSnapshot.gauge(name, value: value, tags: tags, unit: unit)
-        await storage.record(snapshot)
-        await exporter.record(snapshot)
+        await record(snapshot)
     }
     
     /// Records a timer metric.
@@ -84,8 +105,21 @@ public enum Metrics {
         tags: [String: String] = [:]
     ) async {
         let snapshot = MetricSnapshot.timer(name, duration: duration, tags: tags)
-        await storage.record(snapshot)
-        await exporter.record(snapshot)
+        await record(snapshot)
+    }
+
+    internal static func record(
+        _ snapshot: MetricSnapshot,
+        afterStorage: (@Sendable () async -> Void)? = nil
+    ) async {
+        let captured = configuration
+        // Keep every capture alive until the operation settles, including callback
+        // captures unused by custom recorders. Covered by
+        // testConfigurationCallbacksCanReenterAndRelease.
+        defer { withExtendedLifetime(captured) {} }
+        await captured.storage.record(snapshot)
+        await afterStorage?()
+        await captured.exporter.record(snapshot)
     }
     
     /// Times a block of code using ContinuousClock for accuracy.
@@ -114,21 +148,47 @@ public enum Metrics {
     
     /// Disables metrics export (useful for testing).
     public static func disable() {
-        exporter = NoOpRecorder()
+        owner.disable()
     }
     
-    /// Flushes any buffered metrics.
+    /// Drains the captured local storage and flushes its exporter without replaying records.
+    /// This is not a barrier for concurrent records and does not flush retired exporters.
     public static func flush() async {
-        // Flush storage if needed
-        let snapshots = await storage.drain()
-        for snapshot in snapshots {
-            await exporter.record(snapshot)
+        let captured = configuration
+        defer { withExtendedLifetime(captured) {} }
+        _ = await captured.storage.drain()
+        if let flushable = captured.exporter as? any FlushableMetricRecorder {
+            await flushable.flush()
         }
-        
-        // If exporter supports flushing, do it
-        if let flushable = exporter as? StatsDExporter {
-            await flushable.forceFlush()
+    }
+}
+
+private final class MetricsConfigurationOwner: Sendable {
+    private let state = Mutex(Metrics.Configuration(
+        storage: MetricsStorage(), exporter: StatsDExporter(configuration: .default)
+    ))
+
+    func snapshot() -> Metrics.Configuration { state.withLock { $0 } }
+
+    func replace(with configuration: Metrics.Configuration) {
+        let retired = state.withLock { current in
+            let retired = current
+            current = configuration
+            return retired
         }
+        // Final releases can reenter configuration. Keep all retired captures past
+        // unlock; testReplacingOrDisablingLastOwnedExporterReleasesOutsideLock.
+        withExtendedLifetime(retired) {}
+    }
+
+    func disable() {
+        let retired = state.withLock { current in
+            let retired = current
+            current = Metrics.Configuration(storage: current.storage, exporter: NoOpRecorder(),
+                                            errorHandler: current.errorHandler)
+            return retired
+        }
+        withExtendedLifetime(retired) {}
     }
 }
 

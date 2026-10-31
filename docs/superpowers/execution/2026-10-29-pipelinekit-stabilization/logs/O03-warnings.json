@@ -1,0 +1,134 @@
+{
+  "normalization": "Relative Swift path + diagnostic text, ignoring line/column. Runtime/configuration scanning includes case-insensitive SwiftLog severity forms.",
+  "baseline_sha256": "9ecdcd316b7537619bf828b6a77a8931d04992ec9900ae482af1e661a23521a2",
+  "known_compiler_diagnostics": [
+    "Sources/PipelineKitCache/CachingMiddleware.swift: use of protocol 'Decodable' as a type must be written 'any Decodable'; this will be an error in a future Swift language mode [#ExistentialAny]",
+    "Sources/PipelineKitCore/Context/ExecutionContext.swift: 'withValue(_:operation:isolation:file:line:)' is deprecated: Prefer the 'nonisolated(nonsending)' overload with stricter execution on caller context semantics: withValue(_:operation:file:line:) [#DeprecatedDeclaration]",
+    "Sources/PipelineKitResilienceCircuitBreaker/PartitionedBulkheadMiddleware.swift: 'weak' ownership of capture 'partition' differs from implicitly-captured strong reference in outer scope [#ImplicitStrongCapture]",
+    "Sources/PipelineKitSecurity/AuditLogger.swift: 'withValue(_:operation:isolation:file:line:)' is deprecated: Prefer the 'nonisolated(nonsending)' overload with stricter execution on caller context semantics: withValue(_:operation:file:line:) [#DeprecatedDeclaration]",
+    "Tests/PipelineKitCacheTests/CompressionMiddlewareTests.swift: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]",
+    "Tests/PipelineKitCacheTests/NextGuardSuppressionTests.swift: 'is' test is always true",
+    "Tests/PipelineKitCacheTests/SimpleCachingMiddlewareTests.swift: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]",
+    "Tests/PipelineKitCoreTests/Context/EventEmissionTests.swift: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]",
+    "Tests/PipelineKitCoreTests/Core/CommandContextThreadSafetyTests.swift: immutable value 'key' was never used; consider replacing with '_' or removing it [#NoUsage]",
+    "Tests/PipelineKitCoreTests/Errors/CancellationErrorTests.swift: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]",
+    "Tests/PipelineKitCoreTests/Middleware/MiddlewareTests.swift: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]",
+    "Tests/PipelineKitCoreTests/Pipeline/PipelineTests.swift: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]",
+    "Tests/PipelineKitObservabilityTests/PrometheusExporterTests.swift: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]",
+    "Tests/PipelineKitPerformanceTests/BackPressurePerformanceTests.swift: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]",
+    "Tests/PipelineKitPerformanceTests/PipelinePerformanceTests.swift: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]",
+    "Tests/PipelineKitResilienceTests/AsyncSemaphoreCancellationTests.swift: immutable value 'i' was never used; consider replacing with '_' or removing it [#NoUsage]",
+    "Tests/PipelineKitResilienceTests/PartitionedBulkheadConfigurationTests.swift: 'init(partitions:partitionExtractor:defaultPartition:allowBorrowing:maxBorrowPercentage:emitMetrics:)' is deprecated: maxBorrowPercentage has always been the reserved (non-lendable) share — use reservedCapacityPercentage, which has identical semantics. [#DeprecatedDeclaration]",
+    "Tests/PipelineKitResilienceTests/PartitionedBulkheadConfigurationTests.swift: 'maxBorrowPercentage' is deprecated: renamed to 'reservedCapacityPercentage' [#DeprecatedDeclaration]",
+    "Tests/PipelineKitResilienceTests/TimeoutMiddlewareCompileTests.swift: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]",
+    "Tests/PipelineKitSecurityTests/AuthorizationMiddlewareTests.swift: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]"
+  ],
+  "limitation": "Existing compiler warning debt and C02-N1 configuration messages remain separate. SwiftPM parallel successful-child logs can be omitted; zero captured runtime lines does not establish zero global runtime warnings.",
+  "runs": {
+    "O03-001-behavior-red": {
+      "log_sha256": "9d23e2f7f3f6f886bfcb43cdd243abc3c688bd8bd36348115c829c8f9ab16c8e",
+      "compiler_unique": 0,
+      "compiler_occurrences": 0,
+      "compiler_diagnostics": {},
+      "new_compiler_diagnostics": [],
+      "runtime_warnings": {},
+      "configuration_warnings": {},
+      "expected_metrics_failure_lines": {}
+    },
+    "O03-002-api-compile-red": {
+      "log_sha256": "878e4732e9323c90bf551186a1cb9254d67f8356815153a9898dcaa44fcfe908",
+      "compiler_unique": 1,
+      "compiler_occurrences": 4,
+      "compiler_diagnostics": {
+        "Tests/PipelineKitObservabilityTests/MetricsConfigurationContractTests.swift: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]": 4
+      },
+      "new_compiler_diagnostics": [
+        "Tests/PipelineKitObservabilityTests/MetricsConfigurationContractTests.swift: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]"
+      ],
+      "runtime_warnings": {},
+      "configuration_warnings": {},
+      "expected_metrics_failure_lines": {}
+    },
+    "O03-003-initial-green": {
+      "log_sha256": "bd402a04dfddbcdc2f2bc0af35668cf0135a6317758c12a8eac7a594a20a9e68",
+      "compiler_unique": 14,
+      "compiler_occurrences": 45,
+      "compiler_diagnostics": {
+        "Sources/PipelineKitCache/CachingMiddleware.swift: use of protocol 'Decodable' as a type must be written 'any Decodable'; this will be an error in a future Swift language mode [#ExistentialAny]": 1,
+        "Tests/PipelineKitCacheTests/NextGuardSuppressionTests.swift: 'is' test is always true": 4,
+        "Tests/PipelineKitPerformanceTests/PipelinePerformanceTests.swift: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]": 6,
+        "Tests/PipelineKitCacheTests/SimpleCachingMiddlewareTests.swift: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]": 1,
+        "Tests/PipelineKitCoreTests/Middleware/MiddlewareTests.swift: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]": 2,
+        "Tests/PipelineKitCoreTests/Pipeline/PipelineTests.swift: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]": 2,
+        "Tests/PipelineKitSecurityTests/AuthorizationMiddlewareTests.swift: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]": 2,
+        "Tests/PipelineKitResilienceTests/PartitionedBulkheadConfigurationTests.swift: 'maxBorrowPercentage' is deprecated: renamed to 'reservedCapacityPercentage' [#DeprecatedDeclaration]": 1,
+        "Tests/PipelineKitResilienceTests/PartitionedBulkheadConfigurationTests.swift: 'init(partitions:partitionExtractor:defaultPartition:allowBorrowing:maxBorrowPercentage:emitMetrics:)' is deprecated: maxBorrowPercentage has always been the reserved (non-lendable) share — use reservedCapacityPercentage, which has identical semantics. [#DeprecatedDeclaration]": 1,
+        "Tests/PipelineKitResilienceTests/TimeoutMiddlewareCompileTests.swift: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]": 1,
+        "Tests/PipelineKitObservabilityTests/PrometheusExporterTests.swift: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]": 18,
+        "Tests/PipelineKitCoreTests/Context/EventEmissionTests.swift: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]": 3,
+        "Tests/PipelineKitCacheTests/CompressionMiddlewareTests.swift: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]": 2,
+        "Tests/PipelineKitCoreTests/Core/CommandContextThreadSafetyTests.swift: immutable value 'key' was never used; consider replacing with '_' or removing it [#NoUsage]": 1
+      },
+      "new_compiler_diagnostics": [],
+      "runtime_warnings": {},
+      "configuration_warnings": {},
+      "expected_metrics_failure_lines": {
+        "[MetricsExporter] Error: sendFailed(\"Mock failure\")": 5,
+        "[MetricsExporter] Error: invalidConfiguration(\"Invalid port: 0\")": 1
+      }
+    },
+    "O03-004-final-debug": {
+      "log_sha256": "d6adb2f78214be055bfaa3f06e9852e83ccfe11a316fae8ba44e623cd948f1f7",
+      "compiler_unique": 0,
+      "compiler_occurrences": 0,
+      "compiler_diagnostics": {},
+      "new_compiler_diagnostics": [],
+      "runtime_warnings": {},
+      "configuration_warnings": {},
+      "expected_metrics_failure_lines": {
+        "[MetricsExporter] Error: sendFailed(\"Mock failure\")": 5,
+        "[MetricsExporter] Error: invalidConfiguration(\"Invalid port: 0\")": 1
+      }
+    },
+    "O03-005-final-release": {
+      "log_sha256": "d75adc965ec6408cf45fa29d471e051f85cc25723790cbf7e83e0114e50492d8",
+      "compiler_unique": 19,
+      "compiler_occurrences": 49,
+      "compiler_diagnostics": {
+        "Sources/PipelineKitCore/Context/ExecutionContext.swift: 'withValue(_:operation:isolation:file:line:)' is deprecated: Prefer the 'nonisolated(nonsending)' overload with stricter execution on caller context semantics: withValue(_:operation:file:line:) [#DeprecatedDeclaration]": 1,
+        "Sources/PipelineKitCache/CachingMiddleware.swift: use of protocol 'Decodable' as a type must be written 'any Decodable'; this will be an error in a future Swift language mode [#ExistentialAny]": 1,
+        "Sources/PipelineKitSecurity/AuditLogger.swift: 'withValue(_:operation:isolation:file:line:)' is deprecated: Prefer the 'nonisolated(nonsending)' overload with stricter execution on caller context semantics: withValue(_:operation:file:line:) [#DeprecatedDeclaration]": 1,
+        "Tests/PipelineKitPerformanceTests/BackPressurePerformanceTests.swift: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]": 1,
+        "Tests/PipelineKitPerformanceTests/PipelinePerformanceTests.swift: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]": 6,
+        "Tests/PipelineKitCacheTests/CompressionMiddlewareTests.swift: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]": 2,
+        "Tests/PipelineKitCacheTests/NextGuardSuppressionTests.swift: 'is' test is always true": 4,
+        "Tests/PipelineKitCacheTests/SimpleCachingMiddlewareTests.swift: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]": 1,
+        "Tests/PipelineKitSecurityTests/AuthorizationMiddlewareTests.swift: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]": 2,
+        "Tests/PipelineKitCoreTests/Context/EventEmissionTests.swift: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]": 3,
+        "Tests/PipelineKitCoreTests/Core/CommandContextThreadSafetyTests.swift: immutable value 'key' was never used; consider replacing with '_' or removing it [#NoUsage]": 1,
+        "Tests/PipelineKitCoreTests/Errors/CancellationErrorTests.swift: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]": 2,
+        "Tests/PipelineKitCoreTests/Middleware/MiddlewareTests.swift: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]": 1,
+        "Tests/PipelineKitCoreTests/Pipeline/PipelineTests.swift: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]": 1,
+        "Tests/PipelineKitObservabilityTests/PrometheusExporterTests.swift: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]": 18,
+        "Tests/PipelineKitResilienceTests/AsyncSemaphoreCancellationTests.swift: immutable value 'i' was never used; consider replacing with '_' or removing it [#NoUsage]": 1,
+        "Tests/PipelineKitResilienceTests/PartitionedBulkheadConfigurationTests.swift: 'maxBorrowPercentage' is deprecated: renamed to 'reservedCapacityPercentage' [#DeprecatedDeclaration]": 1,
+        "Tests/PipelineKitResilienceTests/PartitionedBulkheadConfigurationTests.swift: 'init(partitions:partitionExtractor:defaultPartition:allowBorrowing:maxBorrowPercentage:emitMetrics:)' is deprecated: maxBorrowPercentage has always been the reserved (non-lendable) share — use reservedCapacityPercentage, which has identical semantics. [#DeprecatedDeclaration]": 1,
+        "Tests/PipelineKitResilienceTests/TimeoutMiddlewareCompileTests.swift: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]": 1
+      },
+      "new_compiler_diagnostics": [],
+      "runtime_warnings": {},
+      "configuration_warnings": {},
+      "expected_metrics_failure_lines": {}
+    },
+    "O03-006-final-full-debug": {
+      "log_sha256": "7de3f79d890e631e7cea18e188d5ade076d55e4fe9ca3536194f71239e044d3d",
+      "compiler_unique": 0,
+      "compiler_occurrences": 0,
+      "compiler_diagnostics": {},
+      "new_compiler_diagnostics": [],
+      "runtime_warnings": {},
+      "configuration_warnings": {},
+      "expected_metrics_failure_lines": {}
+    }
+  }
+}

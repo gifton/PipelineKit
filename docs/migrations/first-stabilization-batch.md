@@ -252,3 +252,52 @@ The existing default configuration still disables aggregation. The public consum
 `statsd-startup` compiles this construction/start/flush/close shape and verifies the first
 nonempty default-exporter batch on real loopback. I01 retains consolidated migration-example
 compilation, the next-minor **Breaking** changelog entry and platform integration checks.
+
+## Breaking: immutable Metrics configuration and explicit flush capability
+
+Replace writes to `Metrics.storage`, `Metrics.exporter`, and `Metrics.errorHandler` with one
+`await Metrics.configure(Metrics.Configuration(...))` call. The read-only
+`Metrics.configuration` property returns a complete snapshot. `Metrics.configure(with:)`
+now requires `await`; it and the host/port convenience preserve the captured storage and
+error handler while replacing the exporter. StatsD callbacks are installed or cleared before
+publication. Custom recorders remain responsible for their own error reporting.
+
+```swift
+import PipelineKitObservability
+
+func configureMetrics(_ exporter: any MetricRecorder) async {
+    let storage = MetricsStorage()
+    await Metrics.configure(.init(storage: storage, exporter: exporter, errorHandler: { error in
+        print("Metrics export failed: \(error)")
+    }))
+    await Metrics.counter("requests")
+    await Metrics.flush()
+}
+
+func replaceRecorder(_ replacement: any MetricRecorder) async {
+    await Metrics.configure(with: replacement)
+    let current = Metrics.configuration
+    _ = await current.storage.getAll()
+}
+```
+
+A record retains one complete configuration across storage and export. Already started work
+may finish on a retired configuration. Replacement does not close exporters; callers retain
+and explicitly flush/close an old exporter when required. A configuration snapshot does not
+clone referenced objects: intentionally reusing a mutable recorder across configurations also
+shares its buffered data and callback state. `Metrics.disable()` replaces only the exporter;
+local recording and the configured error handler remain available.
+
+`Metrics.flush()` drains the captured storage and invokes `flush()` on a captured
+`FlushableMetricRecorder`, without calling `record` again on the drained snapshots. Custom
+recorders that need a flush operation should conform to `FlushableMetricRecorder` and implement
+`func flush() async`. Nonflushable recorders still receive records at recording time, and
+facade flush only drains their local storage. StatsD's new public `flush()` forwards to
+`forceFlush()`; both retain the same delivery and shutdown limits described above.
+
+Flush is not a barrier for concurrent records and does not flush retired exporters. If a caller
+needs a complete flush across reconfiguration, it must quiesce and join its producers, retain
+and explicitly flush each relevant exporter, and then close those it owns. This change makes
+no new aggregation-quiescence or UDP-delivery guarantee. The standalone Examples package has
+no removed-slot or synchronous `configure(with:)` caller; its host/port convenience calls remain
+source-compatible. I01 owns standalone example and migration-snippet compilation.

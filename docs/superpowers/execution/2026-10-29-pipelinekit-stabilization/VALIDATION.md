@@ -743,3 +743,110 @@ Ruling: StatsD close marks closed and rejects new recording immediately, cancels
 Review limit retained: MetricAggregator.forceFlush cancels but does not join its private timer; a caller-owned pre-close aggregation retry may repopulate the buffer afterward. Exporter closed guards prevent transport revival/post-close aggregate sends. This source-derived schedule does not establish full aggregation quiescence and is not a new runtime reproduction. CLOSURE and the I01 migration handoff retain it; OBS-001/005/009 remain open.
 
 Cross-task checks resolved by explicit I01 ownership: standalone Examples build, every migration snippet, next-minor Breaking entry, non-Network/floor/Linux execution where available, and final integration. The Examples build is now an explicit master-plan checkbox because root unit tests do not compile that package. Unavailable platform execution must remain a release-readiness gap. OBS-004 is locally task-verified, not batch-integrated.
+
+## O03 — coherent Metrics configuration and no flush replay
+
+Base: `5526f60591a531eeaa1c6e608e914e620e963dcf`, branch
+`fix/stabilization-batch-1`. Original worktree status contained only untracked `audit/`
+and `docs/PIPELINEKIT_AUDIT_GUIDE.md`; both remain untouched and unstaged. Accepted O02
+startup, transport and close ownership are preserved. No tools/platform/concurrency
+setting or dependency pin changed.
+
+Exact bounded commands, run from the stabilization worktree:
+
+```sh
+python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id O03-001-behavior-red --timeout 600 -- swift test --filter MetricsFacadeTests.testFlushDoesNotReplayRecordsToNonflushableRecorder
+python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id O03-002-api-compile-red --timeout 600 -- swift test --filter 'MetricsConfigurationContractTests|MetricsFacadeTests'
+python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id O03-003-initial-green --timeout 600 -- swift test --filter 'MetricsConfigurationContractTests|MetricsFacadeTests'
+python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id O03-004-final-debug --timeout 600 -- swift test --filter 'MetricsConfigurationContractTests|MetricsFacadeTests'
+python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id O03-005-final-release --timeout 600 -- swift test -c release --filter 'MetricsConfigurationContractTests|MetricsFacadeTests'
+python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id O03-006-final-full-debug --timeout 600 -- swift test --parallel --skip PipelineKitPerformanceTests
+```
+
+| Evidence ID | Result | Root / runner | Cleanup |
+| --- | --- | --- | --- |
+| O03-001-behavior-red | 1 test, expected duplicate-export assertion failure | 1 / 1 | settled, no survivors |
+| O03-002-api-compile-red | compilation fails for missing Configuration, configuration, record hook and FlushableMetricRecorder APIs; no tests ran | 1 / 1 | settled, no survivors |
+| O03-003-initial-green | 25/25 focused Debug pass | 0 / 0 | settled, no survivors |
+| O03-004-final-debug | 26/26 focused Debug pass | 0 / 0 | settled, no survivors |
+| O03-005-final-release | 26/26 focused Release pass | 0 / 0 | settled, no survivors |
+| O03-006-final-full-debug | 1,080 XCTest entries and 20 Swift Testing tests pass | 0 / 0 | settled, no survivors |
+
+No run timed out and none required termination of an executing survivor. Raw `.log`, runner
+`.json`, and `.processes.jsonl` files are retained for all six IDs. V04's documented process
+observation/identity limitations still apply. `O03-run-summary.json` retains commands,
+counts and both exit statuses independently.
+
+The behavioral red is an actual baseline execution: the nonflushable recorder received
+`["flush.once", "flush.once"]`, while the assertion required `["flush.once"]`. The first
+flush drained storage and replayed the already exported snapshot. The second flush did not
+add another record because storage was empty. O03-002 is only an API compile-red, not an
+observed runtime configuration race. The original unsafe-slot source is retained in the
+O03-001/002 source snapshots and historical audit artifacts; I01 owns TSan.
+
+`Metrics.Configuration` now immutably holds storage, recorder and optional callback behind
+one private `Mutex` owner. Configure awaits StatsD callback installation/clearing before
+publishing; convenience methods capture their preserved fields before awaiting. Record and
+flush each retain one complete snapshot through settlement. Replacement/disable retain the
+retired snapshot beyond unlock so callback/exporter/storage final releases cannot happen
+inside the configuration lock. `Metrics.flush` drains local storage without re-recording and
+calls the captured `FlushableMetricRecorder.flush` when present. StatsD's public flush forwards
+to forceFlush; its existing private buffer operation is renamed flushBuffer.
+
+Coverage uses acknowledged gates without sleep-based ordering:
+
+- `testRecordUsesOneConfigurationAcrossSuspension` pauses after A's storage write, publishes
+  B, joins A, checks A's storage/exporter pair, then records counter/gauge/timer through B.
+- `testDisablePreservesStorageAndInFlightConfiguration` checks the disabled operation stays
+  in storage, its exporter is not called, and the pre-disable operation still reaches A.
+- `testFlushDoesNotRecordSnapshotsAgain` proves one record/two flush calls and empty storage
+  after the first flush; the existing-facade regression supplies a nonflushable control.
+- `testFlushKeepsCapturedConfigurationDuringConfigureAndDisable` covers separate recorders
+  with and without disable during an acknowledged in-flight flush.
+- `testConfigurationCallbacksCanReenterAndRelease` and
+  `testReplacingOrDisablingLastOwnedExporterReleasesOutsideLock` cover last-owned callback
+  and exporter destructors synchronously reading configuration and calling disable.
+  `testFlushRetainsCallbackUntilCapturedExporterSettles` adds the flush lifetime boundary.
+- `testStatsDCallbackCanReenterConfigureAndDisable` joins its callback-created configure
+  task; `testConfigurePreparesAndClearsStatsDCallback` covers installation and nil clearing;
+  the convenience test covers inherited storage/callback for host and custom StatsD routes.
+- StatsD protocol-flush delivery, shared recorder state, explicit use of a retired exporter,
+  and the absence of a flush barrier for concurrent recording are exercised separately.
+
+Both global-using test classes save and explicitly restore their original configuration;
+all gate tasks and callback work are joined and every test-created StatsD exporter is closed.
+The old network-based inverted callback fixture is replaced by an injected transport failure;
+no closure depends on LS-008's uninitialized teardown observer.
+
+Source snapshots `O03-001/002/003-*-source-state.json` bind red and initial-green runs.
+`O03-final-source-state.json` binds O03-004/005/006 with complete source texts and SHA-256s.
+Final tracked relevant diff SHA-256:
+`1add1e8cdc038289fc9b0a6f0599e9716728ed042eb81f4385192c66cfb0f4c1`.
+Final MetricsFacade SHA-256:
+`27deb47e00a2e92dbbb95fcfdece6acd2db0ebcd445cbfb034e7510988d8b291`.
+Final new contract-test SHA-256:
+`856a19bbf4a521dd3d49965856565287e28f0da6b6d6fab96b0cb3d52fb48aef`.
+Post-run `O03-final-source-verification.json` reports no file-hash mismatches and an exact
+tracked-diff match; the newly added test is bound by its full source text/hash. The two
+O03 evidence scripts regenerate snapshots/summaries without altering historical evidence.
+
+`O03-warnings.json` normalizes compiler warnings by relative path and diagnostic text,
+ignoring line/column shifts, and separately scans runtime/configuration warning lines,
+including `warning PipelineKit.Core:` forms. API compile-red emitted four unnecessary-await
+warnings of one new test-path kind, gone after implementation. Initial green retained 14
+baseline compiler kinds/45 occurrences. Final Release retained 19 baseline kinds/49
+occurrences; incremental final Debug and full Debug captured no compiler diagnostics.
+There are no new final compiler kinds and no captured runtime/configuration warning lines.
+This is not a clean global-warning-baseline claim: C02-N1 runtime fixture debt remains
+separate, and SwiftPM can omit successful parallel-child output. Expected injected exporter
+failure messages are separately counted.
+
+Removed-slot and synchronous `configure(with:)` searches found live callers only in
+MetricsFacadeTests, now migrated. MetricsSamplingExample already awaits the unchanged
+host/port convenience; standalone Examples were source-checked, not compiled by the root
+suite. `docs/migrations/first-stabilization-batch.md` adds the Breaking configuration/flush
+migration. I01 owns standalone example/snippet compilation, TSan, platform validation and
+final consolidated release entry. Same mutable recorder reuse intentionally shares buffer
+and callback state; no deep clone, retired-exporter auto-close, concurrent-record flush
+barrier, aggregation quiescence or UDP delivery guarantee is added. OBS-001/005/009 remain
+out of scope. Controller-owned CLOSURE/progress have not been edited.

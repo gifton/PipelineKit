@@ -1,0 +1,133 @@
+{
+  "O03-001-behavior-red": {
+    "command": [
+      "swift",
+      "test",
+      "--filter",
+      "MetricsFacadeTests.testFlushDoesNotReplayRecordsToNonflushableRecorder"
+    ],
+    "elapsed_seconds": 9.657,
+    "exit_status": 1,
+    "runner_exit_status": 1,
+    "watchdog_timeout": false,
+    "cleanup_settled": true,
+    "survivors": [],
+    "cleanup_outcome_states": {
+      "gone": 157
+    },
+    "xctest_passed": 0,
+    "xctest_failed": 1,
+    "parallel_xctest_entries": 0,
+    "swift_testing_summary": []
+  },
+  "O03-002-api-compile-red": {
+    "command": [
+      "swift",
+      "test",
+      "--filter",
+      "MetricsConfigurationContractTests|MetricsFacadeTests"
+    ],
+    "elapsed_seconds": 6.419,
+    "exit_status": 1,
+    "runner_exit_status": 1,
+    "watchdog_timeout": false,
+    "cleanup_settled": true,
+    "survivors": [],
+    "cleanup_outcome_states": {
+      "gone": 128
+    },
+    "xctest_passed": 0,
+    "xctest_failed": 0,
+    "parallel_xctest_entries": 0,
+    "swift_testing_summary": []
+  },
+  "O03-003-initial-green": {
+    "command": [
+      "swift",
+      "test",
+      "--filter",
+      "MetricsConfigurationContractTests|MetricsFacadeTests"
+    ],
+    "elapsed_seconds": 12.589,
+    "exit_status": 0,
+    "runner_exit_status": 0,
+    "watchdog_timeout": false,
+    "cleanup_settled": true,
+    "survivors": [],
+    "cleanup_outcome_states": {
+      "gone": 320
+    },
+    "xctest_passed": 25,
+    "xctest_failed": 0,
+    "parallel_xctest_entries": 0,
+    "swift_testing_summary": []
+  },
+  "O03-004-final-debug": {
+    "command": [
+      "swift",
+      "test",
+      "--filter",
+      "MetricsConfigurationContractTests|MetricsFacadeTests"
+    ],
+    "elapsed_seconds": 8.675,
+    "exit_status": 0,
+    "runner_exit_status": 0,
+    "watchdog_timeout": false,
+    "cleanup_settled": true,
+    "survivors": [],
+    "cleanup_outcome_states": {
+      "gone": 159
+    },
+    "xctest_passed": 26,
+    "xctest_failed": 0,
+    "parallel_xctest_entries": 0,
+    "swift_testing_summary": []
+  },
+  "O03-005-final-release": {
+    "command": [
+      "swift",
+      "test",
+      "-c",
+      "release",
+      "--filter",
+      "MetricsConfigurationContractTests|MetricsFacadeTests"
+    ],
+    "elapsed_seconds": 29.908,
+    "exit_status": 0,
+    "runner_exit_status": 0,
+    "watchdog_timeout": false,
+    "cleanup_settled": true,
+    "survivors": [],
+    "cleanup_outcome_states": {
+      "gone": 220
+    },
+    "xctest_passed": 26,
+    "xctest_failed": 0,
+    "parallel_xctest_entries": 0,
+    "swift_testing_summary": []
+  },
+  "O03-006-final-full-debug": {
+    "command": [
+      "swift",
+      "test",
+      "--parallel",
+      "--skip",
+      "PipelineKitPerformanceTests"
+    ],
+    "elapsed_seconds": 21.209,
+    "exit_status": 0,
+    "runner_exit_status": 0,
+    "watchdog_timeout": false,
+    "cleanup_settled": true,
+    "survivors": [],
+    "cleanup_outcome_states": {
+      "gone": 1233
+    },
+    "xctest_passed": 0,
+    "xctest_failed": 0,
+    "parallel_xctest_entries": 1080,
+    "swift_testing_summary": [
+      "Test run with 20 tests in 5 suites passed after 0.002 seconds."
+    ]
+  }
+}

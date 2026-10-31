@@ -1,0 +1,71 @@
+Building for debugging...
+[Computing dependencies]
+[Using on-disk description]
+[1 / 2] Logging
+[1 / 5] PipelineKitTestSupportTests-product
+[2 / 3] PipelineKitObservabilityTests-product
+[4 / 5] PipelineKitObservabilityTests-product
+[10 / 14] PipelineKitObservabilityTests-product
+Build complete! (1.94 sec)
+Test Suite 'Selected tests' started at 2026-10-30 19:57:23.872.
+Test Suite 'PipelineKitTests.xctest' started at 2026-10-30 19:57:23.873.
+Test Suite 'PipelineKitTests.xctest' passed at 2026-10-30 19:57:23.873.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 19:57:23.873.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 19:57:23.951.
+Test Suite 'PipelineKitTestSupportTests.xctest' started at 2026-10-30 19:57:23.952.
+Test Suite 'PipelineKitTestSupportTests.xctest' passed at 2026-10-30 19:57:23.952.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 19:57:23.952.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 19:57:24.031.
+Test Suite 'PipelineKitSecurityTests.xctest' started at 2026-10-30 19:57:24.032.
+Test Suite 'PipelineKitSecurityTests.xctest' passed at 2026-10-30 19:57:24.032.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 19:57:24.032.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 19:57:24.112.
+Test Suite 'PipelineKitResilienceTests.xctest' started at 2026-10-30 19:57:24.112.
+Test Suite 'PipelineKitResilienceTests.xctest' passed at 2026-10-30 19:57:24.112.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 19:57:24.113.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 19:57:24.192.
+Test Suite 'PipelineKitPoolingTests.xctest' started at 2026-10-30 19:57:24.192.
+Test Suite 'PipelineKitPoolingTests.xctest' passed at 2026-10-30 19:57:24.192.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 19:57:24.193.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 19:57:24.270.
+Test Suite 'PipelineKitPerformanceTests.xctest' started at 2026-10-30 19:57:24.271.
+Test Suite 'PipelineKitPerformanceTests.xctest' passed at 2026-10-30 19:57:24.271.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 19:57:24.271.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 19:57:24.333.
+Test Suite 'PipelineKitObservabilityTests.xctest' started at 2026-10-30 19:57:24.334.
+Test Suite 'MetricsFacadeTests' started at 2026-10-30 19:57:24.334.
+Test Case '-[PipelineKitObservabilityTests.MetricsFacadeTests testFlushDoesNotReplayRecordsToNonflushableRecorder]' started.
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/MetricsFacadeTests.swift:142: error: -[PipelineKitObservabilityTests.MetricsFacadeTests testFlushDoesNotReplayRecordsToNonflushableRecorder] : XCTAssertEqual failed: ("["flush.once", "flush.once"]") is not equal to ("["flush.once"]")
+Test Case '-[PipelineKitObservabilityTests.MetricsFacadeTests testFlushDoesNotReplayRecordsToNonflushableRecorder]' failed (0.194 seconds).
+Test Suite 'MetricsFacadeTests' failed at 2026-10-30 19:57:24.528.
+	 Executed 1 test, with 1 failure (0 unexpected) in 0.194 (0.194) seconds
+Test Suite 'PipelineKitObservabilityTests.xctest' failed at 2026-10-30 19:57:24.528.
+	 Executed 1 test, with 1 failure (0 unexpected) in 0.194 (0.194) seconds
+Test Suite 'Selected tests' failed at 2026-10-30 19:57:24.528.
+	 Executed 1 test, with 1 failure (0 unexpected) in 0.194 (0.195) seconds
+Test Suite 'Selected tests' started at 2026-10-30 19:57:24.610.
+Test Suite 'PipelineKitCoreTests.xctest' started at 2026-10-30 19:57:24.610.
+Test Suite 'PipelineKitCoreTests.xctest' passed at 2026-10-30 19:57:24.610.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 19:57:24.610.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 19:57:24.690.
+Test Suite 'PipelineKitCacheTests.xctest' started at 2026-10-30 19:57:24.691.
+Test Suite 'PipelineKitCacheTests.xctest' passed at 2026-10-30 19:57:24.691.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 19:57:24.691.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Note: Some test targets reported failures:
+  - PipelineKitObservabilityTests (XCTest)
