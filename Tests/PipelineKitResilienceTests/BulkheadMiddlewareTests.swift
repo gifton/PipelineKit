@@ -1,5 +1,6 @@
 import XCTest
 import PipelineKitCore
+import _ResilienceFoundation
 @testable import PipelineKitResilience
 
 final class BulkheadMiddlewareTests: XCTestCase {
@@ -258,6 +259,81 @@ final class BulkheadMiddlewareTests: XCTestCase {
                 let heldResult = await holder.value
                 XCTAssertEqual(heldResult, "success")
             }
+        }
+    }
+
+    func testQueueTimeoutRangeAndNormalizationBoundaries() async {
+        let maximum: TimeInterval = 86_400
+        let cases: [(value: TimeInterval, noWait: Bool)] = [
+            (-Double.greatestFiniteMagnitude, true), (-1e30, true), (-1, true),
+            (0, true), (Double.leastNonzeroMagnitude, true), (1e-20, true),
+            (1e-18, false), (0.001, false), (maximum.nextDown, false), (maximum, false)
+        ]
+        // Swift 6.2 constructs clock instants from Int64 seconds plus a
+        // subsecond remainder. Exercise the Duration-addition headroom bound
+        // without decomposing the deliberately extreme result back into Int64.
+        let clockSecondsUpperBound = Duration.seconds(Int64.max) + .seconds(1)
+        let latestDeadline = clockSecondsUpperBound + .seconds(maximum)
+        XCTAssertGreaterThan(latestDeadline, clockSecondsUpperBound)
+        let instant = ContinuousClock.now
+        XCTAssertEqual(instant.duration(to: instant.advanced(by: .seconds(maximum))), .seconds(maximum))
+
+        for item in cases {
+            for queue in [0, 1] {
+                let label = "timeout=\(item.value), queue=\(queue)"
+                let clock = ManualAdmissionClock()
+                let gate = AdmissionGate(capacity: 1, maxQueueSize: queue,
+                    now: { clock.now() }, sleep: { try await clock.sleep(for: $0) })
+                let middleware = BulkheadMiddleware(configuration: .init(
+                    maxConcurrency: 1, maxQueueSize: queue, queueTimeout: item.value, rejectionPolicy: .queue
+                ), admission: gate)
+                let ledger = BulkheadHandlerLedger()
+                let subject = BulkheadAdmissionSubject.ordinary(middleware)
+                let holder = launchBulkhead(subject, id: "held", ledger: ledger)
+                while !(await ledger.entered("held")) { await Task.yield() }
+                let waiter = launchBulkhead(subject, id: "waiter", ledger: ledger)
+                if !item.noWait && queue > 0 {
+                    await clock.waitForSleepers(1)
+                    let registered = await gate.snapshot()
+                    XCTAssertEqual(registered.queued, 1, label)
+                    clock.advance(by: .seconds(item.value))
+                }
+                let result = await waiter.value
+                XCTAssertEqual(result, item.noWait || queue > 0 ? "timedOut" : "rejected", label)
+                await clock.waitForSettlement()
+                XCTAssertEqual(clock.callCount, !item.noWait && queue > 0 ? 1 : 0, label)
+                let retained = await gate.snapshot()
+                XCTAssertEqual(retained.active, 1, label)
+                XCTAssertEqual(retained.queued, 0, label)
+                let entries = await ledger.entries
+                XCTAssertEqual(entries, ["held"], label)
+                await ledger.release("held")
+                let holderResult = await holder.value
+                XCTAssertEqual(holderResult, "success", label)
+                let settled = await gate.snapshot()
+                XCTAssertEqual(settled.active, 0, label)
+                XCTAssertEqual(settled.queued, 0, label)
+            }
+        }
+    }
+
+    // The external R02 timeout driver selects invalid values in isolated test
+    // processes and checks the explicit validation diagnostic before a trap.
+    // A normal suite invocation checks valid public construction instead.
+    func testQueueTimeoutConfigurationValidationProbe() async throws {
+        let environment = ProcessInfo.processInfo.environment
+        let selected = environment["PIPELINEKIT_R02_INVALID_TIMEOUT"]
+        let timeout = try XCTUnwrap(Double(selected ?? "86400"))
+        let queue = Int(environment["PIPELINEKIT_R02_QUEUE_SIZE"] ?? "0") ?? 0
+        let middleware = BulkheadMiddleware(configuration: .init(
+            maxConcurrency: 1, maxQueueSize: queue, queueTimeout: timeout, rejectionPolicy: .queue
+        ))
+        if selected != nil {
+            XCTFail("R02 invalid queue timeout was accepted instead of explicit configuration validation")
+        } else {
+            let snapshot = await middleware.admissionSnapshot()
+            XCTAssertEqual(snapshot.active, 0)
+            XCTAssertEqual(snapshot.queued, 0)
         }
     }
 

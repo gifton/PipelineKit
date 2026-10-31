@@ -1,0 +1,162 @@
+[
+  {
+    "case": "above-limit",
+    "value": "86400.00000000001",
+    "queue": 0,
+    "command": [
+      "swift",
+      "test",
+      "--skip-build",
+      "--filter",
+      "BulkheadMiddlewareTests.testQueueTimeoutConfigurationValidationProbe"
+    ],
+    "child_exit_status": 1,
+    "explicit_validation": true,
+    "passed": true,
+    "log": "logs/R02-R1-003-above-limit-queue0.log"
+  },
+  {
+    "case": "above-limit",
+    "value": "86400.00000000001",
+    "queue": 1,
+    "command": [
+      "swift",
+      "test",
+      "--skip-build",
+      "--filter",
+      "BulkheadMiddlewareTests.testQueueTimeoutConfigurationValidationProbe"
+    ],
+    "child_exit_status": 1,
+    "explicit_validation": true,
+    "passed": true,
+    "log": "logs/R02-R1-003-above-limit-queue1.log"
+  },
+  {
+    "case": "extreme-positive",
+    "value": "1e30",
+    "queue": 0,
+    "command": [
+      "swift",
+      "test",
+      "--skip-build",
+      "--filter",
+      "BulkheadMiddlewareTests.testQueueTimeoutConfigurationValidationProbe"
+    ],
+    "child_exit_status": 1,
+    "explicit_validation": true,
+    "passed": true,
+    "log": "logs/R02-R1-003-extreme-positive-queue0.log"
+  },
+  {
+    "case": "extreme-positive",
+    "value": "1e30",
+    "queue": 1,
+    "command": [
+      "swift",
+      "test",
+      "--skip-build",
+      "--filter",
+      "BulkheadMiddlewareTests.testQueueTimeoutConfigurationValidationProbe"
+    ],
+    "child_exit_status": 1,
+    "explicit_validation": true,
+    "passed": true,
+    "log": "logs/R02-R1-003-extreme-positive-queue1.log"
+  },
+  {
+    "case": "nan",
+    "value": "nan",
+    "queue": 0,
+    "command": [
+      "swift",
+      "test",
+      "--skip-build",
+      "--filter",
+      "BulkheadMiddlewareTests.testQueueTimeoutConfigurationValidationProbe"
+    ],
+    "child_exit_status": 1,
+    "explicit_validation": true,
+    "passed": true,
+    "log": "logs/R02-R1-003-nan-queue0.log"
+  },
+  {
+    "case": "nan",
+    "value": "nan",
+    "queue": 1,
+    "command": [
+      "swift",
+      "test",
+      "--skip-build",
+      "--filter",
+      "BulkheadMiddlewareTests.testQueueTimeoutConfigurationValidationProbe"
+    ],
+    "child_exit_status": 1,
+    "explicit_validation": true,
+    "passed": true,
+    "log": "logs/R02-R1-003-nan-queue1.log"
+  },
+  {
+    "case": "positive-infinity",
+    "value": "inf",
+    "queue": 0,
+    "command": [
+      "swift",
+      "test",
+      "--skip-build",
+      "--filter",
+      "BulkheadMiddlewareTests.testQueueTimeoutConfigurationValidationProbe"
+    ],
+    "child_exit_status": 1,
+    "explicit_validation": true,
+    "passed": true,
+    "log": "logs/R02-R1-003-positive-infinity-queue0.log"
+  },
+  {
+    "case": "positive-infinity",
+    "value": "inf",
+    "queue": 1,
+    "command": [
+      "swift",
+      "test",
+      "--skip-build",
+      "--filter",
+      "BulkheadMiddlewareTests.testQueueTimeoutConfigurationValidationProbe"
+    ],
+    "child_exit_status": 1,
+    "explicit_validation": true,
+    "passed": true,
+    "log": "logs/R02-R1-003-positive-infinity-queue1.log"
+  },
+  {
+    "case": "negative-infinity",
+    "value": "-inf",
+    "queue": 0,
+    "command": [
+      "swift",
+      "test",
+      "--skip-build",
+      "--filter",
+      "BulkheadMiddlewareTests.testQueueTimeoutConfigurationValidationProbe"
+    ],
+    "child_exit_status": 1,
+    "explicit_validation": true,
+    "passed": true,
+    "log": "logs/R02-R1-003-negative-infinity-queue0.log"
+  },
+  {
+    "case": "negative-infinity",
+    "value": "-inf",
+    "queue": 1,
+    "command": [
+      "swift",
+      "test",
+      "--skip-build",
+      "--filter",
+      "BulkheadMiddlewareTests.testQueueTimeoutConfigurationValidationProbe"
+    ],
+    "child_exit_status": 1,
+    "explicit_validation": true,
+    "passed": true,
+    "log": "logs/R02-R1-003-negative-infinity-queue1.log"
+  }
+]

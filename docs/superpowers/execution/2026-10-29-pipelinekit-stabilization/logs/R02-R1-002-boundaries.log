@@ -1,0 +1,173 @@
+Building for debugging...
+[Computing dependencies]
+[Using on-disk description]
+[1 / 1]
+[2 / 61] _CircuitBreaker
+[4 / 63] _CircuitBreaker
+[12 / 71] PipelineKitResilience
+[15 / 76] PipelineKitPooling
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Sources/PipelineKitResilienceCircuitBreaker/PartitionedBulkheadMiddleware.swift:502:32: warning: 'weak' ownership of capture 'partition' differs from implicitly-captured strong reference in outer scope [#ImplicitStrongCapture]
+498 |         // Try queueing if space available
+499 |         if await partition.canQueue() {
+500 |             let future: @Sendable () async throws -> @Sendable () async -> Void = {
+    |                                                                                   |- note: 'partition' implicitly strongly captured here
+    |                                                                                   `- note: add 'partition' as a capture list item to silence
+501 |                 try await partition.waitForResource()
+502 |                 return { [weak partition] in
+    |                                |- warning: 'weak' ownership of capture 'partition' differs from implicitly-captured strong reference in outer scope [#ImplicitStrongCapture]
+    |                                `- note: explicitly assign the capture list item to silence
+503 |                     await partition?.release()
+504 |                 }
+
+[#ImplicitStrongCapture]: <https://docs.swift.org/compiler/documentation/diagnostics/implicit-strong-capture>
+[26 / 82] _CircuitBreaker
+[33 / 84] PipelineKitTestSupport
+[34 / 83] PipelineKitTestSupport
+[38 / 87] PipelineKitTestSupport
+[51 / 78] PipelineKitObservabilityTests-product
+[53 / 79] PipelineKitPoolingTests-product
+[56 / 80] PipelineKitPerformanceTests-product
+[73 / 92] PipelineKitTestSupportTests-product
+[80 / 126] PipelineKitTests-product
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/AuthorizationMiddlewareTests.swift:117:9: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+115 |         // Test editor (has both roles)
+116 |         let editorContext = CommandContext()
+117 |         await editorContext.setMetadata("authUserId", value: "editor")
+    |         `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+118 |         
+119 |         let editorResult = try await middleware.execute(command, context: editorContext) { cmd, _ in
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/AuthorizationMiddlewareTests.swift:126:9: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+124 |         // Test reader (missing write role)
+125 |         let readerContext = CommandContext()
+126 |         await readerContext.setMetadata("authUserId", value: "reader")
+    |         `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+127 |         
+128 |         do {
+
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>
+[88 / 126] PipelineKitTests-product
+[95 / 127] PipelineKitTests-product
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCoreTests/Middleware/MiddlewareTests.swift:138:25: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+136 |         
+137 |         _ = try await middleware.execute(command, context: context) { _, ctx in
+138 |             let value = await ctx.getMetadata("test") as? String
+    |                         `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+139 |             XCTAssertEqual(value, "modified")
+140 |             return "done"
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCoreTests/Pipeline/PipelineTests.swift:241:32: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+239 |             try await middleware2.execute(cmd, context: ctx) { c, finalCtx in
+240 |                 // Verify context has both values
+241 |                 let metadata = await finalCtx.getMetadata()
+    |                                `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+242 |                 XCTAssertEqual(metadata["key1"] as? String, "value1")
+243 |                 XCTAssertEqual(metadata["key2"] as? String, "value2")
+
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>
+[104 / 128] PipelineKitResilienceTests-product
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/PartitionedBulkheadConfigurationTests.swift:35:31: warning: 'maxBorrowPercentage' is deprecated: renamed to 'reservedCapacityPercentage' [#DeprecatedDeclaration]
+33 |         )
+34 |         // Deprecation warnings below are expected: the test pins the shims.
+35 |         XCTAssertEqual(config.maxBorrowPercentage, 0.5, accuracy: .ulpOfOne)
+   |                               |- warning: 'maxBorrowPercentage' is deprecated: renamed to 'reservedCapacityPercentage' [#DeprecatedDeclaration]
+   |                               `- note: use 'reservedCapacityPercentage' instead
+36 | 
+37 |         let legacy = PartitionedBulkheadMiddleware.Configuration(
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/PartitionedBulkheadConfigurationTests.swift:37:52: warning: 'init(partitions:partitionExtractor:defaultPartition:allowBorrowing:maxBorrowPercentage:emitMetrics:)' is deprecated: maxBorrowPercentage has always been the reserved (non-lendable) share — use reservedCapacityPercentage, which has identical semantics. [#DeprecatedDeclaration]
+35 |         XCTAssertEqual(config.maxBorrowPercentage, 0.5, accuracy: .ulpOfOne)
+36 | 
+37 |         let legacy = PartitionedBulkheadMiddleware.Configuration(
+   |                                                    `- warning: 'init(partitions:partitionExtractor:defaultPartition:allowBorrowing:maxBorrowPercentage:emitMetrics:)' is deprecated: maxBorrowPercentage has always been the reserved (non-lendable) share — use reservedCapacityPercentage, which has identical semantics. [#DeprecatedDeclaration]
+38 |             partitions: Self.partitions,
+39 |             partitionExtractor: { _, _ in "default" },
+
+[#DeprecatedDeclaration]: <https://docs.swift.org/compiler/documentation/diagnostics/deprecated-declaration>
+[112 / 128] PipelineKitCacheTests-product
+[126 / 136] PipelineKitResilienceTests-product
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCoreTests/Errors/CancellationErrorTests.swift:88:9: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+ 86 |         
+ 87 |         // Cancel after a short delay
+ 88 |         Task {
+    |         |- warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+    |         `- note: to silence this warning, handle the error inside the task, or store/discard the task value explicitly
+ 89 |             try await Task.sleep(nanoseconds: 25_000_000) // 25ms
+ 90 |             task.cancel()
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCoreTests/Errors/CancellationErrorTests.swift:170:9: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+168 |         
+169 |         // Cancel after 50ms
+170 |         Task {
+    |         |- warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+    |         `- note: to silence this warning, handle the error inside the task, or store/discard the task value explicitly
+171 |             try await Task.sleep(nanoseconds: 50_000_000)
+172 |             task.cancel()
+
+[#NoUseUnstructuredThrowingTask]: <https://docs.swift.org/compiler/documentation/diagnostics/no-use-throwing-unstructured-task>
+[130 / 137] PipelineKitTests-product
+[136 / 141] PipelineKitTests-product
+Build complete! (3.95 sec)
+Test Suite 'Selected tests' started at 2026-10-30 18:47:03.383.
+Test Suite 'PipelineKitTests.xctest' started at 2026-10-30 18:47:03.384.
+Test Suite 'PipelineKitTests.xctest' passed at 2026-10-30 18:47:03.384.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 18:47:03.384.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 18:47:03.459.
+Test Suite 'PipelineKitTestSupportTests.xctest' started at 2026-10-30 18:47:03.460.
+Test Suite 'PipelineKitTestSupportTests.xctest' passed at 2026-10-30 18:47:03.460.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 18:47:03.460.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 18:47:03.535.
+Test Suite 'PipelineKitSecurityTests.xctest' started at 2026-10-30 18:47:03.536.
+Test Suite 'PipelineKitSecurityTests.xctest' passed at 2026-10-30 18:47:03.536.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 18:47:03.536.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 18:47:03.594.
+Test Suite 'PipelineKitResilienceTests.xctest' started at 2026-10-30 18:47:03.595.
+Test Suite 'BulkheadMiddlewareTests' started at 2026-10-30 18:47:03.595.
+Test Case '-[PipelineKitResilienceTests.BulkheadMiddlewareTests testQueueTimeout]' started.
+Test Case '-[PipelineKitResilienceTests.BulkheadMiddlewareTests testQueueTimeout]' passed (0.014 seconds).
+Test Case '-[PipelineKitResilienceTests.BulkheadMiddlewareTests testQueueTimeoutConfigurationValidationProbe]' started.
+Test Case '-[PipelineKitResilienceTests.BulkheadMiddlewareTests testQueueTimeoutConfigurationValidationProbe]' passed (0.000 seconds).
+Test Case '-[PipelineKitResilienceTests.BulkheadMiddlewareTests testQueueTimeoutRangeAndNormalizationBoundaries]' started.
+Test Case '-[PipelineKitResilienceTests.BulkheadMiddlewareTests testQueueTimeoutRangeAndNormalizationBoundaries]' passed (0.016 seconds).
+Test Suite 'BulkheadMiddlewareTests' passed at 2026-10-30 18:47:03.625.
+	 Executed 3 tests, with 0 failures (0 unexpected) in 0.030 (0.031) seconds
+Test Suite 'PipelineKitResilienceTests.xctest' passed at 2026-10-30 18:47:03.625.
+	 Executed 3 tests, with 0 failures (0 unexpected) in 0.030 (0.031) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 18:47:03.625.
+	 Executed 3 tests, with 0 failures (0 unexpected) in 0.030 (0.031) seconds
+Test Suite 'Selected tests' started at 2026-10-30 18:47:03.701.
+Test Suite 'PipelineKitPoolingTests.xctest' started at 2026-10-30 18:47:03.702.
+Test Suite 'PipelineKitPoolingTests.xctest' passed at 2026-10-30 18:47:03.702.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 18:47:03.702.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 18:47:03.777.
+Test Suite 'PipelineKitPerformanceTests.xctest' started at 2026-10-30 18:47:03.778.
+Test Suite 'PipelineKitPerformanceTests.xctest' passed at 2026-10-30 18:47:03.778.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 18:47:03.778.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 18:47:03.855.
+Test Suite 'PipelineKitObservabilityTests.xctest' started at 2026-10-30 18:47:03.856.
+Test Suite 'PipelineKitObservabilityTests.xctest' passed at 2026-10-30 18:47:03.856.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 18:47:03.856.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 18:47:03.932.
+Test Suite 'PipelineKitCoreTests.xctest' started at 2026-10-30 18:47:03.933.
+Test Suite 'PipelineKitCoreTests.xctest' passed at 2026-10-30 18:47:03.933.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 18:47:03.933.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 18:47:04.009.
+Test Suite 'PipelineKitCacheTests.xctest' started at 2026-10-30 18:47:04.010.
+Test Suite 'PipelineKitCacheTests.xctest' passed at 2026-10-30 18:47:04.010.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 18:47:04.010.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds

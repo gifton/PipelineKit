@@ -62,7 +62,15 @@ public struct BulkheadMiddleware: Middleware, NextGuardWarningSuppressing {
         /// Maximum number of commands that can wait in queue
         public let maxQueueSize: Int
 
-        /// Timeout for queued commands
+        /// Seconds a command may wait for admission; nil permits an unbounded wait.
+        /// Middleware initialization requires a finite value no greater than
+        /// 86,400 seconds (24 hours). Finite nonpositive values allow available
+        /// capacity but do not wait. Positive values round to the nearest
+        /// attosecond; values rounding to zero also do not wait.
+        /// The 24-hour cap is library policy that bounds conversion and deadline
+        /// arithmetic, not Duration's intrinsic limit. Longer finite budgets
+        /// require a policy change; nil plus application cancellation removes
+        /// the built-in queue deadline rather than preserving that finite budget.
         public let queueTimeout: TimeInterval?
 
         /// Strategy for handling rejected commands
@@ -126,6 +134,7 @@ public struct BulkheadMiddleware: Middleware, NextGuardWarningSuppressing {
 
     private let configuration: Configuration
     private let admission: AdmissionGate
+    private let admissionTimeout: Duration?
     private let metrics: BulkheadMetricsTracker
 
     public init(configuration: Configuration) {
@@ -139,7 +148,7 @@ public struct BulkheadMiddleware: Middleware, NextGuardWarningSuppressing {
 
     /// Package test seam; the supplied gate must match the configuration limits.
     package init(configuration: Configuration, admission: AdmissionGate) {
-        precondition(configuration.queueTimeout?.isFinite != false, "Bulkhead queue timeout must be finite")
+        self.admissionTimeout = BulkheadQueueTimeout.normalize(configuration.queueTimeout)
         self.configuration = configuration
         self.admission = admission
         self.metrics = BulkheadMetricsTracker()
@@ -235,7 +244,7 @@ public struct BulkheadMiddleware: Middleware, NextGuardWarningSuppressing {
             let queueStart = ContinuousClock.now
             let lease: AdmissionLease
             do {
-                lease = try await admission.acquire(timeout: configuration.queueTimeout.map { .seconds($0) })
+                lease = try await admission.acquire(timeout: admissionTimeout)
             } catch AdmissionError.full {
                 await metrics.recordRejection()
                 await handleRejection(command, context: context)
@@ -370,6 +379,23 @@ public struct BulkheadMiddleware: Middleware, NextGuardWarningSuppressing {
 }
 
 // MARK: - Supporting Types
+
+// Shared within _CircuitBreaker so timed bulkhead wrappers use one admission
+// timeout policy. This is not a public configuration or clock abstraction.
+enum BulkheadQueueTimeout {
+    static func normalize(_ timeout: TimeInterval?) -> Duration? {
+        guard let timeout else { return nil }
+        precondition(
+            timeout.isFinite && timeout <= 86_400,
+            "Bulkhead queue timeout must be finite and no greater than 86400 seconds"
+        )
+        // Avoid converting extreme negative values. The positive bound also
+        // leaves headroom for ContinuousClock's now + delay construction;
+        // testQueueTimeoutRangeAndNormalizationBoundaries exercises both.
+        if timeout <= 0 { return .zero }
+        return .seconds(timeout)
+    }
+}
 
 /// Metrics tracking for bulkhead
 private actor BulkheadMetricsTracker {

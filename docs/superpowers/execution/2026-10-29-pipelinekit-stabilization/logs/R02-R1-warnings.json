@@ -1,0 +1,144 @@
+{
+  "normalization": "relative path plus diagnostic text, ignoring line/column; runtime scans include SwiftLog warning prefix; expected invalid-configuration preconditions separately counted",
+  "baseline": ".superpowers/sdd/2026-10-29-pipelinekit-stabilization/baseline-warnings.json",
+  "runs": {
+    "R02-R1-001-focused.log": {
+      "compiler_unique": 2,
+      "compiler_occurrences": 2,
+      "compiler": {
+        "Tests/PipelineKitCoreTests/Middleware/MiddlewareTests.swift: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]": 1,
+        "Tests/PipelineKitCoreTests/Pipeline/PipelineTests.swift: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]": 1
+      },
+      "new_compiler": {},
+      "runtime_occurrences": 0,
+      "runtime_lines": {},
+      "expected_configuration_precondition_lines": 0
+    },
+    "R02-R1-002-boundaries.log": {
+      "compiler_unique": 7,
+      "compiler_occurrences": 9,
+      "compiler": {
+        "Sources/PipelineKitResilienceCircuitBreaker/PartitionedBulkheadMiddleware.swift: warning: 'weak' ownership of capture 'partition' differs from implicitly-captured strong reference in outer scope [#ImplicitStrongCapture]": 1,
+        "Tests/PipelineKitSecurityTests/AuthorizationMiddlewareTests.swift: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]": 2,
+        "Tests/PipelineKitCoreTests/Middleware/MiddlewareTests.swift: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]": 1,
+        "Tests/PipelineKitCoreTests/Pipeline/PipelineTests.swift: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]": 1,
+        "Tests/PipelineKitResilienceTests/PartitionedBulkheadConfigurationTests.swift: warning: 'maxBorrowPercentage' is deprecated: renamed to 'reservedCapacityPercentage' [#DeprecatedDeclaration]": 1,
+        "Tests/PipelineKitResilienceTests/PartitionedBulkheadConfigurationTests.swift: warning: 'init(partitions:partitionExtractor:defaultPartition:allowBorrowing:maxBorrowPercentage:emitMetrics:)' is deprecated: maxBorrowPercentage has always been the reserved (non-lendable) share \u2014 use reservedCapacityPercentage, which has identical semantics. [#DeprecatedDeclaration]": 1,
+        "Tests/PipelineKitCoreTests/Errors/CancellationErrorTests.swift: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]": 2
+      },
+      "new_compiler": {},
+      "runtime_occurrences": 0,
+      "runtime_lines": {},
+      "expected_configuration_precondition_lines": 0
+    },
+    "R02-R1-003-above-limit-queue0.log": {
+      "compiler_unique": 0,
+      "compiler_occurrences": 0,
+      "compiler": {},
+      "new_compiler": {},
+      "runtime_occurrences": 0,
+      "runtime_lines": {},
+      "expected_configuration_precondition_lines": 1
+    },
+    "R02-R1-003-above-limit-queue1.log": {
+      "compiler_unique": 0,
+      "compiler_occurrences": 0,
+      "compiler": {},
+      "new_compiler": {},
+      "runtime_occurrences": 0,
+      "runtime_lines": {},
+      "expected_configuration_precondition_lines": 1
+    },
+    "R02-R1-003-extreme-positive-queue0.log": {
+      "compiler_unique": 0,
+      "compiler_occurrences": 0,
+      "compiler": {},
+      "new_compiler": {},
+      "runtime_occurrences": 0,
+      "runtime_lines": {},
+      "expected_configuration_precondition_lines": 1
+    },
+    "R02-R1-003-extreme-positive-queue1.log": {
+      "compiler_unique": 0,
+      "compiler_occurrences": 0,
+      "compiler": {},
+      "new_compiler": {},
+      "runtime_occurrences": 0,
+      "runtime_lines": {},
+      "expected_configuration_precondition_lines": 1
+    },
+    "R02-R1-003-nan-queue0.log": {
+      "compiler_unique": 0,
+      "compiler_occurrences": 0,
+      "compiler": {},
+      "new_compiler": {},
+      "runtime_occurrences": 0,
+      "runtime_lines": {},
+      "expected_configuration_precondition_lines": 1
+    },
+    "R02-R1-003-nan-queue1.log": {
+      "compiler_unique": 0,
+      "compiler_occurrences": 0,
+      "compiler": {},
+      "new_compiler": {},
+      "runtime_occurrences": 0,
+      "runtime_lines": {},
+      "expected_configuration_precondition_lines": 1
+    },
+    "R02-R1-003-negative-infinity-queue0.log": {
+      "compiler_unique": 0,
+      "compiler_occurrences": 0,
+      "compiler": {},
+      "new_compiler": {},
+      "runtime_occurrences": 0,
+      "runtime_lines": {},
+      "expected_configuration_precondition_lines": 1
+    },
+    "R02-R1-003-negative-infinity-queue1.log": {
+      "compiler_unique": 0,
+      "compiler_occurrences": 0,
+      "compiler": {},
+      "new_compiler": {},
+      "runtime_occurrences": 0,
+      "runtime_lines": {},
+      "expected_configuration_precondition_lines": 1
+    },
+    "R02-R1-003-positive-infinity-queue0.log": {
+      "compiler_unique": 0,
+      "compiler_occurrences": 0,
+      "compiler": {},
+      "new_compiler": {},
+      "runtime_occurrences": 0,
+      "runtime_lines": {},
+      "expected_configuration_precondition_lines": 1
+    },
+    "R02-R1-003-positive-infinity-queue1.log": {
+      "compiler_unique": 0,
+      "compiler_occurrences": 0,
+      "compiler": {},
+      "new_compiler": {},
+      "runtime_occurrences": 0,
+      "runtime_lines": {},
+      "expected_configuration_precondition_lines": 1
+    },
+    "R02-R1-003-validation-probes.log": {
+      "compiler_unique": 0,
+      "compiler_occurrences": 0,
+      "compiler": {},
+      "new_compiler": {},
+      "runtime_occurrences": 0,
+      "runtime_lines": {},
+      "expected_configuration_precondition_lines": 0
+    },
+    "R02-R1-004-debug-full.log": {
+      "compiler_unique": 0,
+      "compiler_occurrences": 0,
+      "compiler": {},
+      "new_compiler": {},
+      "runtime_occurrences": 0,
+      "runtime_lines": {},
+      "expected_configuration_precondition_lines": 0
+    }
+  },
+  "limits": "Parallel suite logs may omit successful subprocess output; no globally clean warning-baseline claim. Existing C02-N1 is separate deferred fixture debt."
+}
