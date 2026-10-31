@@ -46,7 +46,7 @@ import PipelineKitCore
 ///
 /// - SeeAlso: `Command`, `CommandHandler`, `Middleware`, `RetryPolicy`
 public actor DynamicPipeline {
-    private let handlerRegistry = HandlerRegistry()
+    private var handlerStorage = HandlerRegistryStorage()
     private var middlewares: [any Middleware] = []
     private var sortedMiddlewaresCache: [any Middleware]?
 
@@ -85,7 +85,7 @@ public actor DynamicPipeline {
         _ commandType: T.Type,
         handler: H
     ) async where H.CommandType == T, H.CommandType.Result == T.Result {
-        await handlerRegistry.register(commandType, handler: handler)
+        handlerStorage.replace(commandType, with: handler)
         // The cached chain closes over the looked-up handler; a (re)registration could
         // change which handler a cached chain would invoke, so invalidate to avoid stale handlers.
         chainCache.removeAll()
@@ -97,7 +97,7 @@ public actor DynamicPipeline {
         _ commandType: T.Type,
         handler: H
     ) async throws where H.CommandType == T, H.CommandType.Result == T.Result {
-        let inserted = await handlerRegistry.insertIfAbsent(commandType, handler: handler)
+        let inserted = handlerStorage.insertIfAbsent(commandType, handler: handler)
         if !inserted {
             throw PipelineError.pipelineNotConfigured(
                 reason: "Handler already registered for \(String(describing: T.self))"
@@ -112,7 +112,7 @@ public actor DynamicPipeline {
         _ commandType: T.Type,
         with handler: H
     ) async -> Bool where H.CommandType == T, H.CommandType.Result == T.Result {
-        let replaced = await handlerRegistry.replace(commandType, with: handler)
+        let replaced = handlerStorage.replace(commandType, with: handler)
         // Replacing the handler must invalidate any cached chain bound to the old handler.
         chainCache.removeAll()
         return replaced
@@ -120,7 +120,7 @@ public actor DynamicPipeline {
 
     /// Unregisters any handler for the given command type; returns whether one was removed.
     public func unregister<T: Command>(_ commandType: T.Type) async -> Bool {
-        let removed = await handlerRegistry.removeHandler(for: commandType) != nil
+        let removed = handlerStorage.removeHandler(for: commandType) != nil
         // A cached chain for this type would still close over the removed handler; invalidate it.
         chainCache.removeAll()
         return removed
@@ -265,8 +265,15 @@ public actor DynamicPipeline {
         // Check for cancellation before starting pipeline execution
         try Task.checkCancellation(context: "DynamicPipeline execution cancelled before pipeline")
 
-        guard let anyHandler = await handlerRegistry.handler(for: T.self),
-              let handler = anyHandler as? AnyCommandHandler<T> else {
+        let chain = try resolveChain(for: T.self)
+        return try await chain(command, context)
+    }
+
+    // Selection and cache publication stay in this synchronous actor-isolated call.
+    private func resolveChain<T: Command>(
+        for commandType: T.Type
+    ) throws -> @Sendable (T, CommandContext) async throws -> T.Result {
+        guard let handler = handlerStorage.handler(for: commandType) else {
             throw PipelineError.handlerNotFound(commandType: String(describing: T.self))
         }
 
@@ -286,7 +293,7 @@ public actor DynamicPipeline {
         //
         // `insertCancellationChecks: true` preserves the prior behavior of checking for
         // cancellation before each middleware and before the handler.
-        let cacheKey = ObjectIdentifier(T.self)
+        let cacheKey = ObjectIdentifier(commandType)
         let chain: @Sendable (T, CommandContext) async throws -> T.Result
         if let cached = chainCache[cacheKey] as? @Sendable (T, CommandContext) async throws -> T.Result {
             chain = cached
@@ -302,7 +309,7 @@ public actor DynamicPipeline {
             chain = built
         }
 
-        return try await chain(command, context)
+        return chain
     }
 
     private func withRetry<T: Command>(retryPolicy: RetryPolicy, command: T, operation: @escaping @Sendable () async throws -> T.Result) async throws -> T.Result {
@@ -375,7 +382,7 @@ public actor DynamicPipeline {
 
 
     public func clear() async {
-        await handlerRegistry.removeAllHandlers()
+        handlerStorage.removeAllHandlers()
         middlewares.removeAll()
         sortedMiddlewaresCache = nil  // Invalidate cache
         chainCache.removeAll()        // Invalidate built chains (handlers and middleware cleared)
@@ -401,11 +408,11 @@ public actor DynamicPipeline {
 
     public var registeredCommandTypes: [String] {
         get async {
-            await handlerRegistry.registeredCommandTypes
+            handlerStorage.registeredCommandTypes
         }
     }
 
     public func hasHandler<T: Command>(for commandType: T.Type) async -> Bool {
-        await handlerRegistry.hasHandler(for: commandType)
+        handlerStorage.hasHandler(for: commandType)
     }
 }
