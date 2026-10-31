@@ -218,46 +218,73 @@ final class BulkheadMiddlewareTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(totalTime, commandDuration * 2.8) // Sequential execution
     }
 
+    private enum TimedWrapper: String, CaseIterable {
+        case ordinary, partitioned
+    }
+
+    private func timedSubject(
+        _ wrapper: TimedWrapper,
+        queue: Int,
+        timeout: TimeInterval,
+        admission: AdmissionGate? = nil
+    ) -> BulkheadAdmissionSubject {
+        switch wrapper {
+        case .ordinary:
+            let config = BulkheadMiddleware.Configuration(
+                maxConcurrency: 1, maxQueueSize: queue, queueTimeout: timeout, rejectionPolicy: .queue
+            )
+            let middleware = admission.map { BulkheadMiddleware(configuration: config, admission: $0) }
+                ?? BulkheadMiddleware(configuration: config)
+            return .ordinary(middleware)
+        case .partitioned:
+            let config = PartitionedBulkheadMiddleware.Configuration(
+                partitions: ["default": .init(capacity: 1, queueSize: queue, queueTimeout: timeout)],
+                partitionExtractor: { _, _ in "default" }, allowBorrowing: false
+            )
+            let middleware = admission.map { PartitionedBulkheadMiddleware(configuration: config, admissions: ["default": $0]) }
+                ?? PartitionedBulkheadMiddleware(configuration: config)
+            return .partitioned(middleware)
+        }
+    }
+
     func testQueueTimeout() async throws {
-        let middleware = BulkheadMiddleware(configuration: .init(
-            maxConcurrency: 1, maxQueueSize: 1, queueTimeout: 0.01, rejectionPolicy: .queue
-        ))
-        let ledger = BulkheadHandlerLedger()
-        let subject = BulkheadAdmissionSubject.ordinary(middleware)
-        let holder = launchBulkhead(subject, id: "held", ledger: ledger)
-        while !(await ledger.entered("held")) { await Task.yield() }
-        let expiring = launchBulkhead(subject, id: "expired", ledger: ledger)
-        let result = await expiring.value
-        XCTAssertEqual(result, "timedOut")
-        let state = await middleware.admissionSnapshot()
-        XCTAssertEqual(state.active, 1)
-        XCTAssertEqual(state.queued, 0)
-        let entries = await ledger.entries
-        XCTAssertEqual(entries, ["held"])
-        await ledger.release("held")
-        let heldResult = await holder.value
-        XCTAssertEqual(heldResult, "success")
+        for wrapper in TimedWrapper.allCases {
+            let ledger = BulkheadHandlerLedger()
+            let subject = timedSubject(wrapper, queue: 1, timeout: 0.01)
+            let holder = launchBulkhead(subject, id: "held", ledger: ledger)
+            while !(await ledger.entered("held")) { await Task.yield() }
+            let expiring = launchBulkhead(subject, id: "expired", ledger: ledger)
+            let result = await expiring.value
+            XCTAssertEqual(result, "timedOut", wrapper.rawValue)
+            let state = await subject.snapshot()
+            XCTAssertEqual(state.active, 1)
+            XCTAssertEqual(state.queued, 0)
+            let entries = await ledger.entries
+            XCTAssertEqual(entries, ["held"])
+            await ledger.release("held")
+            let heldResult = await holder.value
+            XCTAssertEqual(heldResult, "success")
+        }
     }
 
     func testNonpositiveQueueTimeoutStillAllowsFreeCapacity() async {
-        for timeout in [0.0, -1.0] {
-            for queue in [0, 1] {
-                let middleware = BulkheadMiddleware(configuration: .init(
-                    maxConcurrency: 1, maxQueueSize: queue, queueTimeout: timeout, rejectionPolicy: .queue
-                ))
-                let ledger = BulkheadHandlerLedger()
-                let subject = BulkheadAdmissionSubject.ordinary(middleware)
-                let holder = launchBulkhead(subject, id: "held", ledger: ledger)
-                while !(await ledger.entered("held")) { await Task.yield() }
-                let expiring = launchBulkhead(subject, id: "expired", ledger: ledger)
-                let result = await expiring.value
-                XCTAssertEqual(result, "timedOut")
-                let state = await middleware.admissionSnapshot()
-                XCTAssertEqual(state.active, 1)
-                XCTAssertEqual(state.queued, 0)
-                await ledger.release("held")
-                let heldResult = await holder.value
-                XCTAssertEqual(heldResult, "success")
+        for wrapper in TimedWrapper.allCases {
+            for timeout in [0.0, -1.0] {
+                for queue in [0, 1] {
+                    let ledger = BulkheadHandlerLedger()
+                    let subject = timedSubject(wrapper, queue: queue, timeout: timeout)
+                    let holder = launchBulkhead(subject, id: "held", ledger: ledger)
+                    while !(await ledger.entered("held")) { await Task.yield() }
+                    let expiring = launchBulkhead(subject, id: "expired", ledger: ledger)
+                    let result = await expiring.value
+                    XCTAssertEqual(result, "timedOut", wrapper.rawValue)
+                    let state = await subject.snapshot()
+                    XCTAssertEqual(state.active, 1)
+                    XCTAssertEqual(state.queued, 0)
+                    await ledger.release("held")
+                    let heldResult = await holder.value
+                    XCTAssertEqual(heldResult, "success")
+                }
             }
         }
     }
@@ -278,46 +305,45 @@ final class BulkheadMiddlewareTests: XCTestCase {
         let instant = ContinuousClock.now
         XCTAssertEqual(instant.duration(to: instant.advanced(by: .seconds(maximum))), .seconds(maximum))
 
-        for item in cases {
-            for queue in [0, 1] {
-                let label = "timeout=\(item.value), queue=\(queue)"
-                let clock = ManualAdmissionClock()
-                let gate = AdmissionGate(capacity: 1, maxQueueSize: queue,
-                    now: { clock.now() }, sleep: { try await clock.sleep(for: $0) })
-                let middleware = BulkheadMiddleware(configuration: .init(
-                    maxConcurrency: 1, maxQueueSize: queue, queueTimeout: item.value, rejectionPolicy: .queue
-                ), admission: gate)
-                let ledger = BulkheadHandlerLedger()
-                let subject = BulkheadAdmissionSubject.ordinary(middleware)
-                let holder = launchBulkhead(subject, id: "held", ledger: ledger)
-                while !(await ledger.entered("held")) { await Task.yield() }
-                let waiter = launchBulkhead(subject, id: "waiter", ledger: ledger)
-                if !item.noWait && queue > 0 {
-                    await clock.waitForSleepers(1)
-                    let registered = await gate.snapshot()
-                    XCTAssertEqual(registered.queued, 1, label)
-                    clock.advance(by: .seconds(item.value))
+        for wrapper in TimedWrapper.allCases {
+            for item in cases {
+                for queue in [0, 1] {
+                    let label = "\(wrapper.rawValue), timeout=\(item.value), queue=\(queue)"
+                    let clock = ManualAdmissionClock()
+                    let gate = AdmissionGate(capacity: 1, maxQueueSize: queue,
+                        now: { clock.now() }, sleep: { try await clock.sleep(for: $0) })
+                    let ledger = BulkheadHandlerLedger()
+                    let subject = timedSubject(wrapper, queue: queue, timeout: item.value, admission: gate)
+                    let holder = launchBulkhead(subject, id: "held", ledger: ledger)
+                    while !(await ledger.entered("held")) { await Task.yield() }
+                    let waiter = launchBulkhead(subject, id: "waiter", ledger: ledger)
+                    if !item.noWait && queue > 0 {
+                        await clock.waitForSleepers(1)
+                        let registered = await gate.snapshot()
+                        XCTAssertEqual(registered.queued, 1, label)
+                        clock.advance(by: .seconds(item.value))
+                    }
+                    let result = await waiter.value
+                    XCTAssertEqual(result, item.noWait || queue > 0 ? "timedOut" : "rejected", label)
+                    await clock.waitForSettlement()
+                    XCTAssertEqual(clock.callCount, !item.noWait && queue > 0 ? 1 : 0, label)
+                    let retained = await gate.snapshot()
+                    XCTAssertEqual(retained.active, 1, label)
+                    XCTAssertEqual(retained.queued, 0, label)
+                    let entries = await ledger.entries
+                    XCTAssertEqual(entries, ["held"], label)
+                    await ledger.release("held")
+                    let holderResult = await holder.value
+                    XCTAssertEqual(holderResult, "success", label)
+                    let settled = await gate.snapshot()
+                    XCTAssertEqual(settled.active, 0, label)
+                    XCTAssertEqual(settled.queued, 0, label)
                 }
-                let result = await waiter.value
-                XCTAssertEqual(result, item.noWait || queue > 0 ? "timedOut" : "rejected", label)
-                await clock.waitForSettlement()
-                XCTAssertEqual(clock.callCount, !item.noWait && queue > 0 ? 1 : 0, label)
-                let retained = await gate.snapshot()
-                XCTAssertEqual(retained.active, 1, label)
-                XCTAssertEqual(retained.queued, 0, label)
-                let entries = await ledger.entries
-                XCTAssertEqual(entries, ["held"], label)
-                await ledger.release("held")
-                let holderResult = await holder.value
-                XCTAssertEqual(holderResult, "success", label)
-                let settled = await gate.snapshot()
-                XCTAssertEqual(settled.active, 0, label)
-                XCTAssertEqual(settled.queued, 0, label)
             }
         }
     }
 
-    // The external R02 timeout driver selects invalid values in isolated test
+    // The external timeout driver selects invalid values in isolated test
     // processes and checks the explicit validation diagnostic before a trap.
     // A normal suite invocation checks valid public construction instead.
     func testQueueTimeoutConfigurationValidationProbe() async throws {
@@ -325,15 +351,17 @@ final class BulkheadMiddlewareTests: XCTestCase {
         let selected = environment["PIPELINEKIT_R02_INVALID_TIMEOUT"]
         let timeout = try XCTUnwrap(Double(selected ?? "86400"))
         let queue = Int(environment["PIPELINEKIT_R02_QUEUE_SIZE"] ?? "0") ?? 0
-        let middleware = BulkheadMiddleware(configuration: .init(
-            maxConcurrency: 1, maxQueueSize: queue, queueTimeout: timeout, rejectionPolicy: .queue
-        ))
-        if selected != nil {
-            XCTFail("R02 invalid queue timeout was accepted instead of explicit configuration validation")
-        } else {
-            let snapshot = await middleware.admissionSnapshot()
-            XCTAssertEqual(snapshot.active, 0)
-            XCTAssertEqual(snapshot.queued, 0)
+        let wrapperName = environment["PIPELINEKIT_R02_WRAPPER"]
+        let wrappers = wrapperName.map { [TimedWrapper(rawValue: $0)!] } ?? TimedWrapper.allCases
+        for wrapper in wrappers {
+            let subject = timedSubject(wrapper, queue: queue, timeout: timeout)
+            if selected != nil {
+                XCTFail("Invalid queue timeout was accepted instead of explicit configuration validation: \(wrapper.rawValue)")
+            } else {
+                let snapshot = await subject.snapshot()
+                XCTAssertEqual(snapshot.active, 0)
+                XCTAssertEqual(snapshot.queued, 0)
+            }
         }
     }
 

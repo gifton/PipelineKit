@@ -1,0 +1,242 @@
+Building for debugging...
+[Computing dependencies]
+[Using on-disk description]
+[1 / 5] PipelineKitTestSupport
+[2 / 63] _CircuitBreaker
+[4 / 65] _CircuitBreaker
+[12 / 71] PipelineKitResilience
+[17 / 76] PipelineKitPooling
+[27 / 81] PipelineKitSecurity
+[30 / 84] PipelineKitSecurity
+[32 / 83] PipelineKitTestSupport
+[36 / 87] PipelineKitTestSupport
+[49 / 76] PipelineKitObservabilityTests-product
+[51 / 77] PipelineKitObservabilityTests-product
+[51 / 77] PipelineKitPoolingTests-product
+[61 / 82] PipelineKitCacheTests-product
+[75 / 123] PipelineKitSecurityTests-product
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/AuthorizationMiddlewareTests.swift:117:9: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+115 |         // Test editor (has both roles)
+116 |         let editorContext = CommandContext()
+117 |         await editorContext.setMetadata("authUserId", value: "editor")
+    |         `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+118 |         
+119 |         let editorResult = try await middleware.execute(command, context: editorContext) { cmd, _ in
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/AuthorizationMiddlewareTests.swift:126:9: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+124 |         // Test reader (missing write role)
+125 |         let readerContext = CommandContext()
+126 |         await readerContext.setMetadata("authUserId", value: "reader")
+    |         `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+127 |         
+128 |         do {
+
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCoreTests/Errors/CancellationErrorTests.swift:88:9: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+ 86 |         
+ 87 |         // Cancel after a short delay
+ 88 |         Task {
+    |         |- warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+    |         `- note: to silence this warning, handle the error inside the task, or store/discard the task value explicitly
+ 89 |             try await Task.sleep(nanoseconds: 25_000_000) // 25ms
+ 90 |             task.cancel()
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCoreTests/Errors/CancellationErrorTests.swift:170:9: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+168 |         
+169 |         // Cancel after 50ms
+170 |         Task {
+    |         |- warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+    |         `- note: to silence this warning, handle the error inside the task, or store/discard the task value explicitly
+171 |             try await Task.sleep(nanoseconds: 50_000_000)
+172 |             task.cancel()
+
+[#NoUseUnstructuredThrowingTask]: <https://docs.swift.org/compiler/documentation/diagnostics/no-use-throwing-unstructured-task>
+[86 / 124] PipelineKitTests-product
+[90 / 124] PipelineKitTests-product
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCoreTests/Middleware/MiddlewareTests.swift:138:25: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+136 |         
+137 |         _ = try await middleware.execute(command, context: context) { _, ctx in
+138 |             let value = await ctx.getMetadata("test") as? String
+    |                         `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+139 |             XCTAssertEqual(value, "modified")
+140 |             return "done"
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCoreTests/Pipeline/PipelineTests.swift:241:32: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+239 |             try await middleware2.execute(cmd, context: ctx) { c, finalCtx in
+240 |                 // Verify context has both values
+241 |                 let metadata = await finalCtx.getMetadata()
+    |                                `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+242 |                 XCTAssertEqual(metadata["key1"] as? String, "value1")
+243 |                 XCTAssertEqual(metadata["key2"] as? String, "value2")
+
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>
+[101 / 126] PipelineKitResilienceTests-product
+[105 / 126] PipelineKitResilienceTests-product
+[110 / 126] PipelineKitResilienceTests-product
+[128 / 136] PipelineKitResilienceTests-product
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/PartitionedBulkheadConfigurationTests.swift:35:31: warning: 'maxBorrowPercentage' is deprecated: renamed to 'reservedCapacityPercentage' [#DeprecatedDeclaration]
+ 33 |         )
+ 34 |         // Deprecation warnings below are expected: the test pins the shims.
+ 35 |         XCTAssertEqual(config.maxBorrowPercentage, 0.5, accuracy: .ulpOfOne)
+    |                               |- warning: 'maxBorrowPercentage' is deprecated: renamed to 'reservedCapacityPercentage' [#DeprecatedDeclaration]
+    |                               `- note: use 'reservedCapacityPercentage' instead
+ 36 | 
+ 37 |         let legacy = PartitionedBulkheadMiddleware.Configuration(
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/PartitionedBulkheadConfigurationTests.swift:37:52: warning: 'init(partitions:partitionExtractor:defaultPartition:allowBorrowing:maxBorrowPercentage:emitMetrics:)' is deprecated: maxBorrowPercentage has always been the reserved (non-lendable) share — use reservedCapacityPercentage, which has identical semantics. [#DeprecatedDeclaration]
+ 35 |         XCTAssertEqual(config.maxBorrowPercentage, 0.5, accuracy: .ulpOfOne)
+ 36 | 
+ 37 |         let legacy = PartitionedBulkheadMiddleware.Configuration(
+    |                                                    `- warning: 'init(partitions:partitionExtractor:defaultPartition:allowBorrowing:maxBorrowPercentage:emitMetrics:)' is deprecated: maxBorrowPercentage has always been the reserved (non-lendable) share — use reservedCapacityPercentage, which has identical semantics. [#DeprecatedDeclaration]
+ 38 |             partitions: Self.partitions,
+ 39 |             partitionExtractor: { _, _ in "default" },
+
+[#DeprecatedDeclaration]: <https://docs.swift.org/compiler/documentation/diagnostics/deprecated-declaration>
+[130 / 137] PipelineKitResilienceTests-product
+[130 / 137] PipelineKitCoreTests-product
+[134 / 141] PipelineKitTests-product
+[136 / 139] PipelineKitResilienceTests-product
+[138 / 142] PipelineKitResilienceTests-product
+Build complete! (4.51 sec)
+Test Suite 'Selected tests' started at 2026-10-30 19:07:14.796.
+Test Suite 'PipelineKitTests.xctest' started at 2026-10-30 19:07:14.796.
+Test Suite 'PipelineKitTests.xctest' passed at 2026-10-30 19:07:14.796.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 19:07:14.796.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 19:07:14.873.
+Test Suite 'PipelineKitTestSupportTests.xctest' started at 2026-10-30 19:07:14.874.
+Test Suite 'PipelineKitTestSupportTests.xctest' passed at 2026-10-30 19:07:14.874.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 19:07:14.874.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 19:07:14.952.
+Test Suite 'PipelineKitSecurityTests.xctest' started at 2026-10-30 19:07:14.953.
+Test Suite 'PipelineKitSecurityTests.xctest' passed at 2026-10-30 19:07:14.953.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 19:07:14.953.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 19:07:15.012.
+Test Suite 'PipelineKitResilienceTests.xctest' started at 2026-10-30 19:07:15.013.
+Test Suite 'BulkheadAdmissionConservationTests' started at 2026-10-30 19:07:15.013.
+Test Case '-[PipelineKitResilienceTests.BulkheadAdmissionConservationTests testImmediateAdmissionCancellationReleasesCapacity]' started.
+Test Case '-[PipelineKitResilienceTests.BulkheadAdmissionConservationTests testImmediateAdmissionCancellationReleasesCapacity]' passed (0.001 seconds).
+Test Case '-[PipelineKitResilienceTests.BulkheadAdmissionConservationTests testLegacyHandoffNeverExposesCapacityToNewArrival]' started.
+Test Case '-[PipelineKitResilienceTests.BulkheadAdmissionConservationTests testLegacyHandoffNeverExposesCapacityToNewArrival]' passed (0.001 seconds).
+Test Case '-[PipelineKitResilienceTests.BulkheadAdmissionConservationTests testQueueBudgetIsReusableAcrossAcknowledgedWaves]' started.
+Test Case '-[PipelineKitResilienceTests.BulkheadAdmissionConservationTests testQueueBudgetIsReusableAcrossAcknowledgedWaves]' passed (0.006 seconds).
+Test Case '-[PipelineKitResilienceTests.BulkheadAdmissionConservationTests testQueuedCancellationAndActiveCancellationConserveOwnership]' started.
+Test Case '-[PipelineKitResilienceTests.BulkheadAdmissionConservationTests testQueuedCancellationAndActiveCancellationConserveOwnership]' passed (0.002 seconds).
+Test Suite 'BulkheadAdmissionConservationTests' passed at 2026-10-30 19:07:15.024.
+	 Executed 4 tests, with 0 failures (0 unexpected) in 0.010 (0.011) seconds
+Test Suite 'BulkheadMiddlewareTests' started at 2026-10-30 19:07:15.024.
+Test Case '-[PipelineKitResilienceTests.BulkheadMiddlewareTests testConcurrencyLimiting]' started.
+Test Case '-[PipelineKitResilienceTests.BulkheadMiddlewareTests testConcurrencyLimiting]' passed (0.207 seconds).
+Test Case '-[PipelineKitResilienceTests.BulkheadMiddlewareTests testCustomRejectionPolicy]' started.
+Test Case '-[PipelineKitResilienceTests.BulkheadMiddlewareTests testCustomRejectionPolicy]' passed (0.215 seconds).
+Test Case '-[PipelineKitResilienceTests.BulkheadMiddlewareTests testFailFastRejectionPolicy]' started.
+Test Case '-[PipelineKitResilienceTests.BulkheadMiddlewareTests testFailFastRejectionPolicy]' passed (0.214 seconds).
+Test Case '-[PipelineKitResilienceTests.BulkheadMiddlewareTests testFallbackPolicy]' started.
+Test Case '-[PipelineKitResilienceTests.BulkheadMiddlewareTests testFallbackPolicy]' passed (0.208 seconds).
+Test Case '-[PipelineKitResilienceTests.BulkheadMiddlewareTests testHighConcurrencyStress]' started.
+Test Case '-[PipelineKitResilienceTests.BulkheadMiddlewareTests testHighConcurrencyStress]' passed (0.068 seconds).
+Test Case '-[PipelineKitResilienceTests.BulkheadMiddlewareTests testMetricsTracking]' started.
+Test Case '-[PipelineKitResilienceTests.BulkheadMiddlewareTests testMetricsTracking]' passed (0.001 seconds).
+Test Case '-[PipelineKitResilienceTests.BulkheadMiddlewareTests testNonpositiveQueueTimeoutStillAllowsFreeCapacity]' started.
+Test Case '-[PipelineKitResilienceTests.BulkheadMiddlewareTests testNonpositiveQueueTimeoutStillAllowsFreeCapacity]' passed (0.017 seconds).
+Test Case '-[PipelineKitResilienceTests.BulkheadMiddlewareTests testQueueingPolicy]' started.
+Test Case '-[PipelineKitResilienceTests.BulkheadMiddlewareTests testQueueingPolicy]' passed (0.159 seconds).
+Test Case '-[PipelineKitResilienceTests.BulkheadMiddlewareTests testQueueTimeout]' started.
+Test Case '-[PipelineKitResilienceTests.BulkheadMiddlewareTests testQueueTimeout]' passed (0.037 seconds).
+Test Case '-[PipelineKitResilienceTests.BulkheadMiddlewareTests testQueueTimeoutConfigurationValidationProbe]' started.
+Test Case '-[PipelineKitResilienceTests.BulkheadMiddlewareTests testQueueTimeoutConfigurationValidationProbe]' passed (0.001 seconds).
+Test Case '-[PipelineKitResilienceTests.BulkheadMiddlewareTests testQueueTimeoutRangeAndNormalizationBoundaries]' started.
+Test Case '-[PipelineKitResilienceTests.BulkheadMiddlewareTests testQueueTimeoutRangeAndNormalizationBoundaries]' passed (0.055 seconds).
+Test Case '-[PipelineKitResilienceTests.BulkheadMiddlewareTests testRejectionHandler]' started.
+Test Case '-[PipelineKitResilienceTests.BulkheadMiddlewareTests testRejectionHandler]' passed (0.203 seconds).
+Test Case '-[PipelineKitResilienceTests.BulkheadMiddlewareTests testTaggedAndTaskGroupModesRetainSharedCapacity]' started.
+Test Case '-[PipelineKitResilienceTests.BulkheadMiddlewareTests testTaggedAndTaskGroupModesRetainSharedCapacity]' passed (0.006 seconds).
+Test Suite 'BulkheadMiddlewareTests' passed at 2026-10-30 19:07:16.418.
+	 Executed 13 tests, with 0 failures (0 unexpected) in 1.391 (1.394) seconds
+Test Suite 'PartitionedBulkheadAdmissionTests' started at 2026-10-30 19:07:16.418.
+Test Case '-[PipelineKitResilienceTests.PartitionedBulkheadAdmissionTests testCancelledWaiterDoesNotOrphanSiblingBeforeOrDuringGrant]' started.
+Test Case '-[PipelineKitResilienceTests.PartitionedBulkheadAdmissionTests testCancelledWaiterDoesNotOrphanSiblingBeforeOrDuringGrant]' passed (0.002 seconds).
+Test Case '-[PipelineKitResilienceTests.PartitionedBulkheadAdmissionTests testDonorReserveAndQueuePriorityAreAtomic]' started.
+Test Case '-[PipelineKitResilienceTests.PartitionedBulkheadAdmissionTests testDonorReserveAndQueuePriorityAreAtomic]' passed (0.013 seconds).
+Test Case '-[PipelineKitResilienceTests.PartitionedBulkheadAdmissionTests testPublicQueueTimeoutReturnsWhileHolderIsActive]' started.
+Test Case '-[PipelineKitResilienceTests.PartitionedBulkheadAdmissionTests testPublicQueueTimeoutReturnsWhileHolderIsActive]' passed (0.017 seconds).
+Test Case '-[PipelineKitResilienceTests.PartitionedBulkheadAdmissionTests testQueuedHandoffTransfersOneLease]' started.
+Test Case '-[PipelineKitResilienceTests.PartitionedBulkheadAdmissionTests testQueuedHandoffTransfersOneLease]' passed (0.001 seconds).
+Test Case '-[PipelineKitResilienceTests.PartitionedBulkheadAdmissionTests testTimedOutWaiterDoesNotWaitForHolderOrOrphanSibling]' started.
+Test Case '-[PipelineKitResilienceTests.PartitionedBulkheadAdmissionTests testTimedOutWaiterDoesNotWaitForHolderOrOrphanSibling]' passed (0.002 seconds).
+Test Suite 'PartitionedBulkheadAdmissionTests' passed at 2026-10-30 19:07:16.454.
+	 Executed 5 tests, with 0 failures (0 unexpected) in 0.035 (0.035) seconds
+Test Suite 'PartitionedBulkheadConfigurationTests' started at 2026-10-30 19:07:16.454.
+Test Case '-[PipelineKitResilienceTests.PartitionedBulkheadConfigurationTests testConfigurationValidationProbe]' started.
+Test Case '-[PipelineKitResilienceTests.PartitionedBulkheadConfigurationTests testConfigurationValidationProbe]' passed (0.000 seconds).
+Test Case '-[PipelineKitResilienceTests.PartitionedBulkheadConfigurationTests testDeprecatedAliasAndInitForwardToReservedCapacityPercentage]' started.
+Test Case '-[PipelineKitResilienceTests.PartitionedBulkheadConfigurationTests testDeprecatedAliasAndInitForwardToReservedCapacityPercentage]' passed (0.000 seconds).
+Test Case '-[PipelineKitResilienceTests.PartitionedBulkheadConfigurationTests testReservedCapacityPercentageIsPrimaryAndDefaultsUnchanged]' started.
+Test Case '-[PipelineKitResilienceTests.PartitionedBulkheadConfigurationTests testReservedCapacityPercentageIsPrimaryAndDefaultsUnchanged]' passed (0.000 seconds).
+Test Case '-[PipelineKitResilienceTests.PartitionedBulkheadConfigurationTests testReserveRoundingAndIntegerCapacityBoundaries]' started.
+Test Case '-[PipelineKitResilienceTests.PartitionedBulkheadConfigurationTests testReserveRoundingAndIntegerCapacityBoundaries]' passed (0.013 seconds).
+Test Case '-[PipelineKitResilienceTests.PartitionedBulkheadConfigurationTests testSelectorFallbackAndMetadataArePreserved]' started.
+Test Case '-[PipelineKitResilienceTests.PartitionedBulkheadConfigurationTests testSelectorFallbackAndMetadataArePreserved]' passed (0.002 seconds).
+Test Suite 'PartitionedBulkheadConfigurationTests' passed at 2026-10-30 19:07:16.469.
+	 Executed 5 tests, with 0 failures (0 unexpected) in 0.015 (0.016) seconds
+Test Suite 'PipelineKitResilienceTests.xctest' passed at 2026-10-30 19:07:16.469.
+	 Executed 27 tests, with 0 failures (0 unexpected) in 1.451 (1.456) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 19:07:16.469.
+	 Executed 27 tests, with 0 failures (0 unexpected) in 1.451 (1.457) seconds
+R02 handoff ordinary capacity=1: ["attempt:A0", "entered:A0", "attempt:B", "queued:B", "release:A0", "attempt:C", "settled:A0", "entered:B", "queued:C", "release:B", "settled:B", "entered:C", "terminal:A0:success", "release:C", "terminal:B:success", "settled:C", "terminal:C:success"]
+R02 handoff legacy capacity=1: ["attempt:A0", "entered:A0", "attempt:B", "queued:B", "release:A0", "attempt:C", "settled:A0", "terminal:A0:success", "entered:B", "queued:C", "release:B", "settled:B", "terminal:B:success", "entered:C", "release:C", "settled:C", "terminal:C:success"]
+R02 handoff partitioned capacity=1: ["attempt:A0", "entered:A0", "attempt:B", "queued:B", "release:A0", "attempt:C", "settled:A0", "entered:B", "terminal:A0:success", "queued:C", "release:B", "settled:B", "entered:C", "release:C", "settled:C", "terminal:B:success", "terminal:C:success"]
+R02 handoff ordinary capacity=2: ["attempt:A0", "entered:A0", "attempt:A1", "entered:A1", "attempt:B", "queued:B", "release:A0", "attempt:C", "settled:A0", "entered:B", "queued:C", "release:B", "terminal:A0:success", "settled:B", "entered:C", "release:C", "terminal:B:success", "release:A1", "settled:C", "settled:A1", "terminal:C:success", "terminal:A1:success"]
+R02 handoff legacy capacity=2: ["attempt:A0", "entered:A0", "attempt:A1", "entered:A1", "attempt:B", "queued:B", "release:A0", "attempt:C", "settled:A0", "terminal:A0:success", "entered:B", "queued:C", "release:B", "settled:B", "terminal:B:success", "entered:C", "release:C", "release:A1", "settled:C", "settled:A1", "terminal:C:success", "terminal:A1:success"]
+R02 handoff partitioned capacity=2: ["attempt:A0", "entered:A0", "attempt:A1", "entered:A1", "attempt:B", "queued:B", "release:A0", "attempt:C", "settled:A0", "entered:B", "queued:C", "release:B", "settled:B", "terminal:A0:success", "entered:C", "release:C", "release:A1", "terminal:B:success", "settled:C", "settled:A1", "terminal:C:success", "terminal:A1:success"]
+R02 waves ordinary: ["attempt:holder-0", "entered:holder-0", "attempt:waiter-0", "queued:waiter-0", "release:holder-0", "release:waiter-0", "settled:holder-0", "terminal:holder-0:success", "entered:waiter-0", "settled:waiter-0", "terminal:waiter-0:success", "attempt:holder-1", "entered:holder-1", "attempt:waiter-1", "queued:waiter-1", "release:holder-1", "release:waiter-1", "settled:holder-1", "terminal:holder-1:success", "entered:waiter-1", "settled:waiter-1", "terminal:waiter-1:handlerError", "attempt:holder-2", "entered:holder-2", "attempt:waiter-2", "queued:waiter-2", "cancel:waiter-2", "release:holder-2", "release:waiter-2", "settled:holder-2", "terminal:waiter-2:cancelled", "terminal:holder-2:success", "attempt:holder-3", "entered:holder-3", "attempt:waiter-3", "queued:waiter-3", "release:holder-3", "release:waiter-3", "settled:holder-3", "terminal:holder-3:success", "entered:waiter-3", "settled:waiter-3", "terminal:waiter-3:success", "attempt:holder-4", "entered:holder-4", "attempt:waiter-4", "queued:waiter-4", "release:holder-4", "release:waiter-4", "settled:holder-4", "entered:waiter-4", "settled:waiter-4", "terminal:holder-4:success", "terminal:waiter-4:handlerError", "attempt:holder-5", "entered:holder-5", "attempt:waiter-5", "queued:waiter-5", "cancel:waiter-5", "release:holder-5", "release:waiter-5", "settled:holder-5", "terminal:waiter-5:cancelled", "terminal:holder-5:success", "attempt:holder-6", "entered:holder-6", "attempt:waiter-6", "queued:waiter-6", "release:holder-6", "release:waiter-6", "settled:holder-6", "entered:waiter-6", "settled:waiter-6", "terminal:holder-6:success", "terminal:waiter-6:success", "attempt:holder-7", "entered:holder-7", "attempt:waiter-7", "queued:waiter-7", "release:holder-7", "release:waiter-7", "settled:holder-7", "entered:waiter-7", "settled:waiter-7", "terminal:holder-7:success", "terminal:waiter-7:handlerError"]
+R02 waves legacy: ["attempt:holder-0", "entered:holder-0", "attempt:waiter-0", "queued:waiter-0", "release:holder-0", "release:waiter-0", "settled:holder-0", "terminal:holder-0:success", "entered:waiter-0", "settled:waiter-0", "terminal:waiter-0:success", "attempt:holder-1", "entered:holder-1", "attempt:waiter-1", "queued:waiter-1", "release:holder-1", "release:waiter-1", "settled:holder-1", "terminal:holder-1:success", "entered:waiter-1", "settled:waiter-1", "terminal:waiter-1:handlerError", "attempt:holder-2", "entered:holder-2", "attempt:waiter-2", "queued:waiter-2", "cancel:waiter-2", "release:holder-2", "release:waiter-2", "settled:holder-2", "terminal:holder-2:success", "terminal:waiter-2:cancelled", "attempt:holder-3", "entered:holder-3", "attempt:waiter-3", "queued:waiter-3", "release:holder-3", "release:waiter-3", "settled:holder-3", "terminal:holder-3:success", "entered:waiter-3", "settled:waiter-3", "terminal:waiter-3:success", "attempt:holder-4", "entered:holder-4", "attempt:waiter-4", "queued:waiter-4", "release:holder-4", "release:waiter-4", "settled:holder-4", "terminal:holder-4:success", "entered:waiter-4", "settled:waiter-4", "terminal:waiter-4:handlerError", "attempt:holder-5", "entered:holder-5", "attempt:waiter-5", "queued:waiter-5", "cancel:waiter-5", "release:holder-5", "release:waiter-5", "settled:holder-5", "terminal:holder-5:success", "terminal:waiter-5:cancelled", "attempt:holder-6", "entered:holder-6", "attempt:waiter-6", "queued:waiter-6", "release:holder-6", "release:waiter-6", "settled:holder-6", "terminal:holder-6:success", "entered:waiter-6", "settled:waiter-6", "terminal:waiter-6:success", "attempt:holder-7", "entered:holder-7", "attempt:waiter-7", "queued:waiter-7", "release:holder-7", "release:waiter-7", "settled:holder-7", "terminal:holder-7:success", "entered:waiter-7", "settled:waiter-7", "terminal:waiter-7:handlerError"]
+R02 waves partitioned: ["attempt:holder-0", "entered:holder-0", "attempt:waiter-0", "queued:waiter-0", "release:holder-0", "release:waiter-0", "settled:holder-0", "entered:waiter-0", "settled:waiter-0", "terminal:holder-0:success", "terminal:waiter-0:success", "attempt:holder-1", "entered:holder-1", "attempt:waiter-1", "queued:waiter-1", "release:holder-1", "release:waiter-1", "settled:holder-1", "entered:waiter-1", "settled:waiter-1", "terminal:holder-1:success", "terminal:waiter-1:handlerError", "attempt:holder-2", "entered:holder-2", "attempt:waiter-2", "queued:waiter-2", "cancel:waiter-2", "release:holder-2", "release:waiter-2", "settled:holder-2", "terminal:waiter-2:cancelled", "terminal:holder-2:success", "attempt:holder-3", "entered:holder-3", "attempt:waiter-3", "queued:waiter-3", "release:holder-3", "release:waiter-3", "settled:holder-3", "entered:waiter-3", "settled:waiter-3", "terminal:holder-3:success", "terminal:waiter-3:success", "attempt:holder-4", "entered:holder-4", "attempt:waiter-4", "queued:waiter-4", "release:holder-4", "release:waiter-4", "settled:holder-4", "entered:waiter-4", "settled:waiter-4", "terminal:holder-4:success", "terminal:waiter-4:handlerError", "attempt:holder-5", "entered:holder-5", "attempt:waiter-5", "queued:waiter-5", "cancel:waiter-5", "release:holder-5", "release:waiter-5", "settled:holder-5", "terminal:waiter-5:cancelled", "terminal:holder-5:success", "attempt:holder-6", "entered:holder-6", "attempt:waiter-6", "queued:waiter-6", "release:holder-6", "release:waiter-6", "settled:holder-6", "entered:waiter-6", "settled:waiter-6", "terminal:holder-6:success", "terminal:waiter-6:success", "attempt:holder-7", "entered:holder-7", "attempt:waiter-7", "queued:waiter-7", "release:holder-7", "release:waiter-7", "settled:holder-7", "entered:waiter-7", "settled:waiter-7", "terminal:holder-7:success", "terminal:waiter-7:handlerError"]
+R02 timeout ordinary: ["attempt:timeout-holder-0", "entered:timeout-holder-0", "attempt:expiring-0", "queued:expiring-0", "timeout:expiring-0", "terminal:expiring-0:timedOut", "attempt:replacement-0", "queued:replacement-0", "release:timeout-holder-0", "settled:timeout-holder-0", "terminal:timeout-holder-0:success", "entered:replacement-0", "release:replacement-0", "settled:replacement-0", "terminal:replacement-0:success", "attempt:timeout-holder-1", "entered:timeout-holder-1", "attempt:expiring-1", "queued:expiring-1", "timeout:expiring-1", "terminal:expiring-1:timedOut", "attempt:replacement-1", "queued:replacement-1", "release:timeout-holder-1", "settled:timeout-holder-1", "terminal:timeout-holder-1:success", "entered:replacement-1", "release:replacement-1", "settled:replacement-1", "terminal:replacement-1:handlerError", "attempt:timeout-holder-2", "entered:timeout-holder-2", "attempt:expiring-2", "queued:expiring-2", "timeout:expiring-2", "terminal:expiring-2:timedOut", "attempt:replacement-2", "queued:replacement-2", "release:timeout-holder-2", "settled:timeout-holder-2", "terminal:timeout-holder-2:success", "entered:replacement-2", "release:replacement-2", "settled:replacement-2", "terminal:replacement-2:success", "attempt:timeout-holder-3", "entered:timeout-holder-3", "attempt:expiring-3", "queued:expiring-3", "timeout:expiring-3", "terminal:expiring-3:timedOut", "attempt:replacement-3", "queued:replacement-3", "release:timeout-holder-3", "settled:timeout-holder-3", "terminal:timeout-holder-3:success", "entered:replacement-3", "release:replacement-3", "settled:replacement-3", "terminal:replacement-3:handlerError"]
+R02 cancellation ordinary: ["attempt:held", "entered:held", "attempt:cancelled", "queued:cancelled", "cancel:cancelled", "terminal:cancelled:cancelled", "cancel:held", "attempt:replacement", "queued:replacement", "release:rejected", "attempt:rejected", "terminal:rejected:rejected", "release:held", "settled:held", "terminal:held:success", "entered:replacement", "release:replacement", "settled:replacement", "terminal:replacement:success"]
+R02 cancellation legacy: ["attempt:held", "entered:held", "attempt:cancelled", "queued:cancelled", "cancel:cancelled", "terminal:cancelled:cancelled", "cancel:held", "attempt:replacement", "queued:replacement", "release:rejected", "attempt:rejected", "terminal:rejected:rejected", "release:held", "settled:held", "terminal:held:success", "entered:replacement", "release:replacement", "settled:replacement", "terminal:replacement:success"]
+R02 cancellation partitioned: ["attempt:held", "entered:held", "attempt:cancelled", "queued:cancelled", "cancel:cancelled", "terminal:cancelled:cancelled", "cancel:held", "attempt:replacement", "queued:replacement", "release:rejected", "attempt:rejected", "terminal:rejected:rejected", "release:held", "settled:held", "entered:replacement", "release:replacement", "settled:replacement", "terminal:held:success", "terminal:replacement:success"]
+R03 cancellation duringGrant=false: ["attempt:A", "entered:A", "attempt:B", "queued:B", "attempt:C", "queued:C", "cancel:B", "terminal:B:cancelled", "release:A", "settled:A", "entered:C", "terminal:A:success", "cancel:C-after-entry", "release:C", "settled:C", "terminal:C:success"]
+R03 cancellation duringGrant=true: ["attempt:A", "entered:A", "attempt:B", "queued:B", "attempt:C", "queued:C", "release:A", "cancel:B", "settled:A", "terminal:A:success", "terminal:B:cancelled", "entered:C", "cancel:C-after-entry", "release:C", "settled:C", "terminal:C:success"]
+R03 donor borrowing=false alias=false: ["attempt:local-A", "entered:local-A", "attempt:borrow-0", "attempt:borrow-1", "terminal:borrow-0:rejected", "terminal:borrow-1:rejected", "release:borrow-0", "release:borrow-1", "attempt:donor-A0", "entered:donor-A0", "attempt:donor-A1", "entered:donor-A1", "attempt:donor-queued", "queued:donor-queued", "attempt:borrow-blocked", "terminal:borrow-blocked:rejected", "release:donor-A0", "settled:donor-A0", "entered:donor-queued", "release:donor-queued", "terminal:donor-A0:success", "release:donor-A1", "settled:donor-queued", "settled:donor-A1", "terminal:donor-queued:success", "terminal:donor-A1:success", "release:local-A", "settled:local-A", "terminal:local-A:success"]
+R03 donor borrowing=false alias=true: ["attempt:local-A", "entered:local-A", "attempt:borrow-0", "attempt:borrow-1", "terminal:borrow-0:rejected", "terminal:borrow-1:rejected", "release:borrow-0", "release:borrow-1", "attempt:donor-A0", "entered:donor-A0", "attempt:donor-A1", "entered:donor-A1", "attempt:donor-queued", "queued:donor-queued", "attempt:borrow-blocked", "terminal:borrow-blocked:rejected", "release:donor-A0", "settled:donor-A0", "entered:donor-queued", "terminal:donor-A0:success", "release:donor-queued", "release:donor-A1", "settled:donor-queued", "settled:donor-A1", "terminal:donor-queued:success", "terminal:donor-A1:success", "release:local-A", "settled:local-A", "terminal:local-A:success"]
+R03 donor borrowing=true alias=false: ["attempt:local-A", "entered:local-A", "attempt:borrow-0", "attempt:borrow-1", "entered:borrow-0", "terminal:borrow-1:rejected", "release:borrow-0", "release:borrow-1", "settled:borrow-0", "terminal:borrow-0:success", "attempt:donor-A0", "entered:donor-A0", "attempt:donor-A1", "entered:donor-A1", "attempt:donor-queued", "queued:donor-queued", "attempt:borrow-blocked", "terminal:borrow-blocked:rejected", "release:donor-A0", "settled:donor-A0", "entered:donor-queued", "release:donor-queued", "terminal:donor-A0:success", "release:donor-A1", "settled:donor-queued", "settled:donor-A1", "terminal:donor-queued:success", "terminal:donor-A1:success", "release:local-A", "settled:local-A", "terminal:local-A:success"]
+R03 donor borrowing=true alias=true: ["attempt:local-A", "entered:local-A", "attempt:borrow-0", "attempt:borrow-1", "entered:borrow-0", "terminal:borrow-1:rejected", "release:borrow-0", "release:borrow-1", "settled:borrow-0", "terminal:borrow-0:success", "attempt:donor-A0", "entered:donor-A0", "attempt:donor-A1", "entered:donor-A1", "attempt:donor-queued", "queued:donor-queued", "attempt:borrow-blocked", "terminal:borrow-blocked:rejected", "release:donor-A0", "settled:donor-A0", "entered:donor-queued", "release:donor-queued", "release:donor-A1", "settled:donor-queued", "terminal:donor-A0:success", "settled:donor-A1", "terminal:donor-queued:success", "terminal:donor-A1:success", "release:local-A", "settled:local-A", "terminal:local-A:success"]
+R03 handoffs capacity=1: ["attempt:A0", "entered:A0", "attempt:B0", "queued:B0", "attempt:B1", "queued:B1", "attempt:B2", "queued:B2", "release:A0", "settled:A0", "entered:B0", "release:B0", "settled:B0", "terminal:A0:success", "entered:B1", "terminal:B0:success", "release:B1", "settled:B1", "entered:B2", "terminal:B1:handlerError", "release:B2", "settled:B2", "terminal:B2:success"]
+R03 handoffs capacity=2: ["attempt:A0", "entered:A0", "attempt:A1", "entered:A1", "attempt:B0", "queued:B0", "attempt:B1", "queued:B1", "attempt:B2", "queued:B2", "release:A0", "settled:A0", "entered:B0", "release:B0", "settled:B0", "terminal:A0:success", "entered:B1", "terminal:B0:success", "release:B1", "settled:B1", "entered:B2", "terminal:B1:handlerError", "release:B2", "settled:B2", "terminal:B2:success", "release:A1", "settled:A1", "terminal:A1:success"]
+R03 timeout siblings: ["attempt:A", "entered:A", "attempt:B", "queued:B", "attempt:C", "queued:C", "expiry:B", "terminal:B:timedOut", "release:A", "settled:A", "entered:C", "terminal:A:success", "release:C", "settled:C", "terminal:C:success"]
+Test Suite 'Selected tests' started at 2026-10-30 19:07:16.557.
+Test Suite 'PipelineKitPoolingTests.xctest' started at 2026-10-30 19:07:16.558.
+Test Suite 'PipelineKitPoolingTests.xctest' passed at 2026-10-30 19:07:16.558.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 19:07:16.558.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 19:07:16.635.
+Test Suite 'PipelineKitPerformanceTests.xctest' started at 2026-10-30 19:07:16.636.
+Test Suite 'PipelineKitPerformanceTests.xctest' passed at 2026-10-30 19:07:16.636.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 19:07:16.636.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 19:07:16.713.
+Test Suite 'PipelineKitObservabilityTests.xctest' started at 2026-10-30 19:07:16.714.
+Test Suite 'PipelineKitObservabilityTests.xctest' passed at 2026-10-30 19:07:16.714.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 19:07:16.714.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 19:07:16.791.
+Test Suite 'PipelineKitCoreTests.xctest' started at 2026-10-30 19:07:16.792.
+Test Suite 'PipelineKitCoreTests.xctest' passed at 2026-10-30 19:07:16.792.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 19:07:16.792.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 19:07:16.869.
+Test Suite 'PipelineKitCacheTests.xctest' started at 2026-10-30 19:07:16.870.
+Test Suite 'PipelineKitCacheTests.xctest' passed at 2026-10-30 19:07:16.870.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 19:07:16.870.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds

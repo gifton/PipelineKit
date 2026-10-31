@@ -171,10 +171,11 @@ SCP-09 remains open. This change makes no key-memory zeroization promise.
 
 ## Breaking: bounded positive bulkhead queue timeouts
 
-`BulkheadMiddleware.Configuration.queueTimeout` now accepts `nil`, any finite nonpositive
-value, or a finite positive value no greater than 86,400 seconds (24 hours). Middleware
+`BulkheadMiddleware.Configuration.queueTimeout` and
+`PartitionedBulkheadMiddleware.PartitionConfig.queueTimeout` now accept `nil`, any finite
+nonpositive value, or a finite positive value no greater than 86,400 seconds (24 hours). Middleware
 initialization explicitly fails its configuration precondition for a larger positive value,
-NaN or either infinity, including when the queue policy has `maxQueueSize: 0`. The 24-hour
+NaN or either infinity, including when the queue has `maxQueueSize: 0` or `queueSize: 0`. The 24-hour
 cap is a deliberate PipelineKit policy, not Swift Duration's intrinsic range limit. It bounds
 the TimeInterval conversion and leaves headroom for the default sleeper's immediate deadline
 addition. I01 must include this behavior change in the next minor release's consolidated
@@ -185,6 +186,10 @@ policy. Using `nil` plus application-managed cancellation is one option, but `ni
 unbounded admission wait: it does not preserve the old finite deadline. An admitted handler
 continues to own its capacity until it settles; this change adds no hard handler deadline or
 preemptive cancellation.
+
+Partitioned bulkheads also validate positive partition capacities, nonnegative queue sizes,
+and a finite reserved-capacity percentage in `0...1` before creating admission gates. The
+deprecated `maxBorrowPercentage` alias retains the same reserved-share semantics and validation.
 
 Finite nonpositive values normalize to zero without converting their magnitude, so even very
 large negative values permit immediate free capacity and return the existing queue-timeout

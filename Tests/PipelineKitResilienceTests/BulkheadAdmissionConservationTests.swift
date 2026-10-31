@@ -3,8 +3,7 @@ import PipelineKitCore
 import PipelineKitResilience
 import _ResilienceFoundation
 
-// R03 extends this small adapter with its partitioned wrapper. The schedules and
-// handler ledger below remain shared across each admission implementation.
+// The schedules and handler ledger remain shared across all three wrappers.
 struct BulkheadAdmissionSubject: Sendable {
     let name: String
     let execute: @Sendable (String, CommandContext, @escaping @Sendable () async throws -> String) async throws -> String
@@ -33,6 +32,21 @@ struct BulkheadAdmissionSubject: Sendable {
             let stats = await bulkhead.getStats()
             return (stats.activeCalls, stats.waitingCalls)
         })
+    }
+
+    static func partitioned(capacity: Int, queue: Int) -> Self {
+        partitioned(PartitionedBulkheadMiddleware(configuration: .init(
+            partitions: ["default": .init(capacity: capacity, queueSize: queue)],
+            partitionExtractor: { _, _ in "default" }, allowBorrowing: false
+        )))
+    }
+
+    static func partitioned(_ middleware: PartitionedBulkheadMiddleware, partition: String = "default") -> Self {
+        Self(name: "partitioned", execute: { id, context, operation in
+            try await middleware.execute(AdmissionCommand(id: id), context: context) { _, _ in
+                try await operation()
+            }
+        }, snapshot: { await middleware.admissionSnapshot(partition: partition) })
     }
 }
 
@@ -112,7 +126,11 @@ func launchBulkhead(
 
 final class BulkheadAdmissionConservationTests: XCTestCase {
     private func subjects(capacity: Int, queue: Int) -> [BulkheadAdmissionSubject] {
-        [.ordinary(capacity: capacity, queue: queue), .legacy(capacity: capacity, queue: queue)]
+        [
+            .ordinary(capacity: capacity, queue: queue),
+            .legacy(capacity: capacity, queue: queue),
+            .partitioned(capacity: capacity, queue: queue)
+        ]
     }
 
     private func entered(_ id: String, ledger: BulkheadHandlerLedger) async -> Bool {
@@ -260,7 +278,8 @@ final class BulkheadAdmissionConservationTests: XCTestCase {
     }
 
     // Legacy Bulkhead exposes no queue deadline. Timeout waves therefore cover
-    // only the ordinary adapter; the success/error/cancel waves above cover both.
+    // the ordinary adapter here; partitioned deadline/sibling schedules live in
+    // PartitionedBulkheadAdmissionTests. Success/error/cancel waves cover all three.
     private func ordinaryTimeoutWaves() async {
         let clock = ManualAdmissionClock()
         let gate = AdmissionGate(capacity: 1, maxQueueSize: 1, now: { clock.now() }, sleep: { try await clock.sleep(for: $0) })

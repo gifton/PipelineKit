@@ -16,6 +16,7 @@ import sys
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--id", required=True)
+    parser.add_argument("--wrapper", choices=["ordinary", "partitioned", "all"], default="ordinary")
     args = parser.parse_args()
     log_directory = Path(__file__).resolve().parent.parent / "logs"
     report_path = log_directory / (args.id + "-cases.json")
@@ -26,25 +27,28 @@ def main():
               ("extreme-positive", "1e30"), ("nan", "nan"),
               ("positive-infinity", "inf"), ("negative-infinity", "-inf")]
     expected = "Precondition failed: Bulkhead queue timeout must be finite and no greater than 86400 seconds"
-    for name, value in values:
-        for queue in [0, 1]:
-            path = log_directory / (args.id + "-" + name + "-queue" + str(queue) + ".log")
-            environment = os.environ.copy()
-            environment.update(PIPELINEKIT_R02_INVALID_TIMEOUT=value,
-                               PIPELINEKIT_R02_QUEUE_SIZE=str(queue),
-                               SWIFT_BACKTRACE="enable=no")
-            command = ["swift", "test", "--skip-build", "--filter",
-                       "BulkheadMiddlewareTests.testQueueTimeoutConfigurationValidationProbe"]
-            with path.open("x") as output:
-                result = subprocess.run(command, env=environment, stdout=output,
-                                        stderr=subprocess.STDOUT, check=False)
-            text = path.read_text()
-            valid = result.returncode != 0 and expected in text
-            rows.append(dict(case=name, value=value, queue=queue, command=command,
-                             child_exit_status=result.returncode,
-                             explicit_validation=expected in text, passed=valid,
-                             log=str(path.relative_to(log_directory.parent))))
-            print(json.dumps(rows[-1]), flush=True)
+    wrappers = ["ordinary", "partitioned"] if args.wrapper == "all" else [args.wrapper]
+    for wrapper in wrappers:
+        for name, value in values:
+            for queue in [0, 1]:
+                path = log_directory / (args.id + "-" + wrapper + "-" + name + "-queue" + str(queue) + ".log")
+                environment = os.environ.copy()
+                environment.update(PIPELINEKIT_R02_INVALID_TIMEOUT=value,
+                                   PIPELINEKIT_R02_WRAPPER=wrapper,
+                                   PIPELINEKIT_R02_QUEUE_SIZE=str(queue),
+                                   SWIFT_BACKTRACE="enable=no")
+                command = ["swift", "test", "--skip-build", "--filter",
+                           "BulkheadMiddlewareTests.testQueueTimeoutConfigurationValidationProbe"]
+                with path.open("x") as output:
+                    result = subprocess.run(command, env=environment, stdout=output,
+                                            stderr=subprocess.STDOUT, check=False)
+                text = path.read_text()
+                valid = result.returncode != 0 and expected in text
+                rows.append(dict(wrapper=wrapper, case=name, value=value, queue=queue, command=command,
+                                 child_exit_status=result.returncode,
+                                 explicit_validation=expected in text, passed=valid,
+                                 log=str(path.relative_to(log_directory.parent))))
+                print(json.dumps(rows[-1]), flush=True)
     report_path.write_text(json.dumps(rows, indent=2) + "\n")
     return 0 if all(row["passed"] for row in rows) else 1
 
