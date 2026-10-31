@@ -1,6 +1,6 @@
 # First stabilization batch migration — draft
 
-This draft currently covers S01 validation/sanitization, S02 command encryption, and R02
+This draft currently covers S01 validation/sanitization, S02 command encryption, S03 cache identity, and R02
 bulkhead queue-timeout validation. I01
 owns the completed batch migration guide, compilation of all examples, and the consolidated
 Breaking entry. These snippets have not yet been compiled as standalone migration examples;
@@ -301,3 +301,103 @@ and explicitly flush each relevant exporter, and then close those it owns. This 
 no new aggregation-quiescence or UDP-delivery guarantee. The standalone Examples package has
 no removed-slot or synchronous `configure(with:)` caller; its host/port convenience calls remain
 source-compatible. I01 owns standalone example and migration-snippet compilation.
+
+
+## Breaking: explicit complete cache identity (SCP-04 / SCP-05)
+
+All four cache entry points now require `keyGenerator: any CacheKeyGenerator`:
+`CachedMiddleware`, `ConditionalCachedMiddleware`, `SimpleCachingMiddleware`, and
+`CachingMiddleware`. Their `.cached`, `.cachedWhen`, and `commandType:` convenience
+methods require it too. `DefaultCacheKeyGenerator`, the keyless initializers, and
+`useHashableKeys:` are removed. Closure callers must use `ClosureCacheKeyGenerator`;
+its async closure receives the command, context, and fully qualified concrete cache
+middleware type. Existing generic `CacheKeyGenerator` conformers keep their method signature.
+
+The caller must encode **every result-varying command argument, verified principal/tenant,
+and relevant configuration or result-schema version**. Authenticate and authorize before
+caching a protected result. Do not substitute `hashValue`, descriptions, type names, or
+correlation IDs for equality of those inputs. Include correlation only if the application's
+result contract varies by correlation. Intentional shared keys are an explicit application
+choice, valid only when the omitted fields cannot affect the result.
+
+This example uses an unambiguous length-prefixed caller key. `authUserId` is written by
+`AuthenticationMiddleware`; this application also establishes `verifiedTenantID` before
+caching. The guards diagnose incorrect pipeline configuration instead of silently supplying
+a shared identity. Extend the key whenever the command or handler gains a result-varying input.
+
+```swift
+import Foundation
+import PipelineKit
+import PipelineKitCache
+
+struct ProfileQuery: Command {
+    typealias Result = String
+    let accountID: String
+    let locale: String
+}
+
+struct ProfileStage: Middleware {
+    let priority: ExecutionPriority = .preProcessing
+    func execute<C: Command>(
+        _ command: C, context: CommandContext, next: @escaping MiddlewareNext<C>
+    ) async throws -> C.Result {
+        try await next(command, context)
+    }
+}
+
+let profileKeys = ClosureCacheKeyGenerator { command, context, _ in
+    guard let query = command as? ProfileQuery,
+          let principal = context.getMetadata("authUserId") as? String,
+          let tenant = context.getMetadata("verifiedTenantID") as? String else {
+        preconditionFailure("Profile caching requires a verified principal and tenant")
+    }
+    let fields = [query.accountID, query.locale, principal, tenant, "profile-format-v2"]
+    return fields.map { "\($0.utf8.count):\($0)" }.joined()
+}
+
+let memory = InMemoryMiddlewareCache()
+let bytes = InMemoryCache(maxSize: 1000)
+let wrapped = CachedMiddleware(
+    wrapping: ProfileStage(), cache: memory, keyGenerator: profileKeys, ttl: 300
+)
+let conditional = ConditionalCachedMiddleware(
+    wrapping: ProfileStage(), cache: memory, keyGenerator: profileKeys, ttl: 300,
+    shouldCache: { command, _ in command is ProfileQuery }
+)
+let simple = SimpleCachingMiddleware(
+    ttl: 300, maxSize: 1000, commandType: ProfileQuery.self, keyGenerator: profileKeys
+)
+let encoded = CachingMiddleware(
+    cache: bytes, commandType: ProfileQuery.self, keyGenerator: profileKeys, ttl: 300
+)
+let wrappedFactory = ProfileStage().cached(ttl: 300, cache: memory, keyGenerator: profileKeys)
+let conditionalFactory = ProfileStage().cachedWhen(
+    ttl: 300, cache: memory, keyGenerator: profileKeys,
+    condition: { command, _ in command is ProfileQuery }
+)
+```
+
+Use the unconditional wrappers only in pipelines whose commands the generator supports.
+The type-selective factories and conditional false branch bypass key generation and caching.
+Key generation can suspend and occurs before SimpleCachingMiddleware's synchronous storage lock.
+No cache API infers a fallback identity, inspects `Hashable`, or adds correlation implicitly.
+
+Every implementation applies the same internal framing:
+`utf8Length:commandType` + `utf8Length:resultType` + `utf8Length:middlewareType` +
+`utf8Length:callerKey`. Type names are fully qualified. Wrapper types include the wrapped
+middleware type. Different instances of the same middleware type still need caller keys that
+distinguish result-varying instance configuration. The generator's return is the caller portion,
+not the complete backend key; backend per-key removal still takes the complete stored key.
+
+**Invalidate all old cache contents when migrating**, including persistent or distributed
+backends. Old keys are incompatible with the new namespace. Call `invalidateAll()` on a
+`MiddlewareCache`, `clear()` on a `Cache`, and `clear()` on existing `SimpleCachingMiddleware`
+instances, as applicable. TTL, cache backend interfaces, and their removal/clear semantics
+remain; this change does not add invalidation fencing for in-flight fills or single-flight work.
+A deployment must also clear or version entries when result-varying application configuration
+changes without an accompanying key change.
+
+The task tests exercise all four APIs and their convenience paths in the root test package.
+No existing standalone `Examples/Sources` cache caller required migration. The snippets above
+are source-reviewed here; I01 owns compiling migration examples and the final platform matrix.
+S04 separately owns LRU predecessor cycles.

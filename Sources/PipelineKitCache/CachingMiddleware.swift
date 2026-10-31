@@ -7,52 +7,17 @@ import PipelineKit
 /// If found, it returns the cached result without executing the command.
 /// Otherwise, it executes the command and caches the result for future use.
 ///
-/// ## Example Usage
-/// ```swift
-/// let cache = InMemoryCache<String, String>(maxSize: 1000)
-/// let middleware = CachingMiddleware(
-///     cache: cache,
-///     keyGenerator: { command in
-///         // Generate cache key from command
-///         return "\(type(of: command))-\(command.hashValue)"
-///     },
-///     ttl: 300 // 5 minutes
-/// )
-/// ```
+/// An explicit `CacheKeyGenerator` must include all result-varying inputs,
+/// including verified principal/tenant and relevant configuration. The cache
+/// namespaces that key by fully qualified command, result, and middleware type.
+/// See `ClosureCacheKeyGenerator` for closure-based identity generation.
 ///
-/// ## Design Decision: @unchecked Sendable for Existential Types
-///
-/// This class uses `@unchecked Sendable` for the following reasons:
-///
-/// 1. **Existential Type Limitation**: The stored property `cache: any Cache`
-///    uses an existential type. Swift currently cannot verify Sendable conformance through
-///    existential types, even though the protocol requires Sendable.
-///
-/// 2. **All Properties Are Safe**:
-///    - `cache`: Protocol requires Sendable conformance
-///    - `keyGenerator`: @Sendable closure (explicitly thread-safe)
-///    - `ttl`: TimeInterval? (Double?, inherently Sendable)
-///    - `shouldCache`: @Sendable closure (explicitly thread-safe)
-///
-/// 3. **Protocol Guarantee**: Cache protocol explicitly requires Sendable, ensuring any
-///    cache implementation is thread-safe. This provides compile-time safety for all
-///    concrete cache types.
-///
-/// 4. **Immutable Design**: All properties are `let` constants, preventing mutation after
-///    initialization and eliminating potential race conditions.
-///
-/// This is a known Swift limitation with existential types. The code is actually thread-safe,
-/// but the compiler cannot verify this through the existential type system.
-///
-/// Thread Safety: This type is thread-safe because all properties are immutable (let constants).
-/// The cache protocol requires Sendable conformance, and all closures are marked @Sendable.
-/// Invariant: All properties must be initialized with thread-safe values. The Cache protocol
-/// enforces Sendable conformance for any concrete implementation.
+/// Stored configuration is immutable; the backend and generator conform to Sendable.
 public final class CachingMiddleware: Middleware, NextGuardWarningSuppressing, @unchecked Sendable {
     public let priority: ExecutionPriority = .postProcessing // Caching happens after main processing
     
     private let cache: any Cache
-    private let keyGenerator: @Sendable (any Command) -> String
+    private let keyGenerator: any CacheKeyGenerator
     private let ttl: TimeInterval?
     private let shouldCache: @Sendable (any Command) -> Bool
     
@@ -60,12 +25,12 @@ public final class CachingMiddleware: Middleware, NextGuardWarningSuppressing, @
     ///
     /// - Parameters:
     ///   - cache: The cache backend to use
-    ///   - keyGenerator: Function to generate cache keys from commands
+    ///   - keyGenerator: Complete caller identity; see `CacheKeyGenerator`
     ///   - ttl: Time-to-live for cached entries (nil for no expiration)
     ///   - shouldCache: Function to determine if a command should be cached (default: always true)
     public init(
         cache: any Cache,
-        keyGenerator: @escaping @Sendable (any Command) -> String,
+        keyGenerator: any CacheKeyGenerator,
         ttl: TimeInterval? = nil,
         shouldCache: @escaping @Sendable (any Command) -> Bool = { _ in true }
     ) {
@@ -86,7 +51,9 @@ public final class CachingMiddleware: Middleware, NextGuardWarningSuppressing, @
         }
         
         // Generate cache key
-        let key = keyGenerator(command)
+        let key = await CacheKeyNamespace.generate(
+            for: command, context: context, middleware: String(reflecting: Self.self), using: keyGenerator
+        )
         
         // Check if cached result exists
         if let cachedData = await cache.get(key: key) {
@@ -278,39 +245,19 @@ private struct CacheWrapper<T>: Codable {
 // MARK: - Convenience Initializers
 
 public extension CachingMiddleware {
-    /// Creates a caching middleware with simple string-based key generation.
-    convenience init(
-        cache: any Cache,
-        ttl: TimeInterval? = nil
-    ) {
-        self.init(
-            cache: cache,
-            keyGenerator: { command in
-                // Simple key generation using command type and hash
-                "\(type(of: command))-\(String(describing: command).hashValue)"
-            },
-            ttl: ttl
-        )
-    }
-    
-    /// Creates a caching middleware for specific command types.
-    convenience init<C: Command & Hashable>(
+    /// Caches only the selected command type using an explicit complete identity.
+    /// Other types bypass both key generation and the backend.
+    convenience init<C: Command>(
         cache: any Cache,
         commandType: C.Type,
+        keyGenerator: any CacheKeyGenerator,
         ttl: TimeInterval? = nil
     ) {
         self.init(
             cache: cache,
-            keyGenerator: { command in
-                if let hashableCommand = command as? C {
-                    return "\(type(of: command))-\(hashableCommand.hashValue)"
-                }
-                return "\(type(of: command))-\(String(describing: command).hashValue)"
-            },
+            keyGenerator: keyGenerator,
             ttl: ttl,
-            shouldCache: { command in
-                command is C
-            }
+            shouldCache: { command in command is C }
         )
     }
 }

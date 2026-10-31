@@ -412,13 +412,30 @@ Intelligent caching with automatic invalidation and compression.
 
 **Features:**
 ```swift
+struct ProfileQuery: Command {
+    typealias Result = String
+    let accountID: String
+    let locale: String
+}
+
+// AuthenticationMiddleware must establish authUserId before protected caching.
+let profileKeys = ClosureCacheKeyGenerator { command, context, _ in
+    guard let query = command as? ProfileQuery,
+          let principal = context.getMetadata("authUserId") as? String else {
+        preconditionFailure("Expected an authenticated profile query")
+    }
+    return [query.accountID, query.locale, principal, "profile-format-v2"]
+        .map { "\($0.utf8.count):\($0)" }.joined()
+}
+
 let cache = CachingMiddleware(
     cache: InMemoryCache(maxSize: 1000),
-    keyGenerator: { command in String(describing: type(of: command)) },
+    commandType: ProfileQuery.self,
+    keyGenerator: profileKeys,
     ttl: 300
 )
 
-// Automatic caching based on command type
+// Only ProfileQuery results use the complete caller identity.
 try await pipeline.addMiddleware(cache)
 ```
 
@@ -598,12 +615,22 @@ try await pipeline.addMiddleware(
     CircuitBreakerMiddleware(failureThreshold: 5)
 )
 
-// Add caching for read operations
+// Add caching for read operations after authentication.
+struct GetOrderCommand: Command {
+    typealias Result = String
+    let orderID: String
+}
+let orderKeys = ClosureCacheKeyGenerator { command, context, _ in
+    guard let query = command as? GetOrderCommand,
+          let principal = context.getMetadata("authUserId") as? String else {
+        preconditionFailure("Expected an authenticated order query")
+    }
+    return [query.orderID, principal, "order-format-v1"]
+        .map { "\($0.utf8.count):\($0)" }.joined()
+}
 try await pipeline.addMiddleware(
     CachingMiddleware(
-        cache: InMemoryCache(),
-        keyGenerator: { command in String(describing: type(of: command)) },
-        shouldCache: { command in command is GetOrderCommand }
+        cache: InMemoryCache(), commandType: GetOrderCommand.self, keyGenerator: orderKeys
     )
 )
 

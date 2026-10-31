@@ -241,11 +241,13 @@ final class LRUEvolutionTests: XCTestCase {
         let cache = SimpleCachingMiddleware(
             ttl: 60,
             maxSize: 2,
-            keyGenerator: { command in
-                if let cmd = command as? KeyedCommand {
-                    return "k-\(cmd.key)"
+            keyGenerator: ClosureCacheKeyGenerator { command, context, _ in
+                guard let command = command as? KeyedCommand else {
+                    preconditionFailure("Unexpected LRU cache command")
                 }
-                return String(describing: type(of: command))
+                return String(decoding: try! JSONEncoder().encode([
+                    "keyed-v1", command.key, context.commandMetadata.userID
+                ] as [String?]), as: UTF8.self)
             }
         )
 

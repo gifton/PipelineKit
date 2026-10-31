@@ -24,32 +24,13 @@ import PipelineKitObservability
 /// - Closures are `@Sendable`
 /// - Primitives are `Sendable`
 ///
-/// ## Example Usage
-/// ```swift
-/// // Basic usage with 5-minute TTL
-/// let cache = SimpleCachingMiddleware(ttl: 300)
-/// try await pipeline.addMiddleware(cache)
+/// Supply an explicit `CacheKeyGenerator` including every result-varying
+/// argument, verified principal/tenant, and relevant configuration. Key generation
+/// is awaited before entering the synchronous storage lock. The cache adds fully
+/// qualified command, result, and middleware types to the caller's key.
 ///
-/// // With size limit and custom key generation
-/// let cache = SimpleCachingMiddleware(
-///     ttl: 600,
-///     maxSize: 1000,
-///     keyGenerator: { command in
-///         if let hashable = command as? any Hashable {
-///             return "\(type(of: command))-\(hashable.hashValue)"
-///         }
-///         return String(describing: type(of: command))
-///     }
-/// )
-///
-/// // Cache specific command types only
-/// let cache = SimpleCachingMiddleware(
-///     ttl: 300,
-///     commandType: GetUserCommand.self
-/// )
-/// ```
-///
-/// ## Performance Characteristics
+/// ## Storage Performance Characteristics
+/// These costs exclude caller key generation and namespace construction.
 /// - **Cache Hit**: O(1) dictionary lookup + O(1) LRU promotion
 /// - **Cache Miss**: O(1) insertion + O(1) eviction (if needed)
 /// - **Memory**: O(k) where k = number of cached entries
@@ -79,7 +60,7 @@ public final class SimpleCachingMiddleware: Middleware, NextGuardWarningSuppress
     public let priority: ExecutionPriority
     private let ttl: TimeInterval
     private let maxSize: Int?
-    private let keyGenerator: @Sendable (Any) -> String
+    private let keyGenerator: any CacheKeyGenerator
     private let shouldCache: @Sendable (Any) -> Bool
 
     /// O(1) LRU-ordered backing store (doubly-linked list + dictionary).
@@ -102,15 +83,13 @@ public final class SimpleCachingMiddleware: Middleware, NextGuardWarningSuppress
     ///   - ttl: Time-to-live in seconds for cached entries
     ///   - maxSize: Maximum number of entries to cache (nil = unlimited)
     ///   - priority: Execution priority (default: `.preProcessing`)
-    ///   - keyGenerator: Function to generate cache keys from commands (default: uses type name)
+    ///   - keyGenerator: Complete caller identity; see `CacheKeyGenerator`
     ///   - shouldCache: Predicate to determine if a command should be cached (default: cache all)
     public init(
         ttl: TimeInterval,
         maxSize: Int? = nil,
         priority: ExecutionPriority = .preProcessing,
-        keyGenerator: @escaping @Sendable (Any) -> String = { command in
-            String(describing: type(of: command))
-        },
+        keyGenerator: any CacheKeyGenerator,
         shouldCache: @escaping @Sendable (Any) -> Bool = { _ in true }
     ) {
         self.ttl = ttl
@@ -134,7 +113,9 @@ public final class SimpleCachingMiddleware: Middleware, NextGuardWarningSuppress
             return try await next(command, context)
         }
 
-        let key = keyGenerator(command)
+        let key = await CacheKeyNamespace.generate(
+            for: command, context: context, middleware: String(reflecting: Self.self), using: keyGenerator
+        )
 
         // Check cache (synchronous operation)
         if let cachedResult = getCachedResult(for: key, as: C.Result.self) {
@@ -266,64 +247,19 @@ public struct CacheStats: Sendable, Equatable {
 // MARK: - Convenience Initializers
 
 public extension SimpleCachingMiddleware {
-    /// Creates a simple caching middleware with command-type-based key generation.
-    ///
-    /// This uses the command's type name as the cache key, which works well for
-    /// commands where all instances should share the same cached result.
-    ///
-    /// - Parameters:
-    ///   - ttl: Time-to-live in seconds for cached entries
-    ///   - maxSize: Maximum number of entries to cache (nil = unlimited)
-    convenience init(ttl: TimeInterval, maxSize: Int? = nil) {
-        self.init(
-            ttl: ttl,
-            maxSize: maxSize,
-            keyGenerator: { command in
-                String(describing: type(of: command))
-            }
-        )
-    }
-
-    /// Creates a simple caching middleware that only caches specific command types.
-    ///
-    /// Other command types will bypass the cache entirely.
-    ///
-    /// - Parameters:
-    ///   - ttl: Time-to-live in seconds for cached entries
-    ///   - maxSize: Maximum number of entries to cache (nil = unlimited)
-    ///   - commandType: The specific command type to cache
+    /// Caches only the selected command type using an explicit complete identity.
+    /// Other types bypass both key generation and storage.
     convenience init<C: Command>(
         ttl: TimeInterval,
         maxSize: Int? = nil,
-        commandType: C.Type
+        commandType: C.Type,
+        keyGenerator: any CacheKeyGenerator
     ) {
         self.init(
             ttl: ttl,
             maxSize: maxSize,
+            keyGenerator: keyGenerator,
             shouldCache: { command in command is C }
-        )
-    }
-
-    /// Creates a simple caching middleware with hashable-based key generation.
-    ///
-    /// For commands that conform to Hashable, this generates unique cache keys
-    /// based on the command's hash value, allowing different command instances
-    /// to have different cached results.
-    ///
-    /// - Parameters:
-    ///   - ttl: Time-to-live in seconds for cached entries
-    ///   - maxSize: Maximum number of entries to cache (nil = unlimited)
-    ///   - useHashableKeys: If true, uses hash values for key generation
-    convenience init(ttl: TimeInterval, maxSize: Int? = nil, useHashableKeys: Bool) {
-        self.init(
-            ttl: ttl,
-            maxSize: maxSize,
-            keyGenerator: { command in
-                if useHashableKeys, let hashable = command as? any Hashable {
-                    return "\(type(of: command))-\(hashable.hashValue)"
-                }
-                return String(describing: type(of: command))
-            }
         )
     }
 }

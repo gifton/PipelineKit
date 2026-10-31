@@ -17,12 +17,12 @@ public struct CachedMiddleware<M: Middleware>: Middleware, NextGuardWarningSuppr
     /// - Parameters:
     ///   - wrapped: The middleware to cache results for
     ///   - cache: The cache implementation to use
-    ///   - keyGenerator: Strategy for generating cache keys
+    ///   - keyGenerator: Complete caller identity; see `CacheKeyGenerator` for required inputs
     ///   - ttl: Time to live for cached entries (default: 5 minutes)
     public init(
         wrapping middleware: M,
         cache: any MiddlewareCache,
-        keyGenerator: any CacheKeyGenerator = DefaultCacheKeyGenerator(),
+        keyGenerator: any CacheKeyGenerator,
         ttl: TimeInterval = 300 // 5 minutes
     ) {
         self.wrapped = middleware
@@ -37,11 +37,8 @@ public struct CachedMiddleware<M: Middleware>: Middleware, NextGuardWarningSuppr
         context: CommandContext,
         next: @escaping MiddlewareNext<T>
     ) async throws -> T.Result {
-        // Generate cache key
-        let key = await keyGenerator.generateKey(
-            for: command,
-            context: context,
-            middleware: String(describing: type(of: wrapped))
+        let key = await CacheKeyNamespace.generate(
+            for: command, context: context, middleware: String(reflecting: Self.self), using: keyGenerator
         )
         
         // Check cache
@@ -60,8 +57,16 @@ public struct CachedMiddleware<M: Middleware>: Middleware, NextGuardWarningSuppr
     }
 }
 
-/// Protocol for cache key generation strategies
+/// Supplies the complete caller-owned identity for a cached result.
+///
+/// Include every result-varying command argument, verified principal/tenant, and
+/// relevant configuration or schema version. Authenticate before identity-bound
+/// caching. Correlation IDs and `Hashable.hashValue` alone are not identities.
+/// Use an unambiguous encoding for composite keys; intentional sharing must be
+/// explicit in the generator. The cache adds fully qualified command, result,
+/// and concrete caching middleware types; it cannot infer instance configuration.
 public protocol CacheKeyGenerator: Sendable {
+    /// `middleware` is the fully qualified concrete caching middleware type.
     func generateKey<T: Command>(
         for command: T,
         context: CommandContext,
@@ -69,34 +74,21 @@ public protocol CacheKeyGenerator: Sendable {
     ) async -> String
 }
 
-/// Default cache key generator using command type and parameters
-public struct DefaultCacheKeyGenerator: CacheKeyGenerator {
-    public init() {}
-    
+/// Adapts an async closure to `CacheKeyGenerator` without implicit fallback keys.
+public struct ClosureCacheKeyGenerator: CacheKeyGenerator {
+    private let generate: @Sendable (any Command, CommandContext, String) async -> String
+
+    /// The closure must meet `CacheKeyGenerator`'s complete identity contract.
+    public init(_ generate: @escaping @Sendable (any Command, CommandContext, String) async -> String) {
+        self.generate = generate
+    }
+
     public func generateKey<T: Command>(
         for command: T,
         context: CommandContext,
         middleware: String
     ) async -> String {
-        // Create key from middleware name and command type
-        var components = [
-            "mw",
-            middleware,
-            String(describing: type(of: command))
-        ]
-        
-        // Add command description if available
-        if let describable = command as? any CustomStringConvertible {
-            components.append(describable.description)
-        }
-        
-        // Add user context if available
-        let metadata = context.commandMetadata
-        if let userID = metadata.userID {
-            components.append("u:\(userID)")
-        }
-        
-        return components.joined(separator: ":")
+        await generate(command, context, middleware)
     }
 }
 
@@ -211,7 +203,7 @@ public extension Middleware {
     /// Suggested TTL for cached results
     var suggestedTTL: TimeInterval { 300 } // 5 minutes default
     
-    /// Generate a cache key for the given command
+    /// Optional application hint. Caching wrappers use only their explicit `CacheKeyGenerator`.
     func cacheKey<T: Command>(for command: T, context: CommandContext) -> String? {
         // Default implementation returns nil, meaning no custom cache key
         return nil
@@ -220,11 +212,13 @@ public extension Middleware {
 
 // MARK: - Conditional Caching
 
-/// Middleware wrapper that caches based on conditions
+/// Middleware wrapper that caches based on conditions and an explicit complete identity.
+/// See `CacheKeyGenerator` for the caller's identity obligations.
 public struct ConditionalCachedMiddleware<M: Middleware>: Middleware, NextGuardWarningSuppressing where M: Sendable {
     private let wrapped: M
     private let cache: any MiddlewareCache
     private let shouldCache: @Sendable (Any, CommandContext) async -> Bool
+    private let keyGenerator: any CacheKeyGenerator
     private let ttl: TimeInterval
 
     public let priority: ExecutionPriority
@@ -232,6 +226,7 @@ public struct ConditionalCachedMiddleware<M: Middleware>: Middleware, NextGuardW
     public init(
         wrapping middleware: M,
         cache: any MiddlewareCache,
+        keyGenerator: any CacheKeyGenerator,
         ttl: TimeInterval = 300,
         shouldCache: @escaping @Sendable (Any, CommandContext) async -> Bool
     ) {
@@ -239,6 +234,7 @@ public struct ConditionalCachedMiddleware<M: Middleware>: Middleware, NextGuardW
         self.cache = cache
         self.ttl = ttl
         self.shouldCache = shouldCache
+        self.keyGenerator = keyGenerator
         self.priority = middleware.priority
     }
     
@@ -256,7 +252,9 @@ public struct ConditionalCachedMiddleware<M: Middleware>: Middleware, NextGuardW
         }
         
         // Use caching logic
-        let key = await generateKey(for: command, context: context)
+        let key = await CacheKeyNamespace.generate(
+            for: command, context: context, middleware: String(reflecting: Self.self), using: keyGenerator
+        )
         
         if let cached = await cache.get(key: key, type: T.Result.self) {
             return cached
@@ -267,15 +265,6 @@ public struct ConditionalCachedMiddleware<M: Middleware>: Middleware, NextGuardW
         
         return result
     }
-    
-    private func generateKey<T: Command>(for command: T, context: CommandContext) async -> String {
-        let metadata = context.commandMetadata
-        let wrappedType = type(of: wrapped)
-        let commandType = type(of: command)
-        let corrID = metadata.correlationID ?? "none"
-        
-        return "conditional:\(wrappedType):\(commandType):\(corrID)"
-    }
 }
 
 // MARK: - Builder Extensions
@@ -284,11 +273,13 @@ public extension Middleware {
     /// Wraps this middleware with caching
     func cached(
         ttl: TimeInterval = 300,
-        cache: any MiddlewareCache
+        cache: any MiddlewareCache,
+        keyGenerator: any CacheKeyGenerator
     ) -> CachedMiddleware<Self> {
         return CachedMiddleware(
             wrapping: self,
             cache: cache,
+            keyGenerator: keyGenerator,
             ttl: ttl
         )
     }
@@ -297,11 +288,13 @@ public extension Middleware {
     func cachedWhen(
         ttl: TimeInterval = 300,
         cache: any MiddlewareCache,
+        keyGenerator: any CacheKeyGenerator,
         condition: @escaping @Sendable (Any, CommandContext) async -> Bool
     ) -> ConditionalCachedMiddleware<Self> {
         return ConditionalCachedMiddleware(
             wrapping: self,
             cache: cache,
+            keyGenerator: keyGenerator,
             ttl: ttl,
             shouldCache: condition
         )
