@@ -6,6 +6,10 @@ A high-performance, type-safe command-bus architecture for Swift 6 with built‑
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/Platform-iOS%20|%20macOS%20|%20tvOS%20|%20watchOS%20|%20visionOS-lightgrey.svg)](Package.swift)
 
+The next minor release includes source and behavior changes. Follow the
+[compiled stabilization migration guide](docs/migrations/first-stabilization-batch.md)
+before upgrading, including cache invalidation and old encrypted-data recovery limits.
+
 ## Table of Contents
 
 - [Command-Bus Architecture](#command-bus-architecture)
@@ -567,83 +571,75 @@ print(result) // 15.0
 ### Production Example with Full Stack
 
 ```swift
+import Foundation
 import PipelineKit
-import PipelineKitObservability
 import PipelineKitResilience
 import PipelineKitSecurity
 import PipelineKitCache
 
-// Configure observability
-let observability = await ObservabilitySystem.production(
-    statsdHost: "metrics.internal",
-    statsdPort: 8125
-)
+struct GetOrderCommand: ValidatableCommand {
+    typealias Result = String
+    let orderID: String
+    func validate() async throws {
+        guard !orderID.isEmpty else {
+            throw PipelineError.validation(field: "orderID", reason: .custom("Required"))
+        }
+    }
+}
 
-// Create pipeline with handler
-let pipeline = StandardPipeline(
-    handler: CreateOrderHandler(),
-    maxConcurrency: 100 // Limit concurrent orders
-)
+struct GetOrderHandler: CommandHandler {
+    let loadOrder: @Sendable (String) async throws -> String
+    func handle(_ command: GetOrderCommand, context: CommandContext) async throws -> String {
+        try await loadOrder(command.orderID)
+    }
+}
 
-// Add security middleware (order matters!)
-try await pipeline.addMiddleware(
-    AuthenticationMiddleware { userID in
+struct OrderAuthorization: Middleware {
+    let priority = ExecutionPriority.validation
+    let authorize: @Sendable (String, String) async throws -> Void
+    func execute<C: Command>(
+        _ command: C, context: CommandContext, next: @escaping MiddlewareNext<C>
+    ) async throws -> C.Result {
+        guard let order = command as? GetOrderCommand,
+              let principal = context.getMetadata("authUserId") as? String else {
+            throw PipelineError.authorization(reason: .invalidCredentials)
+        }
+        // Check current permission before the cache, including cache hits.
+        try await authorize(principal, order.orderID)
+        return try await next(command, context)
+    }
+}
+
+func makeOrderPipeline(
+    authenticateUser: @escaping @Sendable (String) async throws -> String,
+    authorizeOrder: @escaping @Sendable (String, String) async throws -> Void,
+    loadOrder: @escaping @Sendable (String) async throws -> String
+) async throws -> StandardPipeline<GetOrderCommand, GetOrderHandler> {
+    let builder = PipelineBuilder(handler: GetOrderHandler(loadOrder: loadOrder))
+    await builder.withAuthentication(AuthenticationMiddleware { userID in
         guard let userID else {
             throw PipelineError.authorization(reason: .invalidCredentials)
         }
-        return try await tokenValidator.validate(userID)
+        return try await authenticateUser(userID)
+    })
+    await builder.with(ValidationMiddleware())
+    await builder.withAuthorization(OrderAuthorization(authorize: authorizeOrder))
+    await builder.with(BulkheadMiddleware(configuration: .init(
+        maxConcurrency: 100, maxQueueSize: 100, queueTimeout: 5, rejectionPolicy: .queue
+    )))
+    let orderKeys = ClosureCacheKeyGenerator { command, context, _ in
+        guard let query = command as? GetOrderCommand,
+              let principal = context.getMetadata("authUserId") as? String else {
+            preconditionFailure("Expected an authenticated order query")
+        }
+        return [query.orderID, principal, "order-format-v1"]
+            .map { "\($0.utf8.count):\($0)" }.joined()
     }
-)
-try await pipeline.addMiddleware(
-    AuthorizationMiddleware(
-        requiredRoles: ["orders.write"],
-        getUserRoles: { userID in try await roleService.roles(for: userID) }
-    )
-)
-try await pipeline.addMiddleware(
-    AuditLoggingMiddleware(logger: productionLogger)
-)
-
-// Add resilience middleware
-try await pipeline.addMiddleware(
-    TimeoutMiddleware(defaultTimeout: 10.0)
-)
-try await pipeline.addMiddleware(
-    RetryMiddleware(maxAttempts: 3, strategy: .exponential(baseDelay: 1.0, maxDelay: 30.0))
-)
-try await pipeline.addMiddleware(
-    CircuitBreakerMiddleware(failureThreshold: 5)
-)
-
-// Add caching for read operations after authentication.
-struct GetOrderCommand: Command {
-    typealias Result = String
-    let orderID: String
-}
-let orderKeys = ClosureCacheKeyGenerator { command, context, _ in
-    guard let query = command as? GetOrderCommand,
-          let principal = context.getMetadata("authUserId") as? String else {
-        preconditionFailure("Expected an authenticated order query")
-    }
-    return [query.orderID, principal, "order-format-v1"]
-        .map { "\($0.utf8.count):\($0)" }.joined()
-}
-try await pipeline.addMiddleware(
-    CachingMiddleware(
+    await builder.with(CachingMiddleware(
         cache: InMemoryCache(), commandType: GetOrderCommand.self, keyGenerator: orderKeys
-    )
-)
-
-// Execute with context
-let context = CommandContext()
-context.requestID = UUID().uuidString
-context.setMetadata("auth-token", value: request.token)
-context.eventEmitter = await observability.eventHub
-
-let order = try await pipeline.execute(
-    CreateOrderCommand(items: items, userId: userId),
-    context: context
-)
+    ))
+    return try await builder.build()
+}
 ```
 
 ### Async Event Processing Example

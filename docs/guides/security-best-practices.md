@@ -1,5 +1,8 @@
 # PipelineKit Security Best Practices
 
+For the next minor release, follow the [compiled stabilization migration guide](../migrations/first-stabilization-batch.md). It covers required validation/sanitization capabilities, complete Codable encryption, atomic key snapshots and legacy-data recovery limits.
+
+
 This guide covers security practices and patterns for applications built on PipelineKit —
 validation, authorization, rate limiting, encryption, audit logging, and related middleware. It is
 guidance for hardening *your* application, not PipelineKit's security policy. To report a
@@ -543,6 +546,7 @@ actor DemoKeyStore: KeyStore {
 
 let keyStore = DemoKeyStore()
 let encryptor = await CommandEncryptor(keyStore: keyStore, keyRotationInterval: 86400) // 24 hours
+_ = encryptor // Retain this actor in the application service that encrypts commands.
 ```
 
 `InMemoryKeyStore` lives in `PipelineKitTestSupport` for test use only — production code

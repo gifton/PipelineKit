@@ -1,11 +1,13 @@
-# First stabilization batch migration — draft
+# First stabilization batch migration
 
-This draft currently covers S01 validation/sanitization, S02 command encryption, S03 cache identity,
-S05 bounded decompression, R02 bulkhead queue-timeout validation, and R05 rate-limit
-scope/key migration. I01
-owns the completed batch migration guide, compilation of all examples, and the consolidated
-Breaking entry. These snippets have not yet been compiled as standalone migration examples;
-the task contract suites exercise their public APIs. Remaining batch migrations are pending.
+These source and behavior changes are intended for the next minor release under
+[VERSIONING.md](../../VERSIONING.md); no release version or tag is selected here.
+All Swift fences in this guide, plus the README/security-guide examples changed by this
+batch, are extracted into the ordinary-import Consumer by
+[`i01_compile_examples.py`](../superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/i01_compile_examples.py).
+The extractor records exact snippet hashes and its import/function harness. Debug and Release
+consumer builds compile them; the I01 validation record records results and platform limits.
+Unchanged historical examples elsewhere are outside that compilation claim.
 
 ## Breaking: explicit validation and sanitization capabilities
 
@@ -179,8 +181,7 @@ initialization explicitly fails its configuration precondition for a larger posi
 NaN or either infinity, including when the queue has `maxQueueSize: 0` or `queueSize: 0`. The 24-hour
 cap is a deliberate PipelineKit policy, not Swift Duration's intrinsic range limit. It bounds
 the TimeInterval conversion and leaves headroom for the default sleeper's immediate deadline
-addition. I01 must include this behavior change in the next minor release's consolidated
-**Breaking** entry.
+addition. The consolidated **Breaking** changelog records this behavior change.
 
 Previously accepted configurations with a longer finite queue budget must revisit that
 policy. Using `nil` plus application-managed cancellation is one option, but `nil` means an
@@ -248,11 +249,16 @@ owner; repeated/concurrent close shares the same settlement. A cancellation-inse
 or transport can delay close indefinitely. Applications wanting a delivery attempt must quiesce
 producers, call `forceFlush()`, then `close()`; UDP completion does not acknowledge remote delivery.
 
+`MetricAggregator.forceFlush` cancels its private timer without joining it. An already
+in-flight caller-owned aggregation retry can repopulate its buffer after exporter close.
+Exporter closed guards prevent transport revival and post-close sends, but close is not a
+barrier for caller-owned recording or full aggregator quiescence. Quiesce and join producers
+before the flush/close sequence.
+
 Sampling and aggregation semantics are unchanged; OBS-001, OBS-005 and OBS-009 remain open.
 The existing default configuration still disables aggregation. The public consumer mode
 `statsd-startup` compiles this construction/start/flush/close shape and verifies the first
-nonempty default-exporter batch on real loopback. I01 retains consolidated migration-example
-compilation, the next-minor **Breaking** changelog entry and platform integration checks.
+nonempty default-exporter batch on real loopback. See the I01 validation record for example compilation and platform integration checks.
 
 ## Breaking: immutable Metrics configuration and explicit flush capability
 
@@ -301,7 +307,7 @@ needs a complete flush across reconfiguration, it must quiesce and join its prod
 and explicitly flush each relevant exporter, and then close those it owns. This change makes
 no new aggregation-quiescence or UDP-delivery guarantee. The standalone Examples package has
 no removed-slot or synchronous `configure(with:)` caller; its host/port convenience calls remain
-source-compatible. I01 owns standalone example and migration-snippet compilation.
+source-compatible. The I01 validation record reports standalone example and migration-snippet compilation separately.
 
 
 ## Breaking: explicit complete cache identity (SCP-04 / SCP-05)
@@ -399,8 +405,8 @@ A deployment must also clear or version entries when result-varying application 
 changes without an accompanying key change.
 
 The task tests exercise all four APIs and their convenience paths in the root test package.
-No existing standalone `Examples/Sources` cache caller required migration. The snippets above
-are source-reviewed here; I01 owns compiling migration examples and the final platform matrix.
+No existing standalone `Examples/Sources` cache caller required migration. The snippets above are included in the compiled example manifest; the final platform matrix
+remains explicit in the I01 validation record.
 S04 separately owns LRU predecessor cycles.
 
 ## Breaking: complete bounded decompression (SCP-07)
@@ -450,8 +456,8 @@ DEFLATE codec, `.lzfse` and `.brotli` use LZFSE, and `.lz4` uses Apple's framed 
 SCP-08 remains open; these aliases do not establish gzip or Brotli interoperability or
 working compression-level selection. The root contract suite compiles the new API and
 exercises all five cases on the Compression-capable host. The standalone Examples package
-has no decompression caller to migrate. I01 owns standalone Examples and migration-snippet
-compilation, platform integration, and the next-minor consolidated **Breaking** entry.
+has no decompression caller to migrate. Standalone Examples and migration snippets have separate build evidence in the I01 validation
+record; absent platforms remain release-readiness gaps.
 
 
 ## Breaking: rate-limit scope and distributed counter keys (R-F08)
@@ -503,8 +509,8 @@ explicit administrative store operation for those counters when needed.
 
 The scope contract suite covers the seven strategies, four scopes, exact store keys and
 boundaries using an internal clock seam; the public initializer retains wall-clock `Date`
-behavior. I01 owns final platform/Release integration and the consolidated next-minor
-**Breaking** changelog entry.
+behavior. The I01 validation record covers available platform/Release integration; the consolidated
+next-minor **Breaking** entry includes this migration.
 
 ## Breaking: structural pipeline timeout classification (R-F21)
 
@@ -515,5 +521,37 @@ payloads contain the word `timeout`. They are not recursively unwrapped. Applica
 that intentionally classify wrapped errors should supply an `errorEvaluator` to the
 relevant middleware configuration and inspect the wrapper explicitly. Foreign errors
 continue through the existing policy and description fallback. `PipelineError.cancelled`
-continues to follow the unknown-error policy; native `CancellationError` retains each
-middleware's existing precedence. I01 owns the final consolidated Breaking entry.
+is never retried and follows the circuit breaker’s configured unknown-error policy; native
+`CancellationError` and custom evaluators retain each middleware’s existing precedence.
+Retry `maxAttempts` semantics are unchanged.
+
+
+## Other corrected behavior and remaining boundaries
+
+Builder additions from plain, named, array and explicit-order APIs now compose into one
+sequence. Explicit effective priority and stable ties survive construction. Security stages
+that were previously dropped can now reject commands, so migrate command capabilities before
+exercising a repaired route. `NextGuardConfiguration.withoutWarnings` is task-scoped; concurrent
+configuration changes remain independent of the scope. Callbacks run after configuration locks
+are released.
+
+Truncation uses Swift Characters and returns empty for nonpositive maxima; overlong suffixes
+are themselves truncated to the maximum. `InMemoryAuditLogger(capacity: 0)` retains no events
+and counts drops; negative capacity violates a precondition. Standard `userID`/`sessionID`
+metadata now appears in the production audit identity whitelist. These changes add no arbitrary
+sensitive metadata to that whitelist.
+
+Health status queries reevaluate retained request history and probe freshness. They scan retained
+history in O(n), a performance cost; this batch does not establish unchanged throughput or close
+LS-010. Sufficient recent request failures can take precedence over probe results. Automatic
+monitor task ownership and production callback-task settlement remain outside this repair.
+
+Timer snapshots convert seconds to milliseconds once. Pool latency conversion includes whole
+seconds, clamps negatives to zero and saturates at UInt64.max, including Duration values whose
+whole seconds exceed Int64.max. The final O04 regression is part of I01’s rediscovered full suite.
+
+The selected repairs do not promise hard deadlines for cancellation-insensitive handlers,
+preemptive cancellation, durable execution, exactly-once side effects, in-flight cache fill
+fencing, key-memory zeroization or UDP delivery acknowledgement. The execution-owned ledger
+keeps all 47 deferred findings open. Swift 6.2/OS 26, Linux and hosted security/branch-protection
+verification require the named release-owner checks when unavailable locally.
