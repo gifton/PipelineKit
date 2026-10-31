@@ -206,21 +206,18 @@ final class RateLimitScopeContractTests: XCTestCase {
             let limiter = makeLimiter(strategy, scope: .global, clock: clock)
             _ = try await limiter.allowRequest(identifier: "A")
             clock.set(1_299)
-            // TokenBucket consume updates lastAccess; sliding admission records a recent request.
-            _ = try await limiter.allowRequest(identifier: "A", cost: 0)
+            // Adaptive refills at 0.1 token/second: consume the full token at 1299.
+            // Retaining it admits no unit request at 1300 (only 0.1 token refilled);
+            // recreating it during cleanup would incorrectly admit that request.
+            // The nonrefilling bucket accepts a zero-cost touch. Sliding window ignores
+            // cost and records this denied request, so both update recent activity.
+            let touched = try await limiter.allowRequest(identifier: "A", cost: strategy == .adaptive ? 1 : 0)
+            XCTAssertEqual(touched, strategy != .slidingWindow, "\(strategy)")
             clock.set(1_300)
             let status = await limiter.getStatus(identifier: "B")
             let afterCleanup = try await limiter.allowRequest(identifier: "B")
-            if strategy == .adaptive {
-                // The earlier admission with zero cost has refilled this one-token bucket.
-                XCTAssertEqual(status.remaining, 1)
-                XCTAssertTrue(afterCleanup)
-                let repeated = try await limiter.allowRequest(identifier: "A")
-                XCTAssertFalse(repeated)
-            } else {
-                XCTAssertEqual(status.remaining, 0, "\(strategy)")
-                XCTAssertFalse(afterCleanup, "\(strategy)")
-            }
+            XCTAssertEqual(status.remaining, 0, "\(strategy)")
+            XCTAssertFalse(afterCleanup, "\(strategy)")
         }
     }
 

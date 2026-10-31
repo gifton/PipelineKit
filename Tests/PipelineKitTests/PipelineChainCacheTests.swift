@@ -135,7 +135,7 @@ private func lifetimeWitness(_ scenario: LifetimeScenario, route: LifetimeRoute)
     let pipeline: LifetimePipeline
     switch route {
     case .typed: pipeline = .typed(StandardPipeline(handler: handler))
-    case .erased: pipeline = .erased(AnyStandardPipeline(handler: handler))
+    case .erased: pipeline = .erased(AnyStandardPipeline(handler: handler, options: .init(maxConcurrency: 10, maxOutstanding: nil)))
     }
     let witness = LifetimeWitness(pipeline: pipeline.object, handler: handler)
     if scenario != .neverExecuted {

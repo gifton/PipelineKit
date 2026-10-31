@@ -143,8 +143,12 @@ public final class SimpleCachingMiddleware: Middleware, NextGuardWarningSuppress
     // MARK: - Cache Management
 
     private func getCachedResult<T>(for key: String, as type: T.Type) -> T? {
+        var retired: CacheEntry?
         lock.lock()
-        defer { lock.unlock() }
+        defer {
+            lock.unlock()
+            withExtendedLifetime(retired) {}
+        }
 
         // Inspect without promoting first so an expired entry is not counted as a
         // use before removal.
@@ -154,7 +158,7 @@ public final class SimpleCachingMiddleware: Middleware, NextGuardWarningSuppress
 
         // Check if expired
         if entry.isExpired {
-            storage.removeValue(forKey: key)
+            retired = storage.removeValue(forKey: key)
             return nil
         }
 
@@ -166,43 +170,45 @@ public final class SimpleCachingMiddleware: Middleware, NextGuardWarningSuppress
 
     private func setCachedResult<T>(_ result: T, for key: String) {
         lock.lock()
-        defer { lock.unlock() }
-
-        // Insert/update + promote. When a new key pushes the store past its
-        // capacity, `LRUStorage` evicts the least-recently-used entry; updating an
-        // existing key never evicts. This preserves the prior
-        // `cache.count >= maxSize && cache[key] == nil` eviction rule. An unlimited
-        // (`nil`) `maxSize` was mapped to `Int.max`, so eviction never fires.
-        storage.setValue(CacheEntry(value: result, timestamp: Date(), ttl: ttl), forKey: key)
+        // Only the replaced/evicted entry escapes; ordinary insertion stays O(1).
+        let retired = storage.setValue(CacheEntry(value: result, timestamp: Date(), ttl: ttl), forKey: key).retiredValue
+        lock.unlock()
+        withExtendedLifetime(retired) {}
     }
 
-    /// Clears all cached entries.
+    /// Clears all cached entries, including expired ones.
     ///
-    /// This operation is thread-safe and removes all entries from the cache,
-    /// including expired ones.
+    /// Payloads are released after the empty state is committed and unlocked.
+    /// `CacheRetirementContractTests` exercises synchronous destructor reentry.
+    /// - Complexity: O(n) time and temporary ownership storage.
     public func clear() {
         lock.lock()
-        defer { lock.unlock() }
-        storage.removeAll()
+        let retired = storage.removeAll()
+        lock.unlock()
+        withExtendedLifetime(retired) {}
     }
 
     /// Removes expired entries from the cache.
     ///
     /// Call this periodically to free memory from expired entries that haven't
-    /// been accessed (and thus auto-removed).
+    /// been accessed (and thus auto-removed). Payloads are released after unlock,
+    /// as exercised by `CacheRetirementContractTests`.
+    /// - Complexity: O(n) scanning plus O(k) retirement storage for k removals.
     public func removeExpired() {
         lock.lock()
-        defer { lock.unlock() }
-
-        // Snapshot keys, then drop those whose entry is expired. `peek` is used so
-        // the inspection does not alter recency. Removal of each key is O(1).
+        // Key inspection does not alter recency. Each removal is O(1).
         let expiredKeys = storage.keysInLRUOrder().filter { key in
             storage.peek(forKey: key)?.isExpired ?? false
         }
-
+        var retired: [CacheEntry] = []
+        retired.reserveCapacity(expiredKeys.count)
         for key in expiredKeys {
-            storage.removeValue(forKey: key)
+            if let entry = storage.removeValue(forKey: key) {
+                retired.append(entry)
+            }
         }
+        lock.unlock()
+        withExtendedLifetime(retired) {}
     }
 
     /// Gets current cache statistics.

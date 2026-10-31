@@ -55,17 +55,18 @@ No release version or tag is selected by this batch.
   path (e.g. cache hits). Debug-only; release builds are unchanged. ([#97])
 
 ### Removed
-- `NextGuardWarningSuppressing` conformance removed from the twelve
+- `NextGuardWarningSuppressing` conformance removed from the eleven
   throw-based short-circuiting middlewares (`BackPressureMiddleware`,
   `CircuitBreakerMiddleware`, `RateLimitingMiddleware`,
-  `EnhancedRateLimitingMiddleware`, `BulkheadMiddleware`,
+  `EnhancedRateLimitingMiddleware`,
   `PartitionedBulkheadMiddleware`, `HealthCheckMiddleware`,
   `ValidationMiddleware`, `SecurityPolicyMiddleware`,
   `AuthenticationMiddleware`, `AuthorizationMiddleware`,
   `MockAuthenticationMiddleware`), re-arming the dropped-chain diagnostic
   for those types. Observable only to code checking
   `is any NextGuardWarningSuppressing`; the cache middlewares keep the
-  conformance. ([#97])
+  conformance. `BulkheadMiddleware` also retains the marker because successful
+  fallback/custom policies can legitimately return without calling `next()`. ([#97])
 
 ## [0.5.4] - 2026-08-15
 

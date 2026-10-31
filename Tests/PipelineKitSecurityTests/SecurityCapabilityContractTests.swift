@@ -139,7 +139,7 @@ private extension SecurityCapabilityContractTests {
                 try await pipeline.addMiddlewares(middleware)
                 return try await pipeline.execute(command, context: context)
             case .anyStandard:
-                let pipeline = AnyStandardPipeline(handler: handler)
+                let pipeline = AnyStandardPipeline(handler: handler, options: .init(maxConcurrency: 10, maxOutstanding: nil))
                 for stage in middleware {
                     try await pipeline.addMiddleware(stage)
                 }

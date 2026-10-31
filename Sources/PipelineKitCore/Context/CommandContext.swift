@@ -63,6 +63,19 @@ public final class CommandContext: @unchecked Sendable {
         return try operation()
     }
 
+    /// Retains the displaced slot through unlock, including wrong-type name
+    /// collisions. The transform runs under the same lock as the read/write;
+    /// metadata/metrics merges therefore remain atomic. Only this slot is held,
+    /// not a copy of the complete context. Covered by CommandContextRetirementTests.
+    private func mutateValue(forKey key: String, _ transform: (AnySendable?) -> AnySendable?) {
+        let retired = withLock {
+            let previous = _storage[key]
+            _storage[key] = transform(previous)
+            return previous
+        }
+        withExtendedLifetime(retired) {}
+    }
+
     // MARK: - Public Properties
     
     /// The command metadata associated with this context
@@ -104,13 +117,7 @@ public final class CommandContext: @unchecked Sendable {
             withLock { _storage[key.name]?.get(T.self) }
         }
         set {
-            withLock {
-                if let newValue = newValue {
-                    _storage[key.name] = AnySendable(newValue)
-                } else {
-                    _storage[key.name] = nil
-                }
-            }
+            mutateValue(forKey: key.name) { _ in newValue.map(AnySendable.init) }
         }
     }
 
@@ -153,9 +160,7 @@ public final class CommandContext: @unchecked Sendable {
 
     /// Sets all metadata (replaces existing)
     public func setMetadata(_ metadata: [String: any Sendable]) {
-        withLock {
-            _storage[ContextKeys.metadata.name] = AnySendable(metadata)
-        }
+        mutateValue(forKey: ContextKeys.metadata.name) { _ in AnySendable(metadata) }
     }
 
     /// Gets a specific metadata value
@@ -166,21 +171,21 @@ public final class CommandContext: @unchecked Sendable {
 
     /// Sets a specific metadata value
     public func setMetadata(_ key: String, value: any Sendable) {
-        withLock {
-            var currentMetadata: [String: any Sendable] = _storage[ContextKeys.metadata.name]?.get([String: any Sendable].self) ?? [:]
+        mutateValue(forKey: ContextKeys.metadata.name) { previous in
+            var currentMetadata: [String: any Sendable] = previous?.get([String: any Sendable].self) ?? [:]
             currentMetadata[key] = value
-            _storage[ContextKeys.metadata.name] = AnySendable(currentMetadata)
+            return AnySendable(currentMetadata)
         }
     }
 
     /// Updates metadata with multiple key-value pairs
     public func updateMetadata(_ updates: [String: any Sendable]) {
-        withLock {
-            var currentMetadata: [String: any Sendable] = _storage[ContextKeys.metadata.name]?.get([String: any Sendable].self) ?? [:]
+        mutateValue(forKey: ContextKeys.metadata.name) { previous in
+            var currentMetadata: [String: any Sendable] = previous?.get([String: any Sendable].self) ?? [:]
             for (key, value) in updates {
                 currentMetadata[key] = value
             }
-            _storage[ContextKeys.metadata.name] = AnySendable(currentMetadata)
+            return AnySendable(currentMetadata)
         }
     }
     
@@ -195,9 +200,7 @@ public final class CommandContext: @unchecked Sendable {
 
     /// Sets all metrics (replaces existing)
     public func setMetrics(_ metrics: [String: any Sendable]) {
-        withLock {
-            _storage[ContextKeys.metrics.name] = AnySendable(metrics)
-        }
+        mutateValue(forKey: ContextKeys.metrics.name) { _ in AnySendable(metrics) }
     }
 
     /// Gets a specific metric value
@@ -208,10 +211,10 @@ public final class CommandContext: @unchecked Sendable {
 
     /// Sets a specific metric value
     public func setMetric(_ key: String, value: any Sendable) {
-        withLock {
-            var currentMetrics: [String: any Sendable] = _storage[ContextKeys.metrics.name]?.get([String: any Sendable].self) ?? [:]
+        mutateValue(forKey: ContextKeys.metrics.name) { previous in
+            var currentMetrics: [String: any Sendable] = previous?.get([String: any Sendable].self) ?? [:]
             currentMetrics[key] = value
-            _storage[ContextKeys.metrics.name] = AnySendable(currentMetrics)
+            return AnySendable(currentMetrics)
         }
     }
 
@@ -222,12 +225,12 @@ public final class CommandContext: @unchecked Sendable {
 
     /// Updates metrics with multiple key-value pairs
     public func updateMetrics(_ updates: [String: any Sendable]) {
-        withLock {
-            var currentMetrics: [String: any Sendable] = _storage[ContextKeys.metrics.name]?.get([String: any Sendable].self) ?? [:]
+        mutateValue(forKey: ContextKeys.metrics.name) { previous in
+            var currentMetrics: [String: any Sendable] = previous?.get([String: any Sendable].self) ?? [:]
             for (key, value) in updates {
                 currentMetrics[key] = value
             }
-            _storage[ContextKeys.metrics.name] = AnySendable(currentMetrics)
+            return AnySendable(currentMetrics)
         }
     }
 
@@ -242,9 +245,13 @@ public final class CommandContext: @unchecked Sendable {
     // MARK: - Utility Methods
 
     /// Removes all values from the context except command metadata.
+    /// Retired values are released after metadata restoration and unlock;
+    /// `CommandContextRetirementTests` exercises reentrant reads at destruction.
+    /// - Complexity: O(n) destruction; single-value mutations retain only one slot.
     public func clear() {
-        withLock {
-            _storage.removeAll(keepingCapacity: true)
+        let retired = withLock {
+            let previous = _storage
+            _storage = [:]
             // Restore command metadata
             _storage[ContextKeys.commandID.name] = AnySendable(commandMetadata.id)
             // Intentionally do not restore startTime; it must be explicitly set
@@ -257,7 +264,9 @@ public final class CommandContext: @unchecked Sendable {
                 _storage[ContextKeys.correlationID.name] = AnySendable(correlationID)
                 _storage[ContextKeys.requestID.name] = AnySendable(correlationID)
             }
+            return previous
         }
+        withExtendedLifetime(retired) {}
     }
 
     /// Creates a snapshot of all values in the context.
@@ -314,9 +323,7 @@ public final class CommandContext: @unchecked Sendable {
     /// Removes a value from the context.
     /// - Parameter key: The context key to remove
     public func remove<T>(_ key: ContextKey<T>) {
-        withLock {
-            _storage[key.name] = nil
-        }
+        mutateValue(forKey: key.name) { _ in nil }
     }
 
     /// Updates multiple values using a closure.
@@ -330,9 +337,7 @@ public final class CommandContext: @unchecked Sendable {
     /// Marks this context as cancelled with the specified reason.
     /// - Parameter reason: The reason for cancellation
     public func markAsCancelled(reason: CancellationReason) {
-        withLock {
-            _storage[ContextKeys.cancellationReason.name] = AnySendable(reason)
-        }
+        self[ContextKeys.cancellationReason] = reason
     }
 
     /// Gets the cancellation reason if the context has been cancelled.
