@@ -1,0 +1,83 @@
+Building for debugging...
+[Computing dependencies]
+[Using on-disk description]
+[1 / 1]
+[2 / 13] PipelineKitResilienceTests-product
+[4 / 15] PipelineKitResilienceTests-product
+[10 / 14] PipelineKitResilienceTests-product
+Build complete! (1.69 sec)
+Test Suite 'Selected tests' started at 2026-10-30 22:24:08.876.
+Test Suite 'PipelineKitTests.xctest' started at 2026-10-30 22:24:08.877.
+Test Suite 'PipelineKitTests.xctest' passed at 2026-10-30 22:24:08.877.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 22:24:08.877.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 22:24:08.955.
+Test Suite 'PipelineKitTestSupportTests.xctest' started at 2026-10-30 22:24:08.955.
+Test Suite 'PipelineKitTestSupportTests.xctest' passed at 2026-10-30 22:24:08.956.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 22:24:08.956.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 22:24:09.034.
+Test Suite 'PipelineKitSecurityTests.xctest' started at 2026-10-30 22:24:09.035.
+Test Suite 'PipelineKitSecurityTests.xctest' passed at 2026-10-30 22:24:09.035.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 22:24:09.035.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 22:24:09.094.
+Test Suite 'PipelineKitResilienceTests.xctest' started at 2026-10-30 22:24:09.095.
+Test Suite 'ResilienceErrorPolicyTests' started at 2026-10-30 22:24:09.095.
+Test Case '-[PipelineKitResilienceTests.ResilienceErrorPolicyTests testNegativeAndOverridePolicies]' started.
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/ResilienceErrorPolicyTests.swift:45: error: -[PipelineKitResilienceTests.ResilienceErrorPolicyTests testNegativeAndOverridePolicies] : XCTAssertTrue failed - validation
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/ResilienceErrorPolicyTests.swift:45: error: -[PipelineKitResilienceTests.ResilienceErrorPolicyTests testNegativeAndOverridePolicies] : XCTAssertEqual failed: ("2") is not equal to ("1") - validation
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/ResilienceErrorPolicyTests.swift:45: error: -[PipelineKitResilienceTests.ResilienceErrorPolicyTests testNegativeAndOverridePolicies] : XCTAssertTrue failed - validation: middlewareError(middleware: "CircuitBreakerMiddleware", message: "Circuit breaker is open - request rejected", context: Optional(PipelineKitCore.PipelineError.ErrorContext(commandType: "PolicyCommand", middlewareType: Optional("CircuitBreakerMiddleware"), correlationID: nil, userID: nil, additionalInfo: ["state": "open"], timestamp: 2026-10-31 05:24:09 +0000, stackTrace: Optional(["0   PipelineKitResilienceTests          0x000000010b8a8c44 $s15PipelineKitCore0A5ErrorO0D7ContextV11commandType010middlewareG013correlationID04userJ014additionalInfo9timestamp10stackTraceAESS_SSSgA2MSDyS2SG10Foundation4DateVSaySSGSgtcfC + 628", "1   PipelineKitResilienceTests          0x000000010ba2c19c $s15_CircuitBreaker0aB10MiddlewareV7execute_7context4next6ResultQzx_15PipelineKitCore14CommandContextCAHx_AKtYaYbKctYaKAI0K0RzlFTY0_ + 892", "2   PipelineKitResilienceTests          0x000000010b82189d $s26PipelineKitResilienceTests0c11ErrorPolicyD0C21assertRetryAndBreaker33_DA565543BDF2C6D1E69C9B0EA12232EFLL4name7failure5retry7breaker14defaultUnknown8override4file4lineySS_s0E0_pS4bSgs12StaticStringVSutYaFTQ7_ + 1", "3   PipelineKitResilienceTests          0x000000010b82312d $s26PipelineKitResilienceTests0c11ErrorPolicyD0C31testNegativeAndOverridePoliciesyyYaFTQ3_ + 1", "4   PipelineKitResilienceTests          0x000000010b82399d $s26PipelineKitResilienceTests0c11ErrorPolicyD0C31testNegativeAndOverridePoliciesyyYaFyyYacfU_ToTQ0_ + 1", "5   PipelineKitResilienceTests          0x000000010b825081 $s26PipelineKitResilienceTests0c11ErrorPolicyD0C31testNegativeAndOverridePoliciesyyYaFyyYacfU_ToTATQ0_ + 1", "6   PipelineKitResilienceTests          0x000000010b6dbfc1 $sIeghH_IeAgH_TRTQ0_ + 1", "7   PipelineKitResilienceTests          0x000000010b6dc111 $sIeghH_IeAgH_TRTATQ0_ + 1", "8   PipelineKitResilienceTests          0x000000010b6dc1e1 $sIeAgH_ytIeAgHr_TRTQ0_ + 1", "9   PipelineKitResilienceTests          0x000000010b6dc339 $sIeAgH_ytIeAgHr_TRTATQ0_ + 1", "10  PipelineKitResilienceTests          0x000000010b6dc801 $sxIeAgHr_xs5Error_pIegHrzo_s8SendableRzs5NeverORs_r0_lTRyt_Tgq5TQ0_ + 1", "11  PipelineKitResilienceTests          0x000000010b6dc93d $sxIeAgHr_xs5Error_pIegHrzo_s8SendableRzs5NeverORs_r0_lTRyt_Tgq5TATQ0_ + 1", "12  libswift_Concurrency.dylib          0x00000002c10ead41 _ZL23completeTaskWithClosurePN5swift12AsyncContextEPNS_10SwiftErrorE + 1"]))))
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/ResilienceErrorPolicyTests.swift:45: error: -[PipelineKitResilienceTests.ResilienceErrorPolicyTests testNegativeAndOverridePolicies] : XCTAssertEqual failed: ("1") is not equal to ("2") - validation
+Test Case '-[PipelineKitResilienceTests.ResilienceErrorPolicyTests testNegativeAndOverridePolicies]' failed (0.221 seconds).
+Test Case '-[PipelineKitResilienceTests.ResilienceErrorPolicyTests testTimeoutProducerByPolicyMatrix]' started.
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/ResilienceErrorPolicyTests.swift:24: error: -[PipelineKitResilienceTests.ResilienceErrorPolicyTests testTimeoutProducerByPolicyMatrix] : XCTAssertFalse failed - timeout: timeout(duration: 1.0, context: nil)
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/ResilienceErrorPolicyTests.swift:24: error: -[PipelineKitResilienceTests.ResilienceErrorPolicyTests testTimeoutProducerByPolicyMatrix] : XCTAssertEqual failed: ("1") is not equal to ("2") - timeout
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/ResilienceErrorPolicyTests.swift:24: error: -[PipelineKitResilienceTests.ResilienceErrorPolicyTests testTimeoutProducerByPolicyMatrix] : XCTAssertFalse failed - timeout
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/ResilienceErrorPolicyTests.swift:24: error: -[PipelineKitResilienceTests.ResilienceErrorPolicyTests testTimeoutProducerByPolicyMatrix] : XCTAssertEqual failed: ("2") is not equal to ("1") - timeout
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/ResilienceErrorPolicyTests.swift:36: error: -[PipelineKitResilienceTests.ResilienceErrorPolicyTests testTimeoutProducerByPolicyMatrix] : XCTAssertFalse failed - actual timeout: timeout(duration: 0.01, context: Optional(PipelineKitCore.PipelineError.ErrorContext(commandType: "PolicyCommand", middlewareType: Optional("TimeoutMiddleware"), correlationID: nil, userID: nil, additionalInfo: ["actualDuration": "0.011465072631835938", "gracePeriod": "0.0"], timestamp: 2026-10-31 05:24:09 +0000, stackTrace: Optional(["0   PipelineKitResilienceTests          0x000000010b8a8c44 $s15PipelineKitCore0A5ErrorO0D7ContextV11commandType010middlewareG013correlationID04userJ014additionalInfo9timestamp10stackTraceAESS_SSSgA2MSDyS2SG10Foundation4DateVSaySSGSgtcfC + 628", "1   PipelineKitResilienceTests          0x000000010b9f8370 $s15_ResilienceCore17TimeoutMiddlewareV011executeWithC033_EF3721D6A798168AC64CAB9133002C77LL7command0M4Type7context7timeout9startTime4next6ResultQzx_SS011PipelineKitB014CommandContextCSd10Foundation4DateVAMx_APtYaYbKctYaKAN0W0RzlFTY18_ + 588", "2   PipelineKitResilienceTests          0x000000010b9f5e59 $s15_ResilienceCore17TimeoutMiddlewareV7execute_7context4next6ResultQzx_011PipelineKitB014CommandContextCAHx_AKtYaYbKctYaKAI0K0RzlFTQ2_ + 1", "3   PipelineKitResilienceTests          0x000000010b81fbd5 $s26PipelineKitResilienceTests0c11ErrorPolicyD0C021testTimeoutProducerByF6MatrixyyYaKFTQ3_ + 1", "4   PipelineKitResilienceTests          0x000000010b822cb9 $s26PipelineKitResilienceTests0c11ErrorPolicyD0C021testTimeoutProducerByF6MatrixyyYaKFyyYacfU_ToTQ0_ + 1", "5   PipelineKitResilienceTests          0x000000010b824ed9 $s26PipelineKitResilienceTests0c11ErrorPolicyD0C021testTimeoutProducerByF6MatrixyyYaKFyyYacfU_ToTATQ0_ + 1", "6   PipelineKitResilienceTests          0x000000010b6dbfc1 $sIeghH_IeAgH_TRTQ0_ + 1", "7   PipelineKitResilienceTests          0x000000010b6dc111 $sIeghH_IeAgH_TRTATQ0_ + 1", "8   PipelineKitResilienceTests          0x000000010b6dc1e1 $sIeAgH_ytIeAgHr_TRTQ0_ + 1", "9   PipelineKitResilienceTests          0x000000010b6dc339 $sIeAgH_ytIeAgHr_TRTATQ0_ + 1", "10  PipelineKitResilienceTests          0x000000010b6dc801 $sxIeAgHr_xs5Error_pIegHrzo_s8SendableRzs5NeverORs_r0_lTRyt_Tgq5TQ0_ + 1", "11  PipelineKitResilienceTests          0x000000010b6dc93d $sxIeAgHr_xs5Error_pIegHrzo_s8SendableRzs5NeverORs_r0_lTRyt_Tgq5TATQ0_ + 1", "12  libswift_Concurrency.dylib          0x00000002c10ead41 _ZL23completeTaskWithClosurePN5swift12AsyncContextEPNS_10SwiftErrorE + 1"]))))
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/ResilienceErrorPolicyTests.swift:36: error: -[PipelineKitResilienceTests.ResilienceErrorPolicyTests testTimeoutProducerByPolicyMatrix] : XCTAssertEqual failed: ("1") is not equal to ("2") - actual timeout
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/ResilienceErrorPolicyTests.swift:36: error: -[PipelineKitResilienceTests.ResilienceErrorPolicyTests testTimeoutProducerByPolicyMatrix] : XCTAssertFalse failed - actual timeout
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/ResilienceErrorPolicyTests.swift:36: error: -[PipelineKitResilienceTests.ResilienceErrorPolicyTests testTimeoutProducerByPolicyMatrix] : XCTAssertEqual failed: ("2") is not equal to ("1") - actual timeout
+Test Case '-[PipelineKitResilienceTests.ResilienceErrorPolicyTests testTimeoutProducerByPolicyMatrix]' failed (0.019 seconds).
+Test Suite 'ResilienceErrorPolicyTests' failed at 2026-10-30 22:24:09.336.
+	 Executed 2 tests, with 12 failures (0 unexpected) in 0.240 (0.240) seconds
+Test Suite 'PipelineKitResilienceTests.xctest' failed at 2026-10-30 22:24:09.336.
+	 Executed 2 tests, with 12 failures (0 unexpected) in 0.240 (0.240) seconds
+Test Suite 'Selected tests' failed at 2026-10-30 22:24:09.336.
+	 Executed 2 tests, with 12 failures (0 unexpected) in 0.240 (0.241) seconds
+Test Suite 'Selected tests' started at 2026-10-30 22:24:09.415.
+Test Suite 'PipelineKitPoolingTests.xctest' started at 2026-10-30 22:24:09.416.
+Test Suite 'PipelineKitPoolingTests.xctest' passed at 2026-10-30 22:24:09.416.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 22:24:09.416.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 22:24:09.493.
+Test Suite 'PipelineKitPerformanceTests.xctest' started at 2026-10-30 22:24:09.494.
+Test Suite 'PipelineKitPerformanceTests.xctest' passed at 2026-10-30 22:24:09.494.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 22:24:09.494.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 22:24:09.572.
+Test Suite 'PipelineKitObservabilityTests.xctest' started at 2026-10-30 22:24:09.573.
+Test Suite 'PipelineKitObservabilityTests.xctest' passed at 2026-10-30 22:24:09.573.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 22:24:09.573.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 22:24:09.650.
+Test Suite 'PipelineKitCoreTests.xctest' started at 2026-10-30 22:24:09.650.
+Test Suite 'PipelineKitCoreTests.xctest' passed at 2026-10-30 22:24:09.650.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 22:24:09.650.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 22:24:09.727.
+Test Suite 'PipelineKitCacheTests.xctest' started at 2026-10-30 22:24:09.728.
+Test Suite 'PipelineKitCacheTests.xctest' passed at 2026-10-30 22:24:09.728.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 22:24:09.728.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Note: Some test targets reported failures:
+  - PipelineKitResilienceTests (XCTest)

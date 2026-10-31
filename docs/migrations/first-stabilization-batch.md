@@ -505,3 +505,15 @@ The scope contract suite covers the seven strategies, four scopes, exact store k
 boundaries using an internal clock seam; the public initializer retains wall-clock `Date`
 behavior. I01 owns final platform/Release integration and the consolidated next-minor
 **Breaking** changelog entry.
+
+## Breaking: structural pipeline timeout classification (R-F21)
+
+Retry and circuit-breaker policies now classify the four typed `PipelineError` timeout
+cases by their enum cases. Other `PipelineError` values, including `.wrapped` and
+`.retryExhausted`, are treated as ordinary unknown errors even if their descriptions or
+payloads contain the word `timeout`. They are not recursively unwrapped. Applications
+that intentionally classify wrapped errors should supply an `errorEvaluator` to the
+relevant middleware configuration and inspect the wrapper explicitly. Foreign errors
+continue through the existing policy and description fallback. `PipelineError.cancelled`
+continues to follow the unknown-error policy; native `CancellationError` retains each
+middleware's existing precedence. I01 owns the final consolidated Breaking entry.

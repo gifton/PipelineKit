@@ -1,0 +1,109 @@
+Building for debugging...
+[Computing dependencies]
+[Using on-disk description]
+[1 / 1]
+Build complete! (0.81 sec)
+Test Suite 'Selected tests' started at 2026-10-30 22:24:51.627.
+Test Suite 'PipelineKitTests.xctest' started at 2026-10-30 22:24:51.628.
+Test Suite 'PipelineKitTests.xctest' passed at 2026-10-30 22:24:51.628.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 22:24:51.628.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 22:24:51.706.
+Test Suite 'PipelineKitTestSupportTests.xctest' started at 2026-10-30 22:24:51.707.
+Test Suite 'PipelineKitTestSupportTests.xctest' passed at 2026-10-30 22:24:51.707.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 22:24:51.707.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 22:24:51.785.
+Test Suite 'PipelineKitSecurityTests.xctest' started at 2026-10-30 22:24:51.786.
+Test Suite 'PipelineKitSecurityTests.xctest' passed at 2026-10-30 22:24:51.786.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 22:24:51.786.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 22:24:51.845.
+Test Suite 'PipelineKitResilienceTests.xctest' started at 2026-10-30 22:24:51.846.
+Test Suite 'AuditCircuitBreakerProbeWedgeTests' started at 2026-10-30 22:24:51.846.
+Test Case '-[PipelineKitResilienceTests.AuditCircuitBreakerProbeWedgeTests testAbandonedProbeReleasesProbeSlot]' started.
+Test Case '-[PipelineKitResilienceTests.AuditCircuitBreakerProbeWedgeTests testAbandonedProbeReleasesProbeSlot]' passed (0.203 seconds).
+Test Case '-[PipelineKitResilienceTests.AuditCircuitBreakerProbeWedgeTests testControl_SuccessfulProbeClosesCircuitAfterRecoveryTimeout]' started.
+Test Case '-[PipelineKitResilienceTests.AuditCircuitBreakerProbeWedgeTests testControl_SuccessfulProbeClosesCircuitAfterRecoveryTimeout]' passed (0.206 seconds).
+Test Suite 'AuditCircuitBreakerProbeWedgeTests' passed at 2026-10-30 22:24:52.256.
+	 Executed 2 tests, with 0 failures (0 unexpected) in 0.409 (0.410) seconds
+Test Suite 'CircuitBreakerMiddlewareTests' started at 2026-10-30 22:24:52.256.
+Test Case '-[PipelineKitResilienceTests.CircuitBreakerMiddlewareTests testCircuitAllowsRequestAfterRecoveryTimeout]' started.
+Test Case '-[PipelineKitResilienceTests.CircuitBreakerMiddlewareTests testCircuitAllowsRequestAfterRecoveryTimeout]' passed (0.162 seconds).
+Test Case '-[PipelineKitResilienceTests.CircuitBreakerMiddlewareTests testCircuitOpensAfterFailureThreshold]' started.
+Test Case '-[PipelineKitResilienceTests.CircuitBreakerMiddlewareTests testCircuitOpensAfterFailureThreshold]' passed (0.002 seconds).
+Test Case '-[PipelineKitResilienceTests.CircuitBreakerMiddlewareTests testCircuitReclosesAfterSuccessfulRecovery]' started.
+Test Case '-[PipelineKitResilienceTests.CircuitBreakerMiddlewareTests testCircuitReclosesAfterSuccessfulRecovery]' passed (0.160 seconds).
+Test Case '-[PipelineKitResilienceTests.CircuitBreakerMiddlewareTests testCircuitReopensOnFailureDuringRecovery]' started.
+Test Case '-[PipelineKitResilienceTests.CircuitBreakerMiddlewareTests testCircuitReopensOnFailureDuringRecovery]' passed (0.153 seconds).
+Test Case '-[PipelineKitResilienceTests.CircuitBreakerMiddlewareTests testConcurrentAccess]' started.
+Test Case '-[PipelineKitResilienceTests.CircuitBreakerMiddlewareTests testConcurrentAccess]' passed (0.001 seconds).
+Test Case '-[PipelineKitResilienceTests.CircuitBreakerMiddlewareTests testInitialClosedState]' started.
+Test Case '-[PipelineKitResilienceTests.CircuitBreakerMiddlewareTests testInitialClosedState]' passed (0.000 seconds).
+Test Suite 'CircuitBreakerMiddlewareTests' passed at 2026-10-30 22:24:52.735.
+	 Executed 6 tests, with 0 failures (0 unexpected) in 0.478 (0.479) seconds
+Test Suite 'CircuitBreakerProbeAccountingTests' started at 2026-10-30 22:24:52.735.
+Test Case '-[PipelineKitResilienceTests.CircuitBreakerProbeAccountingTests testStaleSuccessDuringHalfOpenDoesNotDriveProbeAccounting]' started.
+Test Case '-[PipelineKitResilienceTests.CircuitBreakerProbeAccountingTests testStaleSuccessDuringHalfOpenDoesNotDriveProbeAccounting]' passed (0.208 seconds).
+Test Suite 'CircuitBreakerProbeAccountingTests' passed at 2026-10-30 22:24:52.943.
+	 Executed 1 test, with 0 failures (0 unexpected) in 0.208 (0.208) seconds
+Test Suite 'RetryMiddlewareTests' started at 2026-10-30 22:24:52.943.
+Test Case '-[PipelineKitResilienceTests.RetryMiddlewareTests testConstantBackoff]' started.
+Test Case '-[PipelineKitResilienceTests.RetryMiddlewareTests testConstantBackoff]' passed (0.026 seconds).
+Test Case '-[PipelineKitResilienceTests.RetryMiddlewareTests testCustomBackoff]' started.
+Test Case '-[PipelineKitResilienceTests.RetryMiddlewareTests testCustomBackoff]' passed (0.033 seconds).
+Test Case '-[PipelineKitResilienceTests.RetryMiddlewareTests testExponentialBackoff]' started.
+Test Case '-[PipelineKitResilienceTests.RetryMiddlewareTests testExponentialBackoff]' passed (0.083 seconds).
+Test Case '-[PipelineKitResilienceTests.RetryMiddlewareTests testJitterAddition]' started.
+Test Case '-[PipelineKitResilienceTests.RetryMiddlewareTests testJitterAddition]' passed (0.146 seconds).
+Test Case '-[PipelineKitResilienceTests.RetryMiddlewareTests testLinearBackoff]' started.
+Test Case '-[PipelineKitResilienceTests.RetryMiddlewareTests testLinearBackoff]' passed (0.038 seconds).
+Test Case '-[PipelineKitResilienceTests.RetryMiddlewareTests testMaxAttemptsExceeded]' started.
+Test Case '-[PipelineKitResilienceTests.RetryMiddlewareTests testMaxAttemptsExceeded]' passed (6.301 seconds).
+Test Case '-[PipelineKitResilienceTests.RetryMiddlewareTests testMetricsEmission]' started.
+Test Case '-[PipelineKitResilienceTests.RetryMiddlewareTests testMetricsEmission]' passed (2.071 seconds).
+Test Case '-[PipelineKitResilienceTests.RetryMiddlewareTests testRetryableErrors]' started.
+Test Case '-[PipelineKitResilienceTests.RetryMiddlewareTests testRetryableErrors]' passed (2.227 seconds).
+Test Case '-[PipelineKitResilienceTests.RetryMiddlewareTests testSuccessfulRetry]' started.
+Test Case '-[PipelineKitResilienceTests.RetryMiddlewareTests testSuccessfulRetry]' passed (2.639 seconds).
+Test Case '-[PipelineKitResilienceTests.RetryMiddlewareTests testSuccessOnFirstAttempt]' started.
+Test Case '-[PipelineKitResilienceTests.RetryMiddlewareTests testSuccessOnFirstAttempt]' passed (0.001 seconds).
+Test Suite 'RetryMiddlewareTests' passed at 2026-10-30 22:25:06.507.
+	 Executed 10 tests, with 0 failures (0 unexpected) in 13.563 (13.564) seconds
+Test Suite 'PipelineKitResilienceTests.xctest' passed at 2026-10-30 22:25:06.507.
+	 Executed 19 tests, with 0 failures (0 unexpected) in 14.658 (14.661) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 22:25:06.507.
+	 Executed 19 tests, with 0 failures (0 unexpected) in 14.658 (14.662) seconds
+Test Suite 'Selected tests' started at 2026-10-30 22:25:06.610.
+Test Suite 'PipelineKitPoolingTests.xctest' started at 2026-10-30 22:25:06.610.
+Test Suite 'PipelineKitPoolingTests.xctest' passed at 2026-10-30 22:25:06.610.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 22:25:06.610.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 22:25:06.689.
+Test Suite 'PipelineKitPerformanceTests.xctest' started at 2026-10-30 22:25:06.690.
+Test Suite 'PipelineKitPerformanceTests.xctest' passed at 2026-10-30 22:25:06.690.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 22:25:06.690.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 22:25:06.769.
+Test Suite 'PipelineKitObservabilityTests.xctest' started at 2026-10-30 22:25:06.770.
+Test Suite 'PipelineKitObservabilityTests.xctest' passed at 2026-10-30 22:25:06.770.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 22:25:06.770.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 22:25:06.847.
+Test Suite 'PipelineKitCoreTests.xctest' started at 2026-10-30 22:25:06.848.
+Test Suite 'PipelineKitCoreTests.xctest' passed at 2026-10-30 22:25:06.848.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 22:25:06.848.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 22:25:06.926.
+Test Suite 'PipelineKitCacheTests.xctest' started at 2026-10-30 22:25:06.927.
+Test Suite 'PipelineKitCacheTests.xctest' passed at 2026-10-30 22:25:06.927.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 22:25:06.927.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds

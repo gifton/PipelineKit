@@ -1,0 +1,147 @@
+import Foundation
+import XCTest
+import PipelineKitCore
+@testable import PipelineKitResilience
+
+private struct PolicyCommand: Command { typealias Result = String }
+private enum PolicyForeignError: Error { case unrelated }
+private struct PolicyForeignWrapper: LocalizedError {
+    var errorDescription: String? { "timeout" }
+}
+private actor PolicyCounter {
+    private var value = 0
+    func increment() -> Int { value += 1; return value }
+    func count() -> Int { value }
+}
+
+final class ResilienceErrorPolicyTests: XCTestCase {
+    func testTimeoutProducerByPolicyMatrix() async throws {
+        let errors: [(String, any Error)] = [
+            ("timeout", PipelineError.timeout(duration: 1, context: nil)),
+            ("bulkhead", PipelineError.bulkheadTimeout(timeout: 1, queueTime: 1)),
+            ("resilience", PipelineError.resilience(reason: .timeoutExceeded)),
+            ("backpressure", PipelineError.backPressure(reason: .timeout(duration: 1))),
+            ("URL", URLError(.timedOut))
+        ]
+        for (name, failure) in errors {
+            await assertRetryAndBreaker(name: name, failure: failure, retry: true, breaker: true)
+        }
+        // Capture the error produced by the real timeout middleware.
+        let timeout = TimeoutMiddleware(defaultTimeout: 0.01)
+        do {
+            _ = try await timeout.execute(PolicyCommand(), context: CommandContext()) { _, _ in
+                try await Task.sleep(nanoseconds: 1_000_000_000)
+                return "late"
+            }
+            XCTFail("Expected actual timeout")
+        } catch {
+            guard case PipelineError.timeout = error else { XCTFail("Unexpected producer error: \(error)"); return }
+            await assertRetryAndBreaker(name: "actual timeout", failure: error, retry: true, breaker: true)
+        }
+        // Wrapped pipeline timeout remains unknown; no recursive unwrap.
+        let wrapped = PipelineError.wrapped(PipelineError.timeout(duration: 1, context: nil), context: nil)
+        await assertRetryAndBreaker(name: "wrapped URL timeout", failure: wrapped, retry: false, breaker: false)
+    }
+
+    func testNestedTimeoutMiddlewarePolicies() async throws {
+        let retry = RetryMiddleware(configuration: .init(maxAttempts: 2, strategy: .fixed(delay: 0), retryableErrors: [.timeout], emitEvents: false))
+        let retryCount = PolicyCounter()
+        let result = try await retry.execute(PolicyCommand(), context: CommandContext()) { command, _ in
+            let attempt = await retryCount.increment()
+            if attempt == 2 { return "success" }
+            return try await TimeoutMiddleware(defaultTimeout: 0.01).execute(command, context: CommandContext()) { _, _ in
+                try await Task.sleep(nanoseconds: 1_000_000_000)
+                return "late"
+            }
+        }
+        XCTAssertEqual(result, "success")
+        let attempts = await retryCount.count()
+        XCTAssertEqual(attempts, 2)
+
+        let breaker = CircuitBreakerMiddleware(configuration: .init(failureThreshold: 1, recoveryTimeout: 60, triggeredByErrors: [.timeout], emitEvents: false))
+        let entries = PolicyCounter()
+        do {
+            _ = try await breaker.execute(PolicyCommand(), context: CommandContext()) { command, _ in
+                _ = await entries.increment()
+                return try await TimeoutMiddleware(defaultTimeout: 0.01).execute(command, context: CommandContext()) { _, _ in
+                    try await Task.sleep(nanoseconds: 1_000_000_000)
+                    return "late"
+                }
+            }
+            XCTFail("Expected timeout")
+        } catch {
+            guard case PipelineError.timeout = error else { XCTFail("Unexpected error: \(error)"); return }
+        }
+        XCTAssertEqual(breaker.circuitState, "open")
+        do {
+            _ = try await breaker.execute(PolicyCommand(), context: CommandContext()) { _, _ in
+                _ = await entries.increment(); return "entered"
+            }
+            XCTFail("Expected rejection")
+        } catch {
+            guard case PipelineError.middlewareError(let middleware, _, _) = error else { XCTFail("Unexpected error: \(error)"); return }
+            XCTAssertEqual(middleware, "CircuitBreakerMiddleware")
+        }
+        let count = await entries.count()
+        XCTAssertEqual(count, 1)
+    }
+
+    func testNegativeAndOverridePolicies() async {
+        await assertRetryAndBreaker(name: "native cancellation override", failure: CancellationError(), retry: false, breaker: true, override: true)
+        await assertRetryAndBreaker(name: "cancellation", failure: CancellationError(), retry: false, breaker: false)
+        await assertRetryAndBreaker(name: "validation", failure: PipelineError.validation(field: nil, reason: .custom("timeout")), retry: false, breaker: false)
+        await assertRetryAndBreaker(name: "wrapped timeout text", failure: PipelineError.wrapped(PolicyForeignWrapper(), context: nil), retry: false, breaker: false)
+        await assertRetryAndBreaker(name: "pipeline cancellation text", failure: PipelineError.cancelled(context: "timeout"), retry: false, breaker: false)
+        await assertRetryAndBreaker(name: "pipeline cancellation unknown", failure: PipelineError.cancelled(context: nil), retry: false, breaker: true, defaultUnknown: true)
+        await assertRetryAndBreaker(name: "foreign wrapper text", failure: PolicyForeignWrapper(), retry: true, breaker: true)
+        await assertRetryAndBreaker(name: "foreign", failure: PolicyForeignError.unrelated, retry: false, breaker: false)
+        await assertRetryAndBreaker(name: "default unknown", failure: PolicyForeignError.unrelated, retry: false, breaker: true, defaultUnknown: true)
+        await assertRetryAndBreaker(name: "override", failure: PipelineError.timeout(duration: 1, context: nil), retry: false, breaker: false, override: false)
+        await assertRetryAndBreaker(name: "override foreign", failure: PolicyForeignError.unrelated, retry: true, breaker: true, override: true)
+    }
+
+    private func assertRetryAndBreaker(name: String, failure: any Error, retry shouldRetry: Bool, breaker shouldOpen: Bool, defaultUnknown: Bool = false, override: Bool? = nil, file: StaticString = #filePath, line: UInt = #line) async {
+        let evaluator: (@Sendable (any Error) -> Bool)?
+        if let override { evaluator = { _ in override } } else { evaluator = nil }
+        let retry = RetryMiddleware(configuration: .init(maxAttempts: 2, strategy: .fixed(delay: 0), retryableErrors: [.timeout], errorEvaluator: evaluator, emitEvents: false))
+        let retryCount = PolicyCounter()
+        do {
+            let result = try await retry.execute(PolicyCommand(), context: CommandContext()) { _, _ in
+                if await retryCount.increment() == 1 { throw failure }
+                return "success"
+            }
+            XCTAssertTrue(shouldRetry, name, file: file, line: line)
+            XCTAssertEqual(result, "success", name, file: file, line: line)
+        } catch {
+            XCTAssertFalse(shouldRetry, "\(name): \(error)", file: file, line: line)
+            XCTAssertEqual(String(reflecting: error), String(reflecting: failure), name, file: file, line: line)
+        }
+        let attempts = await retryCount.count()
+        XCTAssertEqual(attempts, shouldRetry ? 2 : 1, name, file: file, line: line)
+
+        let breaker = CircuitBreakerMiddleware(configuration: .init(failureThreshold: 1, recoveryTimeout: 60, triggeredByErrors: defaultUnknown ? [.timeout, .unknown] : [.timeout], emitEvents: false, errorEvaluator: evaluator))
+        let count = PolicyCounter()
+        do {
+            _ = try await breaker.execute(PolicyCommand(), context: CommandContext()) { _, _ in
+                _ = await count.increment(); throw failure
+            }
+            XCTFail("\(name): expected failure", file: file, line: line)
+        } catch {
+            XCTAssertEqual(String(reflecting: error), String(reflecting: failure), name, file: file, line: line)
+        }
+        XCTAssertEqual(breaker.circuitState, shouldOpen ? "open" : "closed", name, file: file, line: line)
+        do {
+            let result = try await breaker.execute(PolicyCommand(), context: CommandContext()) { _, _ in
+                _ = await count.increment(); return "entered"
+            }
+            XCTAssertFalse(shouldOpen, name, file: file, line: line)
+            XCTAssertEqual(result, "entered", name, file: file, line: line)
+        } catch {
+            XCTAssertTrue(shouldOpen, "\(name): \(error)", file: file, line: line)
+            guard case PipelineError.middlewareError(let middleware, _, _) = error else { XCTFail("\(name): unexpected rejection \(error)", file: file, line: line); return }
+            XCTAssertEqual(middleware, "CircuitBreakerMiddleware", name, file: file, line: line)
+        }
+        let entries = await count.count()
+        XCTAssertEqual(entries, shouldOpen ? 1 : 2, name, file: file, line: line)
+    }
+}

@@ -1080,3 +1080,17 @@ R05-002 emitted two primary compiler warnings (unnecessary await in MiddlewareTe
 ### R05 independent acceptance
 
 Fresh Astra/max [review](reports/R05-review.md) approves spec/quality with no Critical/Important findings. Parent matched7 final file hashes,15 artifact hashes and12 final source/retained inputs; raw original00141assertions,00214passes,0031135 unique XCTest selections+20 Swift Testing, expected exits/settled cleanup checked. R05-N1 is a deferred coverage limit: adaptive cleanup row is full before cleanup, so it reaches the branch but cannot distinguish eviction/recreation from retention; token/sliding rows do. Throwing-store status and initial token activity stamps are source-traced, not separately exercised. No cleanup/concurrency/durability claim. Ruling18 covers bounded internal clock plumbing and explicit new algorithm matrix (no inherited algorithm tests). Two inherited compiler kinds/C02-N1 separate. R-F08 locally verified; R-F09/10 remain open, I01 pending. No acceptance rerun.
+
+## R06 — structural PipelineKit timeout classification
+
+Base `b6c71a8f31b3c6b3d89f0f0debcde654e953b204`; branch `fix/stabilization-batch-1`. Initial checkout clean except preserved untracked audit/guide. Ruling 19 specifies opaque wrappers and existing cancellation/unknown behavior. Final source and exact diff hashes, diagnostic occurrence counts and raw artifact hashes: `logs/R06-evidence-summary.json`; `reports/R06-final.diff`. Baseline source for R06-001/002 is unmodified; reconstructed R06-002 test snapshot is retained and SHA256 `9d37230ed57182144c6d7c0674a71e97c7f4953a4b6757cdf1fbbd62e78fb745`. R06-001 initial test SHA256 `e7dfbe274212d1d6ff131ba17e39b046cdaf570ae5754276f2c2ec42d14439ed`.
+
+Each command uses the reviewed watchdog `python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id ID --timeout 600 --`:
+
+- `R06-001 swift test --filter ResilienceErrorPolicyTests`: root/runner 1/1, test compilation failed from compiler diagnostic failure on an optional closure expression. Not behavior red.
+- `R06-002 swift test --filter ResilienceErrorPolicyTests`: root/runner 1/1, 2 tests, 12 expected behavioral assertions; original own timeout and actual producer failed retry/open, validation timeout text incorrectly retried/opened. Historical V301 is preserved.
+- `R06-003 swift test --filter ResilienceErrorPolicyTests`: root/runner 0/0, 3 tests pass, including typed leaf × policy matrix, real nested timeout, wrapped/foreign/cancellation/custom controls.
+- `R06-004 swift test --filter 'RetryMiddlewareTests|CircuitBreakerMiddlewareTests|AuditCircuitBreakerProbeWedgeTests|CircuitBreakerProbeAccountingTests'`: root/runner 0/0, 19 pass, including wedge and probe accounting.
+- `R06-005 swift test --parallel --skip PipelineKitPerformanceTests`: root/runner 0/0, 1138 XCTest progress selections and 20 Swift Testing tests pass.
+
+Every run settled with no survivors, signals, timeout or runner error. Raw logs, process traces and JSON are retained. R06-003 produced 14 compiler warning occurrences across 10 normalized baseline kinds, zero new; other incremental runs emitted no primary compiler warnings. Runtime/configuration warning scan including SwiftLog forms found zero lines. This is not a clean-baseline claim; C02-N1/compiler debt remain separate. Migration guidance records payload-text break; I01 owns Release/platform/migration compilation and consolidated Breaking entry. Controller owns review and closure.
