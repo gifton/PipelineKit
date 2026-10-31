@@ -1,0 +1,86 @@
+Building for debugging...
+[Computing dependencies]
+[Pre-planning 1 / 1026]
+[Planning deferred tasks]
+[1 / 48] PipelineKitObservabilityTests-product
+[5 / 65] PipelineKitSecurityTests-product
+[23 / 34] PipelineKitTests-product
+[25 / 36] PipelineKitTests-product
+[31 / 35] PipelineKitTests-product
+Build complete! (2.56 sec)
+Test Suite 'Selected tests' started at 2026-10-30 18:00:40.641.
+Test Suite 'PipelineKitTests.xctest' started at 2026-10-30 18:00:40.642.
+Test Suite 'NextGuardConfigurationContractTests' started at 2026-10-30 18:00:40.642.
+Test Case '-[PipelineKitTests.NextGuardConfigurationContractTests testConcurrentWarningConfigurationUsesCoherentSnapshots]' started.
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitTests/Safety/NextGuardConfigurationContractTests.swift:47: error: -[PipelineKitTests.NextGuardConfigurationContractTests testConcurrentWarningConfigurationUsesCoherentSnapshots] : XCTAssertTrue failed - A disabled configuration's callback must never run
+Test Case '-[PipelineKitTests.NextGuardConfigurationContractTests testConcurrentWarningConfigurationUsesCoherentSnapshots]' failed (0.191 seconds).
+Test Case '-[PipelineKitTests.NextGuardConfigurationContractTests testNestedAndEscapedGuardSuppression]' started.
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitTests/Safety/NextGuardConfigurationContractTests.swift:163: error: -[PipelineKitTests.NextGuardConfigurationContractTests testNestedAndEscapedGuardSuppression] : XCTAssertTrue failed - Nested scopes and escaped guards must retain suppression
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitTests/Safety/NextGuardConfigurationContractTests.swift:166: error: -[PipelineKitTests.NextGuardConfigurationContractTests testNestedAndEscapedGuardSuppression] : XCTAssertEqual failed: ("3") is not equal to ("1")
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitTests/Safety/NextGuardConfigurationContractTests.swift:167: error: -[PipelineKitTests.NextGuardConfigurationContractTests testNestedAndEscapedGuardSuppression] : XCTAssertTrue failed
+Test Case '-[PipelineKitTests.NextGuardConfigurationContractTests testNestedAndEscapedGuardSuppression]' failed (0.001 seconds).
+Test Case '-[PipelineKitTests.NextGuardConfigurationContractTests testOverlappingSuppressionDoesNotRestoreGlobalState]' started.
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitTests/Safety/NextGuardConfigurationContractTests.swift:106: error: -[PipelineKitTests.NextGuardConfigurationContractTests testOverlappingSuppressionDoesNotRestoreGlobalState] : XCTAssertTrue failed - Scopes must not change global configuration
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitTests/Safety/NextGuardConfigurationContractTests.swift:108: error: -[PipelineKitTests.NextGuardConfigurationContractTests testOverlappingSuppressionDoesNotRestoreGlobalState] : XCTAssertEqual failed: ("0") is not equal to ("1") - An unrelated guard must still warn while both scopes are held
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitTests/Safety/NextGuardConfigurationContractTests.swift:114: error: -[PipelineKitTests.NextGuardConfigurationContractTests testOverlappingSuppressionDoesNotRestoreGlobalState] : XCTAssertFalse failed - First exit must retain the permanent disable
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitTests/Safety/NextGuardConfigurationContractTests.swift:128: error: -[PipelineKitTests.NextGuardConfigurationContractTests testOverlappingSuppressionDoesNotRestoreGlobalState] : XCTAssertEqual failed: ("3") is not equal to ("2")
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitTests/Safety/NextGuardConfigurationContractTests.swift:129: error: -[PipelineKitTests.NextGuardConfigurationContractTests testOverlappingSuppressionDoesNotRestoreGlobalState] : XCTAssertTrue failed
+Test Case '-[PipelineKitTests.NextGuardConfigurationContractTests testOverlappingSuppressionDoesNotRestoreGlobalState]' failed (0.001 seconds).
+Test Case '-[PipelineKitTests.NextGuardConfigurationContractTests testWarningCallbackCanReenterConfiguration]' started.
+Test Case '-[PipelineKitTests.NextGuardConfigurationContractTests testWarningCallbackCanReenterConfiguration]' passed (0.000 seconds).
+Test Suite 'NextGuardConfigurationContractTests' failed at 2026-10-30 18:00:40.835.
+	 Executed 4 tests, with 9 failures (0 unexpected) in 0.193 (0.193) seconds
+Test Suite 'PipelineKitTests.xctest' failed at 2026-10-30 18:00:40.835.
+	 Executed 4 tests, with 9 failures (0 unexpected) in 0.193 (0.193) seconds
+Test Suite 'Selected tests' failed at 2026-10-30 18:00:40.835.
+	 Executed 4 tests, with 9 failures (0 unexpected) in 0.193 (0.194) seconds
+Test Suite 'Selected tests' started at 2026-10-30 18:00:40.913.
+Test Suite 'PipelineKitTestSupportTests.xctest' started at 2026-10-30 18:00:40.914.
+Test Suite 'PipelineKitTestSupportTests.xctest' passed at 2026-10-30 18:00:40.914.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 18:00:40.914.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 18:00:40.989.
+Test Suite 'PipelineKitSecurityTests.xctest' started at 2026-10-30 18:00:40.990.
+Test Suite 'PipelineKitSecurityTests.xctest' passed at 2026-10-30 18:00:40.990.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 18:00:40.990.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 18:00:41.066.
+Test Suite 'PipelineKitResilienceTests.xctest' started at 2026-10-30 18:00:41.067.
+Test Suite 'PipelineKitResilienceTests.xctest' passed at 2026-10-30 18:00:41.067.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 18:00:41.067.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 18:00:41.143.
+Test Suite 'PipelineKitPoolingTests.xctest' started at 2026-10-30 18:00:41.144.
+Test Suite 'PipelineKitPoolingTests.xctest' passed at 2026-10-30 18:00:41.144.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 18:00:41.144.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 18:00:41.220.
+Test Suite 'PipelineKitPerformanceTests.xctest' started at 2026-10-30 18:00:41.220.
+Test Suite 'PipelineKitPerformanceTests.xctest' passed at 2026-10-30 18:00:41.220.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 18:00:41.220.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 18:00:41.296.
+Test Suite 'PipelineKitObservabilityTests.xctest' started at 2026-10-30 18:00:41.297.
+Test Suite 'PipelineKitObservabilityTests.xctest' passed at 2026-10-30 18:00:41.297.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 18:00:41.297.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 18:00:41.373.
+Test Suite 'PipelineKitCoreTests.xctest' started at 2026-10-30 18:00:41.374.
+Test Suite 'PipelineKitCoreTests.xctest' passed at 2026-10-30 18:00:41.374.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 18:00:41.374.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 18:00:41.449.
+Test Suite 'PipelineKitCacheTests.xctest' started at 2026-10-30 18:00:41.450.
+Test Suite 'PipelineKitCacheTests.xctest' passed at 2026-10-30 18:00:41.450.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 18:00:41.450.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Note: Some test targets reported failures:
+  - PipelineKitTests (XCTest)

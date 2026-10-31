@@ -1,0 +1,126 @@
+Building for debugging...
+[Computing dependencies]
+[Using on-disk description]
+[1 / 1]
+[2 / 74] PipelineKit
+[4 / 76] PipelineKit
+[9 / 48] PipelineKitCoreTests-product
+[25 / 34] PipelineKitPoolingTests-product
+Build complete! (1.70 sec)
+Test Suite 'Selected tests' started at 2026-10-30 18:04:13.070.
+Test Suite 'PipelineKitTests.xctest' started at 2026-10-30 18:04:13.070.
+Test Suite 'NextGuardConfigurationContractTests' started at 2026-10-30 18:04:13.070.
+Test Case '-[PipelineKitTests.NextGuardConfigurationContractTests testAsyncSuppressionPreservesCallerIsolation]' started.
+Test Case '-[PipelineKitTests.NextGuardConfigurationContractTests testAsyncSuppressionPreservesCallerIsolation]' passed (0.001 seconds).
+Test Case '-[PipelineKitTests.NextGuardConfigurationContractTests testConcurrentWarningConfigurationUsesCoherentSnapshots]' started.
+Test Case '-[PipelineKitTests.NextGuardConfigurationContractTests testConcurrentWarningConfigurationUsesCoherentSnapshots]' passed (0.002 seconds).
+Test Case '-[PipelineKitTests.NextGuardConfigurationContractTests testNestedAndEscapedGuardSuppression]' started.
+Test Case '-[PipelineKitTests.NextGuardConfigurationContractTests testNestedAndEscapedGuardSuppression]' passed (0.000 seconds).
+Test Case '-[PipelineKitTests.NextGuardConfigurationContractTests testOverlappingSuppressionDoesNotRestoreGlobalState]' started.
+Test Case '-[PipelineKitTests.NextGuardConfigurationContractTests testOverlappingSuppressionDoesNotRestoreGlobalState]' passed (0.000 seconds).
+Test Case '-[PipelineKitTests.NextGuardConfigurationContractTests testReplacingCallbackCanReenterConfiguration]' started.
+Test Case '-[PipelineKitTests.NextGuardConfigurationContractTests testReplacingCallbackCanReenterConfiguration]' passed (0.000 seconds).
+Test Case '-[PipelineKitTests.NextGuardConfigurationContractTests testSnapshotRetainsCallbackAcrossReset]' started.
+Test Case '-[PipelineKitTests.NextGuardConfigurationContractTests testSnapshotRetainsCallbackAcrossReset]' passed (0.000 seconds).
+Test Case '-[PipelineKitTests.NextGuardConfigurationContractTests testThrowingScopesRestoreSuppressionWithoutChangingGlobalState]' started.
+Test Case '-[PipelineKitTests.NextGuardConfigurationContractTests testThrowingScopesRestoreSuppressionWithoutChangingGlobalState]' passed (0.000 seconds).
+Test Case '-[PipelineKitTests.NextGuardConfigurationContractTests testWarningCallbackCanReenterConfiguration]' started.
+Test Case '-[PipelineKitTests.NextGuardConfigurationContractTests testWarningCallbackCanReenterConfiguration]' passed (0.000 seconds).
+Test Suite 'NextGuardConfigurationContractTests' passed at 2026-10-30 18:04:13.074.
+	 Executed 8 tests, with 0 failures (0 unexpected) in 0.003 (0.004) seconds
+Test Suite 'NextGuardErrorExitTests' started at 2026-10-30 18:04:13.074.
+Test Case '-[PipelineKitTests.NextGuardErrorExitTests testMarkErrorExitSuppressesDeinitWarning]' started.
+Test Case '-[PipelineKitTests.NextGuardErrorExitTests testMarkErrorExitSuppressesDeinitWarning]' passed (0.000 seconds).
+Test Case '-[PipelineKitTests.NextGuardErrorExitTests testSilentReturnWithoutMarkerStillWarns]' started.
+Test Case '-[PipelineKitTests.NextGuardErrorExitTests testSilentReturnWithoutMarkerStillWarns]' passed (0.001 seconds).
+Test Case '-[PipelineKitTests.NextGuardErrorExitTests testThrowingMiddlewareWithoutMarkerEmitsNoWarning]' started.
+Test Case '-[PipelineKitTests.NextGuardErrorExitTests testThrowingMiddlewareWithoutMarkerEmitsNoWarning]' passed (0.000 seconds).
+Test Case '-[PipelineKitTests.NextGuardErrorExitTests testUncalledGuardWarnsWithoutMark]' started.
+Test Case '-[PipelineKitTests.NextGuardErrorExitTests testUncalledGuardWarnsWithoutMark]' passed (0.000 seconds).
+Test Case '-[PipelineKitTests.NextGuardErrorExitTests testWellBehavedMiddlewareEmitsNoWarning]' started.
+Test Case '-[PipelineKitTests.NextGuardErrorExitTests testWellBehavedMiddlewareEmitsNoWarning]' passed (0.000 seconds).
+Test Suite 'NextGuardErrorExitTests' passed at 2026-10-30 18:04:13.076.
+	 Executed 5 tests, with 0 failures (0 unexpected) in 0.001 (0.002) seconds
+Test Suite 'NextGuardTests' started at 2026-10-30 18:04:13.076.
+Test Case '-[PipelineKitTests.NextGuardTests testAlternateExecuteMethod]' started.
+Test Case '-[PipelineKitTests.NextGuardTests testAlternateExecuteMethod]' passed (0.000 seconds).
+Test Case '-[PipelineKitTests.NextGuardTests testCancellationHandling]' started.
+Test Case '-[PipelineKitTests.NextGuardTests testCancellationHandling]' passed (0.015 seconds).
+Test Case '-[PipelineKitTests.NextGuardTests testConcurrentCallsThrowError]' started.
+Test Case '-[PipelineKitTests.NextGuardTests testConcurrentCallsThrowError]' passed (0.107 seconds).
+Test Case '-[PipelineKitTests.NextGuardTests testDebugAssertionOnMissingCall]' started.
+Test Case '-[PipelineKitTests.NextGuardTests testDebugAssertionOnMissingCall]' passed (0.000 seconds).
+Test Case '-[PipelineKitTests.NextGuardTests testErrorMessagesAreDescriptive]' started.
+Test Case '-[PipelineKitTests.NextGuardTests testErrorMessagesAreDescriptive]' passed (0.000 seconds).
+Test Case '-[PipelineKitTests.NextGuardTests testHighConcurrencyStress]' started.
+Test Case '-[PipelineKitTests.NextGuardTests testHighConcurrencyStress]' passed (0.026 seconds).
+Test Case '-[PipelineKitTests.NextGuardTests testMultipleCallsThrowError]' started.
+Test Case '-[PipelineKitTests.NextGuardTests testMultipleCallsThrowError]' passed (0.000 seconds).
+Test Case '-[PipelineKitTests.NextGuardTests testSingleExecutionSucceeds]' started.
+Test Case '-[PipelineKitTests.NextGuardTests testSingleExecutionSucceeds]' passed (0.000 seconds).
+Test Case '-[PipelineKitTests.NextGuardTests testStateTransitionsCorrectly]' started.
+Test Case '-[PipelineKitTests.NextGuardTests testStateTransitionsCorrectly]' passed (0.015 seconds).
+Test Suite 'NextGuardTests' passed at 2026-10-30 18:04:13.240.
+	 Executed 9 tests, with 0 failures (0 unexpected) in 0.164 (0.165) seconds
+Test Suite 'PipelineKitTests.xctest' passed at 2026-10-30 18:04:13.240.
+	 Executed 22 tests, with 0 failures (0 unexpected) in 0.169 (0.170) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 18:04:13.240.
+	 Executed 22 tests, with 0 failures (0 unexpected) in 0.169 (0.171) seconds
+Test Suite 'Selected tests' started at 2026-10-30 18:04:13.320.
+Test Suite 'PipelineKitTestSupportTests.xctest' started at 2026-10-30 18:04:13.321.
+Test Suite 'PipelineKitTestSupportTests.xctest' passed at 2026-10-30 18:04:13.321.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 18:04:13.321.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 18:04:13.401.
+Test Suite 'PipelineKitSecurityTests.xctest' started at 2026-10-30 18:04:13.402.
+Test Suite 'NextGuardSuppressionConformanceTests' started at 2026-10-30 18:04:13.402.
+Test Case '-[PipelineKitSecurityTests.NextGuardSuppressionConformanceTests testThrowBasedSecurityMiddlewaresDoNotSuppressNextGuardWarnings]' started.
+Test Case '-[PipelineKitSecurityTests.NextGuardSuppressionConformanceTests testThrowBasedSecurityMiddlewaresDoNotSuppressNextGuardWarnings]' passed (0.000 seconds).
+Test Suite 'NextGuardSuppressionConformanceTests' passed at 2026-10-30 18:04:13.403.
+	 Executed 1 test, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'PipelineKitSecurityTests.xctest' passed at 2026-10-30 18:04:13.403.
+	 Executed 1 test, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 18:04:13.403.
+	 Executed 1 test, with 0 failures (0 unexpected) in 0.000 (0.002) seconds
+Test Suite 'Selected tests' started at 2026-10-30 18:04:13.485.
+Test Suite 'PipelineKitResilienceTests.xctest' started at 2026-10-30 18:04:13.485.
+Test Suite 'NextGuardSuppressionConformanceTests' started at 2026-10-30 18:04:13.485.
+Test Case '-[PipelineKitResilienceTests.NextGuardSuppressionConformanceTests testThrowBasedResilienceMiddlewaresDoNotSuppressNextGuardWarnings]' started.
+Test Case '-[PipelineKitResilienceTests.NextGuardSuppressionConformanceTests testThrowBasedResilienceMiddlewaresDoNotSuppressNextGuardWarnings]' passed (0.000 seconds).
+Test Suite 'NextGuardSuppressionConformanceTests' passed at 2026-10-30 18:04:13.486.
+	 Executed 1 test, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'PipelineKitResilienceTests.xctest' passed at 2026-10-30 18:04:13.486.
+	 Executed 1 test, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 18:04:13.486.
+	 Executed 1 test, with 0 failures (0 unexpected) in 0.000 (0.002) seconds
+Test Suite 'Selected tests' started at 2026-10-30 18:04:13.565.
+Test Suite 'PipelineKitPoolingTests.xctest' started at 2026-10-30 18:04:13.566.
+Test Suite 'PipelineKitPoolingTests.xctest' passed at 2026-10-30 18:04:13.566.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 18:04:13.566.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 18:04:13.649.
+Test Suite 'PipelineKitPerformanceTests.xctest' started at 2026-10-30 18:04:13.650.
+Test Suite 'PipelineKitPerformanceTests.xctest' passed at 2026-10-30 18:04:13.650.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 18:04:13.650.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 18:04:13.735.
+Test Suite 'PipelineKitObservabilityTests.xctest' started at 2026-10-30 18:04:13.736.
+Test Suite 'PipelineKitObservabilityTests.xctest' passed at 2026-10-30 18:04:13.736.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 18:04:13.736.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 18:04:13.818.
+Test Suite 'PipelineKitCoreTests.xctest' started at 2026-10-30 18:04:13.819.
+Test Suite 'PipelineKitCoreTests.xctest' passed at 2026-10-30 18:04:13.819.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 18:04:13.819.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 18:04:13.901.
+Test Suite 'PipelineKitCacheTests.xctest' started at 2026-10-30 18:04:13.902.
+Test Suite 'PipelineKitCacheTests.xctest' passed at 2026-10-30 18:04:13.902.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 18:04:13.902.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds

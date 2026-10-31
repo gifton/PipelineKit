@@ -34,8 +34,7 @@ public extension NextGuard {
     /// - Parameter handler: A closure that receives warning messages
     /// - Note: Setting a custom handler automatically enables warnings
     static func setWarningHandler(_ handler: @escaping @Sendable (String) -> Void) {
-        NextGuardConfiguration.shared.warningHandler = handler
-        NextGuardConfiguration.shared.emitWarnings = true
+        NextGuardConfiguration.setWarningHandler(handler)
     }
     
     /// Disables all NextGuard warnings
@@ -45,31 +44,28 @@ public extension NextGuard {
     
     /// Resets to default configuration
     static func resetConfiguration() {
-        NextGuardConfiguration.shared.emitWarnings = true
-        NextGuardConfiguration.shared.warningHandler = nil
+        NextGuardConfiguration.shared.configure(emitWarnings: true, warningHandler: nil)
     }
 }
 
 // MARK: - Convenience for Testing
 
 public extension NextGuard {
-    /// Temporarily disables warnings for the duration of the provided closure
+    /// Suppresses warnings for guards created by the provided closure and its child tasks.
     /// - Parameter operation: The operation to run without warnings
     /// - Returns: The result of the operation
     static func withoutWarnings<Result>(_ operation: () throws -> Result) rethrows -> Result {
-        let previousState = NextGuardConfiguration.shared.emitWarnings
-        NextGuardConfiguration.shared.emitWarnings = false
-        defer { NextGuardConfiguration.shared.emitWarnings = previousState }
-        return try operation()
+        try NextGuardWarningScope.$isSuppressed.withValue(true, operation: operation)
     }
     
-    /// Temporarily disables warnings for the duration of the provided async closure
+    /// Suppresses warnings for guards created by the provided closure and its child tasks.
     /// - Parameter operation: The async operation to run without warnings
     /// - Returns: The result of the operation
-    static func withoutWarnings<Result>(_ operation: () async throws -> Result) async rethrows -> Result {
-        let previousState = NextGuardConfiguration.shared.emitWarnings
-        NextGuardConfiguration.shared.emitWarnings = false
-        defer { NextGuardConfiguration.shared.emitWarnings = previousState }
-        return try await operation()
+    nonisolated(nonsending) static func withoutWarnings<Result>(
+        _ operation: () async throws -> Result
+    ) async rethrows -> Result {
+        try await NextGuardWarningScope.$isSuppressed.withValue(true) {
+            try await operation()
+        }
     }
 }
