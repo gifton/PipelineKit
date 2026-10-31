@@ -1,0 +1,13 @@
+{
+  "repository_original_sha256": "f3fa663ca0f1c77b0b5019bce908ef38a95911202c5f1c16de2d4fe01965ddc4",
+  "build_consumed_sha256": "60000d331311ebe7fd39674742479048899ed7ba3dc97728e183877f0013f864",
+  "removed_unused_pin_identities": [
+    "swift-docc-plugin",
+    "swift-docc-symbolkit"
+  ],
+  "retained_pins_unchanged": true,
+  "build_pin_count": 4,
+  "repository_pin_count": 6,
+  "reason": "SwiftPM pruned unused DocC plugin pins and refreshed originHash during --disable-automatic-resolution builds. Preserve generated inputs as evidence and restore original committed repository bytes; no dependency revision upgrades.",
+  "restored_sha256": "f3fa663ca0f1c77b0b5019bce908ef38a95911202c5f1c16de2d4fe01965ddc4"
+}

@@ -1,0 +1,848 @@
+Building for production...
+[Computing dependencies]
+[Pre-planning 1 / 1026]
+[Planning deferred tasks]
+[23 / 84]
+[30 / 87] Crypto
+[32 / 88] Crypto
+[34 / 84] Logging
+[36 / 80] Atomics
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Sources/PipelineKitCore/Context/ExecutionContext.swift:94:45: warning: 'withValue(_:operation:isolation:file:line:)' is deprecated: Prefer the 'nonisolated(nonsending)' overload with stricter execution on caller context semantics: withValue(_:operation:file:line:) [#DeprecatedDeclaration]
+ 92 |         operation: () async throws -> T
+ 93 |     ) async rethrows -> T {
+ 94 |         try await ExecutionContext.$current.withValue(
+    |                                             `- warning: 'withValue(_:operation:isolation:file:line:)' is deprecated: Prefer the 'nonisolated(nonsending)' overload with stricter execution on caller context semantics: withValue(_:operation:file:line:) [#DeprecatedDeclaration]
+ 95 |             ExecutionContext(trace: snapshot.trace, progress: progress),
+ 96 |             operation: operation,
+
+[#DeprecatedDeclaration]: <https://docs.swift.org/compiler/documentation/diagnostics/deprecated-declaration>
+[41 / 83] PipelineKitCore
+[50 / 89] PipelineKit
+[57 / 98] PipelineKitObservability
+[59 / 99] _ResilienceFoundation
+[64 / 99] _RateLimiting
+[65 / 99] _RateLimiting
+[66 / 98] _CircuitBreaker
+[67 / 97] PipelineKitObservability
+[72 / 105] PipelineKitCache
+[76 / 107] _ResilienceCore
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Sources/PipelineKitCache/CachingMiddleware.swift:189:47: warning: use of protocol 'Decodable' as a type must be written 'any Decodable'; this will be an error in a future Swift language mode [#ExistentialAny]
+187 |             // For other Decodable types, try generic decoding
+188 |             // Note: We use Decodable.Type here (not `any Decodable.Type`) because we need to call init on it
+189 |             if let decodableType = T.self as? Decodable.Type {
+    |                                               `- warning: use of protocol 'Decodable' as a type must be written 'any Decodable'; this will be an error in a future Swift language mode [#ExistentialAny]
+190 |                 let value = try decodableType.init(from: try container.superDecoder(forKey: .result))
+191 |                 guard let typedValue = value as? T else {
+
+[#ExistentialAny]: <https://docs.swift.org/compiler/documentation/diagnostics/existential-any>
+[89 / 112] PipelineKitResilience
+[96 / 120] PipelineKitPooling
+[99 / 122] PipelineKitPooling
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Sources/PipelineKitSecurity/AuditLogger.swift:169:41: warning: 'withValue(_:operation:isolation:file:line:)' is deprecated: Prefer the 'nonisolated(nonsending)' overload with stricter execution on caller context semantics: withValue(_:operation:file:line:) [#DeprecatedDeclaration]
+167 |         operation: () async throws -> T
+168 |     ) async rethrows -> T {
+169 |         try await AuditContext.$current.withValue(context, operation: operation)
+    |                                         `- warning: 'withValue(_:operation:isolation:file:line:)' is deprecated: Prefer the 'nonisolated(nonsending)' overload with stricter execution on caller context semantics: withValue(_:operation:file:line:) [#DeprecatedDeclaration]
+170 |     }
+171 | }
+
+[#DeprecatedDeclaration]: <https://docs.swift.org/compiler/documentation/diagnostics/deprecated-declaration>
+[107 / 121] PipelineKitTestSupport
+[109 / 122] PipelineKitTestSupport
+[122 / 136] PipelineKitSecurityTests-product
+[125 / 139] PipelineKitPoolingTests-product
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitPerformanceTests/BackPressurePerformanceTests.swift:27:13: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+ 25 |             expectation.expectedFulfillmentCount = 10000
+ 26 |             
+ 27 |             Task {
+    |             |- warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+    |             `- note: to silence this warning, handle the error inside the task, or store/discard the task value explicitly
+ 28 |                 for _ in 0..<10000 {
+ 29 |                     let token = try await semaphore.acquire()
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitPerformanceTests/PipelinePerformanceTests.swift:66:13: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+ 64 |             expectation.expectedFulfillmentCount = 1000
+ 65 | 
+ 66 |             Task {
+    |             |- warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+    |             `- note: to silence this warning, handle the error inside the task, or store/discard the task value explicitly
+ 67 |                 for _ in 0..<1000 {
+ 68 |                     _ = try await pipeline.execute(command, context: context)
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitPerformanceTests/PipelinePerformanceTests.swift:82:9: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+ 80 | 
+ 81 |         let setupExpectation = expectation(description: "Setup")
+ 82 |         Task {
+    |         |- warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+    |         `- note: to silence this warning, handle the error inside the task, or store/discard the task value explicitly
+ 83 |             try await pipeline.addMiddleware(middleware)
+ 84 |             setupExpectation.fulfill()
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitPerformanceTests/PipelinePerformanceTests.swift:99:13: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+ 97 |             expectation.expectedFulfillmentCount = 1000
+ 98 | 
+ 99 |             Task {
+    |             |- warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+    |             `- note: to silence this warning, handle the error inside the task, or store/discard the task value explicitly
+100 |                 for _ in 0..<1000 {
+101 |                     _ = try await pipeline.execute(command, context: context)
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitPerformanceTests/PipelinePerformanceTests.swift:115:9: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+113 |         // Add 5 middleware components
+114 |         let setupExpectation = expectation(description: "Setup middleware")
+115 |         Task {
+    |         |- warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+    |         `- note: to silence this warning, handle the error inside the task, or store/discard the task value explicitly
+116 |             for i in 0..<5 {
+117 |                 let priority: ExecutionPriority = switch i {
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitPerformanceTests/PipelinePerformanceTests.swift:141:13: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+139 |             expectation.expectedFulfillmentCount = 1000
+140 | 
+141 |             Task {
+    |             |- warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+    |             `- note: to silence this warning, handle the error inside the task, or store/discard the task value explicitly
+142 |                 for _ in 0..<1000 {
+143 |                     _ = try await pipeline.execute(command, context: context)
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitPerformanceTests/PipelinePerformanceTests.swift:201:13: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+199 |             expectation.expectedFulfillmentCount = 100
+200 | 
+201 |             Task {
+    |             |- warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+    |             `- note: to silence this warning, handle the error inside the task, or store/discard the task value explicitly
+202 |                 for _ in 0..<100 {
+203 |                     _ = try await pipeline.execute(command, context: context)
+
+[#NoUseUnstructuredThrowingTask]: <https://docs.swift.org/compiler/documentation/diagnostics/no-use-throwing-unstructured-task>
+[132 / 146] PipelineKitPerformanceTests-product
+[136 / 146] PipelineKitPoolingTests-product
+[138 / 147] PipelineKitTestSupportTests-product
+[138 / 147] PipelineKitPoolingTests-product
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionMiddlewareTests.swift:80:28: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+ 78 |         let handler: @Sendable (DataProcessingCommand, CommandContext) async throws -> ProcessingResult = { cmd, ctx in
+ 79 |             // Verify compression was applied
+ 80 |             let metadata = await ctx.getMetadata()
+    |                            `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+ 81 |             if let applied = metadata["compression.applied"] as? Bool, applied {
+ 82 |                 XCTAssertEqual(metadata["compression.algorithm"] as? String, "zlib")
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionMiddlewareTests.swift:124:28: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+122 |         let handler: @Sendable (DataProcessingCommand, CommandContext) async throws -> ProcessingResult = { cmd, ctx in
+123 |             // Verify compression was NOT applied
+124 |             let metadata = await ctx.getMetadata()
+    |                            `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+125 |             XCTAssertNil(metadata["compression.applied"])
+126 |             XCTAssertFalse(cmd.operation.contains("compressed"))
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/NextGuardSuppressionTests.swift:59:46: warning: 'is' test is always true
+57 |     /// error exits on its own.
+58 |     func testCacheMiddlewaresRetainNextGuardSuppression() {
+59 |         XCTAssertTrue(CachingMiddleware.self is any NextGuardWarningSuppressing.Type)
+   |                                              `- warning: 'is' test is always true
+60 |         XCTAssertTrue(SimpleCachingMiddleware.self is any NextGuardWarningSuppressing.Type)
+61 |         XCTAssertTrue(CachedMiddleware<CachingMiddleware>.self is any NextGuardWarningSuppressing.Type)
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/NextGuardSuppressionTests.swift:60:52: warning: 'is' test is always true
+58 |     func testCacheMiddlewaresRetainNextGuardSuppression() {
+59 |         XCTAssertTrue(CachingMiddleware.self is any NextGuardWarningSuppressing.Type)
+60 |         XCTAssertTrue(SimpleCachingMiddleware.self is any NextGuardWarningSuppressing.Type)
+   |                                                    `- warning: 'is' test is always true
+61 |         XCTAssertTrue(CachedMiddleware<CachingMiddleware>.self is any NextGuardWarningSuppressing.Type)
+62 |         XCTAssertTrue(ConditionalCachedMiddleware<CachingMiddleware>.self is any NextGuardWarningSuppressing.Type)
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/NextGuardSuppressionTests.swift:61:64: warning: 'is' test is always true
+59 |         XCTAssertTrue(CachingMiddleware.self is any NextGuardWarningSuppressing.Type)
+60 |         XCTAssertTrue(SimpleCachingMiddleware.self is any NextGuardWarningSuppressing.Type)
+61 |         XCTAssertTrue(CachedMiddleware<CachingMiddleware>.self is any NextGuardWarningSuppressing.Type)
+   |                                                                `- warning: 'is' test is always true
+62 |         XCTAssertTrue(ConditionalCachedMiddleware<CachingMiddleware>.self is any NextGuardWarningSuppressing.Type)
+63 |     }
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/NextGuardSuppressionTests.swift:62:75: warning: 'is' test is always true
+60 |         XCTAssertTrue(SimpleCachingMiddleware.self is any NextGuardWarningSuppressing.Type)
+61 |         XCTAssertTrue(CachedMiddleware<CachingMiddleware>.self is any NextGuardWarningSuppressing.Type)
+62 |         XCTAssertTrue(ConditionalCachedMiddleware<CachingMiddleware>.self is any NextGuardWarningSuppressing.Type)
+   |                                                                           `- warning: 'is' test is always true
+63 |     }
+64 | }
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/SimpleCachingMiddlewareTests.swift:434:13: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+432 |             expectation.expectedFulfillmentCount = iterations
+433 | 
+434 |             Task {
+    |             |- warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+    |             `- note: to silence this warning, handle the error inside the task, or store/discard the task value explicitly
+435 |                 let pipeline = StandardPipeline(handler: TestHandler())
+436 |                 try await pipeline.addMiddleware(cache)
+
+[#NoUseUnstructuredThrowingTask]: <https://docs.swift.org/compiler/documentation/diagnostics/no-use-throwing-unstructured-task>
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>
+[138 / 147] PipelineKitCacheTests-product
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/AuthorizationMiddlewareTests.swift:117:9: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+115 |         // Test editor (has both roles)
+116 |         let editorContext = CommandContext()
+117 |         await editorContext.setMetadata("authUserId", value: "editor")
+    |         `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+118 |         
+119 |         let editorResult = try await middleware.execute(command, context: editorContext) { cmd, _ in
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/AuthorizationMiddlewareTests.swift:126:9: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+124 |         // Test reader (missing write role)
+125 |         let readerContext = CommandContext()
+126 |         await readerContext.setMetadata("authUserId", value: "reader")
+    |         `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+127 |         
+128 |         do {
+
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>
+[140 / 147] PipelineKitSecurityTests-product
+[142 / 148] PipelineKitCacheTests-product
+[142 / 148] PipelineKitSecurityTests-product
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/PrometheusExporterTests.swift:15:23: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+ 13 | 
+ 14 |     func testExportCounter() async throws {
+ 15 |         let storage = await MetricsStorage()
+    |                       `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+ 16 |         let counter = MetricSnapshot.counter("requests", value: 42, tags: ["endpoint": "/api"])
+ 17 |         await storage.record(counter)
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/PrometheusExporterTests.swift:27:23: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+ 25 | 
+ 26 |     func testExportCounterWithoutTags() async throws {
+ 27 |         let storage = await MetricsStorage()
+    |                       `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+ 28 |         let counter = MetricSnapshot.counter("simple_counter", value: 100)
+ 29 |         await storage.record(counter)
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/PrometheusExporterTests.swift:39:23: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+ 37 | 
+ 38 |     func testExportMultipleCountersWithSameName() async throws {
+ 39 |         let storage = await MetricsStorage()
+    |                       `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+ 40 | 
+ 41 |         await storage.record(MetricSnapshot.counter("requests", value: 10, tags: ["endpoint": "/api"]))
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/PrometheusExporterTests.swift:59:23: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+ 57 | 
+ 58 |     func testExportGauge() async throws {
+ 59 |         let storage = await MetricsStorage()
+    |                       `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+ 60 |         let gauge = MetricSnapshot.gauge("memory", value: 75.5, unit: "percentage")
+ 61 |         await storage.record(gauge)
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/PrometheusExporterTests.swift:71:23: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+ 69 | 
+ 70 |     func testExportGaugeWithTags() async throws {
+ 71 |         let storage = await MetricsStorage()
+    |                       `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+ 72 |         let gauge = MetricSnapshot.gauge(
+ 73 |             "cpu_usage",
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/PrometheusExporterTests.swift:91:23: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+ 89 | 
+ 90 |     func testExportTimer() async throws {
+ 91 |         let storage = await MetricsStorage()
+    |                       `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+ 92 |         let timer = MetricSnapshot.timer("query_duration", duration: 0.1255) // 125.5ms
+ 93 |         await storage.record(timer)
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/PrometheusExporterTests.swift:103:23: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+101 | 
+102 |     func testExportTimerWithTags() async throws {
+103 |         let storage = await MetricsStorage()
+    |                       `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+104 |         let timer = MetricSnapshot.timer(
+105 |             "request_duration",
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/PrometheusExporterTests.swift:121:23: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+119 | 
+120 |     func testNameSanitization() async throws {
+121 |         let storage = await MetricsStorage()
+    |                       `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+122 |         let counter = MetricSnapshot.counter("api.request-count", value: 1)
+123 |         await storage.record(counter)
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/PrometheusExporterTests.swift:134:23: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+132 | 
+133 |     func testComplexNameSanitization() async throws {
+134 |         let storage = await MetricsStorage()
+    |                       `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+135 |         let gauge = MetricSnapshot.gauge("my-app.metrics.cpu-usage", value: 50)
+136 |         await storage.record(gauge)
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/PrometheusExporterTests.swift:147:23: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+145 | 
+146 |     func testLabelValueEscaping() async throws {
+147 |         let storage = await MetricsStorage()
+    |                       `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+148 |         let counter = MetricSnapshot.counter(
+149 |             "requests",
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/PrometheusExporterTests.swift:164:23: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+162 | 
+163 |     func testBackslashEscaping() async throws {
+164 |         let storage = await MetricsStorage()
+    |                       `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+165 |         let gauge = MetricSnapshot.gauge(
+166 |             "path_metric",
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/PrometheusExporterTests.swift:181:23: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+179 | 
+180 |     func testExportMixedMetrics() async throws {
+181 |         let storage = await MetricsStorage()
+    |                       `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+182 | 
+183 |         await storage.record(MetricSnapshot.counter("api_requests", value: 100))
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/PrometheusExporterTests.swift:204:23: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+202 | 
+203 |     func testExportEmptyStorage() async throws {
+204 |         let storage = await MetricsStorage()
+    |                       `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+205 |         let exporter = PrometheusExporter(metricsStorage: storage)
+206 |         let output = await exporter.export()
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/PrometheusExporterTests.swift:214:23: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+212 | 
+213 |     func testExportAggregated() async throws {
+214 |         let storage = await MetricsStorage()
+    |                       `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+215 | 
+216 |         // Add multiple counter values
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/PrometheusExporterTests.swift:230:23: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+228 | 
+229 |     func testExportAggregatedGauges() async throws {
+230 |         let storage = await MetricsStorage()
+    |                       `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+231 | 
+232 |         // Add multiple gauge values - should keep latest
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/PrometheusExporterTests.swift:248:23: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+246 | 
+247 |     func testPrometheusFormatCompliance() async throws {
+248 |         let storage = await MetricsStorage()
+    |                       `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+249 | 
+250 |         await storage.record(MetricSnapshot.counter(
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/PrometheusExporterTests.swift:272:23: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+270 | 
+271 |     func testTagOrdering() async throws {
+272 |         let storage = await MetricsStorage()
+    |                       `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+273 | 
+274 |         await storage.record(MetricSnapshot.counter(
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/PrometheusExporterTests.swift:290:23: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+288 | 
+289 |     func testExportHistogram() async throws {
+290 |         let storage = await MetricsStorage()
+    |                       `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+291 |         let histogram = MetricSnapshot(
+292 |             name: "request_duration",
+
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>
+[142 / 148] PipelineKitObservabilityTests-product
+[144 / 149] PipelineKitObservabilityTests-product
+[144 / 149] PipelineKitTests-product
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCoreTests/Context/EventEmissionTests.swift:194:28: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+192 |         
+193 |         // When
+194 |         let childContext = await parentContext.fork()
+    |                            `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+195 |         
+196 |         // Then - child should inherit the emitter
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCoreTests/Context/EventEmissionTests.swift:197:28: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+195 |         
+196 |         // Then - child should inherit the emitter
+197 |         let childEmitter = await childContext.eventEmitter
+    |                            `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+198 |         XCTAssertNotNil(childEmitter)
+199 |         
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCoreTests/Context/EventEmissionTests.swift:216:28: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+214 |         parentContext.eventEmitter = parentEmitter
+215 |         
+216 |         let childContext = await parentContext.fork()
+    |                            `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+217 |         let childEmitter = TestEventEmitter()
+218 |         childContext.eventEmitter = childEmitter
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCoreTests/Core/CommandContextThreadSafetyTests.swift:342:22: warning: immutable value 'key' was never used; consider replacing with '_' or removing it [#NoUsage]
+340 |                 XCTAssertGreaterThan(snapshot.count, 0)
+341 |                 // Each value should be either original or updated
+342 |                 for (key, value) in snapshot {
+    |                      `- warning: immutable value 'key' was never used; consider replacing with '_' or removing it [#NoUsage]
+343 |                     if let wrapper = value as? AnySendable,
+344 |                        let stringValue = wrapper.get(String.self) {
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCoreTests/Errors/CancellationErrorTests.swift:88:9: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+ 86 |         
+ 87 |         // Cancel after a short delay
+ 88 |         Task {
+    |         |- warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+    |         `- note: to silence this warning, handle the error inside the task, or store/discard the task value explicitly
+ 89 |             try await Task.sleep(nanoseconds: 25_000_000) // 25ms
+ 90 |             task.cancel()
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCoreTests/Errors/CancellationErrorTests.swift:170:9: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+168 |         
+169 |         // Cancel after 50ms
+170 |         Task {
+    |         |- warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+    |         `- note: to silence this warning, handle the error inside the task, or store/discard the task value explicitly
+171 |             try await Task.sleep(nanoseconds: 50_000_000)
+172 |             task.cancel()
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCoreTests/Middleware/MiddlewareTests.swift:138:25: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+136 |         
+137 |         _ = try await middleware.execute(command, context: context) { _, ctx in
+138 |             let value = await ctx.getMetadata("test") as? String
+    |                         `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+139 |             XCTAssertEqual(value, "modified")
+140 |             return "done"
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCoreTests/Pipeline/PipelineTests.swift:241:32: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+239 |             try await middleware2.execute(cmd, context: ctx) { c, finalCtx in
+240 |                 // Verify context has both values
+241 |                 let metadata = await finalCtx.getMetadata()
+    |                                `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+242 |                 XCTAssertEqual(metadata["key1"] as? String, "value1")
+243 |                 XCTAssertEqual(metadata["key2"] as? String, "value2")
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[#NoUseUnstructuredThrowingTask]: <https://docs.swift.org/compiler/documentation/diagnostics/no-use-throwing-unstructured-task>
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>
+[150 / 157] PipelineKitCoreTests-product
+[152 / 157] PipelineKitTests-product
+[154 / 157] PipelineKitCoreTests-product
+[154 / 157] PipelineKitTests-product
+[158 / 161] PipelineKitTestSupportTests-product
+[162 / 165] PipelineKitSecurityTests-product
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/AsyncSemaphoreCancellationTests.swift:208:13: warning: immutable value 'i' was never used; consider replacing with '_' or removing it [#NoUsage]
+206 |         // Create many waiting tasks
+207 |         var tasks: [Task<Void, Never>] = []
+208 |         for i in 0..<20 {
+    |             `- warning: immutable value 'i' was never used; consider replacing with '_' or removing it [#NoUsage]
+209 |             let task = Task {
+210 |                 // Signal we're ready and wait at barrier
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/PartitionedBulkheadConfigurationTests.swift:35:31: warning: 'maxBorrowPercentage' is deprecated: renamed to 'reservedCapacityPercentage' [#DeprecatedDeclaration]
+ 33 |         )
+ 34 |         // Deprecation warnings below are expected: the test pins the shims.
+ 35 |         XCTAssertEqual(config.maxBorrowPercentage, 0.5, accuracy: .ulpOfOne)
+    |                               |- warning: 'maxBorrowPercentage' is deprecated: renamed to 'reservedCapacityPercentage' [#DeprecatedDeclaration]
+    |                               `- note: use 'reservedCapacityPercentage' instead
+ 36 | 
+ 37 |         let legacy = PartitionedBulkheadMiddleware.Configuration(
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/PartitionedBulkheadConfigurationTests.swift:37:52: warning: 'init(partitions:partitionExtractor:defaultPartition:allowBorrowing:maxBorrowPercentage:emitMetrics:)' is deprecated: maxBorrowPercentage has always been the reserved (non-lendable) share — use reservedCapacityPercentage, which has identical semantics. [#DeprecatedDeclaration]
+ 35 |         XCTAssertEqual(config.maxBorrowPercentage, 0.5, accuracy: .ulpOfOne)
+ 36 | 
+ 37 |         let legacy = PartitionedBulkheadMiddleware.Configuration(
+    |                                                    `- warning: 'init(partitions:partitionExtractor:defaultPartition:allowBorrowing:maxBorrowPercentage:emitMetrics:)' is deprecated: maxBorrowPercentage has always been the reserved (non-lendable) share — use reservedCapacityPercentage, which has identical semantics. [#DeprecatedDeclaration]
+ 38 |             partitions: Self.partitions,
+ 39 |             partitionExtractor: { _, _ in "default" },
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/TimeoutMiddlewareCompileTests.swift:14:9: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+12 | 
+13 |         // Create a dummy execute call to verify non-escaping constraint
+14 |         Task {
+   |         |- warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+   |         `- note: to silence this warning, handle the error inside the task, or store/discard the task value explicitly
+15 |             let command = DummyCommand()
+16 |             let context = CommandContext()
+
+[#DeprecatedDeclaration]: <https://docs.swift.org/compiler/documentation/diagnostics/deprecated-declaration>
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[#NoUseUnstructuredThrowingTask]: <https://docs.swift.org/compiler/documentation/diagnostics/no-use-throwing-unstructured-task>
+[162 / 163] PipelineKitResilienceTests-product
+[174 / 178] PipelineKitResilienceTests-product
+[176 / 178] PipelineKitResilienceTests-product
+[180 / 182] PipelineKitPoolingTests-product
+[184 / 186] PipelineKitPerformanceTests-product
+[188 / 190] PipelineKitObservabilityTests-product
+[192 / 194] PipelineKitCoreTests-product
+[196 / 198] PipelineKitCacheTests-product
+Build complete! (23.05 sec)
+[1/378] Testing PipelineKitResilienceTests.RateLimitScopeContractTests/testGlobalBudgetSurvivesCleanupWhenRecentlyAccessed
+[2/378] Testing PipelineKitResilienceTests.RateLimitScopeContractTests/testDistributedLogicalBudgetsUseSeparateStoreNamespaces
+[3/378] Testing PipelineKitResilienceTests.RateLimitScopeContractTests/testDistributedScopeNamespacesRejectSuppliedKeyCollisions
+[4/378] Testing PipelineKitResilienceTests.RateLimitScopeContractTests/testClockDrivesLocalAlgorithmResetAndStatus
+[5/378] Testing PipelineKitTests.StandardPipelineChainCacheTests/testStandardPipelineRepeatedExecutionsAllSucceed
+[6/378] Testing PipelineKitTests.PipelineTests/testPriorityPipeline
+[7/378] Testing PipelineKitTests.PipelineTests/testPipelineWithMiddleware
+[8/378] Testing PipelineKitTests.StandardPipelineChainCacheTests/testCachedPipelineReleasesAfterExecution
+[9/378] Testing PipelineKitTests.StandardPipelineChainCacheTests/testStandardPipelineInvalidatesOnClearMiddlewares
+[10/378] Testing PipelineKitTests.PipelineTests/testBasicPipelineExecution
+[11/378] Testing PipelineKitTests.PipelineTests/testPipelineBuilder
+[12/378] Testing PipelineKitTests.PipelineTests/testMaxDepthProtection
+[13/378] Testing PipelineKitTests.StandardPipelineChainCacheTests/testStandardPipelineInvalidatesOnAddMiddleware
+[14/378] Testing PipelineKitTests.PipelineTests/testPipelineContextPropagation
+[15/378] Testing PipelineKitTests.StandardPipelineChainCacheTests/testStandardPipelineReusesChainAcrossExecutions
+[16/378] Testing PipelineKitTests.PipelineTests/testConcurrentPipelineExecution
+[17/378] Testing PipelineKitResilienceTests.RateLimitScopeContractTests/testGlobalStatusUsesSameEffectiveKey
+[18/378] Testing PipelineKitResilienceTests.RateLimitScopeContractTests/testGlobalResetUsesSameEffectiveKeyForSupportedLocalStrategies
+[19/378] Testing PipelineKitResilienceTests.RateLimitScopeContractTests/testGlobalDistributedInstancesShareStoreIdentity
+[20/378] Testing PipelineKitResilienceTests.RateLimitScopeContractTests/testIdentityNormalizationPreservesCostAndMediumPriorityPolicy
+[21/378] Testing PipelineKitObservabilityTests.MetricsConfigurationContractTests/testFlushDoesNotRecordSnapshotsAgain
+[22/378] Testing PipelineKitObservabilityTests.MetricsConfigurationContractTests/testConfigurePreparesAndClearsStatsDCallback
+[23/378] Testing PipelineKitObservabilityTests.MetricsConfigurationContractTests/testDisablePreservesStorageAndInFlightConfiguration
+[24/378] Testing PipelineKitObservabilityTests.MetricsConfigurationContractTests/testFlushDoesNotPromiseABarrierForConcurrentRecords
+[25/378] Testing PipelineKitObservabilityTests.MetricsConfigurationContractTests/testConveniencesPreserveSnapshotStorageAndHandler
+[26/378] Testing PipelineKitObservabilityTests.MetricsConfigurationContractTests/testRecordUsesOneConfigurationAcrossSuspension
+[27/378] Testing PipelineKitObservabilityTests.MetricsConfigurationContractTests/testFlushRetainsCallbackUntilCapturedExporterSettles
+[28/378] Testing PipelineKitObservabilityTests.MetricsConfigurationContractTests/testFlushKeepsCapturedConfigurationDuringConfigureAndDisable
+[29/378] Testing PipelineKitObservabilityTests.MetricsConfigurationContractTests/testReplacingOrDisablingLastOwnedExporterReleasesOutsideLock
+[30/378] Testing PipelineKitCoreTests.CancellationErrorTests/testCheckCancellationWhenCancelled
+[31/378] Testing PipelineKitCoreTests.CancellationErrorTests/testCheckCancellationPerformance
+[32/378] Testing PipelineKitCoreTests.CancellationErrorTests/testCheckCancellationMultipleTimes
+[33/378] Testing PipelineKitCoreTests.CancellationErrorTests/testCheckCancellationWhenNotCancelled
+[34/378] Testing PipelineKitObservabilityTests.MetricsConfigurationContractTests/testConfigurationCallbacksCanReenterAndRelease
+[35/378] Testing PipelineKitResilienceTests.RateLimitScopeContractTests/testScopeByStrategyMatrix
+[36/378] Testing PipelineKitResilienceTests.RateLimitScopeContractTests/testPublicInitializerGlobalStrategyMatrix
+[37/378] Testing PipelineKitResilienceTests.RateLimitScopeContractTests/testScopeByStrategyNearWindowBoundaryMatrix
+[38/378] Testing PipelineKitResilienceTests.RateLimitScopeContractTests/testNonGlobalResetPreservesOtherIdentifiers
+[39/378] Testing PipelineKitResilienceTests.RateLimitScopeContractTests/testResetAllRestoresAllLocalStrategies
+[40/378] Testing PipelineKitResilienceTests.RateLimitScopeContractTests/testNonGlobalStatusUsesIndependentBudgets
+[41/378] Testing PipelineKitObservabilityTests.MetricsConfigurationContractTests/testStatsDCallbackCanReenterConfigureAndDisable
+[42/378] Testing PipelineKitObservabilityTests.MetricsConfigurationContractTests/testStatsDFlushProtocolDeliversBufferedRecordOnlyOnce
+[43/378] Testing PipelineKitCoreTests.CancellationErrorTests/testCheckCancellationInAsyncContext
+[44/378] Testing PipelineKitObservabilityTests.MetricsConfigurationContractTests/testReusingRecorderSharesStateAndDoesNotCloseRetiredExporter
+[45/378] Testing PipelineKitCoreTests.CancellationErrorTests/testCancellationInLongRunningOperation
+[46/378] Testing PipelineKitCoreTests.CancellationReasonTests/testDescriptionForUserCancellation
+[47/378] Testing PipelineKitCoreTests.CancellationReasonTests/testArrayOperations
+[48/378] Testing PipelineKitCoreTests.CancellationReasonTests/testDescriptionForTimeout
+[49/378] Testing PipelineKitCoreTests.CancellationReasonTests/testDescriptionForSystemShutdown
+[50/378] Testing PipelineKitCoreTests.CancellationReasonTests/testDescriptionForCustom
+[51/378] Testing PipelineKitCoreTests.CancellationReasonTests/testDescriptionForResourceConstraints
+[52/378] Testing PipelineKitCoreTests.CancellationReasonTests/testDescriptionForPipelineError
+[53/378] Testing PipelineKitCoreTests.CancellationReasonTests/testCustomCase
+[54/378] Testing PipelineKitCoreTests.CancellationReasonTests/testPatternMatching
+[55/378] Testing PipelineKitCoreTests.CancellationReasonTests/testPipelineErrorCase
+[56/378] Testing PipelineKitCoreTests.CancellationReasonTests/testEmptyStringMessages
+[57/378] Testing PipelineKitCoreTests.CancellationReasonTests/testLongStringMessages
+[58/378] Testing PipelineKitCoreTests.CancellationReasonTests/testEquatable
+[59/378] Testing PipelineKitCoreTests.CancellationReasonTests/testResourceConstraintsCase
+[60/378] Testing PipelineKitCoreTests.CancellationReasonTests/testSpecialCharactersInMessages
+[61/378] Testing PipelineKitCoreTests.CancellationReasonTests/testSendableConformance
+[62/378] Testing PipelineKitCoreTests.CancellationErrorTests/testCheckCancellationWithContext
+[63/378] Testing PipelineKitCoreTests.CancellationErrorTests/testCheckCancellationWithEmptyContext
+[64/378] Testing PipelineKitCoreTests.CancellationErrorTests/testCheckCancellationWithLongContext
+[65/378] Testing PipelineKitCoreTests.CommandContextDynamicMemberTests/testBackwardsCompatibilityOldSyntaxStillWorks
+[66/378] Testing PipelineKitCoreTests.CommandContextDynamicMemberTests/testArrayValues
+[67/378] Testing PipelineKitCoreTests.CommandContextDynamicMemberTests/testAllBuiltInKeysAccessible
+[68/378] Testing PipelineKitCoreTests.CancellationReasonTests/testUserCancellationCase
+[69/378] Testing PipelineKitCoreTests.CommandContextDynamicMemberTests/testBackwardsCompatibilityMethodsStillWork
+[70/378] Testing PipelineKitCoreTests.CancellationReasonTests/testTimeoutWithZeroDuration
+[71/378] Testing PipelineKitCoreTests.CancellationReasonTests/testSystemShutdownCase
+[72/378] Testing PipelineKitCoreTests.CancellationReasonTests/testTimeoutWithNegativeDuration
+[73/378] Testing PipelineKitCoreTests.CancellationReasonTests/testTimeoutWithVariousDurations
+[74/378] Testing PipelineKitCoreTests.CancellationReasonTests/testTimeoutCase
+[75/378] Testing PipelineKitCoreTests.CommandContextDynamicMemberTests/testBackwardsCompatibilityReadOnlyProperties
+[76/378] Testing PipelineKitCoreTests.CommandContextDynamicMemberTests/testConcurrentPropertyAccess
+[77/378] Testing PipelineKitCoreTests.CommandContextDynamicMemberTests/testConcurrentMixedAccess
+[78/378] Testing PipelineKitCoreTests.CommandContextDynamicMemberTests/testCustomKeysDontWorkWithDynamicMemberLookup
+[79/378] Testing PipelineKitCoreTests.CommandContextDynamicMemberTests/testCustomKeysStillWorkWithSubscript
+[80/378] Testing PipelineKitCoreTests.CommandContextDynamicMemberTests/testCustomKeysWithSubscript
+[81/378] Testing PipelineKitCoreTests.CommandContextDynamicMemberTests/testDateValues
+[82/378] Testing PipelineKitCoreTests.CommandContextDynamicMemberTests/testDirectPropertyAccessNil
+[83/378] Testing PipelineKitCoreTests.CommandContextDynamicMemberTests/testDirectPropertyAccessWrite
+[84/378] Testing PipelineKitCoreTests.CommandContextDynamicMemberTests/testDirectPropertyAccessRead
+[85/378] Testing PipelineKitCoreTests.CommandContextDynamicMemberTests/testIntValues
+[86/378] Testing PipelineKitCoreTests.CommandContextDynamicMemberTests/testDictionaryValues
+[87/378] Testing PipelineKitCoreTests.CommandContextDynamicMemberTests/testKeyPathSubscriptWrite
+[88/378] Testing PipelineKitCoreTests.CommandContextDynamicMemberTests/testKeyPathSubscriptRead
+[89/378] Testing PipelineKitCoreTests.CommandContextDynamicMemberTests/testKeyPathSubscriptNil
+[90/378] Testing PipelineKitCoreTests.CommandContextDynamicMemberTests/testKeysWithoutComputedPropertiesUseDynamicMemberLookup
+[91/378] Testing PipelineKitCoreTests.CommandContextDynamicMemberTests/testMetadataAndMetricsAccess
+[92/378] Testing PipelineKitCoreTests.CommandContextDynamicMemberTests/testMixedAccessPatterns
+[93/378] Testing PipelineKitCoreTests.CommandContextDynamicMemberTests/testMixedWriteAndRead
+[94/378] Testing PipelineKitCoreTests.CommandContextDynamicMemberTests/testNilValueHandlingViaKeyPath
+[95/378] Testing PipelineKitCoreTests.CommandContextDynamicMemberTests/testStringValues
+[96/378] Testing PipelineKitCoreTests.CommandContextDynamicMemberTests/testRealWorldUsagePattern
+[97/378] Testing PipelineKitCoreTests.CommandContextDynamicMemberTests/testNilValueHandling
+[98/378] Testing PipelineKitCoreTests.CommandContextDynamicMemberTests/testTypeSafetyEnforced
+[99/378] Testing PipelineKitCoreTests.CommandContextLockTests/testBasicRoundTripGetSet
+[100/378] Testing PipelineKitCoreTests.CommandContextDynamicMemberTests/testUUIDValues
+[101/378] Testing PipelineKitCoreTests.CommandContextLockTests/testConcurrentMixedLockedOperationsDoNotCrash
+[102/378] Testing PipelineKitCoreTests.CommandContextMetricsMergeTests/testMetricsUpdatesLeaveOrdinaryMetadataIsolated
+[103/378] Testing PipelineKitCoreTests.CommandContextMetricsMergeTests/testLastCompletedWriterWinsAndPreservesOtherMetrics
+[104/378] Testing PipelineKitCoreTests.CommandContextMetricsMergeTests/testConcurrentSetAndUpdatePreserveDisjointKeys
+[105/378] Testing PipelineKitCoreTests.CommandContextMetricsMergeTests/testConcurrentDisjointMetricsUpdatesAreConserved
+[106/378] Testing PipelineKitCoreTests.CommandContextLockTests/testConcurrentSharedKeyContentionDoesNotCrash
+[107/378] Testing PipelineKitCoreTests.CommandContextLockTests/testMetadataAndMetricsRoundTrip
+[108/378] Testing PipelineKitCoreTests.CommandContextNonActorTests/testConcurrentContextAccess
+[109/378] Testing PipelineKitCoreTests.CommandContextLockTests/testConcurrentInterleavedGetSetIsConsistentAndCrashFree
+[110/378] Testing PipelineKitCoreTests.CommandContextNonActorTests/testMiddlewareWithoutAwaitOnContext
+[111/378] Testing PipelineKitCoreTests.CommandContextNonActorTests/testContextIsNoLongerActor
+[112/378] Testing PipelineKitCoreTests.CommandContextRetirementTests/testConcurrentMetadataAndMetricsMergesConserveDisjointUpdatesAndRetireValues
+[113/378] Testing PipelineKitCoreTests.CommandContextRetirementTests/testTypedReplacementReentry
+[114/378] Testing PipelineKitCoreTests.CommandContextRetirementTests/testPublicMutationRetirementMatrix
+[115/378] Testing PipelineKitCoreTests.CommandContextRetirementTests/testClearReleasesEveryPayloadAfterRestoringMetadata
+[116/378] Testing PipelineKitCoreTests.CommandContextNonActorTests/testParallelMiddlewareExecution
+[117/378] Testing PipelineKitCoreTests.CommandContextTests/testContains
+[118/378] Testing PipelineKitCoreTests.CommandContextTests/testBackwardCompatibilityProperties
+[119/378] Testing PipelineKitCoreTests.CommandContextTests/testClear
+[120/378] Testing PipelineKitCoreTests.CommandContextTests/testConcurrentReads
+[121/378] Testing PipelineKitCoreTests.CommandContextTests/testConcurrentMixedOperations
+[122/378] Testing PipelineKitCoreTests.CommandContextTests/testConcurrentWrites
+[123/378] Testing PipelineKitCoreTests.CommandContextTests/testCorrelationIDGetSet
+[124/378] Testing PipelineKitCoreTests.CommandContextTests/testCancellationSupport
+[125/378] Testing PipelineKitCoreTests.CommandContextTests/testDebugDescription
+[126/378] Testing PipelineKitCoreTests.CommandContextTests/testDifferentCancellationReasons
+[127/378] Testing PipelineKitCoreTests.CommandContextTests/testEmptyKeyHandling
+[128/378] Testing PipelineKitCoreTests.CommandContextTests/testFork
+[129/378] Testing PipelineKitCoreTests.CommandContextTests/testInitWithCustomMetadata
+[130/378] Testing PipelineKitCoreTests.CommandContextTests/testGetSetPerformance
+[131/378] Testing PipelineKitCoreTests.CommandContextTests/testInitWithDefaultMetadata
+[132/378] Testing PipelineKitCoreTests.CommandContextTests/testLargeValueHandling
+[133/378] Testing PipelineKitCoreTests.CommandContextTests/testMetadataReplace
+[134/378] Testing PipelineKitCoreTests.CommandContextTests/testMetadataOperations
+[135/378] Testing PipelineKitCoreTests.CommandContextTests/testMetadataPerformance
+[136/378] Testing PipelineKitCoreTests.CommandContextTests/testMetricsOperations
+[137/378] Testing PipelineKitCoreTests.CommandContextTests/testMetricsUpdate
+[138/378] Testing PipelineKitCoreTests.CommandContextTests/testMetadataUpdate
+[139/378] Testing PipelineKitCoreTests.CommandContextTests/testRecordDuration
+[140/378] Testing PipelineKitCoreTests.CommandContextTests/testRecordDurationWithCustomName
+[141/378] Testing PipelineKitCoreTests.CommandContextTests/testRemove
+[142/378] Testing PipelineKitCoreTests.CommandContextTests/testRecordDurationWithoutStartTime
+[143/378] Testing PipelineKitCoreTests.CommandContextTests/testSnapshotRaw
+[144/378] Testing PipelineKitCoreTests.CommandContextTests/testRequestIDGetSet
+[145/378] Testing PipelineKitCoreTests.CommandContextTests/testSpecialCharactersInKeys
+[146/378] Testing PipelineKitCoreTests.CommandContextTests/testSnapshot
+[147/378] Testing PipelineKitCoreTests.CommandContextTests/testTypedKeyGetSet
+[148/378] Testing PipelineKitCoreTests.CommandContextTests/testStartTimeGetSet
+[149/378] Testing PipelineKitCoreTests.CommandContextTests/testTypedKeyTypeySafety
+[150/378] Testing PipelineKitCoreTests.CommandContextTests/testUpdate
+[151/378] Testing PipelineKitCoreTests.CommandContextTests/testTypedKeyWithDifferentTypes
+[152/378] Testing PipelineKitCoreTests.CommandContextThreadSafetyTests/testConcurrentCustomEventEmission
+[153/378] Testing PipelineKitCoreTests.CommandContextTests/testUserIDGetSet
+[154/378] Testing PipelineKitCoreTests.CommandContextThreadSafetyTests/testConcurrentForkOperations
+[155/378] Testing PipelineKitCoreTests.CommandContextThreadSafetyTests/testConcurrentMetricsAccess
+[156/378] Testing PipelineKitCoreTests.CommandContextThreadSafetyTests/testConcurrentMetadataAccess
+[157/378] Testing PipelineKitCoreTests.CommandContextThreadSafetyTests/testConcurrentStorageAccess
+[158/378] Testing PipelineKitCoreTests.CommandContextThreadSafetyTests/testHighContentionOnSingleKey
+[159/378] Testing PipelineKitCoreTests.CommandContextThreadSafetyTests/testRequestIDConsistency
+[160/378] Testing PipelineKitCoreTests.CommandTests/testCommandContext
+[161/378] Testing PipelineKitCoreTests.CommandContextThreadSafetyTests/testStorageSnapshotConsistency
+[162/378] Testing PipelineKitCoreTests.CommandTests/testCommandContextWithCustomKeys
+[163/378] Testing PipelineKitCoreTests.CommandTests/testCommandExecution
+[164/378] Testing PipelineKitCoreTests.CommandTests/testCommandMetadata
+[165/378] Testing PipelineKitCoreTests.CommandTests/testCommandResult
+[166/378] Testing PipelineKitCoreTests.CommandTests/testCommandSendableConformance
+[167/378] Testing PipelineKitCoreTests.ContextKeyTests/testContextKeyCreation
+[168/378] Testing PipelineKitCoreTests.ContextCopyableTests/testDeepForkConvenienceMethod
+[169/378] Testing PipelineKitCoreTests.ContextCopyableTests/testManualDeepCopy
+[170/378] Testing PipelineKitCoreTests.ContextCopyableTests/testMixedCopyBehavior
+[171/378] Testing PipelineKitCoreTests.ContextCopyableTests/testShallowForkSharesReferences
+[172/378] Testing PipelineKitCoreTests.ContextKeyTests/testCustomFactoryMethod
+[173/378] Testing PipelineKitCoreTests.ContextKeyTests/testContextKeyWithDifferentTypes
+[174/378] Testing PipelineKitCoreTests.ContextKeyTests/testEquatable
+[175/378] Testing PipelineKitCoreTests.ContextKeyTests/testCustomFactoryWithComplexTypes
+[176/378] Testing PipelineKitCoreTests.ContextKeyTests/testEmptyKeyName
+[177/378] Testing PipelineKitCoreTests.ContextKeyTests/testHashable
+[178/378] Testing PipelineKitCoreTests.ContextKeyTests/testKeyCollections
+[179/378] Testing PipelineKitCoreTests.ContextKeyTests/testKeyUniqueness
+[180/378] Testing PipelineKitCoreTests.ContextKeyTests/testLongKeyName
+[181/378] Testing PipelineKitCoreTests.ContextKeyTests/testSpecialCharactersInKeyName
+[182/378] Testing PipelineKitCoreTests.ContextKeyTests/testSetOperations
+[183/378] Testing PipelineKitCoreTests.ContextKeyTests/testSendableConformance
+[184/378] Testing PipelineKitCoreTests.ContextKeyTests/testStandardObservabilityKeys
+[185/378] Testing PipelineKitCoreTests.ContextKeyTests/testStandardRequestMetadataKeys
+[186/378] Testing PipelineKitCoreTests.ContextKeyTests/testStandardResilienceKeys
+[187/378] Testing PipelineKitCoreTests.ContextKeyTests/testStandardSecurityKeys
+[188/378] Testing PipelineKitCoreTests.ContextKeyTests/testUnicodeInKeyName
+[189/378] Testing PipelineKitCoreTests.ContextKeyTests/testTypeSafetyWithDifferentValueTypes
+[190/378] Testing PipelineKitCoreTests.ErrorPayloadPreservationTests/testBackPressureErrorPayloadMapping
+[191/378] Testing PipelineKitCoreTests.ErrorPayloadPreservationTests/testComplexPayloadPreservation
+[192/378] Testing PipelineKitCoreTests.ErrorPayloadPreservationTests/testErrorDescriptions
+[193/378] Testing PipelineKitCoreTests.ErrorPayloadPreservationTests/testNestedReasonPreservation
+[194/378] Testing PipelineKitCoreTests.ErrorPayloadPreservationTests/testTimeoutErrorMapping
+[195/378] Testing PipelineKitCoreTests.ErrorPayloadPreservationTests/testResilienceErrorPayloadMapping
+[196/378] Testing PipelineKitCoreTests.EventEmissionTests/testConcurrentEventEmission
+[197/378] Testing PipelineKitCoreTests.EventEmissionTests/testEmitterCanBeCleared
+[198/378] Testing PipelineKitCoreTests.EventEmissionTests/testEmitterCanBeSetAndRetrieved
+[199/378] Testing PipelineKitCoreTests.EventEmissionTests/testEmitterCanBeOverriddenInChild
+[200/378] Testing PipelineKitCoreTests.EventEmissionTests/testEmitterInheritanceOnFork
+[201/378] Testing PipelineKitCoreTests.EventEmissionTests/testEventEmissionWithoutEmitter
+[202/378] Testing PipelineKitCoreTests.EventEmissionTests/testEventEmissionWithEmitter
+[203/378] Testing PipelineKitCoreTests.EventEmissionTests/testMiddlewareEventEmission
+[204/378] Testing PipelineKitCoreTests.EventEmissionTests/testMiddlewareEventWithTypedProperties
+[205/378] Testing PipelineKitCoreTests.EventEmissionTests/testEventSequenceIDsAreMonotonic
+[206/378] Testing PipelineKitCoreTests.ExecutionContextSnapshotTests/testNestedWithRestoredShadowsOuterBindingAndUnwinds
+[207/378] Testing PipelineKitCoreTests.ExecutionContextSnapshotTests/testWithRestoredBindsTraceAndFreshReporterThenUnwinds
+[208/378] Testing PipelineKitCoreTests.ExecutionContextSnapshotTests/testSnapshotCapturesTraceAndRoundTripsThroughCodable
+[209/378] Testing PipelineKitCoreTests.EventEmissionTests/testMultipleEventEmission
+[210/378] Testing PipelineKitCoreTests.ExecutionContextTests/testBindingIsVisibleAtDepthAndInChildTasks
+[211/378] Testing PipelineKitCoreTests.ExecutionContextSnapshotTests/testWithRestoredDoesNotInheritEnclosingReporter
+[212/378] Testing PipelineKitCoreTests.ExecutionContextTests/testCurrentIsNilOutsideAnyBinding
+[213/378] Testing PipelineKitCoreTests.ExecutionContextTests/testDetachedTaskDoesNotInherit
+[214/378] Testing PipelineKitCoreTests.ExecutionContextTests/testTraceMetadataIsCodable
+[215/378] Testing PipelineKitCoreTests.ExecutionPriorityTests/testAfterMethod
+[216/378] Testing PipelineKitCoreTests.ExecutionPriorityTests/testAfterMethodDoesNotCreateConflicts
+[217/378] Testing PipelineKitCoreTests.ExecutionPriorityTests/testAllCasesHaveCorrectRawValues
+[218/378] Testing PipelineKitCoreTests.ExecutionPriorityTests/testBetweenMethodWithAdjacentPriorities
+[219/378] Testing PipelineKitCoreTests.ExecutionPriorityTests/testBetweenMethodWithReverseOrder
+[220/378] Testing PipelineKitCoreTests.ExecutionPriorityTests/testBetweenMethodWithCustomPriority
+[221/378] Testing PipelineKitCoreTests.ExecutionPriorityTests/testBetweenMethodWithSamePriority
+[222/378] Testing PipelineKitCoreTests.ExecutionPriorityTests/testBetweenMethodWithNonAdjacentPriorities
+[223/378] Testing PipelineKitCoreTests.ExecutionPriorityTests/testCaseIterableConformance
+[224/378] Testing PipelineKitCoreTests.ExecutionPriorityTests/testDescriptionForAllCases
+[225/378] Testing PipelineKitCoreTests.ExecutionPriorityTests/testCustomPriorityInsertion
+[226/378] Testing PipelineKitCoreTests.ExecutionContextSnapshotTests/testWithRestoredRunsOperationInCallerIsolation
+[227/378] Testing PipelineKitCoreTests.ExecutionPriorityTests/testEquatable
+[228/378] Testing PipelineKitCoreTests.ExecutionPriorityTests/testIntegerOverflowBoundary
+[229/378] Testing PipelineKitCoreTests.ExecutionPriorityTests/testNegativePriorityGeneration
+[230/378] Testing PipelineKitCoreTests.ExecutionPriorityTests/testHashable
+[231/378] Testing PipelineKitCoreTests.ExecutionPriorityTests/testMiddlewareOrderingUseCase
+[232/378] Testing PipelineKitCoreTests.ExecutionPriorityTests/testSendableConformance
+[233/378] Testing PipelineKitCoreTests.ExecutionPriorityTests/testSortingByPriority
+[234/378] Testing PipelineKitCoreTests.ExecutionPriorityTests/testSortingWithCustomPriorities
+[235/378] Testing PipelineKitCoreTests.ContextKeyTests/testKeyComparisonPerformance
+[236/378] Testing PipelineKitCoreTests.MemoryPressureDetectorTests/testCleanupForApplication
+[237/378] Testing PipelineKitCoreTests.MemoryPressureDetectorTests/testConcurrentHandlerRegistration
+[238/378] Testing PipelineKitCoreTests.MemoryPressureDetectorTests/testGetPressureLevel
+[239/378] Testing PipelineKitCoreTests.MemoryPressureDetectorTests/testConcurrentMonitoringOperations
+[240/378] Testing PipelineKitCoreTests.ContextKeyTests/testKeyCreationPerformance
+[241/378] Testing PipelineKitCoreTests.MemoryPressureDetectorTests/testGetStatistics
+[242/378] Testing PipelineKitCoreTests.MemoryPressureDetectorTests/testHandlerExecutionOrder
+[243/378] Testing PipelineKitCoreTests.MemoryPressureDetectorTests/testMemoryThresholdCalculation
+[244/378] Testing PipelineKitCoreTests.MemoryPressureDetectorTests/testMultipleHandlerRegistration
+[245/378] Testing PipelineKitCoreTests.MemoryPressureDetectorTests/testSharedInstanceIsSingleton
+[246/378] Testing PipelineKitCoreTests.MemoryPressureDetectorTests/testStartMonitoring
+[247/378] Testing PipelineKitCoreTests.MemoryPressureDetectorTests/testRegistrationPerformance
+[248/378] Testing PipelineKitCoreTests.MemoryPressureDetectorTests/testPressureLevelWithoutMonitoring
+[249/378] Testing PipelineKitCoreTests.MemoryPressureDetectorTests/testSetupForApplication
+[250/378] Testing PipelineKitCoreTests.MemoryPressureDetectorTests/testRegisterHandler
+[251/378] Testing PipelineKitCoreTests.ExecutionPriorityTests/testBeforeMethodDoesNotCreateConflicts
+[252/378] Testing PipelineKitCoreTests.ExecutionPriorityTests/testBetweenMethodPerformance
+[253/378] Testing PipelineKitCoreTests.ExecutionPriorityTests/testBeforeMethod
+[254/378] Testing PipelineKitCoreTests.MemoryPressureDetectorTests/testStopMonitoring
+[255/378] Testing PipelineKitCoreTests.MemoryPressureDetectorTests/testUnregisterHandler
+[256/378] Testing PipelineKitCoreTests.ExecutionPriorityTests/testDescriptionPerformance
+[257/378] Testing PipelineKitCoreTests.MetricsCollectorTests/testExtremeLargeValues
+[258/378] Testing PipelineKitCoreTests.MetricsCollectorTests/testCounterWithVariousValues
+[259/378] Testing PipelineKitCoreTests.MetricsCollectorTests/testEmptyTags
+[260/378] Testing PipelineKitCoreTests.MetricsCollectorTests/testExtremeSmallValues
+[261/378] Testing PipelineKitCoreTests.MetricsCollectorTests/testDefaultMetricsCollector
+[262/378] Testing PipelineKitCoreTests.MetricsCollectorTests/testConcurrentMetricRecording
+[263/378] Testing PipelineKitCoreTests.MetricsCollectorTests/testHistogramDistribution
+[264/378] Testing PipelineKitCoreTests.MetricsCollectorTests/testGaugeFluctuations
+[265/378] Testing PipelineKitCoreTests.MetricsCollectorTests/testGaugeWithNegativeValues
+[266/378] Testing PipelineKitCoreTests.MetricsCollectorTests/testHistogramWithPercentiles
+[267/378] Testing PipelineKitCoreTests.MetricsCollectorTests/testMixedConcurrentOperations
+[268/378] Testing PipelineKitCoreTests.ExecutionPriorityTests/testPriorityOrdering
+[269/378] Testing PipelineKitCoreTests.ExecutionPriorityTests/testPriorityComparisonPerformance
+[270/378] Testing PipelineKitCoreTests.MetricsCollectorTests/testMultipleTags
+[271/378] Testing PipelineKitCoreTests.MetricsCollectorTests/testRecordGauge
+[272/378] Testing PipelineKitCoreTests.MetricsCollectorTests/testRecordingPerformance
+[273/378] Testing PipelineKitCoreTests.MetricsCollectorTests/testRecordHistogram
+[274/378] Testing PipelineKitCoreTests.MetricsCollectorTests/testRecordCounter
+[275/378] Testing PipelineKitCoreTests.MetricsCollectorTests/testProtocolRequirements
+[276/378] Testing PipelineKitCoreTests.MetricsCollectorTests/testNegativeValues
+[277/378] Testing PipelineKitCoreTests.MetricsCollectorTests/testTimerPrecision
+[278/378] Testing PipelineKitCoreTests.MetricsCollectorTests/testRecordMultipleCounters
+[279/378] Testing PipelineKitCoreTests.MetricsCollectorTests/testTagsWithSpecialCharacters
+[280/378] Testing PipelineKitCoreTests.MetricsCollectorTests/testRecordTimer
+[281/378] Testing PipelineKitCoreTests.MetricsCollectorTests/testTimerWithVariousDurations
+[282/378] Testing PipelineKitCoreTests.MiddlewareTests/testExecutionPriorityValues
+[283/378] Testing PipelineKitCoreTests.MetricsCollectorTests/testZeroValues
+[284/378] Testing PipelineKitCoreTests.MiddlewareTests/testConditionalMiddleware
+[285/378] Testing PipelineKitCoreTests.MemoryPressureDetectorTests/testStatisticsUpdate
+[286/378] Testing PipelineKitCoreTests.MiddlewareTests/testMiddlewareSorting
+[287/378] Testing PipelineKitCoreTests.MiddlewareTests/testMiddlewareErrorHandling
+[288/378] Testing PipelineKitCoreTests.MiddlewareTests/testMiddlewarePerformance
+[289/378] Testing PipelineKitCoreTests.MiddlewareTests/testMiddlewareExecution
+[290/378] Testing PipelineKitCoreTests.MiddlewareTests/testMiddlewareContextModification
+[291/378] Testing PipelineKitCoreTests.ObserverMiddlewareTests/testDefaultPriorityIsObservability
+[292/378] Testing PipelineKitCoreTests.ObserverMiddlewareTests/testDefaultExecuteObservesThenForwardsToNext
+[293/378] Testing PipelineKitCoreTests.MiddlewareTests/testMiddlewareAsyncExecution
+[294/378] Testing PipelineKitCoreTests.MiddlewareTests/testMiddlewareChaining
+[295/378] Testing PipelineKitCoreTests.PipelineTests/testCommandExecutionError
+[296/378] Testing PipelineKitCoreTests.ObserverMiddlewareTests/testThrowingObserverDoesNotCallNext
+[297/378] Testing PipelineKitCoreTests.PipelineTests/testContextPropagationThroughMiddleware
+[298/378] Testing PipelineKitCoreTests.PipelineTests/testConcurrentPipelineExecution
+[299/378] Testing PipelineKitCoreTests.PipelineTests/testMiddlewareErrorPropagation
+[300/378] Testing PipelineKitCoreTests.PipelineTests/testPipelinePerformance
+[301/378] Testing PipelineKitCoreTests.PipelineTests/testMiddlewareExecutionOrder
+[302/378] Testing PipelineKitCoreTests.PipelineTests/testMiddlewarePriorityOrdering
+[303/378] Testing PipelineKitCoreTests.ProgressReporterTests/testFinishIsIdempotent
+[304/378] Testing PipelineKitCoreTests.PipelineTests/testMiddlewareValueSemantics
+[305/378] Testing PipelineKitCoreTests.PipelineTests/testPipelineDefaultExecuteMethod
+[306/378] Testing PipelineKitCoreTests.ProgressReporterTests/testDropOldestWhenBufferOverflows
+[307/378] Testing PipelineKitCoreTests.ProgressReporterTests/testProgressReporterContextKeyRoundTrips
+[308/378] Testing PipelineKitCoreTests.PipelineTests/testPipelineProtocolConformance
+[309/378] Testing PipelineKitCoreTests.PipelineTests/testTaskCancellationPropagation
+[310/378] Testing PipelineKitCoreTests.ProgressReporterTests/testReportAfterFinishIsANoOp
+[311/378] Testing PipelineKitCoreTests.ProgressReporterTests/testUpdatesDeliveredInOrder
+[312/378] Testing PipelineKitCoreTests.MiddlewareTests/testMiddlewareValueSemantics
+[313/378] Testing PipelineKitCoreTests.ProgressReporterTests/testReportingNeverBlocksWithoutConsumer
+[314/378] Testing PipelineKitCoreTests.CommandContextThreadSafetyTests/testMixedOperationsUnderLoad
+[315/378] Testing PipelineKitCacheTests.CacheIdentityContractTests/testAuthenticatedBuilderPipelineUsesVerifiedPrincipal
+[316/378] Testing PipelineKitCacheTests.CacheIdentityContractTests/testCallerCanExplicitlyIncludeCorrelation
+[317/378] Testing PipelineKitCacheTests.CacheIdentityContractTests/testCacheIdentityMatrix
+[318/378] Testing PipelineKitCacheTests.CacheIdentityContractTests/testNamespaceEncodingIsUnambiguous
+[319/378] Testing PipelineKitCacheTests.CacheIdentityContractTests/testEqualHashValuesDoNotShareResults
+[320/378] Testing PipelineKitCacheTests.CacheIdentityContractTests/testConditionalBranchesBypassKeyGenerationAndStorage
+[321/378] Testing PipelineKitCacheTests.CacheIdentityContractTests/testCommandTypeFactoriesCacheNonHashableAndBypassOthers
+[322/378] Testing PipelineKitCacheTests.CacheIdentityContractTests/testExplicitKeysStillNamespaceDifferentCommandAndResultTypes
+[323/378] Testing PipelineKitCacheTests.CacheIdentityContractTests/testSharedBackendSeparatesMiddlewareTypesAndWrapperKinds
+[324/378] Testing PipelineKitCacheTests.CacheRetirementContractTests/testPublicDiscardRetirementMatrix
+[325/378] Testing PipelineKitCacheTests.CacheIdentityContractTests/testTTLAndInvalidationPreserveIdentity
+[326/378] Testing PipelineKitCacheTests.CacheRetirementContractTests/testConcurrentMissReplacementRetiresAfterCommittedInsertion
+[327/378] Testing PipelineKitCacheTests.CachingMiddlewareTests/testCacheLRUEviction
+[328/378] Testing PipelineKitCacheTests.CachingMiddlewareTests/testCacheMiss
+[329/378] Testing PipelineKitCacheTests.CachingMiddlewareTests/testCacheHit
+[330/378] Testing PipelineKitCacheTests.CompressionCompletionContractTests/testEncodedEmptyStreamRequiresCompletionAndRejectsTrailingInput
+[331/378] Testing PipelineKitCacheTests.CompressionCompletionContractTests/testDecodeCompletesOrThrowsForEverySizeHintAndLimit
+[332/378] Testing PipelineKitCacheTests.CompressionCompletionContractTests/testTruncatedCorruptAndStalledStreamsNeverReturnPrefixes
+[333/378] Testing PipelineKitCacheTests.CompressionMiddlewareTests/testBeneficialPayloadUsesConfiguredThreshold
+[334/378] Testing PipelineKitCacheTests.CompressionCompletionContractTests/testSmallPayloadRoundTrips
+[335/378] Testing PipelineKitCacheTests.CompressionCompletionContractTests/testHugeHintsAndLimitsDoNotRequireHugeAllocation
+[336/378] Testing PipelineKitCacheTests.CompressionCompletionContractTests/testExactLimitAtWorkingBufferBoundary
+[337/378] Testing PipelineKitCacheTests.CompressionCompletionContractTests/testTrailingAndConcatenatedStreamsAreRejected
+[338/378] Testing PipelineKitCacheTests.CompressionCompletionContractTests/testInvalidArgumentsAreRejectedBeforeEmptyInputCompatibility
+[339/378] Testing PipelineKitCacheTests.CompressionMiddlewareTests/testCompressionBelowThreshold
+[340/378] Testing PipelineKitCacheTests.CompressionMiddlewareTests/testCompressionDecompression
+[341/378] Testing PipelineKitCacheTests.CompressionMiddlewareTests/testCompressionMiddleware
+[342/378] Testing PipelineKitCacheTests.CompressionMiddlewareTests/testSmallPayloadWithoutCompressionBenefitRemainsUncompressed
+[343/378] Testing PipelineKitCacheTests.CompressionMiddlewareTests/testCompressionRatio
+[344/378] Testing PipelineKitCacheTests.CachingMiddlewareTests/testShouldCacheFunction
+[345/378] Testing PipelineKitCacheTests.LRUEvolutionTests/testInMemoryCacheLRUEvictionOrder
+[346/378] Testing PipelineKitCacheTests.LRUEvolutionTests/testInMemoryCacheRemoveAndClear
+[347/378] Testing PipelineKitCacheTests.LRUEvolutionTests/testInMemoryCacheUpdateInPlacePromotesNoEvict
+[348/378] Testing PipelineKitCacheTests.LRUEvolutionTests/testPromoteThenEvictReleasesOnlyVictim
+[349/378] Testing PipelineKitCacheTests.LRUEvolutionTests/testSimpleCachingMiddlewareLRUEvictionAndPromotion
+[350/378] Testing PipelineKitCacheTests.NextGuardSuppressionTests/testCacheMiddlewaresRetainNextGuardSuppression
+[351/378] Testing PipelineKitCacheTests.LRUEvolutionTests/testMultiNodeValuesReleaseOnClearAndContainerDrop
+[352/378] Testing PipelineKitCacheTests.LRUEvolutionTests/testLRUStorageEdgeRecency
+[353/378] Testing PipelineKitCacheTests.LRUEvolutionTests/testLRUStorageBasics
+[354/378] Testing PipelineKitCacheTests.LRUEvolutionTests/testLRUStorageCapacityOne
+[355/378] Testing PipelineKitCacheTests.SimpleCachingMiddlewareTests/testCacheEvents
+[356/378] Testing PipelineKitCacheTests.NextGuardSuppressionTests/testCachingMiddlewareSuppressesNextGuardWarningOnCacheHit
+[357/378] Testing PipelineKitCacheTests.SimpleCachingMiddlewareTests/testBasicCaching
+[358/378] Testing PipelineKitCacheTests.SimpleCachingMiddlewareTests/testCacheMiss
+[359/378] Testing PipelineKitCacheTests.CachingMiddlewareTests/testCacheTTLExpiration
+[360/378] Testing PipelineKitCacheTests.SimpleCachingMiddlewareTests/testClear
+[361/378] Testing PipelineKitCacheTests.SimpleCachingMiddlewareTests/testCommandTypeConvenience
+[362/378] Testing PipelineKitCacheTests.SimpleCachingMiddlewareTests/testCustomKeyGeneration
+[363/378] Testing PipelineKitCacheTests.SimpleCachingMiddlewareTests/testComplexResultTypes
+[364/378] Testing PipelineKitCacheTests.SimpleCachingMiddlewareTests/testConcurrentAccess
+[365/378] Testing PipelineKitCacheTests.LRUEvolutionTests/testInMemoryCacheExpiredReturnsNilAndRemoved
+[366/378] Testing PipelineKitSecurityTests.SecurityCapabilityContractTests/testGenericPipelineInvokesValidationWitness
+[367/378] Testing PipelineKitSecurityTests.SecurityCapabilityContractTests/testGenericPipelinePassesReturnedSanitizedValue
+[368/378] Testing PipelineKitSecurityTests.SecurityCapabilityContractTests/testIfPresentAllowsUnrelatedCommand
+[369/378] Testing PipelineKitSecurityTests.SecurityCapabilityContractTests/testMissingRequiredCapabilityRejectsBeforeHandler
+[370/378] Testing PipelineKitSecurityTests.SecurityCapabilityContractTests/testSanitizationFailureRejectsBeforeHandler
+[371/378] Testing PipelineKitCacheTests.SimpleCachingMiddlewareTests/testShouldCache
+[372/378] Testing PipelineKitCacheTests.SimpleCachingMiddlewareTests/testTTLExpiration
+[373/378] Testing PipelineKitSecurityTests.SecurityCapabilityContractTests/testCombinedCapabilitiesReachHandlerWithTransformedFields
+[374/378] Testing PipelineKitCacheTests.SimpleCachingMiddlewareTests/testNilResults
+[375/378] Testing PipelineKitCacheTests.SimpleCachingMiddlewareTests/testRemoveExpired
+[376/378] Testing PipelineKitCacheTests.SimpleCachingMiddlewareTests/testLRUEviction
+[377/378] Testing PipelineKitCacheTests.SimpleCachingMiddlewareTests/testHighContentionCaching
+[378/378] Testing PipelineKitCacheTests.SimpleCachingMiddlewareTests/testCachingPerformance

@@ -1,0 +1,495 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 66b1679..8c1a7ad 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -55,17 +55,18 @@ No release version or tag is selected by this batch.
+   path (e.g. cache hits). Debug-only; release builds are unchanged. ([#97])
+ 
+ ### Removed
+-- `NextGuardWarningSuppressing` conformance removed from the twelve
++- `NextGuardWarningSuppressing` conformance removed from the eleven
+   throw-based short-circuiting middlewares (`BackPressureMiddleware`,
+   `CircuitBreakerMiddleware`, `RateLimitingMiddleware`,
+-  `EnhancedRateLimitingMiddleware`, `BulkheadMiddleware`,
++  `EnhancedRateLimitingMiddleware`,
+   `PartitionedBulkheadMiddleware`, `HealthCheckMiddleware`,
+   `ValidationMiddleware`, `SecurityPolicyMiddleware`,
+   `AuthenticationMiddleware`, `AuthorizationMiddleware`,
+   `MockAuthenticationMiddleware`), re-arming the dropped-chain diagnostic
+   for those types. Observable only to code checking
+   `is any NextGuardWarningSuppressing`; the cache middlewares keep the
+-  conformance. ([#97])
++  conformance. `BulkheadMiddleware` also retains the marker because successful
++  fallback/custom policies can legitimately return without calling `next()`. ([#97])
+ 
+ ## [0.5.4] - 2026-08-15
+ 
+diff --git a/Sources/PipelineKitCache/LRUStorage.swift b/Sources/PipelineKitCache/LRUStorage.swift
+index e7202b9..7a129dc 100644
+--- a/Sources/PipelineKitCache/LRUStorage.swift
++++ b/Sources/PipelineKitCache/LRUStorage.swift
+@@ -159,20 +159,22 @@ final class LRUStorage<Value> {
+     /// - Parameters:
+     ///   - value: The value to store.
+     ///   - key: The key to associate with `value`.
+-    /// - Returns: The key that was evicted to make room, or `nil` if no eviction
+-    ///   occurred. This lets callers perform any extra bookkeeping tied to the
+-    ///   evicted key.
++    /// - Returns: The evicted key (if any) and the value displaced by replacement
++    ///   or eviction. A caller holding a lock must retain `retiredValue` through
++    ///   unlock so caller-owned payload destruction observes committed state.
+     /// - Complexity: O(1).
+     @discardableResult
+-    func setValue(_ value: Value, forKey key: String) -> String? {
++    func setValue(_ value: Value, forKey key: String) -> (evictedKey: String?, retiredValue: Value?) {
+         // Update-in-place: replace value and promote, never evict.
+         if let existing = map[key] {
++            let retiredValue = existing.value
+             existing.value = value
+             moveToTail(existing)
+-            return nil
++            return (nil, retiredValue)
+         }
+ 
+         var evictedKey: String?
++        var retiredValue: Value?
+ 
+         // Evict the LRU entry (head) when inserting a new key at capacity. The
+         // `head` guard makes eviction a no-op when the store is empty (e.g. the
+@@ -180,6 +182,7 @@ final class LRUStorage<Value> {
+         // still admitted before subsequent inserts start evicting.
+         if map.count >= maxSize, let lru = head {
+             evictedKey = lru.key
++            retiredValue = lru.value
+             unlink(lru)
+             map.removeValue(forKey: lru.key)
+         }
+@@ -187,26 +190,33 @@ final class LRUStorage<Value> {
+         let node = Node(key: key, value: value)
+         map[key] = node
+         appendAtTail(node)
+-        return evictedKey
++        return (evictedKey, retiredValue)
+     }
+ 
+     /// Removes the entry for `key`, if present.
+     ///
+     /// - Parameter key: The key to remove.
++    /// - Returns: The removed value, to retain through any caller-held lock.
+     /// - Complexity: O(1).
+-    func removeValue(forKey key: String) {
+-        guard let node = map.removeValue(forKey: key) else { return }
++    @discardableResult
++    func removeValue(forKey key: String) -> Value? {
++        guard let node = map.removeValue(forKey: key) else { return nil }
+         unlink(node)
++        return node.value
+     }
+ 
+     /// Removes all entries.
+     ///
+-    /// - Complexity: O(n) (releasing nodes); the list pointers are reset to
+-    ///   `nil`. Inter-node links are dropped as the nodes deallocate.
+-    func removeAll() {
++    /// - Returns: Removed values, to retain through any caller-held lock.
++    /// - Complexity: O(n) time and temporary ownership storage. Inter-node links
++    ///   are dropped as the nodes deallocate; predecessors remain weak.
++    @discardableResult
++    func removeAll() -> [Value] {
++        let retiredValues = values
+         map.removeAll(keepingCapacity: false)
+         head = nil
+         tail = nil
++        return retiredValues
+     }
+ 
+     /// The keys ordered from least-recently-used (first) to most-recently-used
+diff --git a/Sources/PipelineKitCache/SimpleCachingMiddleware.swift b/Sources/PipelineKitCache/SimpleCachingMiddleware.swift
+index 715992a..8b21ab9 100644
+--- a/Sources/PipelineKitCache/SimpleCachingMiddleware.swift
++++ b/Sources/PipelineKitCache/SimpleCachingMiddleware.swift
+@@ -143,8 +143,12 @@ public final class SimpleCachingMiddleware: Middleware, NextGuardWarningSuppress
+     // MARK: - Cache Management
+ 
+     private func getCachedResult<T>(for key: String, as type: T.Type) -> T? {
++        var retired: CacheEntry?
+         lock.lock()
+-        defer { lock.unlock() }
++        defer {
++            lock.unlock()
++            withExtendedLifetime(retired) {}
++        }
+ 
+         // Inspect without promoting first so an expired entry is not counted as a
+         // use before removal.
+@@ -154,7 +158,7 @@ public final class SimpleCachingMiddleware: Middleware, NextGuardWarningSuppress
+ 
+         // Check if expired
+         if entry.isExpired {
+-            storage.removeValue(forKey: key)
++            retired = storage.removeValue(forKey: key)
+             return nil
+         }
+ 
+@@ -166,43 +170,45 @@ public final class SimpleCachingMiddleware: Middleware, NextGuardWarningSuppress
+ 
+     private func setCachedResult<T>(_ result: T, for key: String) {
+         lock.lock()
+-        defer { lock.unlock() }
+-
+-        // Insert/update + promote. When a new key pushes the store past its
+-        // capacity, `LRUStorage` evicts the least-recently-used entry; updating an
+-        // existing key never evicts. This preserves the prior
+-        // `cache.count >= maxSize && cache[key] == nil` eviction rule. An unlimited
+-        // (`nil`) `maxSize` was mapped to `Int.max`, so eviction never fires.
+-        storage.setValue(CacheEntry(value: result, timestamp: Date(), ttl: ttl), forKey: key)
++        // Only the replaced/evicted entry escapes; ordinary insertion stays O(1).
++        let retired = storage.setValue(CacheEntry(value: result, timestamp: Date(), ttl: ttl), forKey: key).retiredValue
++        lock.unlock()
++        withExtendedLifetime(retired) {}
+     }
+ 
+-    /// Clears all cached entries.
++    /// Clears all cached entries, including expired ones.
+     ///
+-    /// This operation is thread-safe and removes all entries from the cache,
+-    /// including expired ones.
++    /// Payloads are released after the empty state is committed and unlocked.
++    /// `CacheRetirementContractTests` exercises synchronous destructor reentry.
++    /// - Complexity: O(n) time and temporary ownership storage.
+     public func clear() {
+         lock.lock()
+-        defer { lock.unlock() }
+-        storage.removeAll()
++        let retired = storage.removeAll()
++        lock.unlock()
++        withExtendedLifetime(retired) {}
+     }
+ 
+     /// Removes expired entries from the cache.
+     ///
+     /// Call this periodically to free memory from expired entries that haven't
+-    /// been accessed (and thus auto-removed).
++    /// been accessed (and thus auto-removed). Payloads are released after unlock,
++    /// as exercised by `CacheRetirementContractTests`.
++    /// - Complexity: O(n) scanning plus O(k) retirement storage for k removals.
+     public func removeExpired() {
+         lock.lock()
+-        defer { lock.unlock() }
+-
+-        // Snapshot keys, then drop those whose entry is expired. `peek` is used so
+-        // the inspection does not alter recency. Removal of each key is O(1).
++        // Key inspection does not alter recency. Each removal is O(1).
+         let expiredKeys = storage.keysInLRUOrder().filter { key in
+             storage.peek(forKey: key)?.isExpired ?? false
+         }
+-
++        var retired: [CacheEntry] = []
++        retired.reserveCapacity(expiredKeys.count)
+         for key in expiredKeys {
+-            storage.removeValue(forKey: key)
++            if let entry = storage.removeValue(forKey: key) {
++                retired.append(entry)
++            }
+         }
++        lock.unlock()
++        withExtendedLifetime(retired) {}
+     }
+ 
+     /// Gets current cache statistics.
+diff --git a/Sources/PipelineKitCore/Context/CommandContext.swift b/Sources/PipelineKitCore/Context/CommandContext.swift
+index 000c01d..b47a02a 100644
+--- a/Sources/PipelineKitCore/Context/CommandContext.swift
++++ b/Sources/PipelineKitCore/Context/CommandContext.swift
+@@ -63,6 +63,19 @@ public final class CommandContext: @unchecked Sendable {
+         return try operation()
+     }
+ 
++    /// Retains the displaced slot through unlock, including wrong-type name
++    /// collisions. The transform runs under the same lock as the read/write;
++    /// metadata/metrics merges therefore remain atomic. Only this slot is held,
++    /// not a copy of the complete context. Covered by CommandContextRetirementTests.
++    private func mutateValue(forKey key: String, _ transform: (AnySendable?) -> AnySendable?) {
++        let retired = withLock {
++            let previous = _storage[key]
++            _storage[key] = transform(previous)
++            return previous
++        }
++        withExtendedLifetime(retired) {}
++    }
++
+     // MARK: - Public Properties
+     
+     /// The command metadata associated with this context
+@@ -104,13 +117,7 @@ public final class CommandContext: @unchecked Sendable {
+             withLock { _storage[key.name]?.get(T.self) }
+         }
+         set {
+-            withLock {
+-                if let newValue = newValue {
+-                    _storage[key.name] = AnySendable(newValue)
+-                } else {
+-                    _storage[key.name] = nil
+-                }
+-            }
++            mutateValue(forKey: key.name) { _ in newValue.map(AnySendable.init) }
+         }
+     }
+ 
+@@ -153,9 +160,7 @@ public final class CommandContext: @unchecked Sendable {
+ 
+     /// Sets all metadata (replaces existing)
+     public func setMetadata(_ metadata: [String: any Sendable]) {
+-        withLock {
+-            _storage[ContextKeys.metadata.name] = AnySendable(metadata)
+-        }
++        mutateValue(forKey: ContextKeys.metadata.name) { _ in AnySendable(metadata) }
+     }
+ 
+     /// Gets a specific metadata value
+@@ -166,21 +171,21 @@ public final class CommandContext: @unchecked Sendable {
+ 
+     /// Sets a specific metadata value
+     public func setMetadata(_ key: String, value: any Sendable) {
+-        withLock {
+-            var currentMetadata: [String: any Sendable] = _storage[ContextKeys.metadata.name]?.get([String: any Sendable].self) ?? [:]
++        mutateValue(forKey: ContextKeys.metadata.name) { previous in
++            var currentMetadata: [String: any Sendable] = previous?.get([String: any Sendable].self) ?? [:]
+             currentMetadata[key] = value
+-            _storage[ContextKeys.metadata.name] = AnySendable(currentMetadata)
++            return AnySendable(currentMetadata)
+         }
+     }
+ 
+     /// Updates metadata with multiple key-value pairs
+     public func updateMetadata(_ updates: [String: any Sendable]) {
+-        withLock {
+-            var currentMetadata: [String: any Sendable] = _storage[ContextKeys.metadata.name]?.get([String: any Sendable].self) ?? [:]
++        mutateValue(forKey: ContextKeys.metadata.name) { previous in
++            var currentMetadata: [String: any Sendable] = previous?.get([String: any Sendable].self) ?? [:]
+             for (key, value) in updates {
+                 currentMetadata[key] = value
+             }
+-            _storage[ContextKeys.metadata.name] = AnySendable(currentMetadata)
++            return AnySendable(currentMetadata)
+         }
+     }
+     
+@@ -195,9 +200,7 @@ public final class CommandContext: @unchecked Sendable {
+ 
+     /// Sets all metrics (replaces existing)
+     public func setMetrics(_ metrics: [String: any Sendable]) {
+-        withLock {
+-            _storage[ContextKeys.metrics.name] = AnySendable(metrics)
+-        }
++        mutateValue(forKey: ContextKeys.metrics.name) { _ in AnySendable(metrics) }
+     }
+ 
+     /// Gets a specific metric value
+@@ -208,10 +211,10 @@ public final class CommandContext: @unchecked Sendable {
+ 
+     /// Sets a specific metric value
+     public func setMetric(_ key: String, value: any Sendable) {
+-        withLock {
+-            var currentMetrics: [String: any Sendable] = _storage[ContextKeys.metrics.name]?.get([String: any Sendable].self) ?? [:]
++        mutateValue(forKey: ContextKeys.metrics.name) { previous in
++            var currentMetrics: [String: any Sendable] = previous?.get([String: any Sendable].self) ?? [:]
+             currentMetrics[key] = value
+-            _storage[ContextKeys.metrics.name] = AnySendable(currentMetrics)
++            return AnySendable(currentMetrics)
+         }
+     }
+ 
+@@ -222,12 +225,12 @@ public final class CommandContext: @unchecked Sendable {
+ 
+     /// Updates metrics with multiple key-value pairs
+     public func updateMetrics(_ updates: [String: any Sendable]) {
+-        withLock {
+-            var currentMetrics: [String: any Sendable] = _storage[ContextKeys.metrics.name]?.get([String: any Sendable].self) ?? [:]
++        mutateValue(forKey: ContextKeys.metrics.name) { previous in
++            var currentMetrics: [String: any Sendable] = previous?.get([String: any Sendable].self) ?? [:]
+             for (key, value) in updates {
+                 currentMetrics[key] = value
+             }
+-            _storage[ContextKeys.metrics.name] = AnySendable(currentMetrics)
++            return AnySendable(currentMetrics)
+         }
+     }
+ 
+@@ -242,9 +245,13 @@ public final class CommandContext: @unchecked Sendable {
+     // MARK: - Utility Methods
+ 
+     /// Removes all values from the context except command metadata.
++    /// Retired values are released after metadata restoration and unlock;
++    /// `CommandContextRetirementTests` exercises reentrant reads at destruction.
++    /// - Complexity: O(n) destruction; single-value mutations retain only one slot.
+     public func clear() {
+-        withLock {
+-            _storage.removeAll(keepingCapacity: true)
++        let retired = withLock {
++            let previous = _storage
++            _storage = [:]
+             // Restore command metadata
+             _storage[ContextKeys.commandID.name] = AnySendable(commandMetadata.id)
+             // Intentionally do not restore startTime; it must be explicitly set
+@@ -257,7 +264,9 @@ public final class CommandContext: @unchecked Sendable {
+                 _storage[ContextKeys.correlationID.name] = AnySendable(correlationID)
+                 _storage[ContextKeys.requestID.name] = AnySendable(correlationID)
+             }
++            return previous
+         }
++        withExtendedLifetime(retired) {}
+     }
+ 
+     /// Creates a snapshot of all values in the context.
+@@ -314,9 +323,7 @@ public final class CommandContext: @unchecked Sendable {
+     /// Removes a value from the context.
+     /// - Parameter key: The context key to remove
+     public func remove<T>(_ key: ContextKey<T>) {
+-        withLock {
+-            _storage[key.name] = nil
+-        }
++        mutateValue(forKey: key.name) { _ in nil }
+     }
+ 
+     /// Updates multiple values using a closure.
+@@ -330,9 +337,7 @@ public final class CommandContext: @unchecked Sendable {
+     /// Marks this context as cancelled with the specified reason.
+     /// - Parameter reason: The reason for cancellation
+     public func markAsCancelled(reason: CancellationReason) {
+-        withLock {
+-            _storage[ContextKeys.cancellationReason.name] = AnySendable(reason)
+-        }
++        self[ContextKeys.cancellationReason] = reason
+     }
+ 
+     /// Gets the cancellation reason if the context has been cancelled.
+diff --git a/Tests/PipelineKitCacheTests/LRUEvolutionTests.swift b/Tests/PipelineKitCacheTests/LRUEvolutionTests.swift
+index a624a6e..f42c0d1 100644
+--- a/Tests/PipelineKitCacheTests/LRUEvolutionTests.swift
++++ b/Tests/PipelineKitCacheTests/LRUEvolutionTests.swift
+@@ -136,9 +136,9 @@ final class LRUEvolutionTests: XCTestCase {
+         XCTAssertFalse(storage.contains("missing"))
+ 
+         // Insert a, b, c.
+-        XCTAssertNil(storage.setValue(1, forKey: "a"))
+-        XCTAssertNil(storage.setValue(2, forKey: "b"))
+-        XCTAssertNil(storage.setValue(3, forKey: "c"))
++        XCTAssertNil(storage.setValue(1, forKey: "a").evictedKey)
++        XCTAssertNil(storage.setValue(2, forKey: "b").evictedKey)
++        XCTAssertNil(storage.setValue(3, forKey: "c").evictedKey)
+         XCTAssertEqual(storage.count, 3)
+         XCTAssertEqual(storage.keysInLRUOrder(), ["a", "b", "c"]) // LRU..MRU
+ 
+@@ -151,14 +151,14 @@ final class LRUEvolutionTests: XCTestCase {
+         XCTAssertEqual(storage.keysInLRUOrder(), ["b", "c", "a"])
+ 
+         // Insert `d` at capacity -> evicts LRU `b`, returns "b".
+-        let evicted = storage.setValue(4, forKey: "d")
++        let evicted = storage.setValue(4, forKey: "d").evictedKey
+         XCTAssertEqual(evicted, "b")
+         XCTAssertEqual(storage.count, 3)
+         XCTAssertFalse(storage.contains("b"))
+         XCTAssertEqual(storage.keysInLRUOrder(), ["c", "a", "d"])
+ 
+         // Update existing `c` -> no eviction, promotes `c`.
+-        let noEvict = storage.setValue(30, forKey: "c")
++        let noEvict = storage.setValue(30, forKey: "c").evictedKey
+         XCTAssertNil(noEvict)
+         XCTAssertEqual(storage.value(forKey: "c"), 30)
+         XCTAssertEqual(storage.keysInLRUOrder(), ["a", "d", "c"])
+@@ -218,10 +218,10 @@ final class LRUEvolutionTests: XCTestCase {
+     /// A store with `maxSize == 1` keeps only the most recent key.
+     func testLRUStorageCapacityOne() {
+         let storage = LRUStorage<Int>(maxSize: 1)
+-        XCTAssertNil(storage.setValue(1, forKey: "a"))
++        XCTAssertNil(storage.setValue(1, forKey: "a").evictedKey)
+         XCTAssertEqual(storage.keysInLRUOrder(), ["a"])
+ 
+-        let evicted = storage.setValue(2, forKey: "b")
++        let evicted = storage.setValue(2, forKey: "b").evictedKey
+         XCTAssertEqual(evicted, "a")
+         XCTAssertEqual(storage.count, 1)
+         XCTAssertEqual(storage.keysInLRUOrder(), ["b"])
+@@ -273,7 +273,7 @@ final class LRUEvolutionTests: XCTestCase {
+     private func insertValue(_ index: Int, into storage: LRUStorage<LifetimeValue>, witness: WeakValue) -> String? {
+         let value = LifetimeValue()
+         witness.value = value
+-        return storage.setValue(value, forKey: String(index))
++        return storage.setValue(value, forKey: String(index)).evictedKey
+     }
+ 
+     // MARK: - SimpleCachingMiddleware LRU via stats
+diff --git a/Tests/PipelineKitResilienceTests/RateLimitScopeContractTests.swift b/Tests/PipelineKitResilienceTests/RateLimitScopeContractTests.swift
+index 7430263..8c20d11 100644
+--- a/Tests/PipelineKitResilienceTests/RateLimitScopeContractTests.swift
++++ b/Tests/PipelineKitResilienceTests/RateLimitScopeContractTests.swift
+@@ -206,21 +206,17 @@ final class RateLimitScopeContractTests: XCTestCase {
+             let limiter = makeLimiter(strategy, scope: .global, clock: clock)
+             _ = try await limiter.allowRequest(identifier: "A")
+             clock.set(1_299)
+-            // TokenBucket consume updates lastAccess; sliding admission records a recent request.
+-            _ = try await limiter.allowRequest(identifier: "A", cost: 0)
++            // Adaptive refills at 0.1 token/second: consume the full token at 1299.
++            // Retaining it admits no unit request at 1300 (only 0.1 token refilled);
++            // recreating it during cleanup would incorrectly admit that request.
++            // The nonrefilling token bucket and sliding window use a zero-cost touch.
++            let touched = try await limiter.allowRequest(identifier: "A", cost: strategy == .adaptive ? 1 : 0)
++            XCTAssertTrue(touched, "\(strategy)")
+             clock.set(1_300)
+             let status = await limiter.getStatus(identifier: "B")
+             let afterCleanup = try await limiter.allowRequest(identifier: "B")
+-            if strategy == .adaptive {
+-                // The earlier admission with zero cost has refilled this one-token bucket.
+-                XCTAssertEqual(status.remaining, 1)
+-                XCTAssertTrue(afterCleanup)
+-                let repeated = try await limiter.allowRequest(identifier: "A")
+-                XCTAssertFalse(repeated)
+-            } else {
+-                XCTAssertEqual(status.remaining, 0, "\(strategy)")
+-                XCTAssertFalse(afterCleanup, "\(strategy)")
+-            }
++            XCTAssertEqual(status.remaining, 0, "\(strategy)")
++            XCTAssertFalse(afterCleanup, "\(strategy)")
+         }
+     }
+ 
+diff --git a/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift b/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift
+index 26605e6..8368b94 100644
+--- a/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift
++++ b/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift
+@@ -139,7 +139,7 @@ private extension SecurityCapabilityContractTests {
+                 try await pipeline.addMiddlewares(middleware)
+                 return try await pipeline.execute(command, context: context)
+             case .anyStandard:
+-                let pipeline = AnyStandardPipeline(handler: handler)
++                let pipeline = AnyStandardPipeline(handler: handler, options: .init(maxConcurrency: 10, maxOutstanding: nil))
+                 for stage in middleware {
+                     try await pipeline.addMiddleware(stage)
+                 }
+diff --git a/Tests/PipelineKitTests/Pipeline/PipelineTests.swift b/Tests/PipelineKitTests/Pipeline/PipelineTests.swift
+index 0b6a103..6a82731 100644
+--- a/Tests/PipelineKitTests/Pipeline/PipelineTests.swift
++++ b/Tests/PipelineKitTests/Pipeline/PipelineTests.swift
+@@ -145,7 +145,7 @@ final class PipelineTests: XCTestCase {
+     
+     func testPriorityPipeline() async throws {
+         let handler = TransformHandler()
+-        let pipeline = AnyStandardPipeline(handler: handler)
++        let pipeline = AnyStandardPipeline(handler: handler, options: .init(maxConcurrency: 10, maxOutstanding: nil))
+         let context = CommandContext.test()
+         
+         // Add middlewares with different priorities (lower number = higher priority)
+diff --git a/Tests/PipelineKitTests/PipelineChainCacheTests.swift b/Tests/PipelineKitTests/PipelineChainCacheTests.swift
+index 8034e21..ab3e58a 100644
+--- a/Tests/PipelineKitTests/PipelineChainCacheTests.swift
++++ b/Tests/PipelineKitTests/PipelineChainCacheTests.swift
+@@ -135,7 +135,7 @@ private func lifetimeWitness(_ scenario: LifetimeScenario, route: LifetimeRoute)
+     let pipeline: LifetimePipeline
+     switch route {
+     case .typed: pipeline = .typed(StandardPipeline(handler: handler))
+-    case .erased: pipeline = .erased(AnyStandardPipeline(handler: handler))
++    case .erased: pipeline = .erased(AnyStandardPipeline(handler: handler, options: .init(maxConcurrency: 10, maxOutstanding: nil)))
+     }
+     let witness = LifetimeWitness(pipeline: pipeline.object, handler: handler)
+     if scenario != .neverExecuted {

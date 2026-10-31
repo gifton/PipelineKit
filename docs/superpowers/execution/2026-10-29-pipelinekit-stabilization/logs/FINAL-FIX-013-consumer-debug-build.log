@@ -1,0 +1,30 @@
+Building for debugging...
+[Computing dependencies]
+[16 / 63] Atomics
+[24 / 66] Crypto
+[26 / 63] Logging
+[34 / 64] PipelineKitCore
+[42 / 70] PipelineKit
+[56 / 84] PipelineKit
+[61 / 93] _ResilienceFoundation
+[71 / 95] PipelineKitObservability
+[79 / 103] _RateLimiting
+[88 / 114] _CircuitBreaker
+[104 / 128] _ResilienceCore
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Sources/PipelineKitCache/CachingMiddleware.swift:189:47: warning: use of protocol 'Decodable' as a type must be written 'any Decodable'; this will be an error in a future Swift language mode [#ExistentialAny]
+187 |             // For other Decodable types, try generic decoding
+188 |             // Note: We use Decodable.Type here (not `any Decodable.Type`) because we need to call init on it
+189 |             if let decodableType = T.self as? Decodable.Type {
+    |                                               `- warning: use of protocol 'Decodable' as a type must be written 'any Decodable'; this will be an error in a future Swift language mode [#ExistentialAny]
+190 |                 let value = try decodableType.init(from: try container.superDecoder(forKey: .result))
+191 |                 guard let typedValue = value as? T else {
+
+[#ExistentialAny]: <https://docs.swift.org/compiler/documentation/diagnostics/existential-any>
+[116 / 132] PipelineKitCache
+[121 / 133] PipelineKitSecurity
+[130 / 142] PipelineKitSecurity
+[134 / 137] Consumer-product
+[137 / 140] Consumer-product
+[138 / 140] Consumer-product
+[140 / 142] Consumer-product
+Build complete! (3.17 sec)

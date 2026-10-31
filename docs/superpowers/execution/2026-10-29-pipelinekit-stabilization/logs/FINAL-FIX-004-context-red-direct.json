@@ -1,0 +1,69 @@
+{
+  "id": "FINAL-FIX-004-context-red-direct",
+  "cwd": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization",
+  "command": [
+    "xcrun",
+    "xctest",
+    "-XCTest",
+    "PipelineKitCoreTests.CommandContextRetirementTests/testTypedReplacementReentry",
+    ".build/out/Products/Debug/PipelineKitCoreTests.xctest"
+  ],
+  "started_utc": "2026-10-31T07:19:50.902660+00:00",
+  "elapsed_seconds": 0.078,
+  "exit_status": -9,
+  "watchdog_timeout": false,
+  "log": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/FINAL-FIX-004-context-red-direct.log",
+  "runner_exit_status": -9,
+  "runner_error": null,
+  "cleanup": {
+    "settled": true,
+    "survivors": [],
+    "outcomes": [
+      {
+        "identity": {
+          "pid": 24132,
+          "start": [
+            1793431190,
+            903529
+          ]
+        },
+        "state": "gone"
+      }
+    ],
+    "inspection_errors": [],
+    "term_grace_seconds": 2.0,
+    "kill_grace_seconds": 3.0
+  },
+  "event_errors": [],
+  "completion_reason": "root_exit",
+  "unexpected_descendants": [],
+  "owned_processes": [
+    {
+      "identity": {
+        "pid": 24132,
+        "start": [
+          1793431190,
+          903529
+        ]
+      },
+      "observed_parent": null,
+      "first_seen_seconds": 0.002469,
+      "observations": [
+        {
+          "ppid": 24121,
+          "pgid": 24132,
+          "state": 2
+        }
+      ]
+    }
+  ],
+  "termination_actions": [],
+  "process_events": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/FINAL-FIX-004-context-red-direct.processes.jsonl",
+  "ownership_backend": "macOS libproc PID + start timeval",
+  "containment_limits": [
+    "Only lineages observed before reparenting are owned; instant unobserved daemonization can escape.",
+    "Identity check and kill are separate syscalls; PID reuse in that interval cannot be excluded.",
+    "Zombie means no executing process; non-child zombie reaping belongs to its parent.",
+    "SIGKILL of the runner or host failure can bypass cleanup; Linux is unsupported and unvalidated."
+  ]
+}

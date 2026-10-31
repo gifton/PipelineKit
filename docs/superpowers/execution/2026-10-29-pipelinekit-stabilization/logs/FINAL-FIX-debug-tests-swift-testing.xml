@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+    <testsuite name="TestResults" errors="0" tests="20" failures="0" skipped="0" time="0.002450334">
+        <testcase classname="PipelineKitTests.ScopedMiddlewareTests" name="scopedMiddlewareActivatesForMatchingType()" time="0.000695666"/>
+        <testcase classname="PipelineKitTests.ScopedMiddlewareTests" name="scopedMiddlewareSkipsForNonMatchingType()" time="0.000623459"/>
+        <testcase classname="PipelineKitTests.ScopedMiddlewareTests" name="multipleScopedMiddleware()" time="0.000873459"/>
+        <testcase classname="PipelineKitTests.EnhancedPipelineIntrospectionTests" name="pipelineInfoIncludesInterceptorCount()" time="0.000334375"/>
+        <testcase classname="PipelineKitTests.EnhancedPipelineIntrospectionTests" name="pipelineInfoDescriptionIncludesInterceptors()" time="0.000563209"/>
+        <testcase classname="PipelineKitTests.EnhancedPipelineIntrospectionTests" name="executionTraceReturnsActiveMiddleware()" time="0.000508625"/>
+        <testcase classname="PipelineKitTests.EnhancedPipelineIntrospectionTests" name="diagramIncludesInterceptors()" time="0.000452625"/>
+        <testcase classname="PipelineKitTests.EnhancedPipelineIntrospectionTests" name="middlewareDetailTracksFlags()" time="0.000549417"/>
+        <testcase classname="PipelineKitTests.EnhancedPipelineIntrospectionTests" name="pipelineInfoIncludesMiddlewareDetails()" time="0.000479334"/>
+        <testcase classname="PipelineKitTests.EnhancedPipelineIntrospectionTests" name="describeIncludesDetailedInfo()" time="0.001876875"/>
+        <testcase classname="PipelineKitTests.CommandInterceptorTests" name="clearInterceptors()" time="0.000505958"/>
+        <testcase classname="PipelineKitTests.CommandInterceptorTests" name="interceptorChainStandalone()" time="0.00048825"/>
+        <testcase classname="PipelineKitTests.CommandInterceptorTests" name="interceptorTransformsCommand()" time="0.000345459"/>
+        <testcase classname="PipelineKitTests.CommandInterceptorTests" name="typedInterceptorMatchesType()" time="0.000416375"/>
+        <testcase classname="PipelineKitTests.CommandInterceptorTests" name="multipleInterceptorsChain()" time="0.000456416"/>
+        <testcase classname="PipelineKitTests.CommandInterceptorTests" name="interceptorCountTracked()" time="0.000292125"/>
+        <testcase classname="PipelineKitTests.Phase1IntegrationTests" name="fullPipelineIntegration()" time="0.000874875"/>
+        <testcase classname="PipelineKitTests.ConditionalMiddlewareTests" name="conditionalMiddlewareSkips()" time="0.000421833"/>
+        <testcase classname="PipelineKitTests.ConditionalMiddlewareTests" name="conditionalMiddlewareActivates()" time="0.000567083"/>
+        <testcase classname="PipelineKitTests.ConditionalMiddlewareTests" name="mixedConditionalMiddleware()" time="0.000584875"/>
+    </testsuite>
+    <testsuite name="TestResults" errors="0" tests="0" failures="0" skipped="0" time="9.5958e-05"/>
+    <testsuite name="TestResults" errors="0" tests="0" failures="0" skipped="0" time="8.4e-05"/>
+    <testsuite name="TestResults" errors="0" tests="0" failures="0" skipped="0" time="8.5083e-05"/>
+    <testsuite name="TestResults" errors="0" tests="0" failures="0" skipped="0" time="0.000110166"/>
+    <testsuite name="TestResults" errors="0" tests="0" failures="0" skipped="0" time="9.2792e-05"/>
+    <testsuite name="TestResults" errors="0" tests="0" failures="0" skipped="0" time="8.8958e-05"/>
+    <testsuite name="TestResults" errors="0" tests="0" failures="0" skipped="0" time="7.8e-05"/>
+    <testsuite name="TestResults" errors="0" tests="0" failures="0" skipped="0" time="8.4167e-05"/>
+</testsuites>

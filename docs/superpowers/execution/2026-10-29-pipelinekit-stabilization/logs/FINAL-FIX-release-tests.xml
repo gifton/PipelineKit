@@ -1,0 +1,2296 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<testsuites>
+<testsuite name="TestResults" errors="0" tests="1145" failures="0" time="176.51487702399984">
+<testcase classname="PipelineKitPoolingTests.ObjectPoolTests" name="testAcquirePooledManualReturn" time="0.135041291">
+</testcase>
+<testcase classname="PipelineKitPoolingTests.ObjectPoolTests" name="testBasicAcquireRelease" time="0.065663875">
+</testcase>
+<testcase classname="PipelineKitPoolingTests.ObjectPoolConfigurationTests" name="testWatermarksAtBoundaries" time="0.235454084">
+</testcase>
+<testcase classname="PipelineKitPoolingTests.ObjectPoolConfigurationTests" name="testSendableConformance" time="0.235478833">
+</testcase>
+<testcase classname="PipelineKitPoolingTests.ObjectPoolConfigurationTests" name="testMinimalConfiguration" time="0.235576875">
+</testcase>
+<testcase classname="PipelineKitPoolingTests.ObjectPoolConfigurationTests" name="testDefaultConfiguration" time="0.23565375">
+</testcase>
+<testcase classname="PipelineKitPoolingTests.ObjectPoolConfigurationTests" name="testInvalidWatermarks" time="0.235610625">
+</testcase>
+<testcase classname="PipelineKitPoolingTests.DurationNanosecondsTests" name="testDurationNanosecondsClampsBeyondSignedSecondsComponents" time="0.235776">
+</testcase>
+<testcase classname="PipelineKitPoolingTests.ObjectPoolConfigurationTests" name="testPresetConfigurations" time="0.235605208">
+</testcase>
+<testcase classname="PipelineKitPoolingTests.DurationNanosecondsTests" name="testDurationNanosecondsClampsBoundaries" time="0.235780959">
+</testcase>
+<testcase classname="PipelineKitPoolingTests.ObjectPoolConfigurationTests" name="testAutoCalculatedWatermarks" time="0.235767458">
+</testcase>
+<testcase classname="PipelineKitPoolingTests.ObjectPoolTests" name="testAcquirePooledAutoReturn" time="0.235526">
+</testcase>
+<testcase classname="PipelineKitPoolingTests.ObjectPoolConfigurationTests" name="testEqualWatermarks" time="0.235653833">
+</testcase>
+<testcase classname="PipelineKitPoolingTests.ObjectPoolConfigurationTests" name="testInvalidMaxSize" time="0.235649792">
+</testcase>
+<testcase classname="PipelineKitPoolingTests.DurationNanosecondsTests" name="testDurationNanosecondsIncludesWholeSeconds" time="0.235918084">
+</testcase>
+<testcase classname="PipelineKitPoolingTests.ObjectPoolConfigurationTests" name="testErrorDescriptions" time="0.235657208">
+</testcase>
+<testcase classname="PipelineKitPoolingTests.ObjectPoolConfigurationTests" name="testCustomConfiguration" time="0.235755">
+</testcase>
+<testcase classname="PipelineKitPoolingTests.ObjectPoolTests" name="testClear" time="0.084002208">
+</testcase>
+<testcase classname="PipelineKitPoolingTests.PoolAnalysisTests" name="testIntelligentShrinkerCriticalPressure" time="0.125199375">
+</testcase>
+<testcase classname="PipelineKitPoolingTests.ObjectPoolTests" name="testStatisticsDisabled" time="0.125301333">
+</testcase>
+<testcase classname="PipelineKitPoolingTests.ObjectPoolTests" name="testStatisticsTracking" time="0.125269042">
+</testcase>
+<testcase classname="PipelineKitPoolingTests.PoolAnalysisTests" name="testBurstyPatternShrinking" time="0.12522675">
+</testcase>
+<testcase classname="PipelineKitPoolingTests.PoolAnalysisTests" name="testGrowingPatternShrinking" time="0.125244334">
+</testcase>
+<testcase classname="PipelineKitPoolingTests.PoolAnalysisTests" name="testIntelligentShrinkerNormalPressure" time="0.079259458">
+</testcase>
+<testcase classname="PipelineKitPoolingTests.ObjectPoolTests" name="testRapidAcquireRelease" time="0.134035458">
+</testcase>
+<testcase classname="PipelineKitPoolingTests.ObjectPoolTests" name="testShrinkWithNegativeTarget" time="0.134017417">
+</testcase>
+<testcase classname="PipelineKitPoolingTests.ObjectPoolTests" name="testShrinkOperation" time="0.134049708">
+</testcase>
+<testcase classname="PipelineKitPoolingTests.ObjectPoolTests" name="testPoolSizeLimit" time="0.134069375">
+</testcase>
+<testcase classname="PipelineKitPoolingTests.ObjectPoolTests" name="testEmptyPoolAcquire" time="0.134129041">
+</testcase>
+<testcase classname="PipelineKitPoolingTests.ObjectPoolTests" name="testConcurrentWithStatistics" time="0.134149542">
+</testcase>
+<testcase classname="PipelineKitPoolingTests.ObjectPoolTests" name="testPoolWithZeroMaxSize" time="0.134095833">
+</testcase>
+<testcase classname="PipelineKitPoolingTests.ObjectPoolTests" name="testConcurrentAcquireRelease" time="0.134174167">
+</testcase>
+<testcase classname="PipelineKitPoolingTests.ObjectPoolTests" name="testPreallocate" time="0.134143125">
+</testcase>
+<testcase classname="PipelineKitPoolingTests.ObjectPoolTests" name="testFactoryThrows" time="0.13417275">
+</testcase>
+<testcase classname="PipelineKitPoolingTests.PoolAnalysisTests" name="testLowConfidenceShrinking" time="0.1077865">
+</testcase>
+<testcase classname="PipelineKitPoolingTests.PoolAnalysisTests" name="testIntelligentShrinkerWarningPressure" time="0.1077935">
+</testcase>
+<testcase classname="PipelineKitPoolingTests.PoolAnalysisTests" name="testMemoryPressureLevels" time="0.107791209">
+</testcase>
+<testcase classname="PipelineKitPoolingTests.PoolAnalysisTests" name="testPoolAnalysisCreation" time="0.107769791">
+</testcase>
+<testcase classname="PipelineKitPoolingTests.PoolAnalysisTests" name="testPoolAnalysisValueClamping" time="0.107760416">
+</testcase>
+<testcase classname="PipelineKitPoolingTests.PooledObjectTests" name="testRapidAcquireReturnCycles" time="0.108299917">
+</testcase>
+<testcase classname="PipelineKitPoolingTests.PooledObjectTests" name="testPooledObjectAfterPoolDeinit" time="0.111572583">
+</testcase>
+<testcase classname="PipelineKitPoolingTests.PooledObjectTests" name="testObjectAccess" time="0.111592417">
+</testcase>
+<testcase classname="PipelineKitPoolingTests.PoolAnalysisTests" name="testUsagePatterns" time="0.119144291">
+</testcase>
+<testcase classname="PipelineKitPoolingTests.PooledObjectTests" name="testConcurrentReturns" time="0.11366">
+</testcase>
+<testcase classname="PipelineKitPoolingTests.PooledObjectTests" name="testManualReturn" time="0.113652458">
+</testcase>
+<testcase classname="PipelineKitPoolingTests.PooledObjectTests" name="testMultiplePooledObjects" time="0.113643625">
+</testcase>
+<testcase classname="PipelineKitPoolingTests.PooledObjectTests" name="testDoubleReturn" time="0.113691459">
+</testcase>
+<testcase classname="PipelineKitPoolingTests.PooledObjectTests" name="testConcurrentAcquirePooled" time="0.113772375">
+</testcase>
+<testcase classname="PipelineKitPoolingTests.PooledObjectTests" name="testMixedManualAutoReturn" time="0.113813625">
+</testcase>
+<testcase classname="PipelineKitPoolingTests.SimplePoolTests" name="testClearPool" time="0.099815">
+</testcase>
+<testcase classname="PipelineKitPoolingTests.SimplePoolTests" name="testCustomConfiguration" time="0.099819125">
+</testcase>
+<testcase classname="PipelineKitPoolingTests.SimplePoolTests" name="testAcquireAndRelease" time="0.099850125">
+</testcase>
+<testcase classname="PipelineKitPoolingTests.SimplePoolTests" name="testDefaultConfiguration" time="0.099866375">
+</testcase>
+<testcase classname="PipelineKitPoolingTests.SimplePoolTests" name="testIntelligentShrinkerCalculation" time="0.099838375">
+</testcase>
+<testcase classname="PipelineKitPoolingTests.SimplePoolTests" name="testInvalidConfiguration" time="0.098885875">
+</testcase>
+<testcase classname="PipelineKitPoolingTests.SimplePoolTests" name="testObjectPoolCreation" time="0.09586625">
+</testcase>
+<testcase classname="PipelineKitPoolingTests.SimplePoolTests" name="testMemoryPressureLevels" time="0.097610416">
+</testcase>
+<testcase classname="PipelineKitPoolingTests.SimplePoolTests" name="testStatisticsTracking" time="0.097282542">
+</testcase>
+<testcase classname="PipelineKitPoolingTests.SimplePoolTests" name="testStatisticsDisabled" time="0.097386083">
+</testcase>
+<testcase classname="PipelineKitPoolingTests.SimplePoolTests" name="testPooledObjectDoubleReturn" time="0.0974645">
+</testcase>
+<testcase classname="PipelineKitPoolingTests.SimplePoolTests" name="testPreallocate" time="0.097466417">
+</testcase>
+<testcase classname="PipelineKitPoolingTests.SimplePoolTests" name="testPooledObjectCreation" time="0.097556167">
+</testcase>
+<testcase classname="PipelineKitPoolingTests.SimplePoolTests" name="testShrinkPool" time="0.09747725">
+</testcase>
+<testcase classname="PipelineKitPoolingTests.SimplePoolTests" name="testPoolAnalysisCreation" time="0.097636">
+</testcase>
+<testcase classname="PipelineKitPoolingTests.PooledObjectTests" name="testAutoReturnOnDeinit" time="0.219083084">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CancellationErrorTests" name="testCheckCancellationWhenNotCancelled" time="0.093075708">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CancellationErrorTests" name="testCheckCancellationWithContext" time="0.099002958">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CancellationReasonTests" name="testDescriptionForSystemShutdown" time="0.093895833">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CancellationErrorTests" name="testCheckCancellationWhenCancelled" time="0.10563075">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CancellationReasonTests" name="testDescriptionForCustom" time="0.104625625">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CancellationReasonTests" name="testDescriptionForPipelineError" time="0.104627667">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CancellationReasonTests" name="testDescriptionForResourceConstraints" time="0.104573959">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CancellationReasonTests" name="testArrayOperations" time="0.105128">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CancellationErrorTests" name="testCheckCancellationWithLongContext" time="0.105143708">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CancellationReasonTests" name="testCustomCase" time="0.105125375">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CancellationErrorTests" name="testCheckCancellationWithEmptyContext" time="0.105152041">
+</testcase>
+<testcase classname="PipelineKitPoolingTests.SimplePoolTests" name="testUsagePatterns" time="0.1211765">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CancellationErrorTests" name="testCheckCancellationPerformance" time="0.121095">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CancellationErrorTests" name="testCheckCancellationInAsyncContext" time="0.121141542">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CancellationErrorTests" name="testCheckCancellationMultipleTimes" time="0.121157792">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CancellationErrorTests" name="testCancellationInLongRunningOperation" time="0.150067292">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CancellationReasonTests" name="testDescriptionForTimeout" time="0.086362875">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CancellationReasonTests" name="testDescriptionForUserCancellation" time="0.084498459">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CancellationReasonTests" name="testEmptyStringMessages" time="0.094772">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CancellationReasonTests" name="testEquatable" time="0.094744083">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CancellationReasonTests" name="testPipelineErrorCase" time="0.110074584">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CancellationReasonTests" name="testPatternMatching" time="0.110090166">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CancellationReasonTests" name="testTimeoutWithVariousDurations" time="0.10584275">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CancellationReasonTests" name="testLongStringMessages" time="0.110102208">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CancellationReasonTests" name="testSendableConformance" time="0.109891875">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CancellationReasonTests" name="testSpecialCharactersInMessages" time="0.109895958">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CancellationReasonTests" name="testResourceConstraintsCase" time="0.109919292">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CancellationReasonTests" name="testTimeoutWithNegativeDuration" time="0.106105417">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CancellationReasonTests" name="testTimeoutCase" time="0.106073084">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CancellationReasonTests" name="testSystemShutdownCase" time="0.1099125">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CancellationReasonTests" name="testTimeoutWithZeroDuration" time="0.106073167">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CancellationReasonTests" name="testUserCancellationCase" time="0.080807">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextDynamicMemberTests" name="testAllBuiltInKeysAccessible" time="0.079874709">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextDynamicMemberTests" name="testArrayValues" time="0.079022375">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextDynamicMemberTests" name="testBackwardsCompatibilityOldSyntaxStillWorks" time="0.079086334">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextDynamicMemberTests" name="testBackwardsCompatibilityMethodsStillWork" time="0.083463167">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextDynamicMemberTests" name="testDirectPropertyAccessNil" time="0.107976041">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextDynamicMemberTests" name="testCustomKeysStillWorkWithSubscript" time="0.108039916">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextDynamicMemberTests" name="testCustomKeysWithSubscript" time="0.108016042">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextDynamicMemberTests" name="testDateValues" time="0.108015834">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextDynamicMemberTests" name="testDirectPropertyAccessWrite" time="0.107936416">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextDynamicMemberTests" name="testDictionaryValues" time="0.10802175">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextDynamicMemberTests" name="testDirectPropertyAccessRead" time="0.108012458">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextDynamicMemberTests" name="testIntValues" time="0.105022167">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextDynamicMemberTests" name="testConcurrentPropertyAccess" time="0.11071075">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextDynamicMemberTests" name="testBackwardsCompatibilityReadOnlyProperties" time="0.110741708">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextDynamicMemberTests" name="testCustomKeysDontWorkWithDynamicMemberLookup" time="0.110906">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextDynamicMemberTests" name="testConcurrentMixedAccess" time="0.110958667">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextDynamicMemberTests" name="testKeyPathSubscriptNil" time="0.086819333">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextDynamicMemberTests" name="testKeyPathSubscriptRead" time="0.091015459">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextDynamicMemberTests" name="testKeysWithoutComputedPropertiesUseDynamicMemberLookup" time="0.077657125">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextDynamicMemberTests" name="testKeyPathSubscriptWrite" time="0.082013458">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextDynamicMemberTests" name="testTypeSafetyEnforced" time="0.107810334">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextLockTests" name="testMetadataAndMetricsRoundTrip" time="0.08612575">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextDynamicMemberTests" name="testStringValues" time="0.114945">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextDynamicMemberTests" name="testMixedAccessPatterns" time="0.115091166">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextDynamicMemberTests" name="testRealWorldUsagePattern" time="0.115125">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextDynamicMemberTests" name="testMetadataAndMetricsAccess" time="0.115176667">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextDynamicMemberTests" name="testNilValueHandlingViaKeyPath" time="0.115176084">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextDynamicMemberTests" name="testNilValueHandling" time="0.115196458">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextDynamicMemberTests" name="testMixedWriteAndRead" time="0.115225459">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextLockTests" name="testConcurrentSharedKeyContentionDoesNotCrash" time="0.112868416">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextLockTests" name="testConcurrentMixedLockedOperationsDoNotCrash" time="0.163700208">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextLockTests" name="testBasicRoundTripGetSet" time="0.163917417">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextDynamicMemberTests" name="testUUIDValues" time="0.163963166">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextLockTests" name="testConcurrentInterleavedGetSetIsConsistentAndCrashFree" time="0.163760666">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextMetricsMergeTests" name="testConcurrentDisjointMetricsUpdatesAreConserved" time="0.137207625">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextMetricsMergeTests" name="testConcurrentSetAndUpdatePreserveDisjointKeys" time="0.137195709">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextMetricsMergeTests" name="testLastCompletedWriterWinsAndPreservesOtherMetrics" time="0.080339542">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextRetirementTests" name="testTypedReplacementReentry" time="0.073629666">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextRetirementTests" name="testPublicMutationRetirementMatrix" time="0.100370167">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextRetirementTests" name="testClearReleasesEveryPayloadAfterRestoringMetadata" time="0.100388042">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextRetirementTests" name="testConcurrentMetadataAndMetricsMergesConserveDisjointUpdatesAndRetireValues" time="0.100373166">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextMetricsMergeTests" name="testMetricsUpdatesLeaveOrdinaryMetadataIsolated" time="0.114086709">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextTests" name="testClear" time="0.073597083">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextTests" name="testConcurrentMixedOperations" time="0.073709583">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextNonActorTests" name="testContextIsNoLongerActor" time="0.125775042">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextNonActorTests" name="testMiddlewareWithoutAwaitOnContext" time="0.125714292">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextNonActorTests" name="testConcurrentContextAccess" time="0.125874542">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextNonActorTests" name="testParallelMiddlewareExecution" time="0.12570075">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextTests" name="testCancellationSupport" time="0.080017417">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextTests" name="testBackwardCompatibilityProperties" time="0.08002875">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextTests" name="testConcurrentReads" time="0.081024416">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextTests" name="testConcurrentWrites" time="0.081027041">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextTests" name="testContains" time="0.078943583">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextTests" name="testCorrelationIDGetSet" time="0.085631958">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextTests" name="testEmptyKeyHandling" time="0.083025292">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextTests" name="testDebugDescription" time="0.08305025">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextTests" name="testDifferentCancellationReasons" time="0.083755125">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextTests" name="testFork" time="0.07535975">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextTests" name="testInitWithCustomMetadata" time="0.082132833">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextTests" name="testGetSetPerformance" time="0.090388709">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextTests" name="testMetricsOperations" time="0.078556417">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextTests" name="testMetricsUpdate" time="0.078544">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextTests" name="testMetadataReplace" time="0.089863125">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextTests" name="testMetadataUpdate" time="0.08995175">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextTests" name="testRecordDuration" time="0.095910167">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextTests" name="testRequestIDGetSet" time="0.071909417">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextTests" name="testRemove" time="0.072867917">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextTests" name="testRecordDurationWithoutStartTime" time="0.072889125">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextTests" name="testSnapshotRaw" time="0.071326667">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextTests" name="testRecordDurationWithCustomName" time="0.094933083">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextTests" name="testSnapshot" time="0.071608083">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextTests" name="testSpecialCharactersInKeys" time="0.068570792">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextTests" name="testStartTimeGetSet" time="0.068258541">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextTests" name="testTypedKeyGetSet" time="0.06828775">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextTests" name="testTypedKeyWithDifferentTypes" time="0.068879708">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextTests" name="testTypedKeyTypeySafety" time="0.0690565">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextTests" name="testMetadataOperations" time="0.192618584">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextTests" name="testLargeValueHandling" time="0.192634042">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextTests" name="testMetadataPerformance" time="0.192555625">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextTests" name="testInitWithDefaultMetadata" time="0.192694">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextTests" name="testUpdate" time="0.070080791">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextThreadSafetyTests" name="testConcurrentCustomEventEmission" time="0.077542959">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextThreadSafetyTests" name="testConcurrentForkOperations" time="0.07751075">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextThreadSafetyTests" name="testConcurrentMetadataAccess" time="0.074033458">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextTests" name="testUserIDGetSet" time="0.079317583">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextThreadSafetyTests" name="testConcurrentMetricsAccess" time="0.072762875">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextThreadSafetyTests" name="testConcurrentStorageAccess" time="0.077359125">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandTests" name="testCommandContext" time="0.071806625">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextThreadSafetyTests" name="testHighContentionOnSingleKey" time="0.078557959">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextThreadSafetyTests" name="testStorageSnapshotConsistency" time="0.074026875">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextThreadSafetyTests" name="testRequestIDConsistency" time="0.086341584">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandTests" name="testCommandSendableConformance" time="0.084433542">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandTests" name="testCommandExecution" time="0.087975625">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandTests" name="testCommandResult" time="0.087983917">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandTests" name="testCommandContextWithCustomKeys" time="0.088928291">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandTests" name="testCommandMetadata" time="0.088936333">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ContextCopyableTests" name="testMixedCopyBehavior" time="0.077205458">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ContextCopyableTests" name="testShallowForkSharesReferences" time="0.08098725">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ContextKeyTests" name="testContextKeyCreation" time="0.0745315">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ContextCopyableTests" name="testManualDeepCopy" time="0.0915475">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ContextCopyableTests" name="testDeepForkConvenienceMethod" time="0.091619625">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ContextKeyTests" name="testContextKeyWithDifferentTypes" time="0.07158825">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ContextKeyTests" name="testCustomFactoryMethod" time="0.086202042">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ContextKeyTests" name="testCustomFactoryWithComplexTypes" time="0.085891">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ContextKeyTests" name="testEmptyKeyName" time="0.086255875">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ContextKeyTests" name="testEquatable" time="0.094233083">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ContextKeyTests" name="testKeyUniqueness" time="0.084140208">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ContextKeyTests" name="testSetOperations" time="0.072738042">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ContextKeyTests" name="testHashable" time="0.088546584">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ContextKeyTests" name="testSendableConformance" time="0.075546333">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ContextKeyTests" name="testSpecialCharactersInKeyName" time="0.078076916">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ContextKeyTests" name="testStandardObservabilityKeys" time="0.078124917">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ContextKeyTests" name="testLongKeyName" time="0.094137625">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ContextKeyTests" name="testStandardRequestMetadataKeys" time="0.080815167">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ContextKeyTests" name="testTypeSafetyWithDifferentValueTypes" time="0.077408459">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ContextKeyTests" name="testUnicodeInKeyName" time="0.069594792">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ErrorPayloadPreservationTests" name="testNestedReasonPreservation" time="0.074178416">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ErrorPayloadPreservationTests" name="testErrorDescriptions" time="0.076474375">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ErrorPayloadPreservationTests" name="testComplexPayloadPreservation" time="0.076484083">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ErrorPayloadPreservationTests" name="testBackPressureErrorPayloadMapping" time="0.076743958">
+</testcase>
+<testcase classname="PipelineKitCoreTests.EventEmissionTests" name="testEmitterCanBeCleared" time="0.068148625">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ErrorPayloadPreservationTests" name="testTimeoutErrorMapping" time="0.072950792">
+</testcase>
+<testcase classname="PipelineKitCoreTests.EventEmissionTests" name="testConcurrentEventEmission" time="0.070806375">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ErrorPayloadPreservationTests" name="testResilienceErrorPayloadMapping" time="0.073024375">
+</testcase>
+<testcase classname="PipelineKitCoreTests.EventEmissionTests" name="testEmitterCanBeOverriddenInChild" time="0.068538292">
+</testcase>
+<testcase classname="PipelineKitCoreTests.EventEmissionTests" name="testEmitterCanBeSetAndRetrieved" time="0.066411125">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ContextKeyTests" name="testStandardResilienceKeys" time="0.186499667">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ContextKeyTests" name="testStandardSecurityKeys" time="0.186487708">
+</testcase>
+<testcase classname="PipelineKitCoreTests.EventEmissionTests" name="testEmitterInheritanceOnFork" time="0.071866833">
+</testcase>
+<testcase classname="PipelineKitCoreTests.EventEmissionTests" name="testEventSequenceIDsAreMonotonic" time="0.070386291">
+</testcase>
+<testcase classname="PipelineKitCoreTests.EventEmissionTests" name="testEventEmissionWithoutEmitter" time="0.071311">
+</testcase>
+<testcase classname="PipelineKitCoreTests.EventEmissionTests" name="testEventEmissionWithEmitter" time="0.071325125">
+</testcase>
+<testcase classname="PipelineKitCoreTests.EventEmissionTests" name="testMiddlewareEventEmission" time="0.0787075">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ExecutionContextSnapshotTests" name="testNestedWithRestoredShadowsOuterBindingAndUnwinds" time="0.080255041">
+</testcase>
+<testcase classname="PipelineKitCoreTests.EventEmissionTests" name="testMultipleEventEmission" time="0.080262541">
+</testcase>
+<testcase classname="PipelineKitCoreTests.EventEmissionTests" name="testMiddlewareEventWithTypedProperties" time="0.080285541">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ExecutionContextSnapshotTests" name="testSnapshotCapturesTraceAndRoundTripsThroughCodable" time="0.0699485">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ExecutionContextSnapshotTests" name="testWithRestoredBindsTraceAndFreshReporterThenUnwinds" time="0.07134875">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ExecutionContextTests" name="testTraceMetadataIsCodable" time="0.069413917">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ExecutionContextSnapshotTests" name="testWithRestoredRunsOperationInCallerIsolation" time="0.074585291">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ExecutionContextTests" name="testCurrentIsNilOutsideAnyBinding" time="0.072790291">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ExecutionContextTests" name="testBindingIsVisibleAtDepthAndInChildTasks" time="0.073278916">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ExecutionContextTests" name="testDetachedTaskDoesNotInherit" time="0.072001917">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ExecutionContextSnapshotTests" name="testWithRestoredDoesNotInheritEnclosingReporter" time="0.0773165">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ExecutionPriorityTests" name="testBeforeMethod" time="0.073309792">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ExecutionPriorityTests" name="testAfterMethodDoesNotCreateConflicts" time="0.073412916">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ExecutionPriorityTests" name="testAllCasesHaveCorrectRawValues" time="0.073525292">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ExecutionPriorityTests" name="testAfterMethod" time="0.076767291">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ExecutionPriorityTests" name="testBeforeMethodDoesNotCreateConflicts" time="0.073759292">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ContextKeyTests" name="testKeyCollections" time="0.356645417">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ContextKeyTests" name="testKeyComparisonPerformance" time="0.3683045">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ContextKeyTests" name="testKeyCreationPerformance" time="0.367472875">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ExecutionPriorityTests" name="testBetweenMethodWithAdjacentPriorities" time="0.076949667">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ExecutionPriorityTests" name="testBetweenMethodWithCustomPriority" time="0.077091291">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ExecutionPriorityTests" name="testCaseIterableConformance" time="0.074496917">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ExecutionPriorityTests" name="testBetweenMethodWithReverseOrder" time="0.075488625">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ExecutionPriorityTests" name="testBetweenMethodWithSamePriority" time="0.075507292">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ExecutionPriorityTests" name="testBetweenMethodWithNonAdjacentPriorities" time="0.076158834">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ExecutionPriorityTests" name="testEquatable" time="0.081087083">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ExecutionPriorityTests" name="testHashable" time="0.075971">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ExecutionPriorityTests" name="testIntegerOverflowBoundary" time="0.069738">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ExecutionPriorityTests" name="testMiddlewareOrderingUseCase" time="0.074521208">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ExecutionPriorityTests" name="testNegativePriorityGeneration" time="0.074511584">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ExecutionPriorityTests" name="testSortingByPriority" time="0.078321208">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ExecutionPriorityTests" name="testPriorityOrdering" time="0.078689834">
+</testcase>
+<testcase classname="PipelineKitCoreTests.MemoryPressureDetectorTests" name="testCleanupForApplication" time="0.077689417">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ExecutionPriorityTests" name="testSendableConformance" time="0.0785845">
+</testcase>
+<testcase classname="PipelineKitCoreTests.MemoryPressureDetectorTests" name="testConcurrentHandlerRegistration" time="0.071368167">
+</testcase>
+<testcase classname="PipelineKitCoreTests.MemoryPressureDetectorTests" name="testConcurrentMonitoringOperations" time="0.068570459">
+</testcase>
+<testcase classname="PipelineKitCoreTests.MemoryPressureDetectorTests" name="testGetPressureLevel" time="0.069771333">
+</testcase>
+<testcase classname="PipelineKitCoreTests.MemoryPressureDetectorTests" name="testGetStatistics" time="0.071337125">
+</testcase>
+<testcase classname="PipelineKitCoreTests.MemoryPressureDetectorTests" name="testHandlerExecutionOrder" time="0.071330833">
+</testcase>
+<testcase classname="PipelineKitCoreTests.MemoryPressureDetectorTests" name="testMultipleHandlerRegistration" time="0.076250625">
+</testcase>
+<testcase classname="PipelineKitCoreTests.MemoryPressureDetectorTests" name="testPressureLevelWithoutMonitoring" time="0.076242834">
+</testcase>
+<testcase classname="PipelineKitCoreTests.MemoryPressureDetectorTests" name="testMemoryThresholdCalculation" time="0.076267958">
+</testcase>
+<testcase classname="PipelineKitCoreTests.MemoryPressureDetectorTests" name="testRegisterHandler" time="0.076243583">
+</testcase>
+<testcase classname="PipelineKitCoreTests.MemoryPressureDetectorTests" name="testSetupForApplication" time="0.073276875">
+</testcase>
+<testcase classname="PipelineKitCoreTests.MemoryPressureDetectorTests" name="testRegistrationPerformance" time="0.073282">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ExecutionPriorityTests" name="testSortingWithCustomPriorities" time="0.184946417">
+</testcase>
+<testcase classname="PipelineKitCoreTests.MemoryPressureDetectorTests" name="testSharedInstanceIsSingleton" time="0.069403167">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ExecutionPriorityTests" name="testBetweenMethodPerformance" time="0.335700625">
+</testcase>
+<testcase classname="PipelineKitCoreTests.MemoryPressureDetectorTests" name="testUnregisterHandler" time="0.074894917">
+</testcase>
+<testcase classname="PipelineKitCoreTests.MetricsCollectorTests" name="testConcurrentMetricRecording" time="0.074889917">
+</testcase>
+<testcase classname="PipelineKitCoreTests.MetricsCollectorTests" name="testCounterWithVariousValues" time="0.074885709">
+</testcase>
+<testcase classname="PipelineKitCoreTests.MemoryPressureDetectorTests" name="testStopMonitoring" time="0.074904417">
+</testcase>
+<testcase classname="PipelineKitCoreTests.MetricsCollectorTests" name="testEmptyTags" time="0.0705995">
+</testcase>
+<testcase classname="PipelineKitCoreTests.MetricsCollectorTests" name="testDefaultMetricsCollector" time="0.070626417">
+</testcase>
+<testcase classname="PipelineKitCoreTests.MetricsCollectorTests" name="testExtremeLargeValues" time="0.069601625">
+</testcase>
+<testcase classname="PipelineKitCoreTests.MetricsCollectorTests" name="testExtremeSmallValues" time="0.069531583">
+</testcase>
+<testcase classname="PipelineKitCoreTests.MetricsCollectorTests" name="testGaugeFluctuations" time="0.0693615">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ExecutionPriorityTests" name="testCustomPriorityInsertion" time="0.348023167">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ExecutionPriorityTests" name="testDescriptionForAllCases" time="0.347993792">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ExecutionPriorityTests" name="testDescriptionPerformance" time="0.347899083">
+</testcase>
+<testcase classname="PipelineKitCoreTests.MetricsCollectorTests" name="testMixedConcurrentOperations" time="0.073568959">
+</testcase>
+<testcase classname="PipelineKitCoreTests.MetricsCollectorTests" name="testGaugeWithNegativeValues" time="0.073590333">
+</testcase>
+<testcase classname="PipelineKitCoreTests.MetricsCollectorTests" name="testHistogramDistribution" time="0.073598125">
+</testcase>
+<testcase classname="PipelineKitCoreTests.MetricsCollectorTests" name="testHistogramWithPercentiles" time="0.0736035">
+</testcase>
+<testcase classname="PipelineKitCoreTests.MemoryPressureDetectorTests" name="testStartMonitoring" time="0.17959175">
+</testcase>
+<testcase classname="PipelineKitCoreTests.MemoryPressureDetectorTests" name="testStatisticsUpdate" time="0.179599917">
+</testcase>
+<testcase classname="PipelineKitCoreTests.MetricsCollectorTests" name="testNegativeValues" time="0.072499167">
+</testcase>
+<testcase classname="PipelineKitCoreTests.MetricsCollectorTests" name="testMultipleTags" time="0.073265875">
+</testcase>
+<testcase classname="PipelineKitCoreTests.MetricsCollectorTests" name="testProtocolRequirements" time="0.069817458">
+</testcase>
+<testcase classname="PipelineKitCoreTests.MetricsCollectorTests" name="testRecordCounter" time="0.069819291">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ExecutionPriorityTests" name="testPriorityComparisonPerformance" time="0.350783167">
+</testcase>
+<testcase classname="PipelineKitCoreTests.MetricsCollectorTests" name="testRecordGauge" time="0.079828">
+</testcase>
+<testcase classname="PipelineKitCoreTests.MetricsCollectorTests" name="testRecordMultipleCounters" time="0.079093583">
+</testcase>
+<testcase classname="PipelineKitCoreTests.MetricsCollectorTests" name="testRecordHistogram" time="0.07984175">
+</testcase>
+<testcase classname="PipelineKitCoreTests.MetricsCollectorTests" name="testRecordingPerformance" time="0.079840333">
+</testcase>
+<testcase classname="PipelineKitCoreTests.MetricsCollectorTests" name="testTimerWithVariousDurations" time="0.078803">
+</testcase>
+<testcase classname="PipelineKitCoreTests.MetricsCollectorTests" name="testTagsWithSpecialCharacters" time="0.081531958">
+</testcase>
+<testcase classname="PipelineKitCoreTests.MetricsCollectorTests" name="testTimerPrecision" time="0.081528208">
+</testcase>
+<testcase classname="PipelineKitCoreTests.MetricsCollectorTests" name="testRecordTimer" time="0.081546709">
+</testcase>
+<testcase classname="PipelineKitCoreTests.MiddlewareTests" name="testConditionalMiddleware" time="0.080808791">
+</testcase>
+<testcase classname="PipelineKitCoreTests.MiddlewareTests" name="testExecutionPriorityValues" time="0.079932542">
+</testcase>
+<testcase classname="PipelineKitCoreTests.MiddlewareTests" name="testMiddlewareAsyncExecution" time="0.090785542">
+</testcase>
+<testcase classname="PipelineKitCoreTests.MetricsCollectorTests" name="testZeroValues" time="0.094724958">
+</testcase>
+<testcase classname="PipelineKitCoreTests.MiddlewareTests" name="testMiddlewareContextModification" time="0.084904916">
+</testcase>
+<testcase classname="PipelineKitCoreTests.MiddlewareTests" name="testMiddlewareChaining" time="0.084913333">
+</testcase>
+<testcase classname="PipelineKitCoreTests.MiddlewareTests" name="testMiddlewareErrorHandling" time="0.099274">
+</testcase>
+<testcase classname="PipelineKitCoreTests.MiddlewareTests" name="testMiddlewareExecution" time="0.086468167">
+</testcase>
+<testcase classname="PipelineKitCoreTests.MiddlewareTests" name="testMiddlewarePerformance" time="0.086380917">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ObserverMiddlewareTests" name="testDefaultExecuteObservesThenForwardsToNext" time="0.086113083">
+</testcase>
+<testcase classname="PipelineKitCoreTests.PipelineTests" name="testCommandExecutionError" time="0.084778083">
+</testcase>
+<testcase classname="PipelineKitCoreTests.MiddlewareTests" name="testMiddlewareValueSemantics" time="0.100088333">
+</testcase>
+<testcase classname="PipelineKitCoreTests.MiddlewareTests" name="testMiddlewareSorting" time="0.100093125">
+</testcase>
+<testcase classname="PipelineKitCoreTests.PipelineTests" name="testContextPropagationThroughMiddleware" time="0.077483959">
+</testcase>
+<testcase classname="PipelineKitCoreTests.PipelineTests" name="testConcurrentPipelineExecution" time="0.078033958">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ObserverMiddlewareTests" name="testDefaultPriorityIsObservability" time="0.088834375">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ObserverMiddlewareTests" name="testThrowingObserverDoesNotCallNext" time="0.088951042">
+</testcase>
+<testcase classname="PipelineKitCoreTests.PipelineTests" name="testMiddlewareExecutionOrder" time="0.076514042">
+</testcase>
+<testcase classname="PipelineKitCoreTests.PipelineTests" name="testMiddlewareValueSemantics" time="0.081807334">
+</testcase>
+<testcase classname="PipelineKitCoreTests.PipelineTests" name="testMiddlewarePriorityOrdering" time="0.081824791">
+</testcase>
+<testcase classname="PipelineKitCoreTests.PipelineTests" name="testMiddlewareErrorPropagation" time="0.087870542">
+</testcase>
+<testcase classname="PipelineKitCoreTests.PipelineTests" name="testPipelineDefaultExecuteMethod" time="0.073285333">
+</testcase>
+<testcase classname="PipelineKitCoreTests.PipelineTests" name="testPipelinePerformance" time="0.07477125">
+</testcase>
+<testcase classname="PipelineKitCoreTests.PipelineTests" name="testPipelineProtocolConformance" time="0.074707666">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ProgressReporterTests" name="testDropOldestWhenBufferOverflows" time="0.082263041">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ProgressReporterTests" name="testReportingNeverBlocksWithoutConsumer" time="0.08098525">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ProgressReporterTests" name="testReportAfterFinishIsANoOp" time="0.081595709">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ProgressReporterTests" name="testUpdatesDeliveredInOrder" time="0.084848417">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.AuditLoggerCapacityTests" name="testNegativeCapacityPreconditionProbe" time="0.084736916">
+</testcase>
+<testcase classname="PipelineKitCoreTests.PipelineTests" name="testTaskCancellationPropagation" time="0.094345375">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ProgressReporterTests" name="testProgressReporterContextKeyRoundTrips" time="0.091759833">
+</testcase>
+<testcase classname="PipelineKitCoreTests.ProgressReporterTests" name="testFinishIsIdempotent" time="0.091775041">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.AuditLoggerCapacityTests" name="testNilCapacityRetainsAll" time="0.085061166">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.AuditLoggerCapacityTests" name="testZeroCapacityCountsDropsWithoutRetainingEvents" time="0.08271125">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.AuditLoggerCapacityTests" name="testOneCapacityEvictsOldest" time="0.082780166">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.AuditLoggingMiddlewareTests" name="testAuditLoggingFailure" time="0.082151584">
+</testcase>
+<testcase classname="PipelineKitCoreTests.CommandContextThreadSafetyTests" name="testMixedOperationsUnderLoad" time="1.082704667">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.AuditLoggingMiddlewareTests" name="testConsoleLoggerFormatting" time="0.08104375">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.AuditLoggingMiddlewareTests" name="testEventQuerying" time="0.08097725">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.AuditLoggingMiddlewareTests" name="testAuditLoggingSuccess" time="0.092288875">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.AuditLoggingMiddlewareTests" name="testHealthStream" time="0.074237584">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.AuditLoggingMiddlewareTests" name="testInMemoryLoggerCapacity" time="0.077088">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.AuditLoggingMiddlewareTests" name="testSecurityAuditEvent" time="0.076991166">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.AuthorizationMiddlewareTests" name="testAuthorizationFailureMissingUser" time="0.075477166">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.AuditLoggingMiddlewareTests" name="testTraceContextPropagation" time="0.083256291">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.AuthorizationMiddlewareTests" name="testAuthorizationFailureInsufficientRoles" time="0.083194583">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.AuthorizationMiddlewareTests" name="testAuthorizationWithMultipleRoles" time="0.079406917">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.AuthorizationMiddlewareTests" name="testSuccessfulAuthorization" time="0.074411041">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.AuthorizationMiddlewareTests" name="testConcurrentAuthorization" time="0.080976959">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.AuthorizationMiddlewareTests" name="testAuthorizationPriority" time="0.091854208">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.CommandEncryptorContractTests" name="testCodableCommandRoundTripReconstructsAllFields" time="0.073540291">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.CommandEncryptorContractTests" name="testMissingKeyFailsWithoutPlaintextFallback" time="0.068443">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.CommandEncryptorContractTests" name="testEncodingFailurePropagates" time="0.082006584">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.CommandEncryptorContractTests" name="testEnvelopeContainsOnlyCiphertextAndMetadata" time="0.0805505">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.CommandEncryptorContractTests" name="testNon256BitKeysAreRejectedForEncryptionAndDecryption" time="0.073150333">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.CommandEncryptorContractTests" name="testOldKeysRemainUsableUntilExplicitlyExpired" time="0.073105166">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.CommandEncryptorContractTests" name="testOverlappingSnapshotAndRotationKeepCapturedPairs" time="0.07324475">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.CommandEncryptorContractTests" name="testTamperedCiphertextPropagatesAuthenticationFailure" time="0.072591167">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.CommandEncryptorContractTests" name="testSharedStoreRotationPreservesCiphertextKeyIdentity" time="0.072681291">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.CommandEncryptorContractTests" name="testUnsupportedAlgorithmIsRejected" time="0.072144625">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.CommandSanitizerTests" name="testEscapeHTMLNoSpecialCharacters" time="0.0707125">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.CommandSanitizerTests" name="testFullSanitizationPipeline" time="0.068720833">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.AuthorizationMiddlewareTests" name="testCustomRoleExtractor" time="0.184141208">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.AuthorizationMiddlewareTests" name="testEmptyRequiredRoles" time="0.184088">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.CommandEncryptorContractTests" name="testAuthenticatedIncompletePayloadFailsDecoding" time="0.179567334">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.CommandSanitizerTests" name="testRemoveNonPrintable" time="0.069178792">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.CommandSanitizerTests" name="testRemoveNonPrintableKeepsValidCharacters" time="0.069926792">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.CommandSanitizerTests" name="testRemoveNonPrintableEmoji" time="0.069948792">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.CommandSanitizerTests" name="testSanitizeHTMLEscapesEntities" time="0.070132209">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.CommandSanitizerTests" name="testSanitizeHTMLRemovesScriptTags" time="0.071735">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.CommandSanitizerTests" name="testSanitizeHTMLRemovesEventHandlers" time="0.072927708">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.CommandSanitizerTests" name="testSanitizeSQLBasic" time="0.066407667">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.CommandSanitizerTests" name="testSanitizeSQLInjectionAttempts" time="0.070912125">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.CommandSanitizerTests" name="testTruncateCustomSuffix" time="0.068245083">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.CommandSanitizerTests" name="testTruncateBoundaryMatrix" time="0.068463667">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.CommandSanitizerTests" name="testTruncateEmptyString" time="0.069479625">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.CommandSanitizerTests" name="testEscapeHTML" time="0.180722458">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.CommandSanitizerTests" name="testEscapeHTMLEmpty" time="0.180322958">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.CommandSanitizerTests" name="testTruncateExactLength" time="0.068963209">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.CommandSanitizerTests" name="testTruncateShortString" time="0.067589542">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.CommandSanitizerTests" name="testTruncateLongString" time="0.067623375">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.CommandSanitizerTests" name="testTruncateUnicode" time="0.069789458">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.CommandValidatorTests" name="testAlphanumericValidation" time="0.067293375">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.CommandValidatorTests" name="testAlphanumericInvalidCharacters" time="0.06848725">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.CommandValidatorTests" name="testAlphanumericWithAllowedCharacters" time="0.065173125">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.CommandValidatorTests" name="testLengthValidationNoConstraints" time="0.073937666">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.CommandValidatorTests" name="testCombinedValidations" time="0.077510208">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.CommandValidatorTests" name="testEmptyValidation" time="0.077738708">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.CommandValidatorTests" name="testInvalidEmailAddresses" time="0.077570459">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.CommandValidatorTests" name="testLengthValidationTooShort" time="0.076624708">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.CommandValidatorTests" name="testLengthValidationWithinBounds" time="0.077779334">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.CommandValidatorTests" name="testLengthValidationTooLong" time="0.079431792">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.EncryptionTests" name="testBasicEncryption" time="0.068096417">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.ConsoleAuditLoggerIdentityTests" name="testProductionIdentityWhitelistUsesStandardContextKeys" time="0.07071225">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.CommandValidatorTests" name="testValidEmailAddresses" time="0.071552625">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.CommandValidatorTests" name="testUnicodeHandling" time="0.074955708">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.EncryptionTests" name="testKeyStoreExpiration" time="0.070445208">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.EncryptionTests" name="testManualKeyRotation" time="0.070469917">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.EncryptionTests" name="testDecryptionWithWrongKey" time="0.077442458">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.EncryptionTests" name="testEncryptionDecryption" time="0.077117084">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.EncryptionTests" name="testEncryptionStrength" time="0.076962333">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.EncryptionTests" name="testInMemoryKeyStore" time="0.076957458">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.EncryptionTests" name="testMaskedField" time="0.075527042">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.EncryptionTests" name="testMultipleCommandTypes" time="0.075760833">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.InMemoryKeyStoreTests" name="testActorIsolation" time="0.077465625">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.InMemoryKeyStoreTests" name="testConcurrentAccess" time="0.077444583">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.NextGuardSuppressionConformanceTests" name="testThrowBasedSecurityMiddlewaresDoNotSuppressNextGuardWarnings" time="0.079889375">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.InMemoryKeyStoreTests" name="testConcurrentStoreAndRemove" time="0.080172833">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.InMemoryKeyStoreTests" name="testSnapshotKeyMatchesIdentifierDuringConcurrentStores" time="0.08017125">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.InMemoryKeyStoreTests" name="testRaceConditionOnSameKey" time="0.0801755">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.InMemoryKeyStoreTests" name="testConcurrentExpiration" time="0.080218333">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.OptimizedValidatorsTests" name="testEmailValidationEdgeCases" time="0.079918541">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.OptimizedValidatorsTests" name="testHTMLDetectionEdgeCases" time="0.072197292">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.OptimizedValidatorsTests" name="testHTMLDetection" time="0.072661708">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.OptimizedValidatorsTests" name="testInvalidEmails" time="0.070695417">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.OptimizedValidatorsTests" name="testNonHTMLStrings" time="0.070696333">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.EncryptionTests" name="testKeyRotation" time="0.180073">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.SanitizationTests" name="testSQLSanitization" time="0.079267667">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.SanitizationTests" name="testSecureCommand" time="0.0792715">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.OptimizedValidatorsTests" name="testSimpleEmailValidation" time="0.094138625">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.SanitizationTests" name="testHTMLSanitization" time="0.094118333">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.OptimizedValidatorsTests" name="testValidEmails" time="0.094135583">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.SanitizationTests" name="testHTMLEscaping" time="0.094138209">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.OptimizedValidatorsTests" name="testPerformanceComparison" time="0.094164875">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.OptimizedValidatorsTests" name="testThreadSafetyOfValidators" time="0.094152708">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.SanitizationTests" name="testTruncate" time="0.072513125">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.CommandSanitizerTests" name="testSanitizeHTMLPerformance" time="0.51065175">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.SecurityCapabilityContractTests" name="testCombinedCapabilitiesReachHandlerWithTransformedFields" time="0.083133541">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.SecurityCapabilityContractTests" name="testGenericPipelineInvokesValidationWitness" time="0.08313925">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.SecurityPolicyMiddlewareTests" name="testCustomPolicy" time="0.077549333">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.SecurityCapabilityContractTests" name="testSanitizationFailureRejectsBeforeHandler" time="0.083504375">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.SecurityCapabilityContractTests" name="testMissingRequiredCapabilityRejectsBeforeHandler" time="0.083511792">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.CommandSanitizerTests" name="testSanitizeHTMLComplexCase" time="0.538973291">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.CommandSanitizerTests" name="testRemoveNonPrintablePerformance" time="0.539037">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.CommandValidatorTests" name="testNotEmptyValidation" time="0.421925916">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.CommandValidatorTests" name="testPerformanceOfEmailValidation" time="0.421911">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.SanitizationTests" name="testSanitizationMiddleware" time="0.182536">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.SanitizationTests" name="testRemoveNonPrintable" time="0.182541083">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.SecurityPolicyMiddlewareTests" name="testDefaultPolicyCommandSize" time="0.069085458">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.SecurityPolicyMiddlewareTests" name="testHTMLContentAllowed" time="0.072543167">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.SecurityPolicyMiddlewareTests" name="testDefaultPolicyValidation" time="0.073801417">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.SecurityPolicyMiddlewareTests" name="testDefaultPolicyStringLength" time="0.073806417">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.SecurityPolicyMiddlewareTests" name="testHTMLContentRejection" time="0.071877583">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.SecurityPolicyMiddlewareTests" name="testPathTraversalPrevention" time="0.071888334">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.SecurityPolicyMiddlewareTests" name="testSQLInjectionPrevention" time="0.071246625">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.SecurityPolicyMiddlewareTests" name="testPolicyValidationPerformance" time="0.079099709">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.SecurityPolicyMiddlewareTests" name="testStrictPolicyCharacterRestriction" time="0.073382166">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.SecurityPolicyMiddlewareTests" name="testStrictPolicyCommandSize" time="0.073393375">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.SecurityPolicyMiddlewareTests" name="testStrictPolicyStringLength" time="0.071754291">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.SecurityPolicyMiddlewareTests" name="testStrictPolicyValidation" time="0.071757333">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.SecurityPolicyMiddlewareTests" name="testConcurrentPolicyValidation" time="0.193789875">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.SecurityCapabilityContractTests" name="testGenericPipelinePassesReturnedSanitizedValue" time="0.193822084">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.SecurityCapabilityContractTests" name="testIfPresentAllowsUnrelatedCommand" time="0.193827166">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.SecurityPolicyMiddlewareTests" name="testCommandWithoutValidation" time="0.193838041">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.SecurityPolicyMiddlewareTests" name="testXSSPrevention" time="0.077001">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.ValidationTests" name="testAlphanumeric" time="0.079798459">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.ValidationTests" name="testInvalidEmail" time="0.0788885">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.ValidationTests" name="testNotEmpty" time="0.0721715">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.ValidationTests" name="testValidationMiddleware" time="0.08349325">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.ValidationTests" name="testValidEmail" time="0.083489125">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.ValidationTests" name="testValidationErrorMessages" time="0.083517417">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.ValidationTests" name="testStringLength" time="0.083532583">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.AdmissionGateContractTests" name="testNonpositiveTimeoutOnlyRejectsWaitingAndProductionTimerSettles" time="0.075352083">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.AdmissionGateContractTests" name="testTimeoutRemovesOnlyItsWaiter" time="0.068074834">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.AdmissionGateContractTests" name="testReservedAcquisitionIsAtomic" time="0.070685417">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.ValidationDispatchTests" name="testProtocolWitnessTable" time="0.195548667">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.ValidationDispatchTests" name="testGenericMethodDispatch" time="0.195549417">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.ValidationDispatchTests" name="testDirectValidation" time="0.195754125">
+</testcase>
+<testcase classname="PipelineKitSecurityTests.ValidationDispatchTests" name="testValidationThroughMiddleware" time="0.195498292">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.AsyncSemaphoreCancellationTests" name="testCancellationDuringSignal" time="0.125720208">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.AsyncSemaphoreContractTests" name="testCancelledWaiterDoesNotSwallowSignal" time="0.071780625">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.AdmissionGateContractTests" name="testCancellationRegistrationAndGrantRaces" time="0.184286708">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.ActualTimeoutTest" name="testInstrumentedTimeout" time="0.184291083">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.AsyncSemaphoreContractTests" name="testCancelledTimeoutWaiterDoesNotSwallowSignal" time="0.073348916">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.ActualTimeoutTest" name="testActualTimeoutMiddleware" time="0.18708325">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.AdmissionGateContractTests" name="testLeaseConservationMatrix" time="0.187058917">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.BackPressureMiddlewareTests" name="testHealthCheck" time="0.136255916">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.BackPressureMiddlewareTests" name="testDropStrategyUnderPressure" time="0.136259375">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.BackPressureMiddlewareTests" name="testRateLimitIntegration" time="0.14580075">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.BackPressureMiddlewareTests" name="testStatsAccuracy" time="0.145802959">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.AuditRetryThroughGuardedChainTests" name="testResilientMiddlewareSecondAttemptTraversesGuardedMiddleware" time="0.279361458">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.AuditCircuitBreakerProbeWedgeTests" name="testControl_SuccessfulProbeClosesCircuitAfterRecoveryTimeout" time="0.279377709">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.AuditCircuitBreakerProbeWedgeTests" name="testAbandonedProbeReleasesProbeSlot" time="0.279378125">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.AuditRetryThroughGuardedChainTests" name="testDynamicPipelineRetryPolicyReExecutesGuardedChain" time="0.279383541">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.BackPressureMiddlewareTests" name="testBackPressureWithConcurrentRequests" time="0.252562333">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.BackPressureMiddlewareTests" name="testSuccessfulExecutionUnderLimit" time="0.14536475">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.BackPressureMiddlewareTests" name="testSuspendStrategyUnderPressure" time="0.1453585">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.BackPressureMiddlewareTests" name="testMemoryPressureStrategy" time="0.304857208">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.BackPressureSemaphoreCancellationTests" name="testCancelledWaiterNeverReceivesToken" time="0.27682225">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.BackPressureSemaphoreCancellationTests" name="testCleanupTaskDiesWithSemaphore" time="0.27681925">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.AsyncSemaphoreCancellationTests" name="testFIFOOrderingMaintainedWithCancellation" time="0.577953708">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.AsyncSemaphoreCancellationTests" name="testRapidCancellations" time="0.577984667">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.AsyncSemaphoreCancellationTests" name="testConcurrentCancellations" time="0.578001125">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.AsyncSemaphoreCancellationTests" name="testResourceRestorationOnCancellation" time="0.577976208">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.BackPressureTests" name="testSemaphoreTimeoutAcquisition" time="0.181323625">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.BackPressureTests" name="testSemaphoreBasicAcquisition" time="0.181336875">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.BackPressureTests" name="testPipelineOptionsPresets" time="0.181371709">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.BackPressureTests" name="testSemaphoreErrorStrategy" time="0.181349458">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.BackPressureTests" name="testPipelineOptionsDefaults" time="0.34389525">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.BackPressureTests" name="testNoDoubleResumeUnderConcurrentOperations" time="0.343908542">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.BackPressureStatsTest" name="testTotalProcessedCounter" time="0.591424958">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.BackPressureTests" name="testBackPressureMiddlewareWithCustomSize" time="0.591400834">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.BackPressureTests" name="testBackPressureMiddleware" time="0.591418541">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.BackPressureTests" name="testBackPressureMiddlewarePresets" time="0.59143175">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.BackPressureTests" name="testBackPressureMiddlewareWithConcurrency" time="0.591420791">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.BackPressureTests" name="testCancellationTargetsCorrectWaiter" time="0.586402708">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.BackPressureTests" name="testConcurrentPipelineCapacityStats" time="0.586401708">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.AsyncSemaphoreCancellationTests" name="testSingleTaskCancellationDoesNotAffectOthers" time="1.085727459">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.AuditRetryThroughGuardedChainTests" name="testRetryMiddlewareSecondAttemptTraversesGuardedMiddleware" time="1.043196291">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.BulkheadMiddlewareTests" name="testConcurrencyLimiting" time="0.280990542">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.BulkheadAdmissionConservationTests" name="testQueuedCancellationAndActiveCancellationConserveOwnership" time="0.280998625">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.BulkheadMiddlewareTests" name="testQueueTimeoutConfigurationValidationProbe" time="0.06882375">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.BulkheadMiddlewareTests" name="testQueueingPolicy" time="0.236993458">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.BulkheadMiddlewareTests" name="testNonpositiveQueueTimeoutStillAllowsFreeCapacity" time="0.236999166">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.BulkheadMiddlewareTests" name="testHighConcurrencyStress" time="0.285574875">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.BulkheadMiddlewareTests" name="testMetricsTracking" time="0.285579833">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.BulkheadMiddlewareTests" name="testFallbackPolicy" time="0.285581042">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.BulkheadMiddlewareTests" name="testCustomRejectionPolicy" time="0.285610792">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.BulkheadMiddlewareTests" name="testFailFastRejectionPolicy" time="0.2856115">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.BulkheadMiddlewareTests" name="testQueueTimeoutRangeAndNormalizationBoundaries" time="0.102119458">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.BulkheadMiddlewareTests" name="testTaggedAndTaskGroupModesRetainSharedCapacity" time="0.069536125">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.CircuitBreakerStateConcurrencyTests" name="testCircuitOpensAfterThresholdSequential" time="0.080250709">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.CircuitBreakerStateConcurrencyTests" name="testConcurrentTrafficIsRaceFree" time="0.080717125">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.ConcurrentPipelineProgressTests" name="testDelegatedExecutionDeliversAndFinishesStream" time="0.064999">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.CircuitBreakerMiddlewareTests" name="testCircuitAllowsRequestAfterRecoveryTimeout" time="0.229482458">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.BulkheadMiddlewareTests" name="testQueueTimeout" time="0.284181875">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.BulkheadMiddlewareTests" name="testRejectionHandler" time="0.284191208">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.CircuitBreakerMiddlewareTests" name="testCircuitOpensAfterFailureThreshold" time="0.229478375">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.ConcurrentPipelineProgressTests" name="testHandlerNotFoundFinishesAttachedStreamOnTimeoutVariant" time="0.067178542">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.ConcurrentPipelineErrorContractTests" name="testSaturatedExecuteWithTimeoutThrowsBackPressureTimeout" time="0.191092167">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.CircuitBreakerMiddlewareTests" name="testCircuitReclosesAfterSuccessfulRecovery" time="0.282497875">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.CircuitBreakerMiddlewareTests" name="testConcurrentAccess" time="0.282493666">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.CircuitBreakerMiddlewareTests" name="testCircuitReopensOnFailureDuringRecovery" time="0.282495">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.CircuitBreakerMiddlewareTests" name="testInitialClosedState" time="0.282492375">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.CircuitBreakerProbeAccountingTests" name="testStaleSuccessDuringHalfOpenDoesNotDriveProbeAccounting" time="0.282501792">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.BackPressureTests" name="testConcurrentPipelineWithBackPressure" time="1.211024459">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.DetailedTimeoutTest" name="testDetailedTimeout" time="0.175332625">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.DeadlockFixTest" name="testNoDeadlockWithConcurrentQueueing" time="0.192374833">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.DeadlockFixTest" name="testRapidAcquireRelease" time="0.192377292">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.ConcurrentPipelineProgressTests" name="testHandlerNotFoundFinishesAttachedStream" time="0.192393625">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.DeadlockFixTest" name="testDropStrategiesStillWork" time="0.192433041">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.HealthCheckMiddlewareTests" name="testDatabaseHealthCheckWithConnectionCheck" time="0.069156166">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.HealthCheckMiddlewareTests" name="testDatabaseHealthCheckWithFailedConnectionCheck" time="0.069340959">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.HealthCheckMiddlewareTests" name="testDatabaseHealthCheckWithFailedMockConnection" time="0.070723875">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.HealthCheckMiddlewareTests" name="testDatabaseHealthCheckWithMockConnection" time="0.070726417">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.HealthCheckMiddlewareTests" name="testDatabaseHealthCheckWithNoConnection" time="0.070703458">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.HealthCheckMiddlewareTests" name="testDatabaseHealthCheckWithThrowingMockConnection" time="0.070672167">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.HealthCheckMiddlewareTests" name="testHTTPHealthCheckWithClientError" time="0.068353916">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.HealthCheckMiddlewareTests" name="testHTTPHealthCheckWithValidEndpoint" time="0.080533834">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.HealthCheckMiddlewareTests" name="testHTTPHealthCheckWithServerError" time="0.080555125">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.HealthRecoveryContractTests" name="testBlockedServiceRecoversWhenFailureWindowExpires" time="0.0805405">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.HealthRecoveryContractTests" name="testEachStatusSnapshotCapturesOneClockValue" time="0.080542042">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.HealthCheckMiddlewareTests" name="testHTTPHealthCheckWithInvalidURL" time="0.084711625">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.HealthRecoveryContractTests" name="testEveryRecoveryObservationNotifiesStateChanges" time="0.068887541">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.HealthRecoveryContractTests" name="testHealthyProbeDoesNotOverrideSufficientRecentFailures" time="0.079143792">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.HealthRecoveryContractTests" name="testExpiredFailuresDoNotContributeToNewConsecutiveFailureRun" time="0.085769083">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.HealthRecoveryContractTests" name="testExpiredSuccessesDoNotSatisfyRecoveryThreshold" time="0.085769958">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.HealthRecoveryContractTests" name="testFreshUnhealthyProbeStillBlocksAndStaleProbeDoesNot" time="0.085759125">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.HealthRecoveryContractTests" name="testHealthyDegradedAndUnknownProbeFreshnessAndAdmission" time="0.085761125">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.HealthRecoveryContractTests" name="testPartiallyExpiredWindowUsesFreshProbeOrUnknown" time="0.074352875">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.HealthRecoveryContractTests" name="testProbeCompletionPrunesHistoryAndNotifiesBeforeAnotherQuery" time="0.068514">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.MinimalConcurrentTest" name="testMinimalConcurrent" time="0.084351292">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.HealthRecoveryContractTests" name="testProbeExpiryWithSufficientSuccessfulRequests" time="0.084374417">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.HealthRecoveryContractTests" name="testRequestWindowIncludesCutoffAndExpiresImmediatelyAfterIt" time="0.084371542">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.HealthRecoveryContractTests" name="testSuccessThresholdAppliesWhileUnhealthyHasSufficientCurrentRequests" time="0.084364542">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.NextGuardSuppressionConformanceTests" name="testBulkheadSuccessfulShortCircuitsAndErrorControlsThroughGuardedChains" time="0.078863292">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.NextGuardSuppressionConformanceTests" name="testThrowBasedResilienceMiddlewaresDoNotSuppressNextGuardWarnings" time="0.067413417">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.GracePeriodEvolutionTests" name="testCancelAllSuppressesExpiration" time="0.534183583">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.ParallelMiddlewareContextTests" name="testParallelExecutionWithSharedStateCoordination" time="0.075140708">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.ParallelMiddlewareContextTests" name="testParallelExecutionWithSharedContext" time="0.106761375">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.HealthCheckMiddlewareTests" name="testCompositeHealthCheckWithOneUnhealthy" time="0.543496583">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.ParallelMiddlewareContextTests" name="testParallelExecutionWithContextMerging" time="0.106797959">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.GracePeriodEvolutionTests" name="testUncancelledGracePeriodExpiresAfterDuration" time="0.543526333">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.ParallelMiddlewareContextTests" name="testParallelExecutionScalability" time="0.106808958">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.ParallelMiddlewareContextTests" name="testContextForkingPerformance" time="0.106797958">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.HealthCheckMiddlewareTests" name="testCompositeHealthCheckWithOneDegraded" time="0.543497542">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.HealthCheckMiddlewareTests" name="testCompositeHealthCheckAllHealthy" time="0.543513583">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.GracePeriodEvolutionTests" name="testCancelledGracePeriodResolvesPromptlyWithoutExpiring" time="0.543533833">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.ParallelMiddlewareContextTests" name="testValidationStrategyWithSharedContext" time="0.070579041">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.ParallelMiddlewareWrapperTests" name="testContextIsolation" time="0.069252708">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.ParallelMiddlewareWrapperTests" name="testEmptyMiddlewareArray" time="0.082462166">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.PartitionedBulkheadAdmissionTests" name="testCancelledWaiterDoesNotOrphanSiblingBeforeOrDuringGrant" time="0.0836755">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.ParallelMiddlewareWrapperTests" name="testLargeNumberOfMiddleware" time="0.106979875">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.PartitionedBulkheadAdmissionTests" name="testDonorReserveAndQueuePriorityAreAtomic" time="0.077901833">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.PartitionedBulkheadAdmissionTests" name="testQueuedHandoffTransfersOneLease" time="0.066926542">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.PartitionedBulkheadAdmissionTests" name="testPublicQueueTimeoutReturnsWhileHolderIsActive" time="0.08549">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.PartitionedBulkheadAdmissionTests" name="testTimedOutWaiterDoesNotWaitForHolderOrOrphanSibling" time="0.067652291">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.PartitionedBulkheadConfigurationTests" name="testConfigurationValidationProbe" time="0.066569542">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.PartitionedBulkheadConfigurationTests" name="testReservedCapacityPercentageIsPrimaryAndDefaultsUnchanged" time="0.064085958">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.PartitionedBulkheadConfigurationTests" name="testDeprecatedAliasAndInitForwardToReservedCapacityPercentage" time="0.067654542">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.PartitionedBulkheadConfigurationTests" name="testReserveRoundingAndIntegerCapacityBoundaries" time="0.074416166">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.PartitionedBulkheadConfigurationTests" name="testSelectorFallbackAndMetadataArePreserved" time="0.068755459">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.RateLimitScopeContractTests" name="testClockDrivesLocalAlgorithmResetAndStatus" time="0.069906292">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.RateLimitScopeContractTests" name="testDistributedLogicalBudgetsUseSeparateStoreNamespaces" time="0.069903958">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.ParallelMiddlewareWrapperTests" name="testMultipleErrorsCancelOthers" time="0.299402625">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.ParallelObserverTests" name="testAllObserversRunThenNextRunsOnce" time="0.299402458">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.ParallelObserverTests" name="testThrowingObserverFailsCommand" time="0.299375416">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.ParallelMiddlewareWrapperTests" name="testPriorityInheritance" time="0.299419583">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.ParallelMiddlewareWrapperTests" name="testSingleMiddleware" time="0.299423166">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.ParallelObserverTests" name="testEmptyObserversJustRunsNext" time="0.299387083">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.ParallelMiddlewareWrapperTests" name="testParallelExecution" time="0.29943425">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.ParallelMiddlewareWrapperTests" name="testErrorPropagation" time="0.299448084">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.RateLimitScopeContractTests" name="testDistributedScopeNamespacesRejectSuppliedKeyCollisions" time="0.069999709">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.RateLimitScopeContractTests" name="testGlobalBudgetSurvivesCleanupWhenRecentlyAccessed" time="0.06902975">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.RateLimitScopeContractTests" name="testGlobalDistributedInstancesShareStoreIdentity" time="0.089297042">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.RateLimitScopeContractTests" name="testGlobalResetUsesSameEffectiveKeyForSupportedLocalStrategies" time="0.089295541">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.RateLimitScopeContractTests" name="testScopeByStrategyNearWindowBoundaryMatrix" time="0.090293584">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.RateLimitScopeContractTests" name="testResetAllRestoresAllLocalStrategies" time="0.090320584">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.RateLimitScopeContractTests" name="testNonGlobalStatusUsesIndependentBudgets" time="0.090348708">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.RateLimitScopeContractTests" name="testNonGlobalResetPreservesOtherIdentifiers" time="0.090375584">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.RateLimitScopeContractTests" name="testGlobalStatusUsesSameEffectiveKey" time="0.090400375">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.RateLimitScopeContractTests" name="testScopeByStrategyMatrix" time="0.090350417">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.RateLimitScopeContractTests" name="testPublicInitializerGlobalStrategyMatrix" time="0.090339458">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.RateLimitScopeContractTests" name="testIdentityNormalizationPreservesCostAndMediumPriorityPolicy" time="0.0903945">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.ResilienceErrorPolicyTests" name="testNegativeAndOverridePolicies" time="0.0781355">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.ResilienceErrorPolicyTests" name="testNestedTimeoutMiddlewarePolicies" time="0.100760917">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.ResilienceErrorPolicyTests" name="testTimeoutProducerByPolicyMatrix" time="0.12925775">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.ResilientMiddlewareTests" name="testExponentialBackoffRetry" time="0.12922225">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.RetryMiddlewareTests" name="testLinearBackoff" time="0.113001583">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.RetryMiddlewareTests" name="testCustomBackoff" time="0.184188958">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.RetryMiddlewareTests" name="testConstantBackoff" time="0.184230875">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.ResilientMiddlewareTests" name="testSuccessfulExecutionWithoutRetry" time="0.184239541">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.ResilientMiddlewareTests" name="testRetryExhaustion" time="0.184253">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.ResilientMiddlewareTests" name="testNoRetryOnNonRetriableError" time="0.184281417">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.RetryMiddlewareTests" name="testExponentialBackoff" time="0.184233709">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.ResilientMiddlewareTests" name="testLegacyBulkheadSettlesStatsBeforeReturningSuccessOrError" time="0.184282958">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.ResilientMiddlewareTests" name="testRetryOnTransientFailure" time="0.184259459">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.RetryMiddlewareTests" name="testJitterAddition" time="0.247458208">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.TimeoutDebugTest" name="testJustTimeout" time="0.070535041">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.TimeoutDebugTest" name="testTimeoutDebug" time="0.177532">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.SemaphoreEvolutionTests" name="testAsyncSemaphoreFIFOOrderPreserved" time="0.356545125">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.SemaphoreEvolutionTests" name="testBackPressurePriorityOrdering" time="0.356525292">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.SemaphoreEvolutionTests" name="testBackPressureShutdownDrainsAllWaiters" time="0.356521959">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.TimeoutDiagnosticTests" name="testMiddlewarePriorityOrder" time="0.131806709">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.TimeoutDiagnosticTests" name="testTimeoutWithSlowMiddlewareAfter" time="0.131791125">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.TimeoutDiagnosticTests" name="testTimeoutExecutionFlow" time="0.13180675">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.TimeoutDiagnosticTests" name="testDirectTimeoutUtility" time="0.174987292">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.TimeoutMiddlewareCompileTests" name="testNextParameterIsNonEscaping" time="0.068748167">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.TimeoutMiddlewareCompileTests" name="testClosureMemoryLayout" time="0.135507208">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.TimeoutDiagnosticTests" name="testTimeoutWithSlowMiddlewareBefore" time="0.135517833">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.TimeoutMiddlewareCompileTests" name="testCannotStoreNextClosure" time="0.135519667">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.TimeoutMiddlewareTests" name="testTimeoutMiddlewareEnforcesTimeout" time="0.176921083">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.BulkheadAdmissionConservationTests" name="testLegacyHandoffNeverExposesCapacityToNewArrival" time="2.688039">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.BulkheadAdmissionConservationTests" name="testImmediateAdmissionCancellationReleasesCapacity" time="2.688049333">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.BackPressureTests" name="testWaiterTimeoutActuallyExpires" time="2.688065417">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.BulkheadAdmissionConservationTests" name="testQueueBudgetIsReusableAcrossAcknowledgedWaves" time="2.688036375">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.TimeoutMiddlewareTests" name="testTimeoutMiddlewareWithCommandSpecificTimeout" time="0.228056125">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.TimeoutMiddlewareTests" name="testTimeoutMiddlewareWithGracePeriod" time="0.228053541">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.TimeoutMiddlewareTests" name="testTimeoutMiddlewareWithFastExecution" time="0.228064334">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.TimeoutProofTests" name="testOriginalTestSetupCannotWork" time="0.179299167">
+</testcase>
+<testcase classname="PipelineKitCacheTests.CacheIdentityContractTests" name="testConditionalBranchesBypassKeyGenerationAndStorage" time="0.073766833">
+</testcase>
+<testcase classname="PipelineKitCacheTests.CacheIdentityContractTests" name="testCommandTypeFactoriesCacheNonHashableAndBypassOthers" time="0.073771875">
+</testcase>
+<testcase classname="PipelineKitCacheTests.CacheIdentityContractTests" name="testCallerCanExplicitlyIncludeCorrelation" time="0.073784291">
+</testcase>
+<testcase classname="PipelineKitCacheTests.CacheIdentityContractTests" name="testCacheIdentityMatrix" time="0.134033917">
+</testcase>
+<testcase classname="PipelineKitCacheTests.CacheIdentityContractTests" name="testAuthenticatedBuilderPipelineUsesVerifiedPrincipal" time="0.134040958">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.TimeoutProofTests" name="testTimeoutCorrectlyEnforcesWhenSlowOperationIsAfter" time="0.134043084">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.TimeoutProofTests" name="testSlowOperationBeforeTimeoutCannotBeInterrupted" time="0.134057917">
+</testcase>
+<testcase classname="PipelineKitCacheTests.CacheIdentityContractTests" name="testEqualHashValuesDoNotShareResults" time="0.071077709">
+</testcase>
+<testcase classname="PipelineKitCacheTests.CacheIdentityContractTests" name="testSharedBackendSeparatesMiddlewareTypesAndWrapperKinds" time="0.076505291">
+</testcase>
+<testcase classname="PipelineKitCacheTests.CacheIdentityContractTests" name="testExplicitKeysStillNamespaceDifferentCommandAndResultTypes" time="0.076521833">
+</testcase>
+<testcase classname="PipelineKitCacheTests.CacheIdentityContractTests" name="testNamespaceEncodingIsUnambiguous" time="0.076513291">
+</testcase>
+<testcase classname="PipelineKitCacheTests.CachingMiddlewareTests" name="testCacheHit" time="0.074181792">
+</testcase>
+<testcase classname="PipelineKitCacheTests.CacheRetirementContractTests" name="testConcurrentMissReplacementRetiresAfterCommittedInsertion" time="0.074198042">
+</testcase>
+<testcase classname="PipelineKitCacheTests.CacheRetirementContractTests" name="testPublicDiscardRetirementMatrix" time="0.074187625">
+</testcase>
+<testcase classname="PipelineKitCacheTests.CacheIdentityContractTests" name="testTTLAndInvalidationPreserveIdentity" time="0.07424625">
+</testcase>
+<testcase classname="PipelineKitCacheTests.CachingMiddlewareTests" name="testCacheLRUEviction" time="0.069377958">
+</testcase>
+<testcase classname="PipelineKitCacheTests.CompressionCompletionContractTests" name="testExactLimitAtWorkingBufferBoundary" time="0.0799845">
+</testcase>
+<testcase classname="PipelineKitCacheTests.CompressionCompletionContractTests" name="testHugeHintsAndLimitsDoNotRequireHugeAllocation" time="0.079961709">
+</testcase>
+<testcase classname="PipelineKitCacheTests.CompressionCompletionContractTests" name="testEncodedEmptyStreamRequiresCompletionAndRejectsTrailingInput" time="0.081153625">
+</testcase>
+<testcase classname="PipelineKitCacheTests.CompressionCompletionContractTests" name="testDecodeCompletesOrThrowsForEverySizeHintAndLimit" time="0.081171208">
+</testcase>
+<testcase classname="PipelineKitCacheTests.CompressionCompletionContractTests" name="testInvalidArgumentsAreRejectedBeforeEmptyInputCompatibility" time="0.068382167">
+</testcase>
+<testcase classname="PipelineKitCacheTests.CompressionMiddlewareTests" name="testBeneficialPayloadUsesConfiguredThreshold" time="0.073378208">
+</testcase>
+<testcase classname="PipelineKitCacheTests.CompressionCompletionContractTests" name="testTruncatedCorruptAndStalledStreamsNeverReturnPrefixes" time="0.073386875">
+</testcase>
+<testcase classname="PipelineKitCacheTests.CompressionCompletionContractTests" name="testSmallPayloadRoundTrips" time="0.080321208">
+</testcase>
+<testcase classname="PipelineKitCacheTests.CompressionCompletionContractTests" name="testTrailingAndConcatenatedStreamsAreRejected" time="0.080306375">
+</testcase>
+<testcase classname="PipelineKitCacheTests.CompressionMiddlewareTests" name="testCompressionBelowThreshold" time="0.067349292">
+</testcase>
+<testcase classname="PipelineKitCacheTests.CompressionMiddlewareTests" name="testCompressionMiddleware" time="0.070313666">
+</testcase>
+<testcase classname="PipelineKitCacheTests.CompressionMiddlewareTests" name="testCompressionDecompression" time="0.070333916">
+</testcase>
+<testcase classname="PipelineKitCacheTests.CompressionMiddlewareTests" name="testCompressionRatio" time="0.066448459">
+</testcase>
+<testcase classname="PipelineKitCacheTests.CompressionMiddlewareTests" name="testSmallPayloadWithoutCompressionBenefitRemainsUncompressed" time="0.06644325">
+</testcase>
+<testcase classname="PipelineKitCacheTests.CachingMiddlewareTests" name="testCacheMiss" time="0.282626417">
+</testcase>
+<testcase classname="PipelineKitCacheTests.CachingMiddlewareTests" name="testCacheTTLExpiration" time="0.282625375">
+</testcase>
+<testcase classname="PipelineKitCacheTests.CachingMiddlewareTests" name="testShouldCacheFunction" time="0.282630292">
+</testcase>
+<testcase classname="PipelineKitCacheTests.LRUEvolutionTests" name="testInMemoryCacheUpdateInPlacePromotesNoEvict" time="0.071168834">
+</testcase>
+<testcase classname="PipelineKitCacheTests.LRUEvolutionTests" name="testLRUStorageBasics" time="0.071163541">
+</testcase>
+<testcase classname="PipelineKitCacheTests.LRUEvolutionTests" name="testInMemoryCacheRemoveAndClear" time="0.073113542">
+</testcase>
+<testcase classname="PipelineKitCacheTests.LRUEvolutionTests" name="testInMemoryCacheLRUEvictionOrder" time="0.073164042">
+</testcase>
+<testcase classname="PipelineKitCacheTests.LRUEvolutionTests" name="testLRUStorageCapacityOne" time="0.073414625">
+</testcase>
+<testcase classname="PipelineKitCacheTests.LRUEvolutionTests" name="testMultiNodeValuesReleaseOnClearAndContainerDrop" time="0.07340325">
+</testcase>
+<testcase classname="PipelineKitCacheTests.LRUEvolutionTests" name="testLRUStorageEdgeRecency" time="0.07341075">
+</testcase>
+<testcase classname="PipelineKitCacheTests.LRUEvolutionTests" name="testPromoteThenEvictReleasesOnlyVictim" time="0.075191791">
+</testcase>
+<testcase classname="PipelineKitCacheTests.NextGuardSuppressionTests" name="testCachingMiddlewareSuppressesNextGuardWarningOnCacheHit" time="0.075080167">
+</testcase>
+<testcase classname="PipelineKitCacheTests.LRUEvolutionTests" name="testSimpleCachingMiddlewareLRUEvictionAndPromotion" time="0.075190459">
+</testcase>
+<testcase classname="PipelineKitCacheTests.NextGuardSuppressionTests" name="testCacheMiddlewaresRetainNextGuardSuppression" time="0.075119542">
+</testcase>
+<testcase classname="PipelineKitCacheTests.LRUEvolutionTests" name="testInMemoryCacheExpiredReturnsNilAndRemoved" time="0.197934042">
+</testcase>
+<testcase classname="PipelineKitCacheTests.SimpleCachingMiddlewareTests" name="testCacheMiss" time="0.074134625">
+</testcase>
+<testcase classname="PipelineKitCacheTests.SimpleCachingMiddlewareTests" name="testBasicCaching" time="0.074148584">
+</testcase>
+<testcase classname="PipelineKitCacheTests.SimpleCachingMiddlewareTests" name="testCacheEvents" time="0.074147667">
+</testcase>
+<testcase classname="PipelineKitCacheTests.SimpleCachingMiddlewareTests" name="testConcurrentAccess" time="0.067064458">
+</testcase>
+<testcase classname="PipelineKitCacheTests.SimpleCachingMiddlewareTests" name="testCustomKeyGeneration" time="0.080941125">
+</testcase>
+<testcase classname="PipelineKitCacheTests.SimpleCachingMiddlewareTests" name="testLRUEviction" time="0.080938666">
+</testcase>
+<testcase classname="PipelineKitCacheTests.SimpleCachingMiddlewareTests" name="testHighContentionCaching" time="0.080943917">
+</testcase>
+<testcase classname="PipelineKitCacheTests.SimpleCachingMiddlewareTests" name="testNilResults" time="0.067937625">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.AggregationTests" name="testCanonicalTagOrdering" time="0.067809625">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.AggregationTests" name="testCounterAggregation" time="0.067427792">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.AggregationTests" name="testCounterScalingWithSampling" time="0.066730709">
+</testcase>
+<testcase classname="PipelineKitCacheTests.SimpleCachingMiddlewareTests" name="testShouldCache" time="0.232804667">
+</testcase>
+<testcase classname="PipelineKitCacheTests.SimpleCachingMiddlewareTests" name="testTTLExpiration" time="0.232801083">
+</testcase>
+<testcase classname="PipelineKitCacheTests.SimpleCachingMiddlewareTests" name="testRemoveExpired" time="0.232825083">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.AggregationTests" name="testFlushClearsBuffer" time="0.067033">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.AggregationTests" name="testGaugeKeepsLatest" time="0.070995833">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.AggregationTests" name="testMaxMetricsLimit" time="0.070988125">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.AggregationTests" name="testIntegrationWithExporter" time="0.070989333">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.RetryMiddlewareTests" name="testRetryableErrors" time="1.876044125">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.AggregationTests" name="testMaxTotalValuesLimit" time="0.067618791">
+</testcase>
+<testcase classname="PipelineKitCacheTests.SimpleCachingMiddlewareTests" name="testCachingPerformance" time="0.515615625">
+</testcase>
+<testcase classname="PipelineKitCacheTests.SimpleCachingMiddlewareTests" name="testComplexResultTypes" time="0.515601083">
+</testcase>
+<testcase classname="PipelineKitCacheTests.SimpleCachingMiddlewareTests" name="testCommandTypeConvenience" time="0.515609333">
+</testcase>
+<testcase classname="PipelineKitCacheTests.SimpleCachingMiddlewareTests" name="testClear" time="0.515617">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.CommandContextObservabilityTests" name="testMetricRecordingWithoutObservability" time="0.067669334">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.CommandContextObservabilityTests" name="testObservabilityRetrievalPerformance" time="0.067219666">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.AggregationTests" name="testTimerPreservesAllValues" time="0.133003208">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.CommandContextObservabilityTests" name="testGetEventEmitterFromContext" time="0.133003875">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.CommandContextObservabilityTests" name="testMetricEventsUseCorrelationID" time="0.132963041">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.CommandContextObservabilityTests" name="testRecordTimerThroughContext" time="0.067591166">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.CommandContextObservabilityTests" name="testSetCustomEventEmitter" time="0.072959917">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.CommandContextObservabilityTests" name="testSetupObservabilityWithCustomConfig" time="0.072969667">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.CommandContextObservabilityTests" name="testSetupObservabilityMultipleTimes" time="0.072977541">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.CommandContextObservabilityTests" name="testRecordGaugeThroughContext" time="0.117587541">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.CommandContextObservabilityTests" name="testSetupObservabilityWithDefaultConfig" time="0.068012458">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.EventHubParentSystemTests" name="testConcurrentParentSystemAccess" time="0.08214625">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.EventHubParentSystemTests" name="testCannotRetrieveSystemFromNonEventHub" time="0.095405833">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.EventHubLeakTests" name="testEventHubDeallocatesWhenReferenceDropped" time="0.095411792">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.EventHubLeakTests" name="testEmitStillDeliversAfterFix" time="0.095423083">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.EventHubParentSystemTests" name="testConcurrentParentSystemModification" time="0.070654958">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.SemaphoreEvolutionTests" name="testBackPressureCancellationRemovesCorrectWaiter" time="2.141313667">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.RetryMiddlewareTests" name="testSuccessOnFirstAttempt" time="2.141372292">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.SemaphoreEvolutionTests" name="testAsyncSemaphoreManyRacingCancellations" time="2.141380792">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.SemaphoreEvolutionTests" name="testAsyncSemaphoreCancelUnderContentionNoOrphan" time="2.141503209">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.RetryMiddlewareTests" name="testSuccessfulRetry" time="2.141551542">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.EventHubParentSystemTests" name="testEventHubParentSystemIsWeak" time="0.076604667">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.EventHubParentSystemTests" name="testManualParentSystemSetting" time="0.089646416">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.EventHubParentSystemTests" name="testEventHubStoresParentSystemReference" time="0.089679084">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.EventHubParentSystemTests" name="testEventHubWorksWithoutParent" time="0.089662084">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.ExecutionTracerTests" name="testClearAllTraces" time="0.084800917">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.EventHubParentSystemTests" name="testSystemRetrievalAfterParentDeallocation" time="0.0877555">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.EventHubParentSystemTests" name="testRetrieveSystemThroughEventHub" time="0.087803708">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.EventHubParentSystemTests" name="testSwitchingBetweenSystems" time="0.087781708">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.ExecutionTracerTests" name="testClearTrace" time="0.087625916">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.ExecutionTracerTests" name="testJSONExport" time="0.073648417">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.ExecutionTracerTests" name="testMaxTracesLimit" time="0.077549">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.ExecutionTracerTests" name="testJSONWithFailure" time="0.077574042">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.ExecutionTracerTests" name="testMultipleCorrelationIDs" time="0.077573375">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.ExecutionTracerTests" name="testMultipleSpans" time="0.07541025">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.CommandContextObservabilityTests" name="testRecordCounterThroughContext" time="0.422630458">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.CommandContextObservabilityTests" name="testObservabilityWithTypedContextKeys" time="0.422631375">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.CommandContextObservabilityTests" name="testObservabilitySetupPerformance" time="0.422644083">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.CommandContextObservabilityTests" name="testObservabilityWithContextMetadata" time="0.422639542">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.EventHubParentSystemTests" name="testMultipleSystemsIndependence" time="0.189048583">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.ExecutionTracerTests" name="testSpanDuration" time="0.104979125">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.ExecutionTracerTests" name="testTraceCompletion" time="0.105198917">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.ExecutionTracerTests" name="testStartAndEndSpan" time="0.105247625">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.ExecutionTracerTests" name="testPrintTrace" time="0.10531525">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.ExecutionTracerTests" name="testTracerMiddlewareExtension" time="0.087951625">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.ExecutionTracerTests" name="testTraceWithFailure" time="0.091840333">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.ExecutionTracerTests" name="testTracingMiddleware" time="0.091866208">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.ExecutionTracerTests" name="testTracingMiddlewareAutoCorrelation" time="0.091905959">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.ExecutionTracerTests" name="testTracingMiddlewareWithFailure" time="0.087996292">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.MetricsConfigurationContractTests" name="testFlushDoesNotPromiseABarrierForConcurrentRecords" time="0.074652791">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.MetricsConfigurationContractTests" name="testConfigurePreparesAndClearsStatsDCallback" time="0.0928645">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.MetricsConfigurationContractTests" name="testConveniencesPreserveSnapshotStorageAndHandler" time="0.092832667">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.MetricsConfigurationContractTests" name="testConfigurationCallbacksCanReenterAndRelease" time="0.092930542">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.MetricsConfigurationContractTests" name="testDisablePreservesStorageAndInFlightConfiguration" time="0.092949625">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.MetricsConfigurationContractTests" name="testFlushDoesNotRecordSnapshotsAgain" time="0.07818625">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.MetricsConfigurationContractTests" name="testFlushKeepsCapturedConfigurationDuringConfigureAndDisable" time="0.08746125">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.MetricsConfigurationContractTests" name="testRecordUsesOneConfigurationAcrossSuspension" time="0.088160708">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.MetricsConfigurationContractTests" name="testFlushRetainsCallbackUntilCapturedExporterSettles" time="0.0882535">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.MetricsConfigurationContractTests" name="testReplacingOrDisablingLastOwnedExporterReleasesOutsideLock" time="0.088349333">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.MetricsConfigurationContractTests" name="testStatsDCallbackCanReenterConfigureAndDisable" time="0.08730675">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.MetricsConfigurationContractTests" name="testStatsDFlushProtocolDeliversBufferedRecordOnlyOnce" time="0.087239916">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.MetricsConfigurationContractTests" name="testReusingRecorderSharesStateAndDoesNotCloseRetiredExporter" time="0.087367167">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.MetricsEventBridgeExplicitMetricTests" name="testDerivedCommandCompletedBehaviorUnchanged" time="0.074968958">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.MetricsEventBridgeExplicitMetricTests" name="testContextRecordCounterReachesMetricsUnderProduction" time="0.088484">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.MetricsEventBridgeExplicitMetricTests" name="testExplicitTimerValueIsNotDoubleConverted" time="0.088113292">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.MetricsEventBridgeExplicitMetricTests" name="testExplicitCounterBypassesProductionGates" time="0.088194083">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.MetricsFacadeTests" name="testConcurrentMetricRecording" time="0.085402792">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.MetricsEventBridgeExplicitMetricTests" name="testExplicitGaugePropagatesUnit" time="0.090801417">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.MetricsEventBridgeExplicitMetricTests" name="testMalformedExplicitEventFallsThroughToFallback" time="0.090747209">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.MetricsFacadeTests" name="testConcurrentTimeBlocks" time="0.082128083">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.MetricsFacadeTests" name="testConfigure" time="0.087181791">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.MetricsFacadeTests" name="testConfigureWithCustomExporter" time="0.087138292">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.MetricsFacadeTests" name="testDisable" time="0.079786917">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.MetricsFacadeTests" name="testFlushDoesNotReplayRecordsToNonflushableRecorder" time="0.080764583">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.MetricsFacadeTests" name="testErrorHandler" time="0.080804042">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.MetricsFacadeTests" name="testFlush" time="0.080685708">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.MetricsFacadeTests" name="testRecordCounter" time="0.076916375">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.MetricsFacadeTests" name="testRecordGauge" time="0.076496833">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.MetricsStorageTests" name="testConcurrentReadWrite" time="0.07186025">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.MetricsStorageTests" name="testConcurrentDraining" time="0.076676209">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.MetricsStorageTests" name="testClear" time="0.07839725">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.MetricsFacadeTests" name="testTimeBlockWithError" time="0.080933125">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.MetricsStorageTests" name="testCounterAggregation" time="0.075111958">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.MetricsStorageTests" name="testConcurrentRecording" time="0.075169625">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.MetricsFacadeTests" name="testRecordTimer" time="0.093180667">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.MetricsFacadeTests" name="testTimeBlock" time="0.093179958">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.MetricsStorageTests" name="testDrain" time="0.081864625">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.MetricsStorageTests" name="testGetByName" time="0.080769875">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.MetricsStorageTests" name="testGaugeAggregation" time="0.080793459">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.MetricsStorageTests" name="testGetLatest" time="0.080758209">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.MetricsStorageTests" name="testMaxSnapshotsPerMetric" time="0.080281042">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.MetricsStorageTests" name="testPruneOlderThan" time="0.079462875">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.MetricsStorageTests" name="testRecordAndRetrieve" time="0.074958458">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.MetricsStorageTests" name="testTotalMetricCount" time="0.074507333">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.ObservabilityIntegrationTests" name="testContextObservabilityWithCustomConfiguration" time="0.074022959">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.MetricsStorageTests" name="testTimerAggregation" time="0.076439167">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.ObservabilityIntegrationTests" name="testDirectSystemMetricsVsContextMetrics" time="0.073697708">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.ObservabilityIntegrationTests" name="testContextPreservesObservabilityAcrossOperations" time="0.073707583">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.ObservabilityIntegrationTests" name="testReplaceEventEmitterClearsObservability" time="0.075694917">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.ObservabilityIntegrationTests" name="testObservabilityWithInvalidEventEmitter" time="0.0757135">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.ObservabilityIntegrationTests" name="testStatsDExporterIntegration" time="0.071456375">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.ObservabilitySystemTests" name="testContextObservabilityPropertyWorks" time="0.073559666">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.ObservabilitySystemTests" name="testMultipleContextsSameSystem" time="0.075259167">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.ObservabilitySystemTests" name="testContextMetricsRecording" time="0.075549458">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.ObservabilitySystemTests" name="testObservabilitySystemRetrieval" time="0.06997775">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.ObservabilitySystemTests" name="testObservabilitySystemCleanup" time="0.070026916">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.ObservabilityIntegrationTests" name="testEventsEmittedThroughContextReachSystem" time="0.184408">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.ObservabilityIntegrationTests" name="testEventHubMaintainsWeakReferenceToParentSystem" time="0.184429542">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.PrometheusExporterTests" name="testBackslashEscaping" time="0.073480166">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.ObservabilitySystemTests" name="testProductionSystemSetup" time="0.073497666">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.PrometheusExporterTests" name="testComplexNameSanitization" time="0.068944042">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.PrometheusExporterTests" name="testExportAggregatedGauges" time="0.068528708">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.PrometheusExporterTests" name="testExportCounter" time="0.071194292">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.PrometheusExporterTests" name="testExportAggregated" time="0.071207209">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.PrometheusExporterTests" name="testExportCounterWithoutTags" time="0.071155334">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.PrometheusExporterTests" name="testExportEmptyStorage" time="0.071121042">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.PrometheusExporterTests" name="testExportGauge" time="0.072590291">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.PrometheusExporterTests" name="testExportGaugeWithTags" time="0.072593958">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.PrometheusExporterTests" name="testExportHistogram" time="0.07028725">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.PrometheusExporterTests" name="testExportMixedMetrics" time="0.070287166">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.PrometheusExporterTests" name="testExportMultipleCountersWithSameName" time="0.071223542">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.PrometheusExporterTests" name="testExportTimer" time="0.067679625">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.PrometheusExporterTests" name="testPrometheusFormatCompliance" time="0.07156325">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.PrometheusExporterTests" name="testNameSanitization" time="0.071568833">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.PrometheusExporterTests" name="testLabelValueEscaping" time="0.072125167">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.PrometheusExporterTests" name="testExportTimerWithTags" time="0.072152">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.ObservabilityIntegrationTests" name="testMetricsRecordedThroughContextAreAccessibleViaSystem" time="0.285416417">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.PrometheusExporterTests" name="testTagOrdering" time="0.073142958">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.SamplingTests" name="testConcurrentSamplingDecisions" time="0.073144625">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.SamplingTests" name="testCounterScaling" time="0.070891666">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.SamplingTests" name="testCriticalMetricsAlwaysSampled" time="0.070887625">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.SamplingTests" name="testDeterministicSampling" time="0.073655834">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.SamplingTests" name="testDifferentMetricsDifferentDecisions" time="0.073646792">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.SamplingTests" name="testSampleRateClamping" time="0.073844208">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.SamplingTests" name="testSamplingConfiguration" time="0.073819125">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.SamplingTests" name="testGaugeNotScaled" time="0.074150958">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.SamplingTests" name="testPerTypeSampling" time="0.074156208">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.StatsDExporterTests" name="testBatchRecording" time="0.0731025">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.StatsDExporterTests" name="testBatchingTriggersOnSize" time="0.073111333">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.StatsDExporterTests" name="testConcurrentRecording" time="0.069461416">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.StatsDExporterTests" name="testConcurrentBatching" time="0.069498417">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.StatsDExporterTests" name="testConvenienceGauge" time="0.072979625">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.StatsDExporterTests" name="testConvenienceCounter" time="0.072985833">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.StatsDExporterTests" name="testCustomConfiguration" time="0.071604292">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.StatsDExporterTests" name="testConvenienceTimer" time="0.071639292">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.StatsDExporterTests" name="testDefaultConfiguration" time="0.071427333">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.StatsDExporterTests" name="testErrorHandlerCalled" time="0.07141725">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.StatsDExporterTests" name="testBatchingTriggersOnInterval" time="0.127945625">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.StatsDExporterTests" name="testMetricNameSanitization" time="0.073933458">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.StatsDExporterTests" name="testForceFlush" time="0.074435875">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.StatsDExporterTests" name="testGlobalTagMerging" time="0.074448208">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.StatsDExporterTests" name="testMetricPrefix" time="0.073951417">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.StatsDExporterTests" name="testRecordGauge" time="0.075256416">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.StatsDExporterTests" name="testRecordCounter" time="0.075357292">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.StatsDStartupContractTests" name="testCloseDuringStartupClosesLateTransport" time="0.072437542">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.StatsDExporterTests" name="testTagOverride" time="0.088375375">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.StatsDExporterTests" name="testRecordTimer" time="0.08838775">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.StatsDExporterTests" name="testTimeBlock" time="0.08837975">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.StatsDStartupContractTests" name="testCloseDiscardsBufferedRecordsAndJoinsFlushTimer" time="0.088374375">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.StatsDStartupContractTests" name="testExplicitStartAndDefaultBatchReportInvalidConfiguration" time="0.075622042">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.StatsDStartupContractTests" name="testInjectedTransportIsReadyAndClosesOnce" time="0.075623167">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.StatsDStartupContractTests" name="testConcurrentNonemptyBatchesWaitForOneStartup" time="0.075635125">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.StatsDStartupContractTests" name="testCloseJoinsTimerAlreadyWaitingForStartup" time="0.0756525">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.StatsDStartupContractTests" name="testNonemptyForceFlushReportsStartupFailureAndRetries" time="0.069588458">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.StatsDStartupContractTests" name="testRecordAfterCloseReportsFailure" time="0.06948975">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.StatsDStartupContractTests" name="testStartupFailureSettlesEveryBatchAndCanRestart" time="0.064857042">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.TypeSafeMetricTests" name="testCreateCounter" time="0.07445825">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.TypeSafeMetricTests" name="testCounterSpecificMethods" time="0.074463167">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.TypeSafeMetricTests" name="testCounterToSnapshot" time="0.074468209">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.TypeSafeMetricTests" name="testCounterDefaultValue" time="0.07447575">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.TypeSafeMetricTests" name="testCreateTimer" time="0.075127459">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.TypeSafeMetricTests" name="testCreateHistogram" time="0.075139167">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.TypeSafeMetricTests" name="testEmptyMetricName" time="0.075083458">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.TypeSafeMetricTests" name="testCreateGauge" time="0.075157875">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.TypeSafeMetricTests" name="testGaugeSpecificMethods" time="0.070553166">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.TypeSafeMetricTests" name="testGaugeToSnapshot" time="0.070540125">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.TypeSafeMetricTests" name="testHistogramToSnapshot" time="0.069301917">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.TypeSafeMetricTests" name="testMetricIsSendable" time="0.07273125">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.TypeSafeMetricTests" name="testLargeValues" time="0.07273875">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.TypeSafeMetricTests" name="testManyTags" time="0.072742292">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.TypeSafeMetricTests" name="testMetricKindRawValues" time="0.072731833">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.TypeSafeMetricTests" name="testMetricKindTypes" time="0.077385916">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.TypeSafeMetricTests" name="testTimerToSnapshot" time="0.077382458">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.TypeSafeMetricTests" name="testNegativeValues" time="0.077384584">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.TypeSafeMetricTests" name="testTimestampConversion" time="0.077379917">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.TypeSafeMetricTests" name="testTypedAndSnapshotTimerUnitsAgree" time="0.072208792">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.TypeSafeMetricTests" name="testTimestampDefault" time="0.072261625">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.TypeSafeMetricTests" name="testZeroValues" time="0.071965125">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.UDPTransportLifecycleTests" name="testConcurrentSendBatchFailureSettlesSiblings" time="0.073633542">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.UDPTransportLifecycleTests" name="testConfigurationValidationPrecedesDriverStartAndDurationConversion" time="0.074235167">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.UDPTransportLifecycleTests" name="testCancellationBeforeRegistrationAndAfterCompletion" time="0.074240208">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.UDPTransportLifecycleTests" name="testMissingSendCallbackSettlesOnTimeoutOrClose" time="0.074245">
+</testcase>
+<testcase classname="PipelineKitTestSupportTests.CapturingEmitterContractTests" name="testNilAndEmptyPropertiesMatchByName" time="0.082846541">
+</testcase>
+<testcase classname="PipelineKitTestSupportTests.MockMiddlewareFactoryTests" name="testCapturingCapturesCommand" time="0.082843958">
+</testcase>
+<testcase classname="PipelineKitTestSupportTests.CapturingEmitterContractTests" name="testExpectedPropertiesRequirePresentStringValues" time="0.082855375">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.UDPTransportLifecycleTests" name="testSetupCallerCancellationBeforeAndAfterRegistration" time="0.084107792">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.UDPTransportLifecycleTests" name="testRecoverableFailuresStopAtConfiguredAttemptCount" time="0.084127375">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.UDPTransportLifecycleTests" name="testRetryBackoffIsOwnedByCancellationAndClose" time="0.084121291">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.UDPTransportLifecycleTests" name="testSetupTerminalStateMatrix" time="0.08412025">
+</testcase>
+<testcase classname="PipelineKitTestSupportTests.MockMiddlewareFactoryTests" name="testCapturingCapturesContext" time="0.073760125">
+</testcase>
+<testcase classname="PipelineKitTestSupportTests.MockMiddlewareFactoryTests" name="testCapturingReset" time="0.073279959">
+</testcase>
+<testcase classname="PipelineKitTestSupportTests.MockMiddlewareFactoryTests" name="testCapturingThreadSafety" time="0.073288">
+</testcase>
+<testcase classname="PipelineKitTestSupportTests.MockMiddlewareFactoryTests" name="testCapturingCountsExecutions" time="0.073341542">
+</testcase>
+<testcase classname="PipelineKitTestSupportTests.MockMiddlewareFactoryTests" name="testContextModifyingAddsMetadata" time="0.077860042">
+</testcase>
+<testcase classname="PipelineKitTestSupportTests.MockMiddlewareFactoryTests" name="testCountingIncrementsOnExecute" time="0.077869125">
+</testcase>
+<testcase classname="PipelineKitTestSupportTests.MockMiddlewareFactoryTests" name="testCounterCreation" time="0.07787175">
+</testcase>
+<testcase classname="PipelineKitTestSupportTests.MockMiddlewareFactoryTests" name="testContextModifyingPriority" time="0.077862542">
+</testcase>
+<testcase classname="PipelineKitTestSupportTests.MockMiddlewareFactoryTests" name="testDelayCreation" time="0.073458125">
+</testcase>
+<testcase classname="PipelineKitTestSupportTests.MockMiddlewareFactoryTests" name="testLoggerCreation" time="0.07574725">
+</testcase>
+<testcase classname="PipelineKitTestSupportTests.MockMiddlewareFactoryTests" name="testModifyingCreation" time="0.075743291">
+</testcase>
+<testcase classname="PipelineKitTestSupportTests.MockMiddlewareFactoryTests" name="testFailingWithCustomError" time="0.075760875">
+</testcase>
+<testcase classname="PipelineKitTestSupportTests.MockMiddlewareFactoryTests" name="testFailingCreation" time="0.075769791">
+</testcase>
+<testcase classname="PipelineKitTestSupportTests.MockMiddlewareFactoryTests" name="testSimulatingTimeoutCreation" time="0.065503667">
+</testcase>
+<testcase classname="PipelineKitTestSupportTests.MockMiddlewareFactoryTests" name="testConditionalFailsBasedOnCommand" time="0.184559208">
+</testcase>
+<testcase classname="PipelineKitTestSupportTests.MockMiddlewareFactoryTests" name="testConditionalPassesWhenFalse" time="0.184549916">
+</testcase>
+<testcase classname="PipelineKitTestSupportTests.MockMiddlewareFactoryTests" name="testConditionalFailsWhenTrue" time="0.184557375">
+</testcase>
+<testcase classname="PipelineKitTestSupportTests.MockMiddlewareFactoryTests" name="testCountingThreadSafety" time="0.177254667">
+</testcase>
+<testcase classname="PipelineKitTestSupportTests.MockMiddlewareFactoryTests" name="testDelayAddsConfiguredDelay" time="0.177244042">
+</testcase>
+<testcase classname="PipelineKitTestSupportTests.MockMiddlewareFactoryTests" name="testCountingReset" time="0.177376833">
+</testcase>
+<testcase classname="PipelineKitTestSupportTests.ThroughputMeasurementTests" name="testZeroDurationRetriesWithMoreWork" time="0.067278708">
+</testcase>
+<testcase classname="PipelineKitTestSupportTests.ThroughputMeasurementTests" name="testMismatchInZeroDurationBatchFailsBeforeRetry" time="0.072661667">
+</testcase>
+<testcase classname="PipelineKitTestSupportTests.ThroughputMeasurementTests" name="testInvalidDurationAndRateFail" time="0.072671209">
+</testcase>
+<testcase classname="PipelineKitTestSupportTests.ThroughputMeasurementTests" name="testInvalidConfigurationAndRetryOverflowFail" time="0.072665">
+</testcase>
+<testcase classname="PipelineKitTestSupportTests.ThroughputMeasurementTests" name="testRepeatedZeroDurationFailsAfterBoundedRetries" time="0.072655209">
+</testcase>
+<testcase classname="PipelineKitTests.BuilderCompositionContractTests" name="testCapabilityMatrixAcrossBuilderArrayAndContiguousArray" time="0.076856375">
+</testcase>
+<testcase classname="PipelineKitTests.BuilderCompositionContractTests" name="testEqualPrioritySurvivorsPrecedeNewAdditionsAfterRemoval" time="0.076851083">
+</testcase>
+<testcase classname="PipelineKitTests.BuilderCompositionContractTests" name="testAllBuilderFamilyPairsPreserveStages" time="0.076862584">
+</testcase>
+<testcase classname="PipelineKitTests.BuilderCompositionContractTests" name="testOrderBuilderRetainsTuplesIdentityAndStableTies" time="0.069657292">
+</testcase>
+<testcase classname="PipelineKitTests.BuilderCompositionContractTests" name="testRejectingStagePreventsHandlerEntry" time="0.070577833">
+</testcase>
+<testcase classname="PipelineKitTests.BuilderCompositionContractTests" name="testExplicitOrderSurvivesStandardPipelineSort" time="0.070668792">
+</testcase>
+<testcase classname="PipelineKitTests.DeduplicationMiddlewareTests" name="testPlaceholder" time="0.081852667">
+</testcase>
+<testcase classname="PipelineKitTests.BuilderCompositionContractTests" name="testWarningAndGuardMatrixAcrossBuilderArrayAndContiguousArray" time="0.081870416">
+</testcase>
+<testcase classname="PipelineKitTests.BuilderCompositionContractTests" name="testRemovalAndClearPreserveRawTypesAndInvalidateOrderedCache" time="0.082075625">
+</testcase>
+<testcase classname="PipelineKitTests.DynamicPipelineChainCacheTests" name="testDynamicPipelineInvalidatesOnAddMiddleware" time="0.081878708">
+</testcase>
+<testcase classname="PipelineKitTests.DynamicPipelineChainCacheTests" name="testDynamicPipelineInvalidatesOnHandlerReplace" time="0.081847708">
+</testcase>
+<testcase classname="PipelineKitTests.DynamicPipelineChainCacheTests" name="testDynamicPipelineInvalidatesOnHandlerReRegister" time="0.074524916">
+</testcase>
+<testcase classname="PipelineKitTests.DynamicPipelineChainCacheTests" name="testDynamicPipelineInvalidatesOnUnregister" time="0.074525291">
+</testcase>
+<testcase classname="PipelineKitTests.DynamicPipelineChainCacheTests" name="testDynamicPipelineSendTwiceSucceeds" time="0.074528625">
+</testcase>
+<testcase classname="PipelineKitTests.DynamicRoutingGenerationTests" name="testCompletedReplacementAppliesToEveryLaterSelection" time="0.069438125">
+</testcase>
+<testcase classname="PipelineKitTests.DynamicRoutingGenerationTests" name="testMiddlewareInvalidationPreservesCompletedReplacement" time="0.068763041">
+</testcase>
+<testcase classname="PipelineKitTests.DynamicRoutingGenerationTests" name="testConsecutiveReplacementsPreserveEachSelectedHandler" time="0.068854083">
+</testcase>
+<testcase classname="PipelineKitTests.ExecutionContextBindingTests" name="testDynamicPipelineBindsSameTraceAsStandardPipeline" time="0.079052584">
+</testcase>
+<testcase classname="PipelineKitTests.DynamicRoutingGenerationTests" name="testUnregisterAloneRejectsLaterSelectionsWhileOldHandlerFinishes" time="0.079683625">
+</testcase>
+<testcase classname="PipelineKitTests.DynamicRoutingGenerationTests" name="testRegistryPreservesOverwriteInsertionAndRemovalPolicies" time="0.079689333">
+</testcase>
+<testcase classname="PipelineKitTests.DynamicRoutingGenerationTests" name="testRegistrationPoliciesAndTypeIdentityRemainUnchanged" time="0.079704541">
+</testcase>
+<testcase classname="PipelineKitTests.ExecutionContextBindingTests" name="testDepthThreeNestingInheritsReporterAndKeepsTracesDistinct" time="0.079675916">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.ObservabilityIntegrationTests" name="testObservabilitySystemLifecycle" time="1.147141292">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.ObservabilityIntegrationTests" name="testMultipleEventHubsCanHaveDifferentParents" time="1.147144625">
+</testcase>
+<testcase classname="PipelineKitObservabilityTests.ObservabilityIntegrationTests" name="testObservabilitySystemPerformance" time="1.147162792">
+</testcase>
+<testcase classname="PipelineKitTests.ExecutionContextBindingTests" name="testNestedStandardPipelineInheritsReporterAndOuterOwnsStream" time="0.07744475">
+</testcase>
+<testcase classname="PipelineKitTests.ExecutionContextBindingTests" name="testNestedDynamicPipelineInheritsReporterAndOuterOwnsStream" time="0.077477667">
+</testcase>
+<testcase classname="PipelineKitTests.ExecutionContextBindingTests" name="testInnerThrowingExecutionDoesNotFinishInheritedStream" time="0.078696584">
+</testcase>
+<testcase classname="PipelineKitTests.ExecutionContextBindingTests" name="testStandardPipelineFinishesStreamOnTypeMismatch" time="0.075217208">
+</testcase>
+<testcase classname="PipelineKitTests.ExecutionContextBindingTests" name="testStandardPipelineDeliversProgressAndFinishesStreamOnSuccess" time="0.07524525">
+</testcase>
+<testcase classname="PipelineKitTests.ExecutionContextBindingTests" name="testStandardPipelineFinishesStreamWhenCancelledBeforeStart" time="0.075191875">
+</testcase>
+<testcase classname="PipelineKitTests.ExecutionContextBindingTests" name="testStandardPipelineBindsTraceFromContextMetadata" time="0.075257542">
+</testcase>
+<testcase classname="PipelineKitTests.ExecutionContextBindingTests" name="testStandardPipelineBindsTraceAroundMiddlewareChain" time="0.075997875">
+</testcase>
+<testcase classname="PipelineKitTests.ExecutionContextBindingTests" name="testStandardPipelineFinishesStreamWhenHandlerThrows" time="0.073160209">
+</testcase>
+<testcase classname="PipelineKitTests.ExecutionRecorderTests" name="testClear" time="0.073153375">
+</testcase>
+<testcase classname="PipelineKitTests.ExecutionRecorderTests" name="testAverageDuration" time="0.073151042">
+</testcase>
+<testcase classname="PipelineKitTests.ExecutionRecorderTests" name="testExecutionRecordDuration" time="0.0720575">
+</testcase>
+<testcase classname="PipelineKitTests.ExecutionContextBindingTests" name="testDynamicPipelineFinishesProgressStream" time="0.19955275">
+</testcase>
+<testcase classname="PipelineKitTests.ExecutionContextBindingTests" name="testDynamicPipelineFinishesStreamWhenAllRetriesExhausted" time="0.199555333">
+</testcase>
+<testcase classname="PipelineKitTests.ExecutionContextBindingTests" name="testDynamicPipelineDeliversProgressFromRetryAttempt" time="0.199556041">
+</testcase>
+<testcase classname="PipelineKitTests.ExecutionRecorderTests" name="testQueryByCorrelationID" time="0.082029041">
+</testcase>
+<testcase classname="PipelineKitTests.ExecutionRecorderTests" name="testOldestEvictedFirst" time="0.082518291">
+</testcase>
+<testcase classname="PipelineKitTests.ExecutionRecorderTests" name="testFindByID" time="0.082527291">
+</testcase>
+<testcase classname="PipelineKitTests.ExecutionRecorderTests" name="testMaxRecordsLimit" time="0.082528125">
+</testcase>
+<testcase classname="PipelineKitTests.ExecutionRecorderTests" name="testQueryByCommandType" time="0.08253275">
+</testcase>
+<testcase classname="PipelineKitTests.ExecutionRecorderTests" name="testQuerySuccesses" time="0.079210834">
+</testcase>
+<testcase classname="PipelineKitTests.ExecutionRecorderTests" name="testQueryByTimeRange" time="0.079230875">
+</testcase>
+<testcase classname="PipelineKitTests.ExecutionRecorderTests" name="testQueryFailures" time="0.07921925">
+</testcase>
+<testcase classname="PipelineKitTests.ExecutionRecorderTests" name="testRecentLimitsResults" time="0.066486917">
+</testcase>
+<testcase classname="PipelineKitTests.ExecutionRecorderTests" name="testExecutionRecordDebugDescription" time="0.182137416">
+</testcase>
+<testcase classname="PipelineKitTests.ExecutionRecorderTests" name="testExecutionRecordDescription" time="0.18210475">
+</testcase>
+<testcase classname="PipelineKitTests.ExecutionRecorderTests" name="testRecordFailedExecution" time="0.085863583">
+</testcase>
+<testcase classname="PipelineKitTests.ExecutionRecorderTests" name="testRecentReturnsNewestFirst" time="0.085882125">
+</testcase>
+<testcase classname="PipelineKitTests.ExecutionRecorderTests" name="testRecordFromDetails" time="0.085870375">
+</testcase>
+<testcase classname="PipelineKitTests.ExecutionRecorderTests" name="testStatsWithRecords" time="0.096408417">
+</testcase>
+<testcase classname="PipelineKitTests.NextGuardConfigurationContractTests" name="testAsyncSuppressionPreservesCallerIsolation" time="0.096408916">
+</testcase>
+<testcase classname="PipelineKitTests.ExecutionRecorderTests" name="testSuccessRateCalculation" time="0.096411458">
+</testcase>
+<testcase classname="PipelineKitTests.ExecutionRecorderTests" name="testRecordingMiddlewareRecordsSuccess" time="0.097113375">
+</testcase>
+<testcase classname="PipelineKitTests.ExecutionRecorderTests" name="testStatsEmpty" time="0.097105417">
+</testcase>
+<testcase classname="PipelineKitTests.ExecutionRecorderTests" name="testReset" time="0.097121917">
+</testcase>
+<testcase classname="PipelineKitTests.ExecutionRecorderTests" name="testRecordingMiddlewareRecordsFailure" time="0.097471208">
+</testcase>
+<testcase classname="PipelineKitTests.ExecutionRecorderTests" name="testRecordSuccessfulExecution" time="0.097162209">
+</testcase>
+<testcase classname="PipelineKitTests.NextGuardConfigurationContractTests" name="testHelpersRetainFunctionReferenceCallShapes" time="0.075759583">
+</testcase>
+<testcase classname="PipelineKitTests.NextGuardConfigurationContractTests" name="testNestedAndEscapedGuardSuppression" time="0.075749291">
+</testcase>
+<testcase classname="PipelineKitTests.NextGuardConfigurationContractTests" name="testReplacingCallbackCanReenterConfiguration" time="0.076818541">
+</testcase>
+<testcase classname="PipelineKitTests.NextGuardConfigurationContractTests" name="testSnapshotRetainsCallbackAcrossReset" time="0.076798917">
+</testcase>
+<testcase classname="PipelineKitTests.NextGuardConfigurationContractTests" name="testThrowingScopesRestoreSuppressionWithoutChangingGlobalState" time="0.083515542">
+</testcase>
+<testcase classname="PipelineKitTests.NextGuardConfigurationContractTests" name="testWarningCallbackCanReenterConfiguration" time="0.083519583">
+</testcase>
+<testcase classname="PipelineKitTests.NextGuardErrorExitTests" name="testMarkErrorExitSuppressesDeinitWarning" time="0.083514916">
+</testcase>
+<testcase classname="PipelineKitTests.NextGuardTests" name="testAlternateExecuteMethod" time="0.068863458">
+</testcase>
+<testcase classname="PipelineKitTests.NextGuardIntegrationTests" name="testUnsafeMiddlewareCanCallNextMultipleTimes" time="0.068968958">
+</testcase>
+<testcase classname="PipelineKitTests.NextGuardConfigurationContractTests" name="testConcurrentWarningConfigurationUsesCoherentSnapshots" time="0.191199208">
+</testcase>
+<testcase classname="PipelineKitTests.NextGuardConfigurationContractTests" name="testOverlappingSuppressionDoesNotRestoreGlobalState" time="0.181340375">
+</testcase>
+<testcase classname="PipelineKitTests.PipelineConfigurationErrorTests" name="testConcurrentMiddlewareModification" time="0.066023791">
+</testcase>
+<testcase classname="PipelineKitTests.NextGuardTests" name="testErrorMessagesAreDescriptive" time="0.097637333">
+</testcase>
+<testcase classname="PipelineKitTests.NextGuardTests" name="testHighConcurrencyStress" time="0.097634791">
+</testcase>
+<testcase classname="PipelineKitTests.NextGuardTests" name="testMultipleCallsThrowError" time="0.097637583">
+</testcase>
+<testcase classname="PipelineKitTests.NextGuardTests" name="testSingleExecutionSucceeds" time="0.083605958">
+</testcase>
+<testcase classname="PipelineKitTests.NextGuardTests" name="testStateTransitionsCorrectly" time="0.083521375">
+</testcase>
+<testcase classname="PipelineKitTests.NextGuardTests" name="testConcurrentCallsThrowError" time="0.171901458">
+</testcase>
+<testcase classname="PipelineKitTests.NextGuardTests" name="testCancellationHandling" time="0.17194925">
+</testcase>
+<testcase classname="PipelineKitTests.PipelineConfigurationErrorTests" name="testContextMissingRequiredData" time="0.068716625">
+</testcase>
+<testcase classname="PipelineKitTests.PipelineConfigurationErrorTests" name="testDuplicateMiddlewareWarning" time="0.064349208">
+</testcase>
+<testcase classname="PipelineKitTests.PipelineConfigurationErrorTests" name="testMiddlewareNotFoundError" time="0.069880625">
+</testcase>
+<testcase classname="PipelineKitTests.PipelineConfigurationErrorTests" name="testMaximumMiddlewareDepthExceeded" time="0.069885958">
+</testcase>
+<testcase classname="PipelineKitTests.PipelineConfigurationErrorTests" name="testInvalidCommandType" time="0.070858583">
+</testcase>
+<testcase classname="PipelineKitTests.PipelineConfigurationErrorTests" name="testInvalidMiddlewareOrder" time="0.070857625">
+</testcase>
+<testcase classname="PipelineKitTests.PipelineConfigurationErrorTests" name="testEmptyPipelineThrows" time="0.070878167">
+</testcase>
+<testcase classname="PipelineKitTests.PipelineConfigurationErrorTests" name="testPipelineWithOnlyMiddlewareNoHandler" time="0.072289458">
+</testcase>
+<testcase classname="PipelineKitTests.PipelineInspectorTests" name="testCommandTypeReported" time="0.07228225">
+</testcase>
+<testcase classname="PipelineKitTests.PipelineInspectorTests" name="testCompareDifferentMiddlewareCount" time="0.071133959">
+</testcase>
+<testcase classname="PipelineKitTests.PipelineInspectorTests" name="testCompareDifferentMiddlewareTypes" time="0.066949625">
+</testcase>
+<testcase classname="PipelineKitTests.PipelineInspectorTests" name="testHandlerTypeReported" time="0.07536875">
+</testcase>
+<testcase classname="PipelineKitTests.PipelineInspectorTests" name="testDiagramWithMiddleware" time="0.075386125">
+</testcase>
+<testcase classname="PipelineKitTests.PipelineInspectorTests" name="testDiagramEmptyPipeline" time="0.075464416">
+</testcase>
+<testcase classname="PipelineKitTests.PipelineInspectorTests" name="testCompareIdenticalPipelines" time="0.075483792">
+</testcase>
+<testcase classname="PipelineKitTests.PipelineInspectorTests" name="testDiagramFromInfo" time="0.07539075">
+</testcase>
+<testcase classname="PipelineKitTests.PipelineInspectorTests" name="testPipelineInfoDebugDescription" time="0.076015042">
+</testcase>
+<testcase classname="PipelineKitTests.PipelineInspectorTests" name="testInspectPipelineWithMiddleware" time="0.076610541">
+</testcase>
+<testcase classname="PipelineKitTests.PipelineInspectorTests" name="testMiddlewareTypesOrdered" time="0.076510291">
+</testcase>
+<testcase classname="PipelineKitTests.PipelineInspectorTests" name="testInspectEmptyPipeline" time="0.076626084">
+</testcase>
+<testcase classname="PipelineKitTests.PipelineKeyTests" name="testKeyHashable" time="0.077132166">
+</testcase>
+<testcase classname="PipelineKitTests.PipelineKeyTests" name="testKeyDescription" time="0.077142292">
+</testcase>
+<testcase classname="PipelineKitTests.PipelineKeyTests" name="testDefaultKeyHasDefaultName" time="0.07714025">
+</testcase>
+<testcase classname="PipelineKitTests.PipelineKeyTests" name="testCustomKeyHasCustomName" time="0.077145584">
+</testcase>
+<testcase classname="PipelineKitTests.PipelineInspectorTests" name="testPipelineInfoDescription" time="0.077159709">
+</testcase>
+<testcase classname="PipelineKitTests.NextGuardIntegrationTests" name="testStoringMiddlewareWorksWithEscaping" time="0.414904042">
+</testcase>
+<testcase classname="PipelineKitTests.NextGuardIntegrationTests" name="testStandardPipelineWithNextGuardPreventsDoubleCalls" time="0.414944083">
+</testcase>
+<testcase classname="PipelineKitTests.NextGuardErrorExitTests" name="testWellBehavedMiddlewareEmitsNoWarning" time="0.414962834">
+</testcase>
+<testcase classname="PipelineKitTests.NextGuardErrorExitTests" name="testThrowingMiddlewareWithoutMarkerEmitsNoWarning" time="0.414995167">
+</testcase>
+<testcase classname="PipelineKitTests.NextGuardIntegrationTests" name="testDynamicPipelineWithNextGuard" time="0.415102416">
+</testcase>
+<testcase classname="PipelineKitTests.PipelineKeyTests" name="testKeysWithDifferentNamesAreNotEqual" time="0.075726">
+</testcase>
+<testcase classname="PipelineKitTests.PipelineRegistryTests" name="testConcurrentRegistration" time="0.080058042">
+</testcase>
+<testcase classname="PipelineKitTests.PipelineKeyTests" name="testKeysWithSameNameAreEqual" time="0.080419292">
+</testcase>
+<testcase classname="PipelineKitTests.PipelineRegistryTests" name="testCommandTypeCount" time="0.080616542">
+</testcase>
+<testcase classname="PipelineKitTests.PipelineRegistryTests" name="testConcurrentRetrieval" time="0.080444083">
+</testcase>
+<testcase classname="PipelineKitTests.PipelineRegistryTests" name="testCount" time="0.080430333">
+</testcase>
+<testcase classname="PipelineKitTests.PipelineRegistryTests" name="testContainsCommandType" time="0.080466625">
+</testcase>
+<testcase classname="PipelineKitTests.PipelineRegistryTests" name="testContainsKey" time="0.080459709">
+</testcase>
+<testcase classname="PipelineKitTests.PipelineRegistryTests" name="testExecuteMissingPipelineThrows" time="0.080445334">
+</testcase>
+<testcase classname="PipelineKitTests.PipelineRegistryTests" name="testExecuteWithNamedPipeline" time="0.076394542">
+</testcase>
+<testcase classname="PipelineKitTests.PipelineRegistryTests" name="testRegisterMultiplePipelinesForSameCommandType" time="0.077124458">
+</testcase>
+<testcase classname="PipelineKitTests.PipelineRegistryTests" name="testRegisterOverwritesPrevious" time="0.069451292">
+</testcase>
+<testcase classname="PipelineKitTests.PipelineRegistryTests" name="testRegisterPipelineForCommandType" time="0.069973834">
+</testcase>
+<testcase classname="PipelineKitTests.PipelineRegistryTests" name="testRegisterPipelineWithName" time="0.070012958">
+</testcase>
+<testcase classname="PipelineKitTests.PipelineRegistryTests" name="testRegisterPipelineWithPipelineKey" time="0.069806917">
+</testcase>
+<testcase classname="PipelineKitTests.PipelineRegistryTests" name="testRetrieveDefaultPipeline" time="0.0710205">
+</testcase>
+<testcase classname="PipelineKitTests.PipelineRegistryTests" name="testRemoveDefaultPipeline" time="0.077769208">
+</testcase>
+<testcase classname="PipelineKitTests.PipelineRegistryTests" name="testRetrieveNamedPipeline" time="0.070156458">
+</testcase>
+<testcase classname="PipelineKitTests.PipelineRegistryTests" name="testRemoveAll" time="0.077768417">
+</testcase>
+<testcase classname="PipelineKitTests.PipelineRegistryTests" name="testRemoveAllForCommandType" time="0.077808208">
+</testcase>
+<testcase classname="PipelineKitTests.PipelineRegistryTests" name="testRemoveNamedPipeline" time="0.077776917">
+</testcase>
+<testcase classname="PipelineKitTests.PipelineRegistryTests" name="testRetrieveAllPipelinesForType" time="0.077751667">
+</testcase>
+<testcase classname="PipelineKitTests.PipelineRegistryTests" name="testRetrieveNonExistentReturnsNil" time="0.069374083">
+</testcase>
+<testcase classname="PipelineKitTests.PipelineRegistryTests" name="testRetrieveWithPipelineKey" time="0.067392542">
+</testcase>
+<testcase classname="PipelineKitTests.PipelineTests" name="testBasicPipelineExecution" time="0.067389292">
+</testcase>
+<testcase classname="PipelineKitTests.PipelineRegistryTests" name="testStats" time="0.067392584">
+</testcase>
+<testcase classname="PipelineKitTests.PipelineRegistryTests" name="testExecuteThroughRegistry" time="0.185289666">
+</testcase>
+<testcase classname="PipelineKitTests.PipelineRegistryTests" name="testExecuteWithPipelineKey" time="0.1853005">
+</testcase>
+<testcase classname="PipelineKitTests.PipelineRegistryTests" name="testIsEmpty" time="0.185270709">
+</testcase>
+<testcase classname="PipelineKitTests.SimpleCancellationTests" name="testDynamicPipelineDoesNotRetryOnCancellationError" time="0.069598041">
+</testcase>
+<testcase classname="PipelineKitTests.SimpleSemaphoreCancellationTests" name="testCancellationWithMultiplePermits" time="0.077078125">
+</testcase>
+<testcase classname="PipelineKitTests.SimpleCancellationTests" name="testPipelineExecutionThrowsOnCancellation" time="0.180210208">
+</testcase>
+<testcase classname="PipelineKitTests.SimpleSemaphoreCancellationTests" name="testCancellationDuringRelease" time="0.180712583">
+</testcase>
+<testcase classname="PipelineKitTests.SimpleSemaphoreCancellationTests" name="testCancellationDoesNotAffectOtherWaiters" time="0.1807375">
+</testcase>
+<testcase classname="PipelineKitTests.SimpleSemaphoreCancellationTests" name="testCancellationInPipelineScenario" time="0.18071675">
+</testcase>
+<testcase classname="PipelineKitTests.SimpleSemaphoreCancellationTests" name="testCancelledTaskThrowsCancellationError" time="0.078782041">
+</testcase>
+<testcase classname="PipelineKitTests.SimpleSemaphoreCancellationTests" name="testCancelledWaiterNeverReceivesToken" time="0.067595">
+</testcase>
+<testcase classname="PipelineKitTests.PipelineTests" name="testConcurrentPipelineExecution" time="0.287252959">
+</testcase>
+<testcase classname="PipelineKitTests.SimpleCancellationTests" name="testCancellationPropagatesThroughEntireStack" time="0.287246709">
+</testcase>
+<testcase classname="PipelineKitTests.PipelineTests" name="testPipelineBuilder" time="0.2872715">
+</testcase>
+<testcase classname="PipelineKitTests.PipelineTests" name="testPipelineWithMiddleware" time="0.287245708">
+</testcase>
+<testcase classname="PipelineKitTests.PipelineTests" name="testPipelineContextPropagation" time="0.287255458">
+</testcase>
+<testcase classname="PipelineKitTests.PipelineTests" name="testMaxDepthProtection" time="0.28725475">
+</testcase>
+<testcase classname="PipelineKitTests.PipelineTests" name="testPriorityPipeline" time="0.287265333">
+</testcase>
+<testcase classname="PipelineKitTests.SimpleCancellationTests" name="testPipelineWithMiddlewareStopsOnCancellation" time="0.28411225">
+</testcase>
+<testcase classname="PipelineKitTests.SimpleCancellationTests" name="testDynamicPipelineRetryStopsOnCancellation" time="0.284491708">
+</testcase>
+<testcase classname="PipelineKitTests.SimpleSemaphoreCancellationTests" name="testImmediateCancellation" time="0.097508125">
+</testcase>
+<testcase classname="PipelineKitTests.SimpleSemaphoreCancellationTests" name="testMultipleConcurrentCancellations" time="0.097505417">
+</testcase>
+<testcase classname="PipelineKitTests.SimpleSemaphoreCancellationTests" name="testPermitCountAfterCancellation" time="0.097523042">
+</testcase>
+<testcase classname="PipelineKitTests.SimpleSemaphoreCancellationTests" name="testWaitingCountAfterCancellation" time="0.094220667">
+</testcase>
+<testcase classname="PipelineKitTests.StandardPipelineChainCacheTests" name="testCachedPipelineReleasesAfterExecution" time="0.070928042">
+</testcase>
+<testcase classname="PipelineKitTests.StandardPipelineChainCacheTests" name="testStandardPipelineInvalidatesOnAddMiddleware" time="0.080710417">
+</testcase>
+<testcase classname="PipelineKitTests.StandardPipelineChainCacheTests" name="testStandardPipelineRepeatedExecutionsAllSucceed" time="0.080702583">
+</testcase>
+<testcase classname="PipelineKitTests.StandardPipelineContextTests" name="testBasicStandardPipeline" time="0.08069275">
+</testcase>
+<testcase classname="PipelineKitTests.StandardPipelineContextTests" name="testAuthenticationFlow" time="0.080681708">
+</testcase>
+<testcase classname="PipelineKitTests.StandardPipelineContextTests" name="testContextAwarePipelineBuilder" time="0.080679709">
+</testcase>
+<testcase classname="PipelineKitTests.StandardPipelineChainCacheTests" name="testStandardPipelineInvalidatesOnClearMiddlewares" time="0.080717375">
+</testcase>
+<testcase classname="PipelineKitTests.StandardPipelineChainCacheTests" name="testStandardPipelineReusesChainAcrossExecutions" time="0.080706916">
+</testcase>
+<testcase classname="PipelineKitTests.StandardPipelineContextTests" name="testContextInitialValues" time="0.07875625">
+</testcase>
+<testcase classname="PipelineKitTests.StandardPipelineContextTests" name="testContextPropagationAcrossMiddleware" time="0.07882775">
+</testcase>
+<testcase classname="PipelineKitTests.StandardPipelineContextTests" name="testRegularMiddlewareAdapter" time="0.08110125">
+</testcase>
+<testcase classname="PipelineKitTests.StandardPipelineContextTests" name="testMultipleContextMiddleware" time="0.081119583">
+</testcase>
+<testcase classname="PipelineKitTests.StandardPipelineContextTests" name="testContextSharing" time="0.081926333">
+</testcase>
+<testcase classname="PipelineKitTests.StandardPipelineVisualizationTests" name="testDescribeEmptyPipeline" time="0.074285667">
+</testcase>
+<testcase classname="PipelineKitTests.StandardPipelineVisualizationTests" name="testDescribeAfterMiddlewareChanges" time="0.079454959">
+</testcase>
+<testcase classname="PipelineKitTests.StandardPipelineVisualizationTests" name="testDescribePipelineWithSingleMiddleware" time="0.08182825">
+</testcase>
+<testcase classname="PipelineKitTests.StandardPipelineVisualizationTests" name="testPipelineDescriptionCodable" time="0.081916208">
+</testcase>
+<testcase classname="PipelineKitTests.StandardPipelineVisualizationTests" name="testDescribePipelineWithMultipleMiddleware" time="0.084079875">
+</testcase>
+<testcase classname="PipelineKitTests.StandardPipelineVisualizationTests" name="testPipelineDescriptionIsEquatable" time="0.084050625">
+</testcase>
+<testcase classname="PipelineKitTests.StandardPipelineVisualizationTests" name="testMiddlewareInfoCodable" time="0.084060916">
+</testcase>
+<testcase classname="PipelineKitTests.StandardPipelineVisualizationTests" name="testDescribeIncludesFullTypeInformation" time="0.084103375">
+</testcase>
+<testcase classname="PipelineKitTests.StandardPipelineVisualizationTests" name="testMiddlewareInfoContainsExpectedFields" time="0.084093708">
+</testcase>
+<testcase classname="PipelineKitTests.StandardPipelineVisualizationTests" name="testToJSONExport" time="0.072588167">
+</testcase>
+<testcase classname="PipelineKitTests.StandardPipelineVisualizationTests" name="testToJSONCompact" time="0.072937208">
+</testcase>
+<testcase classname="PipelineKitTests.StandardPipelineVisualizationTests" name="testVisualizeEmptyPipeline" time="0.069980041">
+</testcase>
+<testcase classname="PipelineKitTests.StandardPipelineVisualizationTests" name="testVisualizationWithRealMiddleware" time="0.073378583">
+</testcase>
+<testcase classname="PipelineKitTests.StandardPipelineVisualizationTests" name="testVisualizeCustomOptions" time="0.073368583">
+</testcase>
+<testcase classname="PipelineKitTests.StandardPipelineVisualizationTests" name="testVisualizePipelineWithMiddleware" time="0.072200958">
+</testcase>
+<testcase classname="PipelineKitTests.StandardPipelineVisualizationTests" name="testVisualizeMinimal" time="0.074684625">
+</testcase>
+<testcase classname="PipelineKitTests.StandardPipelineVisualizationTests" name="testVisualizeWithColors" time="0.066290125">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.RetryMiddlewareTests" name="testMaxAttemptsExceeded" time="5.990694541">
+</testcase>
+<testcase classname="PipelineKitResilienceTests.RetryMiddlewareTests" name="testMetricsEmission" time="5.990687042">
+</testcase>
+</testsuite>
+</testsuites>
