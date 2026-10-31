@@ -58,7 +58,7 @@ final class LRUStorage<Value> {
     private final class Node {
         let key: String
         var value: Value
-        var prev: Node?
+        weak var prev: Node?
         var next: Node?
 
         init(key: String, value: Value) {

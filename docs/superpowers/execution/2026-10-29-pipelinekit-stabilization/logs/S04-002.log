@@ -1,0 +1,86 @@
+Building for debugging...
+[Computing dependencies]
+[Using on-disk description]
+[2 / 15] PipelineKitCache
+[4 / 17] PipelineKitCache
+[13 / 19] PipelineKitCacheTests-product
+[18 / 21] PipelineKitPerformanceTests-product
+[20 / 22] PipelineKitCacheTests-product
+Build complete! (1.41 sec)
+Test Suite 'Selected tests' started at 2026-10-30 20:40:00.563.
+Test Suite 'PipelineKitTests.xctest' started at 2026-10-30 20:40:00.564.
+Test Suite 'PipelineKitTests.xctest' passed at 2026-10-30 20:40:00.564.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 20:40:00.564.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 20:40:00.644.
+Test Suite 'PipelineKitTestSupportTests.xctest' started at 2026-10-30 20:40:00.645.
+Test Suite 'PipelineKitTestSupportTests.xctest' passed at 2026-10-30 20:40:00.645.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 20:40:00.645.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 20:40:00.725.
+Test Suite 'PipelineKitSecurityTests.xctest' started at 2026-10-30 20:40:00.726.
+Test Suite 'PipelineKitSecurityTests.xctest' passed at 2026-10-30 20:40:00.726.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 20:40:00.726.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 20:40:00.806.
+Test Suite 'PipelineKitResilienceTests.xctest' started at 2026-10-30 20:40:00.807.
+Test Suite 'PipelineKitResilienceTests.xctest' passed at 2026-10-30 20:40:00.807.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 20:40:00.807.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 20:40:00.887.
+Test Suite 'PipelineKitPoolingTests.xctest' started at 2026-10-30 20:40:00.888.
+Test Suite 'PipelineKitPoolingTests.xctest' passed at 2026-10-30 20:40:00.888.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 20:40:00.888.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 20:40:00.967.
+Test Suite 'PipelineKitPerformanceTests.xctest' started at 2026-10-30 20:40:00.968.
+Test Suite 'PipelineKitPerformanceTests.xctest' passed at 2026-10-30 20:40:00.968.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 20:40:00.968.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 20:40:01.048.
+Test Suite 'PipelineKitObservabilityTests.xctest' started at 2026-10-30 20:40:01.049.
+Test Suite 'PipelineKitObservabilityTests.xctest' passed at 2026-10-30 20:40:01.049.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 20:40:01.049.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 20:40:01.129.
+Test Suite 'PipelineKitCoreTests.xctest' started at 2026-10-30 20:40:01.130.
+Test Suite 'PipelineKitCoreTests.xctest' passed at 2026-10-30 20:40:01.130.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 20:40:01.130.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 20:40:01.191.
+Test Suite 'PipelineKitCacheTests.xctest' started at 2026-10-30 20:40:01.192.
+Test Suite 'LRUEvolutionTests' started at 2026-10-30 20:40:01.192.
+Test Case '-[PipelineKitCacheTests.LRUEvolutionTests testInMemoryCacheExpiredReturnsNilAndRemoved]' started.
+Test Case '-[PipelineKitCacheTests.LRUEvolutionTests testInMemoryCacheExpiredReturnsNilAndRemoved]' passed (0.124 seconds).
+Test Case '-[PipelineKitCacheTests.LRUEvolutionTests testInMemoryCacheLRUEvictionOrder]' started.
+Test Case '-[PipelineKitCacheTests.LRUEvolutionTests testInMemoryCacheLRUEvictionOrder]' passed (0.000 seconds).
+Test Case '-[PipelineKitCacheTests.LRUEvolutionTests testInMemoryCacheRemoveAndClear]' started.
+Test Case '-[PipelineKitCacheTests.LRUEvolutionTests testInMemoryCacheRemoveAndClear]' passed (0.000 seconds).
+Test Case '-[PipelineKitCacheTests.LRUEvolutionTests testInMemoryCacheUpdateInPlacePromotesNoEvict]' started.
+Test Case '-[PipelineKitCacheTests.LRUEvolutionTests testInMemoryCacheUpdateInPlacePromotesNoEvict]' passed (0.000 seconds).
+Test Case '-[PipelineKitCacheTests.LRUEvolutionTests testLRUStorageBasics]' started.
+Test Case '-[PipelineKitCacheTests.LRUEvolutionTests testLRUStorageBasics]' passed (0.000 seconds).
+Test Case '-[PipelineKitCacheTests.LRUEvolutionTests testLRUStorageCapacityOne]' started.
+Test Case '-[PipelineKitCacheTests.LRUEvolutionTests testLRUStorageCapacityOne]' passed (0.000 seconds).
+Test Case '-[PipelineKitCacheTests.LRUEvolutionTests testLRUStorageEdgeRecency]' started.
+Test Case '-[PipelineKitCacheTests.LRUEvolutionTests testLRUStorageEdgeRecency]' passed (0.000 seconds).
+Test Case '-[PipelineKitCacheTests.LRUEvolutionTests testMultiNodeValuesReleaseOnClearAndContainerDrop]' started.
+Test Case '-[PipelineKitCacheTests.LRUEvolutionTests testMultiNodeValuesReleaseOnClearAndContainerDrop]' passed (0.001 seconds).
+Test Case '-[PipelineKitCacheTests.LRUEvolutionTests testPromoteThenEvictReleasesOnlyVictim]' started.
+Test Case '-[PipelineKitCacheTests.LRUEvolutionTests testPromoteThenEvictReleasesOnlyVictim]' passed (0.000 seconds).
+Test Case '-[PipelineKitCacheTests.LRUEvolutionTests testSimpleCachingMiddlewareLRUEvictionAndPromotion]' started.
+Test Case '-[PipelineKitCacheTests.LRUEvolutionTests testSimpleCachingMiddlewareLRUEvictionAndPromotion]' passed (0.002 seconds).
+Test Suite 'LRUEvolutionTests' passed at 2026-10-30 20:40:01.321.
+	 Executed 10 tests, with 0 failures (0 unexpected) in 0.128 (0.130) seconds
+Test Suite 'PipelineKitCacheTests.xctest' passed at 2026-10-30 20:40:01.321.
+	 Executed 10 tests, with 0 failures (0 unexpected) in 0.128 (0.130) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 20:40:01.321.
+	 Executed 10 tests, with 0 failures (0 unexpected) in 0.128 (0.130) seconds

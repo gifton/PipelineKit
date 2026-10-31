@@ -1,0 +1,58 @@
+diff --git a/Tests/PipelineKitCacheTests/LRUEvolutionTests.swift b/Tests/PipelineKitCacheTests/LRUEvolutionTests.swift
+index aa98555..a624a6e 100644
+--- a/Tests/PipelineKitCacheTests/LRUEvolutionTests.swift
++++ b/Tests/PipelineKitCacheTests/LRUEvolutionTests.swift
+@@ -229,6 +229,53 @@ final class LRUEvolutionTests: XCTestCase {
+         XCTAssertEqual(storage.value(forKey: "b"), 2)
+     }
+ 
++    func testMultiNodeValuesReleaseOnClearAndContainerDrop() {
++        for count in 0...3 {
++            for clear in [true, false] {
++                let witnesses = (0..<count).map { _ in WeakValue() }
++                var storage: LRUStorage<LifetimeValue>? = LRUStorage(maxSize: 3)
++                for index in 0..<count {
++                    insertValue(index, into: storage!, witness: witnesses[index])
++                }
++                XCTAssertEqual(storage?.keysInLRUOrder(), (0..<count).map(String.init))
++                for witness in witnesses { XCTAssertNotNil(witness.value) }
++                if clear {
++                    storage?.removeAll()
++                    XCTAssertEqual(storage?.count, 0)
++                    XCTAssertEqual(storage?.keysInLRUOrder(), [])
++                } else {
++                    storage = nil
++                }
++                for witness in witnesses { XCTAssertNil(witness.value, "count: \(count), clear: \(clear)") }
++            }
++        }
++    }
++
++    func testPromoteThenEvictReleasesOnlyVictim() {
++        let storage = LRUStorage<LifetimeValue>(maxSize: 3)
++        let witnesses = (0..<4).map { _ in WeakValue() }
++        for index in 0..<3 { insertValue(index, into: storage, witness: witnesses[index]) }
++        XCTAssertEqual(storage.keysInLRUOrder(), ["0", "1", "2"])
++        XCTAssertNotNil(storage.value(forKey: "0"))
++        XCTAssertEqual(storage.keysInLRUOrder(), ["1", "2", "0"])
++        XCTAssertEqual(insertValue(3, into: storage, witness: witnesses[3]), "1")
++        XCTAssertNil(witnesses[1].value)
++        for index in [0, 2, 3] { XCTAssertNotNil(witnesses[index].value) }
++        XCTAssertEqual(storage.keysInLRUOrder(), ["2", "0", "3"])
++        storage.removeAll()
++        for witness in witnesses { XCTAssertNil(witness.value) }
++    }
++
++    private final class LifetimeValue {}
++    private final class WeakValue { weak var value: LifetimeValue? }
++
++    @discardableResult
++    private func insertValue(_ index: Int, into storage: LRUStorage<LifetimeValue>, witness: WeakValue) -> String? {
++        let value = LifetimeValue()
++        witness.value = value
++        return storage.setValue(value, forKey: String(index))
++    }
++
+     // MARK: - SimpleCachingMiddleware LRU via stats
+ 
+     /// Mirrors the existing `SimpleCachingMiddlewareTests.testLRUEviction` style:
