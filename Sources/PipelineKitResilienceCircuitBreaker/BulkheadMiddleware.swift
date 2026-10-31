@@ -38,17 +38,10 @@ import _ResilienceFoundation
 /// )
 /// ```
 /// 
-/// ## Performance Characteristics
-/// 
-/// - **Semaphore-based**: O(1) acquire/release, minimal memory overhead (~100 bytes per slot)
-/// - **Queue-based**: O(log n) for priority queues, O(n) memory for queue storage
-/// - **Latency impact**: < 1μs for semaphore operations when not at capacity
-/// - **Recommended limits**:
-///   - I/O-bound operations: 10-50 concurrent requests
-///   - CPU-intensive operations: 2-10 concurrent (based on CPU cores)
-///   - Network calls: 20-100 concurrent depending on target service capacity
-/// - **Memory overhead**: Approximately 8KB + (100 bytes × maxConcurrency)
-/// 
+/// Admission uses an actor-owned FIFO and leases. The shared
+/// `BulkheadAdmissionConservationTests` exercise queue reuse, cancellation and
+/// handler concurrency for ordinary and legacy wrappers.
+///
 /// ## Combining Resilience Patterns
 /// 
 /// Recommended ordering when using multiple resilience middleware:
@@ -57,7 +50,7 @@ import _ResilienceFoundation
 /// 3. Bulkhead (isolate resources)
 /// 4. Timeout (bound execution time)
 /// 5. Retry (handle transient failures)
-public struct BulkheadMiddleware: Middleware {
+public struct BulkheadMiddleware: Middleware, NextGuardWarningSuppressing {
     public let priority: ExecutionPriority = .resilience
 
     // MARK: - Configuration
@@ -132,18 +125,23 @@ public struct BulkheadMiddleware: Middleware {
     }
 
     private let configuration: Configuration
-    private let semaphore: BackPressureSemaphore
-    private let queuedCommands: QueuedCommands
+    private let admission: AdmissionGate
     private let metrics: BulkheadMetricsTracker
 
     public init(configuration: Configuration) {
+        precondition(configuration.maxConcurrency > 0, "Bulkhead concurrency must be positive")
+        precondition(configuration.maxQueueSize >= 0, "Bulkhead queue size must be nonnegative")
+        self.init(configuration: configuration, admission: AdmissionGate(
+            capacity: configuration.maxConcurrency,
+            maxQueueSize: configuration.maxQueueSize
+        ))
+    }
+
+    /// Package test seam; the supplied gate must match the configuration limits.
+    package init(configuration: Configuration, admission: AdmissionGate) {
+        precondition(configuration.queueTimeout?.isFinite != false, "Bulkhead queue timeout must be finite")
         self.configuration = configuration
-        self.semaphore = BackPressureSemaphore(
-            maxConcurrency: configuration.maxConcurrency,
-            maxOutstanding: configuration.maxConcurrency + configuration.maxQueueSize,
-            strategy: .suspend
-        )
-        self.queuedCommands = QueuedCommands(maxSize: configuration.maxQueueSize)
+        self.admission = admission
         self.metrics = BulkheadMetricsTracker()
     }
 
@@ -209,28 +207,22 @@ public struct BulkheadMiddleware: Middleware {
 
     // MARK: - Private Methods
 
+    package func admissionSnapshot() async -> (active: Int, queued: Int) {
+        let snapshot = await admission.snapshot()
+        return (snapshot.active, snapshot.queued)
+    }
+
     private func executeSemaphoreIsolation<T: Command>(
         _ command: T,
         context: CommandContext,
         next: @escaping MiddlewareNext<T>,
         startTime: Date
     ) async throws -> T.Result {
-        // Try to acquire semaphore immediately
-        let token = await semaphore.tryAcquire()
-
-        if let token = token {
-            // Execute immediately
-            await metrics.recordExecution()
-            defer {
-                _ = token // Token auto-releases when it goes out of scope
-                Task {
-                    await emitMetrics(context: context, startTime: startTime, wasQueued: false)
-                }
-            }
-            return try await next(command, context)
+        try Task.checkCancellation()
+        if let lease = await admission.tryAcquire() {
+            return try await executeAdmitted(command, context: context, next: next, lease: lease, startTime: startTime)
         }
 
-        // Handle rejection based on policy
         switch configuration.rejectionPolicy {
         case .failFast:
             await metrics.recordRejection()
@@ -240,65 +232,22 @@ public struct BulkheadMiddleware: Middleware {
             )
 
         case .queue:
-            // Try to queue the command
-            guard await queuedCommands.canEnqueue() else {
+            let queueStart = ContinuousClock.now
+            let lease: AdmissionLease
+            do {
+                lease = try await admission.acquire(timeout: configuration.queueTimeout.map { .seconds($0) })
+            } catch AdmissionError.full {
                 await metrics.recordRejection()
                 await handleRejection(command, context: context)
-                throw PipelineError.bulkheadRejected(
-                    reason: "Queue is full: \(configuration.maxQueueSize)"
+                throw PipelineError.bulkheadRejected(reason: "Queue is full: \(configuration.maxQueueSize)")
+            } catch AdmissionError.timedOut {
+                await metrics.recordTimeout()
+                throw PipelineError.bulkheadTimeout(
+                    timeout: configuration.queueTimeout ?? 0,
+                    queueTime: Self.seconds(queueStart.duration(to: .now))
                 )
             }
-
-            // Queue and wait
-            await metrics.recordQueued()
-            let queueStartTime = Date()
-
-            do {
-                // Wait with timeout if configured
-                let queueToken: SemaphoreToken
-                if let timeout = configuration.queueTimeout {
-                    // Try to acquire with timeout
-                    let result = try await withThrowingTaskGroup(of: SemaphoreToken?.self) { group in
-                        group.addTask {
-                            try await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
-                            throw PipelineError.bulkheadTimeout(
-                                timeout: timeout,
-                                queueTime: Date().timeIntervalSince(queueStartTime)
-                            )
-                        }
-
-                        group.addTask {
-                            try await self.semaphore.acquire()
-                        }
-
-                        let token = try await group.next()
-                        group.cancelAll()
-                        return token
-                    }
-                    guard let token = result, let unwrappedToken = token else {
-                        throw PipelineError.bulkheadTimeout(
-                            timeout: timeout,
-                            queueTime: Date().timeIntervalSince(queueStartTime)
-                        )
-                    }
-                    queueToken = unwrappedToken
-                } else {
-                    queueToken = try await semaphore.acquire()
-                }
-
-                // Execute after waiting
-                await metrics.recordExecution()
-                await metrics.recordQueueTime(Date().timeIntervalSince(queueStartTime))
-
-                defer {
-                    _ = queueToken // Token auto-releases when it goes out of scope
-                    Task {
-                        await emitMetrics(context: context, startTime: startTime, wasQueued: true)
-                    }
-                }
-
-                return try await next(command, context)
-            }
+            return try await executeAdmitted(command, context: context, next: next, lease: lease, startTime: startTime)
 
         case let .fallback(fallbackProvider):
             await metrics.recordFallback()
@@ -318,6 +267,35 @@ public struct BulkheadMiddleware: Middleware {
                 reason: "Custom handler failed to provide valid result"
             )
         }
+    }
+
+    private func executeAdmitted<T: Command>(
+        _ command: T,
+        context: CommandContext,
+        next: @escaping MiddlewareNext<T>,
+        lease: AdmissionLease,
+        startTime: Date
+    ) async throws -> T.Result {
+        do {
+            try Task.checkCancellation()
+            await metrics.recordExecution()
+            if lease.wasQueued {
+                await metrics.recordQueueTime(Self.seconds(lease.queueDuration))
+            }
+            let result = try await next(command, context)
+            await lease.release()
+            await emitMetrics(context: context, startTime: startTime, wasQueued: lease.wasQueued)
+            return result
+        } catch {
+            await lease.release()
+            await emitMetrics(context: context, startTime: startTime, wasQueued: lease.wasQueued)
+            throw error
+        }
+    }
+
+    private static func seconds(_ duration: Duration) -> TimeInterval {
+        let components = duration.components
+        return Double(components.seconds) + Double(components.attoseconds) / 1e18
     }
 
     private func executeTaskGroupIsolation<T: Command>(
@@ -346,8 +324,7 @@ public struct BulkheadMiddleware: Middleware {
         tag: String,
         startTime: Date
     ) async throws -> T.Result {
-        // For tagged isolation, we could maintain separate semaphores per tag
-        // This is a simplified implementation
+        // Deprecated tagged mode shares admission; the tag is metadata only.
         context.setMetadata("bulkheadTag", value: tag)
 
         return try await executeSemaphoreIsolation(
@@ -382,53 +359,17 @@ public struct BulkheadMiddleware: Middleware {
         guard configuration.emitMetrics else { return }
 
         let duration = Date().timeIntervalSince(startTime)
-        let stats = await metrics.getStats()
+        let snapshot = await admission.snapshot()
+        let stats = await metrics.getStats(admission: snapshot)
 
         context.setMetadata("bulkhead.duration", value: duration)
         context.setMetadata("bulkhead.wasQueued", value: wasQueued)
         context.setMetadata("bulkhead.activeCount", value: stats.activeExecutions)
         context.setMetadata("bulkhead.queuedCount", value: stats.queuedCommands)
-
-// //         context.emitCustomEvent(
-// //             "bulkhead_execution",
-// //             properties: [
-// //                 "duration": duration,
-// //                 "was_queued": wasQueued,
-// //                 "active_executions": stats.activeExecutions,
-// //                 "queued_commands": stats.queuedCommands,
-// //                 "total_attempts": stats.totalAttempts,
-// //                 "total_rejections": stats.totalRejections
-// //             ]
-// //         )
     }
 }
 
 // MARK: - Supporting Types
-
-/// Queue management for commands
-private actor QueuedCommands {
-    private let maxSize: Int
-    private var queueSize = 0
-
-    init(maxSize: Int) {
-        self.maxSize = maxSize
-    }
-
-    func canEnqueue() -> Bool {
-        guard maxSize > 0 else { return false }
-        if queueSize < maxSize {
-            queueSize += 1
-            return true
-        }
-        return false
-    }
-
-    func dequeue() {
-        if queueSize > 0 {
-            queueSize -= 1
-        }
-    }
-}
 
 /// Metrics tracking for bulkhead
 private actor BulkheadMetricsTracker {
@@ -437,8 +378,6 @@ private actor BulkheadMetricsTracker {
     private var totalRejections = 0
     private var totalTimeouts = 0
     private var totalFallbacks = 0
-    private var activeExecutions = 0
-    private var queuedCommands = 0
     private var queueTimes: [TimeInterval] = []
 
     func recordAttempt() {
@@ -447,13 +386,6 @@ private actor BulkheadMetricsTracker {
 
     func recordExecution() {
         totalExecutions += 1
-        activeExecutions += 1
-    }
-
-    func recordCompletion() {
-        if activeExecutions > 0 {
-            activeExecutions -= 1
-        }
     }
 
     func recordRejection() {
@@ -468,16 +400,6 @@ private actor BulkheadMetricsTracker {
         totalFallbacks += 1
     }
 
-    func recordQueued() {
-        queuedCommands += 1
-    }
-
-    func recordDequeued() {
-        if queuedCommands > 0 {
-            queuedCommands -= 1
-        }
-    }
-
     func recordQueueTime(_ time: TimeInterval) {
         queueTimes.append(time)
         // Keep only recent queue times
@@ -486,7 +408,7 @@ private actor BulkheadMetricsTracker {
         }
     }
 
-    func getStats() -> BulkheadMetrics {
+    func getStats(admission: AdmissionSnapshot) -> BulkheadMetrics {
         let avgQueueTime = queueTimes.isEmpty ? 0 : queueTimes.reduce(0, +) / Double(queueTimes.count)
 
         return BulkheadMetrics(
@@ -495,8 +417,8 @@ private actor BulkheadMetricsTracker {
             totalRejections: totalRejections,
             totalTimeouts: totalTimeouts,
             totalFallbacks: totalFallbacks,
-            activeExecutions: activeExecutions,
-            queuedCommands: queuedCommands,
+            activeExecutions: admission.active,
+            queuedCommands: admission.queued,
             averageQueueTime: avgQueueTime
         )
     }
