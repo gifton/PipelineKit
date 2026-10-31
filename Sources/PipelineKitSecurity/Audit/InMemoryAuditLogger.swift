@@ -40,8 +40,11 @@ public actor InMemoryAuditLogger: AuditLogger {
     
     /// Creates a new in-memory audit logger.
     ///
-    /// - Parameter maxEvents: Maximum events to store. Older events are dropped when limit is reached.
+    /// - Parameter maxEvents: Maximum events to store. Nil is unbounded; zero drops every event.
+    ///   Positive capacities evict the oldest event when full.
+    /// - Precondition: `maxEvents` is nil or nonnegative.
     public init(maxEvents: Int? = nil) {
+        precondition(maxEvents.map { $0 >= 0 } ?? true, "maxEvents must be nonnegative")
         self.maxEvents = maxEvents
         let (stream, continuation) = AsyncStream<LoggerHealthEvent>.makeStream()
         self.healthStream = stream
@@ -66,8 +69,9 @@ public actor InMemoryAuditLogger: AuditLogger {
     
     private func addEvent(_ event: any AuditEvent) {
         if let maxEvents = maxEvents, storage.count >= maxEvents {
-            // Drop oldest event
-            storage.removeFirst()
+            if maxEvents > 0 {
+                storage.removeFirst()
+            }
             droppedCount += 1
             
             // Report health event every 10 drops
@@ -79,7 +83,9 @@ public actor InMemoryAuditLogger: AuditLogger {
             }
         }
         
-        storage.append(CapturedEvent(event))
+        if maxEvents != 0 {
+            storage.append(CapturedEvent(event))
+        }
     }
     
     // MARK: - Query Methods

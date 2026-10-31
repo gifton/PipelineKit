@@ -99,13 +99,14 @@ public struct CommandSanitizer: Sendable {
     /// 
     /// - Parameters:
     ///   - input: The string to truncate
-    ///   - maxLength: Maximum allowed length
+    ///   - maxLength: Maximum number of Characters; nonpositive values return an empty string.
     ///   - suffix: Optional suffix to append when truncated (default: "...")
-    /// - Returns: Truncated string
+    /// - Returns: The input if it fits; otherwise a prefix and suffix within the limit.
+    ///   A suffix longer than the limit is itself truncated to that limit.
     public static func truncate(_ input: String, maxLength: Int, suffix: String = "...") -> String {
+        guard maxLength > 0 else { return "" }
         guard input.count > maxLength else { return input }
-        
-        let endIndex = input.index(input.startIndex, offsetBy: maxLength - suffix.count)
-        return String(input[..<endIndex]) + suffix
+        guard suffix.count <= maxLength else { return String(suffix.prefix(maxLength)) }
+        return String(input.prefix(maxLength - suffix.count)) + suffix
     }
 }
