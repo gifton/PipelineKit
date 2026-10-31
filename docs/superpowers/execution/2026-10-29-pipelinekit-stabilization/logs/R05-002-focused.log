@@ -1,0 +1,123 @@
+Building for debugging...
+[Computing dependencies]
+[Using on-disk description]
+[2 / 58] _RateLimiting
+[8 / 64] _RateLimiting
+[15 / 71] _RateLimiting
+[22 / 80] PipelineKitPooling
+[27 / 81] PipelineKitSecurity
+[33 / 83] PipelineKitTestSupport
+[35 / 84] PipelineKitTestSupport
+[47 / 74] PipelineKitObservabilityTests-product
+[49 / 75] PipelineKitObservabilityTests-product
+[49 / 75] PipelineKitTestSupportTests-product
+[58 / 80] PipelineKitTestSupportTests-product
+[72 / 86] PipelineKitTestSupportTests-product
+[78 / 89] PipelineKitPoolingTests-product
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCoreTests/Middleware/MiddlewareTests.swift:138:25: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+136 |         
+137 |         _ = try await middleware.execute(command, context: context) { _, ctx in
+138 |             let value = await ctx.getMetadata("test") as? String
+    |                         `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+139 |             XCTAssertEqual(value, "modified")
+140 |             return "done"
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCoreTests/Pipeline/PipelineTests.swift:241:32: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+239 |             try await middleware2.execute(cmd, context: ctx) { c, finalCtx in
+240 |                 // Verify context has both values
+241 |                 let metadata = await finalCtx.getMetadata()
+    |                                `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+242 |                 XCTAssertEqual(metadata["key1"] as? String, "value1")
+243 |                 XCTAssertEqual(metadata["key2"] as? String, "value2")
+
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>
+[80 / 91] PipelineKitSecurityTests-product
+[84 / 96] PipelineKitResilienceTests-product
+[102 / 106] PipelineKitSecurityTests-product
+[102 / 106] PipelineKitResilienceTests-product
+Build complete! (3.40 sec)
+Test Suite 'Selected tests' started at 2026-10-30 22:09:31.858.
+Test Suite 'PipelineKitTests.xctest' started at 2026-10-30 22:09:31.859.
+Test Suite 'PipelineKitTests.xctest' passed at 2026-10-30 22:09:31.859.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 22:09:31.859.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 22:09:31.937.
+Test Suite 'PipelineKitTestSupportTests.xctest' started at 2026-10-30 22:09:31.938.
+Test Suite 'PipelineKitTestSupportTests.xctest' passed at 2026-10-30 22:09:31.938.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 22:09:31.938.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 22:09:32.015.
+Test Suite 'PipelineKitSecurityTests.xctest' started at 2026-10-30 22:09:32.016.
+Test Suite 'PipelineKitSecurityTests.xctest' passed at 2026-10-30 22:09:32.016.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 22:09:32.016.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 22:09:32.075.
+Test Suite 'PipelineKitResilienceTests.xctest' started at 2026-10-30 22:09:32.075.
+Test Suite 'RateLimitScopeContractTests' started at 2026-10-30 22:09:32.075.
+Test Case '-[PipelineKitResilienceTests.RateLimitScopeContractTests testClockDrivesLocalAlgorithmResetAndStatus]' started.
+Test Case '-[PipelineKitResilienceTests.RateLimitScopeContractTests testClockDrivesLocalAlgorithmResetAndStatus]' passed (0.001 seconds).
+Test Case '-[PipelineKitResilienceTests.RateLimitScopeContractTests testDistributedLogicalBudgetsUseSeparateStoreNamespaces]' started.
+Test Case '-[PipelineKitResilienceTests.RateLimitScopeContractTests testDistributedLogicalBudgetsUseSeparateStoreNamespaces]' passed (0.000 seconds).
+Test Case '-[PipelineKitResilienceTests.RateLimitScopeContractTests testDistributedScopeNamespacesRejectSuppliedKeyCollisions]' started.
+Test Case '-[PipelineKitResilienceTests.RateLimitScopeContractTests testDistributedScopeNamespacesRejectSuppliedKeyCollisions]' passed (0.000 seconds).
+Test Case '-[PipelineKitResilienceTests.RateLimitScopeContractTests testGlobalBudgetSurvivesCleanupWhenRecentlyAccessed]' started.
+Test Case '-[PipelineKitResilienceTests.RateLimitScopeContractTests testGlobalBudgetSurvivesCleanupWhenRecentlyAccessed]' passed (0.000 seconds).
+Test Case '-[PipelineKitResilienceTests.RateLimitScopeContractTests testGlobalDistributedInstancesShareStoreIdentity]' started.
+Test Case '-[PipelineKitResilienceTests.RateLimitScopeContractTests testGlobalDistributedInstancesShareStoreIdentity]' passed (0.000 seconds).
+Test Case '-[PipelineKitResilienceTests.RateLimitScopeContractTests testGlobalResetUsesSameEffectiveKeyForSupportedLocalStrategies]' started.
+Test Case '-[PipelineKitResilienceTests.RateLimitScopeContractTests testGlobalResetUsesSameEffectiveKeyForSupportedLocalStrategies]' passed (0.000 seconds).
+Test Case '-[PipelineKitResilienceTests.RateLimitScopeContractTests testGlobalStatusUsesSameEffectiveKey]' started.
+Test Case '-[PipelineKitResilienceTests.RateLimitScopeContractTests testGlobalStatusUsesSameEffectiveKey]' passed (0.000 seconds).
+Test Case '-[PipelineKitResilienceTests.RateLimitScopeContractTests testIdentityNormalizationPreservesCostAndMediumPriorityPolicy]' started.
+Test Case '-[PipelineKitResilienceTests.RateLimitScopeContractTests testIdentityNormalizationPreservesCostAndMediumPriorityPolicy]' passed (0.000 seconds).
+Test Case '-[PipelineKitResilienceTests.RateLimitScopeContractTests testNonGlobalResetPreservesOtherIdentifiers]' started.
+Test Case '-[PipelineKitResilienceTests.RateLimitScopeContractTests testNonGlobalResetPreservesOtherIdentifiers]' passed (0.000 seconds).
+Test Case '-[PipelineKitResilienceTests.RateLimitScopeContractTests testNonGlobalStatusUsesIndependentBudgets]' started.
+Test Case '-[PipelineKitResilienceTests.RateLimitScopeContractTests testNonGlobalStatusUsesIndependentBudgets]' passed (0.000 seconds).
+Test Case '-[PipelineKitResilienceTests.RateLimitScopeContractTests testPublicInitializerGlobalStrategyMatrix]' started.
+Test Case '-[PipelineKitResilienceTests.RateLimitScopeContractTests testPublicInitializerGlobalStrategyMatrix]' passed (0.000 seconds).
+Test Case '-[PipelineKitResilienceTests.RateLimitScopeContractTests testResetAllRestoresAllLocalStrategies]' started.
+Test Case '-[PipelineKitResilienceTests.RateLimitScopeContractTests testResetAllRestoresAllLocalStrategies]' passed (0.000 seconds).
+Test Case '-[PipelineKitResilienceTests.RateLimitScopeContractTests testScopeByStrategyMatrix]' started.
+Test Case '-[PipelineKitResilienceTests.RateLimitScopeContractTests testScopeByStrategyMatrix]' passed (0.000 seconds).
+Test Case '-[PipelineKitResilienceTests.RateLimitScopeContractTests testScopeByStrategyNearWindowBoundaryMatrix]' started.
+Test Case '-[PipelineKitResilienceTests.RateLimitScopeContractTests testScopeByStrategyNearWindowBoundaryMatrix]' passed (0.001 seconds).
+Test Suite 'RateLimitScopeContractTests' passed at 2026-10-30 22:09:32.080.
+	 Executed 14 tests, with 0 failures (0 unexpected) in 0.004 (0.005) seconds
+Test Suite 'PipelineKitResilienceTests.xctest' passed at 2026-10-30 22:09:32.080.
+	 Executed 14 tests, with 0 failures (0 unexpected) in 0.004 (0.005) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 22:09:32.080.
+	 Executed 14 tests, with 0 failures (0 unexpected) in 0.004 (0.005) seconds
+Test Suite 'Selected tests' started at 2026-10-30 22:09:32.157.
+Test Suite 'PipelineKitPoolingTests.xctest' started at 2026-10-30 22:09:32.157.
+Test Suite 'PipelineKitPoolingTests.xctest' passed at 2026-10-30 22:09:32.158.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 22:09:32.158.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 22:09:32.234.
+Test Suite 'PipelineKitPerformanceTests.xctest' started at 2026-10-30 22:09:32.234.
+Test Suite 'PipelineKitPerformanceTests.xctest' passed at 2026-10-30 22:09:32.235.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 22:09:32.235.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 22:09:32.312.
+Test Suite 'PipelineKitObservabilityTests.xctest' started at 2026-10-30 22:09:32.313.
+Test Suite 'PipelineKitObservabilityTests.xctest' passed at 2026-10-30 22:09:32.313.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 22:09:32.313.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 22:09:32.390.
+Test Suite 'PipelineKitCoreTests.xctest' started at 2026-10-30 22:09:32.391.
+Test Suite 'PipelineKitCoreTests.xctest' passed at 2026-10-30 22:09:32.391.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 22:09:32.391.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 22:09:32.467.
+Test Suite 'PipelineKitCacheTests.xctest' started at 2026-10-30 22:09:32.468.
+Test Suite 'PipelineKitCacheTests.xctest' passed at 2026-10-30 22:09:32.468.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 22:09:32.468.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds

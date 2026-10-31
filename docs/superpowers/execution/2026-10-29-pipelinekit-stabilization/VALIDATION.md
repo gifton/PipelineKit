@@ -1056,3 +1056,23 @@ Two existing unnecessary-await compiler kinds occur once each in R04-002/003/004
 ### R04 independent acceptance
 
 Fresh Astra/max [review](reports/R04-review.md) approves spec/quality with no Critical/Important findings. Minor R04-N1 report wording corrected in10f3718: an unhealthy standalone probe determines state below minRequests, or after earlier sufficient-sample request thresholds allow probe handling; existing degradation precedence remains. Controller inspected the one-file wording diff and rechecked5 protected source/input and15 raw artifact hashes, all unchanged; no tests rerun. Parent/reviewer checked002250 and004101 actual old-seam assertions,00321pass/3pre-existing HTTP skips,0051121 unique selections including13 final recovery methods+20 Swift Testing, expected exits/settled cleanup. Ruling17 records internal scheduling seam and source-only public/default routing; automatic lifecycle R-F06 and production callback-task settlement remain open. Two inherited compiler kinds/C02-N1 remain separate. R-F07 locally verified; I01 pending.
+
+## R05 — global rate identity before strategy dispatch
+
+Base `36af96b68a377885c3b7897a0cc10c21739a6697`, isolated `fix/stabilization-batch-1` worktree. Implemented one effective identifier at admission/status/supported reset entry, with a constant global namespace and distinct user/IP/command prefixes. Distributed instances sharing a logical store budget share that key. Controller-approved internal clock plumbing covers RateLimiter and four child algorithms without changing public signatures or Date defaults. Migration/key deployment guidance is in `docs/migrations/first-stabilization-batch.md`; no live repository caller used old raw store keys directly.
+
+Exact commands (each preceded by `python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/r05_source_state.py ID`):
+
+```
+python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id R05-001-original-api-red --timeout 600 -- swift test --filter RateLimitScopeContractTests
+python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id R05-002-focused --timeout 600 -- swift test --filter RateLimitScopeContractTests
+python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id R05-003-debug-full --timeout 600 -- swift test --parallel --skip PipelineKitPerformanceTests
+```
+
+R05-001 is original-public-API runtime red: 8 tests, 41 expected assertions; all seven global A/B/A/B rows observed `[true,true,false,false]`, while non-global status/reset controls passed. Root/runner 1/1 in 10.510 s. Historical V300 remains unchanged, with original observation `[true,true,false]`; hashes are retained. No seam compile failure is presented as behavioral evidence.
+
+R05-002 root/runner 0/0 in 10.028 s: 14 tests pass, covering 28 strategy/scope rows, 84 explicit before/at/after boundary rows, exact distributed keys and supplied-string collision controls, cross-instance sharing, separate logical store namespaces, status/supported resets, fractional cost, medium priority, child clock/reset bookkeeping and cleanup activity. R05-003 root/runner 0/0 in 18.460 s: 1135/1135 XCTest progress entries and 20 Swift Testing tests pass. This is the only full Debug run; production/tests match focused green. All runs report settled cleanup, no survivors, no termination actions, no timeout and no runner error. No fixture sleeps or unjoined work were introduced.
+
+Each ID retains raw log, process trace, JSON, full source diff and source hashes. `logs/R05-evidence-summary.json` records exact outcomes, diagnostic counts and 15 evidence hashes; final source and retained V300/package/watchdog hashes were rechecked. Limiter SHA-256 `976b3a5a04b82c934ae40a47ca8c6ee10ee7bd51551359de5ee908029fc74b82`; test SHA-256 `096f9410ead6be3ef8e507f9c2e986197cde5cc968db58894d84b3084f2b1b29`. Zero pre-existing limiter/algorithm tests were found; coverage above is supplied by the new suite.
+
+R05-002 emitted two primary compiler warnings (unnecessary await in MiddlewareTests/PipelineTests), once each, both in the normalized baseline. Other runs' incremental logs emitted none. Separate runtime/configuration scans, including SwiftLog `warning PipelineKit.Core:`, found no warning line in these captured outputs. No new diagnostic is observed; this does not claim the repository has no warning debt. C02-N1 remains separate. R-F09 medium-priority propagation and R-F10 per-identifier priority/distributed reset remain deferred. Controller owns R-F08 closure/review; I01 owns Release/platform integration. Full detail and all source hashes: [R05 implementation report](reports/R05-implementer.md).

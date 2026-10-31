@@ -1,0 +1,126 @@
+Building for debugging...
+[Computing dependencies]
+[Pre-planning 1 / 1026]
+[Planning deferred tasks]
+[1 / 1]
+[1 / 72] PipelineKitTestSupport
+[21 / 32] PipelineKitResilienceTests-product
+[23 / 34] PipelineKitResilienceTests-product
+[29 / 33] PipelineKitResilienceTests-product
+Build complete! (2.56 sec)
+Test Suite 'Selected tests' started at 2026-10-30 22:07:20.517.
+Test Suite 'PipelineKitTests.xctest' started at 2026-10-30 22:07:20.518.
+Test Suite 'PipelineKitTests.xctest' passed at 2026-10-30 22:07:20.518.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 22:07:20.518.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 22:07:20.594.
+Test Suite 'PipelineKitTestSupportTests.xctest' started at 2026-10-30 22:07:20.595.
+Test Suite 'PipelineKitTestSupportTests.xctest' passed at 2026-10-30 22:07:20.595.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 22:07:20.595.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 22:07:20.671.
+Test Suite 'PipelineKitSecurityTests.xctest' started at 2026-10-30 22:07:20.671.
+Test Suite 'PipelineKitSecurityTests.xctest' passed at 2026-10-30 22:07:20.672.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 22:07:20.672.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 22:07:20.730.
+Test Suite 'PipelineKitResilienceTests.xctest' started at 2026-10-30 22:07:20.731.
+Test Suite 'RateLimitScopeContractTests' started at 2026-10-30 22:07:20.731.
+Test Case '-[PipelineKitResilienceTests.RateLimitScopeContractTests testDistributedScopeNamespacesRejectSuppliedKeyCollisions]' started.
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/RateLimitScopeContractTests.swift:130: error: -[PipelineKitResilienceTests.RateLimitScopeContractTests testDistributedScopeNamespacesRejectSuppliedKeyCollisions] : XCTAssertTrue failed - perIP, 
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/RateLimitScopeContractTests.swift:130: error: -[PipelineKitResilienceTests.RateLimitScopeContractTests testDistributedScopeNamespacesRejectSuppliedKeyCollisions] : XCTAssertTrue failed - perIP, A
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/RateLimitScopeContractTests.swift:130: error: -[PipelineKitResilienceTests.RateLimitScopeContractTests testDistributedScopeNamespacesRejectSuppliedKeyCollisions] : XCTAssertTrue failed - perIP, pipelinekit:rate-limit:v1:global
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/RateLimitScopeContractTests.swift:130: error: -[PipelineKitResilienceTests.RateLimitScopeContractTests testDistributedScopeNamespacesRejectSuppliedKeyCollisions] : XCTAssertTrue failed - perIP, pipelinekit:rate-limit:v1:user:A
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/RateLimitScopeContractTests.swift:130: error: -[PipelineKitResilienceTests.RateLimitScopeContractTests testDistributedScopeNamespacesRejectSuppliedKeyCollisions] : XCTAssertTrue failed - perIP, A:medium
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/RateLimitScopeContractTests.swift:130: error: -[PipelineKitResilienceTests.RateLimitScopeContractTests testDistributedScopeNamespacesRejectSuppliedKeyCollisions] : XCTAssertTrue failed - perCommand, 
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/RateLimitScopeContractTests.swift:130: error: -[PipelineKitResilienceTests.RateLimitScopeContractTests testDistributedScopeNamespacesRejectSuppliedKeyCollisions] : XCTAssertTrue failed - perCommand, A
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/RateLimitScopeContractTests.swift:130: error: -[PipelineKitResilienceTests.RateLimitScopeContractTests testDistributedScopeNamespacesRejectSuppliedKeyCollisions] : XCTAssertTrue failed - perCommand, pipelinekit:rate-limit:v1:global
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/RateLimitScopeContractTests.swift:130: error: -[PipelineKitResilienceTests.RateLimitScopeContractTests testDistributedScopeNamespacesRejectSuppliedKeyCollisions] : XCTAssertTrue failed - perCommand, pipelinekit:rate-limit:v1:user:A
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/RateLimitScopeContractTests.swift:130: error: -[PipelineKitResilienceTests.RateLimitScopeContractTests testDistributedScopeNamespacesRejectSuppliedKeyCollisions] : XCTAssertTrue failed - perCommand, A:medium
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/RateLimitScopeContractTests.swift:153: error: -[PipelineKitResilienceTests.RateLimitScopeContractTests testDistributedScopeNamespacesRejectSuppliedKeyCollisions] : XCTAssertEqual failed: ("["", "A", "pipelinekit:rate-limit:v1:global", "pipelinekit:rate-limit:v1:user:A", "A:medium", "", "A", "pipelinekit:rate-limit:v1:global", "pipelinekit:rate-limit:v1:user:A", "A:medium", "", "A", "pipelinekit:rate-limit:v1:global", "pipelinekit:rate-limit:v1:user:A", "A:medium"]") is not equal to ("["pipelinekit:rate-limit:v1:user:", "pipelinekit:rate-limit:v1:user:A", "pipelinekit:rate-limit:v1:user:pipelinekit:rate-limit:v1:global", "pipelinekit:rate-limit:v1:user:pipelinekit:rate-limit:v1:user:A", "pipelinekit:rate-limit:v1:user:A:medium", "pipelinekit:rate-limit:v1:ip:", "pipelinekit:rate-limit:v1:ip:A", "pipelinekit:rate-limit:v1:ip:pipelinekit:rate-limit:v1:global", "pipelinekit:rate-limit:v1:ip:pipelinekit:rate-limit:v1:user:A", "pipelinekit:rate-limit:v1:ip:A:medium", "pipelinekit:rate-limit:v1:command:", "pipelinekit:rate-limit:v1:command:A", "pipelinekit:rate-limit:v1:command:pipelinekit:rate-limit:v1:global", "pipelinekit:rate-limit:v1:command:pipelinekit:rate-limit:v1:user:A", "pipelinekit:rate-limit:v1:command:A:medium"]")
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/RateLimitScopeContractTests.swift:154: error: -[PipelineKitResilienceTests.RateLimitScopeContractTests testDistributedScopeNamespacesRejectSuppliedKeyCollisions] : XCTAssertEqual failed: ("["ignored", "", "", "A", "A", "pipelinekit:rate-limit:v1:global", "pipelinekit:rate-limit:v1:global", "pipelinekit:rate-limit:v1:user:A", "pipelinekit:rate-limit:v1:user:A", "A:medium", "A:medium", "", "", "A", "A", "pipelinekit:rate-limit:v1:global", "pipelinekit:rate-limit:v1:global", "pipelinekit:rate-limit:v1:user:A", "pipelinekit:rate-limit:v1:user:A", "A:medium", "A:medium", "", "", "A", "A", "pipelinekit:rate-limit:v1:global", "pipelinekit:rate-limit:v1:global", "pipelinekit:rate-limit:v1:user:A", "pipelinekit:rate-limit:v1:user:A", "A:medium", "A:medium"]") is not equal to ("["pipelinekit:rate-limit:v1:global", "pipelinekit:rate-limit:v1:user:", "pipelinekit:rate-limit:v1:user:", "pipelinekit:rate-limit:v1:user:A", "pipelinekit:rate-limit:v1:user:A", "pipelinekit:rate-limit:v1:user:pipelinekit:rate-limit:v1:global", "pipelinekit:rate-limit:v1:user:pipelinekit:rate-limit:v1:global", "pipelinekit:rate-limit:v1:user:pipelinekit:rate-limit:v1:user:A", "pipelinekit:rate-limit:v1:user:pipelinekit:rate-limit:v1:user:A", "pipelinekit:rate-limit:v1:user:A:medium", "pipelinekit:rate-limit:v1:user:A:medium", "pipelinekit:rate-limit:v1:ip:", "pipelinekit:rate-limit:v1:ip:", "pipelinekit:rate-limit:v1:ip:A", "pipelinekit:rate-limit:v1:ip:A", "pipelinekit:rate-limit:v1:ip:pipelinekit:rate-limit:v1:global", "pipelinekit:rate-limit:v1:ip:pipelinekit:rate-limit:v1:global", "pipelinekit:rate-limit:v1:ip:pipelinekit:rate-limit:v1:user:A", "pipelinekit:rate-limit:v1:ip:pipelinekit:rate-limit:v1:user:A", "pipelinekit:rate-limit:v1:ip:A:medium", "pipelinekit:rate-limit:v1:ip:A:medium", "pipelinekit:rate-limit:v1:command:", "pipelinekit:rate-limit:v1:command:", "pipelinekit:rate-limit:v1:command:A", "pipelinekit:rate-limit:v1:command:A", "pipelinekit:rate-limit:v1:command:pipelinekit:rate-limit:v1:global", "pipelinekit:rate-limit:v1:command:pipelinekit:rate-limit:v1:global", "pipelinekit:rate-limit:v1:command:pipelinekit:rate-limit:v1:user:A", "pipelinekit:rate-limit:v1:command:pipelinekit:rate-limit:v1:user:A", "pipelinekit:rate-limit:v1:command:A:medium", "pipelinekit:rate-limit:v1:command:A:medium"]")
+Test Case '-[PipelineKitResilienceTests.RateLimitScopeContractTests testDistributedScopeNamespacesRejectSuppliedKeyCollisions]' failed (0.207 seconds).
+Test Case '-[PipelineKitResilienceTests.RateLimitScopeContractTests testGlobalDistributedInstancesShareStoreIdentity]' started.
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/RateLimitScopeContractTests.swift:113: error: -[PipelineKitResilienceTests.RateLimitScopeContractTests testGlobalDistributedInstancesShareStoreIdentity] : XCTAssertFalse failed
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/RateLimitScopeContractTests.swift:114: error: -[PipelineKitResilienceTests.RateLimitScopeContractTests testGlobalDistributedInstancesShareStoreIdentity] : XCTAssertEqual failed: ("1") is not equal to ("0")
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/RateLimitScopeContractTests.swift:115: error: -[PipelineKitResilienceTests.RateLimitScopeContractTests testGlobalDistributedInstancesShareStoreIdentity] : XCTAssertEqual failed: ("["A", "B"]") is not equal to ("["pipelinekit:rate-limit:v1:global", "pipelinekit:rate-limit:v1:global"]")
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/RateLimitScopeContractTests.swift:116: error: -[PipelineKitResilienceTests.RateLimitScopeContractTests testGlobalDistributedInstancesShareStoreIdentity] : XCTAssertEqual failed: ("["unseen"]") is not equal to ("["pipelinekit:rate-limit:v1:global"]")
+Test Case '-[PipelineKitResilienceTests.RateLimitScopeContractTests testGlobalDistributedInstancesShareStoreIdentity]' failed (0.001 seconds).
+Test Case '-[PipelineKitResilienceTests.RateLimitScopeContractTests testGlobalResetUsesSameEffectiveKeyForSupportedLocalStrategies]' started.
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/RateLimitScopeContractTests.swift:65: error: -[PipelineKitResilienceTests.RateLimitScopeContractTests testGlobalResetUsesSameEffectiveKeyForSupportedLocalStrategies] : XCTAssertEqual failed: ("0") is not equal to ("1") - tokenBucket
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/RateLimitScopeContractTests.swift:65: error: -[PipelineKitResilienceTests.RateLimitScopeContractTests testGlobalResetUsesSameEffectiveKeyForSupportedLocalStrategies] : XCTAssertEqual failed: ("0") is not equal to ("1") - slidingWindow
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/RateLimitScopeContractTests.swift:65: error: -[PipelineKitResilienceTests.RateLimitScopeContractTests testGlobalResetUsesSameEffectiveKeyForSupportedLocalStrategies] : XCTAssertEqual failed: ("0") is not equal to ("1") - fixedWindow
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/RateLimitScopeContractTests.swift:65: error: -[PipelineKitResilienceTests.RateLimitScopeContractTests testGlobalResetUsesSameEffectiveKeyForSupportedLocalStrategies] : XCTAssertEqual failed: ("0") is not equal to ("1") - leakyBucket
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/RateLimitScopeContractTests.swift:65: error: -[PipelineKitResilienceTests.RateLimitScopeContractTests testGlobalResetUsesSameEffectiveKeyForSupportedLocalStrategies] : XCTAssertEqual failed: ("0") is not equal to ("1") - adaptive
+Test Case '-[PipelineKitResilienceTests.RateLimitScopeContractTests testGlobalResetUsesSameEffectiveKeyForSupportedLocalStrategies]' failed (0.001 seconds).
+Test Case '-[PipelineKitResilienceTests.RateLimitScopeContractTests testGlobalStatusUsesSameEffectiveKey]' started.
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/RateLimitScopeContractTests.swift:39: error: -[PipelineKitResilienceTests.RateLimitScopeContractTests testGlobalStatusUsesSameEffectiveKey] : XCTAssertEqual failed: ("1") is not equal to ("0") - tokenBucket
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/RateLimitScopeContractTests.swift:39: error: -[PipelineKitResilienceTests.RateLimitScopeContractTests testGlobalStatusUsesSameEffectiveKey] : XCTAssertEqual failed: ("1") is not equal to ("0") - slidingWindow
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/RateLimitScopeContractTests.swift:39: error: -[PipelineKitResilienceTests.RateLimitScopeContractTests testGlobalStatusUsesSameEffectiveKey] : XCTAssertEqual failed: ("1") is not equal to ("0") - fixedWindow
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/RateLimitScopeContractTests.swift:39: error: -[PipelineKitResilienceTests.RateLimitScopeContractTests testGlobalStatusUsesSameEffectiveKey] : XCTAssertEqual failed: ("1") is not equal to ("0") - leakyBucket
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/RateLimitScopeContractTests.swift:39: error: -[PipelineKitResilienceTests.RateLimitScopeContractTests testGlobalStatusUsesSameEffectiveKey] : XCTAssertEqual failed: ("1") is not equal to ("0") - adaptive
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/RateLimitScopeContractTests.swift:39: error: -[PipelineKitResilienceTests.RateLimitScopeContractTests testGlobalStatusUsesSameEffectiveKey] : XCTAssertEqual failed: ("1") is not equal to ("0") - distributed
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/RateLimitScopeContractTests.swift:39: error: -[PipelineKitResilienceTests.RateLimitScopeContractTests testGlobalStatusUsesSameEffectiveKey] : XCTAssertEqual failed: ("1") is not equal to ("0") - priorityBased
+Test Case '-[PipelineKitResilienceTests.RateLimitScopeContractTests testGlobalStatusUsesSameEffectiveKey]' failed (0.001 seconds).
+Test Case '-[PipelineKitResilienceTests.RateLimitScopeContractTests testNonGlobalResetPreservesOtherIdentifiers]' started.
+Test Case '-[PipelineKitResilienceTests.RateLimitScopeContractTests testNonGlobalResetPreservesOtherIdentifiers]' passed (0.000 seconds).
+Test Case '-[PipelineKitResilienceTests.RateLimitScopeContractTests testNonGlobalStatusUsesIndependentBudgets]' started.
+Test Case '-[PipelineKitResilienceTests.RateLimitScopeContractTests testNonGlobalStatusUsesIndependentBudgets]' passed (0.000 seconds).
+Test Case '-[PipelineKitResilienceTests.RateLimitScopeContractTests testResetAllRestoresAllLocalStrategies]' started.
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/RateLimitScopeContractTests.swift:99: error: -[PipelineKitResilienceTests.RateLimitScopeContractTests testResetAllRestoresAllLocalStrategies] : XCTAssertEqual failed: ("[true, true]") is not equal to ("[true, false]") - tokenBucket, global
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/RateLimitScopeContractTests.swift:99: error: -[PipelineKitResilienceTests.RateLimitScopeContractTests testResetAllRestoresAllLocalStrategies] : XCTAssertEqual failed: ("[true, true]") is not equal to ("[true, false]") - slidingWindow, global
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/RateLimitScopeContractTests.swift:99: error: -[PipelineKitResilienceTests.RateLimitScopeContractTests testResetAllRestoresAllLocalStrategies] : XCTAssertEqual failed: ("[true, true]") is not equal to ("[true, false]") - fixedWindow, global
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/RateLimitScopeContractTests.swift:99: error: -[PipelineKitResilienceTests.RateLimitScopeContractTests testResetAllRestoresAllLocalStrategies] : XCTAssertEqual failed: ("[true, true]") is not equal to ("[true, false]") - leakyBucket, global
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/RateLimitScopeContractTests.swift:99: error: -[PipelineKitResilienceTests.RateLimitScopeContractTests testResetAllRestoresAllLocalStrategies] : XCTAssertEqual failed: ("[true, true]") is not equal to ("[true, false]") - adaptive, global
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/RateLimitScopeContractTests.swift:99: error: -[PipelineKitResilienceTests.RateLimitScopeContractTests testResetAllRestoresAllLocalStrategies] : XCTAssertEqual failed: ("[true, true]") is not equal to ("[true, false]") - priorityBased, global
+Test Case '-[PipelineKitResilienceTests.RateLimitScopeContractTests testResetAllRestoresAllLocalStrategies]' failed (0.001 seconds).
+Test Case '-[PipelineKitResilienceTests.RateLimitScopeContractTests testScopeByStrategyMatrix]' started.
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/RateLimitScopeContractTests.swift:20: error: -[PipelineKitResilienceTests.RateLimitScopeContractTests testScopeByStrategyMatrix] : XCTAssertEqual failed: ("[true, true, false, false]") is not equal to ("[true, false, false, false]") - tokenBucket, global
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/RateLimitScopeContractTests.swift:20: error: -[PipelineKitResilienceTests.RateLimitScopeContractTests testScopeByStrategyMatrix] : XCTAssertEqual failed: ("[true, true, false, false]") is not equal to ("[true, false, false, false]") - slidingWindow, global
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/RateLimitScopeContractTests.swift:20: error: -[PipelineKitResilienceTests.RateLimitScopeContractTests testScopeByStrategyMatrix] : XCTAssertEqual failed: ("[true, true, false, false]") is not equal to ("[true, false, false, false]") - fixedWindow, global
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/RateLimitScopeContractTests.swift:20: error: -[PipelineKitResilienceTests.RateLimitScopeContractTests testScopeByStrategyMatrix] : XCTAssertEqual failed: ("[true, true, false, false]") is not equal to ("[true, false, false, false]") - leakyBucket, global
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/RateLimitScopeContractTests.swift:20: error: -[PipelineKitResilienceTests.RateLimitScopeContractTests testScopeByStrategyMatrix] : XCTAssertEqual failed: ("[true, true, false, false]") is not equal to ("[true, false, false, false]") - adaptive, global
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/RateLimitScopeContractTests.swift:20: error: -[PipelineKitResilienceTests.RateLimitScopeContractTests testScopeByStrategyMatrix] : XCTAssertEqual failed: ("[true, true, false, false]") is not equal to ("[true, false, false, false]") - distributed, global
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/RateLimitScopeContractTests.swift:20: error: -[PipelineKitResilienceTests.RateLimitScopeContractTests testScopeByStrategyMatrix] : XCTAssertEqual failed: ("[true, true, false, false]") is not equal to ("[true, false, false, false]") - priorityBased, global
+Test Case '-[PipelineKitResilienceTests.RateLimitScopeContractTests testScopeByStrategyMatrix]' failed (0.001 seconds).
+Test Suite 'RateLimitScopeContractTests' failed at 2026-10-30 22:07:20.943.
+	 Executed 8 tests, with 41 failures (0 unexpected) in 0.211 (0.212) seconds
+Test Suite 'PipelineKitResilienceTests.xctest' failed at 2026-10-30 22:07:20.943.
+	 Executed 8 tests, with 41 failures (0 unexpected) in 0.211 (0.212) seconds
+Test Suite 'Selected tests' failed at 2026-10-30 22:07:20.943.
+	 Executed 8 tests, with 41 failures (0 unexpected) in 0.211 (0.213) seconds
+Test Suite 'Selected tests' started at 2026-10-30 22:07:21.021.
+Test Suite 'PipelineKitPoolingTests.xctest' started at 2026-10-30 22:07:21.021.
+Test Suite 'PipelineKitPoolingTests.xctest' passed at 2026-10-30 22:07:21.021.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 22:07:21.021.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 22:07:21.097.
+Test Suite 'PipelineKitPerformanceTests.xctest' started at 2026-10-30 22:07:21.098.
+Test Suite 'PipelineKitPerformanceTests.xctest' passed at 2026-10-30 22:07:21.098.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 22:07:21.098.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 22:07:21.174.
+Test Suite 'PipelineKitObservabilityTests.xctest' started at 2026-10-30 22:07:21.175.
+Test Suite 'PipelineKitObservabilityTests.xctest' passed at 2026-10-30 22:07:21.175.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 22:07:21.175.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 22:07:21.251.
+Test Suite 'PipelineKitCoreTests.xctest' started at 2026-10-30 22:07:21.252.
+Test Suite 'PipelineKitCoreTests.xctest' passed at 2026-10-30 22:07:21.252.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 22:07:21.252.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 22:07:21.328.
+Test Suite 'PipelineKitCacheTests.xctest' started at 2026-10-30 22:07:21.329.
+Test Suite 'PipelineKitCacheTests.xctest' passed at 2026-10-30 22:07:21.329.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 22:07:21.329.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Note: Some test targets reported failures:
+  - PipelineKitResilienceTests (XCTest)

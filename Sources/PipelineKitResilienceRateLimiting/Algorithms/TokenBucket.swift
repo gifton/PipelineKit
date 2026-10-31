@@ -2,22 +2,28 @@ import Foundation
 
 /// Token bucket implementation for rate limiting.
 internal actor TokenBucket {
+    private let now: @Sendable () -> Date
     private let capacity: Double
     private var tokens: Double
     private var lastRefill: Date
     private var lastAccess: Date
     private var refillRate: Double
     
-    init(capacity: Double, refillRate: Double = 1.0) {
+    init(
+        capacity: Double,
+        refillRate: Double = 1.0,
+        now: @escaping @Sendable () -> Date = { Date() }
+    ) {
+        self.now = now
         self.capacity = capacity
         self.tokens = capacity
-        self.lastRefill = Date()
-        self.lastAccess = Date()
+        self.lastRefill = now()
+        self.lastAccess = now()
         self.refillRate = refillRate
     }
     
     func refill(rate: Double) {
-        let now = Date()
+        let now = self.now()
         let elapsed = now.timeIntervalSince(lastRefill)
         let tokensToAdd = elapsed * rate
         
@@ -31,7 +37,7 @@ internal actor TokenBucket {
     func consume(tokens: Double) -> Bool {
         guard self.tokens >= tokens else { return false }
         self.tokens -= tokens
-        lastAccess = Date()
+        lastAccess = now()
         return true
     }
     

@@ -1,8 +1,8 @@
 # First stabilization batch migration — draft
 
 This draft currently covers S01 validation/sanitization, S02 command encryption, S03 cache identity,
-S05 bounded decompression, and R02
-bulkhead queue-timeout validation. I01
+S05 bounded decompression, R02 bulkhead queue-timeout validation, and R05 rate-limit
+scope/key migration. I01
 owns the completed batch migration guide, compilation of all examples, and the consolidated
 Breaking entry. These snippets have not yet been compiled as standalone migration examples;
 the task contract suites exercise their public APIs. Remaining batch migrations are pending.
@@ -452,3 +452,56 @@ working compression-level selection. The root contract suite compiles the new AP
 exercises all five cases on the Compression-capable host. The standalone Examples package
 has no decompression caller to migrate. I01 owns standalone Examples and migration-snippet
 compilation, platform integration, and the next-minor consolidated **Breaking** entry.
+
+
+## Breaking: rate-limit scope and distributed counter keys (R-F08)
+
+`RateLimiter(scope: .global)` now applies one budget to all supplied identifiers in every
+strategy: token bucket, sliding window, fixed window, leaky bucket, adaptive, distributed,
+and priority based. The public admission, status, reset and initializer signatures are
+unchanged. Keep passing the original user/IP/command identifier; do not pre-encode a key.
+Admission and status normalize it once, and supported per-identifier local resets normalize
+it the same way. For example, after a one-request global budget admits `"A"`, `"B"` is denied
+and its status reports the same remaining budget. Applications that relied on the previous
+separate per-caller budgets must select `.perUser`, `.perIP` or `.perCommand` explicitly.
+
+All four scopes now use separate internal namespaces. A distributed store receives these
+exact keys, with the caller's complete supplied string appended verbatim in non-global scopes:
+
+| Scope | Key passed to `DistributedRateLimitStore` |
+| --- | --- |
+| `.global` | `pipelinekit:rate-limit:v1:global` |
+| `.perUser` | `pipelinekit:rate-limit:v1:user:` + supplied identifier |
+| `.perIP` | `pipelinekit:rate-limit:v1:ip:` + supplied identifier |
+| `.perCommand` | `pipelinekit:rate-limit:v1:command:` + supplied identifier |
+
+Treat those incoming keys as opaque in the store. A supplied string that already resembles
+an internal key remains caller data and gets its scope prefix; it is never decoded or stripped.
+Two distributed limiter instances using the same store budget and `.global` intentionally
+share the constant global key. There is no per-instance UUID. **Give distinct logical budgets
+separate store namespaces**, such as different Redis prefixes or an application-owned store
+adapter that frames its budget namespace before the opaque limiter key. Instances of the same
+logical budget must use the same namespace, window size and rate configuration.
+
+Persisted counters under the former raw identifiers are incompatible with the new keys.
+Update any direct store inspection, seeding or administrative per-key reset tooling to use
+the table above within the correct store namespace. Coordinate deployment: old and new
+processes otherwise use independent counters and can admit more than the intended budget.
+Quiesce old callers and let their active accounting windows expire before enabling the new
+namespace, or explicitly migrate counts under a store-specific coordinated procedure. A new
+empty namespace starts a fresh budget. Old per-caller counts cannot simply be renamed to one
+global key without deciding how to combine usage and windows; the library does not perform
+that migration. No live in-repository caller constructs the old distributed keys directly.
+
+The strategy cost, refill and admission policies are unchanged. Priority based admission and
+status still select `.medium`; propagation of a command's priority remains deferred as R-F09.
+`reset(identifier:)` supports token bucket, sliding window, fixed window, leaky bucket and
+adaptive state; in global scope any supplied identifier resets that shared local budget.
+Per-identifier priority reset remains unsupported, while `reset()` clears all local priority
+windows. Neither reset form resets distributed counters; R-F10 remains deferred. Use an
+explicit administrative store operation for those counters when needed.
+
+The scope contract suite covers the seven strategies, four scopes, exact store keys and
+boundaries using an internal clock seam; the public initializer retains wall-clock `Date`
+behavior. I01 owns final platform/Release integration and the consolidated next-minor
+**Breaking** changelog entry.

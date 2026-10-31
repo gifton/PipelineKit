@@ -1,0 +1,220 @@
+--- HEAD/Tests/PipelineKitResilienceTests/RateLimitScopeContractTests.swift
++++ worktree/Tests/PipelineKitResilienceTests/RateLimitScopeContractTests.swift
+@@ -0,0 +1,217 @@
++import Foundation
++import PipelineKitResilience
++import XCTest
++
++final class RateLimitScopeContractTests: XCTestCase {
++    private static let nonRefillingInterval: TimeInterval = 1_000_000_000_000
++    private static let globalKey = "pipelinekit:rate-limit:v1:global"
++
++    func testScopeByStrategyMatrix() async throws {
++        for strategy in StrategyCase.allCases {
++            for scope in ScopeCase.allCases {
++                let start = Date()
++                let limiter = makeLimiter(strategy, scope: scope.scope)
++                let first = try await limiter.allowRequest(identifier: "A")
++                let distinct = try await limiter.allowRequest(identifier: "B")
++                let repeatA = try await limiter.allowRequest(identifier: "A")
++                let repeatB = try await limiter.allowRequest(identifier: "B")
++                // This wall-clock bound detects invalid fixture timing; it does not establish ordering.
++                XCTAssertLessThan(Date().timeIntervalSince(start), 10, "Adaptive must not refill one token")
++                XCTAssertEqual(
++                    [first, distinct, repeatA, repeatB],
++                    scope == .global ? [true, false, false, false] : [true, true, false, false],
++                    "\(strategy), \(scope)"
++                )
++            }
++        }
++    }
++
++    func testGlobalStatusUsesSameEffectiveKey() async throws {
++        for strategy in StrategyCase.allCases {
++            let limiter = makeLimiter(strategy, scope: .global)
++            let initial = await limiter.getStatus(identifier: "B")
++            XCTAssertEqual(initial.remaining, 1, "\(strategy)")
++            let admitted = try await limiter.allowRequest(identifier: "A")
++            XCTAssertTrue(admitted, "\(strategy)")
++            let statusA = await limiter.getStatus(identifier: "A")
++            let statusB = await limiter.getStatus(identifier: "B")
++            XCTAssertEqual(statusA.remaining, 0, "\(strategy)")
++            XCTAssertEqual(statusB.remaining, 0, "\(strategy)")
++            XCTAssertEqual(statusB.limit, 1, "\(strategy)")
++        }
++    }
++
++    func testNonGlobalStatusUsesIndependentBudgets() async throws {
++        for strategy in StrategyCase.allCases {
++            for scope in ScopeCase.nonGlobal {
++                let limiter = makeLimiter(strategy, scope: scope.scope)
++                let admitted = try await limiter.allowRequest(identifier: "A")
++                XCTAssertTrue(admitted, "\(strategy), \(scope)")
++                let statusA = await limiter.getStatus(identifier: "A")
++                let statusB = await limiter.getStatus(identifier: "B")
++                XCTAssertEqual(statusA.remaining, 0, "\(strategy), \(scope)")
++                XCTAssertEqual(statusB.remaining, 1, "\(strategy), \(scope)")
++            }
++        }
++    }
++
++    func testGlobalResetUsesSameEffectiveKeyForSupportedLocalStrategies() async throws {
++        for strategy in StrategyCase.resettableByIdentifier {
++            let limiter = makeLimiter(strategy, scope: .global)
++            let first = try await limiter.allowRequest(identifier: "A")
++            XCTAssertTrue(first, "\(strategy)")
++            await limiter.reset(identifier: "B")
++            let status = await limiter.getStatus(identifier: "A")
++            XCTAssertEqual(status.remaining, 1, "\(strategy)")
++            let next = try await limiter.allowRequest(identifier: "C")
++            let repeated = try await limiter.allowRequest(identifier: "A")
++            XCTAssertTrue(next, "\(strategy)")
++            XCTAssertFalse(repeated, "\(strategy)")
++        }
++    }
++
++    func testNonGlobalResetPreservesOtherIdentifiers() async throws {
++        for strategy in StrategyCase.resettableByIdentifier {
++            for scope in ScopeCase.nonGlobal {
++                let limiter = makeLimiter(strategy, scope: scope.scope)
++                let firstA = try await limiter.allowRequest(identifier: "A")
++                let firstB = try await limiter.allowRequest(identifier: "B")
++                XCTAssertTrue(firstA, "\(strategy), \(scope)")
++                XCTAssertTrue(firstB, "\(strategy), \(scope)")
++                await limiter.reset(identifier: "A")
++                let nextA = try await limiter.allowRequest(identifier: "A")
++                let nextB = try await limiter.allowRequest(identifier: "B")
++                XCTAssertTrue(nextA, "\(strategy), \(scope)")
++                XCTAssertFalse(nextB, "\(strategy), \(scope)")
++            }
++        }
++    }
++
++    func testResetAllRestoresAllLocalStrategies() async throws {
++        for strategy in StrategyCase.allCases where strategy != .distributed {
++            for scope in ScopeCase.allCases {
++                let limiter = makeLimiter(strategy, scope: scope.scope)
++                _ = try await limiter.allowRequest(identifier: "A")
++                _ = try await limiter.allowRequest(identifier: "B")
++                await limiter.reset()
++                let nextA = try await limiter.allowRequest(identifier: "A")
++                let nextB = try await limiter.allowRequest(identifier: "B")
++                XCTAssertEqual([nextA, nextB], scope == .global ? [true, false] : [true, true], "\(strategy), \(scope)")
++            }
++        }
++    }
++
++    func testGlobalDistributedInstancesShareStoreIdentity() async throws {
++        let store = RecordingRateLimitStore()
++        let first = makeLimiter(.distributed, scope: .global, store: store)
++        let second = makeLimiter(.distributed, scope: .global, store: store)
++        let firstAdmission = try await first.allowRequest(identifier: "A")
++        let secondAdmission = try await second.allowRequest(identifier: "B")
++        let secondStatus = await second.getStatus(identifier: "unseen")
++        let keys = await store.recordedKeys()
++        XCTAssertTrue(firstAdmission)
++        XCTAssertFalse(secondAdmission)
++        XCTAssertEqual(secondStatus.remaining, 0)
++        XCTAssertEqual(keys.increments, [Self.globalKey, Self.globalKey])
++        XCTAssertEqual(keys.reads, [Self.globalKey])
++    }
++
++    func testDistributedScopeNamespacesRejectSuppliedKeyCollisions() async throws {
++        let store = RecordingRateLimitStore()
++        let global = makeLimiter(.distributed, scope: .global, store: store)
++        let globalAdmission = try await global.allowRequest(identifier: "ignored")
++        XCTAssertTrue(globalAdmission)
++        for scope in ScopeCase.nonGlobal {
++            let limiter = makeLimiter(.distributed, scope: scope.scope, store: store)
++            for supplied in ["", "A", Self.globalKey, "pipelinekit:rate-limit:v1:user:A", "A:medium"] {
++                let first = try await limiter.allowRequest(identifier: supplied)
++                let repeated = try await limiter.allowRequest(identifier: supplied)
++                let status = await limiter.getStatus(identifier: supplied)
++                XCTAssertTrue(first, "\(scope), \(supplied)")
++                XCTAssertFalse(repeated, "\(scope), \(supplied)")
++                XCTAssertEqual(status.remaining, 0, "\(scope), \(supplied)")
++            }
++        }
++        let keys = await store.recordedKeys()
++        let expected: [String] = [
++            "pipelinekit:rate-limit:v1:user:",
++            "pipelinekit:rate-limit:v1:user:A",
++            "pipelinekit:rate-limit:v1:user:pipelinekit:rate-limit:v1:global",
++            "pipelinekit:rate-limit:v1:user:pipelinekit:rate-limit:v1:user:A",
++            "pipelinekit:rate-limit:v1:user:A:medium",
++            "pipelinekit:rate-limit:v1:ip:",
++            "pipelinekit:rate-limit:v1:ip:A",
++            "pipelinekit:rate-limit:v1:ip:pipelinekit:rate-limit:v1:global",
++            "pipelinekit:rate-limit:v1:ip:pipelinekit:rate-limit:v1:user:A",
++            "pipelinekit:rate-limit:v1:ip:A:medium",
++            "pipelinekit:rate-limit:v1:command:",
++            "pipelinekit:rate-limit:v1:command:A",
++            "pipelinekit:rate-limit:v1:command:pipelinekit:rate-limit:v1:global",
++            "pipelinekit:rate-limit:v1:command:pipelinekit:rate-limit:v1:user:A",
++            "pipelinekit:rate-limit:v1:command:A:medium"
++        ]
++        XCTAssertEqual(keys.reads, expected)
++        XCTAssertEqual(keys.increments, [Self.globalKey] + expected.flatMap { [$0, $0] })
++    }
++
++    private func makeLimiter(
++        _ strategy: StrategyCase,
++        scope: RateLimitScope,
++        store: RecordingRateLimitStore = RecordingRateLimitStore()
++    ) -> RateLimiter {
++        let configured: RateLimitStrategy
++        switch strategy {
++        case .tokenBucket: configured = .tokenBucket(capacity: 1, refillRate: 0)
++        case .slidingWindow: configured = .slidingWindow(windowSize: Self.nonRefillingInterval, maxRequests: 1)
++        case .fixedWindow: configured = .fixedWindow(windowSize: Self.nonRefillingInterval, maxRequests: 1)
++        case .leakyBucket: configured = .leakyBucket(capacity: 1, leakRate: Self.nonRefillingInterval)
++        case .adaptive: configured = .adaptive(baseRate: 1, loadFactor: { 1 })
++        case .distributed: configured = .distributed(store: store, windowSize: Self.nonRefillingInterval, maxRequests: 1)
++        case .priorityBased:
++            configured = .priorityBased(limits: [.medium: .init(maxRequests: 1, windowSize: Self.nonRefillingInterval)])
++        }
++        return RateLimiter(strategy: configured, scope: scope)
++    }
++}
++
++private enum StrategyCase: CaseIterable {
++    case tokenBucket, slidingWindow, fixedWindow, leakyBucket, adaptive, distributed, priorityBased
++
++    static let resettableByIdentifier: [Self] = [.tokenBucket, .slidingWindow, .fixedWindow, .leakyBucket, .adaptive]
++}
++
++private enum ScopeCase: CaseIterable {
++    case global, perUser, perIP, perCommand
++
++    static let nonGlobal: [Self] = [.perUser, .perIP, .perCommand]
++
++    var scope: RateLimitScope {
++        switch self {
++        case .global: .global
++        case .perUser: .perUser
++        case .perIP: .perIP
++        case .perCommand: .perCommand
++        }
++    }
++}
++
++private actor RecordingRateLimitStore: DistributedRateLimitStore {
++    private var counts: [String: Int] = [:]
++    private var incrementKeys: [String] = []
++    private var readKeys: [String] = []
++
++    func incrementAndGet(key: String, windowSize: TimeInterval) -> Int {
++        incrementKeys.append(key)
++        counts[key, default: 0] += 1
++        return counts[key, default: 0]
++    }
++
++    func getCount(key: String, windowSize: TimeInterval) -> Int {
++        readKeys.append(key)
++        return counts[key, default: 0]
++    }
++
++    func reset(key: String) { counts.removeValue(forKey: key) }
++
++    func recordedKeys() -> (increments: [String], reads: [String]) { (incrementKeys, readKeys) }
++}
