@@ -4,7 +4,7 @@
 
 **Goal:** Implement all 17 high-impact audit findings plus 20 selected additions, with verifiable closure and migration guidance.
 
-**Architecture:** Repair validation first, then use coherent middleware/routing state, real security capabilities, explicit cache identity, owned admission leases and owned transport operations. Land 26 subsystem/validation tasks and one integration task as reviewable changes; retain the 47 unselected findings in an explicit follow-up backlog.
+**Architecture:** Repair validation first, then use coherent middleware/routing state, real security capabilities, explicit cache identity, owned admission leases and owned transport operations. Land 27 subsystem/validation tasks and one integration task as reviewable changes; retain the 47 unselected findings in an explicit follow-up backlog.
 
 **Tech Stack:** Swift 6.2 tools floor, XCTest/Swift Testing, actors, Atomics, Foundation locks, CryptoKit/swift-crypto, Apple Compression/Network, existing Bash/Python/GitHub Actions.
 
@@ -32,7 +32,7 @@ Preserve the user's current local work. At execution start, record HEAD, branch,
 2. A valid data result can still be from another handler, principal or key: C04/S02/S03 test identity across replacement, principal changes and rotation.
 3. Correct final counters can hide temporary oversubscription or orphaned waiters: R01–R03 and O01/O02 require acknowledgements, peak-work assertions and joined settlement.
 4. Locks do not solve async save/restore or multi-await generation mixing: C05/O03 test overlapping scopes and coherent operation snapshots.
-5. Passing tests can be vacuous or a runner can mask failure: V01–V04 plus I01 verify reached paths, executed test selection and real exit status.
+5. Passing tests can be vacuous or a runner can mask failure: V01–V05 plus I01 verify reached paths, executed test selection and real exit status.
 
 ## Scope: 37 of 84 findings
 
@@ -93,7 +93,7 @@ The [machine-readable scope ledger](2026-10-29-pipelinekit-stabilization-scope.j
 
 | Stage | Plan | Tasks | Completion gate |
 | --- | --- | --- | --- |
-| 0. Trust validation | [Validation repairs](2026-10-29-pipelinekit-stabilization-validation.md) | V01–V04 | Reached assertions, Release measurement safe, failing commands fail, owned probe processes settle |
+| 0. Trust validation | [Validation repairs](2026-10-29-pipelinekit-stabilization-validation.md) | V01–V05 | Reached assertions, Release measurement safe, failing commands fail, owned probe processes settle |
 | 1. Composition/state | [Core correctness](2026-10-29-pipelinekit-stabilization-core.md) | C01–C05 | Stage conservation, coherent routing/configuration and ownership |
 | 2. Security/data | [Security and cache](2026-10-29-pipelinekit-stabilization-security-cache.md) | S01–S07 | Actual security enforcement, isolated results, authentic complete data |
 | 3. Admission/policy | [Resilience](2026-10-29-pipelinekit-stabilization-resilience.md) | R01–R06 | Permit conservation, individual settlement, recovery and correct policy |
@@ -105,6 +105,7 @@ Stages 1–4 are subsystem groupings, not a requirement to delay the high-impact
 Dependencies that matter:
 
 - Execution amendment: O01 exposed an XCTest descendant escaping the copied process-group watchdog. Complete scoped V04 immediately after O01 review and before further deliberate hang probes; this adds one validation task without changing the 84-finding scope. See V04 for the retained counterexample, ownership constraints and acceptance gate.
+- Execution amendment: C03 review established unsafe concurrent middleware fixtures and discarded outcomes in a full-gate test. Complete scoped V05 immediately after C03 review. The original signal11 cause remains unproven; the 84-finding scope remains unchanged. Execution now has 28 tasks including these two validation follow-ups.
 
 - C01 → C02 and C04, because they share StandardPipeline/builder contracts; C05 preserves both chain paths.
 - C01 + S01 + S02 → I01's combined security gate. S01 temporarily retains encryption-only extension hooks until S02 removes their callers, keeping intermediate commits buildable.
@@ -118,7 +119,7 @@ Each subsystem plan defines exact files, interfaces, named tests, expected red e
 
 ## Task I01: Integrate, migrate and independently close the batch
 
-**Finding ownership:** Completion gate for all 37 selected IDs; does not close any of the 47 deferred entries. **Dependencies:** V01–V04, C01–C05, S01–S07, R01–R06, O01–O04.
+**Finding ownership:** Completion gate for all 37 selected IDs; does not close any of the 47 deferred entries. **Dependencies:** V01–V05, C01–C05, S01–S07, R01–R06, O01–O04.
 
 **Files:** Create `docs/migrations/first-stabilization-batch.md`. Extend the consumer created by O01/O02: `docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer/Package.swift`, `docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer/Sources/Consumer/main.swift`. Update `CHANGELOG.md`, `README.md`, `docs/guides/security-best-practices.md`, `docs/guides/resilience-patterns.md`, affected public symbol comments and live examples. Update only the new execution directory's CLOSURE.md/VALIDATION.md/logs, not the historical audit.
 
@@ -128,7 +129,7 @@ Each subsystem plan defines exact files, interfaces, named tests, expected red e
 - [ ] For identity modes, assert correct result ownership, complete Codable reconstruction and no public originalCommand field; compile negative fixtures separately and require the expected diagnostic. For bulkhead, assert peak concurrency/settlement. For UDP/StatsD, acknowledge real loopback receipt and successful ready→close and first nonempty default batch. Run crash/hang-sensitive modes with the reviewed V04 watchdog.
 - [ ] Write migration examples for explicit capability conformance/required-vs-ifPresent policy; full-command Codable encryption and atomic KeyStore snapshot; required cache keys including principal/configuration and cache invalidation; maxOutputSize; unified StatsD init/start/close and removal of useTransport; async Metrics.configure/read-only configuration/flush semantics. Compile every new example in the consumer. Explain that a legacy encrypted payload may be insufficient without its original command; never imply guaranteed recovery.
 - [ ] Record source identity and run `swift build` and `swift build -c release`. Run `swift test --parallel --skip PipelineKitPerformanceTests` and `swift test -c release --parallel --skip PipelineKitPerformanceTests`. Expected: exit 0 and all selected XCTest/Swift Testing cases actually execute, including TestSupport and repaired Release Core cases. Record counts/skips and compare discovered selection with execution; do not pin the old audit count as the new count.
-- [ ] Run `swift test --sanitize=thread --filter 'NextGuardConfigurationContractTests|MetricsConfigurationContractTests|CommandContextMetricsMergeTests|AdmissionGateContractTests'`. Expected no sanitizer diagnostics in the forced schedules. A clean run covers only those schedules; a tool/platform failure remains a validation gap, not a pass. Inspect all touched unchecked/nonisolated(unsafe) declarations and callback lifetimes independently of sanitizer output.
+- [ ] Run `swift test --sanitize=thread --filter 'NextGuardConfigurationContractTests|MetricsConfigurationContractTests|CommandContextMetricsMergeTests|AdmissionGateContractTests|PipelineConfigurationErrorTests/testConcurrentMiddlewareModification'`. Expected no sanitizer diagnostics in the forced schedules. A clean run covers only those schedules; a tool/platform failure remains a validation gap, not a pass. Inspect all touched unchecked/nonisolated(unsafe) declarations and callback lifetimes independently of sanitizer output.
 - [ ] Run `swift test -c release --filter PipelineKitPerformanceTests` once after behavior is stable. Retain meaningful Release timing/hardware data; passing existing benchmarks alone does not establish unchanged throughput or close LS-010. Broaden measurements only for an observed or source-supported performance regression.
 - [ ] Build/run the consumer in Debug and Release, e.g. `swift run --package-path docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer -c release Consumer composition-security`, then each named mode. For watchdog runs use unique IDs and a bounded timeout appropriate to build vs execution. Do not run a possibly hanging XCTest in the main test process without an external bound.
 - [ ] Verify the supported Swift 6.2/OS 26 floor and Linux conditional paths through available established toolchains/CI, plus the host actually used. Inspect current CI selection before dispatch. Network/Compression tests cannot be counted as run on an excluded platform. If a required platform or hosted gate cannot be executed, keep release readiness explicitly incomplete with a named owner/check; local repairs can still have a precise scoped disposition.
