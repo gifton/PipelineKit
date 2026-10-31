@@ -1,0 +1,69 @@
+{
+  "commands": [
+    {
+      "command": [
+        "swift",
+        "--version"
+      ],
+      "exit_status": 0,
+      "output": "swift-driver version: 1.168.6 Apple Swift version 6.4.2 (swiftlang-6.4.2.1.9 clang-2100.4.1.1)\nTarget: arm64-apple-macosx27.0.0\n"
+    },
+    {
+      "command": [
+        "xcodebuild",
+        "-version"
+      ],
+      "exit_status": 0,
+      "output": "Xcode 27.2\nBuild version 27B52\n"
+    },
+    {
+      "command": [
+        "xcrun",
+        "--show-sdk-version"
+      ],
+      "exit_status": 0,
+      "output": "2026-10-30 23:02:58.772 xcodebuild[4469:21079009]  DVTFilePathFSEvents: Failed to start fs event stream.\n2026-10-30 23:02:59.035 xcodebuild[4469:21079008] [MT] DVTDeveloperPaths: Failed to get length of DARWIN_USER_CACHE_DIR from confstr(3), error = Error Domain=NSPOSIXErrorDomain Code=5 \"Input/output error\". Using NSCachesDirectory instead.\n27.2\n"
+    },
+    {
+      "command": [
+        "sw_vers"
+      ],
+      "exit_status": 0,
+      "output": "ProductName:\t\tmacOS\nProductVersion:\t\t27.0.1\nBuildVersion:\t\t26A434\n"
+    },
+    {
+      "command": [
+        "uname",
+        "-a"
+      ],
+      "exit_status": 0,
+      "output": "Darwin mac.lan 27.0.0 Darwin Kernel Version 27.0.0: Tue Aug 11 21:05:42 PDT 2026; root:xnu-13432.1.9~1/RELEASE_ARM64_T6031 arm64\n"
+    },
+    {
+      "command": [
+        "sysctl",
+        "-n",
+        "hw.model",
+        "hw.memsize",
+        "hw.physicalcpu",
+        "hw.logicalcpu",
+        "machdep.cpu.brand_string"
+      ],
+      "exit_status": 1,
+      "output": "sysctl: sysctl fmt -1 1024 1: Operation not permitted\n"
+    }
+  ],
+  "availableToolchains": {
+    "/Applications": [
+      "/Applications/Xcode.app"
+    ],
+    "/Library/Developer/Toolchains": "directory absent",
+    "/Users/goftin/Library/Developer/Toolchains": "directory absent"
+  },
+  "linuxRuntimes": {
+    "docker": null,
+    "podman": null,
+    "limactl": null,
+    "multipass": null
+  }
+}

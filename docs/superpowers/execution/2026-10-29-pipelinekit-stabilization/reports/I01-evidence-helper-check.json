@@ -1,0 +1,24 @@
+{
+  "command": "python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/i01_source_states.py",
+  "initial_helper_exit_status": 1,
+  "initial_diagnostic": "i01_source_states.py line 47: assert sha(compiled)==state['files'][compiled_path]; AssertionError",
+  "observed_context": "Source-state reconstruction was scheduled concurrently with i01_compile_examples.py, which truncates/writes the current CompiledExamples.swift that reconstruction read for its preamble. No tracked source changed; the same reconstruction passed sequentially without edits.",
+  "inference": "The transient failure is consistent with this read/write overlap; transient bytes were not captured, so no exact intermediate input is claimed.",
+  "fix": "Read final main, compiled preamble and final compiled body from the explicit immutable implementation commit; retain recorded base for diff reconstruction. Commands in VALIDATION are sequential.",
+  "helper_before_sha256": "a0bd698251de58d48817947477a6aa17cbc11d7ef6a6eb844729ae6281adb1c0",
+  "retained_source_state_hashes_before": {
+    "044-main.swift": "9e434f98d0fefa76004160a67feb4df46f83dcf4a2fd4b48d371ff0ac6cc1e14",
+    "013-CompiledExamples.swift": "670a418f8f3d1b4eb4c70457856310af613df1511ad02cd6db8bb473a96d4d89",
+    "013-main.swift": "9e434f98d0fefa76004160a67feb4df46f83dcf4a2fd4b48d371ff0ac6cc1e14",
+    "001-main.swift": "c4dc52bb79de4e0b9a238eb5a1d27c5679a1ebbcbd7dfe40cc14863b1d6a8f11",
+    "001-CompiledExamples.swift": "71a2336511c3dbb51ee3cb78bd8105972aaa1f0de33bf7dfe11eed2da339b44b",
+    "044-CompiledExamples.swift": "af713e8a68506a6c08cd4fa3d1d60d5981f3d53bce43c2fa1821a9d4256813f8",
+    "003-main.swift": "7329d55c20b8e387ad952f7918e31fa0399bb2488c8f1aa867c2603bb66b7255",
+    "003-CompiledExamples.swift": "6c4dac3b4fe1d46feffd4d0794a48b0027b71b5fa1837422bc643b474305afcb"
+  },
+  "implementation_source": "6bd49c4fe1ee0aac9f174871bc691c7f96b5b50c",
+  "runtime_build_log_changes": "none; helper reconstruction only",
+  "corrected_helper_exit_status": 0,
+  "corrected_helper_sha256": "1e7b9ea1288ed0c313a3ce3d578486661db9ad3540927cb0dc1fbe8d123ab6ea",
+  "retained_source_files_unchanged": 8
+}

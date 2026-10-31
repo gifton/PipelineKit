@@ -1118,3 +1118,119 @@ At base `45f7404`, the reviewed O04-RV-003 positive 2^63-second probe trapped be
 Fresh Astra/max [initial review](reports/O04-review.md) identified Important O04-I1: valid positive Duration beyond Int64 whole seconds trapped during components before saturation. Exact helper probe on Apple Swift6.4.2 confirms RV003 construction then integer-narrowing fatal error/root+runner-5; negative004/control005 pass. All5 probe runs settled. Parent preserved5 exact source/manifest/runner/summary files plus15 raw artifacts, verified19 reviewer-summary hashes, and retained the initial copied-runner approval stall as nonexecution. See [probe record](review-probes/O04/README.md).
 
 Original implementer corrected the guard inefe48c2. Fresh Astra/max [scoped review](reports/O04-rereview-1.md) marks O04-I1 addressed, no new breakage. Exact pre-components bound is UInt64.max nanoseconds; equality is source-proved by the guard, with retained fractional/below/above and added extreme signed regressions. R1-001 is a fixture compile error only; R1-002 passes19(3duration16pool),0/0settled. Parent/reviewer matched2 final hashes and8 fix artifact hashes. Earlier40focused/1141+20full were pre-fix, and I01 owns the final full gate. Both pool sites call the tested helper by source trace; no independently injected per-site duration. Baseline compiler debt/C02-N1 separate. OBS-011/SCP-15 locally verified; all37 selected now task-local, I01/final branch review pending.
+
+## I01 — integration, migration and final local gates
+
+Implementation `6bd49c4fe1ee0aac9f174871bc691c7f96b5b50c` starts from `a6979832b0665aaf6b6769e9d16fa0cd044442c6`; audited baseline remains `a93a713d937e25f68855f22b0720f33c93329b09`. All commands ran in `/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization` on `fix/stabilization-batch-1`. [Implementer report](reports/I01-implementer.md), [source/callback challenge](reports/I01-source-review.md), [exact run/hash record](reports/I01-run-summary.json) and [final source hashes](reports/I01-final-source.json) define the review boundary. Production source, root tests, dependency pins and platform/concurrency settings are unchanged by I01. Final example-only refinement compiles in 044/045; runtime main and root source tested in the earlier final gates are byte-identical.
+
+Root Debug/Release builds pass. Debug discovery reconciles 1,181 cases = 1,142 selected XCTest + 20 Swift Testing + 19 excluded performance; Release 1,178 = 1,139 + 20 + 19. Debug has 1,138 XCTest passes and four real skips; Release has 1,135 passes and four skips; all 20 Swift Testing methods pass in each. The three DEBUG-only methods account for the configuration difference. Each suite includes one inactive S06 death-probe entrypoint; this is not trap evidence. The retained S06 subprocess supplies that evidence. The four skips are the known backpressure integration test and three external HTTP endpoint tests. The primary parallel xUnit omits these skip dispositions and Swift Testing; the separate Swift Testing sidecar contains all 20. Therefore [Debug](reports/I01-debug-reconciliation.json)/[Release](reports/I01-release-reconciliation.json) compare discovery, selections, starts, raw terminals and primary/sidecar XML identities explicitly. All eight nonperformance products execute, including TestSupport and Release Core. O04's extreme-duration regression executes in both final full suites; no pre-fix count is reused.
+
+The exact targeted TSan filter passes 32 cases with no sanitizer diagnostics, covering only those forced schedules. Independent source inspection retains unsafe declaration, callback, timer and actor-owner limitations. Release performance runs once, 19 passed cases and 88 measurement rows: [samples/hardware/limits](reports/I01-performance.md). No unchanged-throughput, allocation, controlled thermal/warm-up, tail-latency or LS-010 closure claim; R04 O(n) query scans remain a documented unmeasured cost.
+
+All eight required ordinary-import Consumer modes pass in Debug and Release with throwing assertions active in both. Composition uses actual validation/sanitization capabilities and verifies invalid handlerEntries=0 across typed/erased/dynamic paths; routes, all cache identities, full ciphertext reconstruction, three bulkhead variants, real loopback ready/close and first nonempty default StatsD batches, and nonreplaying metrics flush all pass. The extra UDP oversized-datagram control passes both configurations. Positive/negative encryption typechecks retain the expected removed-originalCommand diagnostic. Thirteen exact changed documentation Swift fences compile in both configurations using the [documented harness](reports/I01-example-manifest.json). Standalone Examples separately builds; 040 initially lacked a lock, 041 uses a copy of unchanged root pins with automatic resolution disabled. No dependency update is committed.
+
+All 39 watchdog commands settled with no survivors, timeouts, runner errors or unexpected live descendants. Thirty-six have root/runner 0/0; three retained initial attempts have 1/1: 001 consumer fixture compilation, 008 failFast-versus-queue fixture configuration, 040 absent Examples lock. These are not invented production behavioral reds. Initial generated unused-value/compiler and Consumer erased-default runtime warnings were corrected before final Consumer builds/runs. [Diagnostics](reports/I01-diagnostics.json) retain baseline compiler kinds and the 17 full-suite SimpleSemaphore runtime warnings per configuration (four C02 lifetime fixture, twelve S01 erased capability fixture, one pre-existing priority fixture). C02-N1/final-review triage remains separate; no warning suppression or production workaround was added.
+
+[Draft all-84 dispositions](reports/I01-dispositions.md) and [exact approved-entry ledger](reports/I01-integration-ledger.json) leave 37 locally integrated findings pending controller/final-review acceptance and all 47 deferred findings open. Source-only old schedules remain source-only. [End preservation](reports/I01-preservation-end.json) checks 614 original baseline files, 170 captured audit artifacts in both trees, the audit guide, all 359 final source hashes, approved scope, CLOSURE and all 19 chronological DECISIONS. I01 did not edit CLOSURE, DECISIONS or controller progress.
+
+Release readiness remains incomplete: repository CI maintainer owns actual Swift 6.2 / OS 26 floor and Linux execution (only Xcode 27.2 / Swift 6.4.2 / macOS 27.0.1 with iOS 27.0 runtime available; no Linux host/container runtime), security/CI maintainer owns hosted scan/required-status results, repository administrator owns branch-protection verification, and controller owns fresh I01 plus separate whole-branch review. Existing Linux jobs are advisory build-only; their names do not establish Linux tests. No remote dispatch, push, merge, release, tag or installation was performed.
+
+### Exact I01 bounded invocations
+
+The original V04 runner SHA-256 is `9fad75b0f9d7216c7467bab2d3b9fd341ef5e2313fd4365c491234eafb480dd0`. Swift commands used its existing approved escalation prefix for cache writes. Raw `.log`, metadata `.json` and `.processes.jsonl` artifacts under each ID retain command/cwd/status/cleanup; [run summary](reports/I01-run-summary.json) hashes all 117 raw files. The two primary full-suite XML files and two Swift Testing sidecars are hashed and checked as supplements to the raw terminal reconciliation.
+
+```sh
+python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id I01-001-consumer-debug-build --timeout 600 -- swift build --package-path docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer
+python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id I01-002-hardware --timeout 30 -- sysctl -n hw.model hw.memsize hw.physicalcpu hw.logicalcpu machdep.cpu.brand_string
+python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id I01-003-consumer-debug-build --timeout 600 -- swift build --package-path docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer
+python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id I01-004-composition-debug --timeout 60 -- swift run --skip-build --package-path docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer Consumer composition-security
+python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id I01-005-routing-debug --timeout 60 -- swift run --skip-build --package-path docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer Consumer routing
+python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id I01-006-cache-identity-debug --timeout 60 -- swift run --skip-build --package-path docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer Consumer cache-identity
+python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id I01-007-encryption-debug --timeout 60 -- swift run --skip-build --package-path docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer Consumer encryption
+python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id I01-008-bulkhead-debug --timeout 60 -- swift run --skip-build --package-path docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer Consumer bulkhead
+python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id I01-013-consumer-debug-build --timeout 600 -- swift build --package-path docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer --disable-automatic-resolution
+python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id I01-014-composition-security-debug --timeout 60 -- swift run --skip-build --package-path docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer Consumer composition-security
+python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id I01-015-bulkhead-debug --timeout 60 -- swift run --skip-build --package-path docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer Consumer bulkhead
+python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id I01-016-udp-close-debug --timeout 60 -- swift run --skip-build --package-path docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer Consumer udp-close
+python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id I01-017-statsd-startup-debug --timeout 60 -- swift run --skip-build --package-path docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer Consumer statsd-startup
+python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id I01-018-metrics-debug --timeout 60 -- swift run --skip-build --package-path docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer Consumer metrics
+python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id I01-019-udp-failure-close-debug --timeout 60 -- swift run --skip-build --package-path docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer Consumer udp-failure-close
+python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id I01-020-root-debug-build --timeout 600 -- swift build
+python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id I01-021-root-release-build --timeout 600 -- swift build -c release
+python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id I01-022-debug-discovery --timeout 600 -- swift test list
+python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id I01-023-debug-full --timeout 900 -- swift test --parallel --skip PipelineKitPerformanceTests --verbose --xunit-output docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/I01-debug-tests.xml
+python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id I01-024-release-discovery --timeout 600 -- swift test -c release list
+python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id I01-025-release-full --timeout 900 -- swift test -c release --parallel --skip PipelineKitPerformanceTests --verbose --xunit-output docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/I01-release-tests.xml
+python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id I01-026-tsan --timeout 900 -- swift test --sanitize=thread --filter 'NextGuardConfigurationContractTests|MetricsConfigurationContractTests|CommandContextMetricsMergeTests|AdmissionGateContractTests|PipelineConfigurationErrorTests/testConcurrentMiddlewareModification'
+python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id I01-027-release-performance --timeout 900 -- swift test -c release --filter PipelineKitPerformanceTests
+python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id I01-030-consumer-release-build --timeout 600 -- swift build --package-path docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer -c release --disable-automatic-resolution
+python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id I01-031-composition-security-release --timeout 60 -- swift run --skip-build --package-path docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer -c release Consumer composition-security
+python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id I01-032-routing-release --timeout 60 -- swift run --skip-build --package-path docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer -c release Consumer routing
+python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id I01-033-cache-identity-release --timeout 60 -- swift run --skip-build --package-path docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer -c release Consumer cache-identity
+python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id I01-034-encryption-release --timeout 60 -- swift run --skip-build --package-path docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer -c release Consumer encryption
+python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id I01-035-bulkhead-release --timeout 60 -- swift run --skip-build --package-path docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer -c release Consumer bulkhead
+python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id I01-036-udp-close-release --timeout 60 -- swift run --skip-build --package-path docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer -c release Consumer udp-close
+python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id I01-037-statsd-startup-release --timeout 60 -- swift run --skip-build --package-path docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer -c release Consumer statsd-startup
+python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id I01-038-metrics-release --timeout 60 -- swift run --skip-build --package-path docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer -c release Consumer metrics
+python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id I01-039-udp-failure-close-release --timeout 60 -- swift run --skip-build --package-path docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer -c release Consumer udp-failure-close
+python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id I01-040-examples-debug-build --timeout 600 -- swift build --package-path Examples --disable-automatic-resolution
+python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id I01-041-examples-debug-build --timeout 600 -- swift build --package-path Examples --disable-automatic-resolution
+python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id I01-042-negative-original-command --timeout 120 -- python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/s02_negative_consumer.py
+python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id I01-043-runtime-availability --timeout 60 -- xcrun simctl list runtimes -j
+python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id I01-044-final-examples-debug --timeout 600 -- swift build --package-path docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer --disable-automatic-resolution
+python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id I01-045-final-examples-release --timeout 600 -- swift build --package-path docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer -c release --disable-automatic-resolution
+```
+
+| ID | Root / runner | Elapsed seconds |
+|---|---:|---:|
+| I01-001-consumer-debug-build | 1 / 1 | 8.182 |
+| I01-002-hardware | 0 / 0 | 0.027 |
+| I01-003-consumer-debug-build | 0 / 0 | 4.306 |
+| I01-004-composition-debug | 0 / 0 | 2.312 |
+| I01-005-routing-debug | 0 / 0 | 2.091 |
+| I01-006-cache-identity-debug | 0 / 0 | 2.010 |
+| I01-007-encryption-debug | 0 / 0 | 2.088 |
+| I01-008-bulkhead-debug | 1 / 1 | 2.145 |
+| I01-013-consumer-debug-build | 0 / 0 | 3.955 |
+| I01-014-composition-security-debug | 0 / 0 | 2.160 |
+| I01-015-bulkhead-debug | 0 / 0 | 1.954 |
+| I01-016-udp-close-debug | 0 / 0 | 4.042 |
+| I01-017-statsd-startup-debug | 0 / 0 | 1.994 |
+| I01-018-metrics-debug | 0 / 0 | 2.093 |
+| I01-019-udp-failure-close-debug | 0 / 0 | 4.223 |
+| I01-020-root-debug-build | 0 / 0 | 5.179 |
+| I01-021-root-release-build | 0 / 0 | 19.801 |
+| I01-022-debug-discovery | 0 / 0 | 9.361 |
+| I01-023-debug-full | 0 / 0 | 20.241 |
+| I01-024-release-discovery | 0 / 0 | 31.757 |
+| I01-025-release-full | 0 / 0 | 18.251 |
+| I01-026-tsan | 0 / 0 | 75.472 |
+| I01-027-release-performance | 0 / 0 | 26.743 |
+| I01-030-consumer-release-build | 0 / 0 | 21.245 |
+| I01-031-composition-security-release | 0 / 0 | 2.548 |
+| I01-032-routing-release | 0 / 0 | 2.178 |
+| I01-033-cache-identity-release | 0 / 0 | 2.116 |
+| I01-034-encryption-release | 0 / 0 | 2.151 |
+| I01-035-bulkhead-release | 0 / 0 | 2.132 |
+| I01-036-udp-close-release | 0 / 0 | 4.181 |
+| I01-037-statsd-startup-release | 0 / 0 | 2.172 |
+| I01-038-metrics-release | 0 / 0 | 2.168 |
+| I01-039-udp-failure-close-release | 0 / 0 | 4.206 |
+| I01-040-examples-debug-build | 1 / 1 | 1.581 |
+| I01-041-examples-debug-build | 0 / 0 | 13.084 |
+| I01-042-negative-original-command | 0 / 0 | 1.193 |
+| I01-043-runtime-availability | 0 / 0 | 1.151 |
+| I01-044-final-examples-debug | 0 / 0 | 6.747 |
+| I01-045-final-examples-release | 0 / 0 | 14.610 |
+
+Reconciliation-only commands, run sequentially (no new test executions). [Helper check](reports/I01-evidence-helper-check.json) records the transient concurrent-extractor/reconstruction failure and the explicit-commit reconstruction correction; all eight retained state files are unchanged:
+
+```sh
+python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/i01_compile_examples.py
+python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/i01_reconcile_tests.py debug
+python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/i01_reconcile_tests.py release
+python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/i01_reconcile_scope.py
+python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/i01_summarize_evidence.py
+python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/i01_source_states.py
+python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/i01_verify_preservation.py
+```

@@ -1,0 +1,114 @@
+Building for debugging...
+[Computing dependencies]
+[Pre-planning 1 / 481]
+[Planning deferred tasks]
+[1 / 143] PipelineKitCore
+[68 / 143] PipelineKitObservability
+[73 / 148] PipelineKitObservability
+[77 / 152] PipelineKitObservability
+[91 / 181] _ResilienceFoundation
+[112 / 184] Crypto
+[114 / 184] PipelineKitCache
+[119 / 194]
+[123 / 199] _ResilienceCore
+[141 / 220] _RateLimiting
+[164 / 220] _RateLimiting
+[179 / 220] PipelineKitCache
+[187 / 220] Crypto-product
+[192 / 221] _CircuitBreaker
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Sources/PipelineKitCache/CachingMiddleware.swift:189:47: warning: use of protocol 'Decodable' as a type must be written 'any Decodable'; this will be an error in a future Swift language mode [#ExistentialAny]
+187 |             // For other Decodable types, try generic decoding
+188 |             // Note: We use Decodable.Type here (not `any Decodable.Type`) because we need to call init on it
+189 |             if let decodableType = T.self as? Decodable.Type {
+    |                                               `- warning: use of protocol 'Decodable' as a type must be written 'any Decodable'; this will be an error in a future Swift language mode [#ExistentialAny]
+190 |                 let value = try decodableType.init(from: try container.superDecoder(forKey: .result))
+191 |                 guard let typedValue = value as? T else {
+
+[#ExistentialAny]: <https://docs.swift.org/compiler/documentation/diagnostics/existential-any>
+[194 / 221] _CircuitBreaker
+[200 / 223] PipelineKitResilience
+[209 / 224] PipelineKitSecurity
+[226 / 241] PipelineKitSecurity
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Sources/PipelineKitSecurity/AuditLogger.swift:169:41: warning: 'withValue(_:operation:isolation:file:line:)' is deprecated: Prefer the 'nonisolated(nonsending)' overload with stricter execution on caller context semantics: withValue(_:operation:file:line:) [#DeprecatedDeclaration]
+167 |         operation: () async throws -> T
+168 |     ) async rethrows -> T {
+169 |         try await AuditContext.$current.withValue(context, operation: operation)
+    |                                         `- warning: 'withValue(_:operation:isolation:file:line:)' is deprecated: Prefer the 'nonisolated(nonsending)' overload with stricter execution on caller context semantics: withValue(_:operation:file:line:) [#DeprecatedDeclaration]
+170 |     }
+171 | }
+
+[#DeprecatedDeclaration]: <https://docs.swift.org/compiler/documentation/diagnostics/deprecated-declaration>
+[233 / 240] PipelineKitSecurity
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer/Sources/Consumer/CompiledExamples.swift:383:5: warning: initialization of immutable value 'encryptor' was never used; consider replacing with assignment to '_' or removing it [#NoUsage]
+381 | 
+382 | let keyStore = DemoKeyStore()
+383 | let encryptor = await CommandEncryptor(keyStore: keyStore, keyRotationInterval: 86400) // 24 hours
+    |     `- warning: initialization of immutable value 'encryptor' was never used; consider replacing with assignment to '_' or removing it [#NoUsage]
+384 | 
+385 | }
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[238 / 243] Consumer-product
+error: SwiftCompile normal arm64 /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer/Sources/Consumer/main.swift failed with a nonzero exit code. Command line:     cd /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization
+    builtin-SwiftPerFileCompile main.swift
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer/Sources/Consumer/main.swift:238:42: error: 'getMiddlewareDetails' is inaccessible due to 'internal' protection level
+236 |             await builder.with(early, order: .authentication)
+237 |             let pipeline = try await builder.build()
+238 |             let details = await pipeline.getMiddlewareDetails()
+    |                                          `- error: 'getMiddlewareDetails' is inaccessible due to 'internal' protection level
+239 |             try require(details.map(\.priority) == [100, 200, 200, 400, 500, 700], "effective builder order")
+240 |             send = { try await pipeline.execute($0, context: CommandContext()) }
+
+PipelineKit.StandardPipeline.getMiddlewareDetails:2:15: note: 'getMiddlewareDetails()' declared here
+1 | generic actor StandardPipeline {
+2 | internal func getMiddlewareDetails() -> [(type: any PipelineKitCore.Middleware.Type, priority: Int)]}
+  |               `- note: 'getMiddlewareDetails()' declared here
+3 | 
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer/Sources/Consumer/main.swift:239:37: error: cannot infer key path type from context; consider explicitly specifying a root type
+237 |             let pipeline = try await builder.build()
+238 |             let details = await pipeline.getMiddlewareDetails()
+239 |             try require(details.map(\.priority) == [100, 200, 200, 400, 500, 700], "effective builder order")
+    |                                     `- error: cannot infer key path type from context; consider explicitly specifying a root type
+240 |             send = { try await pipeline.execute($0, context: CommandContext()) }
+241 |         } else if route == "erased" {
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer/Sources/Consumer/main.swift:356:49: error: missing argument for parameter 'ttl' in call
+354 |         case 0: stage = CachedMiddleware(wrapping: Passthrough(), cache: memory, keyGenerator: key)
+355 |         case 1: stage = ConditionalCachedMiddleware(wrapping: Passthrough(), cache: memory, keyGenerator: key, shouldCache: { _, _ in true })
+356 |         case 2: stage = SimpleCachingMiddleware(commandType: IdentityQuery.self, keyGenerator: key)
+    |                                                 `- error: missing argument for parameter 'ttl' in call
+357 |         default: stage = CachingMiddleware(cache: bytes, commandType: IdentityQuery.self, keyGenerator: key)
+358 |         }
+
+PipelineKitCache.SimpleCachingMiddleware.init:2:20: note: 'init(ttl:maxSize:commandType:keyGenerator:)' declared here
+1 | class SimpleCachingMiddleware {
+2 | public convenience init<C>(ttl: TimeInterval, maxSize: Int? = nil, commandType: C.Type, keyGenerator: any PipelineKitCache.CacheKeyGenerator) where C : PipelineKitCore.Command}
+  |                    `- note: 'init(ttl:maxSize:commandType:keyGenerator:)' declared here
+3 | 
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer/Sources/Consumer/main.swift:463:52: error: actor-isolated property 'entries' can not be referenced from a nonisolated autoclosure
+418 |     private(set) var active = 0
+419 |     private(set) var peak = 0
+420 |     private(set) var entries = 0
+    |                      `- note: property declared here
+421 |     private var observers: [CheckedContinuation<Void, Never>] = []
+422 |     func enter() {
+    :
+461 |                 return count
+462 |             }
+463 |             try require(count == 10 && (await work.entries) == 10, "all scheduled work reached handler")
+    |                                                    `- error: actor-isolated property 'entries' can not be referenced from a nonisolated autoclosure
+464 |             try require(await work.peak == 2, "capacity bound and actual concurrency")
+465 |             try require(await work.active == 0, "all handler work settled")
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer/Sources/Consumer/main.swift:463:41: error: 'await' in an autoclosure that does not support concurrency
+461 |                 return count
+462 |             }
+463 |             try require(count == 10 && (await work.entries) == 10, "all scheduled work reached handler")
+    |                                         `- error: 'await' in an autoclosure that does not support concurrency
+464 |             try require(await work.peak == 2, "capacity bound and actual concurrency")
+465 |             try require(await work.active == 0, "all handler work settled")
+Failed frontend command:
+/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swift-frontend -frontend -c /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer/Sources/Consumer/CompiledExamples.swift -primary-file /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer/Sources/Consumer/main.swift -emit-dependencies-path /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer/.build/out/Intermediates.noindex/Consumer.build/Debug/Consumer-p.build/Objects-normal/arm64/main.d -emit-const-values-path /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer/.build/out/Intermediates.noindex/Consumer.build/Debug/Consumer-p.build/Objects-normal/arm64/main.swiftconstvalues -emit-reference-dependencies-path /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer/.build/out/Intermediates.noindex/Consumer.build/Debug/Consumer-p.build/Objects-normal/arm64/main.swiftdeps -serialize-diagnostics-path /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer/.build/out/Intermediates.noindex/Consumer.build/Debug/Consumer-p.build/Objects-normal/arm64/main.dia -target arm64-apple-macos26.0 -module-can-import-version Compression 18 0 -module-can-import-version Darwin 428.40.1 0 -module-can-import-version Network 5000.0.36 6681.41.1 -disable-cross-import-overlay-search -swift-module-cross-import Darwin /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/Darwin.swiftcrossimport/xlocale.swiftoverlay -load-resolved-plugin /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib/swift/host/plugins/libFoundationMacros.dylib\#/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/bin/swift-plugin-server\#FoundationMacros -load-resolved-plugin /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib/swift/host/plugins/libObservationMacros.dylib\#/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/bin/swift-plugin-server\#ObservationMacros -load-resolved-plugin /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib/swift/host/plugins/libSwiftMacros.dylib\#/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/bin/swift-plugin-server\#SwiftMacros -disable-implicit-swift-modules -Xcc -fno-implicit-modules -Xcc -fno-implicit-module-maps -explicit-swift-module-map-file /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer/.build/out/Intermediates.noindex/Consumer.build/Debug/Consumer-p.build/Objects-normal/arm64/Consumer-dependencies-1.json -Xllvm -aarch64-use-tbi -enable-objc-interop -stack-check -sdk /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.2.sdk -I /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer/.build/out/Products/Debug -Isystem /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib -F /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer/.build/out/Products/Debug/PackageFrameworks -F /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer/.build/out/Products/Debug -F /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks -module-cache-path /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer/.build/out/Intermediates.noindex/SwiftExplicitPrecompiledModules -no-color-diagnostics -Xcc -fno-color-diagnostics -enable-testing -g -debug-info-format\=dwarf -dwarf-version\=5 -swift-version 6 -Onone -D SWIFT_PACKAGE -D DEBUG -D Xcode -serialize-debugging-options -enable-experimental-feature DebugDescriptionMacro -empty-abi-descriptor -validate-clang-modules-once -clang-build-session-file /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer/.build/out/ModuleCache.noindex/Session.modulevalidation -Xcc -working-directory -Xcc /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization -enable-anonymous-context-mangled-names -file-compilation-dir /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization -Xcc -fmodule-map-file\=/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer/.build/checkouts/swift-atomics/Sources/_AtomicsShims/include/module.modulemap -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -Xcc -ivfsstatcache -Xcc /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer/.build/out/SDKStatCaches.noindex/macosx27.2-26B118-d56355c2f463f349a93388c94f7bc0b5a7ff82d74745d5ef33555b35c4238456.sdkstatcache -Xcc -fmodules-prune-interval\=86400 -Xcc -fmodules-prune-after\=345600 -Xcc -I/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer/.build/checkouts/swift-atomics/Sources/_AtomicsShims/include -Xcc -I/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer/.build/out/Products/Debug/include -Xcc -I/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer/.build/out/Intermediates.noindex/Consumer.build/Debug/Consumer-p.build/DerivedSources-normal/arm64 -Xcc -I/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer/.build/out/Intermediates.noindex/Consumer.build/Debug/Consumer-p.build/DerivedSources/arm64 -Xcc -I/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer/.build/out/Intermediates.noindex/Consumer.build/Debug/Consumer-p.build/DerivedSources -Xcc -DSWIFT_PACKAGE -Xcc -DDEBUG\=1 -no-auto-bridging-header-chaining -module-name Consumer -package-name consumer -const-gather-protocols-file /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer/.build/out/Intermediates.noindex/Consumer.build/Debug/Consumer-p.build/Objects-normal/arm64/Consumer_const_extract_protocols.json -disable-clang-spi -clang-target arm64-apple-macos27.2 -target-sdk-version 27.2 -target-sdk-name macosx27.2 -in-process-plugin-server-path /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/libSwiftInProcPluginServer.dylib -o /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer/.build/out/Intermediates.noindex/Consumer.build/Debug/Consumer-p.build/Objects-normal/arm64/main.o -debug-module-path /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer/.build/out/Intermediates.noindex/Consumer.build/Debug/Consumer-p.build/Objects-normal/arm64/Consumer.swiftmodule -index-unit-output-path /Consumer.build/Debug/Consumer-p.build/Objects-normal/arm64/main.o -index-store-path /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer/.build/out -index-system-modules
+error: Build failed

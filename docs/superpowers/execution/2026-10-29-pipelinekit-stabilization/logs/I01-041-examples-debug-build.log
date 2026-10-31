@@ -1,0 +1,92 @@
+Fetching https://github.com/apple/swift-docc-plugin from cache
+Fetching https://github.com/swiftlang/swift-docc-symbolkit from cache
+Fetching https://github.com/apple/swift-log.git from cache
+Fetching https://github.com/apple/swift-atomics.git from cache
+Fetching https://github.com/apple/swift-crypto.git from cache
+Fetching https://github.com/apple/swift-asn1.git from cache
+Fetched https://github.com/apple/swift-docc-plugin from cache (0.03s)
+Fetched https://github.com/swiftlang/swift-docc-symbolkit from cache (0.03s)
+Fetched https://github.com/apple/swift-crypto.git from cache (0.03s)
+Fetched https://github.com/apple/swift-asn1.git from cache (0.04s)
+Fetched https://github.com/apple/swift-atomics.git from cache (0.07s)
+Fetched https://github.com/apple/swift-log.git from cache (0.08s)
+Creating working copy for https://github.com/apple/swift-asn1.git
+Creating working copy for https://github.com/apple/swift-log.git
+Creating working copy for https://github.com/apple/swift-atomics.git
+Creating working copy for https://github.com/apple/swift-docc-plugin
+Creating working copy for https://github.com/apple/swift-crypto.git
+Creating working copy for https://github.com/swiftlang/swift-docc-symbolkit
+Working copy of https://github.com/apple/swift-asn1.git resolved at 1.4.0
+Working copy of https://github.com/swiftlang/swift-docc-symbolkit resolved at 1.0.0
+Working copy of https://github.com/apple/swift-atomics.git resolved at 1.3.1
+Working copy of https://github.com/apple/swift-docc-plugin resolved at 1.5.0
+Working copy of https://github.com/apple/swift-log.git resolved at 1.15.0
+Working copy of https://github.com/apple/swift-crypto.git resolved at 4.5.1
+Building for debugging...
+[Computing dependencies]
+[Pre-planning 1 / 568]
+[Planning deferred tasks]
+[119 / 258] swift-crypto_Crypto
+[124 / 258]
+[135 / 270]
+[156 / 327] _AtomicsShims
+[161 / 327]
+[181 / 365]
+[185 / 365] Atomics
+[187 / 365] Atomics
+[188 / 365] Atomics
+[212 / 366]
+[214 / 366] Logging
+[221 / 378] PipelineKitCore
+[229 / 395] Logging
+[236 / 395]
+[239 / 395]
+[242 / 395]
+[243 / 395]
+[245 / 395]
+[263 / 395] Crypto
+[264 / 395] PipelineKitCore
+[276 / 395] PipelineKitCore
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Sources/PipelineKitCore/Context/ExecutionContext.swift:94:45: warning: 'withValue(_:operation:isolation:file:line:)' is deprecated: Prefer the 'nonisolated(nonsending)' overload with stricter execution on caller context semantics: withValue(_:operation:file:line:) [#DeprecatedDeclaration]
+ 92 |         operation: () async throws -> T
+ 93 |     ) async rethrows -> T {
+ 94 |         try await ExecutionContext.$current.withValue(
+    |                                             `- warning: 'withValue(_:operation:isolation:file:line:)' is deprecated: Prefer the 'nonisolated(nonsending)' overload with stricter execution on caller context semantics: withValue(_:operation:file:line:) [#DeprecatedDeclaration]
+ 95 |             ExecutionContext(trace: snapshot.trace, progress: progress),
+ 96 |             operation: operation,
+
+[#DeprecatedDeclaration]: <https://docs.swift.org/compiler/documentation/diagnostics/deprecated-declaration>
+[293 / 395] PipelineKitCore
+[297 / 396] PipelineKit
+[314 / 413] PipelineKit
+[327 / 416] PipelineKit
+[327 / 416] _ResilienceFoundation
+[339 / 444] BasicExample-product
+[362 / 446] PipelineKitObservability
+[365 / 446] _ResilienceFoundation
+[383 / 449] BasicExample-product
+[389 / 466] _CircuitBreaker
+[394 / 466] _RateLimiting
+[414 / 466] _RateLimiting
+[428 / 479] _RateLimiting
+[438 / 480] _ResilienceCore
+[446 / 480] _CircuitBreaker
+[446 / 480] PipelineKitResilience
+[463 / 484] MetricsSamplingExample-product
+[464 / 484] AdvancedExample-product
+[482 / 503] PipelineKitSecurity
+[486 / 503] PipelineKitSecurity
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Sources/PipelineKitSecurity/AuditLogger.swift:169:41: warning: 'withValue(_:operation:isolation:file:line:)' is deprecated: Prefer the 'nonisolated(nonsending)' overload with stricter execution on caller context semantics: withValue(_:operation:file:line:) [#DeprecatedDeclaration]
+167 |         operation: () async throws -> T
+168 |     ) async rethrows -> T {
+169 |         try await AuditContext.$current.withValue(context, operation: operation)
+    |                                         `- warning: 'withValue(_:operation:isolation:file:line:)' is deprecated: Prefer the 'nonisolated(nonsending)' overload with stricter execution on caller context semantics: withValue(_:operation:file:line:) [#DeprecatedDeclaration]
+170 |     }
+171 | }
+
+[#DeprecatedDeclaration]: <https://docs.swift.org/compiler/documentation/diagnostics/deprecated-declaration>
+[495 / 504] PipelineKitSecurity
+[499 / 504] TypeSafeEncryptionExample-product
+[502 / 506] TypeSafeEncryptionExample-product
+[504 / 506] TypeSafeEncryptionExample-product
+Build complete! (9.76 sec)
