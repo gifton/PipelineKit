@@ -956,8 +956,8 @@ with no survivors, timeout, termination actions or runner error. Root/runner sta
 The completion suite uses all five enum aliases/three actual codecs with100000-byte compressible
 and independently generated high-entropy inputs; nil/17/n-1/n/n+1 hints, n-1/n/n+1 limits, omitted
 hints, Int.max bounded hints/limits,0/1/99/100/101 sizes,64KiB boundaries, invalid arguments,
-truncated/corrupt/stall fixtures, trailing/concatenated streams and encoded-empty streams. Its780
-public decode calls produce370 byte-for-byte complete results and410 explicit errors. Five raw
+truncated/corrupt/stall fixtures, trailing/concatenated streams and encoded-empty streams. Its 680
+public decode calls produce 270 byte-for-byte complete results and 410 explicit errors. Five raw
 nonfinal no-progress observations establish the stall fixtures. No positive prefix is counted as success.
 
 `logs/S05-validation-summary.json` retains exact commands, all source/log/metadata/process hashes,
@@ -981,3 +981,31 @@ caller exists; root tests do not compile that separate package or Markdown snipp
 Examples/snippet compilation, next-minor Breaking entry, floor/Linux, Release/TSan and integration.
 Linux's absent Compression branch is unavailable, not a decoder pass. SCP-08 remains open. This
 entry supplies local SCP-07 implementation evidence; the controller owns closure and review status.
+
+
+### S05-N1 evidence correction
+
+Independent review found an arithmetic error in the authored coverage totals, overstating
+successful decode calls by 100. The eight existing test loops contain **680 public decode
+outcomes: 270 full-data successes and 410 explicit errors**. The five raw nonfinal stall
+observations are separate. The per-method derivation is:
+
+| Method | Full-data successes | Explicit errors |
+| --- | ---: | ---: |
+| `testDecodeCompletesOrThrowsForEverySizeHintAndLimit` | 110 (5 × 2 × (5 × 2 + 1)) | 50 (5 × 2 × 5) |
+| `testSmallPayloadRoundTrips` | 100 (5 × 5 × 2 × 2) | 30 (5 × 3 × 2) |
+| `testExactLimitAtWorkingBufferBoundary` | 15 (5 × 3) | 15 (5 × 3) |
+| `testInvalidArgumentsAreRejectedBeforeEmptyInputCompatibility` | 5 (5) | 50 (5 × 2 × (2 + 3)) |
+| `testHugeHintsAndLimitsDoNotRequireHugeAllocation` | 35 (5 × (3 × 2 + 1)) | 0 (0) |
+| `testTruncatedCorruptAndStalledStreamsNeverReturnPrefixes` | 0 (0) | 75 (5 × 5 × 3) |
+| `testTrailingAndConcatenatedStreamsAreRejected` | 0 (0) | 180 (5 × 3 × 2 × 3 × 2) |
+| `testEncodedEmptyStreamRequiresCompletionAndRejectsTrailingInput` | 5 (5) | 10 (5 × 2) |
+| **Total public decode calls** | **270** | **410** |
+
+This corrects only authored counts and adds their derivation; no production, test, migration,
+raw run, source snapshot, or probe bytes changed, and no tests were rerun. Verification matched
+all four final source hashes and all 39 raw run artifact hashes to the existing summary, plus
+the probe source hash. All 67 protected implementation/migration/raw-source/probe files remain
+byte-identical to implementation commit `7cd92081320f59163c596c7351345415ac4e1caa`.
+The counts were authored directly; the capture script records provenance and is not a matrix
+summarizer. S05-N2 compiler-warning debt and separate C02-N1 remain deferred.

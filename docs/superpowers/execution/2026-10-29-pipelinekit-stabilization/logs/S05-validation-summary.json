@@ -654,10 +654,76 @@
   "completion_matrix": {
     "enum_cases": 5,
     "platform_codecs": 3,
-    "decode_outcomes": 780,
-    "full_data_successes": 370,
+    "decode_outcomes": 680,
+    "full_data_successes": 270,
     "explicit_errors": 410,
-    "raw_no_finalize_stall_observations": 5
+    "raw_no_finalize_stall_observations": 5,
+    "per_method_counts": [
+      {
+        "method": "testDecodeCompletesOrThrowsForEverySizeHintAndLimit",
+        "full_data_successes": 110,
+        "explicit_errors": 50,
+        "success_derivation": "5 \u00d7 2 \u00d7 (5 \u00d7 2 + 1)",
+        "error_derivation": "5 \u00d7 2 \u00d7 5"
+      },
+      {
+        "method": "testSmallPayloadRoundTrips",
+        "full_data_successes": 100,
+        "explicit_errors": 30,
+        "success_derivation": "5 \u00d7 5 \u00d7 2 \u00d7 2",
+        "error_derivation": "5 \u00d7 3 \u00d7 2"
+      },
+      {
+        "method": "testExactLimitAtWorkingBufferBoundary",
+        "full_data_successes": 15,
+        "explicit_errors": 15,
+        "success_derivation": "5 \u00d7 3",
+        "error_derivation": "5 \u00d7 3"
+      },
+      {
+        "method": "testInvalidArgumentsAreRejectedBeforeEmptyInputCompatibility",
+        "full_data_successes": 5,
+        "explicit_errors": 50,
+        "success_derivation": "5",
+        "error_derivation": "5 \u00d7 2 \u00d7 (2 + 3)"
+      },
+      {
+        "method": "testHugeHintsAndLimitsDoNotRequireHugeAllocation",
+        "full_data_successes": 35,
+        "explicit_errors": 0,
+        "success_derivation": "5 \u00d7 (3 \u00d7 2 + 1)",
+        "error_derivation": "0"
+      },
+      {
+        "method": "testTruncatedCorruptAndStalledStreamsNeverReturnPrefixes",
+        "full_data_successes": 0,
+        "explicit_errors": 75,
+        "success_derivation": "0",
+        "error_derivation": "5 \u00d7 5 \u00d7 3"
+      },
+      {
+        "method": "testTrailingAndConcatenatedStreamsAreRejected",
+        "full_data_successes": 0,
+        "explicit_errors": 180,
+        "success_derivation": "0",
+        "error_derivation": "5 \u00d7 3 \u00d7 2 \u00d7 3 \u00d7 2"
+      },
+      {
+        "method": "testEncodedEmptyStreamRequiresCompletionAndRejectsTrailingInput",
+        "full_data_successes": 5,
+        "explicit_errors": 10,
+        "success_derivation": "5",
+        "error_derivation": "5 \u00d7 2"
+      }
+    ],
+    "correction": {
+      "finding": "S05-N1",
+      "scope": "Authored totals only; no tests rerun or raw evidence changed.",
+      "final_source_hashes_verified": 4,
+      "raw_artifact_hashes_verified": 39,
+      "protected_files_identical_to_7cd9208": 67,
+      "probe_source_hash_verified": true
+    }
   },
   "runner_sha256": "9fad75b0f9d7216c7467bab2d3b9fd341ef5e2313fd4365c491234eafb480dd0",
   "capture_script_sha256": "43251b50302c030b654e7ab91e3c4916a82a09256b52b1bebd8dcbd9dbdcc0f0",

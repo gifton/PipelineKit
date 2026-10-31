@@ -97,9 +97,9 @@ or compression-level support is claimed.
   streams must complete; their trailing/truncated variants must error. This is distinct from
   the raw-empty compatibility path.
 
-The eight-test matrix performs 780 public decode calls: 370 full-data successes and 410 explicit
+The eight-test matrix performs 680 public decode calls: 270 full-data successes and 410 explicit
 errors, plus five raw no-FINALIZE stall observations. These are loop-cell counts, not a claim of
-780 XCTest methods. The middleware suite has six tests, including new command/result metadata
+680 XCTest methods. The middleware suite has six tests, including new command/result metadata
 and byte-result assertions for beneficial small inputs, all-codec one-byte no-benefit inputs,
 100-byte no-benefit LZ4, and a beneficial 1,024-byte LZ4 control.
 
@@ -191,3 +191,31 @@ failure, initialization failure or minimum-floor result is claimed. The existing
 maxCompressedSize helper is unchanged; the utility's allocation now uses checked additions.
 SCP-08 codec aliases and levels remain open. Independent review and integration remain the
 controller's responsibility; no push, merge, publish or routine user approval was performed.
+
+
+### S05-N1 evidence correction
+
+Independent review found an arithmetic error in the authored coverage totals, overstating
+successful decode calls by 100. The eight existing test loops contain **680 public decode
+outcomes: 270 full-data successes and 410 explicit errors**. The five raw nonfinal stall
+observations are separate. The per-method derivation is:
+
+| Method | Full-data successes | Explicit errors |
+| --- | ---: | ---: |
+| `testDecodeCompletesOrThrowsForEverySizeHintAndLimit` | 110 (5 × 2 × (5 × 2 + 1)) | 50 (5 × 2 × 5) |
+| `testSmallPayloadRoundTrips` | 100 (5 × 5 × 2 × 2) | 30 (5 × 3 × 2) |
+| `testExactLimitAtWorkingBufferBoundary` | 15 (5 × 3) | 15 (5 × 3) |
+| `testInvalidArgumentsAreRejectedBeforeEmptyInputCompatibility` | 5 (5) | 50 (5 × 2 × (2 + 3)) |
+| `testHugeHintsAndLimitsDoNotRequireHugeAllocation` | 35 (5 × (3 × 2 + 1)) | 0 (0) |
+| `testTruncatedCorruptAndStalledStreamsNeverReturnPrefixes` | 0 (0) | 75 (5 × 5 × 3) |
+| `testTrailingAndConcatenatedStreamsAreRejected` | 0 (0) | 180 (5 × 3 × 2 × 3 × 2) |
+| `testEncodedEmptyStreamRequiresCompletionAndRejectsTrailingInput` | 5 (5) | 10 (5 × 2) |
+| **Total public decode calls** | **270** | **410** |
+
+This corrects only authored counts and adds their derivation; no production, test, migration,
+raw run, source snapshot, or probe bytes changed, and no tests were rerun. Verification matched
+all four final source hashes and all 39 raw run artifact hashes to the existing summary, plus
+the probe source hash. All 67 protected implementation/migration/raw-source/probe files remain
+byte-identical to implementation commit `7cd92081320f59163c596c7351345415ac4e1caa`.
+The counts were authored directly; the capture script records provenance and is not a matrix
+summarizer. S05-N2 compiler-warning debt and separate C02-N1 remain deferred.
