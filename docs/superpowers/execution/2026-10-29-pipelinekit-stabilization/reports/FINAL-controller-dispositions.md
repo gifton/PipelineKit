@@ -1,6 +1,6 @@
 # Controller dispositions for final review boundaries
 
-These dispositions address all15 numbered items in FINAL-review.md. They do not close deferred findings or change the approved84-ID accounting.
+These dispositions address all 15 numbered items in FINAL-review.md. They record the initial review triage; the final acceptance section below records completion of the required corrections. They do not close deferred findings or change the approved 84-ID accounting.
 
 1. Retain all47 unselected IDs open with their exact approved classifications/reasons. This implements the owner's original scope.
 2. Amend the proposed deferral under ruling20: include known CommandContext arbitrary-value retirement paths in the same final correction as the cache class, with a mechanical public-path matrix. The original context behavior remains correctly described as pre-existing, not newly introduced by C03. No general callback-safety claim follows.
@@ -18,4 +18,8 @@ These dispositions address all15 numbered items in FINAL-review.md. They do not 
 14. Retain observed-lineage watchdog guarantees and macOS identity/signal/unobserved-lineage limitations.
 15. Keep actual Swift6.2/OS26, Linux, hosted security/status and branch-protection execution as named release-readiness gaps. No cancelled/skipped ordinary CI-policy expansion; deferred CI IDs stay open.
 
-Final minor triage: correct F2; remove the17 unrelated fixture configuration warnings with supported explicit options while preserving each test's intent; strengthen R05-N1 adaptive retention evidence; retain I01-N2 inherited compiler debt without describing results as warning-free. I01-N3 is already corrected. One combined final fix worker and one scoped fresh review will assess these corrections.
+Final minor triage: correct F2; remove the 17 unrelated fixture configuration warnings with supported explicit options while preserving each test's intent; strengthen R05-N1 adaptive retention evidence; retain I01-N2 inherited compiler debt without describing results as warning-free. I01-N3 is already corrected. One combined final fix worker and one scoped fresh review will assess these corrections.
+
+## Final acceptance
+
+The combined correction is accepted after [fresh scoped re-review](FINAL-rereview.md) of `2c3001b..59f1b23`: all five required items addressed, no new Critical, Important or Minor breakage. Item 2's bounded CommandContext retirement extension and item 5's adaptive discriminator are implemented. F2 and the 17 unrelated runtime fixture warnings are resolved. The remaining numbered limits above continue to apply; pre-existing direct formatting/metadata-getter invocation under context locks remains distinct from retired-value ownership. Inherited compiler debt and unavailable release checks remain open. See the [current 84-ID ledger](FINAL-ledger.json).

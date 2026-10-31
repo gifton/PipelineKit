@@ -1,5 +1,7 @@
 # Stabilization validation
 
+This is a chronological evidence record. Earlier pending-review statements describe their recorded stage; [final correction acceptance](#final-correction-acceptance) and the [closure ledger](CLOSURE.md) give the current outcome.
+
 Source base: `ddffb41d617c57197c70407701c017c987be0900` (audited source `a93a713d937e25f68855f22b0720f33c93329b09`). Toolchain/platform: Swift 6.4.2, Xcode 27.2, macOS 27.0.1, arm64. Run metadata and full output are in `logs/`; the process-group watchdog command is `python3 repros/run_check.py --id ID --timeout SECONDS -- COMMAND...` from this directory's worktree root (with its full relative path).
 
 | ID | Command after watchdog arguments | Outcome |
@@ -1283,3 +1285,13 @@ Commands used the explicit stabilization worktree and original `python3 docs/sup
 ```
 
 Reconciliation: `python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/final_fix_reconcile_tests.py debug FINAL-FIX-008-debug-discovery FINAL-FIX-009-debug-full` and the equivalent `release FINAL-FIX-010-release-discovery FINAL-FIX-011-release-full`. Final aggregation: `python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/final_fix_evidence.py`.
+
+### Final correction acceptance
+
+Implementation `63186e5` and evidence `59f1b23` complete the single final correction wave. Fresh Astra/max [scoped review](reports/FINAL-rereview.md) marks FINAL-RV-F1, ruling 20's adjacent context retirement class, FINAL-RV-F2, fixture configuration warnings and R05-N1 all addressed. No new Critical, Important or Minor breakage was found; no scoped finding remains open. All 15 prior boundary decisions remain explicitly dispositioned in [controller records](reports/FINAL-controller-dispositions.md).
+
+Final production/test-state results are **1,144 XCTest passes + 4 skips in Debug, 1,141 + 4 in Release, and 20 Swift Testing passes in each**. Removing the inactive negative-capacity entrypoint from ordinary passes gives 1,143/1,140; retained S06 subprocess evidence supports that separate trap. All discovered selections, starts and outcomes reconcile. The post-correction targeted sanitizer run passes 20 actual cases, and rebuilt public cache consumers pass four routes in both configurations. Earlier I01 mode/Examples/benchmark evidence retains its original provenance and is not relabeled post-correction. Exact commands, six new lifetime methods, failed-iteration classifications, source-state identity and limits are in [the implementer report](reports/FINAL-fix-implementer.md).
+
+Controller checks matched 361 final source inputs and 78 evidence artifacts, the restored Consumer lock and its separately preserved generated build input. The rejected bundle invocation 003 has an explicitly redacted environment diagnostic with original/redacted hashes; command/status/process evidence remains, and it is not used as production proof. No sensitive value is printed or committed. The 17 unrelated runtime configuration warnings are resolved; inherited compiler diagnostics remain. [Final preservation](reports/FINAL-preservation.json) matches all 614 original source inputs and 170 captured audit artifacts in both trees plus the guide; original HEAD and tracked status remain unchanged.
+
+The [current 84-ID ledger](reports/FINAL-ledger.json) now accepts all 37 selected findings locally, including all 17 high-impact entries, and retains all 47 deferred IDs open. Actual Swift 6.2/OS 26, Linux, hosted security/status and branch-protection checks remain named release-readiness gaps. No push, merge, release, tag or destructive cleanup is part of this acceptance.
