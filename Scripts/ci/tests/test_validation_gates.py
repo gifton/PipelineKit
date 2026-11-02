@@ -4,6 +4,7 @@ from pathlib import Path
 import subprocess
 import shutil
 import tempfile
+import textwrap
 import unittest
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -93,6 +94,100 @@ else:
         result, calls = self.run_runner('--filter', 'NoSuchTest')
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual(len(calls), 1)
+
+class PerformanceWorkflowTests(unittest.TestCase):
+    """Exercise the real workflow shell with controlled Swift process outcomes."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.dir = Path(self.tmp.name)
+        swift = self.dir / 'swift'
+        swift.write_text('''#!/usr/bin/env python3
+import json, os, pathlib, sys
+args = sys.argv[1:]
+with open(os.environ['CALLS'], 'a') as f:
+    f.write(json.dumps(args) + "\\n")
+artifact = pathlib.Path(os.environ['ALL_TESTS_BUILT'])
+is_release = ('--configuration' in args and args[args.index('--configuration') + 1] == 'release') or ('-c' in args and args[args.index('-c') + 1] == 'release')
+if not is_release:
+    sys.exit('expected Release configuration')
+if args[0] == 'build':
+    if '--build-tests' in args:
+        if os.environ['COMPILE_FAILURE'] == 'true':
+            sys.exit(42)
+        artifact.touch()
+elif args[0] == 'test':
+    if '--skip-build' not in args:
+        if os.environ['COMPILE_FAILURE'] == 'true':
+            sys.exit(42)
+        artifact.touch()
+    if not artifact.exists():
+        sys.exit('test executable missing')
+    sys.exit(int(os.environ['BENCHMARK_EXIT']))
+else:
+    sys.exit('unexpected Swift command')
+''')
+        swift.chmod(0o755)
+
+    def run_step(self, name):
+        # Read the scalar/block shell directly from the workflow, so this test
+        # exercises its failure handling rather than a duplicate implementation.
+        lines = (ROOT / '.github/workflows/ci.yml').read_text().splitlines()
+        start = lines.index(f'    - name: {name}') + 1
+        for index in range(start, len(lines)):
+            if lines[index].startswith('      run: '):
+                value = lines[index].removeprefix('      run: ')
+                if value != '|':
+                    return value
+                block = []
+                for line in lines[index + 1:]:
+                    if line and not line.startswith('        '):
+                        break
+                    block.append(line)
+                return textwrap.dedent('\n'.join(block))
+        self.fail(f'Missing shell step: {name}')
+
+    def run_workflow(self, enforcement='false', compile_failure='false', benchmark_exit='0'):
+        calls_path = self.dir / 'calls'
+        calls_path.write_text('')
+        artifact = self.dir / 'all-tests-built'
+        artifact.unlink(missing_ok=True)
+        env = dict(os.environ, PATH=str(self.dir) + os.pathsep + os.environ['PATH'],
+                   CALLS=str(calls_path), ALL_TESTS_BUILT=str(artifact),
+                   COMPILE_FAILURE=compile_failure, BENCHMARK_EXIT=benchmark_exit)
+        for name in ('Build Performance Tests', 'Run Performance Tests'):
+            script = self.run_step(name).replace('${{ env.ENFORCE_PERFORMANCE }}', enforcement)
+            result = subprocess.run(['bash', '-e', '-o', 'pipefail', '-c', script],
+                                    env=env, cwd=self.dir, text=True, capture_output=True, timeout=10)
+            if result.returncode:
+                break
+        calls = [json.loads(line) for line in calls_path.read_text().splitlines()]
+        return result, calls
+
+    def test_unrelated_test_compile_failure_stops_before_benchmarks(self):
+        for enforcement in ('false', 'true'):
+            with self.subTest(enforcement=enforcement):
+                result, calls = self.run_workflow(enforcement, compile_failure='true')
+                self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+                self.assertFalse(any(call[0] == 'test' for call in calls), calls)
+
+    def test_benchmark_failures_follow_enforcement(self):
+        for enforcement in ('false', 'true'):
+            with self.subTest(enforcement=enforcement):
+                result, calls = self.run_workflow(enforcement, benchmark_exit='7')
+                self.assertEqual(result.returncode == 0, enforcement == 'false', result.stdout + result.stderr)
+                self.assertTrue(any(call[0] == 'test' for call in calls), calls)
+
+    def test_success_compiles_once_and_runs_performance_selection(self):
+        result, calls = self.run_workflow()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        compilations = [call for call in calls if call[0] == 'build' or '--skip-build' not in call]
+        self.assertEqual(len(compilations), 1, calls)
+        executions = [call for call in calls if call[0] == 'test']
+        self.assertEqual(len(executions), 1, calls)
+        self.assertEqual(executions[0][executions[0].index('--filter') + 1], 'PipelineKitPerformanceTests')
+
 
 class StatusTests(unittest.TestCase):
     def test_security_result_matrix_and_linux_advisory(self):

@@ -84,18 +84,18 @@ final class StatsDStartupContractTests: XCTestCase {
         let calls = (1...3).map { index in Task { await exporter.counter("closing.\(index)") } }
         await waitForStartupWaiters(3, exporter: exporter)
         await factory.waitForStarts(1)
-        let finishedClose = Mutex(0)
+        let finishedClose = StartupCloseCounter()
         let firstClose = Task {
             await exporter.close()
-            finishedClose.withLock { $0 += 1 }
+            finishedClose.increment()
         }
         let secondClose = Task {
             await exporter.close()
-            finishedClose.withLock { $0 += 1 }
+            finishedClose.increment()
         }
         while !(await exporter.isClosed) { await Task.yield() }
         while !factory.cancellationObserved.withLock({ $0 }) { await Task.yield() }
-        XCTAssertEqual(finishedClose.withLock { $0 }, 0)
+        XCTAssertEqual(finishedClose.value, 0)
         await exporter.counter("after.close.entry")
         XCTAssertEqual(errors.values, ["closed"])
         // The fixture deliberately ignores cancellation until released here.
@@ -104,7 +104,7 @@ final class StatsDStartupContractTests: XCTestCase {
         await secondClose.value
         for call in calls { await call.value }
         await exporter.close()
-        XCTAssertEqual(finishedClose.withLock { $0 }, 2)
+        XCTAssertEqual(finishedClose.value, 2)
         XCTAssertEqual(errors.values, Array(repeating: "closed", count: 4))
         let packets = await transport.packets
         let closes = await transport.closes
@@ -252,6 +252,12 @@ final class StatsDStartupContractTests: XCTestCase {
         // external run_check.py watchdog bounds a broken registration path.
         while await exporter.startupWaiterCount != count { await Task.yield() }
     }
+}
+
+private final class StartupCloseCounter: Sendable {
+    private let storage = Mutex<Int>(0)
+    var value: Int { storage.withLock { $0 } }
+    func increment() { storage.withLock { $0 += 1 } }
 }
 
 private final class StartupErrors: Sendable {
