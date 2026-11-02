@@ -7,6 +7,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Breaking — next minor release
+
+See the [compiled migration guide](docs/migrations/first-stabilization-batch.md) before upgrading.
+No release version or tag is selected by this batch.
+
+- Validation and sanitization require explicit async capability conformance by default;
+  `.ifPresent` is an explicit opt-out. Mixed builder families now retain every configured stage
+  and its effective order, which can activate previously omitted policy checks.
+- Command encryption requires complete `Codable` commands. `EncryptedCommand.originalCommand`
+  and partial-field hooks are removed; envelopes retain only ciphertext and metadata.
+  KeyStore publishes one atomic key/identifier snapshot and keys must be 256 bits.
+  Legacy ciphertext may be insufficient for recovery without original commands and old keys.
+- All four cache entry points and factories require complete caller keys including every
+  result-varying argument, verified principal/tenant and configuration/version. Keyless/hash
+  fallbacks are removed. Invalidate all old cache contents; namespace encoding has changed.
+- Decompression requires positive `maxOutputSize`, returns a complete bounded stream or throws,
+  and rejects truncation/trailing data. Small nonempty utility compression now emits codec data;
+  old unmarked raw outputs require application metadata or regeneration. Codec aliases remain.
+- Ordinary and partitioned bulkhead queue timeouts accept finite positive values up to 86,400
+  seconds, finite nonpositive values for no wait, and nil for unbounded waiting. Nonfinite or
+  larger positive values are invalid. Nil is not an equivalent finite deadline above 24 hours.
+  Capacity remains owned until handlers settle; no hard arbitrary-handler deadline is added.
+- Global rate scope shares one budget across identifiers in all seven strategies. Distributed
+  keys use scope namespaces; coordinate old/new counter migration to avoid a fresh cold budget.
+- Retry/breaker timeout classification uses typed PipelineError cases. Other PipelineError
+  payload text, including wrapped/retryExhausted errors, does not imply timeout or recursive
+  unwrapping. Custom evaluators and foreign-error fallback remain available.
+- StatsD construction is synchronous and lazy; `useTransport` and the competing async initializer
+  are removed. `start()` validates readiness; injected transports transfer shutdown ownership.
+  Quiesce producers, forceFlush, then close for a delivery attempt. Close owns exporter/startup/
+  transport settlement, not complete aggregation quiescence or UDP acknowledgement.
+- Metrics configuration is immutable and published through async `configure`; direct writable
+  global slots are removed. Flush drains local storage and invokes an optional flush capability
+  without replaying records; it is not a concurrent-producer barrier or retired-exporter flush.
+- Truncation returns empty for nonpositive maxima. Audit logger capacity zero retains no events;
+  negative capacity is invalid. Standard audit identity keys are retained in production output.
+  Timer milliseconds and pool nanoseconds now use corrected unit/boundary conversion.
+
+
 ### Changed
 - `NextGuard` debug diagnostics are now error-exit aware: middleware that
   throws without calling `next()` no longer emits the false "deallocated
@@ -16,17 +55,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   path (e.g. cache hits). Debug-only; release builds are unchanged. ([#97])
 
 ### Removed
-- `NextGuardWarningSuppressing` conformance removed from the twelve
+- `NextGuardWarningSuppressing` conformance removed from the eleven
   throw-based short-circuiting middlewares (`BackPressureMiddleware`,
   `CircuitBreakerMiddleware`, `RateLimitingMiddleware`,
-  `EnhancedRateLimitingMiddleware`, `BulkheadMiddleware`,
+  `EnhancedRateLimitingMiddleware`,
   `PartitionedBulkheadMiddleware`, `HealthCheckMiddleware`,
   `ValidationMiddleware`, `SecurityPolicyMiddleware`,
   `AuthenticationMiddleware`, `AuthorizationMiddleware`,
   `MockAuthenticationMiddleware`), re-arming the dropped-chain diagnostic
   for those types. Observable only to code checking
   `is any NextGuardWarningSuppressing`; the cache middlewares keep the
-  conformance. ([#97])
+  conformance. `BulkheadMiddleware` also retains the marker because successful
+  fallback/custom policies can legitimately return without calling `next()`. ([#97])
 
 ## [0.5.4] - 2026-08-15
 

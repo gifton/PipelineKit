@@ -8,3 +8,9 @@ public protocol MetricRecorder: Sendable {
     /// Records a metric snapshot.
     func record(_ snapshot: MetricSnapshot) async
 }
+
+/// A recorder that can attempt delivery of its buffered metrics.
+public protocol FlushableMetricRecorder: MetricRecorder {
+    /// Flushes this recorder's buffer. Concurrent recording is governed by the recorder.
+    func flush() async
+}

@@ -59,7 +59,7 @@ public final class NextGuard<T: Command>: Sendable {
     ) {
         self.next = next
         self.identifier = identifier
-        self.suppressDeinitWarning = suppressDeinitWarning
+        self.suppressDeinitWarning = suppressDeinitWarning || NextGuardWarningScope.isSuppressed
     }
     
     /// Executes the guarded next closure, ensuring single execution.
@@ -132,8 +132,8 @@ public final class NextGuard<T: Command>: Sendable {
     #if DEBUG
     /// Debug-only check that next was called before deallocation
     deinit {
-        // Check if warnings are enabled
-        guard NextGuardConfiguration.shared.emitWarnings else { return }
+        let configuration = NextGuardConfiguration.shared.snapshot()
+        guard configuration.emitWarnings else { return }
         
         let finalState = state.load(ordering: .relaxed)
         if finalState == 0 {
@@ -155,7 +155,7 @@ public final class NextGuard<T: Command>: Sendable {
             let message = "⚠️ WARNING: NextGuard(\(id)) deallocated without calling next() - middleware must call next exactly once (unless cancelled)"
             
             // Use custom handler if provided, otherwise print
-            if let handler = NextGuardConfiguration.shared.warningHandler {
+            if let handler = configuration.warningHandler {
                 handler(message)
             } else {
                 print(message)

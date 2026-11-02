@@ -1,5 +1,6 @@
 import XCTest
 import PipelineKitCore
+import _ResilienceFoundation
 @testable import PipelineKitResilience
 
 final class BulkheadMiddlewareTests: XCTestCase {
@@ -217,62 +218,194 @@ final class BulkheadMiddlewareTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(totalTime, commandDuration * 2.8) // Sequential execution
     }
 
-    func testQueueTimeout() async throws {
-        // Skip on CI to avoid scheduler-induced flakiness
-        // Check both CI env var and iOS Simulator (where env vars don't propagate through xcodebuild)
-        #if targetEnvironment(simulator)
-        throw XCTSkip("Skipping flaky queue-timeout test on simulator")
-        #endif
+    private enum TimedWrapper: String, CaseIterable {
+        case ordinary, partitioned
+    }
 
-        if ProcessInfo.processInfo.environment["CI"] == "true" {
-            throw XCTSkip("Skipping flaky queue-timeout test on CI")
-        }
-        // Given
-        let middleware = BulkheadMiddleware(
-            configuration: BulkheadMiddleware.Configuration(
-                maxConcurrency: 1,
-                maxQueueSize: 1,
-                queueTimeout: 0.05, // 50ms timeout
-                rejectionPolicy: .queue
+    private func timedSubject(
+        _ wrapper: TimedWrapper,
+        queue: Int,
+        timeout: TimeInterval,
+        admission: AdmissionGate? = nil
+    ) -> BulkheadAdmissionSubject {
+        switch wrapper {
+        case .ordinary:
+            let config = BulkheadMiddleware.Configuration(
+                maxConcurrency: 1, maxQueueSize: queue, queueTimeout: timeout, rejectionPolicy: .queue
             )
-        )
+            let middleware = admission.map { BulkheadMiddleware(configuration: config, admission: $0) }
+                ?? BulkheadMiddleware(configuration: config)
+            return .ordinary(middleware)
+        case .partitioned:
+            let config = PartitionedBulkheadMiddleware.Configuration(
+                partitions: ["default": .init(capacity: 1, queueSize: queue, queueTimeout: timeout)],
+                partitionExtractor: { _, _ in "default" }, allowBorrowing: false
+            )
+            let middleware = admission.map { PartitionedBulkheadMiddleware(configuration: config, admissions: ["default": $0]) }
+                ?? PartitionedBulkheadMiddleware(configuration: config)
+            return .partitioned(middleware)
+        }
+    }
 
-        // Use a signal to know when the slow command has acquired the semaphore
-        let slowCommandStarted = Signal()
+    func testQueueTimeout() async throws {
+        for wrapper in TimedWrapper.allCases {
+            let ledger = BulkheadHandlerLedger()
+            let subject = timedSubject(wrapper, queue: 1, timeout: 0.01)
+            let holder = launchBulkhead(subject, id: "held", ledger: ledger)
+            while !(await ledger.entered("held")) { await Task.yield() }
+            let expiring = launchBulkhead(subject, id: "expired", ledger: ledger)
+            let result = await expiring.value
+            XCTAssertEqual(result, "timedOut", wrapper.rawValue)
+            let state = await subject.snapshot()
+            XCTAssertEqual(state.active, 1)
+            XCTAssertEqual(state.queued, 0)
+            let entries = await ledger.entries
+            XCTAssertEqual(entries, ["held"])
+            await ledger.release("held")
+            let heldResult = await holder.value
+            XCTAssertEqual(heldResult, "success")
+        }
+    }
 
-        // Start a slow command that signals when it starts executing
-        let slowTask = Task {
-            try await middleware.execute(
-                SignalingSlowCommand(id: 1, duration: 0.5, startedSignal: slowCommandStarted),
-                context: CommandContext()
-            ) { cmd, _ in
-                try await cmd.execute()
+    func testNonpositiveQueueTimeoutStillAllowsFreeCapacity() async {
+        for wrapper in TimedWrapper.allCases {
+            for timeout in [0.0, -1.0] {
+                for queue in [0, 1] {
+                    let ledger = BulkheadHandlerLedger()
+                    let subject = timedSubject(wrapper, queue: queue, timeout: timeout)
+                    let holder = launchBulkhead(subject, id: "held", ledger: ledger)
+                    while !(await ledger.entered("held")) { await Task.yield() }
+                    let expiring = launchBulkhead(subject, id: "expired", ledger: ledger)
+                    let result = await expiring.value
+                    XCTAssertEqual(result, "timedOut", wrapper.rawValue)
+                    let state = await subject.snapshot()
+                    XCTAssertEqual(state.active, 1)
+                    XCTAssertEqual(state.queued, 0)
+                    await ledger.release("held")
+                    let heldResult = await holder.value
+                    XCTAssertEqual(heldResult, "success")
+                }
             }
         }
+    }
 
-        // Wait until the slow command has actually started (semaphore acquired)
-        await slowCommandStarted.wait()
+    func testQueueTimeoutRangeAndNormalizationBoundaries() async {
+        let maximum: TimeInterval = 86_400
+        let cases: [(value: TimeInterval, noWait: Bool)] = [
+            (-Double.greatestFiniteMagnitude, true), (-1e30, true), (-1, true),
+            (0, true), (Double.leastNonzeroMagnitude, true), (1e-20, true),
+            (1e-18, false), (0.001, false), (maximum.nextDown, false), (maximum, false)
+        ]
+        // Swift 6.2 constructs clock instants from Int64 seconds plus a
+        // subsecond remainder. Exercise the Duration-addition headroom bound
+        // without decomposing the deliberately extreme result back into Int64.
+        let clockSecondsUpperBound = Duration.seconds(Int64.max) + .seconds(1)
+        let latestDeadline = clockSecondsUpperBound + .seconds(maximum)
+        XCTAssertGreaterThan(latestDeadline, clockSecondsUpperBound)
+        let instant = ContinuousClock.now
+        XCTAssertEqual(instant.duration(to: instant.advanced(by: .seconds(maximum))), .seconds(maximum))
 
-        // When - queue another command that will timeout
-        do {
-            _ = try await middleware.execute(
-                FastCommand(id: 2),
-                context: CommandContext()
-            ) { cmd, _ in
-                try await cmd.execute()
+        for wrapper in TimedWrapper.allCases {
+            for item in cases {
+                for queue in [0, 1] {
+                    let label = "\(wrapper.rawValue), timeout=\(item.value), queue=\(queue)"
+                    let clock = ManualAdmissionClock()
+                    let gate = AdmissionGate(capacity: 1, maxQueueSize: queue,
+                        now: { clock.now() }, sleep: { try await clock.sleep(for: $0) })
+                    let ledger = BulkheadHandlerLedger()
+                    let subject = timedSubject(wrapper, queue: queue, timeout: item.value, admission: gate)
+                    let holder = launchBulkhead(subject, id: "held", ledger: ledger)
+                    while !(await ledger.entered("held")) { await Task.yield() }
+                    let waiter = launchBulkhead(subject, id: "waiter", ledger: ledger)
+                    if !item.noWait && queue > 0 {
+                        await clock.waitForSleepers(1)
+                        let registered = await gate.snapshot()
+                        XCTAssertEqual(registered.queued, 1, label)
+                        clock.advance(by: .seconds(item.value))
+                    }
+                    let result = await waiter.value
+                    XCTAssertEqual(result, item.noWait || queue > 0 ? "timedOut" : "rejected", label)
+                    await clock.waitForSettlement()
+                    XCTAssertEqual(clock.callCount, !item.noWait && queue > 0 ? 1 : 0, label)
+                    let retained = await gate.snapshot()
+                    XCTAssertEqual(retained.active, 1, label)
+                    XCTAssertEqual(retained.queued, 0, label)
+                    let entries = await ledger.entries
+                    XCTAssertEqual(entries, ["held"], label)
+                    await ledger.release("held")
+                    let holderResult = await holder.value
+                    XCTAssertEqual(holderResult, "success", label)
+                    let settled = await gate.snapshot()
+                    XCTAssertEqual(settled.active, 0, label)
+                    XCTAssertEqual(settled.queued, 0, label)
+                }
             }
-            XCTFail("Expected timeout")
-        } catch {
-            // Then - should timeout
-            if case PipelineError.middlewareError(_, let message, _) = error {
-                XCTAssertTrue(message.contains("timed out"))
+        }
+    }
+
+    // The external timeout driver selects invalid values in isolated test
+    // processes and checks the explicit validation diagnostic before a trap.
+    // A normal suite invocation checks valid public construction instead.
+    func testQueueTimeoutConfigurationValidationProbe() async throws {
+        let environment = ProcessInfo.processInfo.environment
+        let selected = environment["PIPELINEKIT_R02_INVALID_TIMEOUT"]
+        let timeout = try XCTUnwrap(Double(selected ?? "86400"))
+        let queue = Int(environment["PIPELINEKIT_R02_QUEUE_SIZE"] ?? "0") ?? 0
+        let wrapperName = environment["PIPELINEKIT_R02_WRAPPER"]
+        let wrappers = wrapperName.map { [TimedWrapper(rawValue: $0)!] } ?? TimedWrapper.allCases
+        for wrapper in wrappers {
+            let subject = timedSubject(wrapper, queue: queue, timeout: timeout)
+            if selected != nil {
+                XCTFail("Invalid queue timeout was accepted instead of explicit configuration validation: \(wrapper.rawValue)")
             } else {
-                XCTFail("Unexpected error type: \(error)")
+                let snapshot = await subject.snapshot()
+                XCTAssertEqual(snapshot.active, 0)
+                XCTAssertEqual(snapshot.queued, 0)
             }
         }
+    }
 
-        // Cleanup
-        _ = try await slowTask.value
+    @available(*, deprecated, message: "Exercises the supported deprecated tagged compatibility path")
+    func testTaggedAndTaskGroupModesRetainSharedCapacity() async {
+        let modes: [BulkheadMiddleware.IsolationMode] = [
+            .taskGroup(priority: .low),
+            .tagged(keyExtractor: { ($0 as? AdmissionCommand)?.id ?? "unknown" })
+        ]
+        for (index, mode) in modes.enumerated() {
+            let middleware = BulkheadMiddleware(configuration: .init(
+                maxConcurrency: 1, maxQueueSize: 1, rejectionPolicy: .queue, isolationMode: mode
+            ))
+            let subject = BulkheadAdmissionSubject.ordinary(middleware)
+            let ledger = BulkheadHandlerLedger()
+            let firstContext = CommandContext()
+            let secondContext = CommandContext()
+            let first = launchBulkhead(subject, id: "alpha", ledger: ledger, context: firstContext)
+            while !(await ledger.entered("alpha")) { await Task.yield() }
+            let second = launchBulkhead(subject, id: "beta", ledger: ledger, context: secondContext)
+            while await middleware.admissionSnapshot().queued != 1 { await Task.yield() }
+            let rejected = launchBulkhead(subject, id: "gamma", ledger: ledger)
+            let rejection = await rejected.value
+            XCTAssertEqual(rejection, "rejected")
+            let entries = await ledger.entries
+            XCTAssertEqual(entries, ["alpha"])
+            await ledger.release("alpha")
+            while !(await ledger.entered("beta")) { await Task.yield() }
+            await ledger.release("beta")
+            let firstResult = await first.value
+            let secondResult = await second.value
+            XCTAssertEqual(firstResult, "success")
+            XCTAssertEqual(secondResult, "success")
+            XCTAssertEqual(secondContext.getMetadata()["bulkhead.wasQueued"] as? Bool, true)
+            if index == 1 {
+                XCTAssertEqual(firstContext.getMetadata()["bulkheadTag"] as? String, "alpha")
+                XCTAssertEqual(secondContext.getMetadata()["bulkheadTag"] as? String, "beta")
+            }
+            let state = await middleware.admissionSnapshot()
+            XCTAssertEqual(state.active, 0)
+            XCTAssertEqual(state.queued, 0)
+            let peak = await ledger.peak
+            XCTAssertEqual(peak, 1)
+        }
     }
 
     func testFallbackPolicy() async throws {
@@ -377,15 +510,12 @@ final class BulkheadMiddlewareTests: XCTestCase {
             try await cmd.execute()
         }
 
-        // Give time for metrics to be emitted
-        try await Task.sleep(nanoseconds: 50_000_000) // 50ms
-
         // Then - check metrics
         let metrics = context.getMetadata()
         XCTAssertNotNil(metrics["bulkhead.duration"])
         XCTAssertEqual(metrics["bulkhead.wasQueued"] as? Bool, false)
-        XCTAssertNotNil(metrics["bulkhead.activeCount"])
-        XCTAssertNotNil(metrics["bulkhead.queuedCount"])
+        XCTAssertEqual(metrics["bulkhead.activeCount"] as? Int, 0)
+        XCTAssertEqual(metrics["bulkhead.queuedCount"] as? Int, 0)
     }
 
     func testRejectionHandler() async throws {

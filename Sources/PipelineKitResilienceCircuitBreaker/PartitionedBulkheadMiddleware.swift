@@ -1,6 +1,7 @@
 import Foundation
 import PipelineKit
 import PipelineKitCore
+import _ResilienceFoundation
 
 /// Advanced bulkhead middleware with partition-based isolation.
 ///
@@ -47,12 +48,17 @@ public struct PartitionedBulkheadMiddleware: Middleware {
         /// Maximum number of commands this partition will hold in its wait queue
         /// once `capacity` is exhausted and borrowing is unavailable. `0` (the
         /// default) disables queueing for this partition: `execute(_:context:next:)`
-        /// borrows or rejects instead.
+        /// borrows or rejects instead, except a nonpositive `queueTimeout`
+        /// reports an admission timeout when no immediate slot is available.
         public let queueSize: Int
 
         /// Maximum time, in seconds, a queued command waits for capacity before
         /// `execute(_:context:next:)` throws `PipelineError.bulkheadTimeout`.
-        /// `nil` (the default) means a queued command waits indefinitely.
+        /// `nil` (the default) means an unbounded admission wait. Finite
+        /// nonpositive values allow immediate admission but do not wait. Positive
+        /// values must be finite and at most 86,400 seconds (24 hours), a library
+        /// policy rather than Swift Duration's intrinsic limit. Other values
+        /// fail a configuration precondition during middleware initialization.
         public let queueTimeout: TimeInterval?
 
         /// Stored on the config but not read anywhere else in this file — reserved
@@ -198,8 +204,21 @@ public struct PartitionedBulkheadMiddleware: Middleware {
     /// - Parameter configuration: The partitions, routing, and borrowing/metrics
     ///   policy to use.
     public init(configuration: Configuration) {
+        self.init(configuration: configuration, admissions: nil)
+    }
+
+    /// Package test seam; supplied gates must match every partition's limits.
+    package init(configuration: Configuration, admissions: [String: AdmissionGate]?) {
+        precondition(
+            configuration.reservedCapacityPercentage.isFinite &&
+                (0...1).contains(configuration.reservedCapacityPercentage),
+            "Partition reserved capacity percentage must be finite and in 0...1"
+        )
+        if let admissions {
+            precondition(Set(admissions.keys) == Set(configuration.partitions.keys), "Admission gates must match partition keys")
+        }
         self.configuration = configuration
-        self.partitionManager = PartitionManager(configuration: configuration)
+        self.partitionManager = PartitionManager(configuration: configuration, admissions: admissions)
     }
 
     /// Convenience initializer that builds a `Configuration` from just the
@@ -225,6 +244,12 @@ public struct PartitionedBulkheadMiddleware: Middleware {
     }
 
     // MARK: - Middleware Implementation
+
+    /// Package observation seam for admission contract tests.
+    package func admissionSnapshot(partition: String = "default") async -> (active: Int, queued: Int) {
+        let stats = await partitionManager.getStats(for: partition)
+        return (stats.activeCount, stats.queuedCount)
+    }
 
     /// Routes the command to a partition, acquires (immediately, by borrowing, or
     /// by queueing) that partition's capacity, then executes the command.
@@ -257,11 +282,10 @@ public struct PartitionedBulkheadMiddleware: Middleware {
     ///
     /// Once a slot is acquired (immediately, borrowed, or after a successful
     /// wait), the command runs via `next`; its result or thrown error propagates
-    /// unchanged. The acquired slot is released, and (when
-    /// `Configuration.emitMetrics` is `true`) a
-    /// `middleware.partitioned_bulkhead_execution` event is emitted, from an
-    /// un-awaited `Task` scheduled in a `defer` block — both happen after this
-    /// method has already returned or thrown, not before.
+    /// unchanged. Release of the actual local or donor lease and (when enabled)
+    /// the `middleware.partitioned_bulkhead_execution` event are awaited before
+    /// returning or throwing (`testQueuedHandoffTransfersOneLease` and
+    /// `testDonorReserveAndQueuePriorityAreAtomic`).
     ///
     /// - Parameters:
     ///   - command: The command to execute.
@@ -278,7 +302,8 @@ public struct PartitionedBulkheadMiddleware: Middleware {
     ///   is full when a queued wait actually begins, or if the partition is at
     ///   capacity with no available borrowing or queueing; `PipelineError
     ///   .bulkheadTimeout(timeout:queueTime:)` if a queued command's wait exceeds
-    ///   `PartitionConfig.queueTimeout`; otherwise, whatever error `next` throws.
+    ///   `PartitionConfig.queueTimeout` (also when no wait is allowed and
+    ///   capacity is unavailable); otherwise, whatever error `next` throws.
     public func execute<T: Command>(
         _ command: T,
         context: CommandContext,
@@ -295,65 +320,19 @@ public struct PartitionedBulkheadMiddleware: Middleware {
         // Store partition info in context
         context.setMetadata("bulkheadPartition", value: effectiveKey)
 
-        // Try to acquire resources from partition
-        let acquisition = try await partitionManager.acquire(
-            partitionKey: effectiveKey,
-            command: command
-        )
+        let acquisition = try await partitionManager.acquire(partitionKey: effectiveKey)
 
         switch acquisition {
-        case let .immediate(release):
-            // Execute immediately
-            return try await executeWithRelease(
-                command,
-                context: context,
-                next: next,
-                release: release,
-                startTime: startTime,
-                partitionKey: effectiveKey,
-                wasBorrowed: false
-            )
-
-        case let .borrowed(release, fromPartition):
-            // Execute with borrowed capacity
-            return try await executeWithRelease(
-                command,
-                context: context,
-                next: next,
-                release: release,
-                startTime: startTime,
-                partitionKey: effectiveKey,
-                wasBorrowed: true,
-                borrowedFrom: fromPartition
-            )
-
-        case let .queued(future):
-            // Wait for resource to become available
-            let queueStartTime = Date()
-
-            do {
-                let release = try await future()
-
-                let queueTime = Date().timeIntervalSince(queueStartTime)
-                await partitionManager.recordQueueTime(
-                    partition: effectiveKey,
-                    time: queueTime
+        case let .admitted(lease, borrowedFrom):
+            let queueTime = lease.wasQueued ? Self.seconds(lease.queueDuration) : nil
+            return try await executeWithLease(
+                command, context: context, next: next, lease: lease,
+                metrics: ExecutionMetrics(
+                    startTime: startTime, partitionKey: effectiveKey,
+                    wasBorrowed: borrowedFrom != nil, borrowedFrom: borrowedFrom,
+                    wasQueued: lease.wasQueued, queueTime: queueTime
                 )
-
-                return try await executeWithRelease(
-                    command,
-                    context: context,
-                    next: next,
-                    release: release,
-                    startTime: startTime,
-                    partitionKey: effectiveKey,
-                    wasQueued: true,
-                    queueTime: queueTime
-                )
-            } catch {
-                await partitionManager.recordTimeout(partition: effectiveKey)
-                throw error
-            }
+            )
 
         case .rejected:
             // Handle rejection
@@ -378,36 +357,29 @@ public struct PartitionedBulkheadMiddleware: Middleware {
 
     // MARK: - Private Methods
 
-    private func executeWithRelease<T: Command>(
+    private func executeWithLease<T: Command>(
         _ command: T,
         context: CommandContext,
         next: @escaping MiddlewareNext<T>,
-        release: @escaping @Sendable () async -> Void,
-        startTime: Date,
-        partitionKey: String,
-        wasBorrowed: Bool = false,
-        borrowedFrom: String? = nil,
-        wasQueued: Bool = false,
-        queueTime: TimeInterval? = nil
+        lease: AdmissionLease,
+        metrics: ExecutionMetrics
     ) async throws -> T.Result {
-        defer {
-            Task {
-                await release()
-                await emitExecutionMetrics(
-                    context: context,
-                    metrics: ExecutionMetrics(
-                        startTime: startTime,
-                        partitionKey: partitionKey,
-                        wasBorrowed: wasBorrowed,
-                        borrowedFrom: borrowedFrom,
-                        wasQueued: wasQueued,
-                        queueTime: queueTime
-                    )
-                )
-            }
+        do {
+            try Task.checkCancellation()
+            let result = try await next(command, context)
+            await lease.release()
+            await emitExecutionMetrics(context: context, metrics: metrics)
+            return result
+        } catch {
+            await lease.release()
+            await emitExecutionMetrics(context: context, metrics: metrics)
+            throw error
         }
+    }
 
-        return try await next(command, context)
+    private static func seconds(_ duration: Duration) -> TimeInterval {
+        let components = duration.components
+        return Double(components.seconds) + Double(components.attoseconds) / 1e18
     }
 
     private func emitExecutionMetrics(
@@ -449,98 +421,44 @@ private actor PartitionManager {
     private let configuration: PartitionedBulkheadMiddleware.Configuration
     private var partitions: [String: Partition] = [:]
 
-    init(configuration: PartitionedBulkheadMiddleware.Configuration) {
+    init(configuration: PartitionedBulkheadMiddleware.Configuration, admissions: [String: AdmissionGate]?) {
         self.configuration = configuration
-
-        // Initialize partitions
         for (key, config) in configuration.partitions {
             partitions[key] = Partition(
-                name: key,
-                config: config
+                name: key, config: config,
+                reservedPercentage: configuration.reservedCapacityPercentage,
+                admission: admissions?[key]
             )
         }
     }
 
     enum ResourceAcquisition {
-        case immediate(release: @Sendable () async -> Void)
-        case borrowed(release: @Sendable () async -> Void, fromPartition: String)
-        case queued(future: @Sendable () async throws -> @Sendable () async -> Void)
+        case admitted(lease: AdmissionLease, borrowedFrom: String?)
         case rejected
     }
 
-    func acquire(
-        partitionKey: String,
-        command: any Command
-    ) async throws -> ResourceAcquisition {
+    func acquire(partitionKey: String) async throws -> ResourceAcquisition {
+        try Task.checkCancellation()
         guard let partition = partitions[partitionKey] else {
-            throw PipelineError.bulkheadRejected(
-                reason: "Unknown partition: \(partitionKey)"
-            )
+            throw PipelineError.bulkheadRejected(reason: "Unknown partition: \(partitionKey)")
         }
-
-        // Try immediate acquisition
-        if await partition.tryAcquire() {
-            return .immediate(release: { [weak self] in
-                await self?.partitions[partitionKey]?.release()
-            })
+        if let lease = await partition.tryAcquire() {
+            return .admitted(lease: lease, borrowedFrom: nil)
         }
-
-        // Try borrowing from other partitions if allowed
         if configuration.allowBorrowing {
-            if let borrowed = await tryBorrow(
-                requestingPartition: partitionKey,
-                command: command
-            ) {
-                return borrowed
-            }
-        }
-
-        // Try queueing if space available
-        if await partition.canQueue() {
-            let future: @Sendable () async throws -> @Sendable () async -> Void = {
-                try await partition.waitForResource()
-                return { [weak partition] in
-                    await partition?.release()
-                }
-            }
-            return .queued(future: future)
-        }
-
-        return .rejected
-    }
-
-    private func tryBorrow(
-        requestingPartition: String,
-        command: any Command
-    ) async -> ResourceAcquisition? {
-        // Find partitions with available capacity
-        for (key, partition) in partitions where key != requestingPartition {
-            let stats = await partition.getStats()
-            let reservedCapacity = Int(Double(stats.capacity) * configuration.reservedCapacityPercentage)
-            let availableForBorrowing = stats.capacity - stats.activeCount - reservedCapacity
-
-            if availableForBorrowing > 0 {
-                let acquired = await partition.tryAcquire()
-                if acquired {
-                    return .borrowed(
-                        release: { [weak self] in
-                            await self?.partitions[key]?.release()
-                        },
-                        fromPartition: key
-                    )
+            for (key, donor) in partitions where key != partitionKey {
+                if let lease = await donor.tryAcquire(reservingCapacity: true) {
+                    return .admitted(lease: lease, borrowedFrom: key)
                 }
             }
         }
-
-        return nil
-    }
-
-    func recordQueueTime(partition: String, time: TimeInterval) async {
-        await partitions[partition]?.recordQueueTime(time)
-    }
-
-    func recordTimeout(partition: String) async {
-        await partitions[partition]?.recordTimeout()
+        do {
+            // The gate rechecks capacity and installs a waiter in one actor turn.
+            let lease = try await partition.acquire()
+            return .admitted(lease: lease, borrowedFrom: nil)
+        } catch AdmissionError.full {
+            return .rejected
+        }
     }
 
     func recordRejection(partition: String) async {
@@ -566,87 +484,58 @@ private actor Partition {
     let name: String
     let config: PartitionedBulkheadMiddleware.PartitionConfig
 
-    private var activeCount = 0
-    private var queuedCount = 0
+    private let admission: AdmissionGate
+    private let admissionTimeout: Duration?
+    private let reservedCapacity: Int
     private var totalExecutions = 0
     private var totalRejections = 0
     private var totalTimeouts = 0
     private var queueTimes: [TimeInterval] = []
-    private var waiters: [CheckedContinuation<Void, (any Error)>] = []
 
-    init(name: String, config: PartitionedBulkheadMiddleware.PartitionConfig) {
+    init(
+        name: String,
+        config: PartitionedBulkheadMiddleware.PartitionConfig,
+        reservedPercentage: Double,
+        admission: AdmissionGate?
+    ) {
+        precondition(config.capacity > 0, "Partition capacity must be positive")
+        precondition(config.queueSize >= 0, "Partition queue size must be nonnegative")
         self.name = name
         self.config = config
+        self.admissionTimeout = BulkheadQueueTimeout.normalize(config.queueTimeout)
+        self.admission = admission ?? AdmissionGate(capacity: config.capacity, maxQueueSize: config.queueSize)
+        let scaledReserve = Double(config.capacity) * reservedPercentage
+        // Preserve truncation of the established Double product. At Int.max,
+        // Double(capacity) rounds to 2^63; clamp before Int conversion. Covered
+        // by testReserveRoundingAndIntegerCapacityBoundaries.
+        self.reservedCapacity = scaledReserve >= Double(config.capacity) ? config.capacity : Int(scaledReserve)
     }
 
-    func tryAcquire() -> Bool {
-        if activeCount < config.capacity {
-            activeCount += 1
-            totalExecutions += 1
-            return true
+    func tryAcquire(reservingCapacity: Bool = false) async -> AdmissionLease? {
+        guard let lease = await admission.tryAcquire(reserving: reservingCapacity ? reservedCapacity : 0) else {
+            return nil
         }
-        return false
+        totalExecutions += 1
+        return lease
     }
 
-    func release() {
-        if let waiter = waiters.first {
-            waiters.removeFirst()
-            queuedCount -= 1
-            waiter.resume()
-        } else {
-            activeCount = max(0, activeCount - 1)
-        }
-    }
-
-    func canQueue() -> Bool {
-        config.queueSize > 0 && queuedCount < config.queueSize
-    }
-
-    func waitForResource() async throws {
-        guard canQueue() else {
-            throw PipelineError.bulkheadRejected(
-                reason: "Queue is full for partition '\(name)'"
-            )
-        }
-
-        queuedCount += 1
-
+    func acquire() async throws -> AdmissionLease {
+        let start = ContinuousClock.now
         do {
-            if let timeout = config.queueTimeout {
-                try await withThrowingTaskGroup(of: Void.self) { group in
-                    group.addTask {
-                        try await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
-                        throw PipelineError.bulkheadTimeout(
-                            timeout: timeout,
-                            queueTime: timeout
-                        )
-                    }
-
-                    group.addTask { [weak self] in
-                        try await withCheckedThrowingContinuation { continuation in
-                            Task { [weak self] in
-                                await self?.addWaiter(continuation)
-                            }
-                        }
-                    }
-
-                    try await group.next()
-                    group.cancelAll()
-                }
-            } else {
-                try await withCheckedThrowingContinuation { continuation in
-                    waiters.append(continuation)
-                }
-            }
-
-            activeCount += 1
+            let lease = try await admission.acquire(timeout: admissionTimeout)
             totalExecutions += 1
-        } catch {
-            // Remove from waiters if still there
-            waiters.removeAll { _ in true }
-            queuedCount = max(0, queuedCount - 1)
+            if lease.wasQueued {
+                let components = lease.queueDuration.components
+                recordQueueTime(Double(components.seconds) + Double(components.attoseconds) / 1e18)
+            }
+            return lease
+        } catch AdmissionError.timedOut {
             totalTimeouts += 1
-            throw error
+            let components = start.duration(to: .now).components
+            throw PipelineError.bulkheadTimeout(
+                timeout: config.queueTimeout ?? 0,
+                queueTime: Double(components.seconds) + Double(components.attoseconds) / 1e18
+            )
         }
     }
 
@@ -657,30 +546,23 @@ private actor Partition {
         }
     }
 
-    func recordTimeout() {
-        totalTimeouts += 1
-    }
-
     func recordRejection() {
         totalRejections += 1
     }
 
-    func getStats() -> PartitionStats {
+    func getStats() async -> PartitionStats {
+        let snapshot = await admission.snapshot()
         let avgQueueTime = queueTimes.isEmpty ? 0 : queueTimes.reduce(0, +) / Double(queueTimes.count)
 
         return PartitionStats(
             name: name,
             capacity: config.capacity,
-            activeCount: activeCount,
-            queuedCount: queuedCount,
+            activeCount: snapshot.active,
+            queuedCount: snapshot.queued,
             totalExecutions: totalExecutions,
             totalRejections: totalRejections,
             averageQueueTime: avgQueueTime
         )
-    }
-
-    func addWaiter(_ continuation: CheckedContinuation<Void, any Error>) {
-        waiters.append(continuation)
     }
 }
 

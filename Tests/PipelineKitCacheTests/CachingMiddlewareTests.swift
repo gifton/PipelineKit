@@ -10,12 +10,7 @@ final class CachingMiddlewareTests: XCTestCase {
         let cache = InMemoryCache(maxSize: 100)
         let middleware = CachingMiddleware(
             cache: cache,
-            keyGenerator: { command in
-                if let cmd = command as? CacheTestCommand {
-                    return "test-\(cmd.id)"
-                }
-                return "unknown"
-            },
+            keyGenerator: fixtureKey,
             ttl: 60
         )
         
@@ -50,12 +45,7 @@ final class CachingMiddlewareTests: XCTestCase {
         let cache = InMemoryCache(maxSize: 100)
         let middleware = CachingMiddleware(
             cache: cache,
-            keyGenerator: { command in
-                if let cmd = command as? CacheTestCommand {
-                    return cmd.id
-                }
-                return String(describing: type(of: command))
-            },
+            keyGenerator: fixtureKey,
             ttl: 60
         )
         
@@ -87,6 +77,7 @@ final class CachingMiddlewareTests: XCTestCase {
         let cache = InMemoryCache(maxSize: 100)
         let middleware = CachingMiddleware(
             cache: cache,
+            keyGenerator: fixtureKey,
             ttl: 0.1 // 100ms TTL
         )
         
@@ -122,12 +113,7 @@ final class CachingMiddlewareTests: XCTestCase {
         let cache = InMemoryCache(maxSize: 100)
         let middleware = CachingMiddleware(
             cache: cache,
-            keyGenerator: { command in
-                if let cmd = command as? CacheTestCommand {
-                    return cmd.id
-                }
-                return String(describing: type(of: command))
-            },
+            keyGenerator: fixtureKey,
             shouldCache: { command in
                 // Only cache commands with specific IDs
                 if let cmd = command as? CacheTestCommand {
@@ -178,12 +164,7 @@ final class CachingMiddlewareTests: XCTestCase {
     //     let cache = InMemoryCache(maxSize: 100)
     //     let middleware = CachingMiddleware(
     //         cache: cache,
-    //         keyGenerator: { command in
-    //             if let cmd = command as? CacheTestCommand {
-    //                 return cmd.id
-    //             }
-    //             return String(describing: type(of: command))
-    //         }
+    //         keyGenerator: fixtureKey
     //     )
     //     
     //     let eventCollector = TestCacheEventCollector()
@@ -223,12 +204,7 @@ final class CachingMiddlewareTests: XCTestCase {
         let cache = InMemoryCache(maxSize: 2) // Small cache
         let middleware = CachingMiddleware(
             cache: cache,
-            keyGenerator: { command in
-                if let cmd = command as? CacheTestCommand {
-                    return cmd.id
-                }
-                return String(describing: type(of: command))
-            }
+            keyGenerator: fixtureKey
         )
         
         let command1 = CacheTestCommand(id: "1", value: "first")
@@ -333,4 +309,13 @@ private actor TestCacheEventCollector: PipelineObserver {
         events.append(event)
         notifyWaiters()
     }
+}
+
+private let fixtureKey = ClosureCacheKeyGenerator { command, context, _ in
+    guard let command = command as? CacheTestCommand else {
+        preconditionFailure("Unexpected cache test command")
+    }
+    return String(decoding: try! JSONEncoder().encode([
+        "echo-v1", command.id, command.value, context.commandMetadata.userID
+    ] as [String?]), as: UTF8.self)
 }

@@ -154,6 +154,55 @@ final class CompressionMiddlewareTests: XCTestCase {
             XCTFail("Compression ratio calculation failed: \(error)")
         }
     }
+
+    func testBeneficialPayloadUsesConfiguredThreshold() async throws {
+        // S05-P02 measures a benefit for these codecs at 100 bytes. Framed LZ4's
+        // 112-byte representation is covered below; its larger control must compress.
+        let cases: [(CompressionAlgorithm, Int)] = [
+            (.zlib, 100), (.lzfse, 100), (.gzip, 100), (.brotli, 100), (.lz4, 1024)
+        ]
+        for (algorithm, size) in cases {
+            let original = Data(repeating: 65, count: size)
+            let middleware = CompressionMiddleware(algorithm: algorithm, minimumSize: 1, trackStatistics: false)
+            let context = CommandContext()
+            let result = try await middleware.execute(
+                DataProcessingCommand(data: original, operation: "small"), context: context
+            ) { command, handlerContext in
+                XCTAssertEqual(command.operation, "small.compressed", "\(algorithm), size \(size)")
+                XCTAssertEqual(handlerContext.getMetadata("compression.applied") as? Bool, true)
+                XCTAssertEqual(try CompressionUtility.decompress(
+                    command.data, using: algorithm, maxOutputSize: original.count
+                ), original)
+                return ProcessingResult(processedData: original, success: true)
+            }
+            XCTAssertEqual(context.getMetadata("compression.resultApplied") as? Bool, true)
+            XCTAssertEqual(try CompressionUtility.decompress(
+                result.processedData, using: algorithm, maxOutputSize: original.count
+            ), original)
+        }
+    }
+
+    func testSmallPayloadWithoutCompressionBenefitRemainsUncompressed() async throws {
+        for algorithm in CompressionAlgorithm.allCases {
+            for size in algorithm == .lz4 ? [1, 100] : [1] {
+                let original = Data(repeating: 65, count: size)
+                let middleware = CompressionMiddleware(algorithm: algorithm, minimumSize: 1, trackStatistics: false)
+                let context = CommandContext()
+                let result = try await middleware.execute(
+                    DataProcessingCommand(data: original, operation: "small"), context: context
+                ) { command, handlerContext in
+                    XCTAssertEqual(command.operation, "small", "\(algorithm), size \(size)")
+                    XCTAssertEqual(command.data, original)
+                    XCTAssertNil(handlerContext.getMetadata("compression.applied"))
+                    XCTAssertNil(handlerContext.getMetadata("compression.failed"))
+                    return ProcessingResult(processedData: original, success: true)
+                }
+                XCTAssertEqual(result.processedData, original)
+                XCTAssertNil(context.getMetadata("compression.resultApplied"))
+                XCTAssertNil(context.getMetadata("compression.resultFailed"))
+            }
+        }
+    }
     
     func testCompressionDecompression() throws {
         // Original data - use larger string to ensure compression benefit
@@ -178,7 +227,8 @@ final class CompressionMiddlewareTests: XCTestCase {
         let decompressed = try CompressionUtility.decompress(
             compressed,
             using: .lzfse,
-            originalSize: originalData.count
+            originalSize: originalData.count,
+            maxOutputSize: originalData.count
         )
         
         // Verify decompressed matches original

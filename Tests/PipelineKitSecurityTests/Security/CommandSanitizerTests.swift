@@ -201,6 +201,26 @@ final class CommandSanitizerTests: XCTestCase {
     
     // MARK: - Truncation Tests
     
+    func testTruncateBoundaryMatrix() {
+        let bounds = [-1, 0, 1, 2, 3, 4]
+        let cases: [(String, String, [String])] = [
+            ("abcdef", "", ["", "", "a", "ab", "abc", "abcd"]),
+            ("abcdef", "...", ["", "", ".", "..", "...", "a..."]),
+            ("abcdef", "WXYZQ", ["", "", "W", "WX", "WXY", "WXYZ"]),
+            ("a", "...", ["", "", "a", "a", "a", "a"]),
+            ("", "...", ["", "", "", "", "", ""]),
+            ("👨‍👩‍👧‍👦e\u{301}XYZ", "🧑‍🚀!", ["", "", "🧑‍🚀", "🧑‍🚀!", "👨‍👩‍👧‍👦🧑‍🚀!", "👨‍👩‍👧‍👦e\u{301}🧑‍🚀!"])
+        ]
+        for (input, suffix, expected) in cases {
+            for (index, bound) in bounds.enumerated() {
+                let result = CommandSanitizer.truncate(input, maxLength: bound, suffix: suffix)
+                XCTAssertEqual(result, expected[index], "input: \(input), suffix: \(suffix), bound: \(bound)")
+                XCTAssertLessThanOrEqual(result.count, max(0, bound))
+            }
+        }
+        XCTAssertEqual(CommandSanitizer.truncate("abcdef", maxLength: 2), "..")
+    }
+
     func testTruncateShortString() {
         // Given
         let input = "Short"

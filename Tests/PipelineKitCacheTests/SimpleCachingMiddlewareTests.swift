@@ -38,10 +38,23 @@ final class SimpleCachingMiddlewareTests: XCTestCase {
         }
     }
 
+    private static let fixtureKey = ClosureCacheKeyGenerator { command, context, _ in
+        let fields: [String?]
+        switch command {
+        case let command as TestCommand:
+            fields = ["test-result-v1", command.id, context.commandMetadata.userID]
+        case let command as NumberCommand:
+            fields = ["double-v1", String(command.value), context.commandMetadata.userID]
+        default:
+            preconditionFailure("Unexpected simple cache test command")
+        }
+        return String(decoding: try! JSONEncoder().encode(fields), as: UTF8.self)
+    }
+
     // MARK: - Basic Caching Tests
 
     func testBasicCaching() async throws {
-        let cache = SimpleCachingMiddleware(ttl: 60)
+        let cache = SimpleCachingMiddleware(ttl: 60, keyGenerator: Self.fixtureKey)
         let pipeline = StandardPipeline(handler: TestHandler())
         try await pipeline.addMiddleware(cache)
 
@@ -64,7 +77,7 @@ final class SimpleCachingMiddlewareTests: XCTestCase {
     }
 
     func testCacheMiss() async throws {
-        let cache = SimpleCachingMiddleware(ttl: 60)
+        let cache = SimpleCachingMiddleware(ttl: 60, keyGenerator: Self.fixtureKey)
         let pipeline = StandardPipeline(handler: TestHandler())
         try await pipeline.addMiddleware(cache)
 
@@ -79,13 +92,13 @@ final class SimpleCachingMiddlewareTests: XCTestCase {
         XCTAssertEqual(result2, "test-result")
 
         let stats = cache.getStats()
-        XCTAssertEqual(stats.totalEntries, 1) // Same command type
+        XCTAssertEqual(stats.totalEntries, 2) // Distinct command arguments have distinct keys
     }
 
     // MARK: - TTL Expiration Tests
 
     func testTTLExpiration() async throws {
-        let cache = SimpleCachingMiddleware(ttl: 0.1) // 100ms TTL
+        let cache = SimpleCachingMiddleware(ttl: 0.1, keyGenerator: Self.fixtureKey) // 100ms TTL
         let pipeline = StandardPipeline(handler: TestHandler())
         try await pipeline.addMiddleware(cache)
 
@@ -110,7 +123,7 @@ final class SimpleCachingMiddlewareTests: XCTestCase {
     }
 
     func testRemoveExpired() async throws {
-        let cache = SimpleCachingMiddleware(ttl: 0.1) // 100ms TTL
+        let cache = SimpleCachingMiddleware(ttl: 0.1, keyGenerator: Self.fixtureKey) // 100ms TTL
         let pipeline = StandardPipeline(handler: TestHandler())
         try await pipeline.addMiddleware(cache)
 
@@ -145,12 +158,7 @@ final class SimpleCachingMiddlewareTests: XCTestCase {
         let cache = SimpleCachingMiddleware(
             ttl: 60,
             maxSize: 2,
-            keyGenerator: { command in
-                if let cmd = command as? NumberCommand {
-                    return "number-\(cmd.value)"
-                }
-                return String(describing: type(of: command))
-            }
+            keyGenerator: Self.fixtureKey
         )
 
         let pipeline = StandardPipeline(handler: NumberHandler())
@@ -184,12 +192,7 @@ final class SimpleCachingMiddlewareTests: XCTestCase {
         // Use command value in key generation
         let cache = SimpleCachingMiddleware(
             ttl: 60,
-            keyGenerator: { command in
-                if let cmd = command as? NumberCommand {
-                    return "number-\(cmd.value)"
-                }
-                return String(describing: type(of: command))
-            }
+            keyGenerator: Self.fixtureKey
         )
 
         let pipeline = StandardPipeline(handler: NumberHandler())
@@ -218,6 +221,7 @@ final class SimpleCachingMiddlewareTests: XCTestCase {
         // Only cache even numbers
         let cache = SimpleCachingMiddleware(
             ttl: 60,
+            keyGenerator: Self.fixtureKey,
             shouldCache: { command in
                 if let cmd = command as? NumberCommand {
                     return cmd.value.isMultiple(of: 2)
@@ -245,7 +249,8 @@ final class SimpleCachingMiddlewareTests: XCTestCase {
     func testCommandTypeConvenience() async throws {
         let cache = SimpleCachingMiddleware(
             ttl: 60,
-            commandType: NumberCommand.self
+            commandType: NumberCommand.self,
+            keyGenerator: Self.fixtureKey
         )
 
         let pipeline = StandardPipeline(handler: NumberHandler())
@@ -262,7 +267,7 @@ final class SimpleCachingMiddlewareTests: XCTestCase {
     // MARK: - Cache Management Tests
 
     func testClear() async throws {
-        let cache = SimpleCachingMiddleware(ttl: 60)
+        let cache = SimpleCachingMiddleware(ttl: 60, keyGenerator: Self.fixtureKey)
         let pipeline = StandardPipeline(handler: TestHandler())
         try await pipeline.addMiddleware(cache)
 
@@ -284,7 +289,7 @@ final class SimpleCachingMiddlewareTests: XCTestCase {
     // MARK: - Thread Safety Tests
 
     func testConcurrentAccess() async throws {
-        let cache = SimpleCachingMiddleware(ttl: 60, maxSize: 100)
+        let cache = SimpleCachingMiddleware(ttl: 60, maxSize: 100, keyGenerator: Self.fixtureKey)
         let pipeline = StandardPipeline(handler: NumberHandler())
         try await pipeline.addMiddleware(cache)
 
@@ -305,7 +310,7 @@ final class SimpleCachingMiddlewareTests: XCTestCase {
     }
 
     func testHighContentionCaching() async throws {
-        let cache = SimpleCachingMiddleware(ttl: 60)
+        let cache = SimpleCachingMiddleware(ttl: 60, keyGenerator: Self.fixtureKey)
         let pipeline = StandardPipeline(handler: TestHandler())
         try await pipeline.addMiddleware(cache)
 
@@ -329,7 +334,7 @@ final class SimpleCachingMiddlewareTests: XCTestCase {
     // MARK: - Event Emission Tests
 
     func testCacheEvents() async throws {
-        let cache = SimpleCachingMiddleware(ttl: 60)
+        let cache = SimpleCachingMiddleware(ttl: 60, keyGenerator: Self.fixtureKey)
         let pipeline = StandardPipeline(handler: TestHandler())
         try await pipeline.addMiddleware(cache)
 
@@ -360,7 +365,10 @@ final class SimpleCachingMiddlewareTests: XCTestCase {
             }
         }
 
-        let cache = SimpleCachingMiddleware(ttl: 60)
+        let cache = SimpleCachingMiddleware(ttl: 60, keyGenerator: ClosureCacheKeyGenerator { command, context, _ in
+            precondition(command is OptionalCommand)
+            return String(decoding: try! JSONEncoder().encode(["always-nil-v1", context.commandMetadata.userID]), as: UTF8.self)
+        })
         let pipeline = StandardPipeline(handler: OptionalHandler())
         try await pipeline.addMiddleware(cache)
 
@@ -395,7 +403,10 @@ final class SimpleCachingMiddlewareTests: XCTestCase {
             }
         }
 
-        let cache = SimpleCachingMiddleware(ttl: 60)
+        let cache = SimpleCachingMiddleware(ttl: 60, keyGenerator: ClosureCacheKeyGenerator { command, context, _ in
+            precondition(command is ComplexCommand)
+            return String(decoding: try! JSONEncoder().encode(["fixed-complex-payload-v1", context.commandMetadata.userID]), as: UTF8.self)
+        })
         let pipeline = StandardPipeline(handler: ComplexHandler())
         try await pipeline.addMiddleware(cache)
 
@@ -413,7 +424,7 @@ final class SimpleCachingMiddlewareTests: XCTestCase {
     // MARK: - Performance Tests
 
     func testCachingPerformance() throws {
-        let cache = SimpleCachingMiddleware(ttl: 300)
+        let cache = SimpleCachingMiddleware(ttl: 300, keyGenerator: Self.fixtureKey)
         let iterations = 10000
 
         measure(metrics: [XCTClockMetric()]) {

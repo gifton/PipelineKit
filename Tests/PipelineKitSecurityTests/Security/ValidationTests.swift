@@ -6,7 +6,7 @@ import PipelineKitTestSupport
 
 final class ValidationTests: XCTestCase {
     // Test command with validation
-    private struct CreateUserCommand: Command {
+    private struct CreateUserCommand: ValidatableCommand {
         typealias Result = String
         
         let email: String
@@ -17,15 +17,11 @@ final class ValidationTests: XCTestCase {
             return "User created: \(username)"
         }
         
-        func validate() throws {
+        func validate() async throws {
             try CommandValidator.validateEmail(email)
             try CommandValidator.validateLength(password, field: "password", minLength: 8)
             try CommandValidator.validateNotEmpty(username, field: "username")
             try CommandValidator.validateAlphanumeric(username, field: "username", allowedCharacters: CharacterSet(charactersIn: "_-"))
-        }
-        
-        func sanitize() throws -> CreateUserCommand {
-            return self // No sanitization needed for this test
         }
     }
     
@@ -108,9 +104,6 @@ final class ValidationTests: XCTestCase {
             typealias CommandType = CreateUserCommand
             
             func handle(_ command: CreateUserCommand, context: CommandContext) async throws -> String {
-                // The handler should validate the command itself
-                // since ValidationMiddleware uses generic dispatch
-                try command.validate()
                 return "User created: \(command.username)"
             }
         }

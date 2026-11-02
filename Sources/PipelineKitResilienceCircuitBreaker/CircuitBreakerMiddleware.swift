@@ -1,5 +1,6 @@
 import Foundation
 import PipelineKit
+import _ResilienceFoundation
 #if canImport(os)
 import os
 #endif
@@ -257,6 +258,8 @@ public struct CircuitBreakerMiddleware: Middleware {
         )
     }
     
+    package var circuitState: String { state.getCurrentState() }
+
     // MARK: - Middleware Implementation
     
     @discardableResult
@@ -313,6 +316,13 @@ public struct CircuitBreakerMiddleware: Middleware {
             return evaluator(error)
         }
         
+        if let category = ResilienceErrorClassifier.classifyPipelineError(error) {
+            switch category {
+            case .timeout: return configuration.triggeredByErrors.contains(.timeout)
+            case .cancelled, .other: return configuration.triggeredByErrors.contains(.unknown)
+            }
+        }
+
         // Check standard error types
         if let circuitError = error as? CircuitBreakerError {
             return configuration.triggeredByErrors.contains(circuitError.errorType)

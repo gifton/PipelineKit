@@ -21,10 +21,16 @@ final class NextGuardSuppressionTests: XCTestCase {
 
         // Build a pipeline with caching that uses a deterministic key
         let cache = InMemoryCache(maxSize: 10)
-        let key = "test-cache-key"
         let caching = CachingMiddleware(
             cache: cache,
-            keyGenerator: { _ in key },
+            keyGenerator: ClosureCacheKeyGenerator { command, context, _ in
+                guard let command = command as? EchoCommand else {
+                    preconditionFailure("Unexpected next-guard cache command")
+                }
+                return String(decoding: try! JSONEncoder().encode([
+                    "handled-echo-v1", command.text, context.commandMetadata.userID
+                ] as [String?]), as: UTF8.self)
+            },
             ttl: 60,
             shouldCache: { _ in true }
         )

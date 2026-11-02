@@ -5,15 +5,17 @@ import Foundation
 /// Similar to token bucket but with a constant output rate.
 /// Requests are queued and processed at a fixed rate.
 internal actor LeakyBucket {
+    private let now: @Sendable () -> Date
     private let capacity: Int
     private let leakRate: TimeInterval // seconds between leaks
     private var currentLevel: Int = 0
     private var lastLeakTime: Date
 
-    init(capacity: Int, leakRate: TimeInterval) {
+    init(capacity: Int, leakRate: TimeInterval, now: @escaping @Sendable () -> Date = { Date() }) {
+        self.now = now
         self.capacity = capacity
         self.leakRate = leakRate
-        self.lastLeakTime = Date()
+        self.lastLeakTime = now()
     }
 
     func tryAdd() -> Bool {
@@ -38,16 +40,16 @@ internal actor LeakyBucket {
         guard currentLevel > 0 else { return 0 }
 
         let nextLeakTime = lastLeakTime.addingTimeInterval(leakRate)
-        return max(0, nextLeakTime.timeIntervalSinceNow)
+        return max(0, nextLeakTime.timeIntervalSince(now()))
     }
 
     func reset() {
         currentLevel = 0
-        lastLeakTime = Date()
+        lastLeakTime = now()
     }
 
     private func leak() {
-        let now = Date()
+        let now = self.now()
         let timeSinceLastLeak = now.timeIntervalSince(lastLeakTime)
 
         // Calculate how many items have leaked

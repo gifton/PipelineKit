@@ -12,7 +12,7 @@ struct MetricsAggregationExample {
         print("1. WITHOUT AGGREGATION:")
         print("-----------------------")
         
-        let basicExporter = await StatsDExporter()
+        let basicExporter = StatsDExporter()
         
         // Each call sends immediately
         await basicExporter.counter("api.requests")
@@ -38,7 +38,7 @@ struct MetricsAggregationExample {
             )
         )
         
-        let aggregatedExporter = await StatsDExporter(configuration: aggregatedConfig)
+        let aggregatedExporter = StatsDExporter(configuration: aggregatedConfig)
         
         // Simulate high-frequency metrics
         print("  Sending 1000 counter increments...")
@@ -84,7 +84,7 @@ struct MetricsAggregationExample {
             aggregation: AggregationConfiguration(enabled: true)
         )
         
-        let sampledExporter = await StatsDExporter(configuration: sampledConfig)
+        let sampledExporter = StatsDExporter(configuration: sampledConfig)
         
         // Send 10000 metrics, sample 10%, aggregate to 1
         for _ in 0..<10000 {

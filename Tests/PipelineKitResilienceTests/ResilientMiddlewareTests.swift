@@ -34,6 +34,28 @@ actor TestTimesActor {
 }
 
 final class ResilientMiddlewareTests: XCTestCase {
+    func testLegacyBulkheadSettlesStatsBeforeReturningSuccessOrError() async throws {
+        let bulkhead = Bulkhead(name: "settlement", maxConcurrency: 2, maxWaitingCalls: 0)
+        for fails in [false, true] {
+            do {
+                let result: String = try await bulkhead.execute {
+                    if fails { throw BulkheadFixtureError.expected }
+                    return "success"
+                }
+                XCTAssertFalse(fails)
+                XCTAssertEqual(result, "success")
+            } catch BulkheadFixtureError.expected {
+                XCTAssertTrue(fails)
+            }
+            let stats = await bulkhead.getStats()
+            XCTAssertEqual(stats.name, "settlement")
+            XCTAssertEqual(stats.maxConcurrency, 2)
+            XCTAssertEqual(stats.activeCalls, 0)
+            XCTAssertEqual(stats.waitingCalls, 0)
+            XCTAssertEqual(stats.utilization, 0, accuracy: 0.000001)
+        }
+    }
+
     private let synchronizer = TestSynchronizer()
     private let timeoutTester = TimeoutTester()
 

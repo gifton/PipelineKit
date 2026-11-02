@@ -169,38 +169,122 @@ final class PipelineConfigurationErrorTests: XCTestCase {
     // MARK: - Concurrent Modification Tests
     
     func testConcurrentMiddlewareModification() async throws {
-        // Given - Pipeline being modified while executing
-        let handler = MockCommandHandler()
-        let pipeline = StandardPipeline(handler: handler)
-        
-        try await pipeline.addMiddleware(TestMiddleware())
-        
-        // Start multiple executions
-        await withTaskGroup(of: Void.self) { group in
-            // Execute commands
-            for i in 0..<10 {
-                group.addTask {
-                    let command = MockCommand(value: i)
-                    let context = CommandContext.test()
-                    _ = try? await pipeline.execute(command, context: context)
+        for addFirst in [true, false] {
+            let gate = ExecutionGate(target: 10)
+            let pipeline = StandardPipeline(handler: MockCommandHandler(), maxConcurrency: 10)
+            try await pipeline.addMiddleware(HeldMiddleware(gate: gate))
+
+            await withTaskGroup(of: (Int, Result<String, Error>).self) { group in
+                for value in 0..<10 {
+                    group.addTask {
+                        let result: Result<String, Error>
+                        do {
+                            result = .success(try await pipeline.execute(
+                                MockCommand(value: value), context: .test()
+                            ))
+                        } catch {
+                            result = .failure(error)
+                        }
+                        await gate.executionFinished()
+                        return (value, result)
+                    }
                 }
-            }
-            
-            // Modify pipeline concurrently
-            group.addTask {
-                // Add a different middleware since MetricsMiddleware was removed
-                try? await pipeline.addMiddleware(TestMiddleware())
-            }
-            
-            group.addTask {
-                _ = await pipeline.removeMiddleware(ofType: TestMiddleware.self)
+
+                let allEntered = await gate.waitForEntriesOrCompletion()
+                XCTAssertTrue(allEntered, "An execution completed before all ten entered")
+                if allEntered {
+                    do {
+                        if addFirst {
+                            try await pipeline.addMiddleware(HeldMiddleware(gate: gate))
+                            let count = await pipeline.middlewareCount
+                            XCTAssertEqual(count, 2)
+                        }
+                        let removed = await pipeline.removeMiddleware(ofType: HeldMiddleware.self)
+                        XCTAssertEqual(removed, addFirst ? 2 : 1)
+                        let countAfterRemoval = await pipeline.middlewareCount
+                        XCTAssertEqual(countAfterRemoval, 0)
+                        if !addFirst {
+                            try await pipeline.addMiddleware(HeldMiddleware(gate: gate))
+                        }
+                        let types = await pipeline.middlewareTypes
+                        XCTAssertEqual(types, addFirst ? [] : ["HeldMiddleware"])
+                    } catch {
+                        XCTFail("Middleware mutation failed: \(error)")
+                    }
+                }
+                await gate.release()
+
+                var seen = Set<Int>()
+                for await (value, result) in group {
+                    XCTAssertTrue(seen.insert(value).inserted, "Duplicate command identity \(value)")
+                    switch result {
+                    case .success(let output):
+                        XCTAssertEqual(output, "Result: \(value)")
+                    case .failure(let error):
+                        XCTFail("Command \(value) failed: \(error)")
+                    }
+                }
+                XCTAssertEqual(seen, Set(0..<10))
             }
         }
-        
-        // Should not crash
-        XCTAssertTrue(true)
     }
-    
+
+    private actor ExecutionGate {
+        private let target: Int
+        private var entered = 0
+        private var finished = 0
+        private var released = false
+        private var entryWaiter: CheckedContinuation<Bool, Never>?
+        private var held: [CheckedContinuation<Void, Never>] = []
+
+        init(target: Int) { self.target = target }
+
+        func enter() async {
+            entered += 1
+            if entered == target {
+                entryWaiter?.resume(returning: true)
+                entryWaiter = nil
+            }
+            if !released {
+                await withCheckedContinuation { held.append($0) }
+            }
+        }
+
+        func executionFinished() {
+            finished += 1
+            if entered < target {
+                entryWaiter?.resume(returning: false)
+                entryWaiter = nil
+            }
+        }
+
+        func waitForEntriesOrCompletion() async -> Bool {
+            if entered == target { return true }
+            if finished > 0 { return false }
+            return await withCheckedContinuation { entryWaiter = $0 }
+        }
+
+        func release() {
+            released = true
+            for continuation in held { continuation.resume() }
+            held.removeAll()
+        }
+    }
+
+    private struct HeldMiddleware: Middleware, Sendable {
+        let gate: ExecutionGate
+        let priority = ExecutionPriority.custom
+
+        func execute<T: Command>(
+            _ command: T,
+            context: CommandContext,
+            next: @Sendable (T, CommandContext) async throws -> T.Result
+        ) async throws -> T.Result {
+            await gate.enter()
+            return try await next(command, context)
+        }
+    }
+
     // MARK: - Helper Types
     
     private struct TestMetricsCollector: MetricRecorder {

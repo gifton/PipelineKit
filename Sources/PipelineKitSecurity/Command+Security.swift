@@ -1,93 +1,27 @@
 import Foundation
 import PipelineKit
 
-// MARK: - Validation
-
-public extension Command {
-    /// Default implementation of validate() that performs no validation.
-    func validate() throws {
-        // Default: no validation required
-    }
-    
-    /// Async version of validate() for potentially expensive validation operations.
-    /// 
-    /// Use this when validation involves:
-    /// - Database queries
-    /// - Network calls
-    /// - Complex computations
-    /// 
-    /// Default implementation performs no validation.
-    func validateAsync() async throws {
-        // Default: no validation required
-    }
+/// A command whose application-defined validation is invoked by `ValidationMiddleware`.
+///
+/// Implementations must throw when the command is invalid. There is no default witness.
+public protocol ValidatableCommand: Command {
+    /// Validates this command, throwing the application's validation error on failure.
+    func validate() async throws
 }
 
-// MARK: - Sanitization
-
-public extension Command {
-    /// Default implementation of sanitize() that returns self unchanged.
-    func sanitize() throws -> Self {
-        // Default: return self unchanged
-        return self
-    }
-    
-    /// Async version of sanitize() for potentially expensive sanitization operations.
-    /// 
-    /// Use this when sanitization involves:
-    /// - External service calls (e.g., content moderation APIs)
-    /// - Complex text processing
-    /// - Large data transformations
-    /// 
-    /// Default implementation returns self unchanged.
-    func sanitizeAsync() async throws -> Self {
-        // Default: return self unchanged
-        return self
-    }
+/// A command that can return an application-defined, sanitized replacement value.
+///
+/// Implementations define the transformation for their own input and output context;
+/// conformance is not a promise of protection against arbitrary injection attacks.
+public protocol SanitizableCommand: Command {
+    /// Returns the value to pass downstream, or throws if sanitization fails.
+    func sanitize() async throws -> Self
 }
 
-// MARK: - Encryption
-
-public extension Command {
-    /// Fields that should be encrypted.
-    ///
-    /// Default implementation returns empty dictionary.
-    /// Override this property to specify sensitive fields.
-    var sensitiveFields: [String: Any] {
-        // Default: no sensitive fields
-        return [:]
-    }
-    
-    /// Update the command with decrypted fields.
-    ///
-    /// Default implementation does nothing.
-    /// Override this method if your command has mutable sensitive fields.
-    ///
-    /// - Parameter fields: The decrypted field values
-    func updateSensitiveFields(_ fields: [String: Any]) {
-        // Default: no-op for immutable commands
-        // Commands that need this should make themselves mutable
-    }
-}
-
-// MARK: - Security Capability Detection
-
-public extension Command {
-    /// Whether this command requires validation.
-    var requiresValidation: Bool {
-        // Check if validate() has been overridden
-        // This is a heuristic - in practice, middleware should attempt validation
-        // and handle the default no-op gracefully
-        return true
-    }
-    
-    /// Whether this command requires sanitization.
-    var requiresSanitization: Bool {
-        // Similar heuristic for sanitization
-        return true
-    }
-    
-    /// Whether this command has sensitive fields requiring encryption.
-    var hasSensitiveFields: Bool {
-        return !sensitiveFields.isEmpty
-    }
+/// Controls how security middleware handles a command without its capability.
+public enum SecurityCapabilityRequirement: Sendable {
+    /// Reject commands that do not conform to the middleware's capability protocol.
+    case required
+    /// Invoke the capability when present; explicitly allow unrelated commands through.
+    case ifPresent
 }

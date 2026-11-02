@@ -58,7 +58,7 @@ final class LRUStorage<Value> {
     private final class Node {
         let key: String
         var value: Value
-        var prev: Node?
+        weak var prev: Node?
         var next: Node?
 
         init(key: String, value: Value) {
@@ -159,20 +159,22 @@ final class LRUStorage<Value> {
     /// - Parameters:
     ///   - value: The value to store.
     ///   - key: The key to associate with `value`.
-    /// - Returns: The key that was evicted to make room, or `nil` if no eviction
-    ///   occurred. This lets callers perform any extra bookkeeping tied to the
-    ///   evicted key.
+    /// - Returns: The evicted key (if any) and the value displaced by replacement
+    ///   or eviction. A caller holding a lock must retain `retiredValue` through
+    ///   unlock so caller-owned payload destruction observes committed state.
     /// - Complexity: O(1).
     @discardableResult
-    func setValue(_ value: Value, forKey key: String) -> String? {
+    func setValue(_ value: Value, forKey key: String) -> (evictedKey: String?, retiredValue: Value?) {
         // Update-in-place: replace value and promote, never evict.
         if let existing = map[key] {
+            let retiredValue = existing.value
             existing.value = value
             moveToTail(existing)
-            return nil
+            return (nil, retiredValue)
         }
 
         var evictedKey: String?
+        var retiredValue: Value?
 
         // Evict the LRU entry (head) when inserting a new key at capacity. The
         // `head` guard makes eviction a no-op when the store is empty (e.g. the
@@ -180,6 +182,7 @@ final class LRUStorage<Value> {
         // still admitted before subsequent inserts start evicting.
         if map.count >= maxSize, let lru = head {
             evictedKey = lru.key
+            retiredValue = lru.value
             unlink(lru)
             map.removeValue(forKey: lru.key)
         }
@@ -187,26 +190,33 @@ final class LRUStorage<Value> {
         let node = Node(key: key, value: value)
         map[key] = node
         appendAtTail(node)
-        return evictedKey
+        return (evictedKey, retiredValue)
     }
 
     /// Removes the entry for `key`, if present.
     ///
     /// - Parameter key: The key to remove.
+    /// - Returns: The removed value, to retain through any caller-held lock.
     /// - Complexity: O(1).
-    func removeValue(forKey key: String) {
-        guard let node = map.removeValue(forKey: key) else { return }
+    @discardableResult
+    func removeValue(forKey key: String) -> Value? {
+        guard let node = map.removeValue(forKey: key) else { return nil }
         unlink(node)
+        return node.value
     }
 
     /// Removes all entries.
     ///
-    /// - Complexity: O(n) (releasing nodes); the list pointers are reset to
-    ///   `nil`. Inter-node links are dropped as the nodes deallocate.
-    func removeAll() {
+    /// - Returns: Removed values, to retain through any caller-held lock.
+    /// - Complexity: O(n) time and temporary ownership storage. Inter-node links
+    ///   are dropped as the nodes deallocate; predecessors remain weak.
+    @discardableResult
+    func removeAll() -> [Value] {
+        let retiredValues = values
         map.removeAll(keepingCapacity: false)
         head = nil
         tail = nil
+        return retiredValues
     }
 
     /// The keys ordered from least-recently-used (first) to most-recently-used

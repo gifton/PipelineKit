@@ -5,17 +5,19 @@ import Foundation
 /// This is a simpler but less accurate algorithm compared to sliding window.
 /// It can allow traffic bursts at window boundaries.
 internal actor FixedWindow {
+    private let now: @Sendable () -> Date
     private let windowSize: TimeInterval
     private var currentWindow: Date
     private var requestCount: Int = 0
 
-    init(windowSize: TimeInterval = 60.0) {
+    init(windowSize: TimeInterval = 60.0, now: @escaping @Sendable () -> Date = { Date() }) {
+        self.now = now
         self.windowSize = windowSize
-        self.currentWindow = Self.alignToWindow(Date(), windowSize: windowSize)
+        self.currentWindow = Self.alignToWindow(now(), windowSize: windowSize)
     }
 
     func recordRequest() -> (count: Int, windowStart: Date) {
-        let now = Date()
+        let now = self.now()
         let alignedWindow = Self.alignToWindow(now, windowSize: windowSize)
 
         // Check if we've moved to a new window
@@ -30,7 +32,7 @@ internal actor FixedWindow {
     }
 
     func getCurrentCount() -> Int {
-        let now = Date()
+        let now = self.now()
         let alignedWindow = Self.alignToWindow(now, windowSize: windowSize)
 
         // Check if we're still in the same window
@@ -43,12 +45,12 @@ internal actor FixedWindow {
 
     func timeUntilReset() -> TimeInterval {
         let nextWindow = currentWindow.addingTimeInterval(windowSize)
-        return nextWindow.timeIntervalSinceNow
+        return nextWindow.timeIntervalSince(now())
     }
 
     func reset() {
         requestCount = 0
-        currentWindow = Self.alignToWindow(Date(), windowSize: windowSize)
+        currentWindow = Self.alignToWindow(now(), windowSize: windowSize)
     }
 
     /// Aligns a date to the start of its window

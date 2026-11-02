@@ -1,17 +1,8 @@
 import Foundation
-#if canImport(Network)
-import Network
-#endif
 
-/// Production-ready StatsD exporter with Swift 6 concurrency support.
-///
-/// Features:
-/// - Swift 6 strict concurrency compliant
-/// - Transport abstraction for flexible backend support
-/// - Error handling and reporting
-/// - Metric batching for efficiency
-/// - Automatic reconnection on failure
-public actor StatsDExporter: MetricRecorder {
+/// StatsD exporter with lazy transport startup and explicit shutdown.
+/// Call `forceFlush()` before `close()` to attempt delivery of buffered metrics.
+public actor StatsDExporter: FlushableMetricRecorder {
     /// Configuration for the exporter.
     public struct Configuration: Sendable {
         public let host: String
@@ -30,7 +21,6 @@ public actor StatsDExporter: MetricRecorder {
         public let aggregation: AggregationConfiguration
         
         // Transport configuration
-        public let useTransport: Bool  // Enable new transport layer
         public let transportTimeout: TimeInterval
         
         public init(
@@ -44,7 +34,6 @@ public actor StatsDExporter: MetricRecorder {
             sampleRatesByType: [String: Double] = [:],
             criticalPatterns: [String] = ["error", "timeout", "failure", "fatal", "panic"],
             aggregation: AggregationConfiguration = AggregationConfiguration(),
-            useTransport: Bool = false,
             transportTimeout: TimeInterval = 1.0
         ) {
             self.host = host
@@ -62,89 +51,153 @@ public actor StatsDExporter: MetricRecorder {
             
             self.criticalPatterns = criticalPatterns
             self.aggregation = aggregation
-            self.useTransport = useTransport
             self.transportTimeout = transportTimeout
         }
         
         public static let `default` = Configuration()
     }
     
-    #if canImport(Network)
-    /// Connection state machine (legacy)
-    private enum ConnectionState {
-        case disconnected
-        case connecting
-        case connected(NWConnection)
-        case failed(any Error)
+    private struct Startup {
+        let id: UUID
+        let task: Task<any MetricsTransport, any Error>
     }
-    #endif
-    
+
     private let configuration: Configuration
-    
-    // Transport layer (new)
+    private let transportFactory: @Sendable () async throws -> any MetricsTransport
     private var transport: (any MetricsTransport)?
-    
-    #if canImport(Network)
-    // Legacy connection handling
-    private var connectionState = ConnectionState.disconnected
-    private var connectionContinuation: CheckedContinuation<Void, Never>?
-    #endif
-    
-    // Batching support
+    private var startup: Startup?
+    private var closeTask: Task<Void, Never>?
+    internal private(set) var isClosed = false
+    // Registration acknowledgement for the internal factory's lifecycle tests.
+    internal private(set) var startupWaiterCount = 0
+
     private var buffer: [String] = []
     private var flushTask: Task<Void, Never>?
-    
-    // Aggregation support
     private let aggregator: MetricAggregator?
-    
-    // Error handling
     private var errorHandler: (@Sendable (any Error) -> Void)?
-    
-    /// Sets the error handler.
-    public func setErrorHandler(_ handler: @escaping @Sendable (any Error) -> Void) {
-        self.errorHandler = handler
+
+    /// Installs or clears error reporting before recording or explicit startup.
+    public func setErrorHandler(_ handler: (@Sendable (any Error) -> Void)?) {
+        errorHandler = handler
     }
-    
-    /// Creates a new StatsD exporter with optional transport.
-    public init(configuration: Configuration = .default, transport: (any MetricsTransport)? = nil) async {
-        self.configuration = configuration
-        
-        // Initialize aggregator if enabled
-        if configuration.aggregation.enabled {
-            self.aggregator = MetricAggregator(configuration: configuration.aggregation)
-        } else {
-            self.aggregator = nil
-        }
-        
-        // Set up transport
-        if let providedTransport = transport {
-            self.transport = providedTransport
-        } else if configuration.useTransport {
-            // Create default UDP transport
-            let udpConfig = UDPTransport.Configuration(
+
+    /// Creates a lazy exporter. `start()` or the first nonempty batch starts UDP.
+    public init(configuration: Configuration = .default) {
+        self.init(configuration: configuration, transportFactory: {
+            try await UDPTransport(configuration: .init(
                 host: configuration.host,
                 port: configuration.port,
                 timeout: configuration.transportTimeout
-            )
-            self.transport = try? await UDPTransport(configuration: udpConfig)
-        }
+            ))
+        })
     }
-    
-    /// Creates a new StatsD exporter.
-    public init(configuration: Configuration = .default) {
+
+    /// Creates an exporter owning an already initialized transport, including its close.
+    public init(configuration: Configuration, transport: any MetricsTransport) {
         self.configuration = configuration
-        
-        // Initialize aggregator if enabled
-        if configuration.aggregation.enabled {
-            self.aggregator = MetricAggregator(configuration: configuration.aggregation)
-        } else {
-            self.aggregator = nil
-        }
-        
-        // No transport in sync init (use legacy path)
-        self.transport = nil
+        self.transportFactory = { transport }
+        self.aggregator = configuration.aggregation.enabled
+            ? MetricAggregator(configuration: configuration.aggregation) : nil
+        self.transport = transport
     }
-    
+
+    internal init(
+        configuration: Configuration,
+        transportFactory: @escaping @Sendable () async throws -> any MetricsTransport
+    ) {
+        self.configuration = configuration
+        self.transportFactory = transportFactory
+        self.aggregator = configuration.aggregation.enabled
+            ? MetricAggregator(configuration: configuration.aggregation) : nil
+    }
+
+    deinit {
+        flushTask?.cancel()
+        startup?.task.cancel()
+    }
+
+    /// Validates readiness; failure is thrown and reported through the error handler.
+    public func start() async throws {
+        do {
+            _ = try await readyTransport()
+        } catch {
+            reportError(error)
+            throw error
+        }
+    }
+
+    private func readyTransport() async throws -> any MetricsTransport {
+        guard !isClosed else { throw TransportError.transportClosed }
+        if let transport { return transport }
+        let owned: Startup
+        if let startup {
+            owned = startup
+        } else {
+            let id = UUID()
+            let factory = transportFactory
+            let task = Task { () throws -> any MetricsTransport in
+                do {
+                    let candidate = try await factory()
+                    guard !self.isClosed, self.startup?.id == id else {
+                        // Only this task owns an unpublished candidate. Coverage:
+                        // testCloseDuringStartupClosesLateTransport.
+                        await candidate.close()
+                        throw TransportError.transportClosed
+                    }
+                    self.transport = candidate
+                    self.startup = nil
+                    return candidate
+                } catch {
+                    if self.startup?.id == id { self.startup = nil }
+                    throw error
+                }
+            }
+            owned = Startup(id: id, task: task)
+            startup = owned
+        }
+        startupWaiterCount += 1
+        defer { startupWaiterCount -= 1 }
+        do {
+            let ready = try await owned.task.value
+            guard !isClosed else { throw TransportError.transportClosed }
+            return ready
+        } catch {
+            // Waiters never publish or clear generations; only their startup task does.
+            if isClosed { throw TransportError.transportClosed }
+            throw error
+        }
+    }
+
+    /// Rejects new records, discards buffered records and joins owned shutdown work.
+    /// Call `forceFlush()` first to attempt delivery. UDP has no delivery acknowledgement.
+    /// A cancellation-insensitive factory or transport can delay close indefinitely.
+    /// Repeated/concurrent close shares settlement (`testCloseDuringStartupClosesLateTransport`).
+    public func close() async {
+        if let closeTask {
+            await closeTask.value
+            return
+        }
+        isClosed = true
+        buffer.removeAll()
+        let pendingStartup = startup?.task
+        let pendingFlush = flushTask
+        let ready = transport
+        startup = nil
+        transport = nil
+        pendingStartup?.cancel()
+        pendingFlush?.cancel()
+        let aggregator = aggregator
+        let closing = Task {
+            await ready?.close()
+            _ = await pendingStartup?.result
+            await pendingFlush?.value
+            if let aggregator { _ = await aggregator.forceFlush() }
+        }
+        closeTask = closing
+        await closing.value
+        flushTask = nil
+    }
+
     // MARK: - Sampling Logic
     
     /// Stable hash function for deterministic sampling across program runs.
@@ -187,12 +240,12 @@ public actor StatsDExporter: MetricRecorder {
         return (shouldSample, rate)
     }
     
-    // Note: No deinit needed. Accessing actor-isolated properties (connectionState, flushTask)
-    // from deinit is a data race. Tasks captured with weak self will exit when the actor
-    // is deallocated, and NWConnection handles its own cleanup when released.
-    
     /// Records a metric snapshot.
     public func record(_ snapshot: MetricSnapshot) async {
+        guard !isClosed else {
+            reportError(TransportError.transportClosed)
+            return
+        }
         // Check if we should sample this metric
         let (shouldSample, rate) = self.shouldSample(snapshot)
         guard shouldSample else { return }  // Drop if not sampled
@@ -296,151 +349,56 @@ public actor StatsDExporter: MetricRecorder {
     
     /// Buffers a metric line for batched sending.
     private func bufferMetric(_ line: String) async {
+        guard !isClosed else {
+            reportError(TransportError.transportClosed)
+            return
+        }
         buffer.append(line)
-        
         if buffer.count >= configuration.maxBatchSize {
-            await flush()
-        } else if flushTask == nil {
-            // Start flush timer
-            flushTask = Task { [weak self] in
-                guard let self = self else { return }
-                try? await Task.sleep(for: .seconds(configuration.flushInterval))
-                await self.flush()
-            }
+            await flushBuffer()
+        } else {
+            scheduleFlushIfNeeded()
         }
     }
-    
-    /// Flushes buffered metrics.
-    private func flush() async {
-        guard !buffer.isEmpty else { return }
-        
+
+    private func scheduleFlushIfNeeded() {
+        guard !isClosed, !buffer.isEmpty, flushTask == nil else { return }
+        let interval = configuration.flushInterval
+        flushTask = Task { [weak self] in
+            do {
+                try await Task.sleep(for: .seconds(interval))
+                try Task.checkCancellation()
+            } catch { return }
+            await self?.flushFromTimer()
+        }
+    }
+
+    private func flushFromTimer() async {
+        await flushBuffer()
+        flushTask = nil
+        scheduleFlushIfNeeded()
+    }
+
+    /// Each invocation retains its nonempty batch across readiness and send.
+    private func flushBuffer() async {
+        guard !isClosed, !buffer.isEmpty else { return }
         let batch = buffer
         buffer.removeAll(keepingCapacity: true)
-        flushTask?.cancel()
-        flushTask = nil
-        
-        // Use transport if available, otherwise legacy
-        if transport != nil {
-            await sendViaTransport(batch)
-        } else {
-            let data = batch.joined(separator: "\n")
-            await sendLegacy(data)
-        }
-    }
-    
-    /// Sends metrics via transport layer.
-    private func sendViaTransport(_ lines: [String]) async {
-        guard let transport = transport else { return }
-        
+        // Keep the timer's task handle until it settles, so close can join an
+        // in-flight timer flush as well as cancel a sleeping timer.
         do {
-            // Convert each line to Data
-            let packets = lines.compactMap { $0.data(using: .utf8) }
-            
+            let ready = try await readyTransport()
+            let packets = batch.map { Data($0.utf8) }
             if packets.count == 1 {
-                try await transport.send(packets[0])
-            } else if !packets.isEmpty {
-                try await transport.sendBatch(packets)
+                try await ready.send(packets[0])
+            } else {
+                try await ready.sendBatch(packets)
             }
         } catch {
             reportError(error)
         }
     }
-    
-    /// Sends data via UDP (legacy).
-    private func sendLegacy(_ data: String) async {
-        #if canImport(Network)
-        do {
-            try await ensureConnection()
-            
-            guard let messageData = data.data(using: .utf8) else {
-                reportError(MetricsError.invalidData("Failed to encode metric data"))
-                return
-            }
-            
-            if case .connected(let connection) = connectionState {
-                connection.send(content: messageData, completion: .contentProcessed { [weak self] error in
-                    if let error = error {
-                        Task { [weak self] in
-                            await self?.handleSendError(error)
-                        }
-                    }
-                })
-            }
-        } catch {
-            reportError(error)
-        }
-        #endif
-    }
-    
-    #if canImport(Network)
-    /// Ensures connection is established.
-    private func ensureConnection() async throws {
-        switch connectionState {
-        case .connected:
-            return // Already connected
-            
-        case .connecting:
-            // Wait for connection to complete
-            await withCheckedContinuation { continuation in
-                self.connectionContinuation = continuation
-            }
-            
-        case .disconnected, .failed:
-            try await connect()
-        }
-    }
-    
-    /// Establishes a new connection.
-    private func connect() async throws {
-        connectionState = .connecting
-        
-        let host = NWEndpoint.Host(configuration.host)
-        let port = NWEndpoint.Port(integerLiteral: UInt16(configuration.port))
-        let connection = NWConnection(host: host, port: port, using: .udp)
-        
-        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
-            connection.stateUpdateHandler = { [weak self] state in
-                Task { [weak self] in
-                    await self?.handleConnectionStateChange(state, connection: connection)
-                }
-            }
-            
-            connection.start(queue: .global())
-            continuation.resume()
-        }
-    }
-    
-    /// Handles connection state changes.
-    private func handleConnectionStateChange(_ state: NWConnection.State, connection: NWConnection) async {
-        switch state {
-        case .ready:
-            connectionState = .connected(connection)
-            connectionContinuation?.resume()
-            connectionContinuation = nil
-            
-        case .failed(let error):
-            connectionState = .failed(error)
-            connectionContinuation?.resume()
-            connectionContinuation = nil
-            reportError(MetricsError.connectionFailed(error))
-            
-        case .cancelled:
-            connectionState = .disconnected
-            connectionContinuation?.resume()
-            connectionContinuation = nil
-            
-        default:
-            break // Ignore other states
-        }
-    }
-    
-    /// Handles send errors.
-    private func handleSendError(_ error: NWError) async {
-        connectionState = .disconnected
-        reportError(MetricsError.sendFailed(error.localizedDescription))
-    }
-    #endif
-    
+
     /// Reports an error through the configured handler.
     private func reportError(_ error: any Error) {
         errorHandler?(error)
@@ -457,12 +415,18 @@ public actor StatsDExporter: MetricRecorder {
     }
     
     /// Forces a flush of buffered metrics.
+    public func flush() async {
+        await forceFlush()
+    }
+
+    /// Forces a flush of buffered metrics.
     public func forceFlush() async {
+        guard !isClosed else { return }
         // Flush aggregated metrics first if enabled
         if aggregator != nil {
             await flushAggregatedMetrics()
         }
-        await flush()
+        await flushBuffer()
     }
     
     /// Flushes aggregated metrics from the aggregator.
@@ -487,7 +451,7 @@ public extension StatsDExporter {
     ) async -> (StatsDExporter, MockTransport)? {
         do {
             let mockTransport = try await MockTransport(configuration: mockConfig)
-            let exporter = await StatsDExporter(configuration: configuration, transport: mockTransport)
+            let exporter = StatsDExporter(configuration: configuration, transport: mockTransport)
             return (exporter, mockTransport)
         } catch {
             print("Failed to create mock transport: \(error)")

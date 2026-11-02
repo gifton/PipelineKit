@@ -42,21 +42,14 @@ public actor PipelineBuilder<T: Command, H: CommandHandler> where H.CommandType 
     /// The command handler that will process commands after all middleware.
     private let handler: H
     
-    /// The collection of middleware to be added to the pipeline.
-    private var middlewares: [any Middleware] = []
+    /// The single collection of middleware and effective priorities for every addition family.
+    private var orderBuilder = MiddlewareOrderBuilder()
     
     /// The maximum depth of middleware allowed in the pipeline.
     private var maxDepth: Int = 100
     
     /// Whether to apply middleware chain optimization.
     private var enableOptimization: Bool = false
-    
-    
-    /// Middleware order builder for managing execution priorities.
-    private var orderBuilder = MiddlewareOrderBuilder()
-    
-    /// Whether to use ordered middleware instead of simple array.
-    private var useOrderedMiddleware: Bool = false
     
     /// Creates a new pipeline builder with the specified handler.
     ///
@@ -73,7 +66,7 @@ public actor PipelineBuilder<T: Command, H: CommandHandler> where H.CommandType 
     /// - Returns: The builder instance for method chaining.
     @discardableResult
     public func with(_ middleware: any Middleware) -> Self {
-        middlewares.append(middleware)
+        orderBuilder.add(middleware, priority: middleware.priority.rawValue)
         return self
     }
     
@@ -86,7 +79,9 @@ public actor PipelineBuilder<T: Command, H: CommandHandler> where H.CommandType 
     /// - Returns: The builder instance for method chaining.
     @discardableResult
     public func with(_ middlewares: [any Middleware]) -> Self {
-        self.middlewares.append(contentsOf: middlewares)
+        for middleware in middlewares {
+            orderBuilder.add(middleware, priority: middleware.priority.rawValue)
+        }
         return self
     }
 
@@ -141,8 +136,9 @@ public actor PipelineBuilder<T: Command, H: CommandHandler> where H.CommandType 
     
     /// Adds middleware with a specific execution priority.
     ///
-    /// This method uses the MiddlewareOrderBuilder to ensure middleware
-    /// execute in the correct order based on their priority.
+    /// The supplied order overrides the middleware's intrinsic priority.
+    /// Equal effective priorities retain insertion order, as exercised by
+    /// `BuilderCompositionContractTests.testExplicitOrderSurvivesStandardPipelineSort`.
     ///
     /// - Parameters:
     ///   - middleware: The middleware to add
@@ -150,7 +146,6 @@ public actor PipelineBuilder<T: Command, H: CommandHandler> where H.CommandType 
     /// - Returns: The builder instance for method chaining.
     @discardableResult
     public func with(_ middleware: any Middleware, order: ExecutionPriority) -> Self {
-        useOrderedMiddleware = true
         orderBuilder.add(middleware, order: order)
         return self
     }
@@ -161,9 +156,7 @@ public actor PipelineBuilder<T: Command, H: CommandHandler> where H.CommandType 
     /// - Returns: The builder instance for method chaining.
     @discardableResult
     public func withAuthentication(_ middleware: any Middleware) -> Self {
-        useOrderedMiddleware = true
-        orderBuilder.add(middleware, order: middleware.priority)
-        return self
+        with(middleware)
     }
 
     /// Alias for `withAuthentication(_:)`.
@@ -178,9 +171,7 @@ public actor PipelineBuilder<T: Command, H: CommandHandler> where H.CommandType 
     /// - Returns: The builder instance for method chaining.
     @discardableResult
     public func withAuthorization(_ middleware: any Middleware) -> Self {
-        useOrderedMiddleware = true
-        orderBuilder.add(middleware, order: middleware.priority)
-        return self
+        with(middleware)
     }
 
     /// Alias for `withAuthorization(_:)`.
@@ -195,9 +186,7 @@ public actor PipelineBuilder<T: Command, H: CommandHandler> where H.CommandType 
     /// - Returns: The builder instance for method chaining.
     @discardableResult
     public func withRateLimiting(_ middleware: any Middleware) -> Self {
-        useOrderedMiddleware = true
-        orderBuilder.add(middleware, order: middleware.priority)
-        return self
+        with(middleware)
     }
 
     /// Alias for `withRateLimiting(_:)`.
@@ -212,9 +201,7 @@ public actor PipelineBuilder<T: Command, H: CommandHandler> where H.CommandType 
     /// - Returns: The builder instance for method chaining.
     @discardableResult
     public func withLogging(_ middleware: any Middleware) -> Self {
-        useOrderedMiddleware = true
-        orderBuilder.add(middleware, order: middleware.priority)
-        return self
+        with(middleware)
     }
 
     /// Alias for `withLogging(_:)`.
@@ -239,15 +226,8 @@ public actor PipelineBuilder<T: Command, H: CommandHandler> where H.CommandType 
             maxDepth: maxDepth
         )
         
-        // Add middleware based on whether we're using ordered or unordered
-        if useOrderedMiddleware {
-            // Get ordered middleware from the order builder
-            let orderedMiddleware = orderBuilder.build()
-            let sortedMiddleware = orderedMiddleware.map { $0.0 }
-            try await pipeline.addMiddlewares(sortedMiddleware)
-        } else {
-            // Use the simple middleware array
-            try await pipeline.addMiddlewares(middlewares)
+        for (middleware, priority) in orderBuilder.build() {
+            try await pipeline.addMiddleware(middleware, effectivePriority: priority)
         }
         
         // Optimization is now handled automatically inside StandardPipeline

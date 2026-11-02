@@ -1,6 +1,7 @@
 import Foundation
 import PipelineKit
 import PipelineKitCore
+import _ResilienceFoundation
 
 /// Middleware that provides retry functionality with configurable policies
 ///
@@ -129,63 +130,45 @@ public final class ResilientMiddleware: Middleware, UnsafeMiddleware, @unchecked
 public actor Bulkhead {
     private let name: String
     private let maxConcurrency: Int
-    private var activeCalls = 0
-    private var waitQueue: [CheckedContinuation<Void, any Error>] = []
-    private let maxWaitingCalls: Int
+    private let admission: AdmissionGate
     
     public init(
         name: String,
         maxConcurrency: Int,
         maxWaitingCalls: Int = 100
     ) {
+        precondition(maxConcurrency > 0, "Bulkhead concurrency must be positive")
+        precondition(maxWaitingCalls >= 0, "Bulkhead waiting limit must be nonnegative")
         self.name = name
         self.maxConcurrency = maxConcurrency
-        self.maxWaitingCalls = maxWaitingCalls
+        self.admission = AdmissionGate(capacity: maxConcurrency, maxQueueSize: maxWaitingCalls)
     }
     
     public func execute<T: Sendable>(
         operation: @escaping @Sendable () async throws -> T
     ) async throws -> T {
-        try await acquireSlot()
-        defer {
-            Task { [weak self] in
-                await self?.releaseSlot()
-            }
-        }
-        return try await operation()
-    }
-    
-    private func acquireSlot() async throws {
-        if activeCalls < maxConcurrency {
-            activeCalls += 1
-            return
-        }
-        
-        guard waitQueue.count < maxWaitingCalls else {
+        let lease: AdmissionLease
+        do {
+            lease = try await admission.acquire()
+        } catch AdmissionError.full {
             throw PipelineError.resilience(reason: .bulkheadFull)
         }
-        
-        try await withCheckedThrowingContinuation { continuation in
-            waitQueue.append(continuation)
-        }
-        
-        activeCalls += 1
-    }
-    
-    private func releaseSlot() {
-        activeCalls -= 1
-        
-        if !waitQueue.isEmpty {
-            let continuation = waitQueue.removeFirst()
-            continuation.resume()
+        do {
+            let result = try await operation()
+            await lease.release()
+            return result
+        } catch {
+            await lease.release()
+            throw error
         }
     }
-    
-    public func getStats() -> BulkheadStats {
-        BulkheadStats(
+
+    public func getStats() async -> BulkheadStats {
+        let snapshot = await admission.snapshot()
+        return BulkheadStats(
             name: name,
-            activeCalls: activeCalls,
-            waitingCalls: waitQueue.count,
+            activeCalls: snapshot.active,
+            waitingCalls: snapshot.queued,
             maxConcurrency: maxConcurrency
         )
     }

@@ -217,8 +217,8 @@ public actor ObservabilitySystem {
             globalTags: globalTags
         )
         
-        // Using async init with transport
-        statsdExporter = await StatsDExporter(configuration: config)
+        // Transport startup is lazy until the first nonempty batch.
+        statsdExporter = StatsDExporter(configuration: config)
         
         if let exporter = statsdExporter {
             // Bridge metrics to StatsD

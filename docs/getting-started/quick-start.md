@@ -163,7 +163,17 @@ Cache expensive operations:
 ```swift
 import PipelineKitCache
 
-let cached = ExpensiveMiddleware().cached(ttl: 300, cache: InMemoryMiddlewareCache.shared) // 5 minutes
+let calculationKeys = ClosureCacheKeyGenerator { command, _, _ in
+    guard let query = command as? CalculateCommand else {
+        preconditionFailure("Expected CalculateCommand")
+    }
+    // The sum result depends on both operands and this algorithm version.
+    return [String(query.a), String(query.b), "sum-v1"]
+        .map { "\($0.utf8.count):\($0)" }.joined()
+}
+let cached = ExpensiveMiddleware().cached(
+    ttl: 300, cache: InMemoryMiddlewareCache.shared, keyGenerator: calculationKeys
+)
 
 let builder3 = PipelineBuilder(handler: CalculateHandler())
 await builder3.addMiddleware(cached)

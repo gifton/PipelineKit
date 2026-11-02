@@ -110,13 +110,28 @@ try await pipeline.addMiddleware(rateLimit)
 ```swift
 import PipelineKitCache
 
+struct ProfileQuery: Command {
+    typealias Result = String
+    let accountID: String
+    let locale: String
+}
+
+// AuthenticationMiddleware must establish authUserId before protected caching.
+let profileKeys = ClosureCacheKeyGenerator { command, context, _ in
+    guard let query = command as? ProfileQuery,
+          let principal = context.getMetadata("authUserId") as? String else {
+        preconditionFailure("Expected an authenticated profile query")
+    }
+    return [query.accountID, query.locale, principal, "profile-format-v2"]
+        .map { "\($0.utf8.count):\($0)" }.joined()
+}
+
 let cache = InMemoryCache(maxSize: 1000)
 
 let caching = CachingMiddleware(
     cache: cache,
-    keyGenerator: { command in
-        "\(type(of: command)):\(String(describing: command).hashValue)"
-    },
+    commandType: ProfileQuery.self,
+    keyGenerator: profileKeys,
     ttl: 300
 )
 
@@ -126,9 +141,10 @@ try await pipeline.addMiddleware(caching)
 let conditional = ConditionalCachedMiddleware(
     wrapping: caching,
     cache: InMemoryMiddlewareCache.shared,
+    keyGenerator: profileKeys,
     ttl: 300
 ) { command, _ in
-    command is GetUserCommand
+    command is ProfileQuery
 }
 ```
 

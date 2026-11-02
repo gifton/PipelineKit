@@ -55,7 +55,7 @@ public struct ConsoleAuditLogger: AuditLogger {
     
     // MARK: - Private Helpers
     
-    private func formatEvent(_ event: any AuditEvent) -> String {
+    func formatEvent(_ event: any AuditEvent) -> String {
         let timestamp = dateFormatter.string(from: event.timestamp)
         let eventType = event.eventType
         
@@ -79,7 +79,7 @@ public struct ConsoleAuditLogger: AuditLogger {
         } else {
             // Only include important keys
             let importantKeys = [
-                "commandType", "commandId", "userId", "sessionId",
+                "commandType", "commandId", "userID", "sessionID", "userId", "sessionId",
                 "resource", "principal", "error", "duration",
                 "traceId", "spanId"
             ]

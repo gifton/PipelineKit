@@ -30,7 +30,8 @@ public actor RateLimiter {
     private var fixedWindows: [String: FixedWindow] = [:]
     private var leakyBuckets: [String: LeakyBucket] = [:]
     private let cleanupInterval: TimeInterval = 300 // 5 minutes
-    private var lastCleanup = Date()
+    private let now: @Sendable () -> Date
+    private var lastCleanup: Date
     
     /// Creates a rate limiter with the specified strategy and scope.
     ///
@@ -38,8 +39,18 @@ public actor RateLimiter {
     ///   - strategy: The rate limiting algorithm to use
     ///   - scope: The scope for applying rate limits
     public init(strategy: RateLimitStrategy, scope: RateLimitScope = .perUser) {
+        self.init(strategy: strategy, scope: scope, now: { Date() })
+    }
+
+    internal init(
+        strategy: RateLimitStrategy,
+        scope: RateLimitScope,
+        now: @escaping @Sendable () -> Date
+    ) {
         self.strategy = strategy
         self.scope = scope
+        self.now = now
+        self.lastCleanup = now()
     }
     
     /// Checks if a request is allowed under the current rate limit.
@@ -49,6 +60,7 @@ public actor RateLimiter {
     ///   - cost: The cost of the request (default: 1)
     /// - Returns: True if the request is allowed, false if rate limited
     public func allowRequest(identifier: String, cost: Double = 1.0) async throws -> Bool {
+        let identifier = effectiveIdentifier(identifier)
         await cleanupIfNeeded()
         
         switch strategy {
@@ -120,55 +132,56 @@ public actor RateLimiter {
     /// - Parameter identifier: The identifier to check
     /// - Returns: Current rate limit status
     public func getStatus(identifier: String) async -> RateLimitStatus {
+        let identifier = effectiveIdentifier(identifier)
         switch strategy {
         case let .tokenBucket(capacity, refillRate):
-            let bucket = buckets[identifier] ?? TokenBucket(capacity: capacity, refillRate: refillRate)
+            let bucket = buckets[identifier] ?? TokenBucket(capacity: capacity, refillRate: refillRate, now: now)
             let tokens = await bucket.getTokens()
             let timeToNext = await bucket.timeToNextToken()
             return RateLimitStatus(
                 remaining: Int(tokens),
                 limit: Int(capacity),
-                resetAt: Date().addingTimeInterval(timeToNext)
+                resetAt: now().addingTimeInterval(timeToNext)
             )
             
         case let .slidingWindow(windowSize, maxRequests):
-            let window = slidingWindows[identifier] ?? SlidingWindow()
+            let window = slidingWindows[identifier] ?? SlidingWindow(now: now)
             await window.setWindowSize(windowSize)
-            let count = await window.requestCount(since: Date().addingTimeInterval(-windowSize))
+            let count = await window.requestCount(since: now().addingTimeInterval(-windowSize))
             return RateLimitStatus(
                 remaining: max(0, maxRequests - count),
                 limit: maxRequests,
-                resetAt: Date().addingTimeInterval(windowSize)
+                resetAt: now().addingTimeInterval(windowSize)
             )
             
         case let .fixedWindow(windowSize, maxRequests):
-            let window = fixedWindows[identifier] ?? FixedWindow(windowSize: windowSize)
+            let window = fixedWindows[identifier] ?? FixedWindow(windowSize: windowSize, now: now)
             let count = await window.getCurrentCount()
             let timeUntilReset = await window.timeUntilReset()
             return RateLimitStatus(
                 remaining: max(0, maxRequests - count),
                 limit: maxRequests,
-                resetAt: Date().addingTimeInterval(timeUntilReset)
+                resetAt: now().addingTimeInterval(timeUntilReset)
             )
             
         case let .leakyBucket(capacity, _):
-            let bucket = leakyBuckets[identifier] ?? LeakyBucket(capacity: capacity, leakRate: 1.0)
+            let bucket = leakyBuckets[identifier] ?? LeakyBucket(capacity: capacity, leakRate: 1.0, now: now)
             let level = await bucket.getCurrentLevel()
             let timeUntilLeak = await bucket.timeUntilNextLeak()
             return RateLimitStatus(
                 remaining: max(0, capacity - level),
                 limit: capacity,
-                resetAt: Date().addingTimeInterval(timeUntilLeak)
+                resetAt: now().addingTimeInterval(timeUntilLeak)
             )
             
         case let .adaptive(baseRate, _):
-            let bucket = buckets[identifier] ?? TokenBucket(capacity: Double(baseRate), refillRate: Double(baseRate) / 10.0)
+            let bucket = buckets[identifier] ?? TokenBucket(capacity: Double(baseRate), refillRate: Double(baseRate) / 10.0, now: now)
             let tokens = await bucket.getTokens()
             let timeToNext = await bucket.timeToNextToken()
             return RateLimitStatus(
                 remaining: Int(tokens),
                 limit: baseRate,
-                resetAt: Date().addingTimeInterval(timeToNext)
+                resetAt: now().addingTimeInterval(timeToNext)
             )
             
         case let .distributed(store, windowSize, maxRequests):
@@ -177,14 +190,14 @@ public actor RateLimiter {
                 return RateLimitStatus(
                     remaining: max(0, maxRequests - count),
                     limit: maxRequests,
-                    resetAt: Date().addingTimeInterval(windowSize)
+                    resetAt: now().addingTimeInterval(windowSize)
                 )
             } catch {
                 // If we can't get the count, assume no requests
                 return RateLimitStatus(
                     remaining: maxRequests,
                     limit: maxRequests,
-                    resetAt: Date().addingTimeInterval(windowSize)
+                    resetAt: now().addingTimeInterval(windowSize)
                 )
             }
             
@@ -192,15 +205,15 @@ public actor RateLimiter {
             // Default to medium priority for status check
             let priority = Priority.medium
             guard let config = limits[priority] else {
-                return RateLimitStatus(remaining: 0, limit: 0, resetAt: Date())
+                return RateLimitStatus(remaining: 0, limit: 0, resetAt: now())
             }
-            let window = fixedWindows["\(identifier):\(priority.rawValue)"] ?? FixedWindow(windowSize: config.windowSize)
+            let window = fixedWindows["\(identifier):\(priority.rawValue)"] ?? FixedWindow(windowSize: config.windowSize, now: now)
             let count = await window.getCurrentCount()
             let timeUntilReset = await window.timeUntilReset()
             return RateLimitStatus(
                 remaining: max(0, config.maxRequests - count),
                 limit: config.maxRequests,
-                resetAt: Date().addingTimeInterval(timeUntilReset)
+                resetAt: now().addingTimeInterval(timeUntilReset)
             )
         }
     }
@@ -209,7 +222,8 @@ public actor RateLimiter {
     ///
     /// - Parameter identifier: The identifier to reset, or nil to reset all
     public func reset(identifier: String? = nil) {
-        if let identifier = identifier {
+        if let identifier {
+            let identifier = effectiveIdentifier(identifier)
             buckets.removeValue(forKey: identifier)
             slidingWindows.removeValue(forKey: identifier)
             fixedWindows.removeValue(forKey: identifier)
@@ -223,6 +237,15 @@ public actor RateLimiter {
     }
     
     // MARK: - Private Methods
+
+    private func effectiveIdentifier(_ supplied: String) -> String {
+        switch scope {
+        case .global: "pipelinekit:rate-limit:v1:global"
+        case .perUser: "pipelinekit:rate-limit:v1:user:\(supplied)"
+        case .perIP: "pipelinekit:rate-limit:v1:ip:\(supplied)"
+        case .perCommand: "pipelinekit:rate-limit:v1:command:\(supplied)"
+        }
+    }
     
     private func checkTokenBucket(
         identifier: String,
@@ -230,7 +253,7 @@ public actor RateLimiter {
         refillRate: Double,
         cost: Double
     ) async -> Bool {
-        let bucket = buckets[identifier] ?? TokenBucket(capacity: capacity, refillRate: refillRate)
+        let bucket = buckets[identifier] ?? TokenBucket(capacity: capacity, refillRate: refillRate, now: now)
         buckets[identifier] = bucket
         
         await bucket.refill(rate: refillRate)
@@ -242,13 +265,13 @@ public actor RateLimiter {
         windowSize: TimeInterval,
         maxRequests: Int
     ) async -> Bool {
-        let window = slidingWindows[identifier] ?? SlidingWindow()
+        let window = slidingWindows[identifier] ?? SlidingWindow(now: now)
         slidingWindows[identifier] = window
         
         await window.setWindowSize(windowSize)
         await window.recordRequest()
         
-        let count = await window.requestCount(since: Date().addingTimeInterval(-windowSize))
+        let count = await window.requestCount(since: now().addingTimeInterval(-windowSize))
         return count <= maxRequests
     }
     
@@ -257,7 +280,7 @@ public actor RateLimiter {
         windowSize: TimeInterval,
         maxRequests: Int
     ) async -> Bool {
-        let window = fixedWindows[identifier] ?? FixedWindow(windowSize: windowSize)
+        let window = fixedWindows[identifier] ?? FixedWindow(windowSize: windowSize, now: now)
         fixedWindows[identifier] = window
         
         let (count, _) = await window.recordRequest()
@@ -269,7 +292,7 @@ public actor RateLimiter {
         capacity: Int,
         leakRate: TimeInterval
     ) async -> Bool {
-        let bucket = leakyBuckets[identifier] ?? LeakyBucket(capacity: capacity, leakRate: leakRate)
+        let bucket = leakyBuckets[identifier] ?? LeakyBucket(capacity: capacity, leakRate: leakRate, now: now)
         leakyBuckets[identifier] = bucket
         
         return await bucket.tryAdd()
@@ -286,7 +309,7 @@ public actor RateLimiter {
     }
     
     private func cleanupIfNeeded() async {
-        let now = Date()
+        let now = self.now()
         guard now.timeIntervalSince(lastCleanup) >= cleanupInterval else { return }
         
         // Clean up unused token buckets

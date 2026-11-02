@@ -26,9 +26,7 @@ import PipelineKitCore
 /// }
 /// ```
 actor HandlerRegistry {
-    /// Type-erased storage for handlers indexed by command type.
-    /// We store handlers as Any but they are guaranteed to be AnyCommandHandler<T> for some T.
-    private var handlers: [ObjectIdentifier: any Sendable] = [:]
+    private var storage = HandlerRegistryStorage()
     
     /// Registers a handler for a specific command type.
     ///
@@ -42,8 +40,7 @@ actor HandlerRegistry {
         _ commandType: T.Type,
         handler: H
     ) async where H.CommandType == T {
-        let key = ObjectIdentifier(commandType)
-        handlers[key] = AnyCommandHandler(handler)
+        storage.replace(commandType, with: handler)
     }
 
     /// Inserts a handler only if no handler is currently registered.
@@ -52,10 +49,7 @@ actor HandlerRegistry {
         _ commandType: T.Type,
         handler: H
     ) async -> Bool where H.CommandType == T {
-        let key = ObjectIdentifier(commandType)
-        guard handlers[key] == nil else { return false }
-        handlers[key] = AnyCommandHandler(handler)
-        return true
+        storage.insertIfAbsent(commandType, handler: handler)
     }
 
     /// Replaces the handler for a command type.
@@ -65,9 +59,7 @@ actor HandlerRegistry {
         _ commandType: T.Type,
         with handler: H
     ) async -> Bool where H.CommandType == T {
-        let key = ObjectIdentifier(commandType)
-        let replaced = handlers.updateValue(AnyCommandHandler(handler), forKey: key) != nil
-        return replaced
+        storage.replace(commandType, with: handler)
     }
     
     /// Retrieves a handler for a specific command type.
@@ -77,8 +69,7 @@ actor HandlerRegistry {
     /// - Parameter commandType: The type of command to find a handler for
     /// - Returns: The registered handler, or `nil` if no handler is registered
     func handler<T: Command>(for commandType: T.Type) async -> (any Sendable)? {
-        let key = ObjectIdentifier(commandType)
-        return handlers[key]
+        storage.handler(for: commandType)
     }
     
     /// Removes a handler for a specific command type.
@@ -89,22 +80,21 @@ actor HandlerRegistry {
     /// - Returns: The removed handler, or `nil` if no handler was registered
     @discardableResult
     func removeHandler<T: Command>(for commandType: T.Type) async -> (any Sendable)? {
-        let key = ObjectIdentifier(commandType)
-        return handlers.removeValue(forKey: key)
+        storage.removeHandler(for: commandType)
     }
     
     /// Removes all registered handlers.
     ///
     /// This method is thread-safe and can be called concurrently from multiple tasks.
     func removeAllHandlers() async {
-        handlers.removeAll()
+        storage.removeAllHandlers()
     }
     
     /// Returns the number of registered handlers.
     ///
     /// This property is thread-safe and can be accessed concurrently from multiple tasks.
     var count: Int {
-        handlers.count
+        storage.count
     }
     
     /// Returns whether a handler is registered for a specific command type.
@@ -114,8 +104,7 @@ actor HandlerRegistry {
     /// - Parameter commandType: The command type to check
     /// - Returns: `true` if a handler is registered, `false` otherwise
     func hasHandler<T: Command>(for commandType: T.Type) async -> Bool {
-        let key = ObjectIdentifier(commandType)
-        return handlers[key] != nil
+        storage.hasHandler(for: commandType)
     }
     
     /// Returns all registered command types.
@@ -125,9 +114,6 @@ actor HandlerRegistry {
     ///
     /// This property is thread-safe and can be accessed concurrently from multiple tasks.
     var registeredCommandTypes: [String] {
-        handlers.keys.map { key in
-            // ObjectIdentifier debug description includes type information
-            String(describing: key)
-        }
+        storage.registeredCommandTypes
     }
 }

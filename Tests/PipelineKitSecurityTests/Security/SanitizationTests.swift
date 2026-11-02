@@ -6,14 +6,14 @@ import PipelineKitTestSupport
 
 final class SanitizationTests: XCTestCase {
     // Test command with sanitization
-    private struct CreatePostCommand: Command {
+    private struct CreatePostCommand: SanitizableCommand {
         typealias Result = String
         
         let title: String
         let content: String
         let tags: String
         
-        func sanitize() throws -> Self {
+        func sanitize() async throws -> Self {
             CreatePostCommand(
                 title: title.trimmingCharacters(in: .whitespacesAndNewlines),
                 content: CommandSanitizer.sanitizeHTML(content),
@@ -122,28 +122,27 @@ final class SanitizationTests: XCTestCase {
         
         let result = try await pipeline.execute(command)
         
-        // Verify the command was processed (middleware uses default no-op sanitize)
-        XCTAssertEqual(result, "Post created:   My Post  ")
-        
-        // Create a new command to verify sanitization would work
-        let sanitizedCommand = try command.sanitize()
+        XCTAssertEqual(result, "Post created: My Post")
+        XCTAssertEqual(command.title, "  My Post  ")
+
+        let sanitizedCommand = try await command.sanitize()
         XCTAssertEqual(sanitizedCommand.title, "My Post")
         XCTAssertEqual(sanitizedCommand.content, "Hello &lt;b&gt;World&lt;/b&gt;")
         XCTAssertTrue(sanitizedCommand.tags.count <= 50)
     }
     
-    func testSecureCommand() throws {
-        struct SecureCreateUserCommand: Command {
+    func testSecureCommand() async throws {
+        struct SecureCreateUserCommand: ValidatableCommand, SanitizableCommand {
             typealias Result = String
             
             let email: String
             let bio: String
             
-            func validate() throws {
+            func validate() async throws {
                 try CommandValidator.validateEmail(email)
             }
             
-            func sanitize() throws -> Self {
+            func sanitize() async throws -> Self {
                 SecureCreateUserCommand(
                     email: email.lowercased().trimmingCharacters(in: .whitespaces),
                     bio: CommandSanitizer.sanitizeHTML(bio)
@@ -156,12 +155,15 @@ final class SanitizationTests: XCTestCase {
             bio: "<script>bad</script>My bio"
         )
         
-        // Test validation
-        XCTAssertThrowsError(try command.validate()) // Should fail due to spaces
-        
-        // Sanitize and revalidate
-        let sanitizedCommand = try command.sanitize()
-        XCTAssertNoThrow(try sanitizedCommand.validate())
+        do {
+            try await command.validate()
+            XCTFail("Expected validation failure before trimming the email")
+        } catch {
+            XCTAssertTrue(error is PipelineError)
+        }
+
+        let sanitizedCommand = try await command.sanitize()
+        try await sanitizedCommand.validate()
         XCTAssertEqual(sanitizedCommand.email, "test@example.com")
         XCTAssertEqual(sanitizedCommand.bio, "My bio")
     }

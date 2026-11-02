@@ -136,9 +136,9 @@ final class LRUEvolutionTests: XCTestCase {
         XCTAssertFalse(storage.contains("missing"))
 
         // Insert a, b, c.
-        XCTAssertNil(storage.setValue(1, forKey: "a"))
-        XCTAssertNil(storage.setValue(2, forKey: "b"))
-        XCTAssertNil(storage.setValue(3, forKey: "c"))
+        XCTAssertNil(storage.setValue(1, forKey: "a").evictedKey)
+        XCTAssertNil(storage.setValue(2, forKey: "b").evictedKey)
+        XCTAssertNil(storage.setValue(3, forKey: "c").evictedKey)
         XCTAssertEqual(storage.count, 3)
         XCTAssertEqual(storage.keysInLRUOrder(), ["a", "b", "c"]) // LRU..MRU
 
@@ -151,14 +151,14 @@ final class LRUEvolutionTests: XCTestCase {
         XCTAssertEqual(storage.keysInLRUOrder(), ["b", "c", "a"])
 
         // Insert `d` at capacity -> evicts LRU `b`, returns "b".
-        let evicted = storage.setValue(4, forKey: "d")
+        let evicted = storage.setValue(4, forKey: "d").evictedKey
         XCTAssertEqual(evicted, "b")
         XCTAssertEqual(storage.count, 3)
         XCTAssertFalse(storage.contains("b"))
         XCTAssertEqual(storage.keysInLRUOrder(), ["c", "a", "d"])
 
         // Update existing `c` -> no eviction, promotes `c`.
-        let noEvict = storage.setValue(30, forKey: "c")
+        let noEvict = storage.setValue(30, forKey: "c").evictedKey
         XCTAssertNil(noEvict)
         XCTAssertEqual(storage.value(forKey: "c"), 30)
         XCTAssertEqual(storage.keysInLRUOrder(), ["a", "d", "c"])
@@ -218,15 +218,62 @@ final class LRUEvolutionTests: XCTestCase {
     /// A store with `maxSize == 1` keeps only the most recent key.
     func testLRUStorageCapacityOne() {
         let storage = LRUStorage<Int>(maxSize: 1)
-        XCTAssertNil(storage.setValue(1, forKey: "a"))
+        XCTAssertNil(storage.setValue(1, forKey: "a").evictedKey)
         XCTAssertEqual(storage.keysInLRUOrder(), ["a"])
 
-        let evicted = storage.setValue(2, forKey: "b")
+        let evicted = storage.setValue(2, forKey: "b").evictedKey
         XCTAssertEqual(evicted, "a")
         XCTAssertEqual(storage.count, 1)
         XCTAssertEqual(storage.keysInLRUOrder(), ["b"])
         XCTAssertNil(storage.value(forKey: "a"))
         XCTAssertEqual(storage.value(forKey: "b"), 2)
+    }
+
+    func testMultiNodeValuesReleaseOnClearAndContainerDrop() {
+        for count in 0...3 {
+            for clear in [true, false] {
+                let witnesses = (0..<count).map { _ in WeakValue() }
+                var storage: LRUStorage<LifetimeValue>? = LRUStorage(maxSize: 3)
+                for index in 0..<count {
+                    insertValue(index, into: storage!, witness: witnesses[index])
+                }
+                XCTAssertEqual(storage?.keysInLRUOrder(), (0..<count).map(String.init))
+                for witness in witnesses { XCTAssertNotNil(witness.value) }
+                if clear {
+                    storage?.removeAll()
+                    XCTAssertEqual(storage?.count, 0)
+                    XCTAssertEqual(storage?.keysInLRUOrder(), [])
+                } else {
+                    storage = nil
+                }
+                for witness in witnesses { XCTAssertNil(witness.value, "count: \(count), clear: \(clear)") }
+            }
+        }
+    }
+
+    func testPromoteThenEvictReleasesOnlyVictim() {
+        let storage = LRUStorage<LifetimeValue>(maxSize: 3)
+        let witnesses = (0..<4).map { _ in WeakValue() }
+        for index in 0..<3 { insertValue(index, into: storage, witness: witnesses[index]) }
+        XCTAssertEqual(storage.keysInLRUOrder(), ["0", "1", "2"])
+        XCTAssertNotNil(storage.value(forKey: "0"))
+        XCTAssertEqual(storage.keysInLRUOrder(), ["1", "2", "0"])
+        XCTAssertEqual(insertValue(3, into: storage, witness: witnesses[3]), "1")
+        XCTAssertNil(witnesses[1].value)
+        for index in [0, 2, 3] { XCTAssertNotNil(witnesses[index].value) }
+        XCTAssertEqual(storage.keysInLRUOrder(), ["2", "0", "3"])
+        storage.removeAll()
+        for witness in witnesses { XCTAssertNil(witness.value) }
+    }
+
+    private final class LifetimeValue {}
+    private final class WeakValue { weak var value: LifetimeValue? }
+
+    @discardableResult
+    private func insertValue(_ index: Int, into storage: LRUStorage<LifetimeValue>, witness: WeakValue) -> String? {
+        let value = LifetimeValue()
+        witness.value = value
+        return storage.setValue(value, forKey: String(index)).evictedKey
     }
 
     // MARK: - SimpleCachingMiddleware LRU via stats
@@ -241,11 +288,13 @@ final class LRUEvolutionTests: XCTestCase {
         let cache = SimpleCachingMiddleware(
             ttl: 60,
             maxSize: 2,
-            keyGenerator: { command in
-                if let cmd = command as? KeyedCommand {
-                    return "k-\(cmd.key)"
+            keyGenerator: ClosureCacheKeyGenerator { command, context, _ in
+                guard let command = command as? KeyedCommand else {
+                    preconditionFailure("Unexpected LRU cache command")
                 }
-                return String(describing: type(of: command))
+                return String(decoding: try! JSONEncoder().encode([
+                    "keyed-v1", command.key, context.commandMetadata.userID
+                ] as [String?]), as: UTF8.self)
             }
         )
 

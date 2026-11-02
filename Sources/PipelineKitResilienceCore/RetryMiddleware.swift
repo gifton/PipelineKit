@@ -1,6 +1,7 @@
 import Foundation
 import PipelineKit
 import PipelineKitCore
+import _ResilienceFoundation
 import PipelineKitObservability
 
 /// Middleware that provides configurable retry logic with various backoff strategies
@@ -220,6 +221,13 @@ public struct RetryMiddleware: Middleware, UnsafeMiddleware {
         // Check custom evaluator
         if let evaluator = configuration.errorEvaluator {
             return evaluator(error)
+        }
+
+        if let category = ResilienceErrorClassifier.classifyPipelineError(error) {
+            switch category {
+            case .timeout: return configuration.retryableErrors.contains(.timeout)
+            case .cancelled, .other: return false
+            }
         }
 
         // Check retryable errors

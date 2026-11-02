@@ -145,7 +145,7 @@ final class PipelineTests: XCTestCase {
     
     func testPriorityPipeline() async throws {
         let handler = TransformHandler()
-        let pipeline = AnyStandardPipeline(handler: handler)
+        let pipeline = AnyStandardPipeline(handler: handler, options: .init(maxConcurrency: 10, maxOutstanding: nil))
         let context = CommandContext.test()
         
         // Add middlewares with different priorities (lower number = higher priority)

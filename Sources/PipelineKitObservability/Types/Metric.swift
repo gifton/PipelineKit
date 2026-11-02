@@ -74,7 +74,7 @@ public extension Metric where Kind == PipelineTimer {
     ) -> Self {
         Self(
             name: name,
-            value: duration, // Already in the expected unit
+            value: duration * 1_000,
             tags: tags,
             unit: "ms"
         )

@@ -108,8 +108,8 @@ public final class CapturingEmitter: EventEmitter {
         for event in matches {
             var allMatch = true
             for (key, expectedValue) in properties {
-                if let actualValue = event.properties[key]?.get(String.self),
-                   actualValue != expectedValue {
+                guard let actualValue = event.properties[key]?.get(String.self),
+                      actualValue == expectedValue else {
                     allMatch = false
                     break
                 }
