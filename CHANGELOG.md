@@ -12,6 +12,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 See the [compiled migration guide](docs/migrations/first-stabilization-batch.md) before upgrading.
 No release version or tag is selected by this batch.
 
+- Follow-up admission and security changes are described in the
+  [core stabilization notes](docs/migrations/core-admission-and-security.md).
+  Configured admission deadlines now take effect, nil pipeline capacity limits are
+  honored, and automatic security validation counts supported leaves inside containers
+  and inherited fields. Reflected reference cycles require custom validation.
 - Validation and sanitization require explicit async capability conformance by default;
   `.ifPresent` is an explicit opt-out. Mixed builder families now retain every configured stage
   and its effective order, which can activate previously omitted policy checks.
@@ -47,12 +52,20 @@ No release version or tag is selected by this batch.
 
 
 ### Changed
+- CI now executes the Release correctness tests, with failures blocking the job;
+  performance benchmarks retain their separate advisory lane.
 - `NextGuard` debug diagnostics are now error-exit aware: middleware that
   throws without calling `next()` no longer emits the false "deallocated
   without calling next()" warning — the middleware chain now marks the guard
   before rethrowing. `NextGuardWarningSuppressing` is only needed for
   middleware that *returns* a result without calling `next()` on a normal
   path (e.g. cache hits). Debug-only; release builds are unchanged. ([#97])
+
+### Fixed
+- Rate-limit cleanup conditionally removes unchanged idle token-bucket and sliding-window
+  entries, preserving admissions and resets that occur while cleanup awaits child actors.
+- Semaphore cancellation handlers share immutable waiter identifiers. Concurrent pipeline
+  capacity is explicitly released when the handler settles.
 
 ### Removed
 - `NextGuardWarningSuppressing` conformance removed from the eleven
