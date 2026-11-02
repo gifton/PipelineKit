@@ -222,7 +222,6 @@ public actor BackPressureSemaphore {
         }
 
         let estimatedSize = max(0, estimatedSize)
-        try checkQueueLimits(estimatedSize: estimatedSize)
         if let waitTimeout, let timeoutValue, waitTimeout <= .zero {
             throw PipelineError.backPressure(reason: .timeout(duration: timeoutValue))
         }
@@ -236,19 +235,32 @@ public actor BackPressureSemaphore {
                     continuation.resume(throwing: CancellationError())
                     return
                 }
-                var waiter = Waiter(
-                    id: waiterID, continuation: continuation, enqueuedAt: now(),
-                    priority: priority, estimatedSize: estimatedSize
-                )
-                if let waitTimeout, let timeoutValue {
-                    let deadline = ContinuousClock.now.advanced(by: waitTimeout)
-                    waiter.timeoutTask = Task { [weak self] in
-                        do { try await Task.sleep(until: deadline, clock: .continuous) }
-                        catch { return }
-                        await self?.timeoutWaiter(waiterID, duration: timeoutValue)
+                do {
+                    let evictedID = try planQueueAdmission(estimatedSize: estimatedSize)
+                    var waiter = Waiter(
+                        id: waiterID, continuation: continuation, enqueuedAt: now(),
+                        priority: priority, estimatedSize: estimatedSize
+                    )
+                    if let waitTimeout, let timeoutValue {
+                        let deadline = ContinuousClock.now.advanced(by: waitTimeout)
+                        waiter.timeoutTask = Task { [weak self] in
+                            do { try await Task.sleep(until: deadline, clock: .continuous) }
+                            catch { return }
+                            await self?.timeoutWaiter(waiterID, duration: timeoutValue)
+                        }
                     }
+                    // Eligibility checks precede the replacement's first mutation;
+                    // plan, eviction and registration share this actor turn.
+                    if let evictedID, let evicted = waiters.remove(id: evictedID) {
+                        evicted.timeoutTask?.cancel()
+                        evicted.continuation.resume(throwing:
+                            PipelineError.backPressure(reason: .commandDropped(reason: "Dropped to make room"))
+                        )
+                    }
+                    insertWaiter(waiter)
+                } catch {
+                    continuation.resume(throwing: error)
                 }
-                insertWaiter(waiter)
             }
         } onCancel: {
             Task { [weak self] in await self?.cancelWaiter(waiterID) }
@@ -324,7 +336,10 @@ public actor BackPressureSemaphore {
         }
     }
     
-    private func checkQueueLimits(estimatedSize: Int) throws {
+    // testNoWaitAcquisitionDoesNotEvictRegisteredWaiter and
+    // testDropOldestPlansMemoryBeforeEvictingHeapRoot cover rejected replacements.
+    private func planQueueAdmission(estimatedSize: Int) throws -> UUID? {
+        var evictedID: UUID?
         // Check if adding this new waiter would exceed the limit
         let totalOutstanding = Self.saturatingAdd(activeTokens, waiters.count)
         let proposedOutstanding = Self.saturatingAdd(totalOutstanding, 1)
@@ -347,14 +362,7 @@ public actor BackPressureSemaphore {
                 // array implementation dropped `waiters.first`, which equals
                 // `extractMin()` under this ordering, so behavior is unchanged.
                 // Revisit the semantics in a follow-up milestone.
-                if let oldest = waiters.extractMin() {
-                    oldest.timeoutTask?.cancel()
-                    oldest.continuation.resume(throwing:
-                        PipelineError.backPressure(reason: .commandDropped(
-                            reason: "Dropped to make room"
-                        ))
-                    )
-                }
+                evictedID = waiters.peek()?.id
                 
             case .dropNewest:
                 throw PipelineError.backPressure(reason: .commandDropped(
@@ -375,11 +383,16 @@ public actor BackPressureSemaphore {
         
         // Check memory limit
         if let maxMemory = maxQueueMemory {
-            let currentMemory = waiters.allElements().reduce(0) { Self.saturatingAdd($0, $1.estimatedSize) }
+            // Sum retained waiters directly: subtracting from saturated totals
+            // could hide overflow and understate prospective memory.
+            let currentMemory = waiters.allElements().reduce(0) { total, waiter in
+                waiter.id == evictedID ? total : Self.saturatingAdd(total, waiter.estimatedSize)
+            }
             if currentMemory > maxMemory || estimatedSize > maxMemory - currentMemory {
                 throw PipelineError.backPressure(reason: .memoryPressure)
             }
         }
+        return evictedID
     }
     
     // MARK: - Cleanup

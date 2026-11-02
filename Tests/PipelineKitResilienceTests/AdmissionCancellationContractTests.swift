@@ -371,4 +371,108 @@ final class AdmissionCancellationContractTests: XCTestCase {
             await semaphore.shutdown()
         }
     }
+
+    func testNoWaitAcquisitionDoesNotEvictRegisteredWaiter() async throws {
+        for timeout in [0.0, -1.0, -Double.greatestFiniteMagnitude] {
+            let semaphore = BackPressureSemaphore(
+                maxConcurrency: 1, maxOutstanding: 2, strategy: .dropOldest
+            )
+            let held = try await semaphore.acquire()
+            let registeredWaiter = Task { try await semaphore.acquire() }
+            let registered = await eventually { await semaphore.getStats().queuedOperations == 1 }
+            XCTAssertTrue(registered)
+
+            do {
+                _ = try await semaphore.acquire(timeout: timeout)
+                XCTFail("An occupied semaphore must reject a no-wait acquisition")
+            } catch let error as PipelineError {
+                guard case .backPressure(.timeout(let duration)) = error else {
+                    XCTFail("Expected admission timeout, got \(error)")
+                    held.release()
+                    _ = try? await registeredWaiter.value
+                    await semaphore.shutdown()
+                    continue
+                }
+                XCTAssertEqual(duration, timeout, accuracy: 0)
+            }
+
+            let queued = await semaphore.getStats().queuedOperations
+            XCTAssertEqual(queued, 1, "An ineligible no-wait request must not evict existing work")
+            held.release()
+            do {
+                let granted = try await registeredWaiter.value
+                granted.release()
+            } catch {
+                XCTFail("Registered waiter lost admission to a rejected request: \(error)")
+            }
+            let recovered = await eventually {
+                let stats = await semaphore.getStats()
+                return stats.availableResources == 1 && stats.activeOperations == 0 && stats.queuedOperations == 0
+            }
+            XCTAssertTrue(recovered)
+            await semaphore.shutdown()
+        }
+    }
+
+    func testDropOldestPlansMemoryBeforeEvictingHeapRoot() async throws {
+        for incomingSize in [9, 8] {
+            let semaphore = BackPressureSemaphore(
+                maxConcurrency: 1, maxOutstanding: 3, maxQueueMemory: 10, strategy: .dropOldest
+            )
+            let held = try await semaphore.acquire()
+            // The time-oldest waiter is deliberately not the heap root.
+            let olderLow = Task { try await semaphore.acquire(priority: .low, estimatedSize: 2) }
+            let firstRegistered = await eventually { await semaphore.getStats().queuedOperations == 1 }
+            XCTAssertTrue(firstRegistered)
+            let newerHigh = Task { try await semaphore.acquire(priority: .high, estimatedSize: 8) }
+            let secondRegistered = await eventually { await semaphore.getStats().queuedOperations == 2 }
+            XCTAssertTrue(secondRegistered)
+
+            let incoming = Task { try await semaphore.acquire(estimatedSize: incomingSize) }
+            if incomingSize == 9 {
+                // Replacing the root would leave 2 + 9 bytes, over the limit.
+                do { _ = try await incoming.value; XCTFail("Expected memory rejection") }
+                catch let error as PipelineError {
+                    guard case .backPressure(.memoryPressure) = error else {
+                        XCTFail("Expected memory pressure, got \(error)")
+                        held.release()
+                        await semaphore.shutdown()
+                        _ = try? await newerHigh.value
+                        _ = try? await olderLow.value
+                        continue
+                    }
+                }
+                let stats = await semaphore.getStats()
+                XCTAssertEqual(stats.queuedOperations, 2)
+                XCTAssertEqual(stats.queueMemoryUsage, 10)
+                held.release()
+                do { let token = try await newerHigh.value; token.release() }
+                catch { XCTFail("Rejected replacement evicted existing heap root: \(error)") }
+            } else {
+                // Replacing the root leaves 2 + 8 bytes, exactly at the limit.
+                do { _ = try await newerHigh.value; XCTFail("Eligible replacement must evict the heap root") }
+                catch let error as PipelineError {
+                    guard case .backPressure(.commandDropped) = error else {
+                        XCTFail("Expected heap-root eviction, got \(error)")
+                        held.release()
+                        await semaphore.shutdown()
+                        _ = try? await incoming.value
+                        _ = try? await olderLow.value
+                        continue
+                    }
+                }
+                let stats = await semaphore.getStats()
+                XCTAssertEqual(stats.queuedOperations, 2)
+                XCTAssertEqual(stats.queueMemoryUsage, 10)
+                held.release()
+                let replacement = try await incoming.value
+                replacement.release()
+            }
+            let preserved = try await olderLow.value
+            preserved.release()
+            let recovered = await eventually { await semaphore.getStats().availableResources == 1 }
+            XCTAssertTrue(recovered)
+            await semaphore.shutdown()
+        }
+    }
 }

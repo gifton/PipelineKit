@@ -16,7 +16,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--logs", type=Path, required=True)
     args = parser.parse_args()
-    args.logs.mkdir(parents=True, exist_ok=True)
+    args.logs.mkdir(parents=True, exist_ok=False)
     root = Path(__file__).resolve().parents[2]
     cases = [("negative-finite", "-1.7976931348623157e308", True),
              ("zero", "0", True), ("upper-bound", "86400", True),
