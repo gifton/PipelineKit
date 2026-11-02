@@ -1,0 +1,15 @@
+F
+======================================================================
+FAIL: test_icu_quoted_literal_filter (__main__.RunnerTests.test_icu_quoted_literal_filter)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Scripts/ci/tests/test_validation_gates.py", line 80, in test_icu_quoted_literal_filter
+    self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 1 != 0 : No tests selected
+
+
+----------------------------------------------------------------------
+Ran 1 test in 0.046s
+
+FAILED (failures=1)

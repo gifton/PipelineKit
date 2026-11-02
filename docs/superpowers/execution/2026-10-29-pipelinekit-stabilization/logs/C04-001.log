@@ -1,0 +1,80 @@
+Building for debugging...
+[Computing dependencies]
+[Pre-planning 1 / 1026]
+[Planning deferred tasks]
+[5 / 44]
+[7 / 18] PipelineKitTests-product
+[9 / 20] PipelineKitTests-product
+[15 / 19] PipelineKitTests-product
+[21 / 21] PipelineKitSecurityTests-product
+[31 / 31] PipelineKitCoreTests-product
+Build complete! (2.77 sec)
+Test Suite 'Selected tests' started at 2026-10-30 17:35:05.641.
+Test Suite 'PipelineKitTests.xctest' started at 2026-10-30 17:35:05.642.
+Test Suite 'DynamicRoutingGenerationTests' started at 2026-10-30 17:35:05.642.
+Test Case '-[PipelineKitTests.DynamicRoutingGenerationTests testCompletedReplacementAppliesToEveryLaterSelection]' started.
+Test Case '-[PipelineKitTests.DynamicRoutingGenerationTests testCompletedReplacementAppliesToEveryLaterSelection]' passed (0.002 seconds).
+Test Case '-[PipelineKitTests.DynamicRoutingGenerationTests testConsecutiveReplacementsPreserveEachSelectedHandler]' started.
+Test Case '-[PipelineKitTests.DynamicRoutingGenerationTests testConsecutiveReplacementsPreserveEachSelectedHandler]' passed (0.000 seconds).
+Test Case '-[PipelineKitTests.DynamicRoutingGenerationTests testMiddlewareInvalidationPreservesCompletedReplacement]' started.
+Test Case '-[PipelineKitTests.DynamicRoutingGenerationTests testMiddlewareInvalidationPreservesCompletedReplacement]' passed (0.001 seconds).
+Test Case '-[PipelineKitTests.DynamicRoutingGenerationTests testRegistrationPoliciesAndTypeIdentityRemainUnchanged]' started.
+Test Case '-[PipelineKitTests.DynamicRoutingGenerationTests testRegistrationPoliciesAndTypeIdentityRemainUnchanged]' passed (0.001 seconds).
+Test Case '-[PipelineKitTests.DynamicRoutingGenerationTests testRegistryPreservesOverwriteInsertionAndRemovalPolicies]' started.
+Test Case '-[PipelineKitTests.DynamicRoutingGenerationTests testRegistryPreservesOverwriteInsertionAndRemovalPolicies]' passed (0.000 seconds).
+Test Case '-[PipelineKitTests.DynamicRoutingGenerationTests testUnregisterAloneRejectsLaterSelectionsWhileOldHandlerFinishes]' started.
+Test Case '-[PipelineKitTests.DynamicRoutingGenerationTests testUnregisterAloneRejectsLaterSelectionsWhileOldHandlerFinishes]' passed (0.000 seconds).
+Test Suite 'DynamicRoutingGenerationTests' passed at 2026-10-30 17:35:05.647.
+	 Executed 6 tests, with 0 failures (0 unexpected) in 0.004 (0.005) seconds
+Test Suite 'PipelineKitTests.xctest' passed at 2026-10-30 17:35:05.647.
+	 Executed 6 tests, with 0 failures (0 unexpected) in 0.004 (0.005) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 17:35:05.647.
+	 Executed 6 tests, with 0 failures (0 unexpected) in 0.004 (0.006) seconds
+Test Suite 'Selected tests' started at 2026-10-30 17:35:05.723.
+Test Suite 'PipelineKitTestSupportTests.xctest' started at 2026-10-30 17:35:05.724.
+Test Suite 'PipelineKitTestSupportTests.xctest' passed at 2026-10-30 17:35:05.724.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 17:35:05.724.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 17:35:05.799.
+Test Suite 'PipelineKitSecurityTests.xctest' started at 2026-10-30 17:35:05.800.
+Test Suite 'PipelineKitSecurityTests.xctest' passed at 2026-10-30 17:35:05.800.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 17:35:05.800.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 17:35:05.874.
+Test Suite 'PipelineKitResilienceTests.xctest' started at 2026-10-30 17:35:05.875.
+Test Suite 'PipelineKitResilienceTests.xctest' passed at 2026-10-30 17:35:05.875.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 17:35:05.875.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 17:35:05.950.
+Test Suite 'PipelineKitPoolingTests.xctest' started at 2026-10-30 17:35:05.951.
+Test Suite 'PipelineKitPoolingTests.xctest' passed at 2026-10-30 17:35:05.951.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 17:35:05.951.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 17:35:06.025.
+Test Suite 'PipelineKitPerformanceTests.xctest' started at 2026-10-30 17:35:06.026.
+Test Suite 'PipelineKitPerformanceTests.xctest' passed at 2026-10-30 17:35:06.026.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 17:35:06.026.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 17:35:06.101.
+Test Suite 'PipelineKitObservabilityTests.xctest' started at 2026-10-30 17:35:06.102.
+Test Suite 'PipelineKitObservabilityTests.xctest' passed at 2026-10-30 17:35:06.102.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 17:35:06.102.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 17:35:06.178.
+Test Suite 'PipelineKitCoreTests.xctest' started at 2026-10-30 17:35:06.178.
+Test Suite 'PipelineKitCoreTests.xctest' passed at 2026-10-30 17:35:06.178.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 17:35:06.179.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 17:35:06.253.
+Test Suite 'PipelineKitCacheTests.xctest' started at 2026-10-30 17:35:06.254.
+Test Suite 'PipelineKitCacheTests.xctest' passed at 2026-10-30 17:35:06.254.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 17:35:06.254.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds

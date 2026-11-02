@@ -1,0 +1,20 @@
+{
+  "files": {
+    "audit/pipelinekit/2026-10-28-a93a713-local/logs/V406-udp-close.json": "581b080879a5b923ea7355baa7e4a730211fa33562d10cd00d21cf66ad3d1107",
+    "audit/pipelinekit/2026-10-28-a93a713-local/logs/V406-udp-close.log": "a52197d92743a33f3aeeb991ec831ca7b1b00bd158bf7267164b363afcceca79"
+  },
+  "supervisor": {
+    "id": "V406-udp-close",
+    "cwd": "/Users/goftin/dev/gsuite/PipelineKit",
+    "command": [
+      "/private/tmp/pipelinekit-audit-a93a713-consumer/out/Products/Debug/ObservabilityProbe",
+      "udp-close"
+    ],
+    "started_utc": "2026-10-30T04:52:25.530682+00:00",
+    "elapsed_seconds": 0.021,
+    "exit_status": -5,
+    "watchdog_timeout": false,
+    "log": "/Users/goftin/dev/gsuite/PipelineKit/audit/pipelinekit/2026-10-28-a93a713-local/logs/V406-udp-close.log"
+  },
+  "note": "Retained historical baseline: acknowledged loopback receipt followed by checked continuation setupConnection resumed more than once, signal 5. Not rerun, edited, copied as new failure, or staged."
+}

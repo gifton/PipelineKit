@@ -1,0 +1,154 @@
+{
+  "id": "V04-001-red-escape",
+  "mode": "escape",
+  "fixture_directory": "/var/folders/_c/7_fgg5v57d56kt4wd9bcsdj40000gn/T/V04-001-red-escape-oq5bqghd",
+  "old_runner": true,
+  "invocation": [
+    "/opt/homebrew/opt/python@3.14/bin/python3.14",
+    "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py",
+    "--id",
+    "V04-001-red-escape",
+    "--timeout",
+    "3",
+    "--",
+    "/opt/homebrew/opt/python@3.14/bin/python3.14",
+    "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/v04_process_fixtures.py",
+    "--worker",
+    "escape",
+    "/var/folders/_c/7_fgg5v57d56kt4wd9bcsdj40000gn/T/V04-001-red-escape-oq5bqghd"
+  ],
+  "owned_before_detach_acknowledged": false,
+  "detached": {
+    "pid": 41529,
+    "ppid": 41528,
+    "pgid": 41529,
+    "state": 2,
+    "start": [
+      1793401899,
+      522771
+    ]
+  },
+  "runner_status": 124,
+  "metadata": {
+    "id": "V04-001-red-escape",
+    "cwd": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization",
+    "command": [
+      "/opt/homebrew/opt/python@3.14/bin/python3.14",
+      "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/v04_process_fixtures.py",
+      "--worker",
+      "escape",
+      "/var/folders/_c/7_fgg5v57d56kt4wd9bcsdj40000gn/T/V04-001-red-escape-oq5bqghd"
+    ],
+    "started_utc": "2026-10-30T23:11:39.472864+00:00",
+    "elapsed_seconds": 3.004,
+    "exit_status": -15,
+    "watchdog_timeout": true,
+    "log": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/V04-001-red-escape.log"
+  },
+  "owned_survivors_before_independent_cleanup": [
+    {
+      "pid": 41529,
+      "ppid": 41528,
+      "pgid": 41528,
+      "state": 2,
+      "start": [
+        1793401899,
+        522771
+      ]
+    }
+  ],
+  "sentinel_survived": true,
+  "sentinel_was_signaled": false,
+  "passed": false,
+  "failure": "AssertionError: owned live process survived runner exit",
+  "traceback": "Traceback (most recent call last):\n  File \"/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/v04_process_fixtures.py\", line 302, in case\n    assert not survivors, \"owned live process survived runner exit\"\n           ^^^^^^^^^^^^^\nAssertionError: owned live process survived runner exit\n",
+  "independent_cleanup": {
+    "settled": true,
+    "actions": [
+      {
+        "identity": {
+          "pid": 41529,
+          "ppid": 41528,
+          "pgid": 41528,
+          "state": 2,
+          "start": [
+            1793401899,
+            522771
+          ]
+        },
+        "signal": 15,
+        "result": "sent"
+      },
+      {
+        "identity": {
+          "pid": 41526,
+          "ppid": 41515,
+          "pgid": 41515,
+          "state": 2,
+          "start": [
+            1793401899,
+            371964
+          ]
+        },
+        "signal": 15,
+        "result": "sent"
+      },
+      {
+        "identity": {
+          "pid": 41526,
+          "ppid": 41515,
+          "pgid": 41515,
+          "state": 2,
+          "start": [
+            1793401899,
+            371964
+          ]
+        },
+        "signal": 9,
+        "result": "sent"
+      }
+    ],
+    "identities": [
+      {
+        "pid": 41526,
+        "ppid": 41515,
+        "pgid": 41515,
+        "state": 2,
+        "start": [
+          1793401899,
+          371964
+        ]
+      },
+      {
+        "pid": 41527,
+        "ppid": 41515,
+        "pgid": 41515,
+        "state": 2,
+        "start": [
+          1793401899,
+          434151
+        ]
+      },
+      {
+        "pid": 41528,
+        "ppid": 41527,
+        "pgid": 41528,
+        "state": 2,
+        "start": [
+          1793401899,
+          473403
+        ]
+      },
+      {
+        "pid": 41529,
+        "ppid": 41528,
+        "pgid": 41528,
+        "state": 2,
+        "start": [
+          1793401899,
+          522771
+        ]
+      }
+    ]
+  }
+}

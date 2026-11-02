@@ -1,0 +1,38 @@
+{
+  "mutant_run": {
+    "id": "O01-010-lost-deadline-mutant",
+    "cwd": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization",
+    "command": [
+      "swift",
+      "test",
+      "--filter",
+      "UDPTransportLifecycleTests.testMissingSendCallbackSettlesOnTimeoutOrClose"
+    ],
+    "started_utc": "2026-10-30T22:21:39.247811+00:00",
+    "elapsed_seconds": 30.041,
+    "exit_status": -15,
+    "watchdog_timeout": true,
+    "log": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/O01-010-lost-deadline-mutant.log"
+  },
+  "verified_orphan": {
+    "pid": 21879,
+    "ppid": 1,
+    "pgid": 21879,
+    "state": "S",
+    "command": "/Applications/Xcode.app/Contents/Developer/usr/bin/xctest -XCTest PipelineKitObservabilityTests.UDPTransportLifecycleTests/testMissingSendCallbackSettlesOnTimeoutOrClose /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Products/Debug/PipelineKitObservabilityTests.xctest",
+    "identity_sources": [
+      "pgrep -fl PipelineKitObservabilityTests|swift-test|swift test",
+      "ps -p 21879 -o pid,ppid,pgid,sess,state,command"
+    ],
+    "process_start_time": "Fri Oct 30 15:21:46 2026 America/Los_Angeles",
+    "process_start_time_provenance": "Controller observed lstart in an earlier pre-cleanup ps snapshot and supplied it by collaboration message; implementer did not rerun or collect this field."
+  },
+  "cleanup": {
+    "command": "kill -TERM 21879",
+    "exit_status": 0,
+    "verification": "ps -p 21879 -o pid,ppid,pgid,state,command",
+    "verification_exit_status": 1,
+    "verification_output": "PID PPID PGID STAT COMMAND (header only; no process)"
+  },
+  "note": "The process-group watchdog timed out its Swift supervisor, but XCTest had a distinct process group and survived. Explicitly verified owned child was terminated, no additional hang mutants run. Controller owns separate V04 containment follow-up. O01-010 is mutation evidence, not an original-baseline crash or a successful containment claim."
+}

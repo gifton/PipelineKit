@@ -1,0 +1,31 @@
+test_event_write_failure_does_not_abort_kill_escalation (__main__.IdentityChecks.test_event_write_failure_does_not_abort_kill_escalation) ... FAIL
+
+======================================================================
+FAIL: test_event_write_failure_does_not_abort_kill_escalation (__main__.IdentityChecks.test_event_write_failure_does_not_abort_kill_escalation)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/v04_identity_checks.py", line 82, in test_event_write_failure_does_not_abort_kill_escalation
+    outcome = self.owner.settle(process)
+  File "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py", line 195, in settle
+    self.send(record, number)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py", line 176, in send
+    self.event(event="signal", **action)
+    ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py", line 103, in event
+    self.events.write(json.dumps(value) + "\n")
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: I/O operation on closed file
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/v04_identity_checks.py", line 84, in test_event_write_failure_does_not_abort_kill_escalation
+    self.fail("event write failure aborted cleanup before KILL: " + repr(error))
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: event write failure aborted cleanup before KILL: ValueError('I/O operation on closed file')
+
+----------------------------------------------------------------------
+Ran 1 test in 0.445s
+
+FAILED (failures=1)

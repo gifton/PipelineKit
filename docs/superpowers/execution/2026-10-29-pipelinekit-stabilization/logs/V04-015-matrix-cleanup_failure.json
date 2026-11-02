@@ -1,0 +1,222 @@
+{
+  "id": "V04-015-matrix-cleanup_failure",
+  "cwd": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization",
+  "command": [
+    "/opt/homebrew/opt/python@3.14/bin/python3.14",
+    "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/v04_process_fixtures.py",
+    "--worker",
+    "cleanup_failure",
+    "/var/folders/_c/7_fgg5v57d56kt4wd9bcsdj40000gn/T/V04-015-matrix-cleanup_failure-du_iqxcf"
+  ],
+  "started_utc": "2026-10-30T23:25:23.593100+00:00",
+  "elapsed_seconds": 5.183,
+  "exit_status": null,
+  "watchdog_timeout": false,
+  "log": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/V04-015-matrix-cleanup_failure.log",
+  "runner_exit_status": 125,
+  "runner_error": "RuntimeError: V04 injected cleanup failure after acknowledged detach",
+  "cleanup": {
+    "settled": false,
+    "survivors": [
+      {
+        "identity": {
+          "pid": 51145,
+          "start": [
+            1793402723,
+            593581
+          ]
+        },
+        "state": "live"
+      },
+      {
+        "identity": {
+          "pid": 51146,
+          "start": [
+            1793402723,
+            642793
+          ]
+        },
+        "state": "live"
+      }
+    ],
+    "outcomes": [
+      {
+        "identity": {
+          "pid": 51145,
+          "start": [
+            1793402723,
+            593581
+          ]
+        },
+        "state": "live"
+      },
+      {
+        "identity": {
+          "pid": 51146,
+          "start": [
+            1793402723,
+            642793
+          ]
+        },
+        "state": "live"
+      }
+    ],
+    "inspection_errors": [],
+    "term_grace_seconds": 2.0,
+    "kill_grace_seconds": 3.0
+  },
+  "event_errors": [],
+  "completion_reason": "runner_error",
+  "unexpected_descendants": [],
+  "owned_processes": [
+    {
+      "identity": {
+        "pid": 51145,
+        "start": [
+          1793402723,
+          593581
+        ]
+      },
+      "observed_parent": null,
+      "first_seen_seconds": 0.002189,
+      "observations": [
+        {
+          "ppid": 51144,
+          "pgid": 51145,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 51146,
+        "start": [
+          1793402723,
+          642793
+        ]
+      },
+      "observed_parent": {
+        "pid": 51145,
+        "start": [
+          1793402723,
+          593581
+        ]
+      },
+      "first_seen_seconds": 0.050443,
+      "observations": [
+        {
+          "ppid": 51145,
+          "pgid": 51145,
+          "state": 2
+        },
+        {
+          "ppid": 51145,
+          "pgid": 51146,
+          "state": 2
+        }
+      ]
+    }
+  ],
+  "termination_actions": [
+    {
+      "identity": {
+        "pid": 51145,
+        "start": [
+          1793402723,
+          593581
+        ]
+      },
+      "signal": "SIGTERM",
+      "elapsed_seconds": 0.145559,
+      "verified_before_signal": {
+        "pid": 51145,
+        "start": [
+          1793402723,
+          593581
+        ],
+        "ppid": 51144,
+        "pgid": 51145,
+        "state": 2
+      },
+      "result": "signal_error",
+      "error": "PermissionError: V04 injected signal denial"
+    },
+    {
+      "identity": {
+        "pid": 51146,
+        "start": [
+          1793402723,
+          642793
+        ]
+      },
+      "signal": "SIGTERM",
+      "elapsed_seconds": 0.145648,
+      "verified_before_signal": {
+        "pid": 51146,
+        "start": [
+          1793402723,
+          642793
+        ],
+        "ppid": 51145,
+        "pgid": 51146,
+        "state": 2
+      },
+      "result": "signal_error",
+      "error": "PermissionError: V04 injected signal denial"
+    },
+    {
+      "identity": {
+        "pid": 51145,
+        "start": [
+          1793402723,
+          593581
+        ]
+      },
+      "signal": "SIGKILL",
+      "elapsed_seconds": 2.167792,
+      "verified_before_signal": {
+        "pid": 51145,
+        "start": [
+          1793402723,
+          593581
+        ],
+        "ppid": 51144,
+        "pgid": 51145,
+        "state": 2
+      },
+      "result": "signal_error",
+      "error": "PermissionError: V04 injected signal denial"
+    },
+    {
+      "identity": {
+        "pid": 51146,
+        "start": [
+          1793402723,
+          642793
+        ]
+      },
+      "signal": "SIGKILL",
+      "elapsed_seconds": 2.16788,
+      "verified_before_signal": {
+        "pid": 51146,
+        "start": [
+          1793402723,
+          642793
+        ],
+        "ppid": 51145,
+        "pgid": 51146,
+        "state": 2
+      },
+      "result": "signal_error",
+      "error": "PermissionError: V04 injected signal denial"
+    }
+  ],
+  "process_events": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/V04-015-matrix-cleanup_failure.processes.jsonl",
+  "ownership_backend": "macOS libproc PID + start timeval",
+  "containment_limits": [
+    "Only lineages observed before reparenting are owned; instant unobserved daemonization can escape.",
+    "Identity check and kill are separate syscalls; PID reuse in that interval cannot be excluded.",
+    "Zombie means no executing process; non-child zombie reaping belongs to its parent.",
+    "SIGKILL of the runner or host failure can bypass cleanup; Linux is unsupported and unvalidated."
+  ]
+}

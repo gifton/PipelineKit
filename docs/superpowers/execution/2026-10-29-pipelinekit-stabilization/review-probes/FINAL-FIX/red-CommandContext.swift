@@ -1,0 +1,428 @@
+import Foundation
+#if canImport(os)
+import os
+#endif
+
+/// Thread-safe command execution context with typed key access.
+///
+/// CommandContext provides a type-safe, thread-safe storage mechanism for
+/// passing data through the command pipeline. It uses OSAllocatedUnfairLock
+/// for efficient synchronization without actor overhead.
+///
+/// ## Design Decisions
+///
+/// 1. **Lock-based**: Uses OSAllocatedUnfairLock for minimal overhead thread safety
+/// 2. **AnySendable Storage**: Enables heterogeneous Sendable storage
+/// 3. **Typed Keys**: Provides compile-time type safety
+/// 4. **Synchronous Methods**: Direct access without async/await overhead
+/// 5. **Subscript Support**: Convenient property-style access
+///
+/// ## Usage Example
+/// ```swift
+/// let context = CommandContext()
+///
+/// // Modern property-style access (recommended):
+/// context.requestID = "req-123"
+/// context.userID = "user-456"
+/// let id = context.requestID
+///
+/// // KeyPath subscript:
+/// context[\\.requestID] = "req-123"
+///
+/// // Traditional subscript:
+/// context[.userID] = "user-456"
+///
+/// // Method-based access:
+/// context.setMetric("latency", value: 0.125)
+/// ```
+@dynamicMemberLookup
+public final class CommandContext: @unchecked Sendable {
+    // MARK: - Private Storage
+
+    /// Internal storage dictionary
+    private var _storage: [String: AnySendable] = [:]
+
+    /// Lock for thread-safe access.
+    ///
+    /// On Apple platforms this uses `OSAllocatedUnfairLock`, which is
+    /// significantly faster than `NSLock` in the uncontended case that
+    /// dominates this hot path (every context get/set acquires it). The
+    /// Void-state form exposes non-mutating `lock()`/`unlock()`, so the
+    /// `withLock` helper below works unchanged. `NSLock` remains the
+    /// fallback on non-Apple platforms.
+    #if canImport(os)
+    private let lock = OSAllocatedUnfairLock()
+    #else
+    private let lock = NSLock()
+    #endif
+
+    /// Helper method for thread-safe read operations
+    private func withLock<T>(_ operation: () throws -> T) rethrows -> T {
+        lock.lock()
+        defer { lock.unlock() }
+        return try operation()
+    }
+
+    // MARK: - Public Properties
+    
+    /// The command metadata associated with this context
+    public let commandMetadata: any CommandMetadata
+    
+    // MARK: - Initialization
+
+    /// Creates a new command context with the specified metadata.
+    /// - Parameter metadata: The command metadata
+    public init(metadata: any CommandMetadata) {
+        self.commandMetadata = metadata
+
+        // Initialize storage with metadata values
+        _storage[ContextKeys.commandID.name] = AnySendable(metadata.id)
+        // Do not set a default startTime; only record when explicitly provided
+
+        if let userID = metadata.userID {
+            _storage[ContextKeys.userID.name] = AnySendable(userID)
+        }
+
+        if let correlationID = metadata.correlationID {
+            _storage[ContextKeys.correlationID.name] = AnySendable(correlationID)
+            _storage[ContextKeys.requestID.name] = AnySendable(correlationID)
+        }
+    }
+
+    /// Creates a new command context with default metadata.
+    public convenience init() {
+        self.init(metadata: DefaultCommandMetadata())
+    }
+    
+    // MARK: - Typed Key Access
+
+    /// Subscript access for typed keys.
+    /// - Parameter key: The context key
+    /// - Returns: The value if present and of the correct type
+    public subscript<T: Sendable>(_ key: ContextKey<T>) -> T? {
+        get {
+            withLock { _storage[key.name]?.get(T.self) }
+        }
+        set {
+            withLock {
+                if let newValue = newValue {
+                    _storage[key.name] = AnySendable(newValue)
+                } else {
+                    _storage[key.name] = nil
+                }
+            }
+        }
+    }
+
+    // MARK: - Dynamic Member Lookup
+
+    /// Enables property-style access to context values using predefined keys.
+    ///
+    /// This subscript enables clean, property-like syntax for accessing context values:
+    /// ```swift
+    /// // Direct property access
+    /// context.requestID = "req-123"
+    /// let id = context.requestID
+    /// ```
+    ///
+    /// - Note: Only works with keys defined in the `ContextKeys` enum.
+    ///   For custom keys, use the standard subscript: `context[customKey]`
+    ///
+    /// - Parameter keyPath: A key path to a property on `ContextKeys`
+    /// - Returns: The value associated with the key, or nil if not set
+    public subscript<T: Sendable>(dynamicMember keyPath: KeyPath<ContextKeys.Type, ContextKey<T>>) -> T? {
+        get {
+            let key = ContextKeys.self[keyPath: keyPath]
+            return self[key]
+        }
+        set {
+            let key = ContextKeys.self[keyPath: keyPath]
+            self[key] = newValue
+        }
+    }
+
+
+    // MARK: - Metadata Operations
+
+    /// Gets all metadata
+    public func getMetadata() -> [String: any Sendable] {
+        withLock {
+            _storage[ContextKeys.metadata.name]?.get([String: any Sendable].self) ?? [:]
+        }
+    }
+
+    /// Sets all metadata (replaces existing)
+    public func setMetadata(_ metadata: [String: any Sendable]) {
+        withLock {
+            _storage[ContextKeys.metadata.name] = AnySendable(metadata)
+        }
+    }
+
+    /// Gets a specific metadata value
+    public func getMetadata(_ key: String) -> (any Sendable)? {
+        let metadata = getMetadata()
+        return metadata[key]
+    }
+
+    /// Sets a specific metadata value
+    public func setMetadata(_ key: String, value: any Sendable) {
+        withLock {
+            var currentMetadata: [String: any Sendable] = _storage[ContextKeys.metadata.name]?.get([String: any Sendable].self) ?? [:]
+            currentMetadata[key] = value
+            _storage[ContextKeys.metadata.name] = AnySendable(currentMetadata)
+        }
+    }
+
+    /// Updates metadata with multiple key-value pairs
+    public func updateMetadata(_ updates: [String: any Sendable]) {
+        withLock {
+            var currentMetadata: [String: any Sendable] = _storage[ContextKeys.metadata.name]?.get([String: any Sendable].self) ?? [:]
+            for (key, value) in updates {
+                currentMetadata[key] = value
+            }
+            _storage[ContextKeys.metadata.name] = AnySendable(currentMetadata)
+        }
+    }
+    
+    // MARK: - Metrics Operations
+
+    /// Gets all metrics
+    public func getMetrics() -> [String: any Sendable] {
+        withLock {
+            _storage[ContextKeys.metrics.name]?.get([String: any Sendable].self) ?? [:]
+        }
+    }
+
+    /// Sets all metrics (replaces existing)
+    public func setMetrics(_ metrics: [String: any Sendable]) {
+        withLock {
+            _storage[ContextKeys.metrics.name] = AnySendable(metrics)
+        }
+    }
+
+    /// Gets a specific metric value
+    public func getMetric(_ key: String) -> (any Sendable)? {
+        let metrics = getMetrics()
+        return metrics[key]
+    }
+
+    /// Sets a specific metric value
+    public func setMetric(_ key: String, value: any Sendable) {
+        withLock {
+            var currentMetrics: [String: any Sendable] = _storage[ContextKeys.metrics.name]?.get([String: any Sendable].self) ?? [:]
+            currentMetrics[key] = value
+            _storage[ContextKeys.metrics.name] = AnySendable(currentMetrics)
+        }
+    }
+
+    /// Records a metric value (alias for setMetric)
+    public func storeMetric(_ name: String, value: any Sendable) {
+        setMetric(name, value: value)
+    }
+
+    /// Updates metrics with multiple key-value pairs
+    public func updateMetrics(_ updates: [String: any Sendable]) {
+        withLock {
+            var currentMetrics: [String: any Sendable] = _storage[ContextKeys.metrics.name]?.get([String: any Sendable].self) ?? [:]
+            for (key, value) in updates {
+                currentMetrics[key] = value
+            }
+            _storage[ContextKeys.metrics.name] = AnySendable(currentMetrics)
+        }
+    }
+
+    /// Records the execution time since the start time.
+    /// - Parameter name: The metric name for the duration
+    public func recordDuration(_ name: String = "duration") {
+        guard let start: Date = self[ContextKeys.startTime] else { return }
+        let duration = Date().timeIntervalSince(start)
+        storeMetric(name, value: duration)
+    }
+    
+    // MARK: - Utility Methods
+
+    /// Removes all values from the context except command metadata.
+    public func clear() {
+        withLock {
+            _storage.removeAll(keepingCapacity: true)
+            // Restore command metadata
+            _storage[ContextKeys.commandID.name] = AnySendable(commandMetadata.id)
+            // Intentionally do not restore startTime; it must be explicitly set
+
+            if let userID = commandMetadata.userID {
+                _storage[ContextKeys.userID.name] = AnySendable(userID)
+            }
+
+            if let correlationID = commandMetadata.correlationID {
+                _storage[ContextKeys.correlationID.name] = AnySendable(correlationID)
+                _storage[ContextKeys.requestID.name] = AnySendable(correlationID)
+            }
+        }
+    }
+
+    /// Creates a snapshot of all values in the context.
+    /// - Returns: A dictionary containing all context values
+    ///
+    /// Note: Values stored internally as `AnySendable` are unwrapped to their
+    /// underlying `Sendable` values for easier diagnostics and consumption.
+    public func snapshot() -> [String: any Sendable] {
+        withLock {
+            var result: [String: any Sendable] = [:]
+
+            // Add all typed key values, using the wrapper directly since it's already Sendable
+            for (key, wrapper) in _storage {
+                // AnySendable is itself Sendable, so we can just use it directly
+                result[key] = wrapper
+            }
+
+            // Add command metadata
+            let metadataDict: [String: any Sendable] = [
+                "id": commandMetadata.id.uuidString,
+                "timestamp": commandMetadata.timestamp,
+                "userID": commandMetadata.userID ?? "",
+                "correlationID": commandMetadata.correlationID ?? ""
+            ]
+            result["commandMetadata"] = metadataDict
+
+            return result
+        }
+    }
+
+    /// Creates a raw snapshot returning internal AnySendable wrappers.
+    /// - Returns: A dictionary containing all context values without unwrapping
+    public func snapshotRaw() -> [String: AnySendable] {
+        withLock {
+            var result: [String: AnySendable] = _storage
+            let metadataDict: [String: any Sendable] = [
+                "id": commandMetadata.id.uuidString,
+                "timestamp": commandMetadata.timestamp,
+                "userID": commandMetadata.userID ?? "",
+                "correlationID": commandMetadata.correlationID ?? ""
+            ]
+            result["commandMetadata"] = AnySendable(metadataDict)
+            return result
+        }
+    }
+
+    /// Checks if a key exists in the context.
+    /// - Parameter key: The context key to check
+    /// - Returns: true if the key exists
+    public func contains<T>(_ key: ContextKey<T>) -> Bool {
+        withLock { _storage[key.name] != nil }
+    }
+
+    /// Removes a value from the context.
+    /// - Parameter key: The context key to remove
+    public func remove<T>(_ key: ContextKey<T>) {
+        withLock {
+            _storage[key.name] = nil
+        }
+    }
+
+    /// Updates multiple values using a closure.
+    /// - Parameter updates: A closure that performs updates
+    public func update(_ updates: (CommandContext) -> Void) {
+        updates(self)
+    }
+    
+    // MARK: - Cancellation Support
+
+    /// Marks this context as cancelled with the specified reason.
+    /// - Parameter reason: The reason for cancellation
+    public func markAsCancelled(reason: CancellationReason) {
+        withLock {
+            _storage[ContextKeys.cancellationReason.name] = AnySendable(reason)
+        }
+    }
+
+    /// Gets the cancellation reason if the context has been cancelled.
+    /// - Returns: The cancellation reason, or nil if not cancelled
+    public func getCancellationReason() -> CancellationReason? {
+        self[ContextKeys.cancellationReason]
+    }
+
+    /// Checks if this context has been marked as cancelled.
+    /// - Returns: true if the context has been cancelled
+    public var isCancelled: Bool {
+        getCancellationReason() != nil
+    }
+    
+    // MARK: - Fork Support
+
+    /// Creates a new context with a copy of this context's storage.
+    ///
+    /// This method creates a new `CommandContext` with its own storage dictionary,
+    /// preventing modifications from affecting the original context.
+    ///
+    /// - Returns: A new context with copied storage
+    /// - Complexity: O(n) where n is the number of stored values
+    public func fork() -> CommandContext {
+        let newContext = CommandContext(metadata: commandMetadata)
+
+        // Copy all storage entries to new context
+        let currentStorage = withLock { _storage }
+        newContext.withLock { newContext._storage = currentStorage }
+
+        return newContext
+    }
+}
+
+// MARK: - Debugging
+
+extension CommandContext: CustomDebugStringConvertible {
+    public var debugDescription: String {
+        // Now we can access storage directly with locks!
+        let contents = withLock {
+            _storage.map { key, value in
+                "\(key): \(value)"
+            }.joined(separator: ", ")
+        }
+        return "CommandContext(id: \(commandMetadata.id), \(contents))"
+    }
+}
+
+// MARK: - Backward Compatibility Properties
+
+public extension CommandContext {
+    /// Property-style access to metadata dictionary.
+    ///
+    /// Returns an empty dictionary if no metadata is set, enabling convenient
+    /// chained access like `context.metadata["key"]`.
+    var metadata: [String: any Sendable] {
+        get { getMetadata() }
+        set { setMetadata(newValue) }
+    }
+
+    /// Property-style access to metrics dictionary.
+    ///
+    /// Returns an empty dictionary if no metrics are set, enabling convenient
+    /// chained access like `context.metrics["key"]`.
+    var metrics: [String: any Sendable] {
+        get { getMetrics() }
+        set { setMetrics(newValue) }
+    }
+
+    /// Property-style access to requestID
+    var requestID: String? {
+        get { self[ContextKeys.requestID] }
+        set { self[ContextKeys.requestID] = newValue }
+    }
+
+    /// Property-style access to userID
+    var userID: String? {
+        get { self[ContextKeys.userID] }
+        set { self[ContextKeys.userID] = newValue }
+    }
+
+    /// Property-style access to correlationID
+    var correlationID: String? {
+        get { self[ContextKeys.correlationID] }
+        set { self[ContextKeys.correlationID] = newValue }
+    }
+
+    /// Property-style access to startTime
+    var startTime: Date? {
+        get { self[ContextKeys.startTime] }
+        set { self[ContextKeys.startTime] = newValue }
+    }
+}

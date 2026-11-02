@@ -1,0 +1,773 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index b945512..66b1679 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -7,6 +7,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
+ 
+ ## [Unreleased]
+ 
++### Breaking — next minor release
++
++See the [compiled migration guide](docs/migrations/first-stabilization-batch.md) before upgrading.
++No release version or tag is selected by this batch.
++
++- Validation and sanitization require explicit async capability conformance by default;
++  `.ifPresent` is an explicit opt-out. Mixed builder families now retain every configured stage
++  and its effective order, which can activate previously omitted policy checks.
++- Command encryption requires complete `Codable` commands. `EncryptedCommand.originalCommand`
++  and partial-field hooks are removed; envelopes retain only ciphertext and metadata.
++  KeyStore publishes one atomic key/identifier snapshot and keys must be 256 bits.
++  Legacy ciphertext may be insufficient for recovery without original commands and old keys.
++- All four cache entry points and factories require complete caller keys including every
++  result-varying argument, verified principal/tenant and configuration/version. Keyless/hash
++  fallbacks are removed. Invalidate all old cache contents; namespace encoding has changed.
++- Decompression requires positive `maxOutputSize`, returns a complete bounded stream or throws,
++  and rejects truncation/trailing data. Small nonempty utility compression now emits codec data;
++  old unmarked raw outputs require application metadata or regeneration. Codec aliases remain.
++- Ordinary and partitioned bulkhead queue timeouts accept finite positive values up to 86,400
++  seconds, finite nonpositive values for no wait, and nil for unbounded waiting. Nonfinite or
++  larger positive values are invalid. Nil is not an equivalent finite deadline above 24 hours.
++  Capacity remains owned until handlers settle; no hard arbitrary-handler deadline is added.
++- Global rate scope shares one budget across identifiers in all seven strategies. Distributed
++  keys use scope namespaces; coordinate old/new counter migration to avoid a fresh cold budget.
++- Retry/breaker timeout classification uses typed PipelineError cases. Other PipelineError
++  payload text, including wrapped/retryExhausted errors, does not imply timeout or recursive
++  unwrapping. Custom evaluators and foreign-error fallback remain available.
++- StatsD construction is synchronous and lazy; `useTransport` and the competing async initializer
++  are removed. `start()` validates readiness; injected transports transfer shutdown ownership.
++  Quiesce producers, forceFlush, then close for a delivery attempt. Close owns exporter/startup/
++  transport settlement, not complete aggregation quiescence or UDP acknowledgement.
++- Metrics configuration is immutable and published through async `configure`; direct writable
++  global slots are removed. Flush drains local storage and invokes an optional flush capability
++  without replaying records; it is not a concurrent-producer barrier or retired-exporter flush.
++- Truncation returns empty for nonpositive maxima. Audit logger capacity zero retains no events;
++  negative capacity is invalid. Standard audit identity keys are retained in production output.
++  Timer milliseconds and pool nanoseconds now use corrected unit/boundary conversion.
++
++
+ ### Changed
+ - `NextGuard` debug diagnostics are now error-exit aware: middleware that
+   throws without calling `next()` no longer emits the false "deallocated
+diff --git a/README.md b/README.md
+index bc4b169..be8463f 100644
+--- a/README.md
++++ b/README.md
+@@ -6,6 +6,10 @@ A high-performance, type-safe command-bus architecture for Swift 6 with built‑
+ [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+ [![Platform](https://img.shields.io/badge/Platform-iOS%20|%20macOS%20|%20tvOS%20|%20watchOS%20|%20visionOS-lightgrey.svg)](Package.swift)
+ 
++The next minor release includes source and behavior changes. Follow the
++[compiled stabilization migration guide](docs/migrations/first-stabilization-batch.md)
++before upgrading, including cache invalidation and old encrypted-data recovery limits.
++
+ ## Table of Contents
+ 
+ - [Command-Bus Architecture](#command-bus-architecture)
+@@ -567,83 +571,57 @@ print(result) // 15.0
+ ### Production Example with Full Stack
+ 
+ ```swift
++import Foundation
+ import PipelineKit
+-import PipelineKitObservability
+ import PipelineKitResilience
+ import PipelineKitSecurity
+ import PipelineKitCache
+ 
+-// Configure observability
+-let observability = await ObservabilitySystem.production(
+-    statsdHost: "metrics.internal",
+-    statsdPort: 8125
+-)
+-
+-// Create pipeline with handler
+-let pipeline = StandardPipeline(
+-    handler: CreateOrderHandler(),
+-    maxConcurrency: 100 // Limit concurrent orders
+-)
+-
+-// Add security middleware (order matters!)
+-try await pipeline.addMiddleware(
+-    AuthenticationMiddleware { userID in
+-        guard let userID else {
+-            throw PipelineError.authorization(reason: .invalidCredentials)
+-        }
+-        return try await tokenValidator.validate(userID)
+-    }
+-)
+-try await pipeline.addMiddleware(
+-    AuthorizationMiddleware(
+-        requiredRoles: ["orders.write"],
+-        getUserRoles: { userID in try await roleService.roles(for: userID) }
+-    )
+-)
+-try await pipeline.addMiddleware(
+-    AuditLoggingMiddleware(logger: productionLogger)
+-)
+-
+-// Add resilience middleware
+-try await pipeline.addMiddleware(
+-    TimeoutMiddleware(defaultTimeout: 10.0)
+-)
+-try await pipeline.addMiddleware(
+-    RetryMiddleware(maxAttempts: 3, strategy: .exponential(baseDelay: 1.0, maxDelay: 30.0))
+-)
+-try await pipeline.addMiddleware(
+-    CircuitBreakerMiddleware(failureThreshold: 5)
+-)
+-
+-// Add caching for read operations after authentication.
+-struct GetOrderCommand: Command {
++struct GetOrderCommand: ValidatableCommand {
+     typealias Result = String
+     let orderID: String
+-}
+-let orderKeys = ClosureCacheKeyGenerator { command, context, _ in
+-    guard let query = command as? GetOrderCommand,
+-          let principal = context.getMetadata("authUserId") as? String else {
+-        preconditionFailure("Expected an authenticated order query")
++    func validate() async throws {
++        guard !orderID.isEmpty else {
++            throw PipelineError.validation(field: "orderID", reason: .custom("Required"))
++        }
+     }
+-    return [query.orderID, principal, "order-format-v1"]
+-        .map { "\($0.utf8.count):\($0)" }.joined()
+ }
+-try await pipeline.addMiddleware(
+-    CachingMiddleware(
+-        cache: InMemoryCache(), commandType: GetOrderCommand.self, keyGenerator: orderKeys
+-    )
+-)
+ 
+-// Execute with context
+-let context = CommandContext()
+-context.requestID = UUID().uuidString
+-context.setMetadata("auth-token", value: request.token)
+-context.eventEmitter = await observability.eventHub
++struct GetOrderHandler: CommandHandler {
++    let loadOrder: @Sendable (String) async throws -> String
++    func handle(_ command: GetOrderCommand, context: CommandContext) async throws -> String {
++        try await loadOrder(command.orderID)
++    }
++}
+ 
+-let order = try await pipeline.execute(
+-    CreateOrderCommand(items: items, userId: userId),
+-    context: context
+-)
++func makeOrderPipeline(
++    verifyToken: @escaping @Sendable (String) async throws -> String,
++    loadOrder: @escaping @Sendable (String) async throws -> String
++) async throws -> StandardPipeline<GetOrderCommand, GetOrderHandler> {
++    let builder = PipelineBuilder(handler: GetOrderHandler(loadOrder: loadOrder))
++    await builder.withAuthentication(AuthenticationMiddleware { token in
++        guard let token else {
++            throw PipelineError.authorization(reason: .invalidCredentials)
++        }
++        return try await verifyToken(token)
++    })
++    await builder.with(ValidationMiddleware())
++    await builder.with(BulkheadMiddleware(configuration: .init(
++        maxConcurrency: 100, maxQueueSize: 100, queueTimeout: 5, rejectionPolicy: .queue
++    )))
++    let orderKeys = ClosureCacheKeyGenerator { command, context, _ in
++        guard let query = command as? GetOrderCommand,
++              let principal = context.getMetadata("authUserId") as? String else {
++            preconditionFailure("Expected an authenticated order query")
++        }
++        return [query.orderID, principal, "order-format-v1"]
++            .map { "\($0.utf8.count):\($0)" }.joined()
++    }
++    await builder.with(CachingMiddleware(
++        cache: InMemoryCache(), commandType: GetOrderCommand.self, keyGenerator: orderKeys
++    ))
++    return try await builder.build()
++}
+ ```
+ 
+ ### Async Event Processing Example
+diff --git a/docs/guides/resilience-patterns.md b/docs/guides/resilience-patterns.md
+index aadada1..b882f0c 100644
+--- a/docs/guides/resilience-patterns.md
++++ b/docs/guides/resilience-patterns.md
+@@ -1,5 +1,8 @@
+ # PipelineKit Resilience Patterns
+ 
++For the next minor release, follow the [compiled stabilization migration guide](../migrations/first-stabilization-batch.md). Ordinary and partitioned queue timeouts accept nil (unbounded), finite nonpositive values (no wait), or finite positive values at most 86,400 seconds; nonfinite and larger positive values are invalid. Nil does not preserve a longer finite deadline. Capacity remains owned until downstream work settles. Distributed scope-key changes require coordinated counter migration; typed timeout classification ignores non-timeout PipelineError payload text.
++
++
+ This document provides guidance on using PipelineKit's resilience middleware effectively. Understanding when and how to use each pattern is critical for building robust, production-ready command pipelines.
+ 
+ ## Pattern Overview
+@@ -47,9 +50,9 @@ different priority values.
+ 
+ 3. **Bulkhead Third**: Bound concurrent executions (or, with `PartitionedBulkheadMiddleware`, isolate them by partition — tenant, service, etc.) to prevent one workload from starving the rest.
+ 
+-4. **Timeout Fourth**: Bound the worst-case execution time. This applies to the retry loop as a whole.
++4. **Timeout Fourth**: Request cancellation of the retry loop after its budget. Cancellation-insensitive work can delay settlement; this is not a hard deadline.
+ 
+-5. **Retry Last (Innermost)**: Retry transient failures from the handler. The retry loop is bounded by the timeout. Since all four share `.resilience` priority, adding them to `addMiddleware` in this exact sequence is what actually produces this order.
++5. **Retry Last (Innermost)**: Retry transient failures from the handler. The timeout requests cancellation of the retry loop; completion still requires downstream settlement. Since all four share `.resilience` priority, adding them to `addMiddleware` in this exact sequence is what actually produces this order.
+ 
+ ## Choosing the Right Pattern
+ 
+diff --git a/docs/guides/security-best-practices.md b/docs/guides/security-best-practices.md
+index 8331439..be46be4 100644
+--- a/docs/guides/security-best-practices.md
++++ b/docs/guides/security-best-practices.md
+@@ -1,5 +1,8 @@
+ # PipelineKit Security Best Practices
+ 
++For the next minor release, follow the [compiled stabilization migration guide](../migrations/first-stabilization-batch.md). It covers required validation/sanitization capabilities, complete Codable encryption, atomic key snapshots and legacy-data recovery limits.
++
++
+ This guide covers security practices and patterns for applications built on PipelineKit —
+ validation, authorization, rate limiting, encryption, audit logging, and related middleware. It is
+ guidance for hardening *your* application, not PipelineKit's security policy. To report a
+@@ -543,6 +546,7 @@ actor DemoKeyStore: KeyStore {
+ 
+ let keyStore = DemoKeyStore()
+ let encryptor = await CommandEncryptor(keyStore: keyStore, keyRotationInterval: 86400) // 24 hours
++_ = encryptor // Retain this actor in the application service that encrypts commands.
+ ```
+ 
+ `InMemoryKeyStore` lives in `PipelineKitTestSupport` for test use only — production code
+diff --git a/docs/migrations/first-stabilization-batch.md b/docs/migrations/first-stabilization-batch.md
+index abc00fe..47bf8f2 100644
+--- a/docs/migrations/first-stabilization-batch.md
++++ b/docs/migrations/first-stabilization-batch.md
+@@ -1,11 +1,13 @@
+-# First stabilization batch migration — draft
++# First stabilization batch migration
+ 
+-This draft currently covers S01 validation/sanitization, S02 command encryption, S03 cache identity,
+-S05 bounded decompression, R02 bulkhead queue-timeout validation, and R05 rate-limit
+-scope/key migration. I01
+-owns the completed batch migration guide, compilation of all examples, and the consolidated
+-Breaking entry. These snippets have not yet been compiled as standalone migration examples;
+-the task contract suites exercise their public APIs. Remaining batch migrations are pending.
++These source and behavior changes are intended for the next minor release under
++[VERSIONING.md](../../VERSIONING.md); no release version or tag is selected here.
++All Swift fences in this guide, plus the README/security-guide examples changed by this
++batch, are extracted into the ordinary-import Consumer by
++[`i01_compile_examples.py`](../superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/i01_compile_examples.py).
++The extractor records exact snippet hashes and its import/function harness. Debug and Release
++consumer builds compile them; the I01 validation record records results and platform limits.
++Unchanged historical examples elsewhere are outside that compilation claim.
+ 
+ ## Breaking: explicit validation and sanitization capabilities
+ 
+@@ -179,8 +181,7 @@ initialization explicitly fails its configuration precondition for a larger posi
+ NaN or either infinity, including when the queue has `maxQueueSize: 0` or `queueSize: 0`. The 24-hour
+ cap is a deliberate PipelineKit policy, not Swift Duration's intrinsic range limit. It bounds
+ the TimeInterval conversion and leaves headroom for the default sleeper's immediate deadline
+-addition. I01 must include this behavior change in the next minor release's consolidated
+-**Breaking** entry.
++addition. The consolidated **Breaking** changelog records this behavior change.
+ 
+ Previously accepted configurations with a longer finite queue budget must revisit that
+ policy. Using `nil` plus application-managed cancellation is one option, but `nil` means an
+@@ -248,11 +249,16 @@ owner; repeated/concurrent close shares the same settlement. A cancellation-inse
+ or transport can delay close indefinitely. Applications wanting a delivery attempt must quiesce
+ producers, call `forceFlush()`, then `close()`; UDP completion does not acknowledge remote delivery.
+ 
++`MetricAggregator.forceFlush` cancels its private timer without joining it. An already
++in-flight caller-owned aggregation retry can repopulate its buffer after exporter close.
++Exporter closed guards prevent transport revival and post-close sends, but close is not a
++barrier for caller-owned recording or full aggregator quiescence. Quiesce and join producers
++before the flush/close sequence.
++
+ Sampling and aggregation semantics are unchanged; OBS-001, OBS-005 and OBS-009 remain open.
+ The existing default configuration still disables aggregation. The public consumer mode
+ `statsd-startup` compiles this construction/start/flush/close shape and verifies the first
+-nonempty default-exporter batch on real loopback. I01 retains consolidated migration-example
+-compilation, the next-minor **Breaking** changelog entry and platform integration checks.
++nonempty default-exporter batch on real loopback. See the I01 validation record for example compilation and platform integration checks.
+ 
+ ## Breaking: immutable Metrics configuration and explicit flush capability
+ 
+@@ -301,7 +307,7 @@ needs a complete flush across reconfiguration, it must quiesce and join its prod
+ and explicitly flush each relevant exporter, and then close those it owns. This change makes
+ no new aggregation-quiescence or UDP-delivery guarantee. The standalone Examples package has
+ no removed-slot or synchronous `configure(with:)` caller; its host/port convenience calls remain
+-source-compatible. I01 owns standalone example and migration-snippet compilation.
++source-compatible. The I01 validation record reports standalone example and migration-snippet compilation separately.
+ 
+ 
+ ## Breaking: explicit complete cache identity (SCP-04 / SCP-05)
+@@ -399,8 +405,8 @@ A deployment must also clear or version entries when result-varying application
+ changes without an accompanying key change.
+ 
+ The task tests exercise all four APIs and their convenience paths in the root test package.
+-No existing standalone `Examples/Sources` cache caller required migration. The snippets above
+-are source-reviewed here; I01 owns compiling migration examples and the final platform matrix.
++No existing standalone `Examples/Sources` cache caller required migration. The snippets above are included in the compiled example manifest; the final platform matrix
++remains explicit in the I01 validation record.
+ S04 separately owns LRU predecessor cycles.
+ 
+ ## Breaking: complete bounded decompression (SCP-07)
+@@ -450,8 +456,8 @@ DEFLATE codec, `.lzfse` and `.brotli` use LZFSE, and `.lz4` uses Apple's framed
+ SCP-08 remains open; these aliases do not establish gzip or Brotli interoperability or
+ working compression-level selection. The root contract suite compiles the new API and
+ exercises all five cases on the Compression-capable host. The standalone Examples package
+-has no decompression caller to migrate. I01 owns standalone Examples and migration-snippet
+-compilation, platform integration, and the next-minor consolidated **Breaking** entry.
++has no decompression caller to migrate. Standalone Examples and migration snippets have separate build evidence in the I01 validation
++record; absent platforms remain release-readiness gaps.
+ 
+ 
+ ## Breaking: rate-limit scope and distributed counter keys (R-F08)
+@@ -503,8 +509,8 @@ explicit administrative store operation for those counters when needed.
+ 
+ The scope contract suite covers the seven strategies, four scopes, exact store keys and
+ boundaries using an internal clock seam; the public initializer retains wall-clock `Date`
+-behavior. I01 owns final platform/Release integration and the consolidated next-minor
+-**Breaking** changelog entry.
++behavior. The I01 validation record covers available platform/Release integration; the consolidated
++next-minor **Breaking** entry includes this migration.
+ 
+ ## Breaking: structural pipeline timeout classification (R-F21)
+ 
+@@ -515,5 +521,37 @@ payloads contain the word `timeout`. They are not recursively unwrapped. Applica
+ that intentionally classify wrapped errors should supply an `errorEvaluator` to the
+ relevant middleware configuration and inspect the wrapper explicitly. Foreign errors
+ continue through the existing policy and description fallback. `PipelineError.cancelled`
+-continues to follow the unknown-error policy; native `CancellationError` retains each
+-middleware's existing precedence. I01 owns the final consolidated Breaking entry.
++is never retried and follows the circuit breaker’s configured unknown-error policy; native
++`CancellationError` and custom evaluators retain each middleware’s existing precedence.
++Retry `maxAttempts` semantics are unchanged.
++
++
++## Other corrected behavior and remaining boundaries
++
++Builder additions from plain, named, array and explicit-order APIs now compose into one
++sequence. Explicit effective priority and stable ties survive construction. Security stages
++that were previously dropped can now reject commands, so migrate command capabilities before
++exercising a repaired route. `NextGuardConfiguration.withoutWarnings` is task-scoped; concurrent
++configuration changes remain independent of the scope. Callbacks run after configuration locks
++are released.
++
++Truncation uses Swift Characters and returns empty for nonpositive maxima; overlong suffixes
++are themselves truncated to the maximum. `InMemoryAuditLogger(capacity: 0)` retains no events
++and counts drops; negative capacity violates a precondition. Standard `userID`/`sessionID`
++metadata now appears in the production audit identity whitelist. These changes add no arbitrary
++sensitive metadata to that whitelist.
++
++Health status queries reevaluate retained request history and probe freshness. They scan retained
++history in O(n), a performance cost; this batch does not establish unchanged throughput or close
++LS-010. Sufficient recent request failures can take precedence over probe results. Automatic
++monitor task ownership and production callback-task settlement remain outside this repair.
++
++Timer snapshots convert seconds to milliseconds once. Pool latency conversion includes whole
++seconds, clamps negatives to zero and saturates at UInt64.max, including Duration values whose
++whole seconds exceed Int64.max. The final O04 regression is part of I01’s rediscovered full suite.
++
++The selected repairs do not promise hard deadlines for cancellation-insensitive handlers,
++preemptive cancellation, durable execution, exactly-once side effects, in-flight cache fill
++fencing, key-memory zeroization or UDP delivery acknowledgement. The execution-owned ledger
++keeps all 47 deferred findings open. Swift 6.2/OS 26, Linux and hosted security/branch-protection
++verification require the named release-owner checks when unavailable locally.
+diff --git a/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer/Package.swift b/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer/Package.swift
+index 4fffad4..b7fe0ce 100644
+--- a/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer/Package.swift
++++ b/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer/Package.swift
+@@ -8,7 +8,9 @@ let package = Package(
+     targets: [
+         .executableTarget(
+             name: "Consumer",
+-            dependencies: [.product(name: "PipelineKitObservability", package: "PipelineKit")]
++            dependencies: ["PipelineKit", "PipelineKitSecurity", "PipelineKitCache", "PipelineKitResilience", "PipelineKitObservability"].map {
++                .product(name: $0, package: "PipelineKit")
++            }
+         )
+     ]
+ )
+diff --git a/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer/Sources/Consumer/main.swift b/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer/Sources/Consumer/main.swift
+index 4f8ca49..5511eea 100644
+--- a/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer/Sources/Consumer/main.swift
++++ b/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer/Sources/Consumer/main.swift
+@@ -1,6 +1,10 @@
+ import Foundation
+ import Synchronization
+ import PipelineKitObservability
++import PipelineKit
++import PipelineKitSecurity
++import PipelineKitCache
++import PipelineKitResilience
+ #if canImport(Darwin)
+ import Darwin
+ #endif
+@@ -11,6 +15,7 @@ enum ConsumerFailure: Error {
+     case socket(String, Int32)
+     case missingReceipt
+     case expectedFailure
++    case assertion(String)
+ }
+ 
+ func emit(_ fields: [String: Any]) throws {
+@@ -157,18 +162,358 @@ func udpClose(expectSendFailure: Bool) async throws {
+ }
+ #endif
+ 
++// Throwing checks remain active in optimized Release builds.
++func require(_ condition: Bool, _ message: String) throws {
++    guard condition else { throw ConsumerFailure.assertion(message) }
++}
++
++final class Trace: Sendable {
++    private let state = Mutex<[String]>([])
++    func add(_ value: String) { state.withLock { $0.append(value) } }
++    func take() -> [String] { state.withLock { let value = $0; $0.removeAll(); return value } }
++}
++protocol ConsumerScope: Command {}
++struct CheckedCommand: ConsumerScope, ValidatableCommand, SanitizableCommand {
++    typealias Result = String
++    let value: String
++    func validate() async throws {
++        guard !value.isEmpty else { throw ConsumerFailure.assertion("invalid-input") }
++    }
++    func sanitize() async throws -> Self { Self(value: value.trimmingCharacters(in: .whitespacesAndNewlines)) }
++}
++struct CheckedHandler: CommandHandler {
++    let trace: Trace
++    func handle(_ command: CheckedCommand, context: CommandContext) async throws -> String {
++        trace.add("handler")
++        return command.value
++    }
++}
++struct TraceStage: Middleware {
++    let label: String
++    let priority: ExecutionPriority
++    let trace: Trace
++    func execute<C: Command>(_ command: C, context: CommandContext, next: @escaping MiddlewareNext<C>) async throws -> C.Result {
++        trace.add(label)
++        return try await next(command, context)
++    }
++}
++struct ScopedStage: ScopedMiddleware {
++    typealias Scope = any ConsumerScope
++    let priority = ExecutionPriority.processing
++    let trace: Trace
++    func execute<C: Command>(_ command: C, context: CommandContext, next: @escaping MiddlewareNext<C>) async throws -> C.Result {
++        trace.add("scoped")
++        return try await next(command, context)
++    }
++}
++struct ReplayStage: UnsafeMiddleware {
++    let priority = ExecutionPriority.postProcessing
++    let trace: Trace
++    func execute<C: Command>(_ command: C, context: CommandContext, next: @escaping MiddlewareNext<C>) async throws -> C.Result {
++        trace.add("replay")
++        _ = try await next(command, context)
++        return try await next(command, context)
++    }
++}
++struct PlainCommand: Command { typealias Result = String }
++
++func compositionSecurity() async throws {
++    for route in ["typed-builder", "erased", "dynamic"] {
++        let trace = Trace()
++        let handler = CheckedHandler(trace: trace)
++        let early = TraceStage(label: "early", priority: route == "typed-builder" ? .custom : .authentication, trace: trace)
++        let logging = TraceStage(label: "logging", priority: .observability, trace: trace)
++        let scoped = ScopedStage(trace: trace)
++        let replay = ReplayStage(trace: trace)
++        let send: @Sendable (CheckedCommand) async throws -> String
++        if route == "typed-builder" {
++            let builder = PipelineBuilder(handler: handler)
++            // Mixed plain, named, array, and explicit-order families must all survive.
++            await builder.withLogging(logging)
++            await builder.with(SanitizationMiddleware(), order: .validation)
++            await builder.with(ValidationMiddleware())
++            await builder.addMiddlewares([scoped, replay])
++            await builder.with(early, order: .authentication)
++            let pipeline = try await builder.build()
++            send = { try await pipeline.execute($0, context: CommandContext()) }
++        } else if route == "erased" {
++            let pipeline = AnyStandardPipeline(handler: handler, options: .init(maxConcurrency: 10, maxOutstanding: nil))
++            for stage: any Middleware in [logging, SanitizationMiddleware(), ValidationMiddleware(), scoped, replay, early] {
++                try await pipeline.addMiddleware(stage)
++            }
++            send = { try await pipeline.execute($0, context: CommandContext()) }
++        } else {
++            let pipeline = DynamicPipeline()
++            await pipeline.register(CheckedCommand.self, handler: handler)
++            try await pipeline.addMiddlewares([logging, SanitizationMiddleware(), ValidationMiddleware(), scoped, replay, early])
++            send = { try await pipeline.send($0, retryPolicy: .none) }
++        }
++        // Actual required validation, not a fixture middleware that rejects by itself.
++        do {
++            _ = try await send(CheckedCommand(value: route == "typed-builder" ? "   " : ""))
++            throw ConsumerFailure.expectedFailure
++        } catch ConsumerFailure.assertion("invalid-input") {}
++        let rejected = trace.take()
++        try require(rejected == ["early"], "\(route): invalid command handlerEntries must be 0")
++        for _ in 0..<2 {
++            let value = try await send(CheckedCommand(value: " accepted "))
++            try require(value == "accepted", "\(route): sanitized command reached handler")
++            try require(trace.take() == ["early", "scoped", "replay", "logging", "handler", "logging", "handler"], "\(route): scoped/unsafe order and replay")
++        }
++        try emit(["mode": "composition-security", "route": route, "invalidHandlerEntries": 0, "validHandlerEntries": 4])
++    }
++    let plain = PlainCommand()
++    do {
++        _ = try await ValidationMiddleware().execute(plain, context: CommandContext()) { _, _ in "unexpected" }
++        throw ConsumerFailure.expectedFailure
++    } catch SecurityCapabilityError.missingValidation {}
++    let allowed = try await ValidationMiddleware(requirement: .ifPresent).execute(plain, context: CommandContext()) { _, _ in "explicit-opt-out" }
++    try require(allowed == "explicit-opt-out", "ifPresent bypass")
++}
++
++actor SignalGate {
++    private var entered = false
++    private var opened = false
++    private var observers: [CheckedContinuation<Void, Never>] = []
++    private var paused: [CheckedContinuation<Void, Never>] = []
++    func pause() async {
++        entered = true
++        let ready = observers; observers.removeAll(); ready.forEach { $0.resume() }
++        if !opened { await withCheckedContinuation { paused.append($0) } }
++    }
++    func waitForEntry() async {
++        if !entered { await withCheckedContinuation { observers.append($0) } }
++    }
++    func release() {
++        opened = true
++        let ready = paused; paused.removeAll(); ready.forEach { $0.resume() }
++    }
++}
++struct RouteCommand: Command { typealias Result = String }
++struct RouteHandler: CommandHandler {
++    let owner: String
++    var gate: SignalGate? = nil
++    func handle(_ command: RouteCommand, context: CommandContext) async throws -> String {
++        if let gate { await gate.pause() }
++        return owner
++    }
++}
++func routing() async throws {
++    let pipeline = DynamicPipeline()
++    let gate = SignalGate()
++    await pipeline.register(RouteCommand.self, handler: RouteHandler(owner: "A", gate: gate))
++    let old = Task { try await pipeline.send(RouteCommand(), retryPolicy: .none) }
++    await gate.waitForEntry()
++    let replaced = await pipeline.replace(RouteCommand.self, with: RouteHandler(owner: "B"))
++    var failure: Error?
++    do {
++        try require(replaced, "replacement reports previous handler")
++        for _ in 0..<4 {
++            try require(try await pipeline.send(RouteCommand(), retryPolicy: .none) == "B", "later result owned by B")
++        }
++    } catch { failure = error }
++    await gate.release()
++    let previous = try await old.value
++    try require(previous == "A", "old in-flight command retains A")
++    if let failure { throw failure }
++    try require(await pipeline.unregister(RouteCommand.self), "unregister")
++    do {
++        _ = try await pipeline.send(RouteCommand(), retryPolicy: .none)
++        throw ConsumerFailure.expectedFailure
++    } catch PipelineError.handlerNotFound {}
++    try emit(["mode": "routing", "oldOwner": "A", "laterOwner": "B", "laterSends": 4, "settled": true])
++}
++
++struct IdentityQuery: Command { typealias Result = String; let argument: String }
++struct Passthrough: Middleware {
++    func execute<C: Command>(_ command: C, context: CommandContext, next: @escaping MiddlewareNext<C>) async throws -> C.Result {
++        try await next(command, context)
++    }
++}
++actor Counter {
++    private(set) var value = 0
++    func increment() { value += 1 }
++}
++func cacheIdentity() async throws {
++    let key = ClosureCacheKeyGenerator { command, context, middleware in
++        guard let query = command as? IdentityQuery,
++              let principal = context.getMetadata("verifiedPrincipal") as? String,
++              let version = context.getMetadata("configurationVersion") as? String else {
++            preconditionFailure("Complete synthetic identity is required")
++        }
++        precondition(middleware.contains("PipelineKitCache."), "qualified middleware identity")
++        return [query.argument, principal, version].map { "\($0.utf8.count):\($0)" }.joined()
++    }
++    for route in 0..<4 {
++        let memory = InMemoryMiddlewareCache()
++        let bytes = InMemoryCache()
++        let stage: any Middleware
++        switch route {
++        case 0: stage = CachedMiddleware(wrapping: Passthrough(), cache: memory, keyGenerator: key)
++        case 1: stage = ConditionalCachedMiddleware(wrapping: Passthrough(), cache: memory, keyGenerator: key, shouldCache: { _, _ in true })
++        case 2: stage = SimpleCachingMiddleware(ttl: 60, commandType: IdentityQuery.self, keyGenerator: key)
++        default: stage = CachingMiddleware(cache: bytes, commandType: IdentityQuery.self, keyGenerator: key)
++        }
++        let calls = Counter()
++        for (argument, principal, version) in [("x", "alice", "v1"), ("y", "alice", "v1"), ("x", "bob", "v1"), ("x", "alice", "v2"), ("x", "alice", "v1")] {
++            let context = CommandContext()
++            context.setMetadata("verifiedPrincipal", value: principal)
++            context.setMetadata("configurationVersion", value: version)
++            let value = try await stage.execute(IdentityQuery(argument: argument), context: context) { query, _ in
++                await calls.increment()
++                return "\(query.argument)/\(principal)/\(version)"
++            }
++            try require(value == "\(argument)/\(principal)/\(version)", "cache result ownership route \(route)")
++        }
++        try require(await calls.value == 4, "four distinct identities, one actual hit")
++        switch route {
++        case 0, 1: await memory.invalidateAll()
++        case 2: (stage as? SimpleCachingMiddleware)?.clear()
++        default: await bytes.clear()
++        }
++        let context = CommandContext()
++        context.setMetadata("verifiedPrincipal", value: "alice")
++        context.setMetadata("configurationVersion", value: "v1")
++        _ = try await stage.execute(IdentityQuery(argument: "x"), context: context) { _, _ in
++            await calls.increment(); return "x/alice/v1"
++        }
++        try require(await calls.value == 5, "invalidated cache must miss")
++        try emit(["mode": "cache-identity", "route": route, "misses": 5, "hits": 1])
++    }
++}
++
++struct CompleteCommand: Command, Codable, Equatable {
++    typealias Result = String
++    let principal: String
++    let payload: Data
++    let revision: Int
++    let labels: [String]
++}
++func encryption() async throws {
++    let store = ExampleVersionedKeyStore()
++    let encryptor = await CommandEncryptor(keyStore: store)
++    let command = CompleteCommand(principal: "synthetic-principal", payload: Data([0, 1, 2, 255]), revision: 7, labels: ["one", "two"])
++    let first = try await encryptor.encrypt(command)
++    let fields = Set(Mirror(reflecting: first).children.compactMap(\.label))
++    try require(fields == ["encryptedData", "keyIdentifier", "algorithm"], "ciphertext-only stored fields")
++    await encryptor.rotateKey()
++    let second = try await encryptor.encrypt(command)
++    try require(first.keyIdentifier != second.keyIdentifier, "fresh rotation identity")
++    for envelope in [first, second] {
++        let rebuilt = EncryptedCommand<CompleteCommand>(encryptedData: envelope.encryptedData, keyIdentifier: envelope.keyIdentifier, algorithm: envelope.algorithm)
++        try require(try await encryptor.decrypt(rebuilt) == command, "complete Codable reconstruction across rotation")
++    }
++    var corrupted = second.encryptedData
++    corrupted[corrupted.startIndex] ^= 1
++    let tampered = EncryptedCommand<CompleteCommand>(encryptedData: corrupted, keyIdentifier: second.keyIdentifier, algorithm: second.algorithm)
++    var rejected = false
++    do { _ = try await encryptor.decrypt(tampered) } catch { rejected = true }
++    try require(rejected, "tampered ciphertext must fail")
++    try emit(["mode": "encryption", "completeRoundTrips": 2, "retainedPlaintextFields": 0, "tamperRejected": true])
++}
++
++actor WorkTracker {
++    private(set) var active = 0
++    private(set) var peak = 0
++    private(set) var entries = 0
++    private var observers: [CheckedContinuation<Void, Never>] = []
++    func enter() {
++        active += 1; entries += 1; peak = max(peak, active)
++        if entries >= 2 { let ready = observers; observers.removeAll(); ready.forEach { $0.resume() } }
++    }
++    func leave() { active -= 1 }
++    func waitForTwo() async { if entries < 2 { await withCheckedContinuation { observers.append($0) } } }
++}
++func bulkhead() async throws {
++    for route in ["ordinary", "legacy", "partitioned"] {
++        let ordinary = BulkheadMiddleware(configuration: .init(maxConcurrency: 2, maxQueueSize: 16, queueTimeout: nil, rejectionPolicy: .queue, emitMetrics: false))
++        let legacy = Bulkhead(name: "consumer", maxConcurrency: 2, maxWaitingCalls: 16)
++        let partitioned = PartitionedBulkheadMiddleware(configuration: .init(
++            partitions: ["default": .init(capacity: 2, queueSize: 16, queueTimeout: nil)],
++            partitionExtractor: { _, _ in "default" }, allowBorrowing: false, emitMetrics: false
++        ))
++        for wave in 0..<3 {
++            let work = WorkTracker()
++            let gate = SignalGate()
++            let operation: @Sendable () async throws -> String = {
++                await work.enter()
++                await gate.pause()
++                await Task.yield()
++                await work.leave()
++                return "settled"
++            }
++            let count = try await withThrowingTaskGroup(of: String.self) { group in
++                for _ in 0..<10 {
++                    group.addTask {
++                        switch route {
++                        case "legacy": return try await legacy.execute(operation: operation)
++                        case "ordinary": return try await ordinary.execute(PlainCommand(), context: CommandContext()) { _, _ in try await operation() }
++                        default: return try await partitioned.execute(PlainCommand(), context: CommandContext()) { _, _ in try await operation() }
++                        }
++                    }
++                }
++                await work.waitForTwo()
++                await gate.release()
++                var count = 0
++                for try await result in group { try require(result == "settled", "bulkhead result"); count += 1 }
++                return count
++            }
++            let entries = await work.entries
++            try require(count == 10 && entries == 10, "all scheduled work reached handler")
++            try require(await work.peak == 2, "capacity bound and actual concurrency")
++            try require(await work.active == 0, "all handler work settled")
++            if route == "legacy" {
++                let stats = await legacy.getStats()
++                try require(stats.activeCalls == 0 && stats.waitingCalls == 0, "legacy permits/queue settled")
++            }
++            try emit(["mode": "bulkhead", "route": route, "wave": wave + 1, "entries": count, "peak": 2, "activeAfterJoin": 0])
++        }
++    }
++}
++
++actor ConsumerRecorder: FlushableMetricRecorder {
++    private(set) var snapshots: [MetricSnapshot] = []
++    private(set) var flushes = 0
++    func record(_ snapshot: MetricSnapshot) { snapshots.append(snapshot) }
++    func flush() { flushes += 1 }
++}
++func metrics() async throws {
++    let original = Metrics.configuration
++    let storage = MetricsStorage()
++    let recorder = ConsumerRecorder()
++    await Metrics.configure(.init(storage: storage, exporter: recorder))
++    await Metrics.counter("consumer.once")
++    await Metrics.timer("consumer.timer", duration: 1.25)
++    await Metrics.flush()
++    await Metrics.flush()
++    let snapshots = await recorder.snapshots
++    let remaining = await storage.getAll()
++    let flushes = await recorder.flushes
++    await Metrics.configure(original)
++    try require(snapshots.map(\.name) == ["consumer.once", "consumer.timer"], "flush must not replay recorded metrics")
++    try require(remaining.isEmpty && flushes == 2, "drained storage and explicit recorder flush")
++    try emit(["mode": "metrics", "recordCalls": snapshots.count, "flushCalls": flushes, "localAfterFlush": remaining.count])
++}
++
+ do {
+-    let mode = CommandLine.arguments.dropFirst().first ?? "udp-close"
+-    #if canImport(Darwin) && canImport(Network)
++    let mode = CommandLine.arguments.dropFirst().first ?? "composition-security"
+     switch mode {
++    case "composition-security": try await compositionSecurity()
++    case "routing": try await routing()
++    case "cache-identity": try await cacheIdentity()
++    case "encryption": try await encryption()
++    case "bulkhead": try await bulkhead()
++    case "metrics": try await metrics()
++    #if canImport(Darwin) && canImport(Network)
+     case "statsd-startup": try await statsdStartup()
+     case "udp-close": try await udpClose(expectSendFailure: false)
+     case "udp-failure-close": try await udpClose(expectSendFailure: true)
+-    default: throw ConsumerFailure.unknownMode
+-    }
+     #else
+-    throw ConsumerFailure.unsupportedPlatform
++    case "statsd-startup", "udp-close", "udp-failure-close": throw ConsumerFailure.unsupportedPlatform
+     #endif
++    default: throw ConsumerFailure.unknownMode
++    }
++    try emit(["mode": mode, "phase": "passed"])
+ } catch {
+     try emit(["phase": "failed", "error": String(describing: error)])
+     exit(1)

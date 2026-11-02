@@ -3,28 +3,27 @@ import XCTest
 import Foundation
 
 final class MetricsFacadeTests: XCTestCase {
+    private var savedConfiguration: Metrics.Configuration?
+
     override func setUp() async throws {
-        // Reset to defaults before each test
-        Metrics.storage = MetricsStorage()
-        // Use NoOpRecorder for test setup to avoid network issues
-        Metrics.exporter = NoOpRecorder()
-        Metrics.errorHandler = nil
+        savedConfiguration = Metrics.configuration
+        await Metrics.configure(.init(storage: MetricsStorage(), exporter: NoOpRecorder()))
     }
 
     override func tearDown() async throws {
-        // Reset to safe defaults to prevent dangling StatsDExporter instances
-        // that may have active flushTasks from interfering with other tests
-        Metrics.storage = MetricsStorage()
-        Metrics.exporter = NoOpRecorder()
-        Metrics.errorHandler = nil
+        if let exporter = Metrics.configuration.exporter as? StatsDExporter {
+            await exporter.close()
+        }
+        if let savedConfiguration { await Metrics.configure(savedConfiguration) }
+        savedConfiguration = nil
     }
-    
+
     // MARK: - Basic Recording Tests
     
     func testRecordCounter() async {
         await Metrics.counter("test.counter", value: 5.0, tags: ["key": "value"])
         
-        let stored = await Metrics.storage.get(name: "test.counter")
+        let stored = await Metrics.configuration.storage.get(name: "test.counter")
         XCTAssertEqual(stored.count, 1)
         XCTAssertEqual(stored.first?.value, 5.0)
         XCTAssertEqual(stored.first?.tags["key"], "value")
@@ -33,7 +32,7 @@ final class MetricsFacadeTests: XCTestCase {
     func testRecordGauge() async {
         await Metrics.gauge("test.gauge", value: 42.0, tags: [:], unit: "bytes")
         
-        let stored = await Metrics.storage.get(name: "test.gauge")
+        let stored = await Metrics.configuration.storage.get(name: "test.gauge")
         XCTAssertEqual(stored.count, 1)
         XCTAssertEqual(stored.first?.value, 42.0)
         XCTAssertEqual(stored.first?.unit, "bytes")
@@ -42,7 +41,7 @@ final class MetricsFacadeTests: XCTestCase {
     func testRecordTimer() async {
         await Metrics.timer("test.timer", duration: 0.123, tags: ["endpoint": "/api"])
         
-        let stored = await Metrics.storage.get(name: "test.timer")
+        let stored = await Metrics.configuration.storage.get(name: "test.timer")
         XCTAssertEqual(stored.count, 1)
         XCTAssertEqual(stored.first?.value, 123.0) // Converted to milliseconds
         XCTAssertEqual(stored.first?.tags["endpoint"], "/api")
@@ -58,7 +57,7 @@ final class MetricsFacadeTests: XCTestCase {
         
         XCTAssertEqual(result, "success")
         
-        let stored = await Metrics.storage.get(name: "block.timer")
+        let stored = await Metrics.configuration.storage.get(name: "block.timer")
         XCTAssertEqual(stored.count, 1)
         XCTAssertNotNil(stored.first?.value)
         
@@ -76,7 +75,7 @@ final class MetricsFacadeTests: XCTestCase {
             XCTFail("Should have thrown")
         } catch {
             // Timer should still be recorded even on error
-            let stored = await Metrics.storage.get(name: "error.timer")
+            let stored = await Metrics.configuration.storage.get(name: "error.timer")
             XCTAssertEqual(stored.count, 1)
         }
     }
@@ -93,16 +92,13 @@ final class MetricsFacadeTests: XCTestCase {
             flushInterval: 0.5
         )
         
-        // Record a metric with the new configuration
-        await Metrics.counter("config.test", value: 1.0)
-        
         // Verify the exporter was replaced
-        XCTAssertTrue(Metrics.exporter is StatsDExporter)
+        XCTAssertTrue(Metrics.configuration.exporter is StatsDExporter)
     }
     
     func testConfigureWithCustomExporter() async {
         let customExporter = MockMetricRecorder()
-        Metrics.configure(with: customExporter)
+        await Metrics.configure(with: customExporter)
         
         await Metrics.counter("custom.test", value: 1.0)
         
@@ -119,7 +115,7 @@ final class MetricsFacadeTests: XCTestCase {
         await Metrics.counter("disabled.test", value: 1.0)
         
         // Metrics should still be in storage
-        let stored = await Metrics.storage.get(name: "disabled.test")
+        let stored = await Metrics.configuration.storage.get(name: "disabled.test")
         XCTAssertEqual(stored.count, 1)
         
         // But exporter should be no-op
@@ -127,44 +123,50 @@ final class MetricsFacadeTests: XCTestCase {
     }
     
     // MARK: - Flush Tests
+
+    func testFlushDoesNotReplayRecordsToNonflushableRecorder() async {
+        let recorder = MockMetricRecorder()
+        await Metrics.configure(with: recorder)
+        await Metrics.counter("flush.once")
+
+        await Metrics.flush()
+        let remaining = await Metrics.configuration.storage.getAll()
+        XCTAssertTrue(remaining.isEmpty)
+        await Metrics.flush()
+
+        let recorded = await recorder.recordedSnapshots
+        XCTAssertEqual(recorded.map(\.name), ["flush.once"])
+    }
     
     func testFlush() async {
         // Add metrics to storage
-        await Metrics.storage.record(MetricSnapshot.counter("stored.metric", value: 1.0))
+        await Metrics.configuration.storage.record(MetricSnapshot.counter("stored.metric", value: 1.0))
         
         // Add metric through facade
         await Metrics.counter("facade.metric", value: 2.0)
         
-        // Flush should drain storage and send to exporter
+        // Flush drains local storage without replaying records
         await Metrics.flush()
         
         // Storage should be empty
-        let remaining = await Metrics.storage.getAll()
+        let remaining = await Metrics.configuration.storage.getAll()
         XCTAssertEqual(remaining.count, 0)
     }
     
     // MARK: - Error Handler Tests
     
-    func testErrorHandler() async {
+    func testErrorHandler() async throws {
+        let transport = try await MockTransport(configuration: .init(shouldFail: true))
+        let exporter = StatsDExporter(configuration: .init(maxBatchSize: 1, aggregation: .init(enabled: false)),
+                                     transport: transport)
         let expectation = XCTestExpectation(description: "Error handler called")
-        expectation.isInverted = true  // We don't expect errors in normal operation
-        
-        Metrics.errorHandler = { error in
-            print("Unexpected error: \(error)")
-            expectation.fulfill()
-        }
-        
-        // Configure with error handler
-        await Metrics.configure(host: "localhost")
-        
-        // Trigger normal operations (should not cause errors)
+        await Metrics.configure(.init(storage: Metrics.configuration.storage, exporter: exporter,
+                                      errorHandler: { _ in expectation.fulfill() }))
         await Metrics.counter("error.test", value: 1.0)
-        await Metrics.flush()
-        
-        // Wait a short time to ensure no errors occur
-        await fulfillment(of: [expectation], timeout: 1.0, enforceOrder: false)
+        await fulfillment(of: [expectation], timeout: 1)
+        await exporter.close()
     }
-    
+
     // MARK: - Concurrent Usage Tests
     
     func testConcurrentMetricRecording() async {
@@ -178,9 +180,9 @@ final class MetricsFacadeTests: XCTestCase {
             }
         }
         
-        let counters = await Metrics.storage.get(name: "concurrent.counter")
-        let gauges = await Metrics.storage.get(name: "concurrent.gauge")
-        let timers = await Metrics.storage.get(name: "concurrent.timer")
+        let counters = await Metrics.configuration.storage.get(name: "concurrent.counter")
+        let gauges = await Metrics.configuration.storage.get(name: "concurrent.gauge")
+        let timers = await Metrics.configuration.storage.get(name: "concurrent.timer")
         
         XCTAssertEqual(counters.count, 100)
         XCTAssertEqual(gauges.count, 100)
@@ -207,7 +209,7 @@ final class MetricsFacadeTests: XCTestCase {
         
         XCTAssertEqual(results.count, 10)
         
-        let timers = await Metrics.storage.get(name: "concurrent.time")
+        let timers = await Metrics.configuration.storage.get(name: "concurrent.time")
         XCTAssertEqual(timers.count, 10)
     }
 }

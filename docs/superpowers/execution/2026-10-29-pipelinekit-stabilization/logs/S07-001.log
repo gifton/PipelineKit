@@ -1,0 +1,98 @@
+Building for debugging...
+[Computing dependencies]
+[Pre-planning 1 / 1026]
+[Planning deferred tasks]
+[1 / 34] _ResilienceFoundation
+[6 / 64] PipelineKitSecurity
+[8 / 66] PipelineKitSecurity
+[16 / 74] PipelineKitSecurity-product
+[16 / 74] PipelineKitTestSupport
+[18 / 75] PipelineKitTestSupport
+[39 / 70] PipelineKitPoolingTests-product
+[43 / 72] PipelineKitObservabilityTests-product
+[43 / 72] PipelineKitPerformanceTests-product
+[53 / 79] PipelineKitCacheTests-product
+[64 / 83] PipelineKitSecurityTests-product
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCoreTests/Middleware/MiddlewareTests.swift:138:25: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+136 |         
+137 |         _ = try await middleware.execute(command, context: context) { _, ctx in
+138 |             let value = await ctx.getMetadata("test") as? String
+    |                         `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+139 |             XCTAssertEqual(value, "modified")
+140 |             return "done"
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCoreTests/Pipeline/PipelineTests.swift:241:32: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+239 |             try await middleware2.execute(cmd, context: ctx) { c, finalCtx in
+240 |                 // Verify context has both values
+241 |                 let metadata = await finalCtx.getMetadata()
+    |                                `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+242 |                 XCTAssertEqual(metadata["key1"] as? String, "value1")
+243 |                 XCTAssertEqual(metadata["key2"] as? String, "value2")
+
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>
+[79 / 88] PipelineKitCoreTests-product
+[80 / 91] PipelineKitCacheTests-product
+[90 / 94] PipelineKitResilienceTests-product
+Build complete! (3.74 sec)
+Test Suite 'Selected tests' started at 2026-10-30 21:36:17.524.
+Test Suite 'PipelineKitTests.xctest' started at 2026-10-30 21:36:17.525.
+Test Suite 'PipelineKitTests.xctest' passed at 2026-10-30 21:36:17.525.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 21:36:17.525.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 21:36:17.601.
+Test Suite 'PipelineKitTestSupportTests.xctest' started at 2026-10-30 21:36:17.602.
+Test Suite 'PipelineKitTestSupportTests.xctest' passed at 2026-10-30 21:36:17.602.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 21:36:17.602.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 21:36:17.661.
+Test Suite 'PipelineKitSecurityTests.xctest' started at 2026-10-30 21:36:17.662.
+Test Suite 'ConsoleAuditLoggerIdentityTests' started at 2026-10-30 21:36:17.662.
+Test Case '-[PipelineKitSecurityTests.ConsoleAuditLoggerIdentityTests testProductionIdentityWhitelistUsesStandardContextKeys]' started.
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/ConsoleAuditLoggerIdentityTests.swift:19: error: -[PipelineKitSecurityTests.ConsoleAuditLoggerIdentityTests testProductionIdentityWhitelistUsesStandardContextKeys] : XCTAssertEqual failed: ("Optional("[identity.test] commandType=CreateUser resource=account sessionId=legacy-session userId=legacy-user")") is not equal to ("Optional("[identity.test] commandType=CreateUser resource=account sessionID=standard-session sessionId=legacy-session userID=standard-user userId=legacy-user")")
+Test Case '-[PipelineKitSecurityTests.ConsoleAuditLoggerIdentityTests testProductionIdentityWhitelistUsesStandardContextKeys]' failed (0.172 seconds).
+Test Suite 'ConsoleAuditLoggerIdentityTests' failed at 2026-10-30 21:36:17.833.
+	 Executed 1 test, with 1 failure (0 unexpected) in 0.172 (0.172) seconds
+Test Suite 'PipelineKitSecurityTests.xctest' failed at 2026-10-30 21:36:17.833.
+	 Executed 1 test, with 1 failure (0 unexpected) in 0.172 (0.172) seconds
+Test Suite 'Selected tests' failed at 2026-10-30 21:36:17.833.
+	 Executed 1 test, with 1 failure (0 unexpected) in 0.172 (0.173) seconds
+Test Suite 'Selected tests' started at 2026-10-30 21:36:17.912.
+Test Suite 'PipelineKitResilienceTests.xctest' started at 2026-10-30 21:36:17.913.
+Test Suite 'PipelineKitResilienceTests.xctest' passed at 2026-10-30 21:36:17.913.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 21:36:17.913.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 21:36:17.993.
+Test Suite 'PipelineKitPoolingTests.xctest' started at 2026-10-30 21:36:17.994.
+Test Suite 'PipelineKitPoolingTests.xctest' passed at 2026-10-30 21:36:17.994.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 21:36:17.994.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 21:36:18.070.
+Test Suite 'PipelineKitPerformanceTests.xctest' started at 2026-10-30 21:36:18.071.
+Test Suite 'PipelineKitPerformanceTests.xctest' passed at 2026-10-30 21:36:18.071.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 21:36:18.071.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 21:36:18.148.
+Test Suite 'PipelineKitObservabilityTests.xctest' started at 2026-10-30 21:36:18.149.
+Test Suite 'PipelineKitObservabilityTests.xctest' passed at 2026-10-30 21:36:18.149.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 21:36:18.149.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 21:36:18.226.
+Test Suite 'PipelineKitCoreTests.xctest' started at 2026-10-30 21:36:18.227.
+Test Suite 'PipelineKitCoreTests.xctest' passed at 2026-10-30 21:36:18.227.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 21:36:18.227.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 21:36:18.304.
+Test Suite 'PipelineKitCacheTests.xctest' started at 2026-10-30 21:36:18.305.
+Test Suite 'PipelineKitCacheTests.xctest' passed at 2026-10-30 21:36:18.305.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 21:36:18.305.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Note: Some test targets reported failures:
+  - PipelineKitSecurityTests (XCTest)

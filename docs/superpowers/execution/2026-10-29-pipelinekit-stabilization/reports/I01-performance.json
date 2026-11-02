@@ -1,0 +1,1789 @@
+{
+  "run": "I01-027-release-performance",
+  "hardware_log": "I01-002-hardware.log",
+  "hardware": {
+    "model": "Mac15,9",
+    "processor": "Apple M3 Max",
+    "physical_cpus": 16,
+    "logical_cpus": 16,
+    "memory_bytes": 51539607552
+  },
+  "host": "macOS 27.0.1 arm64 / Swift 6.4.2 / Xcode 27.2",
+  "passed_tests": 19,
+  "warmup": "No explicit application warm-up loop exists in the measured fixtures. XCTest internal warm-up was not independently instrumented; raw sample counts, including first recorded sample, are retained.",
+  "workload": "Pipeline: 1000 sends per sample, 0/1/5 pass-through middleware and 1000 concurrent tasks; baseline-options case 100 sends. Actor/lock microbenchmarks: 200000 ticks across 64 tasks. Context: 10000 get/set/mixed operations, 2x5000 concurrent accesses, 1000 creations and 1000-entry lookup. Semaphore fixtures: 10000 sequential acquisitions, 1000 contending tasks, 5000 objects for footprint; see exact hashed fixtures.",
+  "limitations": [
+    "No before/after performance baseline or unchanged-throughput claim; LS-010 stays open.",
+    "R04 health queries scan retained history O(n); these benchmarks do not measure that cost.",
+    "Physical memory/CPU/disk metrics are retained where emitted; not allocation counts.",
+    "No thermal/load control or independent warm-up instrumentation. Five-sample ranges/medians are descriptive, not tail-latency estimates.",
+    "Existing concurrent benchmark discarded outcomes and unstructured task limitations are not repaired by a passing measurement."
+  ],
+  "measurements": [
+    {
+      "source": "Tests/PipelineKitPerformanceTests/ActorVsLockBenchmark.swift",
+      "line": 60,
+      "test": "PipelineKitPerformanceTests.ActorVsLockBenchmark/testActorThroughputUnderContention",
+      "metric": "Clock Monotonic Time",
+      "unit": "s",
+      "reported_average": 0.068,
+      "reported_relative_stddev_percent": 0.616,
+      "samples": [
+        0.068177,
+        0.068536,
+        0.067284,
+        0.067763,
+        0.067876
+      ],
+      "count": 5,
+      "median": 0.067876,
+      "minimum": 0.067284,
+      "maximum": 0.068536
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/ActorVsLockBenchmark.swift",
+      "line": 60,
+      "test": "PipelineKitPerformanceTests.ActorVsLockBenchmark/testActorThroughputUnderContention",
+      "metric": "CPU Instructions Retired",
+      "unit": "kI",
+      "reported_average": 1332843.508,
+      "reported_relative_stddev_percent": 0.407,
+      "samples": [
+        1333208.016,
+        1330989.141,
+        1329249.841,
+        1343055.14,
+        1327715.404
+      ],
+      "count": 5,
+      "median": 1330989.141,
+      "minimum": 1327715.404,
+      "maximum": 1343055.14
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/ActorVsLockBenchmark.swift",
+      "line": 60,
+      "test": "PipelineKitPerformanceTests.ActorVsLockBenchmark/testActorThroughputUnderContention",
+      "metric": "CPU Cycles",
+      "unit": "kC",
+      "reported_average": 387388.525,
+      "reported_relative_stddev_percent": 0.368,
+      "samples": [
+        387428.814,
+        387892.551,
+        385531.534,
+        389713.953,
+        386375.771
+      ],
+      "count": 5,
+      "median": 387428.814,
+      "minimum": 385531.534,
+      "maximum": 389713.953
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/ActorVsLockBenchmark.swift",
+      "line": 60,
+      "test": "PipelineKitPerformanceTests.ActorVsLockBenchmark/testActorThroughputUnderContention",
+      "metric": "CPU Time",
+      "unit": "s",
+      "reported_average": 0.109,
+      "reported_relative_stddev_percent": 0.684,
+      "samples": [
+        0.108917,
+        0.109969,
+        0.107686,
+        0.109298,
+        0.108806
+      ],
+      "count": 5,
+      "median": 0.108917,
+      "minimum": 0.107686,
+      "maximum": 0.109969
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/ActorVsLockBenchmark.swift",
+      "line": 79,
+      "test": "PipelineKitPerformanceTests.ActorVsLockBenchmark/testLockThroughputUnderContention",
+      "metric": "Clock Monotonic Time",
+      "unit": "s",
+      "reported_average": 0.001,
+      "reported_relative_stddev_percent": 10.005,
+      "samples": [
+        0.001147,
+        0.001164,
+        0.001186,
+        0.001234,
+        0.001485
+      ],
+      "count": 5,
+      "median": 0.001186,
+      "minimum": 0.001147,
+      "maximum": 0.001485
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/ActorVsLockBenchmark.swift",
+      "line": 79,
+      "test": "PipelineKitPerformanceTests.ActorVsLockBenchmark/testLockThroughputUnderContention",
+      "metric": "CPU Instructions Retired",
+      "unit": "kI",
+      "reported_average": 12322.426,
+      "reported_relative_stddev_percent": 2.786,
+      "samples": [
+        12111.079,
+        12177.409,
+        12069.453,
+        12257.072,
+        12997.115
+      ],
+      "count": 5,
+      "median": 12177.409,
+      "minimum": 12069.453,
+      "maximum": 12997.115
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/ActorVsLockBenchmark.swift",
+      "line": 79,
+      "test": "PipelineKitPerformanceTests.ActorVsLockBenchmark/testLockThroughputUnderContention",
+      "metric": "CPU Cycles",
+      "unit": "kC",
+      "reported_average": 53912.996,
+      "reported_relative_stddev_percent": 3.752,
+      "samples": [
+        51068.317,
+        54223.218,
+        55092.849,
+        52358.049,
+        56822.545
+      ],
+      "count": 5,
+      "median": 54223.218,
+      "minimum": 51068.317,
+      "maximum": 56822.545
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/ActorVsLockBenchmark.swift",
+      "line": 79,
+      "test": "PipelineKitPerformanceTests.ActorVsLockBenchmark/testLockThroughputUnderContention",
+      "metric": "CPU Time",
+      "unit": "s",
+      "reported_average": 0.016,
+      "reported_relative_stddev_percent": 3.718,
+      "samples": [
+        0.014988,
+        0.015986,
+        0.016311,
+        0.015424,
+        0.016615
+      ],
+      "count": 5,
+      "median": 0.015986,
+      "minimum": 0.014988,
+      "maximum": 0.016615
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/BackPressurePerformanceTests.swift",
+      "line": 69,
+      "test": "PipelineKitPerformanceTests.BackPressurePerformanceTests/testContendedAccessPerformance",
+      "metric": "Memory Physical",
+      "unit": "kB",
+      "reported_average": 0.0,
+      "reported_relative_stddev_percent": 0.0,
+      "samples": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "count": 5,
+      "median": 0.0,
+      "minimum": 0.0,
+      "maximum": 0.0
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/BackPressurePerformanceTests.swift",
+      "line": 69,
+      "test": "PipelineKitPerformanceTests.BackPressurePerformanceTests/testContendedAccessPerformance",
+      "metric": "CPU Cycles",
+      "unit": "kC",
+      "reported_average": 19995.08,
+      "reported_relative_stddev_percent": 6.592,
+      "samples": [
+        21508.91,
+        18434.029,
+        18393.305,
+        20947.394,
+        20691.761
+      ],
+      "count": 5,
+      "median": 20691.761,
+      "minimum": 18393.305,
+      "maximum": 21508.91
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/BackPressurePerformanceTests.swift",
+      "line": 69,
+      "test": "PipelineKitPerformanceTests.BackPressurePerformanceTests/testContendedAccessPerformance",
+      "metric": "Clock Monotonic Time",
+      "unit": "s",
+      "reported_average": 0.003,
+      "reported_relative_stddev_percent": 4.989,
+      "samples": [
+        0.003256,
+        0.002931,
+        0.003004,
+        0.003357,
+        0.003137
+      ],
+      "count": 5,
+      "median": 0.003137,
+      "minimum": 0.002931,
+      "maximum": 0.003357
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/BackPressurePerformanceTests.swift",
+      "line": 69,
+      "test": "PipelineKitPerformanceTests.BackPressurePerformanceTests/testContendedAccessPerformance",
+      "metric": "CPU Time",
+      "unit": "s",
+      "reported_average": 0.006,
+      "reported_relative_stddev_percent": 8.563,
+      "samples": [
+        0.006566,
+        0.005624,
+        0.00549,
+        0.006814,
+        0.006437
+      ],
+      "count": 5,
+      "median": 0.006437,
+      "minimum": 0.00549,
+      "maximum": 0.006814
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/BackPressurePerformanceTests.swift",
+      "line": 69,
+      "test": "PipelineKitPerformanceTests.BackPressurePerformanceTests/testContendedAccessPerformance",
+      "metric": "CPU Instructions Retired",
+      "unit": "kI",
+      "reported_average": 58199.008,
+      "reported_relative_stddev_percent": 4.464,
+      "samples": [
+        60621.179,
+        54288.065,
+        55888.091,
+        60202.505,
+        59995.202
+      ],
+      "count": 5,
+      "median": 59995.202,
+      "minimum": 54288.065,
+      "maximum": 60621.179
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/BackPressurePerformanceTests.swift",
+      "line": 69,
+      "test": "PipelineKitPerformanceTests.BackPressurePerformanceTests/testContendedAccessPerformance",
+      "metric": "Memory Peak Physical",
+      "unit": "kB",
+      "reported_average": 35265.69,
+      "reported_relative_stddev_percent": 0.023,
+      "samples": [
+        35259.136,
+        35259.136,
+        35259.136,
+        35275.52,
+        35275.52
+      ],
+      "count": 5,
+      "median": 35259.136,
+      "minimum": 35259.136,
+      "maximum": 35275.52
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/BackPressurePerformanceTests.swift",
+      "line": 157,
+      "test": "PipelineKitPerformanceTests.BackPressurePerformanceTests/testFailedAcquirePerformance",
+      "metric": "Clock Monotonic Time",
+      "unit": "s",
+      "reported_average": 0.0,
+      "reported_relative_stddev_percent": 2.858,
+      "samples": [
+        0.000268,
+        0.000255,
+        0.000253,
+        0.000263,
+        0.000247
+      ],
+      "count": 5,
+      "median": 0.000255,
+      "minimum": 0.000247,
+      "maximum": 0.000268
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/BackPressurePerformanceTests.swift",
+      "line": 157,
+      "test": "PipelineKitPerformanceTests.BackPressurePerformanceTests/testFailedAcquirePerformance",
+      "metric": "CPU Instructions Retired",
+      "unit": "kI",
+      "reported_average": 6533.502,
+      "reported_relative_stddev_percent": 0.242,
+      "samples": [
+        6561.209,
+        6540.843,
+        6518.795,
+        6524.123,
+        6522.539
+      ],
+      "count": 5,
+      "median": 6524.123,
+      "minimum": 6518.795,
+      "maximum": 6561.209
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/BackPressurePerformanceTests.swift",
+      "line": 157,
+      "test": "PipelineKitPerformanceTests.BackPressurePerformanceTests/testFailedAcquirePerformance",
+      "metric": "CPU Cycles",
+      "unit": "kC",
+      "reported_average": 1643.598,
+      "reported_relative_stddev_percent": 0.771,
+      "samples": [
+        1654.83,
+        1643.978,
+        1624.986,
+        1634.725,
+        1659.471
+      ],
+      "count": 5,
+      "median": 1643.978,
+      "minimum": 1624.986,
+      "maximum": 1659.471
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/BackPressurePerformanceTests.swift",
+      "line": 157,
+      "test": "PipelineKitPerformanceTests.BackPressurePerformanceTests/testFailedAcquirePerformance",
+      "metric": "CPU Time",
+      "unit": "s",
+      "reported_average": 0.0,
+      "reported_relative_stddev_percent": 2.245,
+      "samples": [
+        0.000502,
+        0.000474,
+        0.000472,
+        0.00048,
+        0.000481
+      ],
+      "count": 5,
+      "median": 0.00048,
+      "minimum": 0.000472,
+      "maximum": 0.000502
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/BackPressurePerformanceTests.swift",
+      "line": 104,
+      "test": "PipelineKitPerformanceTests.BackPressurePerformanceTests/testHighConcurrencyPerformance",
+      "metric": "Memory Physical",
+      "unit": "kB",
+      "reported_average": 3.277,
+      "reported_relative_stddev_percent": 200.0,
+      "samples": [
+        16.384,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "count": 5,
+      "median": 0.0,
+      "minimum": 0.0,
+      "maximum": 16.384
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/BackPressurePerformanceTests.swift",
+      "line": 104,
+      "test": "PipelineKitPerformanceTests.BackPressurePerformanceTests/testHighConcurrencyPerformance",
+      "metric": "CPU Cycles",
+      "unit": "kC",
+      "reported_average": 28600.07,
+      "reported_relative_stddev_percent": 11.829,
+      "samples": [
+        28274.459,
+        24124.323,
+        34216.065,
+        29808.538,
+        26576.965
+      ],
+      "count": 5,
+      "median": 28274.459,
+      "minimum": 24124.323,
+      "maximum": 34216.065
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/BackPressurePerformanceTests.swift",
+      "line": 104,
+      "test": "PipelineKitPerformanceTests.BackPressurePerformanceTests/testHighConcurrencyPerformance",
+      "metric": "Clock Monotonic Time",
+      "unit": "s",
+      "reported_average": 0.004,
+      "reported_relative_stddev_percent": 8.354,
+      "samples": [
+        0.004203,
+        0.004062,
+        0.005071,
+        0.004487,
+        0.004149
+      ],
+      "count": 5,
+      "median": 0.004203,
+      "minimum": 0.004062,
+      "maximum": 0.005071
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/BackPressurePerformanceTests.swift",
+      "line": 104,
+      "test": "PipelineKitPerformanceTests.BackPressurePerformanceTests/testHighConcurrencyPerformance",
+      "metric": "CPU Time",
+      "unit": "s",
+      "reported_average": 0.009,
+      "reported_relative_stddev_percent": 12.553,
+      "samples": [
+        0.008594,
+        0.007152,
+        0.010486,
+        0.009027,
+        0.008202
+      ],
+      "count": 5,
+      "median": 0.008594,
+      "minimum": 0.007152,
+      "maximum": 0.010486
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/BackPressurePerformanceTests.swift",
+      "line": 104,
+      "test": "PipelineKitPerformanceTests.BackPressurePerformanceTests/testHighConcurrencyPerformance",
+      "metric": "CPU Instructions Retired",
+      "unit": "kI",
+      "reported_average": 82059.36,
+      "reported_relative_stddev_percent": 4.172,
+      "samples": [
+        83076.822,
+        76346.412,
+        84307.624,
+        86188.931,
+        80377.009
+      ],
+      "count": 5,
+      "median": 83076.822,
+      "minimum": 76346.412,
+      "maximum": 86188.931
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/BackPressurePerformanceTests.swift",
+      "line": 104,
+      "test": "PipelineKitPerformanceTests.BackPressurePerformanceTests/testHighConcurrencyPerformance",
+      "metric": "Memory Peak Physical",
+      "unit": "kB",
+      "reported_average": 37749.504,
+      "reported_relative_stddev_percent": 0.0,
+      "samples": [
+        37749.504,
+        37749.504,
+        37749.504,
+        37749.504,
+        37749.504
+      ],
+      "count": 5,
+      "median": 37749.504,
+      "minimum": 37749.504,
+      "maximum": 37749.504
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/BackPressurePerformanceTests.swift",
+      "line": 181,
+      "test": "PipelineKitPerformanceTests.BackPressurePerformanceTests/testMemoryPressureWithManyTokens",
+      "metric": "Memory Physical",
+      "unit": "kB",
+      "reported_average": -5377.229,
+      "reported_relative_stddev_percent": -207.852,
+      "samples": [
+        0.0,
+        819.2,
+        -27721.728,
+        0.0,
+        16.384
+      ],
+      "count": 5,
+      "median": 0.0,
+      "minimum": -27721.728,
+      "maximum": 819.2
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/BackPressurePerformanceTests.swift",
+      "line": 181,
+      "test": "PipelineKitPerformanceTests.BackPressurePerformanceTests/testMemoryPressureWithManyTokens",
+      "metric": "Memory Peak Physical",
+      "unit": "kB",
+      "reported_average": 30727.346,
+      "reported_relative_stddev_percent": 43.76,
+      "samples": [
+        41157.4,
+        41976.6,
+        41976.6,
+        14254.872,
+        14271.256
+      ],
+      "count": 5,
+      "median": 41157.4,
+      "minimum": 14254.872,
+      "maximum": 41976.6
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/BackPressurePerformanceTests.swift",
+      "line": 44,
+      "test": "PipelineKitPerformanceTests.BackPressurePerformanceTests/testTryAcquirePerformance",
+      "metric": "Clock Monotonic Time",
+      "unit": "s",
+      "reported_average": 0.017,
+      "reported_relative_stddev_percent": 2.662,
+      "samples": [
+        0.017972,
+        0.017408,
+        0.017203,
+        0.017273,
+        0.016534
+      ],
+      "count": 5,
+      "median": 0.017273,
+      "minimum": 0.016534,
+      "maximum": 0.017972
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/BackPressurePerformanceTests.swift",
+      "line": 44,
+      "test": "PipelineKitPerformanceTests.BackPressurePerformanceTests/testTryAcquirePerformance",
+      "metric": "CPU Instructions Retired",
+      "unit": "kI",
+      "reported_average": 291224.501,
+      "reported_relative_stddev_percent": 2.462,
+      "samples": [
+        303576.125,
+        293778.782,
+        288130.307,
+        288363.434,
+        282273.855
+      ],
+      "count": 5,
+      "median": 288363.434,
+      "minimum": 282273.855,
+      "maximum": 303576.125
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/BackPressurePerformanceTests.swift",
+      "line": 44,
+      "test": "PipelineKitPerformanceTests.BackPressurePerformanceTests/testTryAcquirePerformance",
+      "metric": "CPU Cycles",
+      "unit": "kC",
+      "reported_average": 110622.721,
+      "reported_relative_stddev_percent": 2.888,
+      "samples": [
+        115584.011,
+        111260.361,
+        108877.585,
+        111484.822,
+        105906.826
+      ],
+      "count": 5,
+      "median": 111260.361,
+      "minimum": 105906.826,
+      "maximum": 115584.011
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/BackPressurePerformanceTests.swift",
+      "line": 44,
+      "test": "PipelineKitPerformanceTests.BackPressurePerformanceTests/testTryAcquirePerformance",
+      "metric": "CPU Time",
+      "unit": "s",
+      "reported_average": 0.036,
+      "reported_relative_stddev_percent": 3.051,
+      "samples": [
+        0.038043,
+        0.036262,
+        0.035631,
+        0.036495,
+        0.034684
+      ],
+      "count": 5,
+      "median": 0.036262,
+      "minimum": 0.034684,
+      "maximum": 0.038043
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/BackPressurePerformanceTests.swift",
+      "line": 20,
+      "test": "PipelineKitPerformanceTests.BackPressurePerformanceTests/testUncontendedAcquirePerformance",
+      "metric": "Clock Monotonic Time",
+      "unit": "s",
+      "reported_average": 0.016,
+      "reported_relative_stddev_percent": 0.93,
+      "samples": [
+        0.01575,
+        0.015503,
+        0.0158,
+        0.015444,
+        0.015505
+      ],
+      "count": 5,
+      "median": 0.015505,
+      "minimum": 0.015444,
+      "maximum": 0.0158
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/BackPressurePerformanceTests.swift",
+      "line": 20,
+      "test": "PipelineKitPerformanceTests.BackPressurePerformanceTests/testUncontendedAcquirePerformance",
+      "metric": "CPU Instructions Retired",
+      "unit": "kI",
+      "reported_average": 271289.462,
+      "reported_relative_stddev_percent": 1.025,
+      "samples": [
+        274334.068,
+        271151.724,
+        274432.401,
+        267482.977,
+        269046.141
+      ],
+      "count": 5,
+      "median": 271151.724,
+      "minimum": 267482.977,
+      "maximum": 274432.401
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/BackPressurePerformanceTests.swift",
+      "line": 20,
+      "test": "PipelineKitPerformanceTests.BackPressurePerformanceTests/testUncontendedAcquirePerformance",
+      "metric": "CPU Cycles",
+      "unit": "kC",
+      "reported_average": 100458.564,
+      "reported_relative_stddev_percent": 1.673,
+      "samples": [
+        102189.178,
+        101406.794,
+        101851.892,
+        98422.715,
+        98422.242
+      ],
+      "count": 5,
+      "median": 101406.794,
+      "minimum": 98422.242,
+      "maximum": 102189.178
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/BackPressurePerformanceTests.swift",
+      "line": 20,
+      "test": "PipelineKitPerformanceTests.BackPressurePerformanceTests/testUncontendedAcquirePerformance",
+      "metric": "CPU Time",
+      "unit": "s",
+      "reported_average": 0.033,
+      "reported_relative_stddev_percent": 1.885,
+      "samples": [
+        0.033802,
+        0.033111,
+        0.033647,
+        0.032369,
+        0.032309
+      ],
+      "count": 5,
+      "median": 0.033111,
+      "minimum": 0.032309,
+      "maximum": 0.033802
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/CommandContextPerformanceTests.swift",
+      "line": 104,
+      "test": "PipelineKitPerformanceTests.CommandContextPerformanceTests/testConcurrentMetadataAccessPerformance",
+      "metric": "Memory Physical",
+      "unit": "kB",
+      "reported_average": 1762.918,
+      "reported_relative_stddev_percent": 176.735,
+      "samples": [
+        49.152,
+        819.2,
+        -16.384,
+        0.0,
+        7962.624
+      ],
+      "count": 5,
+      "median": 49.152,
+      "minimum": -16.384,
+      "maximum": 7962.624
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/CommandContextPerformanceTests.swift",
+      "line": 104,
+      "test": "PipelineKitPerformanceTests.CommandContextPerformanceTests/testConcurrentMetadataAccessPerformance",
+      "metric": "CPU Cycles",
+      "unit": "kC",
+      "reported_average": 785741.831,
+      "reported_relative_stddev_percent": 4.986,
+      "samples": [
+        750589.442,
+        726774.68,
+        815024.853,
+        817168.998,
+        819151.184
+      ],
+      "count": 5,
+      "median": 815024.853,
+      "minimum": 726774.68,
+      "maximum": 819151.184
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/CommandContextPerformanceTests.swift",
+      "line": 104,
+      "test": "PipelineKitPerformanceTests.CommandContextPerformanceTests/testConcurrentMetadataAccessPerformance",
+      "metric": "Clock Monotonic Time",
+      "unit": "s",
+      "reported_average": 0.203,
+      "reported_relative_stddev_percent": 1.855,
+      "samples": [
+        0.202328,
+        0.197411,
+        0.201944,
+        0.206061,
+        0.208401
+      ],
+      "count": 5,
+      "median": 0.202328,
+      "minimum": 0.197411,
+      "maximum": 0.208401
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/CommandContextPerformanceTests.swift",
+      "line": 104,
+      "test": "PipelineKitPerformanceTests.CommandContextPerformanceTests/testConcurrentMetadataAccessPerformance",
+      "metric": "CPU Time",
+      "unit": "s",
+      "reported_average": 0.243,
+      "reported_relative_stddev_percent": 5.968,
+      "samples": [
+        0.233053,
+        0.218996,
+        0.250527,
+        0.254382,
+        0.25672
+      ],
+      "count": 5,
+      "median": 0.250527,
+      "minimum": 0.218996,
+      "maximum": 0.25672
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/CommandContextPerformanceTests.swift",
+      "line": 104,
+      "test": "PipelineKitPerformanceTests.CommandContextPerformanceTests/testConcurrentMetadataAccessPerformance",
+      "metric": "CPU Instructions Retired",
+      "unit": "kI",
+      "reported_average": 2783187.559,
+      "reported_relative_stddev_percent": 0.189,
+      "samples": [
+        2780028.23,
+        2777978.138,
+        2784047.996,
+        2780954.188,
+        2792929.245
+      ],
+      "count": 5,
+      "median": 2780954.188,
+      "minimum": 2777978.138,
+      "maximum": 2792929.245
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/CommandContextPerformanceTests.swift",
+      "line": 104,
+      "test": "PipelineKitPerformanceTests.CommandContextPerformanceTests/testConcurrentMetadataAccessPerformance",
+      "metric": "Memory Peak Physical",
+      "unit": "kB",
+      "reported_average": 26100.504,
+      "reported_relative_stddev_percent": 12.551,
+      "samples": [
+        23855.896,
+        24675.096,
+        24691.48,
+        24658.712,
+        32621.336
+      ],
+      "count": 5,
+      "median": 24675.096,
+      "minimum": 23855.896,
+      "maximum": 32621.336
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/CommandContextPerformanceTests.swift",
+      "line": 139,
+      "test": "PipelineKitPerformanceTests.CommandContextPerformanceTests/testContextCreationPerformance",
+      "metric": "Memory Peak Physical",
+      "unit": "kB",
+      "reported_average": 32998.168,
+      "reported_relative_stddev_percent": 0.0,
+      "samples": [
+        32998.168,
+        32998.168,
+        32998.168,
+        32998.168,
+        32998.168
+      ],
+      "count": 5,
+      "median": 32998.168,
+      "minimum": 32998.168,
+      "maximum": 32998.168
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/CommandContextPerformanceTests.swift",
+      "line": 139,
+      "test": "PipelineKitPerformanceTests.CommandContextPerformanceTests/testContextCreationPerformance",
+      "metric": "Memory Physical",
+      "unit": "kB",
+      "reported_average": 0.0,
+      "reported_relative_stddev_percent": 0.0,
+      "samples": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "count": 5,
+      "median": 0.0,
+      "minimum": 0.0,
+      "maximum": 0.0
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/CommandContextPerformanceTests.swift",
+      "line": 139,
+      "test": "PipelineKitPerformanceTests.CommandContextPerformanceTests/testContextCreationPerformance",
+      "metric": "Clock Monotonic Time",
+      "unit": "s",
+      "reported_average": 0.0,
+      "reported_relative_stddev_percent": 1.084,
+      "samples": [
+        0.000402,
+        0.000394,
+        0.000393,
+        0.000391,
+        0.000391
+      ],
+      "count": 5,
+      "median": 0.000393,
+      "minimum": 0.000391,
+      "maximum": 0.000402
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/CommandContextPerformanceTests.swift",
+      "line": 53,
+      "test": "PipelineKitPerformanceTests.CommandContextPerformanceTests/testGetMetadataPerformance",
+      "metric": "Clock Monotonic Time",
+      "unit": "s",
+      "reported_average": 0.003,
+      "reported_relative_stddev_percent": 19.466,
+      "samples": [
+        0.003772,
+        0.002421,
+        0.002367,
+        0.0027,
+        0.00241
+      ],
+      "count": 5,
+      "median": 0.002421,
+      "minimum": 0.002367,
+      "maximum": 0.003772
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/CommandContextPerformanceTests.swift",
+      "line": 53,
+      "test": "PipelineKitPerformanceTests.CommandContextPerformanceTests/testGetMetadataPerformance",
+      "metric": "CPU Instructions Retired",
+      "unit": "kI",
+      "reported_average": 52308.167,
+      "reported_relative_stddev_percent": 9.607,
+      "samples": [
+        62333.187,
+        49746.135,
+        49497.185,
+        50472.999,
+        49491.329
+      ],
+      "count": 5,
+      "median": 49746.135,
+      "minimum": 49491.329,
+      "maximum": 62333.187
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/CommandContextPerformanceTests.swift",
+      "line": 53,
+      "test": "PipelineKitPerformanceTests.CommandContextPerformanceTests/testGetMetadataPerformance",
+      "metric": "CPU Cycles",
+      "unit": "kC",
+      "reported_average": 12220.409,
+      "reported_relative_stddev_percent": 21.371,
+      "samples": [
+        17441.412,
+        10945.592,
+        10788.626,
+        11030.826,
+        10895.589
+      ],
+      "count": 5,
+      "median": 10945.592,
+      "minimum": 10788.626,
+      "maximum": 17441.412
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/CommandContextPerformanceTests.swift",
+      "line": 53,
+      "test": "PipelineKitPerformanceTests.CommandContextPerformanceTests/testGetMetadataPerformance",
+      "metric": "CPU Time",
+      "unit": "s",
+      "reported_average": 0.003,
+      "reported_relative_stddev_percent": 19.794,
+      "samples": [
+        0.004533,
+        0.002855,
+        0.002832,
+        0.003172,
+        0.002927
+      ],
+      "count": 5,
+      "median": 0.002927,
+      "minimum": 0.002832,
+      "maximum": 0.004533
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/CommandContextPerformanceTests.swift",
+      "line": 167,
+      "test": "PipelineKitPerformanceTests.CommandContextPerformanceTests/testLargeContextPerformance",
+      "metric": "Memory Peak Physical",
+      "unit": "kB",
+      "reported_average": 24199.984,
+      "reported_relative_stddev_percent": 0.0,
+      "samples": [
+        24199.984,
+        24199.984,
+        24199.984,
+        24199.984,
+        24199.984
+      ],
+      "count": 5,
+      "median": 24199.984,
+      "minimum": 24199.984,
+      "maximum": 24199.984
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/CommandContextPerformanceTests.swift",
+      "line": 167,
+      "test": "PipelineKitPerformanceTests.CommandContextPerformanceTests/testLargeContextPerformance",
+      "metric": "Memory Physical",
+      "unit": "kB",
+      "reported_average": 0.0,
+      "reported_relative_stddev_percent": 0.0,
+      "samples": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "count": 5,
+      "median": 0.0,
+      "minimum": 0.0,
+      "maximum": 0.0
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/CommandContextPerformanceTests.swift",
+      "line": 167,
+      "test": "PipelineKitPerformanceTests.CommandContextPerformanceTests/testLargeContextPerformance",
+      "metric": "Clock Monotonic Time",
+      "unit": "s",
+      "reported_average": 0.013,
+      "reported_relative_stddev_percent": 0.651,
+      "samples": [
+        0.012696,
+        0.012582,
+        0.0126,
+        0.012784,
+        0.012567
+      ],
+      "count": 5,
+      "median": 0.0126,
+      "minimum": 0.012567,
+      "maximum": 0.012784
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/CommandContextPerformanceTests.swift",
+      "line": 76,
+      "test": "PipelineKitPerformanceTests.CommandContextPerformanceTests/testMixedMetadataOperationsPerformance",
+      "metric": "Memory Physical",
+      "unit": "kB",
+      "reported_average": 3.277,
+      "reported_relative_stddev_percent": 200.0,
+      "samples": [
+        0.0,
+        0.0,
+        0.0,
+        16.384,
+        0.0
+      ],
+      "count": 5,
+      "median": 0.0,
+      "minimum": 0.0,
+      "maximum": 16.384
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/CommandContextPerformanceTests.swift",
+      "line": 76,
+      "test": "PipelineKitPerformanceTests.CommandContextPerformanceTests/testMixedMetadataOperationsPerformance",
+      "metric": "CPU Cycles",
+      "unit": "kC",
+      "reported_average": 628950.724,
+      "reported_relative_stddev_percent": 0.357,
+      "samples": [
+        627473.293,
+        626899.497,
+        633040.762,
+        627669.505,
+        629670.561
+      ],
+      "count": 5,
+      "median": 627669.505,
+      "minimum": 626899.497,
+      "maximum": 633040.762
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/CommandContextPerformanceTests.swift",
+      "line": 76,
+      "test": "PipelineKitPerformanceTests.CommandContextPerformanceTests/testMixedMetadataOperationsPerformance",
+      "metric": "Clock Monotonic Time",
+      "unit": "s",
+      "reported_average": 0.164,
+      "reported_relative_stddev_percent": 0.383,
+      "samples": [
+        0.164118,
+        0.163805,
+        0.165562,
+        0.164053,
+        0.164693
+      ],
+      "count": 5,
+      "median": 0.164118,
+      "minimum": 0.163805,
+      "maximum": 0.165562
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/CommandContextPerformanceTests.swift",
+      "line": 76,
+      "test": "PipelineKitPerformanceTests.CommandContextPerformanceTests/testMixedMetadataOperationsPerformance",
+      "metric": "CPU Time",
+      "unit": "s",
+      "reported_average": 0.165,
+      "reported_relative_stddev_percent": 0.389,
+      "samples": [
+        0.164996,
+        0.164781,
+        0.166576,
+        0.165101,
+        0.165627
+      ],
+      "count": 5,
+      "median": 0.165101,
+      "minimum": 0.164781,
+      "maximum": 0.166576
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/CommandContextPerformanceTests.swift",
+      "line": 76,
+      "test": "PipelineKitPerformanceTests.CommandContextPerformanceTests/testMixedMetadataOperationsPerformance",
+      "metric": "CPU Instructions Retired",
+      "unit": "kI",
+      "reported_average": 2603867.564,
+      "reported_relative_stddev_percent": 0.033,
+      "samples": [
+        2602934.882,
+        2604065.769,
+        2604094.934,
+        2605246.735,
+        2602995.501
+      ],
+      "count": 5,
+      "median": 2604065.769,
+      "minimum": 2602934.882,
+      "maximum": 2605246.735
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/CommandContextPerformanceTests.swift",
+      "line": 76,
+      "test": "PipelineKitPerformanceTests.CommandContextPerformanceTests/testMixedMetadataOperationsPerformance",
+      "metric": "Memory Peak Physical",
+      "unit": "kB",
+      "reported_average": 24222.922,
+      "reported_relative_stddev_percent": 0.033,
+      "samples": [
+        24216.368,
+        24216.368,
+        24216.368,
+        24232.752,
+        24232.752
+      ],
+      "count": 5,
+      "median": 24216.368,
+      "minimum": 24216.368,
+      "maximum": 24232.752
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/CommandContextPerformanceTests.swift",
+      "line": 19,
+      "test": "PipelineKitPerformanceTests.CommandContextPerformanceTests/testSetMetadataPerformance",
+      "metric": "Memory Physical",
+      "unit": "kB",
+      "reported_average": 458.752,
+      "reported_relative_stddev_percent": 144.931,
+      "samples": [
+        786.432,
+        1622.016,
+        0.0,
+        0.0,
+        -114.688
+      ],
+      "count": 5,
+      "median": 0.0,
+      "minimum": -114.688,
+      "maximum": 1622.016
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/CommandContextPerformanceTests.swift",
+      "line": 19,
+      "test": "PipelineKitPerformanceTests.CommandContextPerformanceTests/testSetMetadataPerformance",
+      "metric": "CPU Cycles",
+      "unit": "kC",
+      "reported_average": 2472346.065,
+      "reported_relative_stddev_percent": 0.248,
+      "samples": [
+        2479544.989,
+        2478039.425,
+        2465685.144,
+        2464759.123,
+        2473701.646
+      ],
+      "count": 5,
+      "median": 2473701.646,
+      "minimum": 2464759.123,
+      "maximum": 2479544.989
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/CommandContextPerformanceTests.swift",
+      "line": 19,
+      "test": "PipelineKitPerformanceTests.CommandContextPerformanceTests/testSetMetadataPerformance",
+      "metric": "Clock Monotonic Time",
+      "unit": "s",
+      "reported_average": 0.651,
+      "reported_relative_stddev_percent": 0.547,
+      "samples": [
+        0.656395,
+        0.653633,
+        0.647162,
+        0.647657,
+        0.649821
+      ],
+      "count": 5,
+      "median": 0.649821,
+      "minimum": 0.647162,
+      "maximum": 0.656395
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/CommandContextPerformanceTests.swift",
+      "line": 19,
+      "test": "PipelineKitPerformanceTests.CommandContextPerformanceTests/testSetMetadataPerformance",
+      "metric": "CPU Time",
+      "unit": "s",
+      "reported_average": 0.652,
+      "reported_relative_stddev_percent": 0.556,
+      "samples": [
+        0.657759,
+        0.655009,
+        0.648204,
+        0.648994,
+        0.651313
+      ],
+      "count": 5,
+      "median": 0.651313,
+      "minimum": 0.648204,
+      "maximum": 0.657759
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/CommandContextPerformanceTests.swift",
+      "line": 19,
+      "test": "PipelineKitPerformanceTests.CommandContextPerformanceTests/testSetMetadataPerformance",
+      "metric": "CPU Instructions Retired",
+      "unit": "kI",
+      "reported_average": 10235261.837,
+      "reported_relative_stddev_percent": 0.017,
+      "samples": [
+        10236794.257,
+        10237077.879,
+        10232306.444,
+        10234236.015,
+        10235894.59
+      ],
+      "count": 5,
+      "median": 10235894.59,
+      "minimum": 10232306.444,
+      "maximum": 10237077.879
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/CommandContextPerformanceTests.swift",
+      "line": 19,
+      "test": "PipelineKitPerformanceTests.CommandContextPerformanceTests/testSetMetadataPerformance",
+      "metric": "Memory Peak Physical",
+      "unit": "kB",
+      "reported_average": 26359.395,
+      "reported_relative_stddev_percent": 2.542,
+      "samples": [
+        25019.184,
+        26690.352,
+        26690.352,
+        26690.352,
+        26706.736
+      ],
+      "count": 5,
+      "median": 26690.352,
+      "minimum": 25019.184,
+      "maximum": 26706.736
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/PipelinePerformanceTests.swift",
+      "line": 197,
+      "test": "PipelineKitPerformanceTests.PipelinePerformanceTests/testBaselineOptions",
+      "metric": "Clock Monotonic Time",
+      "unit": "s",
+      "reported_average": 0.0,
+      "reported_relative_stddev_percent": 6.33,
+      "samples": [
+        0.000173,
+        0.000187,
+        0.000171,
+        0.000166,
+        0.000158,
+        0.000164,
+        0.000154,
+        0.000158,
+        0.000155,
+        0.000153
+      ],
+      "count": 10,
+      "median": 0.000161,
+      "minimum": 0.000153,
+      "maximum": 0.000187
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/PipelinePerformanceTests.swift",
+      "line": 157,
+      "test": "PipelineKitPerformanceTests.PipelinePerformanceTests/testConcurrentPipelineExecutionPerformance",
+      "metric": "Memory Physical",
+      "unit": "kB",
+      "reported_average": 0.0,
+      "reported_relative_stddev_percent": 0.0,
+      "samples": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "count": 5,
+      "median": 0.0,
+      "minimum": 0.0,
+      "maximum": 0.0
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/PipelinePerformanceTests.swift",
+      "line": 157,
+      "test": "PipelineKitPerformanceTests.PipelinePerformanceTests/testConcurrentPipelineExecutionPerformance",
+      "metric": "CPU Cycles",
+      "unit": "kC",
+      "reported_average": 20211.218,
+      "reported_relative_stddev_percent": 6.713,
+      "samples": [
+        20325.938,
+        22118.385,
+        17865.925,
+        20373.938,
+        20371.904
+      ],
+      "count": 5,
+      "median": 20371.904,
+      "minimum": 17865.925,
+      "maximum": 22118.385
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/PipelinePerformanceTests.swift",
+      "line": 157,
+      "test": "PipelineKitPerformanceTests.PipelinePerformanceTests/testConcurrentPipelineExecutionPerformance",
+      "metric": "Clock Monotonic Time",
+      "unit": "s",
+      "reported_average": 0.003,
+      "reported_relative_stddev_percent": 7.134,
+      "samples": [
+        0.003084,
+        0.00313,
+        0.002555,
+        0.002815,
+        0.002888
+      ],
+      "count": 5,
+      "median": 0.002888,
+      "minimum": 0.002555,
+      "maximum": 0.00313
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/PipelinePerformanceTests.swift",
+      "line": 157,
+      "test": "PipelineKitPerformanceTests.PipelinePerformanceTests/testConcurrentPipelineExecutionPerformance",
+      "metric": "CPU Time",
+      "unit": "s",
+      "reported_average": 0.006,
+      "reported_relative_stddev_percent": 7.297,
+      "samples": [
+        0.006534,
+        0.006845,
+        0.005475,
+        0.006178,
+        0.006372
+      ],
+      "count": 5,
+      "median": 0.006372,
+      "minimum": 0.005475,
+      "maximum": 0.006845
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/PipelinePerformanceTests.swift",
+      "line": 157,
+      "test": "PipelineKitPerformanceTests.PipelinePerformanceTests/testConcurrentPipelineExecutionPerformance",
+      "metric": "CPU Instructions Retired",
+      "unit": "kI",
+      "reported_average": 56332.677,
+      "reported_relative_stddev_percent": 3.129,
+      "samples": [
+        56261.994,
+        56818.418,
+        53014.389,
+        57970.438,
+        57598.144
+      ],
+      "count": 5,
+      "median": 56818.418,
+      "minimum": 53014.389,
+      "maximum": 57970.438
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/PipelinePerformanceTests.swift",
+      "line": 157,
+      "test": "PipelineKitPerformanceTests.PipelinePerformanceTests/testConcurrentPipelineExecutionPerformance",
+      "metric": "Memory Peak Physical",
+      "unit": "kB",
+      "reported_average": 26657.584,
+      "reported_relative_stddev_percent": 0.0,
+      "samples": [
+        26657.584,
+        26657.584,
+        26657.584,
+        26657.584,
+        26657.584
+      ],
+      "count": 5,
+      "median": 26657.584,
+      "minimum": 26657.584,
+      "maximum": 26657.584
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/PipelinePerformanceTests.swift",
+      "line": 133,
+      "test": "PipelineKitPerformanceTests.PipelinePerformanceTests/testPipelineWithMultipleMiddlewarePerformance",
+      "metric": "Memory Physical",
+      "unit": "kB",
+      "reported_average": 0.0,
+      "reported_relative_stddev_percent": 0.0,
+      "samples": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "count": 5,
+      "median": 0.0,
+      "minimum": 0.0,
+      "maximum": 0.0
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/PipelinePerformanceTests.swift",
+      "line": 133,
+      "test": "PipelineKitPerformanceTests.PipelinePerformanceTests/testPipelineWithMultipleMiddlewarePerformance",
+      "metric": "CPU Cycles",
+      "unit": "kC",
+      "reported_average": 9505.796,
+      "reported_relative_stddev_percent": 0.509,
+      "samples": [
+        9558.608,
+        9426.814,
+        9554.738,
+        9492.587,
+        9496.232
+      ],
+      "count": 5,
+      "median": 9496.232,
+      "minimum": 9426.814,
+      "maximum": 9558.608
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/PipelinePerformanceTests.swift",
+      "line": 133,
+      "test": "PipelineKitPerformanceTests.PipelinePerformanceTests/testPipelineWithMultipleMiddlewarePerformance",
+      "metric": "Clock Monotonic Time",
+      "unit": "s",
+      "reported_average": 0.002,
+      "reported_relative_stddev_percent": 2.408,
+      "samples": [
+        0.002281,
+        0.00222,
+        0.002171,
+        0.002221,
+        0.002123
+      ],
+      "count": 5,
+      "median": 0.00222,
+      "minimum": 0.002123,
+      "maximum": 0.002281
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/PipelinePerformanceTests.swift",
+      "line": 133,
+      "test": "PipelineKitPerformanceTests.PipelinePerformanceTests/testPipelineWithMultipleMiddlewarePerformance",
+      "metric": "CPU Time",
+      "unit": "s",
+      "reported_average": 0.002,
+      "reported_relative_stddev_percent": 2.254,
+      "samples": [
+        0.002584,
+        0.002501,
+        0.00247,
+        0.002522,
+        0.002414
+      ],
+      "count": 5,
+      "median": 0.002501,
+      "minimum": 0.002414,
+      "maximum": 0.002584
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/PipelinePerformanceTests.swift",
+      "line": 133,
+      "test": "PipelineKitPerformanceTests.PipelinePerformanceTests/testPipelineWithMultipleMiddlewarePerformance",
+      "metric": "CPU Instructions Retired",
+      "unit": "kI",
+      "reported_average": 43059.382,
+      "reported_relative_stddev_percent": 0.03,
+      "samples": [
+        43070.756,
+        43046.959,
+        43057.144,
+        43077.859,
+        43044.19
+      ],
+      "count": 5,
+      "median": 43057.144,
+      "minimum": 43044.19,
+      "maximum": 43077.859
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/PipelinePerformanceTests.swift",
+      "line": 133,
+      "test": "PipelineKitPerformanceTests.PipelinePerformanceTests/testPipelineWithMultipleMiddlewarePerformance",
+      "metric": "Memory Peak Physical",
+      "unit": "kB",
+      "reported_average": 26690.352,
+      "reported_relative_stddev_percent": 0.0,
+      "samples": [
+        26690.352,
+        26690.352,
+        26690.352,
+        26690.352,
+        26690.352
+      ],
+      "count": 5,
+      "median": 26690.352,
+      "minimum": 26690.352,
+      "maximum": 26690.352
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/PipelinePerformanceTests.swift",
+      "line": 91,
+      "test": "PipelineKitPerformanceTests.PipelinePerformanceTests/testPipelineWithSingleMiddlewarePerformance",
+      "metric": "Memory Physical",
+      "unit": "kB",
+      "reported_average": 0.0,
+      "reported_relative_stddev_percent": 0.0,
+      "samples": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "count": 5,
+      "median": 0.0,
+      "minimum": 0.0,
+      "maximum": 0.0
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/PipelinePerformanceTests.swift",
+      "line": 91,
+      "test": "PipelineKitPerformanceTests.PipelinePerformanceTests/testPipelineWithSingleMiddlewarePerformance",
+      "metric": "CPU Cycles",
+      "unit": "kC",
+      "reported_average": 6750.173,
+      "reported_relative_stddev_percent": 1.787,
+      "samples": [
+        6973.606,
+        6773.197,
+        6645.492,
+        6654.231,
+        6704.34
+      ],
+      "count": 5,
+      "median": 6704.34,
+      "minimum": 6645.492,
+      "maximum": 6973.606
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/PipelinePerformanceTests.swift",
+      "line": 91,
+      "test": "PipelineKitPerformanceTests.PipelinePerformanceTests/testPipelineWithSingleMiddlewarePerformance",
+      "metric": "Clock Monotonic Time",
+      "unit": "s",
+      "reported_average": 0.001,
+      "reported_relative_stddev_percent": 1.667,
+      "samples": [
+        0.001486,
+        0.001443,
+        0.001453,
+        0.00148,
+        0.00142
+      ],
+      "count": 5,
+      "median": 0.001453,
+      "minimum": 0.00142,
+      "maximum": 0.001486
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/PipelinePerformanceTests.swift",
+      "line": 91,
+      "test": "PipelineKitPerformanceTests.PipelinePerformanceTests/testPipelineWithSingleMiddlewarePerformance",
+      "metric": "CPU Time",
+      "unit": "s",
+      "reported_average": 0.002,
+      "reported_relative_stddev_percent": 1.352,
+      "samples": [
+        0.001765,
+        0.001742,
+        0.001742,
+        0.001777,
+        0.001709
+      ],
+      "count": 5,
+      "median": 0.001742,
+      "minimum": 0.001709,
+      "maximum": 0.001777
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/PipelinePerformanceTests.swift",
+      "line": 91,
+      "test": "PipelineKitPerformanceTests.PipelinePerformanceTests/testPipelineWithSingleMiddlewarePerformance",
+      "metric": "CPU Instructions Retired",
+      "unit": "kI",
+      "reported_average": 29189.198,
+      "reported_relative_stddev_percent": 0.373,
+      "samples": [
+        29245.876,
+        28979.715,
+        29267.463,
+        29267.14,
+        29185.797
+      ],
+      "count": 5,
+      "median": 29245.876,
+      "minimum": 28979.715,
+      "maximum": 29267.463
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/PipelinePerformanceTests.swift",
+      "line": 91,
+      "test": "PipelineKitPerformanceTests.PipelinePerformanceTests/testPipelineWithSingleMiddlewarePerformance",
+      "metric": "Memory Peak Physical",
+      "unit": "kB",
+      "reported_average": 26690.352,
+      "reported_relative_stddev_percent": 0.0,
+      "samples": [
+        26690.352,
+        26690.352,
+        26690.352,
+        26690.352,
+        26690.352
+      ],
+      "count": 5,
+      "median": 26690.352,
+      "minimum": 26690.352,
+      "maximum": 26690.352
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/PipelinePerformanceTests.swift",
+      "line": 57,
+      "test": "PipelineKitPerformanceTests.PipelinePerformanceTests/testSimplePipelineExecutionPerformance",
+      "metric": "Disk Logical Writes",
+      "unit": "kB",
+      "reported_average": 0.0,
+      "reported_relative_stddev_percent": 0.0,
+      "samples": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "count": 5,
+      "median": 0.0,
+      "minimum": 0.0,
+      "maximum": 0.0
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/PipelinePerformanceTests.swift",
+      "line": 57,
+      "test": "PipelineKitPerformanceTests.PipelinePerformanceTests/testSimplePipelineExecutionPerformance",
+      "metric": "Clock Monotonic Time",
+      "unit": "s",
+      "reported_average": 0.001,
+      "reported_relative_stddev_percent": 3.088,
+      "samples": [
+        0.001231,
+        0.00129,
+        0.001283,
+        0.001324,
+        0.001219
+      ],
+      "count": 5,
+      "median": 0.001283,
+      "minimum": 0.001219,
+      "maximum": 0.001324
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/PipelinePerformanceTests.swift",
+      "line": 57,
+      "test": "PipelineKitPerformanceTests.PipelinePerformanceTests/testSimplePipelineExecutionPerformance",
+      "metric": "CPU Time",
+      "unit": "s",
+      "reported_average": 0.002,
+      "reported_relative_stddev_percent": 2.919,
+      "samples": [
+        0.00159,
+        0.001659,
+        0.001641,
+        0.001704,
+        0.001572
+      ],
+      "count": 5,
+      "median": 0.001641,
+      "minimum": 0.001572,
+      "maximum": 0.001704
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/PipelinePerformanceTests.swift",
+      "line": 57,
+      "test": "PipelineKitPerformanceTests.PipelinePerformanceTests/testSimplePipelineExecutionPerformance",
+      "metric": "Memory Physical",
+      "unit": "kB",
+      "reported_average": 0.0,
+      "reported_relative_stddev_percent": 0.0,
+      "samples": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "count": 5,
+      "median": 0.0,
+      "minimum": 0.0,
+      "maximum": 0.0
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/PipelinePerformanceTests.swift",
+      "line": 57,
+      "test": "PipelineKitPerformanceTests.PipelinePerformanceTests/testSimplePipelineExecutionPerformance",
+      "metric": "CPU Instructions Retired",
+      "unit": "kI",
+      "reported_average": 25522.005,
+      "reported_relative_stddev_percent": 0.236,
+      "samples": [
+        25597.354,
+        25458.494,
+        25577.329,
+        25528.331,
+        25448.516
+      ],
+      "count": 5,
+      "median": 25528.331,
+      "minimum": 25448.516,
+      "maximum": 25597.354
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/PipelinePerformanceTests.swift",
+      "line": 57,
+      "test": "PipelineKitPerformanceTests.PipelinePerformanceTests/testSimplePipelineExecutionPerformance",
+      "metric": "Memory Peak Physical",
+      "unit": "kB",
+      "reported_average": 26706.736,
+      "reported_relative_stddev_percent": 0.0,
+      "samples": [
+        26706.736,
+        26706.736,
+        26706.736,
+        26706.736,
+        26706.736
+      ],
+      "count": 5,
+      "median": 26706.736,
+      "minimum": 26706.736,
+      "maximum": 26706.736
+    },
+    {
+      "source": "Tests/PipelineKitPerformanceTests/PipelinePerformanceTests.swift",
+      "line": 57,
+      "test": "PipelineKitPerformanceTests.PipelinePerformanceTests/testSimplePipelineExecutionPerformance",
+      "metric": "CPU Cycles",
+      "unit": "kC",
+      "reported_average": 6129.614,
+      "reported_relative_stddev_percent": 1.487,
+      "samples": [
+        6098.075,
+        6062.747,
+        6091.11,
+        6310.404,
+        6085.732
+      ],
+      "count": 5,
+      "median": 6091.11,
+      "minimum": 6062.747,
+      "maximum": 6310.404
+    }
+  ]
+}

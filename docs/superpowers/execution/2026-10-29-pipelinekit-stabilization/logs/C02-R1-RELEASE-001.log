@@ -1,0 +1,153 @@
+Building for production...
+[Computing dependencies]
+[Using on-disk description]
+[7 / 48] Atomics
+[13 / 51] Crypto
+[15 / 47] Logging
+[17 / 43] Atomics
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Sources/PipelineKitCore/Context/ExecutionContext.swift:94:45: warning: 'withValue(_:operation:isolation:file:line:)' is deprecated: Prefer the 'nonisolated(nonsending)' overload with stricter execution on caller context semantics: withValue(_:operation:file:line:) [#DeprecatedDeclaration]
+ 92 |         operation: () async throws -> T
+ 93 |     ) async rethrows -> T {
+ 94 |         try await ExecutionContext.$current.withValue(
+    |                                             `- warning: 'withValue(_:operation:isolation:file:line:)' is deprecated: Prefer the 'nonisolated(nonsending)' overload with stricter execution on caller context semantics: withValue(_:operation:file:line:) [#DeprecatedDeclaration]
+ 95 |             ExecutionContext(trace: snapshot.trace, progress: progress),
+ 96 |             operation: operation,
+
+[#DeprecatedDeclaration]: <https://docs.swift.org/compiler/documentation/diagnostics/deprecated-declaration>
+[23 / 48] PipelineKitCore
+[29 / 52] PipelineKit
+[35 / 63] _ResilienceFoundation
+[39 / 65] _ResilienceFoundation
+[45 / 67] _CircuitBreaker
+[47 / 69] _RateLimiting
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Sources/PipelineKitResilienceCircuitBreaker/PartitionedBulkheadMiddleware.swift:502:32: warning: 'weak' ownership of capture 'partition' differs from implicitly-captured strong reference in outer scope [#ImplicitStrongCapture]
+498 |         // Try queueing if space available
+499 |         if await partition.canQueue() {
+500 |             let future: @Sendable () async throws -> @Sendable () async -> Void = {
+    |                                                                                   |- note: 'partition' implicitly strongly captured here
+    |                                                                                   `- note: add 'partition' as a capture list item to silence
+501 |                 try await partition.waitForResource()
+502 |                 return { [weak partition] in
+    |                                |- warning: 'weak' ownership of capture 'partition' differs from implicitly-captured strong reference in outer scope [#ImplicitStrongCapture]
+    |                                `- note: explicitly assign the capture list item to silence
+503 |                     await partition?.release()
+504 |                 }
+
+[#ImplicitStrongCapture]: <https://docs.swift.org/compiler/documentation/diagnostics/implicit-strong-capture>
+[48 / 68] _CircuitBreaker
+[49 / 67] PipelineKitObservability
+[55 / 77] _ResilienceCore
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Sources/PipelineKitCache/CachingMiddleware.swift:222:47: warning: use of protocol 'Decodable' as a type must be written 'any Decodable'; this will be an error in a future Swift language mode [#ExistentialAny]
+220 |             // For other Decodable types, try generic decoding
+221 |             // Note: We use Decodable.Type here (not `any Decodable.Type`) because we need to call init on it
+222 |             if let decodableType = T.self as? Decodable.Type {
+    |                                               `- warning: use of protocol 'Decodable' as a type must be written 'any Decodable'; this will be an error in a future Swift language mode [#ExistentialAny]
+223 |                 let value = try decodableType.init(from: try container.superDecoder(forKey: .result))
+224 |                 guard let typedValue = value as? T else {
+
+[#ExistentialAny]: <https://docs.swift.org/compiler/documentation/diagnostics/existential-any>
+[58 / 79] PipelineKitCache
+[61 / 75] _ResilienceCore
+[71 / 84] PipelineKitResilience
+[77 / 94] PipelineKitPooling
+[80 / 96] PipelineKitPooling
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Sources/PipelineKitSecurity/AuditLogger.swift:169:41: warning: 'withValue(_:operation:isolation:file:line:)' is deprecated: Prefer the 'nonisolated(nonsending)' overload with stricter execution on caller context semantics: withValue(_:operation:file:line:) [#DeprecatedDeclaration]
+167 |         operation: () async throws -> T
+168 |     ) async rethrows -> T {
+169 |         try await AuditContext.$current.withValue(context, operation: operation)
+    |                                         `- warning: 'withValue(_:operation:isolation:file:line:)' is deprecated: Prefer the 'nonisolated(nonsending)' overload with stricter execution on caller context semantics: withValue(_:operation:file:line:) [#DeprecatedDeclaration]
+170 |     }
+171 | }
+
+[#DeprecatedDeclaration]: <https://docs.swift.org/compiler/documentation/diagnostics/deprecated-declaration>
+[87 / 95] PipelineKitTestSupport
+[89 / 96] PipelineKitTestSupport
+[92 / 94] PipelineKitTests-product
+[94 / 96] PipelineKitTests-product
+[98 / 102] PipelineKitTests-product
+[100 / 102] PipelineKitTests-product
+Build complete! (16.44 sec)
+Test Suite 'Selected tests' started at 2026-10-30 16:57:49.833.
+Test Suite 'PipelineKitTests.xctest' started at 2026-10-30 16:57:49.834.
+Test Suite 'DynamicPipelineChainCacheTests' started at 2026-10-30 16:57:49.834.
+Test Case '-[PipelineKitTests.DynamicPipelineChainCacheTests testDynamicPipelineInvalidatesOnAddMiddleware]' started.
+Test Case '-[PipelineKitTests.DynamicPipelineChainCacheTests testDynamicPipelineInvalidatesOnAddMiddleware]' passed (0.001 seconds).
+Test Case '-[PipelineKitTests.DynamicPipelineChainCacheTests testDynamicPipelineInvalidatesOnHandlerReplace]' started.
+Test Case '-[PipelineKitTests.DynamicPipelineChainCacheTests testDynamicPipelineInvalidatesOnHandlerReplace]' passed (0.000 seconds).
+Test Case '-[PipelineKitTests.DynamicPipelineChainCacheTests testDynamicPipelineInvalidatesOnHandlerReRegister]' started.
+Test Case '-[PipelineKitTests.DynamicPipelineChainCacheTests testDynamicPipelineInvalidatesOnHandlerReRegister]' passed (0.000 seconds).
+Test Case '-[PipelineKitTests.DynamicPipelineChainCacheTests testDynamicPipelineInvalidatesOnUnregister]' started.
+Test Case '-[PipelineKitTests.DynamicPipelineChainCacheTests testDynamicPipelineInvalidatesOnUnregister]' passed (0.000 seconds).
+Test Case '-[PipelineKitTests.DynamicPipelineChainCacheTests testDynamicPipelineSendTwiceSucceeds]' started.
+Test Case '-[PipelineKitTests.DynamicPipelineChainCacheTests testDynamicPipelineSendTwiceSucceeds]' passed (0.000 seconds).
+Test Suite 'DynamicPipelineChainCacheTests' passed at 2026-10-30 16:57:49.836.
+	 Executed 5 tests, with 0 failures (0 unexpected) in 0.002 (0.002) seconds
+Test Suite 'StandardPipelineChainCacheTests' started at 2026-10-30 16:57:49.836.
+Test Case '-[PipelineKitTests.StandardPipelineChainCacheTests testCachedPipelineReleasesAfterExecution]' started.
+2026-10-30T16:57:49-0700 warning PipelineKit.Core: [PipelineKit] SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features.
+2026-10-30T16:57:49-0700 warning PipelineKit.Core: [PipelineKit] SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features.
+2026-10-30T16:57:49-0700 warning PipelineKit.Core: [PipelineKit] SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features.
+2026-10-30T16:57:49-0700 warning PipelineKit.Core: [PipelineKit] SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features.
+Test Case '-[PipelineKitTests.StandardPipelineChainCacheTests testCachedPipelineReleasesAfterExecution]' passed (0.000 seconds).
+Test Case '-[PipelineKitTests.StandardPipelineChainCacheTests testStandardPipelineInvalidatesOnAddMiddleware]' started.
+Test Case '-[PipelineKitTests.StandardPipelineChainCacheTests testStandardPipelineInvalidatesOnAddMiddleware]' passed (0.000 seconds).
+Test Case '-[PipelineKitTests.StandardPipelineChainCacheTests testStandardPipelineInvalidatesOnClearMiddlewares]' started.
+Test Case '-[PipelineKitTests.StandardPipelineChainCacheTests testStandardPipelineInvalidatesOnClearMiddlewares]' passed (0.000 seconds).
+Test Case '-[PipelineKitTests.StandardPipelineChainCacheTests testStandardPipelineRepeatedExecutionsAllSucceed]' started.
+Test Case '-[PipelineKitTests.StandardPipelineChainCacheTests testStandardPipelineRepeatedExecutionsAllSucceed]' passed (0.000 seconds).
+Test Case '-[PipelineKitTests.StandardPipelineChainCacheTests testStandardPipelineReusesChainAcrossExecutions]' started.
+Test Case '-[PipelineKitTests.StandardPipelineChainCacheTests testStandardPipelineReusesChainAcrossExecutions]' passed (0.000 seconds).
+Test Suite 'StandardPipelineChainCacheTests' passed at 2026-10-30 16:57:49.837.
+	 Executed 5 tests, with 0 failures (0 unexpected) in 0.001 (0.001) seconds
+Test Suite 'PipelineKitTests.xctest' passed at 2026-10-30 16:57:49.837.
+	 Executed 10 tests, with 0 failures (0 unexpected) in 0.003 (0.004) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 16:57:49.837.
+	 Executed 10 tests, with 0 failures (0 unexpected) in 0.003 (0.005) seconds
+Test Suite 'Selected tests' started at 2026-10-30 16:57:49.915.
+Test Suite 'PipelineKitTestSupportTests.xctest' started at 2026-10-30 16:57:49.916.
+Test Suite 'PipelineKitTestSupportTests.xctest' passed at 2026-10-30 16:57:49.916.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 16:57:49.916.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 16:57:49.996.
+Test Suite 'PipelineKitSecurityTests.xctest' started at 2026-10-30 16:57:49.997.
+Test Suite 'PipelineKitSecurityTests.xctest' passed at 2026-10-30 16:57:49.997.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 16:57:49.997.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 16:57:50.077.
+Test Suite 'PipelineKitResilienceTests.xctest' started at 2026-10-30 16:57:50.078.
+Test Suite 'PipelineKitResilienceTests.xctest' passed at 2026-10-30 16:57:50.078.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 16:57:50.078.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 16:57:50.158.
+Test Suite 'PipelineKitPoolingTests.xctest' started at 2026-10-30 16:57:50.159.
+Test Suite 'PipelineKitPoolingTests.xctest' passed at 2026-10-30 16:57:50.159.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 16:57:50.159.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 16:57:50.239.
+Test Suite 'PipelineKitPerformanceTests.xctest' started at 2026-10-30 16:57:50.240.
+Test Suite 'PipelineKitPerformanceTests.xctest' passed at 2026-10-30 16:57:50.240.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 16:57:50.240.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 16:57:50.320.
+Test Suite 'PipelineKitObservabilityTests.xctest' started at 2026-10-30 16:57:50.321.
+Test Suite 'PipelineKitObservabilityTests.xctest' passed at 2026-10-30 16:57:50.321.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 16:57:50.321.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 16:57:50.401.
+Test Suite 'PipelineKitCoreTests.xctest' started at 2026-10-30 16:57:50.401.
+Test Suite 'PipelineKitCoreTests.xctest' passed at 2026-10-30 16:57:50.402.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 16:57:50.402.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 16:57:50.480.
+Test Suite 'PipelineKitCacheTests.xctest' started at 2026-10-30 16:57:50.481.
+Test Suite 'PipelineKitCacheTests.xctest' passed at 2026-10-30 16:57:50.481.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 16:57:50.481.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds

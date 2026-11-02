@@ -1,0 +1,54 @@
+{
+  "normalization": "repository-relative path plus diagnostic text; line/column removed; runtime scanned separately, including SwiftLog warning prefix",
+  "baseline": ".superpowers/sdd/2026-10-29-pipelinekit-stabilization/baseline-warnings.json",
+  "runs": {
+    "R02-001-wrapper-red.log": {
+      "compiler_unique": 2,
+      "compiler_occurrences": 2,
+      "compiler": {
+        "Tests/PipelineKitCoreTests/Middleware/MiddlewareTests.swift: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]": 1,
+        "Tests/PipelineKitCoreTests/Pipeline/PipelineTests.swift: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]": 1
+      },
+      "new_compiler": {},
+      "runtime_occurrences": 0,
+      "runtime_lines": {}
+    },
+    "R02-002-focused-green.log": {
+      "compiler_unique": 8,
+      "compiler_occurrences": 10,
+      "compiler": {
+        "Sources/PipelineKitResilienceCircuitBreaker/PartitionedBulkheadMiddleware.swift: warning: 'weak' ownership of capture 'partition' differs from implicitly-captured strong reference in outer scope [#ImplicitStrongCapture]": 1,
+        "Tests/PipelineKitCoreTests/Errors/CancellationErrorTests.swift: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]": 2,
+        "Tests/PipelineKitSecurityTests/AuthorizationMiddlewareTests.swift: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]": 2,
+        "Tests/PipelineKitCoreTests/Middleware/MiddlewareTests.swift: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]": 1,
+        "Tests/PipelineKitCoreTests/Pipeline/PipelineTests.swift: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]": 1,
+        "Tests/PipelineKitResilienceTests/TimeoutMiddlewareCompileTests.swift: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]": 1,
+        "Tests/PipelineKitResilienceTests/PartitionedBulkheadConfigurationTests.swift: warning: 'maxBorrowPercentage' is deprecated: renamed to 'reservedCapacityPercentage' [#DeprecatedDeclaration]": 1,
+        "Tests/PipelineKitResilienceTests/PartitionedBulkheadConfigurationTests.swift: warning: 'init(partitions:partitionExtractor:defaultPartition:allowBorrowing:maxBorrowPercentage:emitMetrics:)' is deprecated: maxBorrowPercentage has always been the reserved (non-lendable) share \u2014 use reservedCapacityPercentage, which has identical semantics. [#DeprecatedDeclaration]": 1
+      },
+      "new_compiler": {},
+      "runtime_occurrences": 0,
+      "runtime_lines": {}
+    },
+    "R02-003-debug-full.log": {
+      "compiler_unique": 0,
+      "compiler_occurrences": 0,
+      "compiler": {},
+      "new_compiler": {},
+      "runtime_occurrences": 0,
+      "runtime_lines": {}
+    },
+    "R02-004-immediate-cancellation.log": {
+      "compiler_unique": 0,
+      "compiler_occurrences": 0,
+      "compiler": {},
+      "new_compiler": {},
+      "runtime_occurrences": 0,
+      "runtime_lines": {}
+    }
+  },
+  "notes": [
+    "Warning-sink assertions observe six false warnings in the red fallback/custom matrix, and zero for those policies in green; accidental omission remains one expected warning per route in Debug. These captured diagnostics are asserted in-process rather than emitted to SwiftLog.",
+    "Full --parallel output may omit successful test subprocess output. Zero runtime lines in these raw logs is an observation, not a clean global-warning baseline claim. Existing C02-N1 fixture diagnostics remain separately deferred."
+  ]
+}

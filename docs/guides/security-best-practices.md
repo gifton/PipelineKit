@@ -1,5 +1,8 @@
 # PipelineKit Security Best Practices
 
+For the next minor release, follow the [compiled stabilization migration guide](../migrations/first-stabilization-batch.md). It covers required validation/sanitization capabilities, complete Codable encryption, atomic key snapshots and legacy-data recovery limits.
+
+
 This guide covers security practices and patterns for applications built on PipelineKit —
 validation, authorization, rate limiting, encryption, audit logging, and related middleware. It is
 guidance for hardening *your* application, not PipelineKit's security policy. To report a
@@ -132,7 +135,7 @@ let securityPriorities: [ExecutionPriority] = [
 Never trust user input. Validate all data at the entry point:
 
 ```swift
-struct CreateUserCommand: Command {
+struct CreateUserCommand: ValidatableCommand {
     typealias Result = Void
 
     let email: String
@@ -140,7 +143,7 @@ struct CreateUserCommand: Command {
     let password: String
     let age: Int
 
-    func validate() throws {
+    func validate() async throws {
         // Email validation
         guard email.contains("@") && email.contains(".") else {
             throw PipelineError.validation(field: "email", reason: .invalidEmail)
@@ -173,9 +176,12 @@ struct CreateUserCommand: Command {
 }
 ```
 
-`validate()` is not a `Command` protocol requirement — it's a default no-op provided by a
-`Command` extension in `PipelineKitSecurity`. Overriding it, as above, is how `ValidationMiddleware`
-picks up per-command validation; the error cases come from `PipelineError.ValidationReason`.
+`validate()` is an async requirement of `ValidatableCommand` in `PipelineKitSecurity`.
+Declare that conformance explicitly; a same-named method on an unrelated `Command` does not
+opt into validation. `ValidationMiddleware()` rejects missing conformance before invoking
+the next stage and propagates validation errors unchanged. For a deliberately mixed command
+set, `ValidationMiddleware(requirement: .ifPresent)` invokes conforming commands and allows
+unrelated commands through. There is no default no-op validation witness.
 
 ### Custom Validation Functions
 
@@ -226,48 +232,33 @@ func validateStrongPassword(_ value: String) throws {
 
 ### Input Sanitization
 
-Always sanitize user input to prevent injection attacks:
+Sanitization is an application-defined transformation. Implement `SanitizableCommand` and
+return the value the handler should receive. This example normalizes text and limits its
+length; it does not establish that the output is safe in every rendering or query context.
 
 ```swift
-struct ProcessContentCommand: Command {
+struct ProcessContentCommand: SanitizableCommand {
     typealias Result = Void
 
-    var content: String
-    var title: String
+    let content: String
+    let title: String
 
-    // `sanitize()` is non-mutating and returns a new value — it's a default no-op provided by
-    // a `Command` extension (`func sanitize() throws -> Self`), and `SanitizationMiddleware`
-    // calls it as `let sanitized = try command.sanitize()`, not by mutating the command in place.
-    func sanitize() throws -> Self {
-        var content = content
-        var title = title
-
-        // Remove dangerous HTML tags
-        content = content.replacingOccurrences(of: "<script", with: "&lt;script", options: [.caseInsensitive])
-        content = content.replacingOccurrences(of: "</script>", with: "&lt;/script&gt;", options: [.caseInsensitive])
-        content = content.replacingOccurrences(of: "<iframe", with: "&lt;iframe", options: [.caseInsensitive])
-
-        // Basic HTML entity encoding
-        title = title.replacingOccurrences(of: "<", with: "&lt;")
-        title = title.replacingOccurrences(of: ">", with: "&gt;")
-        title = title.replacingOccurrences(of: "\"", with: "&quot;")
-
-        // Trim whitespace
-        content = content.trimmingCharacters(in: .whitespacesAndNewlines)
-        title = title.trimmingCharacters(in: .whitespacesAndNewlines)
-
-        // Enforce length limits
-        if content.count > 10000 {
-            content = String(content.prefix(10000))
-        }
-        if title.count > 200 {
-            title = String(title.prefix(200))
-        }
-
-        return ProcessContentCommand(content: content, title: title)
+    func sanitize() async throws -> Self {
+        let content = content.trimmingCharacters(in: .whitespacesAndNewlines)
+        let title = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        return Self(content: String(content.prefix(10000)), title: String(title.prefix(200)))
     }
 }
 ```
+
+`SanitizationMiddleware()` requires this capability and passes its returned value downstream.
+Use `SanitizationMiddleware(requirement: .ifPresent)` only when unrelated commands should
+pass through unchanged. Calls made directly by application code now use `try await` for
+both `validate()` and `sanitize()`.
+
+Validation's intrinsic priority is 200 and sanitization's is 300, so validation normally
+runs first. When validation needs normalized input, use explicit builder ordering, as shown
+in the [stabilization migration draft](../migrations/first-stabilization-batch.md).
 
 ## 🔐 Authorization & Authentication
 
@@ -511,10 +502,11 @@ that where you call `dispatch(_:metadata:)` if you need to react to an open circ
 
 ### Encrypting Sensitive Commands
 
-Always encrypt sensitive data:
+`CommandEncryptor` encodes the complete `Codable` command and returns a ciphertext-only
+envelope. Include every field needed to reconstruct the command in its Codable conformance:
 
 ```swift
-struct PaymentCommand: Command {
+struct PaymentCommand: Command, Codable {
     typealias Result = Void
 
     var cardNumber: String
@@ -523,26 +515,7 @@ struct PaymentCommand: Command {
     let amount: Double
     let merchantId: String
 
-    // Mark sensitive fields
-    var sensitiveFields: [String: Any] {
-        [
-            "cardNumber": cardNumber,
-            "cvv": cvv,
-            "ssn": ssn
-        ]
-    }
 
-    mutating func updateSensitiveFields(_ fields: [String: Any]) {
-        if let cardNumber = fields["cardNumber"] as? String {
-            self.cardNumber = cardNumber
-        }
-        if let cvv = fields["cvv"] as? String {
-            self.cvv = cvv
-        }
-        if let ssn = fields["ssn"] as? String {
-            self.ssn = ssn
-        }
-    }
 }
 ```
 
@@ -555,15 +528,7 @@ automatically based on a configurable interval, backed by your own `KeyStore` co
 // A minimal in-memory KeyStore; back this with Keychain/HSM/KMS in production.
 actor DemoKeyStore: KeyStore {
     private var keys: [String: SendableSymmetricKey] = [:]
-    private var latestIdentifier: String?
-
-    var currentKey: SendableSymmetricKey? {
-        latestIdentifier.flatMap { keys[$0] }
-    }
-
-    var currentKeyIdentifier: String? {
-        latestIdentifier
-    }
+    private(set) var currentKeySnapshot: EncryptionKeySnapshot?
 
     func key(for identifier: String) async -> SendableSymmetricKey? {
         keys[identifier]
@@ -571,7 +536,7 @@ actor DemoKeyStore: KeyStore {
 
     func store(key: SendableSymmetricKey, identifier: String) async {
         keys[identifier] = key
-        latestIdentifier = identifier
+        currentKeySnapshot = EncryptionKeySnapshot(key: key, identifier: identifier)
     }
 
     func removeExpiredKeys(before date: Date) async {
@@ -581,10 +546,19 @@ actor DemoKeyStore: KeyStore {
 
 let keyStore = DemoKeyStore()
 let encryptor = await CommandEncryptor(keyStore: keyStore, keyRotationInterval: 86400) // 24 hours
+_ = encryptor // Retain this actor in the application service that encrypts commands.
 ```
 
 `InMemoryKeyStore` lives in `PipelineKitTestSupport` for test use only — production code
-supplies its own `KeyStore`, as above.
+supplies its own `KeyStore`, as above. Capture `currentKeySnapshot` atomically: separate
+reads of a key and its identifier can cross a rotation. Use a fresh identifier for every
+key version and retain older keys while their ciphertext must remain decryptable. Supplied
+keys must be 256 bits. Rotation by another encryptor may leave this encryptor using an older,
+still-stored pair; the envelope always names that captured pair.
+
+The old `sensitiveFields` / `updateSensitiveFields` hooks and `originalCommand` envelope
+property are removed. See the [migration draft](../migrations/first-stabilization-batch.md)
+for the incompatible legacy format and recovery limits.
 
 ### Field-Level Encryption
 

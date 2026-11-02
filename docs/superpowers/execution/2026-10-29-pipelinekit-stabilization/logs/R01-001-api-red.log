@@ -1,0 +1,378 @@
+Building for debugging...
+[Computing dependencies]
+[Pre-planning 1 / 1026]
+[Planning deferred tasks]
+[2 / 2] Crypto
+[5 / 5] PipelineKitTestSupportTests-product
+[13 / 24] PipelineKitResilienceTests-product
+error: SwiftCompile normal arm64 /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/AdmissionGateContractTests.swift failed with a nonzero exit code. Command line:     cd /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees
+    builtin-SwiftPerFileCompile AdmissionGateContractTests.swift
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/AdmissionGateContractTests.swift:6:18: error: cannot find type 'AdmissionLease' in scope
+  4 | 
+  5 | private enum AdmissionResult: Sendable {
+  6 |     case granted(AdmissionLease)
+    |                  `- error: cannot find type 'AdmissionLease' in scope
+  7 |     case cancelled
+  8 |     case full
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/AdmissionGateContractTests.swift:22:16: error: cannot find type 'AdmissionLease' in scope
+ 20 |     }
+ 21 | 
+ 22 |     var lease: AdmissionLease? {
+    |                `- error: cannot find type 'AdmissionLease' in scope
+ 23 |         if case .granted(let lease) = self { return lease }
+ 24 |         return nil
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/AdmissionGateContractTests.swift:58:86: error: cannot find type 'AdmissionGate' in scope
+ 56 | 
+ 57 | final class AdmissionGateContractTests: XCTestCase {
+ 58 |     private func makeGate(capacity: Int, queue: Int, clock: ManualAdmissionClock) -> AdmissionGate {
+    |                                                                                      `- error: cannot find type 'AdmissionGate' in scope
+ 59 |         AdmissionGate(
+ 60 |             capacity: capacity,
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/AdmissionGateContractTests.swift:67:34: error: cannot find type 'AdmissionGate' in scope
+ 65 |     }
+ 66 | 
+ 67 |     private func acquire(_ gate: AdmissionGate, timeout: Duration? = nil) async -> AdmissionResult {
+    |                                  `- error: cannot find type 'AdmissionGate' in scope
+ 68 |         do {
+ 69 |             return .granted(try await gate.acquire(timeout: timeout))
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/AdmissionGateContractTests.swift:83:15: error: cannot find type 'AdmissionGate' in scope
+ 81 |     private func enqueue(
+ 82 |         _ id: String,
+ 83 |         gate: AdmissionGate,
+    |               `- error: cannot find type 'AdmissionGate' in scope
+ 84 |         terminals: AdmissionTerminals,
+ 85 |         timeout: Duration? = nil
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/AdmissionGateContractTests.swift:95:17: error: cannot find type 'AdmissionGate' in scope
+ 93 | 
+ 94 |     private func assertState(
+ 95 |         _ gate: AdmissionGate,
+    |                 `- error: cannot find type 'AdmissionGate' in scope
+ 96 |         capacity: Int,
+ 97 |         active: Int,
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/AdmissionGateContractTests.swift:109:52: error: cannot find type 'AdmissionGate' in scope
+107 |     }
+108 | 
+109 |     private func registered(_ count: Int, on gate: AdmissionGate) async {
+    |                                                    `- error: cannot find type 'AdmissionGate' in scope
+110 |         while await gate.snapshot().queued < count { await Task.yield() }
+111 |     }
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/AdmissionGateContractTests.swift:14:15: error: expression pattern of type 'Self' cannot match values of type 'AdmissionResult'
+ 12 |     var name: String {
+ 13 |         switch self {
+ 14 |         case .granted: "granted"
+    |               `- error: expression pattern of type 'Self' cannot match values of type 'AdmissionResult'
+ 15 |         case .cancelled: "cancelled"
+ 16 |         case .full: "full"
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/AdmissionGateContractTests.swift:14:15: error: type '_ErrorCodeProtocol' has no member 'granted'
+ 12 |     var name: String {
+ 13 |         switch self {
+ 14 |         case .granted: "granted"
+    |               `- error: type '_ErrorCodeProtocol' has no member 'granted'
+ 15 |         case .cancelled: "cancelled"
+ 16 |         case .full: "full"
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/AdmissionGateContractTests.swift:23:18: error: binary operator '~=' cannot be applied to two 'AdmissionResult' operands
+ 21 | 
+ 22 |     var lease: AdmissionLease? {
+ 23 |         if case .granted(let lease) = self { return lease }
+    |                  `- error: binary operator '~=' cannot be applied to two 'AdmissionResult' operands
+ 24 |         return nil
+ 25 |     }
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/AdmissionGateContractTests.swift:23:18: error: reference to member 'granted' cannot be resolved without a contextual type
+ 21 | 
+ 22 |     var lease: AdmissionLease? {
+ 23 |         if case .granted(let lease) = self { return lease }
+    |                  `- error: reference to member 'granted' cannot be resolved without a contextual type
+ 24 |         return nil
+ 25 |     }
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/AdmissionGateContractTests.swift:59:9: error: cannot find 'AdmissionGate' in scope
+ 57 | final class AdmissionGateContractTests: XCTestCase {
+ 58 |     private func makeGate(capacity: Int, queue: Int, clock: ManualAdmissionClock) -> AdmissionGate {
+ 59 |         AdmissionGate(
+    |         `- error: cannot find 'AdmissionGate' in scope
+ 60 |             capacity: capacity,
+ 61 |             maxQueueSize: queue,
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/AdmissionGateContractTests.swift:72:17: error: cannot find 'AdmissionError' in scope
+ 70 |         } catch is CancellationError {
+ 71 |             return .cancelled
+ 72 |         } catch AdmissionError.full {
+    |                 `- error: cannot find 'AdmissionError' in scope
+ 73 |             return .full
+ 74 |         } catch AdmissionError.timedOut {
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/AdmissionGateContractTests.swift:74:17: error: cannot find 'AdmissionError' in scope
+ 72 |         } catch AdmissionError.full {
+ 73 |             return .full
+ 74 |         } catch AdmissionError.timedOut {
+    |                 `- error: cannot find 'AdmissionError' in scope
+ 75 |             return .timedOut
+ 76 |         } catch {
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/AdmissionGateContractTests.swift:124:34: error: cannot find type 'AdmissionLease' in scope
+122 |                 var released = 0
+123 |                 for wave in 0..<4 {
+124 |                     var active: [AdmissionLease] = []
+    |                                  `- error: cannot find type 'AdmissionLease' in scope
+125 |                     for _ in 0..<capacity {
+126 |                         let result = await acquire(gate)
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/AdmissionGateContractTests.swift:127:41: error: generic parameter 'T' could not be inferred
+125 |                     for _ in 0..<capacity {
+126 |                         let result = await acquire(gate)
+127 |                         let lease = try XCTUnwrap(result.lease, result.name)
+    |                                         `- error: generic parameter 'T' could not be inferred
+128 |                         active.append(lease)
+129 |                         granted += 1
+
+XCTest.XCTUnwrap:1:13: note: in call to function 'XCTUnwrap(_:_:file:line:)'
+1 | public func XCTUnwrap<T>(_ expression: @autoclosure () throws -> T?, _ message: @autoclosure () -> String = "", file: StaticString = #filePath, line: UInt = #line) throws -> T
+  |             `- note: in call to function 'XCTUnwrap(_:_:file:line:)'
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/AdmissionGateContractTests.swift:131:62: error: type 'Equatable' has no member 'zero'
+129 |                         granted += 1
+130 |                         XCTAssertFalse(lease.wasQueued)
+131 |                         XCTAssertEqual(lease.queueDuration, .zero)
+    |                                                              `- error: type 'Equatable' has no member 'zero'
+132 |                     }
+133 |                     var pending: [Task<AdmissionResult, Never>] = []
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/AdmissionGateContractTests.swift:159:66: error: type 'Equatable' has no member 'seconds'
+157 |                             active.append(lease)
+158 |                             XCTAssertTrue(lease.wasQueued)
+159 |                             XCTAssertEqual(lease.queueDuration, .seconds(2))
+    |                                                                  `- error: type 'Equatable' has no member 'seconds'
+160 |                         }
+161 |                     }
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/AdmissionGateContractTests.swift:181:23: error: cannot find 'AdmissionGate' in scope
+179 |         // Acknowledged entry before acquire: cancellation must win even with room.
+180 |         let start = AdmissionStart()
+181 |         let preGate = AdmissionGate(capacity: 1, maxQueueSize: 1)
+    |                       `- error: cannot find 'AdmissionGate' in scope
+182 |         let beforeRegistration = Task { @concurrent in
+183 |             await start.wait()
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/AdmissionGateContractTests.swift:198:31: error: generic parameter 'T' could not be inferred
+196 |             let gate = makeGate(capacity: 1, queue: 2, clock: clock)
+197 |             let initialResult = await acquire(gate)
+198 |             let initial = try XCTUnwrap(initialResult.lease)
+    |                               `- error: generic parameter 'T' could not be inferred
+199 |             let terminals = AdmissionTerminals()
+200 |             let cancelled = enqueue("cancelled", gate: gate, terminals: terminals, timeout: .seconds(30))
+
+XCTest.XCTUnwrap:1:13: note: in call to function 'XCTUnwrap(_:_:file:line:)'
+1 | public func XCTUnwrap<T>(_ expression: @autoclosure () throws -> T?, _ message: @autoclosure () -> String = "", file: StaticString = #filePath, line: UInt = #line) throws -> T
+  |             `- note: in call to function 'XCTUnwrap(_:_:file:line:)'
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/AdmissionGateContractTests.swift:189:25: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+187 |         beforeRegistration.cancel()
+188 |         await start.open()
+189 |         let preResult = await beforeRegistration.value
+    |                         `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+190 |         XCTAssertEqual(preResult.name, "cancelled")
+191 |         await preResult.lease?.release()
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/AdmissionGateContractTests.swift:219:35: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+217 |                 cancelled.cancel()
+218 |             }
+219 |             let cancelledResult = await cancelled.value
+    |                                   `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+220 |             XCTAssertEqual(cancelledResult.name, "cancelled")
+221 |             await cancelledResult.lease?.release()
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/AdmissionGateContractTests.swift:230:33: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+228 |                 await initial.release()
+229 |             }
+230 |             let siblingResult = await sibling.value
+    |                                 `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+231 |             XCTAssertEqual(siblingResult.name, "granted")
+232 |             XCTAssertEqual(siblingResult.lease?.wasQueued, true)
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/AdmissionGateContractTests.swift:250:27: error: generic parameter 'T' could not be inferred
+248 |         let gate = makeGate(capacity: 1, queue: 3, clock: clock)
+249 |         let initialResult = await acquire(gate)
+250 |         let initial = try XCTUnwrap(initialResult.lease)
+    |                           `- error: generic parameter 'T' could not be inferred
+251 |         let terminals = AdmissionTerminals()
+252 |         let first = enqueue("first", gate: gate, terminals: terminals, timeout: .seconds(30))
+
+XCTest.XCTUnwrap:1:13: note: in call to function 'XCTUnwrap(_:_:file:line:)'
+1 | public func XCTUnwrap<T>(_ expression: @autoclosure () throws -> T?, _ message: @autoclosure () -> String = "", file: StaticString = #filePath, line: UInt = #line) throws -> T
+  |             `- note: in call to function 'XCTUnwrap(_:_:file:line:)'
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/AdmissionGateContractTests.swift:281:43: error: cannot convert value of type 'T?' to expected argument type 'T'
+279 |         let firstResult = await first.value
+280 |         XCTAssertEqual(firstResult.name, "granted")
+281 |         XCTAssertEqual(firstResult.lease?.queueDuration, .seconds(5))
+    |                                           `- error: cannot convert value of type 'T?' to expected argument type 'T'
+282 |         await assertState(gate, capacity: 1, active: 1, queued: 2)
+283 |         clock.advance(by: .seconds(2))
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/AdmissionGateContractTests.swift:281:59: error: type 'Equatable' has no member 'seconds'
+279 |         let firstResult = await first.value
+280 |         XCTAssertEqual(firstResult.name, "granted")
+281 |         XCTAssertEqual(firstResult.lease?.queueDuration, .seconds(5))
+    |                                                           `- error: type 'Equatable' has no member 'seconds'
+282 |         await assertState(gate, capacity: 1, active: 1, queued: 2)
+283 |         clock.advance(by: .seconds(2))
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/AdmissionGateContractTests.swift:287:42: error: cannot convert value of type 'T?' to expected argument type 'T'
+285 |         let lastResult = await last.value
+286 |         XCTAssertEqual(lastResult.name, "granted")
+287 |         XCTAssertEqual(lastResult.lease?.queueDuration, .seconds(7))
+    |                                          `- error: cannot convert value of type 'T?' to expected argument type 'T'
+288 |         await lastResult.lease?.release()
+289 |         let replacementResult = await replacement.value
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/AdmissionGateContractTests.swift:287:58: error: type 'Equatable' has no member 'seconds'
+285 |         let lastResult = await last.value
+286 |         XCTAssertEqual(lastResult.name, "granted")
+287 |         XCTAssertEqual(lastResult.lease?.queueDuration, .seconds(7))
+    |                                                          `- error: type 'Equatable' has no member 'seconds'
+288 |         await lastResult.lease?.release()
+289 |         let replacementResult = await replacement.value
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/AdmissionGateContractTests.swift:291:49: error: cannot convert value of type 'T?' to expected argument type 'T'
+289 |         let replacementResult = await replacement.value
+290 |         XCTAssertEqual(replacementResult.name, "granted")
+291 |         XCTAssertEqual(replacementResult.lease?.queueDuration, .seconds(2))
+    |                                                 `- error: cannot convert value of type 'T?' to expected argument type 'T'
+292 |         await replacementResult.lease?.release()
+293 |         await clock.waitForSettlement()
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/AdmissionGateContractTests.swift:291:65: error: type 'Equatable' has no member 'seconds'
+289 |         let replacementResult = await replacement.value
+290 |         XCTAssertEqual(replacementResult.name, "granted")
+291 |         XCTAssertEqual(replacementResult.lease?.queueDuration, .seconds(2))
+    |                                                                 `- error: type 'Equatable' has no member 'seconds'
+292 |         await replacementResult.lease?.release()
+293 |         await clock.waitForSettlement()
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/AdmissionGateContractTests.swift:267:29: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+265 |         XCTAssertTrue(beforeDeadline.isEmpty)
+266 |         clock.advance(by: .seconds(1))
+267 |         let expiredResult = await expiring.value
+    |                             `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+268 |         XCTAssertEqual(expiredResult.name, "timedOut")
+269 |         await expiredResult.lease?.release()
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/AdmissionGateContractTests.swift:279:27: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+277 |         XCTAssertEqual(fullAgain.name, "full")
+278 |         await initial.release()
+279 |         let firstResult = await first.value
+    |                           `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+280 |         XCTAssertEqual(firstResult.name, "granted")
+281 |         XCTAssertEqual(firstResult.lease?.queueDuration, .seconds(5))
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/AdmissionGateContractTests.swift:285:26: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+283 |         clock.advance(by: .seconds(2))
+284 |         await firstResult.lease?.release()
+285 |         let lastResult = await last.value
+    |                          `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+286 |         XCTAssertEqual(lastResult.name, "granted")
+287 |         XCTAssertEqual(lastResult.lease?.queueDuration, .seconds(7))
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/AdmissionGateContractTests.swift:289:33: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+287 |         XCTAssertEqual(lastResult.lease?.queueDuration, .seconds(7))
+288 |         await lastResult.lease?.release()
+289 |         let replacementResult = await replacement.value
+    |                                 `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+290 |         XCTAssertEqual(replacementResult.name, "granted")
+291 |         XCTAssertEqual(replacementResult.lease?.queueDuration, .seconds(2))
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/AdmissionGateContractTests.swift:306:28: error: cannot find 'AdmissionGate' in scope
+304 |         for capacity in [1, 2, 5] {
+305 |             for reserve in 0...capacity {
+306 |                 let gate = AdmissionGate(capacity: capacity, maxQueueSize: 1)
+    |                            `- error: cannot find 'AdmissionGate' in scope
+307 |                 let leases = await withTaskGroup(of: AdmissionLease?.self, returning: [AdmissionLease].self) { group in
+308 |                     for _ in 0..<20 {
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/AdmissionGateContractTests.swift:307:54: error: cannot find 'AdmissionLease' in scope
+305 |             for reserve in 0...capacity {
+306 |                 let gate = AdmissionGate(capacity: capacity, maxQueueSize: 1)
+307 |                 let leases = await withTaskGroup(of: AdmissionLease?.self, returning: [AdmissionLease].self) { group in
+    |                                                      `- error: cannot find 'AdmissionLease' in scope
+308 |                     for _ in 0..<20 {
+309 |                         group.addTask { await gate.tryAcquire(reserving: reserve) }
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/AdmissionGateContractTests.swift:307:88: error: cannot find 'AdmissionLease' in scope
+305 |             for reserve in 0...capacity {
+306 |                 let gate = AdmissionGate(capacity: capacity, maxQueueSize: 1)
+307 |                 let leases = await withTaskGroup(of: AdmissionLease?.self, returning: [AdmissionLease].self) { group in
+    |                                                                                        `- error: cannot find 'AdmissionLease' in scope
+308 |                     for _ in 0..<20 {
+309 |                         group.addTask { await gate.tryAcquire(reserving: reserve) }
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/AdmissionGateContractTests.swift:307:30: error: failed to produce diagnostic for expression; please submit a bug report (https://swift.org/contributing/#reporting-bugs)
+305 |             for reserve in 0...capacity {
+306 |                 let gate = AdmissionGate(capacity: capacity, maxQueueSize: 1)
+307 |                 let leases = await withTaskGroup(of: AdmissionLease?.self, returning: [AdmissionLease].self) { group in
+    |                              `- error: failed to produce diagnostic for expression; please submit a bug report (https://swift.org/contributing/#reporting-bugs)
+308 |                     for _ in 0..<20 {
+309 |                         group.addTask { await gate.tryAcquire(reserving: reserve) }
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/AdmissionGateContractTests.swift:319:38: error: cannot find type 'AdmissionLease' in scope
+317 |                 XCTAssertEqual(leases.count, capacity - reserve)
+318 |                 await assertState(gate, capacity: capacity, active: capacity - reserve, queued: 0)
+319 |                 var reservedLeases: [AdmissionLease] = []
+    |                                      `- error: cannot find type 'AdmissionLease' in scope
+320 |                 for _ in 0..<reserve {
+321 |                     if let lease = await gate.tryAcquire() { reservedLeases.append(lease) }
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/AdmissionGateContractTests.swift:330:58: error: type 'Equatable' has no member 'zero'
+328 |                 for lease in leases + reservedLeases {
+329 |                     XCTAssertFalse(lease.wasQueued)
+330 |                     XCTAssertEqual(lease.queueDuration, .zero)
+    |                                                          `- error: type 'Equatable' has no member 'zero'
+331 |                     await lease.release()
+332 |                     await lease.release()
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/AdmissionGateContractTests.swift:344:29: error: generic parameter 'T' could not be inferred
+342 |             let gate = makeGate(capacity: 1, queue: 1, clock: clock)
+343 |             let immediate = await acquire(gate, timeout: timeout)
+344 |             let lease = try XCTUnwrap(immediate.lease, immediate.name)
+    |                             `- error: generic parameter 'T' could not be inferred
+345 |             let waiting = await acquire(gate, timeout: timeout)
+346 |             XCTAssertEqual(waiting.name, "timedOut")
+
+XCTest.XCTUnwrap:1:13: note: in call to function 'XCTUnwrap(_:_:file:line:)'
+1 | public func XCTUnwrap<T>(_ expression: @autoclosure () throws -> T?, _ message: @autoclosure () -> String = "", file: StaticString = #filePath, line: UInt = #line) throws -> T
+  |             `- note: in call to function 'XCTUnwrap(_:_:file:line:)'
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/AdmissionGateContractTests.swift:353:26: error: cannot find 'AdmissionGate' in scope
+351 |         }
+352 | 
+353 |         let production = AdmissionGate(capacity: 1, maxQueueSize: 1)
+    |                          `- error: cannot find 'AdmissionGate' in scope
+354 |         let immediate = await acquire(production)
+355 |         let lease = try XCTUnwrap(immediate.lease)
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/AdmissionGateContractTests.swift:355:25: error: generic parameter 'T' could not be inferred
+353 |         let production = AdmissionGate(capacity: 1, maxQueueSize: 1)
+354 |         let immediate = await acquire(production)
+355 |         let lease = try XCTUnwrap(immediate.lease)
+    |                         `- error: generic parameter 'T' could not be inferred
+356 |         // Real sleeper smoke: timeout completes while the active lease is held.
+357 |         // The deadline itself is the behavior under test, not an ordering sleep.
+
+XCTest.XCTUnwrap:1:13: note: in call to function 'XCTUnwrap(_:_:file:line:)'
+1 | public func XCTUnwrap<T>(_ expression: @autoclosure () throws -> T?, _ message: @autoclosure () -> String = "", file: StaticString = #filePath, line: UInt = #line) throws -> T
+  |             `- note: in call to function 'XCTUnwrap(_:_:file:line:)'
+
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>
+Failed frontend command:
+/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swift-frontend -frontend -c /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Intermediates.noindex/PipelineKit.build/Debug/PipelineKitResilienceTests-p.build/DerivedSources/test_entry_point.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/ActualTimeoutTest.swift -primary-file /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/AdmissionGateContractTests.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/AsyncSemaphoreCancellationTests.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/AsyncSemaphoreContractTests.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/AuditCircuitBreakerProbeWedgeTests.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/AuditRetryThroughGuardedChainTests.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/BackPressureMiddlewareTests.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/BackPressureSemaphoreCancellationTests.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/BackPressureStatsTest.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/BackPressureTests.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/BulkheadMiddlewareTests.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/CircuitBreakerMiddlewareTests.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/CircuitBreakerProbeAccountingTests.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/CircuitBreakerStateConcurrencyTests.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/ConcurrentPipelineErrorContractTests.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/ConcurrentPipelineProgressTests.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/DeadlockFixTest.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/DetailedTimeoutTest.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/GracePeriodEvolutionTests.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/HealthCheckMiddlewareTests.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/InstrumentedTimeoutMiddleware.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/MinimalConcurrentTest.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/NextGuardSuppressionConformanceTests.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/ParallelMiddlewareContextTests.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/ParallelMiddlewareWrapperTests.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/ParallelObserverTests.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/PartitionedBulkheadConfigurationTests.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/ResilientMiddlewareTests.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/RetryMiddlewareTests.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/SemaphoreEvolutionTests.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/Support/ManualAdmissionClock.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/TimeoutDebugTest.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/TimeoutDiagnosticTests.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/TimeoutMiddlewareCompileTests.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/TimeoutMiddlewareTests.swift /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitResilienceTests/TimeoutProofTests.swift -emit-dependencies-path /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Intermediates.noindex/PipelineKit.build/Debug/PipelineKitResilienceTests-p.build/Objects-normal/arm64/AdmissionGateContractTests.d -emit-const-values-path /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Intermediates.noindex/PipelineKit.build/Debug/PipelineKitResilienceTests-p.build/Objects-normal/arm64/AdmissionGateContractTests.swiftconstvalues -emit-reference-dependencies-path /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Intermediates.noindex/PipelineKit.build/Debug/PipelineKitResilienceTests-p.build/Objects-normal/arm64/AdmissionGateContractTests.swiftdeps -serialize-diagnostics-path /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Intermediates.noindex/PipelineKit.build/Debug/PipelineKitResilienceTests-p.build/Objects-normal/arm64/AdmissionGateContractTests.dia -target arm64-apple-macos26.0 -module-can-import-version Testing 2403 0 -module-can-import-version XCTest 25435 0 -disable-cross-import-overlay-search -swift-module-cross-import Testing /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks/Testing.framework/Modules/Testing.swiftcrossimport/AppKit.swiftoverlay -swift-module-cross-import Testing /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks/Testing.framework/Modules/Testing.swiftcrossimport/CoreGraphics.swiftoverlay -swift-module-cross-import Testing /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks/Testing.framework/Modules/Testing.swiftcrossimport/CoreImage.swiftoverlay -swift-module-cross-import Testing /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks/Testing.framework/Modules/Testing.swiftcrossimport/CoreTransferable.swiftoverlay -swift-module-cross-import Testing /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks/Testing.framework/Modules/Testing.swiftcrossimport/Foundation.swiftoverlay -load-resolved-plugin /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib/swift/host/plugins/libFoundationMacros.dylib\#/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/bin/swift-plugin-server\#FoundationMacros -load-resolved-plugin /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib/swift/host/plugins/libObservationMacros.dylib\#/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/bin/swift-plugin-server\#ObservationMacros -load-resolved-plugin /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib/swift/host/plugins/libPreviewsMacros.dylib\#/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/bin/swift-plugin-server\#PreviewsMacros -load-resolved-plugin /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib/swift/host/plugins/libSwiftMacros.dylib\#/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/bin/swift-plugin-server\#SwiftMacros -load-resolved-plugin /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib/swift/host/plugins/libSwiftUIMacros.dylib\#/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/bin/swift-plugin-server\#SwiftUIMacros -load-resolved-plugin /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing/libTestingMacros.dylib\#\#TestingMacros -disable-implicit-swift-modules -Xcc -fno-implicit-modules -Xcc -fno-implicit-module-maps -explicit-swift-module-map-file /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Intermediates.noindex/PipelineKit.build/Debug/PipelineKitResilienceTests-p.build/Objects-normal/arm64/PipelineKitResilienceTests-dependencies-1.json -Xllvm -aarch64-use-tbi -enable-objc-interop -stack-check -sdk /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.2.sdk -I /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Products/Debug -Isystem /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib -F /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Products/Debug/PackageFrameworks -F /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Products/Debug -F /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks -module-cache-path /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Intermediates.noindex/SwiftExplicitPrecompiledModules -no-color-diagnostics -Xcc -fno-color-diagnostics -enable-testing -g -debug-info-format\=dwarf -dwarf-version\=5 -swift-version 6 -Onone -D SWIFT_PACKAGE -D DEBUG -D Xcode -serialize-debugging-options -enable-experimental-feature StrictConcurrency -enable-experimental-feature DebugDescriptionMacro -empty-abi-descriptor -validate-clang-modules-once -clang-build-session-file /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/ModuleCache.noindex/Session.modulevalidation -Xcc -working-directory -Xcc /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees -enable-anonymous-context-mangled-names -file-compilation-dir /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees -Xcc -fmodule-map-file\=/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/checkouts/swift-atomics/Sources/_AtomicsShims/include/module.modulemap -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -Xcc -ivfsstatcache -Xcc /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/SDKStatCaches.noindex/macosx27.2-26B118-a0facfad118c1a7a18f0aad9463f6549a7ff82d74745d5ef33555b35c4238456.sdkstatcache -Xcc -fmodules-prune-interval\=86400 -Xcc -fmodules-prune-after\=345600 -Xcc -I/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/checkouts/swift-atomics/Sources/_AtomicsShims/include -Xcc -I/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Products/Debug/include -Xcc -I/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Intermediates.noindex/PipelineKit.build/Debug/PipelineKitResilienceTests-p.build/DerivedSources-normal/arm64 -Xcc -I/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Intermediates.noindex/PipelineKit.build/Debug/PipelineKitResilienceTests-p.build/DerivedSources/arm64 -Xcc -I/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Intermediates.noindex/PipelineKit.build/Debug/PipelineKitResilienceTests-p.build/DerivedSources -Xcc -DSWIFT_PACKAGE -Xcc -DDEBUG\=1 -no-auto-bridging-header-chaining -module-name PipelineKitResilienceTests -package-name pipelinekit_stabilization -const-gather-protocols-file /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Intermediates.noindex/PipelineKit.build/Debug/PipelineKitResilienceTests-p.build/Objects-normal/arm64/PipelineKitResilienceTests_const_extract_protocols.json -disable-clang-spi -clang-target arm64-apple-macos27.2 -target-sdk-version 27.2 -target-sdk-name macosx27.2 -in-process-plugin-server-path /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/libSwiftInProcPluginServer.dylib -parse-as-library -o /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Intermediates.noindex/PipelineKit.build/Debug/PipelineKitResilienceTests-p.build/Objects-normal/arm64/AdmissionGateContractTests.o -debug-module-path /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Intermediates.noindex/PipelineKit.build/Debug/PipelineKitResilienceTests-p.build/Objects-normal/arm64/PipelineKitResilienceTests.swiftmodule -index-unit-output-path /PipelineKit.build/Debug/PipelineKitResilienceTests-p.build/Objects-normal/arm64/AdmissionGateContractTests.o -index-store-path /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out -index-system-modules
+error: Build failed
+error: fatalError

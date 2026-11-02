@@ -1,0 +1,14 @@
+test_discovery_failure_prevents_clean_outcome (__main__.IdentityChecks.test_discovery_failure_prevents_clean_outcome) ... ok
+test_event_write_failure_does_not_abort_kill_escalation (__main__.IdentityChecks.test_event_write_failure_does_not_abort_kill_escalation) ... ok
+test_existing_run_id_does_not_overwrite_evidence (__main__.IdentityChecks.test_existing_run_id_does_not_overwrite_evidence) ... ok
+test_invalid_deadlines_cannot_launch (__main__.IdentityChecks.test_invalid_deadlines_cannot_launch) ... ok
+test_launch_failure_is_recorded_nonzero (__main__.IdentityChecks.test_launch_failure_is_recorded_nonzero) ... ok
+test_reused_parent_cannot_establish_child_ownership (__main__.IdentityChecks.test_reused_parent_cannot_establish_child_ownership) ... ok
+test_reused_pid_identity_is_not_signaled (__main__.IdentityChecks.test_reused_pid_identity_is_not_signaled) ... ok
+test_unsupported_platform_fails_before_launch (__main__.IdentityChecks.test_unsupported_platform_fails_before_launch) ... ok
+test_unverifiable_identity_is_not_signaled (__main__.IdentityChecks.test_unverifiable_identity_is_not_signaled) ... ok
+
+----------------------------------------------------------------------
+Ran 9 tests in 5.596s
+
+OK

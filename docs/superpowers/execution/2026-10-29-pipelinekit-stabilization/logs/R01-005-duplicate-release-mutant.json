@@ -1,0 +1,15 @@
+{
+  "id": "R01-005-duplicate-release-mutant",
+  "cwd": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization",
+  "command": [
+    "swift",
+    "test",
+    "--filter",
+    "AdmissionGateContractTests.testLeaseConservationMatrix"
+  ],
+  "started_utc": "2026-10-30T21:53:37.423588+00:00",
+  "elapsed_seconds": 7.842,
+  "exit_status": 1,
+  "watchdog_timeout": false,
+  "log": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/R01-005-duplicate-release-mutant.log"
+}

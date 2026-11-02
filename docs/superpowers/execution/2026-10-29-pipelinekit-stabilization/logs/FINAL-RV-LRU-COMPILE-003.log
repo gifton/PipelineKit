@@ -1,0 +1,14 @@
+["swiftc", "-swift-version", "6", "-target", "arm64-apple-macos26.0", "-parse-as-library", "-g", "-I", "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer/.build/out/Products/Debug", "-I", "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer/.build/checkouts/swift-atomics/Sources/_AtomicsShims/include", "-D", "REVIEW_BASE", "-I", "/private/tmp/PipelineKit-final-review-lru-2c3001b", "-L", "/private/tmp/PipelineKit-final-review-lru-2c3001b", "-lReviewBaselineCache", "-Xlinker", "-rpath", "-Xlinker", "/private/tmp/PipelineKit-final-review-lru-2c3001b", "/private/tmp/PipelineKit-final-review-lru-2c3001b/main.swift", "-o", "/private/tmp/PipelineKit-final-review-lru-2c3001b/baseline-probe-clean"]
+/private/tmp/PipelineKit-final-review-lru-2c3001b/main.swift:22:25: warning: 'weak' ownership of capture 'cache' differs from implicitly-captured strong reference in outer scope [#ImplicitStrongCapture]
+19 | @inline(never)
+20 | func insert(_ cache: SimpleCachingMiddleware, key: String, reenter: Bool, count: Counter) async throws {
+21 |     _ = try await cache.execute(Request(key: key), context: CommandContext()) { _, _ in
+   |                                                                               |- note: 'cache' implicitly strongly captured here
+   |                                                                               `- note: add 'cache' as a capture list item to silence
+22 |         Payload { [weak cache] in
+   |                         |- warning: 'weak' ownership of capture 'cache' differs from implicitly-captured strong reference in outer scope [#ImplicitStrongCapture]
+   |                         `- note: explicitly assign the capture list item to silence
+23 |             report("PAYLOAD-DEINIT-ENTER " + key)
+24 |             count.increment()
+
+[#ImplicitStrongCapture]: <https://docs.swift.org/compiler/documentation/diagnostics/implicit-strong-capture>

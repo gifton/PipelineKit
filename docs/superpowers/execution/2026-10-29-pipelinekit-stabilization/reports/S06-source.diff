@@ -1,0 +1,148 @@
+diff --git a/Sources/PipelineKitSecurity/Audit/InMemoryAuditLogger.swift b/Sources/PipelineKitSecurity/Audit/InMemoryAuditLogger.swift
+index b6ab51b..7060c93 100644
+--- a/Sources/PipelineKitSecurity/Audit/InMemoryAuditLogger.swift
++++ b/Sources/PipelineKitSecurity/Audit/InMemoryAuditLogger.swift
+@@ -40,8 +40,11 @@ public actor InMemoryAuditLogger: AuditLogger {
+     
+     /// Creates a new in-memory audit logger.
+     ///
+-    /// - Parameter maxEvents: Maximum events to store. Older events are dropped when limit is reached.
++    /// - Parameter maxEvents: Maximum events to store. Nil is unbounded; zero drops every event.
++    ///   Positive capacities evict the oldest event when full.
++    /// - Precondition: `maxEvents` is nil or nonnegative.
+     public init(maxEvents: Int? = nil) {
++        precondition(maxEvents.map { $0 >= 0 } ?? true, "maxEvents must be nonnegative")
+         self.maxEvents = maxEvents
+         let (stream, continuation) = AsyncStream<LoggerHealthEvent>.makeStream()
+         self.healthStream = stream
+@@ -66,8 +69,9 @@ public actor InMemoryAuditLogger: AuditLogger {
+     
+     private func addEvent(_ event: any AuditEvent) {
+         if let maxEvents = maxEvents, storage.count >= maxEvents {
+-            // Drop oldest event
+-            storage.removeFirst()
++            if maxEvents > 0 {
++                storage.removeFirst()
++            }
+             droppedCount += 1
+             
+             // Report health event every 10 drops
+@@ -79,7 +83,9 @@ public actor InMemoryAuditLogger: AuditLogger {
+             }
+         }
+         
+-        storage.append(CapturedEvent(event))
++        if maxEvents != 0 {
++            storage.append(CapturedEvent(event))
++        }
+     }
+     
+     // MARK: - Query Methods
+diff --git a/Sources/PipelineKitSecurity/Sanitization/CommandSanitizer.swift b/Sources/PipelineKitSecurity/Sanitization/CommandSanitizer.swift
+index 534f6c7..f6f9f47 100644
+--- a/Sources/PipelineKitSecurity/Sanitization/CommandSanitizer.swift
++++ b/Sources/PipelineKitSecurity/Sanitization/CommandSanitizer.swift
+@@ -99,13 +99,14 @@ public struct CommandSanitizer: Sendable {
+     /// 
+     /// - Parameters:
+     ///   - input: The string to truncate
+-    ///   - maxLength: Maximum allowed length
++    ///   - maxLength: Maximum number of Characters; nonpositive values return an empty string.
+     ///   - suffix: Optional suffix to append when truncated (default: "...")
+-    /// - Returns: Truncated string
++    /// - Returns: The input if it fits; otherwise a prefix and suffix within the limit.
++    ///   A suffix longer than the limit is itself truncated to that limit.
+     public static func truncate(_ input: String, maxLength: Int, suffix: String = "...") -> String {
++        guard maxLength > 0 else { return "" }
+         guard input.count > maxLength else { return input }
+-        
+-        let endIndex = input.index(input.startIndex, offsetBy: maxLength - suffix.count)
+-        return String(input[..<endIndex]) + suffix
++        guard suffix.count <= maxLength else { return String(suffix.prefix(maxLength)) }
++        return String(input.prefix(maxLength - suffix.count)) + suffix
+     }
+ }
+diff --git a/Tests/PipelineKitSecurityTests/Security/CommandSanitizerTests.swift b/Tests/PipelineKitSecurityTests/Security/CommandSanitizerTests.swift
+index 0a7193b..f213a63 100644
+--- a/Tests/PipelineKitSecurityTests/Security/CommandSanitizerTests.swift
++++ b/Tests/PipelineKitSecurityTests/Security/CommandSanitizerTests.swift
+@@ -201,6 +201,26 @@ final class CommandSanitizerTests: XCTestCase {
+     
+     // MARK: - Truncation Tests
+     
++    func testTruncateBoundaryMatrix() {
++        let bounds = [-1, 0, 1, 2, 3, 4]
++        let cases: [(String, String, [String])] = [
++            ("abcdef", "", ["", "", "a", "ab", "abc", "abcd"]),
++            ("abcdef", "...", ["", "", ".", "..", "...", "a..."]),
++            ("abcdef", "WXYZQ", ["", "", "W", "WX", "WXY", "WXYZ"]),
++            ("a", "...", ["", "", "a", "a", "a", "a"]),
++            ("", "...", ["", "", "", "", "", ""]),
++            ("👨‍👩‍👧‍👦e\u{301}XYZ", "🧑‍🚀!", ["", "", "🧑‍🚀", "🧑‍🚀!", "👨‍👩‍👧‍👦🧑‍🚀!", "👨‍👩‍👧‍👦e\u{301}🧑‍🚀!"])
++        ]
++        for (input, suffix, expected) in cases {
++            for (index, bound) in bounds.enumerated() {
++                let result = CommandSanitizer.truncate(input, maxLength: bound, suffix: suffix)
++                XCTAssertEqual(result, expected[index], "input: \(input), suffix: \(suffix), bound: \(bound)")
++                XCTAssertLessThanOrEqual(result.count, max(0, bound))
++            }
++        }
++        XCTAssertEqual(CommandSanitizer.truncate("abcdef", maxLength: 2), "..")
++    }
++
+     func testTruncateShortString() {
+         // Given
+         let input = "Short"
+
+--- New file: Tests/PipelineKitSecurityTests/AuditLoggerCapacityTests.swift ---
+import Foundation
+import XCTest
+@testable import PipelineKitSecurity
+
+final class AuditLoggerCapacityTests: XCTestCase {
+    func testZeroCapacityCountsDropsWithoutRetainingEvents() async {
+        let logger = InMemoryAuditLogger(maxEvents: 0)
+        for i in 0..<10 { await logger.log(GenericAuditEvent(eventType: "event.\(i)")) }
+        let count = await logger.count
+        let drops = await logger.droppedEventsCount
+        XCTAssertEqual(count, 0)
+        XCTAssertEqual(drops, 10)
+        var iterator = logger.health.makeAsyncIterator()
+        guard case let .dropped(count, reason) = await iterator.next() else {
+            return XCTFail("Expected drop notification")
+        }
+        XCTAssertEqual(count, 10)
+        XCTAssertEqual(reason, "Memory limit reached (0 events)")
+    }
+
+    func testOneCapacityEvictsOldest() async {
+        let logger = InMemoryAuditLogger(maxEvents: 1)
+        for i in 0..<11 { await logger.log(GenericAuditEvent(eventType: "event.\(i)")) }
+        let events = await logger.allEvents()
+        let drops = await logger.droppedEventsCount
+        XCTAssertEqual(events.map(\.eventType), ["event.10"])
+        XCTAssertEqual(drops, 10)
+        var iterator = logger.health.makeAsyncIterator()
+        guard case let .dropped(count, reason) = await iterator.next() else {
+            return XCTFail("Expected drop notification")
+        }
+        XCTAssertEqual(count, 10)
+        XCTAssertEqual(reason, "Memory limit reached (1 events)")
+    }
+
+    func testNilCapacityRetainsAll() async {
+        let logger = InMemoryAuditLogger(maxEvents: nil)
+        for i in 0..<11 { await logger.log(GenericAuditEvent(eventType: "event.\(i)")) }
+        let events = await logger.allEvents()
+        let drops = await logger.droppedEventsCount
+        XCTAssertEqual(events.map(\.eventType), (0..<11).map { "event.\($0)" })
+        XCTAssertEqual(drops, 0)
+    }
+
+    func testNegativeCapacityPreconditionProbe() {
+        guard ProcessInfo.processInfo.environment["S06_NEGATIVE_PROBE"] == "1" else { return }
+        print("S06_NEGATIVE_CAPACITY_REACHED")
+        fflush(stdout)
+        _ = InMemoryAuditLogger(maxEvents: -1)
+    }
+}

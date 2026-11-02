@@ -1,0 +1,38 @@
+diff --git a/Sources/PipelineKitPooling/DurationNanoseconds.swift b/Sources/PipelineKitPooling/DurationNanoseconds.swift
+index 49e4568..08a36e5 100644
+--- a/Sources/PipelineKitPooling/DurationNanoseconds.swift
++++ b/Sources/PipelineKitPooling/DurationNanoseconds.swift
+@@ -1,6 +1,8 @@
+ /// Converts a duration to whole nanoseconds, clamping to the UInt64 range.
+ func durationNanosecondsClamped(_ duration: Duration) -> UInt64 {
+     guard duration > .zero else { return 0 }
++    let maximum = Duration(secondsComponent: 18_446_744_073, attosecondsComponent: 709_551_615_000_000_000)
++    guard duration < maximum else { return .max }
+     let components = duration.components
+     let (whole, multiplyOverflow) = UInt64(components.seconds)
+         .multipliedReportingOverflow(by: 1_000_000_000)
+diff --git a/Tests/PipelineKitPoolingTests/DurationNanosecondsTests.swift b/Tests/PipelineKitPoolingTests/DurationNanosecondsTests.swift
+index 8d36ace..336c5f4 100644
+--- a/Tests/PipelineKitPoolingTests/DurationNanosecondsTests.swift
++++ b/Tests/PipelineKitPoolingTests/DurationNanosecondsTests.swift
+@@ -28,4 +28,20 @@ final class DurationNanosecondsTests: XCTestCase {
+             XCTAssertEqual(durationNanosecondsClamped(duration), expected)
+         }
+     }
++    func testDurationNanosecondsClampsBeyondSignedSecondsComponents() {
++        let signedLimit = UInt64(Int64.max)
++        let cases: [(Duration, UInt64)] = [
++            (.seconds(signedLimit - 1), .max),
++            (.seconds(signedLimit), .max),
++            (.seconds(signedLimit + 1), .max),
++            (.seconds(UInt64.max), .max),
++            (-Duration.seconds(signedLimit), 0),
++            (-Duration.seconds(signedLimit + 1), 0),
++            (-Duration.seconds(UInt64.max), 0)
++        ]
++        for (duration, expected) in cases {
++            XCTAssertEqual(durationNanosecondsClamped(duration), expected)
++        }
++    }
++
+ }

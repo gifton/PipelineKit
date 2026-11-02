@@ -1,0 +1,193 @@
+Building for production...
+[Computing dependencies]
+[Using on-disk description]
+[16 / 71]
+[23 / 74] Crypto
+[25 / 75] Crypto
+[27 / 71] Logging
+[29 / 67] Atomics
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Sources/PipelineKitCore/Context/ExecutionContext.swift:94:45: warning: 'withValue(_:operation:isolation:file:line:)' is deprecated: Prefer the 'nonisolated(nonsending)' overload with stricter execution on caller context semantics: withValue(_:operation:file:line:) [#DeprecatedDeclaration]
+ 92 |         operation: () async throws -> T
+ 93 |     ) async rethrows -> T {
+ 94 |         try await ExecutionContext.$current.withValue(
+    |                                             `- warning: 'withValue(_:operation:isolation:file:line:)' is deprecated: Prefer the 'nonisolated(nonsending)' overload with stricter execution on caller context semantics: withValue(_:operation:file:line:) [#DeprecatedDeclaration]
+ 95 |             ExecutionContext(trace: snapshot.trace, progress: progress),
+ 96 |             operation: operation,
+
+[#DeprecatedDeclaration]: <https://docs.swift.org/compiler/documentation/diagnostics/deprecated-declaration>
+[34 / 70] PipelineKitCore
+[39 / 72] PipelineKit
+[45 / 79] PipelineKitObservability
+[46 / 80] _ResilienceFoundation
+[51 / 79] _CircuitBreaker
+[53 / 81] _RateLimiting
+[54 / 80] _CircuitBreaker
+[55 / 79] PipelineKitObservability
+[59 / 85] PipelineKitCache
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Sources/PipelineKitCache/CachingMiddleware.swift:189:47: warning: use of protocol 'Decodable' as a type must be written 'any Decodable'; this will be an error in a future Swift language mode [#ExistentialAny]
+187 |             // For other Decodable types, try generic decoding
+188 |             // Note: We use Decodable.Type here (not `any Decodable.Type`) because we need to call init on it
+189 |             if let decodableType = T.self as? Decodable.Type {
+    |                                               `- warning: use of protocol 'Decodable' as a type must be written 'any Decodable'; this will be an error in a future Swift language mode [#ExistentialAny]
+190 |                 let value = try decodableType.init(from: try container.superDecoder(forKey: .result))
+191 |                 guard let typedValue = value as? T else {
+
+[#ExistentialAny]: <https://docs.swift.org/compiler/documentation/diagnostics/existential-any>
+[62 / 87] PipelineKitCache
+[77 / 93] PipelineKitResilience
+[81 / 99] PipelineKitPooling
+[84 / 101] PipelineKitPooling
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Sources/PipelineKitSecurity/AuditLogger.swift:169:41: warning: 'withValue(_:operation:isolation:file:line:)' is deprecated: Prefer the 'nonisolated(nonsending)' overload with stricter execution on caller context semantics: withValue(_:operation:file:line:) [#DeprecatedDeclaration]
+167 |         operation: () async throws -> T
+168 |     ) async rethrows -> T {
+169 |         try await AuditContext.$current.withValue(context, operation: operation)
+    |                                         `- warning: 'withValue(_:operation:isolation:file:line:)' is deprecated: Prefer the 'nonisolated(nonsending)' overload with stricter execution on caller context semantics: withValue(_:operation:file:line:) [#DeprecatedDeclaration]
+170 |     }
+171 | }
+
+[#DeprecatedDeclaration]: <https://docs.swift.org/compiler/documentation/diagnostics/deprecated-declaration>
+[90 / 98] PipelineKitTestSupport
+[92 / 99] PipelineKitTestSupport
+[96 / 97] PipelineKitCacheTests-product
+[97 / 98] PipelineKitPerformanceTests-product
+[99 / 102] PipelineKitPerformanceTests-product
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionMiddlewareTests.swift:80:28: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+ 78 |         let handler: @Sendable (DataProcessingCommand, CommandContext) async throws -> ProcessingResult = { cmd, ctx in
+ 79 |             // Verify compression was applied
+ 80 |             let metadata = await ctx.getMetadata()
+    |                            `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+ 81 |             if let applied = metadata["compression.applied"] as? Bool, applied {
+ 82 |                 XCTAssertEqual(metadata["compression.algorithm"] as? String, "zlib")
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionMiddlewareTests.swift:124:28: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+122 |         let handler: @Sendable (DataProcessingCommand, CommandContext) async throws -> ProcessingResult = { cmd, ctx in
+123 |             // Verify compression was NOT applied
+124 |             let metadata = await ctx.getMetadata()
+    |                            `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+125 |             XCTAssertNil(metadata["compression.applied"])
+126 |             XCTAssertFalse(cmd.operation.contains("compressed"))
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/NextGuardSuppressionTests.swift:59:46: warning: 'is' test is always true
+57 |     /// error exits on its own.
+58 |     func testCacheMiddlewaresRetainNextGuardSuppression() {
+59 |         XCTAssertTrue(CachingMiddleware.self is any NextGuardWarningSuppressing.Type)
+   |                                              `- warning: 'is' test is always true
+60 |         XCTAssertTrue(SimpleCachingMiddleware.self is any NextGuardWarningSuppressing.Type)
+61 |         XCTAssertTrue(CachedMiddleware<CachingMiddleware>.self is any NextGuardWarningSuppressing.Type)
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/NextGuardSuppressionTests.swift:60:52: warning: 'is' test is always true
+58 |     func testCacheMiddlewaresRetainNextGuardSuppression() {
+59 |         XCTAssertTrue(CachingMiddleware.self is any NextGuardWarningSuppressing.Type)
+60 |         XCTAssertTrue(SimpleCachingMiddleware.self is any NextGuardWarningSuppressing.Type)
+   |                                                    `- warning: 'is' test is always true
+61 |         XCTAssertTrue(CachedMiddleware<CachingMiddleware>.self is any NextGuardWarningSuppressing.Type)
+62 |         XCTAssertTrue(ConditionalCachedMiddleware<CachingMiddleware>.self is any NextGuardWarningSuppressing.Type)
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/NextGuardSuppressionTests.swift:61:64: warning: 'is' test is always true
+59 |         XCTAssertTrue(CachingMiddleware.self is any NextGuardWarningSuppressing.Type)
+60 |         XCTAssertTrue(SimpleCachingMiddleware.self is any NextGuardWarningSuppressing.Type)
+61 |         XCTAssertTrue(CachedMiddleware<CachingMiddleware>.self is any NextGuardWarningSuppressing.Type)
+   |                                                                `- warning: 'is' test is always true
+62 |         XCTAssertTrue(ConditionalCachedMiddleware<CachingMiddleware>.self is any NextGuardWarningSuppressing.Type)
+63 |     }
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/NextGuardSuppressionTests.swift:62:75: warning: 'is' test is always true
+60 |         XCTAssertTrue(SimpleCachingMiddleware.self is any NextGuardWarningSuppressing.Type)
+61 |         XCTAssertTrue(CachedMiddleware<CachingMiddleware>.self is any NextGuardWarningSuppressing.Type)
+62 |         XCTAssertTrue(ConditionalCachedMiddleware<CachingMiddleware>.self is any NextGuardWarningSuppressing.Type)
+   |                                                                           `- warning: 'is' test is always true
+63 |     }
+64 | }
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/SimpleCachingMiddlewareTests.swift:434:13: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+432 |             expectation.expectedFulfillmentCount = iterations
+433 | 
+434 |             Task {
+    |             |- warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+    |             `- note: to silence this warning, handle the error inside the task, or store/discard the task value explicitly
+435 |                 let pipeline = StandardPipeline(handler: TestHandler())
+436 |                 try await pipeline.addMiddleware(cache)
+
+[#NoUseUnstructuredThrowingTask]: <https://docs.swift.org/compiler/documentation/diagnostics/no-use-throwing-unstructured-task>
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>
+[99 / 100] PipelineKitCacheTests-product
+[104 / 108] PipelineKitCacheTests-product
+[106 / 108] PipelineKitCacheTests-product
+Build complete! (15.15 sec)
+Test Suite 'Selected tests' started at 2026-10-30 20:40:23.962.
+Test Suite 'PipelineKitTests.xctest' started at 2026-10-30 20:40:23.963.
+Test Suite 'PipelineKitTests.xctest' passed at 2026-10-30 20:40:23.963.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 20:40:23.963.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 20:40:24.043.
+Test Suite 'PipelineKitTestSupportTests.xctest' started at 2026-10-30 20:40:24.044.
+Test Suite 'PipelineKitTestSupportTests.xctest' passed at 2026-10-30 20:40:24.044.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 20:40:24.044.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 20:40:24.124.
+Test Suite 'PipelineKitSecurityTests.xctest' started at 2026-10-30 20:40:24.125.
+Test Suite 'PipelineKitSecurityTests.xctest' passed at 2026-10-30 20:40:24.125.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 20:40:24.125.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 20:40:24.205.
+Test Suite 'PipelineKitResilienceTests.xctest' started at 2026-10-30 20:40:24.206.
+Test Suite 'PipelineKitResilienceTests.xctest' passed at 2026-10-30 20:40:24.206.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 20:40:24.206.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 20:40:24.286.
+Test Suite 'PipelineKitPoolingTests.xctest' started at 2026-10-30 20:40:24.287.
+Test Suite 'PipelineKitPoolingTests.xctest' passed at 2026-10-30 20:40:24.287.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 20:40:24.287.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 20:40:24.367.
+Test Suite 'PipelineKitPerformanceTests.xctest' started at 2026-10-30 20:40:24.368.
+Test Suite 'PipelineKitPerformanceTests.xctest' passed at 2026-10-30 20:40:24.368.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 20:40:24.368.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 20:40:24.449.
+Test Suite 'PipelineKitObservabilityTests.xctest' started at 2026-10-30 20:40:24.449.
+Test Suite 'PipelineKitObservabilityTests.xctest' passed at 2026-10-30 20:40:24.449.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 20:40:24.449.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 20:40:24.530.
+Test Suite 'PipelineKitCoreTests.xctest' started at 2026-10-30 20:40:24.531.
+Test Suite 'PipelineKitCoreTests.xctest' passed at 2026-10-30 20:40:24.531.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 20:40:24.531.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 20:40:24.593.
+Test Suite 'PipelineKitCacheTests.xctest' started at 2026-10-30 20:40:24.594.
+Test Suite 'LRUEvolutionTests' started at 2026-10-30 20:40:24.594.
+Test Case '-[PipelineKitCacheTests.LRUEvolutionTests testInMemoryCacheExpiredReturnsNilAndRemoved]' started.
+Test Case '-[PipelineKitCacheTests.LRUEvolutionTests testInMemoryCacheExpiredReturnsNilAndRemoved]' passed (0.131 seconds).
+Test Case '-[PipelineKitCacheTests.LRUEvolutionTests testInMemoryCacheLRUEvictionOrder]' started.
+Test Case '-[PipelineKitCacheTests.LRUEvolutionTests testInMemoryCacheLRUEvictionOrder]' passed (0.000 seconds).
+Test Case '-[PipelineKitCacheTests.LRUEvolutionTests testInMemoryCacheRemoveAndClear]' started.
+Test Case '-[PipelineKitCacheTests.LRUEvolutionTests testInMemoryCacheRemoveAndClear]' passed (0.000 seconds).
+Test Case '-[PipelineKitCacheTests.LRUEvolutionTests testInMemoryCacheUpdateInPlacePromotesNoEvict]' started.
+Test Case '-[PipelineKitCacheTests.LRUEvolutionTests testInMemoryCacheUpdateInPlacePromotesNoEvict]' passed (0.000 seconds).
+Test Case '-[PipelineKitCacheTests.LRUEvolutionTests testLRUStorageBasics]' started.
+Test Case '-[PipelineKitCacheTests.LRUEvolutionTests testLRUStorageBasics]' passed (0.000 seconds).
+Test Case '-[PipelineKitCacheTests.LRUEvolutionTests testLRUStorageCapacityOne]' started.
+Test Case '-[PipelineKitCacheTests.LRUEvolutionTests testLRUStorageCapacityOne]' passed (0.000 seconds).
+Test Case '-[PipelineKitCacheTests.LRUEvolutionTests testLRUStorageEdgeRecency]' started.
+Test Case '-[PipelineKitCacheTests.LRUEvolutionTests testLRUStorageEdgeRecency]' passed (0.000 seconds).
+Test Case '-[PipelineKitCacheTests.LRUEvolutionTests testMultiNodeValuesReleaseOnClearAndContainerDrop]' started.
+Test Case '-[PipelineKitCacheTests.LRUEvolutionTests testMultiNodeValuesReleaseOnClearAndContainerDrop]' passed (0.000 seconds).
+Test Case '-[PipelineKitCacheTests.LRUEvolutionTests testPromoteThenEvictReleasesOnlyVictim]' started.
+Test Case '-[PipelineKitCacheTests.LRUEvolutionTests testPromoteThenEvictReleasesOnlyVictim]' passed (0.000 seconds).
+Test Case '-[PipelineKitCacheTests.LRUEvolutionTests testSimpleCachingMiddlewareLRUEvictionAndPromotion]' started.
+Test Case '-[PipelineKitCacheTests.LRUEvolutionTests testSimpleCachingMiddlewareLRUEvictionAndPromotion]' passed (0.002 seconds).
+Test Suite 'LRUEvolutionTests' passed at 2026-10-30 20:40:24.729.
+	 Executed 10 tests, with 0 failures (0 unexpected) in 0.134 (0.135) seconds
+Test Suite 'PipelineKitCacheTests.xctest' passed at 2026-10-30 20:40:24.729.
+	 Executed 10 tests, with 0 failures (0 unexpected) in 0.134 (0.135) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 20:40:24.729.
+	 Executed 10 tests, with 0 failures (0 unexpected) in 0.134 (0.136) seconds

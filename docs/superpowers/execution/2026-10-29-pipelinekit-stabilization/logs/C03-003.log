@@ -1,0 +1,71 @@
+Building for debugging...
+[Computing dependencies]
+[Using on-disk description]
+Build complete! (0.64 sec)
+Test Suite 'Selected tests' started at 2026-10-30 17:04:44.647.
+Test Suite 'PipelineKitTests.xctest' started at 2026-10-30 17:04:44.648.
+Test Suite 'PipelineKitTests.xctest' passed at 2026-10-30 17:04:44.648.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 17:04:44.648.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 17:04:44.724.
+Test Suite 'PipelineKitTestSupportTests.xctest' started at 2026-10-30 17:04:44.725.
+Test Suite 'PipelineKitTestSupportTests.xctest' passed at 2026-10-30 17:04:44.725.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 17:04:44.725.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 17:04:44.801.
+Test Suite 'PipelineKitSecurityTests.xctest' started at 2026-10-30 17:04:44.802.
+Test Suite 'PipelineKitSecurityTests.xctest' passed at 2026-10-30 17:04:44.802.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 17:04:44.802.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 17:04:44.878.
+Test Suite 'PipelineKitResilienceTests.xctest' started at 2026-10-30 17:04:44.879.
+Test Suite 'PipelineKitResilienceTests.xctest' passed at 2026-10-30 17:04:44.879.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 17:04:44.879.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 17:04:44.955.
+Test Suite 'PipelineKitPoolingTests.xctest' started at 2026-10-30 17:04:44.956.
+Test Suite 'PipelineKitPoolingTests.xctest' passed at 2026-10-30 17:04:44.956.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 17:04:44.956.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 17:04:45.032.
+Test Suite 'PipelineKitPerformanceTests.xctest' started at 2026-10-30 17:04:45.033.
+Test Suite 'PipelineKitPerformanceTests.xctest' passed at 2026-10-30 17:04:45.033.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 17:04:45.033.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 17:04:45.109.
+Test Suite 'PipelineKitObservabilityTests.xctest' started at 2026-10-30 17:04:45.110.
+Test Suite 'PipelineKitObservabilityTests.xctest' passed at 2026-10-30 17:04:45.110.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 17:04:45.110.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 17:04:45.168.
+Test Suite 'PipelineKitCoreTests.xctest' started at 2026-10-30 17:04:45.169.
+Test Suite 'CommandContextLockTests' started at 2026-10-30 17:04:45.169.
+Test Case '-[PipelineKitCoreTests.CommandContextLockTests testBasicRoundTripGetSet]' started.
+Test Case '-[PipelineKitCoreTests.CommandContextLockTests testBasicRoundTripGetSet]' passed (0.000 seconds).
+Test Case '-[PipelineKitCoreTests.CommandContextLockTests testConcurrentInterleavedGetSetIsConsistentAndCrashFree]' started.
+Test Case '-[PipelineKitCoreTests.CommandContextLockTests testConcurrentInterleavedGetSetIsConsistentAndCrashFree]' passed (0.065 seconds).
+Test Case '-[PipelineKitCoreTests.CommandContextLockTests testConcurrentMixedLockedOperationsDoNotCrash]' started.
+Test Case '-[PipelineKitCoreTests.CommandContextLockTests testConcurrentMixedLockedOperationsDoNotCrash]' passed (0.004 seconds).
+Test Case '-[PipelineKitCoreTests.CommandContextLockTests testConcurrentSharedKeyContentionDoesNotCrash]' started.
+Test Case '-[PipelineKitCoreTests.CommandContextLockTests testConcurrentSharedKeyContentionDoesNotCrash]' passed (0.026 seconds).
+Test Case '-[PipelineKitCoreTests.CommandContextLockTests testMetadataAndMetricsRoundTrip]' started.
+Test Case '-[PipelineKitCoreTests.CommandContextLockTests testMetadataAndMetricsRoundTrip]' passed (0.000 seconds).
+Test Suite 'CommandContextLockTests' passed at 2026-10-30 17:04:45.265.
+	 Executed 5 tests, with 0 failures (0 unexpected) in 0.096 (0.096) seconds
+Test Suite 'PipelineKitCoreTests.xctest' passed at 2026-10-30 17:04:45.265.
+	 Executed 5 tests, with 0 failures (0 unexpected) in 0.096 (0.096) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 17:04:45.265.
+	 Executed 5 tests, with 0 failures (0 unexpected) in 0.096 (0.097) seconds
+Test Suite 'Selected tests' started at 2026-10-30 17:04:45.342.
+Test Suite 'PipelineKitCacheTests.xctest' started at 2026-10-30 17:04:45.343.
+Test Suite 'PipelineKitCacheTests.xctest' passed at 2026-10-30 17:04:45.343.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 17:04:45.343.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds

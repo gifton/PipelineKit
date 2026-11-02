@@ -1,0 +1,63 @@
+{
+  "normalization": "Relative path plus message, ignoring line/column and displayed source snippets. Runtime SwiftLog lines and other warnings are separate.",
+  "deferred": "Existing compiler-warning baseline and C02-N1 runtime/configuration debt remain separate and open.",
+  "runs": {
+    "R04-001-recovery-red": {
+      "compiler_counts": {},
+      "compiler_occurrences": 0,
+      "compiler_unique": 0,
+      "new_compiler_kinds": [],
+      "runtime_warning_lines": [],
+      "runtime_warning_occurrences": 0,
+      "other_warning_lines": []
+    },
+    "R04-002-recovery-red": {
+      "compiler_counts": {
+        "Tests/PipelineKitCoreTests/Middleware/MiddlewareTests.swift: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]": 1,
+        "Tests/PipelineKitCoreTests/Pipeline/PipelineTests.swift: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]": 1
+      },
+      "compiler_occurrences": 2,
+      "compiler_unique": 2,
+      "new_compiler_kinds": [],
+      "runtime_warning_lines": [],
+      "runtime_warning_occurrences": 0,
+      "other_warning_lines": []
+    },
+    "R04-003-health-focused": {
+      "compiler_counts": {
+        "Tests/PipelineKitCoreTests/Middleware/MiddlewareTests.swift: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]": 1,
+        "Tests/PipelineKitCoreTests/Pipeline/PipelineTests.swift: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]": 1
+      },
+      "compiler_occurrences": 2,
+      "compiler_unique": 2,
+      "new_compiler_kinds": [],
+      "runtime_warning_lines": [],
+      "runtime_warning_occurrences": 0,
+      "other_warning_lines": []
+    },
+    "R04-004-branch-controls-red": {
+      "compiler_counts": {
+        "Tests/PipelineKitCoreTests/Middleware/MiddlewareTests.swift: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]": 1,
+        "Tests/PipelineKitCoreTests/Pipeline/PipelineTests.swift: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]": 1
+      },
+      "compiler_occurrences": 2,
+      "compiler_unique": 2,
+      "new_compiler_kinds": [],
+      "runtime_warning_lines": [],
+      "runtime_warning_occurrences": 0,
+      "other_warning_lines": []
+    },
+    "R04-005-debug-full": {
+      "compiler_counts": {
+        "Tests/PipelineKitCoreTests/Middleware/MiddlewareTests.swift: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]": 1,
+        "Tests/PipelineKitCoreTests/Pipeline/PipelineTests.swift: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]": 1
+      },
+      "compiler_occurrences": 2,
+      "compiler_unique": 2,
+      "new_compiler_kinds": [],
+      "runtime_warning_lines": [],
+      "runtime_warning_occurrences": 0,
+      "other_warning_lines": []
+    }
+  }
+}

@@ -1,0 +1,123 @@
+Building for debugging...
+[Computing dependencies]
+[Using on-disk description]
+[1 / 1]
+[2 / 50] PipelineKitSecurity
+[5 / 53] PipelineKitSecurity
+[11 / 56] PipelineKitSecurity
+[22 / 31] PipelineKitPoolingTests-product
+Build complete! (1.76 sec)
+Test Suite 'Selected tests' started at 2026-10-30 21:26:48.178.
+Test Suite 'PipelineKitTests.xctest' started at 2026-10-30 21:26:48.179.
+Test Suite 'PipelineKitTests.xctest' passed at 2026-10-30 21:26:48.179.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 21:26:48.179.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 21:26:48.259.
+Test Suite 'PipelineKitTestSupportTests.xctest' started at 2026-10-30 21:26:48.260.
+Test Suite 'PipelineKitTestSupportTests.xctest' passed at 2026-10-30 21:26:48.260.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 21:26:48.260.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 21:26:48.322.
+Test Suite 'PipelineKitSecurityTests.xctest' started at 2026-10-30 21:26:48.322.
+Test Suite 'AuditLoggerCapacityTests' started at 2026-10-30 21:26:48.322.
+Test Case '-[PipelineKitSecurityTests.AuditLoggerCapacityTests testNegativeCapacityPreconditionProbe]' started.
+Test Case '-[PipelineKitSecurityTests.AuditLoggerCapacityTests testNegativeCapacityPreconditionProbe]' passed (0.000 seconds).
+Test Case '-[PipelineKitSecurityTests.AuditLoggerCapacityTests testNilCapacityRetainsAll]' started.
+Test Case '-[PipelineKitSecurityTests.AuditLoggerCapacityTests testNilCapacityRetainsAll]' passed (0.000 seconds).
+Test Case '-[PipelineKitSecurityTests.AuditLoggerCapacityTests testOneCapacityEvictsOldest]' started.
+Test Case '-[PipelineKitSecurityTests.AuditLoggerCapacityTests testOneCapacityEvictsOldest]' passed (0.000 seconds).
+Test Case '-[PipelineKitSecurityTests.AuditLoggerCapacityTests testZeroCapacityCountsDropsWithoutRetainingEvents]' started.
+Test Case '-[PipelineKitSecurityTests.AuditLoggerCapacityTests testZeroCapacityCountsDropsWithoutRetainingEvents]' passed (0.000 seconds).
+Test Suite 'AuditLoggerCapacityTests' passed at 2026-10-30 21:26:48.324.
+	 Executed 4 tests, with 0 failures (0 unexpected) in 0.001 (0.002) seconds
+Test Suite 'CommandSanitizerTests' started at 2026-10-30 21:26:48.324.
+Test Case '-[PipelineKitSecurityTests.CommandSanitizerTests testEscapeHTML]' started.
+Test Case '-[PipelineKitSecurityTests.CommandSanitizerTests testEscapeHTML]' passed (0.000 seconds).
+Test Case '-[PipelineKitSecurityTests.CommandSanitizerTests testEscapeHTMLEmpty]' started.
+Test Case '-[PipelineKitSecurityTests.CommandSanitizerTests testEscapeHTMLEmpty]' passed (0.000 seconds).
+Test Case '-[PipelineKitSecurityTests.CommandSanitizerTests testEscapeHTMLNoSpecialCharacters]' started.
+Test Case '-[PipelineKitSecurityTests.CommandSanitizerTests testEscapeHTMLNoSpecialCharacters]' passed (0.000 seconds).
+Test Case '-[PipelineKitSecurityTests.CommandSanitizerTests testFullSanitizationPipeline]' started.
+Test Case '-[PipelineKitSecurityTests.CommandSanitizerTests testFullSanitizationPipeline]' passed (0.001 seconds).
+Test Case '-[PipelineKitSecurityTests.CommandSanitizerTests testRemoveNonPrintable]' started.
+Test Case '-[PipelineKitSecurityTests.CommandSanitizerTests testRemoveNonPrintable]' passed (0.000 seconds).
+Test Case '-[PipelineKitSecurityTests.CommandSanitizerTests testRemoveNonPrintableEmoji]' started.
+Test Case '-[PipelineKitSecurityTests.CommandSanitizerTests testRemoveNonPrintableEmoji]' passed (0.000 seconds).
+Test Case '-[PipelineKitSecurityTests.CommandSanitizerTests testRemoveNonPrintableKeepsValidCharacters]' started.
+Test Case '-[PipelineKitSecurityTests.CommandSanitizerTests testRemoveNonPrintableKeepsValidCharacters]' passed (0.000 seconds).
+Test Case '-[PipelineKitSecurityTests.CommandSanitizerTests testRemoveNonPrintablePerformance]' started.
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/Security/CommandSanitizerTests.swift:300: Test Case '-[PipelineKitSecurityTests.CommandSanitizerTests testRemoveNonPrintablePerformance]' measured [Time, seconds] average: 0.019, relative standard deviation: 25.665%, values: [0.033307, 0.023138, 0.019442, 0.017796, 0.016831, 0.017072, 0.016856, 0.016977, 0.016601, 0.016658], performanceMetricID:com.apple.XCTPerformanceMetric_WallClockTime, baselineName: "", baselineAverage: , polarity: prefers smaller, maxPercentRegression: 10.000%, maxPercentRelativeStandardDeviation: 10.000%, maxRegression: 0.100, maxStandardDeviation: 0.100
+Test Case '-[PipelineKitSecurityTests.CommandSanitizerTests testRemoveNonPrintablePerformance]' passed (0.621 seconds).
+Test Case '-[PipelineKitSecurityTests.CommandSanitizerTests testSanitizeHTMLComplexCase]' started.
+Test Case '-[PipelineKitSecurityTests.CommandSanitizerTests testSanitizeHTMLComplexCase]' passed (0.000 seconds).
+Test Case '-[PipelineKitSecurityTests.CommandSanitizerTests testSanitizeHTMLEscapesEntities]' started.
+Test Case '-[PipelineKitSecurityTests.CommandSanitizerTests testSanitizeHTMLEscapesEntities]' passed (0.000 seconds).
+Test Case '-[PipelineKitSecurityTests.CommandSanitizerTests testSanitizeHTMLPerformance]' started.
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitSecurityTests/Security/CommandSanitizerTests.swift:288: Test Case '-[PipelineKitSecurityTests.CommandSanitizerTests testSanitizeHTMLPerformance]' measured [Time, seconds] average: 0.011, relative standard deviation: 28.403%, values: [0.018741, 0.014963, 0.012506, 0.011061, 0.010138, 0.009598, 0.009149, 0.008788, 0.008693, 0.008312], performanceMetricID:com.apple.XCTPerformanceMetric_WallClockTime, baselineName: "", baselineAverage: , polarity: prefers smaller, maxPercentRegression: 10.000%, maxPercentRelativeStandardDeviation: 10.000%, maxRegression: 0.100, maxStandardDeviation: 0.100
+Test Case '-[PipelineKitSecurityTests.CommandSanitizerTests testSanitizeHTMLPerformance]' passed (0.368 seconds).
+Test Case '-[PipelineKitSecurityTests.CommandSanitizerTests testSanitizeHTMLRemovesEventHandlers]' started.
+Test Case '-[PipelineKitSecurityTests.CommandSanitizerTests testSanitizeHTMLRemovesEventHandlers]' passed (0.000 seconds).
+Test Case '-[PipelineKitSecurityTests.CommandSanitizerTests testSanitizeHTMLRemovesScriptTags]' started.
+Test Case '-[PipelineKitSecurityTests.CommandSanitizerTests testSanitizeHTMLRemovesScriptTags]' passed (0.000 seconds).
+Test Case '-[PipelineKitSecurityTests.CommandSanitizerTests testSanitizeSQLBasic]' started.
+Test Case '-[PipelineKitSecurityTests.CommandSanitizerTests testSanitizeSQLBasic]' passed (0.000 seconds).
+Test Case '-[PipelineKitSecurityTests.CommandSanitizerTests testSanitizeSQLInjectionAttempts]' started.
+Test Case '-[PipelineKitSecurityTests.CommandSanitizerTests testSanitizeSQLInjectionAttempts]' passed (0.000 seconds).
+Test Case '-[PipelineKitSecurityTests.CommandSanitizerTests testTruncateBoundaryMatrix]' started.
+Test Case '-[PipelineKitSecurityTests.CommandSanitizerTests testTruncateBoundaryMatrix]' passed (0.000 seconds).
+Test Case '-[PipelineKitSecurityTests.CommandSanitizerTests testTruncateCustomSuffix]' started.
+Test Case '-[PipelineKitSecurityTests.CommandSanitizerTests testTruncateCustomSuffix]' passed (0.000 seconds).
+Test Case '-[PipelineKitSecurityTests.CommandSanitizerTests testTruncateEmptyString]' started.
+Test Case '-[PipelineKitSecurityTests.CommandSanitizerTests testTruncateEmptyString]' passed (0.000 seconds).
+Test Case '-[PipelineKitSecurityTests.CommandSanitizerTests testTruncateExactLength]' started.
+Test Case '-[PipelineKitSecurityTests.CommandSanitizerTests testTruncateExactLength]' passed (0.000 seconds).
+Test Case '-[PipelineKitSecurityTests.CommandSanitizerTests testTruncateLongString]' started.
+Test Case '-[PipelineKitSecurityTests.CommandSanitizerTests testTruncateLongString]' passed (0.000 seconds).
+Test Case '-[PipelineKitSecurityTests.CommandSanitizerTests testTruncateShortString]' started.
+Test Case '-[PipelineKitSecurityTests.CommandSanitizerTests testTruncateShortString]' passed (0.000 seconds).
+Test Case '-[PipelineKitSecurityTests.CommandSanitizerTests testTruncateUnicode]' started.
+Test Case '-[PipelineKitSecurityTests.CommandSanitizerTests testTruncateUnicode]' passed (0.000 seconds).
+Test Suite 'CommandSanitizerTests' passed at 2026-10-30 21:26:49.317.
+	 Executed 22 tests, with 0 failures (0 unexpected) in 0.992 (0.993) seconds
+Test Suite 'PipelineKitSecurityTests.xctest' passed at 2026-10-30 21:26:49.317.
+	 Executed 26 tests, with 0 failures (0 unexpected) in 0.993 (0.995) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 21:26:49.317.
+	 Executed 26 tests, with 0 failures (0 unexpected) in 0.993 (0.995) seconds
+Test Suite 'Selected tests' started at 2026-10-30 21:26:49.395.
+Test Suite 'PipelineKitResilienceTests.xctest' started at 2026-10-30 21:26:49.396.
+Test Suite 'PipelineKitResilienceTests.xctest' passed at 2026-10-30 21:26:49.396.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 21:26:49.396.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 21:26:49.474.
+Test Suite 'PipelineKitPoolingTests.xctest' started at 2026-10-30 21:26:49.475.
+Test Suite 'PipelineKitPoolingTests.xctest' passed at 2026-10-30 21:26:49.475.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 21:26:49.475.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 21:26:49.554.
+Test Suite 'PipelineKitPerformanceTests.xctest' started at 2026-10-30 21:26:49.555.
+Test Suite 'PipelineKitPerformanceTests.xctest' passed at 2026-10-30 21:26:49.555.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 21:26:49.555.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 21:26:49.633.
+Test Suite 'PipelineKitObservabilityTests.xctest' started at 2026-10-30 21:26:49.634.
+Test Suite 'PipelineKitObservabilityTests.xctest' passed at 2026-10-30 21:26:49.634.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 21:26:49.634.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 21:26:49.712.
+Test Suite 'PipelineKitCoreTests.xctest' started at 2026-10-30 21:26:49.713.
+Test Suite 'PipelineKitCoreTests.xctest' passed at 2026-10-30 21:26:49.713.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 21:26:49.713.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 21:26:49.793.
+Test Suite 'PipelineKitCacheTests.xctest' started at 2026-10-30 21:26:49.794.
+Test Suite 'PipelineKitCacheTests.xctest' passed at 2026-10-30 21:26:49.794.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 21:26:49.794.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds

@@ -1,0 +1,100 @@
+Building for debugging...
+[Computing dependencies]
+[Pre-planning 1 / 1026]
+[Planning deferred tasks]
+[1 / 2]
+[2 / 2] Crypto
+[5 / 5] PipelineKitTestSupportTests-product
+[15 / 15] PipelineKitObservabilityTests-product
+[22 / 33] PipelineKitCacheTests-product
+[24 / 35] PipelineKitCacheTests-product
+[30 / 34] PipelineKitCacheTests-product
+Build complete! (2.50 sec)
+Test Suite 'Selected tests' started at 2026-10-30 20:53:52.693.
+Test Suite 'PipelineKitTests.xctest' started at 2026-10-30 20:53:52.694.
+Test Suite 'PipelineKitTests.xctest' passed at 2026-10-30 20:53:52.694.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 20:53:52.694.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 20:53:52.769.
+Test Suite 'PipelineKitTestSupportTests.xctest' started at 2026-10-30 20:53:52.770.
+Test Suite 'PipelineKitTestSupportTests.xctest' passed at 2026-10-30 20:53:52.770.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 20:53:52.770.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 20:53:52.847.
+Test Suite 'PipelineKitSecurityTests.xctest' started at 2026-10-30 20:53:52.848.
+Test Suite 'PipelineKitSecurityTests.xctest' passed at 2026-10-30 20:53:52.848.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 20:53:52.848.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 20:53:52.927.
+Test Suite 'PipelineKitResilienceTests.xctest' started at 2026-10-30 20:53:52.928.
+Test Suite 'PipelineKitResilienceTests.xctest' passed at 2026-10-30 20:53:52.928.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 20:53:52.928.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 20:53:53.004.
+Test Suite 'PipelineKitPoolingTests.xctest' started at 2026-10-30 20:53:53.005.
+Test Suite 'PipelineKitPoolingTests.xctest' passed at 2026-10-30 20:53:53.005.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 20:53:53.005.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 20:53:53.081.
+Test Suite 'PipelineKitPerformanceTests.xctest' started at 2026-10-30 20:53:53.082.
+Test Suite 'PipelineKitPerformanceTests.xctest' passed at 2026-10-30 20:53:53.082.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 20:53:53.082.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 20:53:53.158.
+Test Suite 'PipelineKitObservabilityTests.xctest' started at 2026-10-30 20:53:53.159.
+Test Suite 'PipelineKitObservabilityTests.xctest' passed at 2026-10-30 20:53:53.159.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 20:53:53.159.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 20:53:53.236.
+Test Suite 'PipelineKitCoreTests.xctest' started at 2026-10-30 20:53:53.237.
+Test Suite 'PipelineKitCoreTests.xctest' passed at 2026-10-30 20:53:53.237.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 20:53:53.237.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 20:53:53.296.
+Test Suite 'PipelineKitCacheTests.xctest' started at 2026-10-30 20:53:53.297.
+Test Suite 'CompressionCompletionContractTests' started at 2026-10-30 20:53:53.297.
+Test Case '-[PipelineKitCacheTests.CompressionCompletionContractTests testBaselineNonemptySmallPayloadsRoundTrip]' started.
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:28: error: -[PipelineKitCacheTests.CompressionCompletionContractTests testBaselineNonemptySmallPayloadsRoundTrip] : failed - zlib, size 1, round trip threw decompressionFailed("Decompression returned no data")
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:26: error: -[PipelineKitCacheTests.CompressionCompletionContractTests testBaselineNonemptySmallPayloadsRoundTrip] : XCTAssertEqual failed: ("94 bytes") is not equal to ("99 bytes") - zlib, size 99
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:26: error: -[PipelineKitCacheTests.CompressionCompletionContractTests testBaselineNonemptySmallPayloadsRoundTrip] : XCTAssertEqual failed: ("95 bytes") is not equal to ("100 bytes") - zlib, size 100
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:28: error: -[PipelineKitCacheTests.CompressionCompletionContractTests testBaselineNonemptySmallPayloadsRoundTrip] : failed - lzfse, size 1, round trip threw decompressionFailed("Decompression returned no data")
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:28: error: -[PipelineKitCacheTests.CompressionCompletionContractTests testBaselineNonemptySmallPayloadsRoundTrip] : failed - lzfse, size 99, round trip threw decompressionFailed("Decompression returned no data")
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:28: error: -[PipelineKitCacheTests.CompressionCompletionContractTests testBaselineNonemptySmallPayloadsRoundTrip] : failed - lzfse, size 100, round trip threw decompressionFailed("Decompression returned no data")
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:28: error: -[PipelineKitCacheTests.CompressionCompletionContractTests testBaselineNonemptySmallPayloadsRoundTrip] : failed - lz4, size 1, round trip threw decompressionFailed("Decompression returned no data")
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:28: error: -[PipelineKitCacheTests.CompressionCompletionContractTests testBaselineNonemptySmallPayloadsRoundTrip] : failed - lz4, size 99, round trip threw decompressionFailed("Decompression returned no data")
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:28: error: -[PipelineKitCacheTests.CompressionCompletionContractTests testBaselineNonemptySmallPayloadsRoundTrip] : failed - lz4, size 100, round trip threw decompressionFailed("Decompression returned no data")
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:28: error: -[PipelineKitCacheTests.CompressionCompletionContractTests testBaselineNonemptySmallPayloadsRoundTrip] : failed - gzip, size 1, round trip threw decompressionFailed("Decompression returned no data")
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:26: error: -[PipelineKitCacheTests.CompressionCompletionContractTests testBaselineNonemptySmallPayloadsRoundTrip] : XCTAssertEqual failed: ("94 bytes") is not equal to ("99 bytes") - gzip, size 99
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:26: error: -[PipelineKitCacheTests.CompressionCompletionContractTests testBaselineNonemptySmallPayloadsRoundTrip] : XCTAssertEqual failed: ("95 bytes") is not equal to ("100 bytes") - gzip, size 100
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:28: error: -[PipelineKitCacheTests.CompressionCompletionContractTests testBaselineNonemptySmallPayloadsRoundTrip] : failed - brotli, size 1, round trip threw decompressionFailed("Decompression returned no data")
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:28: error: -[PipelineKitCacheTests.CompressionCompletionContractTests testBaselineNonemptySmallPayloadsRoundTrip] : failed - brotli, size 99, round trip threw decompressionFailed("Decompression returned no data")
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:28: error: -[PipelineKitCacheTests.CompressionCompletionContractTests testBaselineNonemptySmallPayloadsRoundTrip] : failed - brotli, size 100, round trip threw decompressionFailed("Decompression returned no data")
+Test Case '-[PipelineKitCacheTests.CompressionCompletionContractTests testBaselineNonemptySmallPayloadsRoundTrip]' failed (0.188 seconds).
+Test Case '-[PipelineKitCacheTests.CompressionCompletionContractTests testBaselineSmallHintsDoNotReturnPrefixes]' started.
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:14: error: -[PipelineKitCacheTests.CompressionCompletionContractTests testBaselineSmallHintsDoNotReturnPrefixes] : XCTAssertEqual failed: ("1150 bytes") is not equal to ("100000 bytes") - zlib, hint nil, returned 1150 bytes
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:14: error: -[PipelineKitCacheTests.CompressionCompletionContractTests testBaselineSmallHintsDoNotReturnPrefixes] : XCTAssertEqual failed: ("17 bytes") is not equal to ("100000 bytes") - zlib, hint Optional(17), returned 17 bytes
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:14: error: -[PipelineKitCacheTests.CompressionCompletionContractTests testBaselineSmallHintsDoNotReturnPrefixes] : XCTAssertEqual failed: ("2040 bytes") is not equal to ("100000 bytes") - lzfse, hint nil, returned 2040 bytes
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:14: error: -[PipelineKitCacheTests.CompressionCompletionContractTests testBaselineSmallHintsDoNotReturnPrefixes] : XCTAssertEqual failed: ("17 bytes") is not equal to ("100000 bytes") - lzfse, hint Optional(17), returned 17 bytes
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:14: error: -[PipelineKitCacheTests.CompressionCompletionContractTests testBaselineSmallHintsDoNotReturnPrefixes] : XCTAssertEqual failed: ("6780 bytes") is not equal to ("100000 bytes") - lz4, hint nil, returned 6780 bytes
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:14: error: -[PipelineKitCacheTests.CompressionCompletionContractTests testBaselineSmallHintsDoNotReturnPrefixes] : XCTAssertEqual failed: ("17 bytes") is not equal to ("100000 bytes") - lz4, hint Optional(17), returned 17 bytes
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:14: error: -[PipelineKitCacheTests.CompressionCompletionContractTests testBaselineSmallHintsDoNotReturnPrefixes] : XCTAssertEqual failed: ("1150 bytes") is not equal to ("100000 bytes") - gzip, hint nil, returned 1150 bytes
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:14: error: -[PipelineKitCacheTests.CompressionCompletionContractTests testBaselineSmallHintsDoNotReturnPrefixes] : XCTAssertEqual failed: ("17 bytes") is not equal to ("100000 bytes") - gzip, hint Optional(17), returned 17 bytes
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:14: error: -[PipelineKitCacheTests.CompressionCompletionContractTests testBaselineSmallHintsDoNotReturnPrefixes] : XCTAssertEqual failed: ("2040 bytes") is not equal to ("100000 bytes") - brotli, hint nil, returned 2040 bytes
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:14: error: -[PipelineKitCacheTests.CompressionCompletionContractTests testBaselineSmallHintsDoNotReturnPrefixes] : XCTAssertEqual failed: ("17 bytes") is not equal to ("100000 bytes") - brotli, hint Optional(17), returned 17 bytes
+Test Case '-[PipelineKitCacheTests.CompressionCompletionContractTests testBaselineSmallHintsDoNotReturnPrefixes]' failed (0.003 seconds).
+Test Suite 'CompressionCompletionContractTests' failed at 2026-10-30 20:53:53.487.
+	 Executed 2 tests, with 25 failures (0 unexpected) in 0.190 (0.191) seconds
+Test Suite 'PipelineKitCacheTests.xctest' failed at 2026-10-30 20:53:53.487.
+	 Executed 2 tests, with 25 failures (0 unexpected) in 0.190 (0.191) seconds
+Test Suite 'Selected tests' failed at 2026-10-30 20:53:53.488.
+	 Executed 2 tests, with 25 failures (0 unexpected) in 0.190 (0.191) seconds
+Note: Some test targets reported failures:
+  - PipelineKitCacheTests (XCTest)

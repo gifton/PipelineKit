@@ -1,0 +1,51 @@
+{
+  "checked_utc": "2026-10-31T07:42:27.961099+00:00",
+  "reviewed_implementation_commit": "63186e527b9a54b639eac5395834d5bb85b9bf7c",
+  "evidence_head": "59f1b235876ee36f1e388d0f407b4e48ba75b79c",
+  "original_head": "a93a713d937e25f68855f22b0720f33c93329b09",
+  "original_branch": "refactor/nextguard-throw-aware-diagnostics",
+  "original_tracked_status": "",
+  "original_baseline_manifest_sha256": "823ddc50c68752ed1fa9ba1760331559bc4591031191d4c9bc4329b39b8ffc14",
+  "original_baseline_files_checked": 614,
+  "original_source_mismatches": [],
+  "audit_artifacts_compared_to": "reports/I01-original-preservation.json captured hashes",
+  "audit_checks": {
+    "/Users/goftin/dev/gsuite/PipelineKit": {
+      "checked": 170,
+      "mismatches": [],
+      "guide_sha256": "98b40c9bb38e5faf8ade2c27b17f4800f166fdb7228ed591d325c6be18b98ff4"
+    },
+    "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization": {
+      "checked": 170,
+      "mismatches": [],
+      "guide_sha256": "98b40c9bb38e5faf8ade2c27b17f4800f166fdb7228ed591d325c6be18b98ff4"
+    }
+  },
+  "current_source_manifest": "reports/FINAL-FIX-source.json",
+  "current_source_files_checked": 361,
+  "current_source_mismatches": [],
+  "limitations": "Enumerated source and captured audit hashes at this time; not an assertion about unrecorded historical bytes. Controller acceptance records may subsequently change without changing reviewed implementation inputs.",
+  "final_acceptance_record_checks": {
+    "checked_utc": "2026-10-31T07:58:59.261983+00:00",
+    "head_before_acceptance_commit": "59f1b235876ee36f1e388d0f407b4e48ba75b79c",
+    "scope": {
+      "all": 84,
+      "accepted": 37,
+      "high_impact": 17,
+      "additional": 20,
+      "deferred": 47
+    },
+    "per_finding_actual_pass_references": {
+      "debug": 348,
+      "release": 348
+    },
+    "current_source_hashes": 361,
+    "artifact_hashes": 78,
+    "original_source_hashes": 614,
+    "original_audit_hashes_per_tree": 170,
+    "review_copy_matches": true,
+    "chronological_rulings_match": 20,
+    "markdown_links_checked": 196,
+    "original_checkout_preserved": true
+  }
+}

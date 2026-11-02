@@ -1,9 +1,6 @@
 import XCTest
 @testable import PipelineKitObservability
 import Foundation
-#if canImport(Network)
-import Network
-#endif
 
 final class StatsDExporterTests: XCTestCase {
     // MARK: - Configuration Tests
@@ -16,7 +13,7 @@ final class StatsDExporterTests: XCTestCase {
         XCTAssertNil(config.prefix)
         XCTAssertTrue(config.globalTags.isEmpty)
         XCTAssertEqual(config.maxBatchSize, 20)
-        XCTAssertEqual(config.flushInterval, 0.1)
+        XCTAssertEqual(config.flushInterval, 0.1, accuracy: 1e-12)
     }
     
     func testCustomConfiguration() {
@@ -35,37 +32,37 @@ final class StatsDExporterTests: XCTestCase {
         XCTAssertEqual(config.globalTags["env"], "production")
         XCTAssertEqual(config.globalTags["region"], "us-east-1")
         XCTAssertEqual(config.maxBatchSize, 50)
-        XCTAssertEqual(config.flushInterval, 0.5)
+        XCTAssertEqual(config.flushInterval, 0.5, accuracy: 1e-12)
     }
     
     // MARK: - Metric Recording Tests
     
-    func testRecordCounter() async {
-        let exporter = await StatsDExporter()
+    func testRecordCounter() async throws {
+        let (exporter, _) = try await makeExporter()
         let snapshot = MetricSnapshot.counter("test.counter", value: 5.0, tags: ["key": "value"])
         
         // Should not crash
         await exporter.record(snapshot)
     }
     
-    func testRecordGauge() async {
-        let exporter = await StatsDExporter()
+    func testRecordGauge() async throws {
+        let (exporter, _) = try await makeExporter()
         let snapshot = MetricSnapshot.gauge("test.gauge", value: 42.0, tags: [:], unit: "bytes")
         
         // Should not crash
         await exporter.record(snapshot)
     }
     
-    func testRecordTimer() async {
-        let exporter = await StatsDExporter()
+    func testRecordTimer() async throws {
+        let (exporter, _) = try await makeExporter()
         let snapshot = MetricSnapshot.timer("test.timer", duration: 0.123, tags: ["endpoint": "/api"])
         
         // Should not crash
         await exporter.record(snapshot)
     }
     
-    func testBatchRecording() async {
-        let exporter = await StatsDExporter()
+    func testBatchRecording() async throws {
+        let (exporter, _) = try await makeExporter()
         let snapshots = [
             MetricSnapshot.counter("batch.counter", value: 1.0),
             MetricSnapshot.gauge("batch.gauge", value: 2.0),
@@ -82,28 +79,30 @@ final class StatsDExporterTests: XCTestCase {
             maxBatchSize: 3,
             flushInterval: 10.0 // Long interval so size triggers first
         )
-        let exporter = await StatsDExporter(configuration: config)
+        let (exporter, mockTransport) = try await makeExporter(configuration: config)
         
         // Record 3 metrics to trigger batch
         for i in 1...3 {
             await exporter.counter("batch.test", value: Double(i))
         }
         
-        // Give it time to flush
-        try? await Task.sleep(for: .milliseconds(100))
+        let packets = await mockTransport.getMetricsAsStrings()
+        XCTAssertEqual(packets.sorted(), (1...3).map { "batch.test:\(Double($0))|c" }.sorted())
     }
     
-    func testBatchingTriggersOnInterval() async {
+    func testBatchingTriggersOnInterval() async throws {
         let config = StatsDExporter.Configuration(
             maxBatchSize: 100, // High limit so interval triggers first
             flushInterval: 0.05 // 50ms
         )
-        let exporter = await StatsDExporter(configuration: config)
+        let (exporter, mockTransport) = try await makeExporter(configuration: config)
         
         await exporter.counter("interval.test", value: 1.0)
         
-        // Wait for interval to trigger
-        try? await Task.sleep(for: .milliseconds(100))
+        // Acknowledge actual transport receipt; the watchdog bounds timer failure.
+        while await mockTransport.getMetricsAsStrings().isEmpty { await Task.yield() }
+        let packets = await mockTransport.getMetricsAsStrings()
+        XCTAssertEqual(packets, ["interval.test:1.0|c"])
     }
     
     func testForceFlush() async throws {
@@ -112,6 +111,7 @@ final class StatsDExporterTests: XCTestCase {
             XCTFail("Failed to create mock transport")
             return
         }
+        addTeardownBlock { await exporter.close() }
         
         await exporter.counter("flush.test", value: 1.0)
         await exporter.forceFlush()
@@ -124,7 +124,7 @@ final class StatsDExporterTests: XCTestCase {
     
     // MARK: - Error Handling Tests
     
-    func testErrorHandlerCalled() async {
+    func testErrorHandlerCalled() async throws {
         let expectation = XCTestExpectation(description: "Error handler called")
         
         // Use mock transport configured to fail
@@ -136,6 +136,7 @@ final class StatsDExporterTests: XCTestCase {
             XCTFail("Failed to create mock transport")
             return
         }
+        addTeardownBlock { await exporter.close() }
         
         await exporter.setErrorHandler { _ in
             // Verify we got an error
@@ -151,23 +152,23 @@ final class StatsDExporterTests: XCTestCase {
     
     // MARK: - Convenience Methods Tests
     
-    func testConvenienceCounter() async {
-        let exporter = await StatsDExporter()
+    func testConvenienceCounter() async throws {
+        let (exporter, _) = try await makeExporter()
         await exporter.counter("convenience.counter", value: 10.0, tags: ["test": "true"])
     }
     
-    func testConvenienceGauge() async {
-        let exporter = await StatsDExporter()
+    func testConvenienceGauge() async throws {
+        let (exporter, _) = try await makeExporter()
         await exporter.gauge("convenience.gauge", value: 99.9, tags: [:])
     }
     
-    func testConvenienceTimer() async {
-        let exporter = await StatsDExporter()
+    func testConvenienceTimer() async throws {
+        let (exporter, _) = try await makeExporter()
         await exporter.timer("convenience.timer", duration: 0.456, tags: ["method": "GET"])
     }
     
     func testTimeBlock() async throws {
-        let exporter = await StatsDExporter()
+        let (exporter, _) = try await makeExporter()
         
         let result = try await exporter.time("block.timer", tags: ["async": "true"]) {
             try await Task.sleep(for: .milliseconds(10))
@@ -179,8 +180,8 @@ final class StatsDExporterTests: XCTestCase {
     
     // MARK: - Metric Name Sanitization Tests
     
-    func testMetricNameSanitization() async {
-        let exporter = await StatsDExporter()
+    func testMetricNameSanitization() async throws {
+        let (exporter, _) = try await makeExporter()
         
         // Names with special characters should be sanitized
         await exporter.counter("test:metric|with@special#chars", value: 1.0)
@@ -191,22 +192,22 @@ final class StatsDExporterTests: XCTestCase {
     
     // MARK: - Tag Merging Tests
     
-    func testGlobalTagMerging() async {
+    func testGlobalTagMerging() async throws {
         let config = StatsDExporter.Configuration(
             globalTags: ["env": "test", "version": "1.0"]
         )
-        let exporter = await StatsDExporter(configuration: config)
+        let (exporter, _) = try await makeExporter(configuration: config)
         
         await exporter.counter("tag.test", value: 1.0, tags: ["custom": "tag"])
         
         // Tags should be merged (global + custom)
     }
     
-    func testTagOverride() async {
+    func testTagOverride() async throws {
         let config = StatsDExporter.Configuration(
             globalTags: ["env": "production"]
         )
-        let exporter = await StatsDExporter(configuration: config)
+        let (exporter, _) = try await makeExporter(configuration: config)
         
         // Custom tag should override global
         await exporter.counter("override.test", value: 1.0, tags: ["env": "staging"])
@@ -214,9 +215,9 @@ final class StatsDExporterTests: XCTestCase {
     
     // MARK: - Prefix Tests
     
-    func testMetricPrefix() async {
+    func testMetricPrefix() async throws {
         let config = StatsDExporter.Configuration(prefix: "myapp")
-        let exporter = await StatsDExporter(configuration: config)
+        let (exporter, _) = try await makeExporter(configuration: config)
         
         await exporter.counter("requests", value: 1.0)
         // Should send as "myapp.requests"
@@ -230,6 +231,7 @@ final class StatsDExporterTests: XCTestCase {
             XCTFail("Failed to create mock transport")
             return
         }
+        addTeardownBlock { await exporter.close() }
         
         await withTaskGroup(of: Void.self) { group in
             for i in 0..<100 {
@@ -243,7 +245,7 @@ final class StatsDExporterTests: XCTestCase {
         
         // Verify all metrics were captured
         let sentMetrics = await mockTransport.getMetricsAsStrings()
-        XCTAssertGreaterThan(sentMetrics.count, 0)
+        XCTAssertEqual(sentMetrics.sorted(), (0..<100).map { "concurrent.test:\(Double($0))|c" }.sorted())
     }
     
     func testConcurrentBatching() async throws {
@@ -252,6 +254,7 @@ final class StatsDExporterTests: XCTestCase {
             XCTFail("Failed to create mock transport")
             return
         }
+        addTeardownBlock { await exporter.close() }
         
         await withTaskGroup(of: Void.self) { group in
             for _ in 0..<10 {
@@ -267,6 +270,18 @@ final class StatsDExporterTests: XCTestCase {
         
         // Verify batching occurred
         let sentMetrics = await mockTransport.getMetricsAsStrings()
-        XCTAssertGreaterThan(sentMetrics.count, 0)
+        XCTAssertEqual(sentMetrics.count, 100)
+        for index in 0..<10 {
+            XCTAssertEqual(sentMetrics.filter { $0 == "batch.concurrent:\(Double(index))|c" }.count, 10)
+        }
+    }
+
+    private func makeExporter(
+        configuration: StatsDExporter.Configuration = .default
+    ) async throws -> (StatsDExporter, MockTransport) {
+        let transport = try await MockTransport(configuration: .init())
+        let exporter = StatsDExporter(configuration: configuration, transport: transport)
+        addTeardownBlock { await exporter.close() }
+        return (exporter, transport)
     }
 }

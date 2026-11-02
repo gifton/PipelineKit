@@ -1,0 +1,69 @@
+Fetching https://github.com/apple/swift-log.git from cache
+Fetching https://github.com/apple/swift-atomics.git from cache
+Fetching https://github.com/apple/swift-crypto.git from cache
+Fetched https://github.com/apple/swift-crypto.git from cache (0.72s)
+Fetched https://github.com/apple/swift-atomics.git from cache (0.83s)
+Fetched https://github.com/apple/swift-log.git from cache (0.83s)
+Computing version for https://github.com/apple/swift-crypto.git
+Computed https://github.com/apple/swift-crypto.git at 4.5.2 (1.37s)
+Fetching https://github.com/apple/swift-asn1.git from cache
+Fetched https://github.com/apple/swift-asn1.git from cache (0.59s)
+Computing version for https://github.com/apple/swift-atomics.git
+Computed https://github.com/apple/swift-atomics.git at 1.3.1 (1.05s)
+Computing version for https://github.com/apple/swift-asn1.git
+Computed https://github.com/apple/swift-asn1.git at 1.7.3 (0.52s)
+Computing version for https://github.com/apple/swift-log.git
+Computed https://github.com/apple/swift-log.git at 1.16.2 (0.29s)
+Creating working copy for https://github.com/apple/swift-asn1.git
+Working copy of https://github.com/apple/swift-asn1.git resolved at 1.7.3
+Creating working copy for https://github.com/apple/swift-atomics.git
+Working copy of https://github.com/apple/swift-atomics.git resolved at 1.3.1
+Creating working copy for https://github.com/apple/swift-crypto.git
+Working copy of https://github.com/apple/swift-crypto.git resolved at 4.5.2
+Creating working copy for https://github.com/apple/swift-log.git
+Working copy of https://github.com/apple/swift-log.git resolved at 1.16.2
+Building for debugging...
+[Pre-planning 1 / 214]
+[Planning deferred tasks]
+[49 / 99]
+[58 / 110] Atomics
+[69 / 139]
+[83 / 167]
+[103 / 167]
+[106 / 167] Atomics
+[108 / 167] Atomics
+[117 / 168]
+[129 / 168] Logging
+[135 / 168] Logging
+[144 / 206] Logging
+[148 / 206]
+[151 / 206]
+[155 / 206]
+[157 / 206]
+[158 / 206]
+[175 / 206] PipelineKitCore
+[176 / 206] PipelineKitCore
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Sources/PipelineKitCore/Context/ExecutionContext.swift:94:45: warning: 'withValue(_:operation:isolation:file:line:)' is deprecated: Prefer the 'nonisolated(nonsending)' overload with stricter execution on caller context semantics: withValue(_:operation:file:line:) [#DeprecatedDeclaration]
+ 92 |         operation: () async throws -> T
+ 93 |     ) async rethrows -> T {
+ 94 |         try await ExecutionContext.$current.withValue(
+    |                                             `- warning: 'withValue(_:operation:isolation:file:line:)' is deprecated: Prefer the 'nonisolated(nonsending)' overload with stricter execution on caller context semantics: withValue(_:operation:file:line:) [#DeprecatedDeclaration]
+ 95 |             ExecutionContext(trace: snapshot.trace, progress: progress),
+ 96 |             operation: operation,
+
+[#DeprecatedDeclaration]: <https://docs.swift.org/compiler/documentation/diagnostics/deprecated-declaration>
+[184 / 207] PipelineKit
+[201 / 224] PipelineKit
+[208 / 225] PipelineKit
+[210 / 225] PipelineKit
+[210 / 225] PipelineKitObservability
+[212 / 244]
+[229 / 244] PipelineKitObservability
+[238 / 245] PipelineKitObservability
+[240 / 245] Consumer-product
+[243 / 247] Consumer-product
+[245 / 247] Consumer-product
+Build complete! (7.40 sec)
+{"mode":"udp-close","phase":"ready","port":55873}
+{"bytes":38,"mode":"udp-close","phase":"receipt_acknowledged"}
+{"mode":"udp-close","phase":"closed_twice_and_survived_callback_window"}

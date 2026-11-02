@@ -1,0 +1,200 @@
+Building for debugging...
+[Computing dependencies]
+[Using on-disk description]
+[1 / 1]
+[2 / 52] PipelineKitTestSupport
+[4 / 54] PipelineKitTestSupport
+[19 / 39] PipelineKitCacheTests-product
+[38 / 52] PipelineKitTestSupportTests-product
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCoreTests/Middleware/MiddlewareTests.swift:138:25: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+136 |         
+137 |         _ = try await middleware.execute(command, context: context) { _, ctx in
+138 |             let value = await ctx.getMetadata("test") as? String
+    |                         `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+139 |             XCTAssertEqual(value, "modified")
+140 |             return "done"
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCoreTests/Pipeline/PipelineTests.swift:241:32: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+239 |             try await middleware2.execute(cmd, context: ctx) { c, finalCtx in
+240 |                 // Verify context has both values
+241 |                 let metadata = await finalCtx.getMetadata()
+    |                                `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+242 |                 XCTAssertEqual(metadata["key1"] as? String, "value1")
+243 |                 XCTAssertEqual(metadata["key2"] as? String, "value2")
+
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>
+[47 / 61] PipelineKitCoreTests-product
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCoreTests/Middleware/MiddlewareTests.swift:138:25: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+136 |         
+137 |         _ = try await middleware.execute(command, context: context) { _, ctx in
+138 |             let value = await ctx.getMetadata("test") as? String
+    |                         `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+139 |             XCTAssertEqual(value, "modified")
+140 |             return "done"
+
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCoreTests/Pipeline/PipelineTests.swift:241:32: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+239 |             try await middleware2.execute(cmd, context: ctx) { c, finalCtx in
+240 |                 // Verify context has both values
+241 |                 let metadata = await finalCtx.getMetadata()
+    |                                `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+242 |                 XCTAssertEqual(metadata["key1"] as? String, "value1")
+243 |                 XCTAssertEqual(metadata["key2"] as? String, "value2")
+
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>
+[54 / 62] PipelineKitTestSupportTests-product
+[56 / 60] PipelineKitSecurityTests-product
+Build complete! (2.29 sec)
+Test Suite 'Selected tests' started at 2026-10-30 13:12:04.207.
+Test Suite 'PipelineKitTests.xctest' started at 2026-10-30 13:12:04.208.
+Test Suite 'PipelineKitTests.xctest' passed at 2026-10-30 13:12:04.208.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 13:12:04.208.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 13:12:04.287.
+Test Suite 'PipelineKitTestSupportTests.xctest' started at 2026-10-30 13:12:04.288.
+Test Suite 'ThroughputMeasurementTests' started at 2026-10-30 13:12:04.288.
+Test Case '-[PipelineKitTestSupportTests.ThroughputMeasurementTests testInvalidConfigurationAndRetryOverflowFail]' started.
+Test Case '-[PipelineKitTestSupportTests.ThroughputMeasurementTests testInvalidConfigurationAndRetryOverflowFail]' passed (0.001 seconds).
+Test Case '-[PipelineKitTestSupportTests.ThroughputMeasurementTests testInvalidDurationAndRateFail]' started.
+Test Case '-[PipelineKitTestSupportTests.ThroughputMeasurementTests testInvalidDurationAndRateFail]' passed (0.000 seconds).
+Test Case '-[PipelineKitTestSupportTests.ThroughputMeasurementTests testMismatchInZeroDurationBatchFailsBeforeRetry]' started.
+Test Case '-[PipelineKitTestSupportTests.ThroughputMeasurementTests testMismatchInZeroDurationBatchFailsBeforeRetry]' passed (0.000 seconds).
+Test Case '-[PipelineKitTestSupportTests.ThroughputMeasurementTests testRepeatedZeroDurationFailsAfterBoundedRetries]' started.
+Test Case '-[PipelineKitTestSupportTests.ThroughputMeasurementTests testRepeatedZeroDurationFailsAfterBoundedRetries]' passed (0.000 seconds).
+Test Case '-[PipelineKitTestSupportTests.ThroughputMeasurementTests testZeroDurationRetriesWithMoreWork]' started.
+Test Case '-[PipelineKitTestSupportTests.ThroughputMeasurementTests testZeroDurationRetriesWithMoreWork]' passed (0.000 seconds).
+Test Suite 'ThroughputMeasurementTests' passed at 2026-10-30 13:12:04.290.
+	 Executed 5 tests, with 0 failures (0 unexpected) in 0.001 (0.002) seconds
+Test Suite 'PipelineKitTestSupportTests.xctest' passed at 2026-10-30 13:12:04.290.
+	 Executed 5 tests, with 0 failures (0 unexpected) in 0.001 (0.002) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 13:12:04.290.
+	 Executed 5 tests, with 0 failures (0 unexpected) in 0.001 (0.003) seconds
+Test Suite 'Selected tests' started at 2026-10-30 13:12:04.368.
+Test Suite 'PipelineKitSecurityTests.xctest' started at 2026-10-30 13:12:04.369.
+Test Suite 'SecurityPolicyMiddlewareTests' started at 2026-10-30 13:12:04.369.
+Test Case '-[PipelineKitSecurityTests.SecurityPolicyMiddlewareTests testCommandWithoutValidation]' started.
+Test Case '-[PipelineKitSecurityTests.SecurityPolicyMiddlewareTests testCommandWithoutValidation]' passed (0.002 seconds).
+Test Case '-[PipelineKitSecurityTests.SecurityPolicyMiddlewareTests testConcurrentPolicyValidation]' started.
+Test Case '-[PipelineKitSecurityTests.SecurityPolicyMiddlewareTests testConcurrentPolicyValidation]' passed (0.001 seconds).
+Test Case '-[PipelineKitSecurityTests.SecurityPolicyMiddlewareTests testCustomPolicy]' started.
+Test Case '-[PipelineKitSecurityTests.SecurityPolicyMiddlewareTests testCustomPolicy]' passed (0.000 seconds).
+Test Case '-[PipelineKitSecurityTests.SecurityPolicyMiddlewareTests testDefaultPolicyCommandSize]' started.
+Test Case '-[PipelineKitSecurityTests.SecurityPolicyMiddlewareTests testDefaultPolicyCommandSize]' passed (0.000 seconds).
+Test Case '-[PipelineKitSecurityTests.SecurityPolicyMiddlewareTests testDefaultPolicyStringLength]' started.
+Test Case '-[PipelineKitSecurityTests.SecurityPolicyMiddlewareTests testDefaultPolicyStringLength]' passed (0.000 seconds).
+Test Case '-[PipelineKitSecurityTests.SecurityPolicyMiddlewareTests testDefaultPolicyValidation]' started.
+Test Case '-[PipelineKitSecurityTests.SecurityPolicyMiddlewareTests testDefaultPolicyValidation]' passed (0.000 seconds).
+Test Case '-[PipelineKitSecurityTests.SecurityPolicyMiddlewareTests testHTMLContentAllowed]' started.
+Test Case '-[PipelineKitSecurityTests.SecurityPolicyMiddlewareTests testHTMLContentAllowed]' passed (0.000 seconds).
+Test Case '-[PipelineKitSecurityTests.SecurityPolicyMiddlewareTests testHTMLContentRejection]' started.
+Test Case '-[PipelineKitSecurityTests.SecurityPolicyMiddlewareTests testHTMLContentRejection]' passed (0.000 seconds).
+Test Case '-[PipelineKitSecurityTests.SecurityPolicyMiddlewareTests testPathTraversalPrevention]' started.
+Test Case '-[PipelineKitSecurityTests.SecurityPolicyMiddlewareTests testPathTraversalPrevention]' passed (0.000 seconds).
+Test Case '-[PipelineKitSecurityTests.SecurityPolicyMiddlewareTests testPolicyValidationPerformance]' started.
+Test Case '-[PipelineKitSecurityTests.SecurityPolicyMiddlewareTests testPolicyValidationPerformance]' passed (0.011 seconds).
+Test Case '-[PipelineKitSecurityTests.SecurityPolicyMiddlewareTests testSQLInjectionPrevention]' started.
+Test Case '-[PipelineKitSecurityTests.SecurityPolicyMiddlewareTests testSQLInjectionPrevention]' passed (0.000 seconds).
+Test Case '-[PipelineKitSecurityTests.SecurityPolicyMiddlewareTests testStrictPolicyCharacterRestriction]' started.
+Test Case '-[PipelineKitSecurityTests.SecurityPolicyMiddlewareTests testStrictPolicyCharacterRestriction]' passed (0.000 seconds).
+Test Case '-[PipelineKitSecurityTests.SecurityPolicyMiddlewareTests testStrictPolicyCommandSize]' started.
+Test Case '-[PipelineKitSecurityTests.SecurityPolicyMiddlewareTests testStrictPolicyCommandSize]' passed (0.000 seconds).
+Test Case '-[PipelineKitSecurityTests.SecurityPolicyMiddlewareTests testStrictPolicyStringLength]' started.
+Test Case '-[PipelineKitSecurityTests.SecurityPolicyMiddlewareTests testStrictPolicyStringLength]' passed (0.000 seconds).
+Test Case '-[PipelineKitSecurityTests.SecurityPolicyMiddlewareTests testStrictPolicyValidation]' started.
+Test Case '-[PipelineKitSecurityTests.SecurityPolicyMiddlewareTests testStrictPolicyValidation]' passed (0.000 seconds).
+Test Case '-[PipelineKitSecurityTests.SecurityPolicyMiddlewareTests testXSSPrevention]' started.
+Test Case '-[PipelineKitSecurityTests.SecurityPolicyMiddlewareTests testXSSPrevention]' passed (0.000 seconds).
+Test Suite 'SecurityPolicyMiddlewareTests' passed at 2026-10-30 13:12:04.385.
+	 Executed 16 tests, with 0 failures (0 unexpected) in 0.015 (0.016) seconds
+Test Suite 'PipelineKitSecurityTests.xctest' passed at 2026-10-30 13:12:04.385.
+	 Executed 16 tests, with 0 failures (0 unexpected) in 0.015 (0.016) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 13:12:04.385.
+	 Executed 16 tests, with 0 failures (0 unexpected) in 0.015 (0.017) seconds
+Security policy validation performance: 962888.6350928423 ops/sec
+Test Suite 'Selected tests' started at 2026-10-30 13:12:04.465.
+Test Suite 'PipelineKitResilienceTests.xctest' started at 2026-10-30 13:12:04.466.
+Test Suite 'PipelineKitResilienceTests.xctest' passed at 2026-10-30 13:12:04.466.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 13:12:04.466.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 13:12:04.546.
+Test Suite 'PipelineKitPoolingTests.xctest' started at 2026-10-30 13:12:04.547.
+Test Suite 'PipelineKitPoolingTests.xctest' passed at 2026-10-30 13:12:04.547.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 13:12:04.547.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 13:12:04.627.
+Test Suite 'PipelineKitPerformanceTests.xctest' started at 2026-10-30 13:12:04.627.
+Test Suite 'PipelineKitPerformanceTests.xctest' passed at 2026-10-30 13:12:04.627.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 13:12:04.627.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 13:12:04.707.
+Test Suite 'PipelineKitObservabilityTests.xctest' started at 2026-10-30 13:12:04.708.
+Test Suite 'PipelineKitObservabilityTests.xctest' passed at 2026-10-30 13:12:04.708.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 13:12:04.708.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 13:12:04.787.
+Test Suite 'PipelineKitCoreTests.xctest' started at 2026-10-30 13:12:04.788.
+Test Suite 'MiddlewareTests' started at 2026-10-30 13:12:04.788.
+Test Case '-[PipelineKitCoreTests.MiddlewareTests testConditionalMiddleware]' started.
+Test Case '-[PipelineKitCoreTests.MiddlewareTests testConditionalMiddleware]' passed (0.001 seconds).
+Test Case '-[PipelineKitCoreTests.MiddlewareTests testExecutionPriorityValues]' started.
+Test Case '-[PipelineKitCoreTests.MiddlewareTests testExecutionPriorityValues]' passed (0.000 seconds).
+Test Case '-[PipelineKitCoreTests.MiddlewareTests testMiddlewareAsyncExecution]' started.
+Test Case '-[PipelineKitCoreTests.MiddlewareTests testMiddlewareAsyncExecution]' passed (0.011 seconds).
+Test Case '-[PipelineKitCoreTests.MiddlewareTests testMiddlewareChaining]' started.
+Test Case '-[PipelineKitCoreTests.MiddlewareTests testMiddlewareChaining]' passed (0.000 seconds).
+Test Case '-[PipelineKitCoreTests.MiddlewareTests testMiddlewareContextModification]' started.
+Test Case '-[PipelineKitCoreTests.MiddlewareTests testMiddlewareContextModification]' passed (0.000 seconds).
+Test Case '-[PipelineKitCoreTests.MiddlewareTests testMiddlewareErrorHandling]' started.
+Test Case '-[PipelineKitCoreTests.MiddlewareTests testMiddlewareErrorHandling]' passed (0.000 seconds).
+Test Case '-[PipelineKitCoreTests.MiddlewareTests testMiddlewareExecution]' started.
+Test Case '-[PipelineKitCoreTests.MiddlewareTests testMiddlewareExecution]' passed (0.000 seconds).
+Test Case '-[PipelineKitCoreTests.MiddlewareTests testMiddlewarePerformance]' started.
+Test Case '-[PipelineKitCoreTests.MiddlewareTests testMiddlewarePerformance]' passed (0.002 seconds).
+Test Case '-[PipelineKitCoreTests.MiddlewareTests testMiddlewareSorting]' started.
+Test Case '-[PipelineKitCoreTests.MiddlewareTests testMiddlewareSorting]' passed (0.000 seconds).
+Test Case '-[PipelineKitCoreTests.MiddlewareTests testMiddlewareValueSemantics]' started.
+Test Case '-[PipelineKitCoreTests.MiddlewareTests testMiddlewareValueSemantics]' passed (0.000 seconds).
+Test Suite 'MiddlewareTests' passed at 2026-10-30 13:12:04.804.
+	 Executed 10 tests, with 0 failures (0 unexpected) in 0.015 (0.016) seconds
+Test Suite 'PipelineTests' started at 2026-10-30 13:12:04.804.
+Test Case '-[PipelineKitCoreTests.PipelineTests testCommandExecutionError]' started.
+Test Case '-[PipelineKitCoreTests.PipelineTests testCommandExecutionError]' passed (0.000 seconds).
+Test Case '-[PipelineKitCoreTests.PipelineTests testConcurrentPipelineExecution]' started.
+Test Case '-[PipelineKitCoreTests.PipelineTests testConcurrentPipelineExecution]' passed (0.000 seconds).
+Test Case '-[PipelineKitCoreTests.PipelineTests testContextPropagationThroughMiddleware]' started.
+Test Case '-[PipelineKitCoreTests.PipelineTests testContextPropagationThroughMiddleware]' passed (0.000 seconds).
+Test Case '-[PipelineKitCoreTests.PipelineTests testMiddlewareErrorPropagation]' started.
+Test Case '-[PipelineKitCoreTests.PipelineTests testMiddlewareErrorPropagation]' passed (0.000 seconds).
+Test Case '-[PipelineKitCoreTests.PipelineTests testMiddlewareExecutionOrder]' started.
+Test Case '-[PipelineKitCoreTests.PipelineTests testMiddlewareExecutionOrder]' passed (0.000 seconds).
+Test Case '-[PipelineKitCoreTests.PipelineTests testMiddlewarePriorityOrdering]' started.
+Test Case '-[PipelineKitCoreTests.PipelineTests testMiddlewarePriorityOrdering]' passed (0.000 seconds).
+Test Case '-[PipelineKitCoreTests.PipelineTests testMiddlewareValueSemantics]' started.
+Test Case '-[PipelineKitCoreTests.PipelineTests testMiddlewareValueSemantics]' passed (0.000 seconds).
+Test Case '-[PipelineKitCoreTests.PipelineTests testPipelineDefaultExecuteMethod]' started.
+Test Case '-[PipelineKitCoreTests.PipelineTests testPipelineDefaultExecuteMethod]' passed (0.000 seconds).
+Test Case '-[PipelineKitCoreTests.PipelineTests testPipelinePerformance]' started.
+Test Case '-[PipelineKitCoreTests.PipelineTests testPipelinePerformance]' passed (0.000 seconds).
+Test Case '-[PipelineKitCoreTests.PipelineTests testPipelineProtocolConformance]' started.
+Test Case '-[PipelineKitCoreTests.PipelineTests testPipelineProtocolConformance]' passed (0.000 seconds).
+Test Case '-[PipelineKitCoreTests.PipelineTests testTaskCancellationPropagation]' started.
+Test Case '-[PipelineKitCoreTests.PipelineTests testTaskCancellationPropagation]' passed (0.015 seconds).
+Test Suite 'PipelineTests' passed at 2026-10-30 13:12:04.822.
+	 Executed 11 tests, with 0 failures (0 unexpected) in 0.017 (0.018) seconds
+Test Suite 'PipelineKitCoreTests.xctest' passed at 2026-10-30 13:12:04.822.
+	 Executed 21 tests, with 0 failures (0 unexpected) in 0.032 (0.034) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 13:12:04.822.
+	 Executed 21 tests, with 0 failures (0 unexpected) in 0.032 (0.034) seconds
+Middleware performance: 4537032.163928417 ops/sec
+Pipeline performance: 4914995.158729769 ops/sec
+Test Suite 'Selected tests' started at 2026-10-30 13:12:04.903.
+Test Suite 'PipelineKitCacheTests.xctest' started at 2026-10-30 13:12:04.904.
+Test Suite 'PipelineKitCacheTests.xctest' passed at 2026-10-30 13:12:04.904.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 13:12:04.904.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds

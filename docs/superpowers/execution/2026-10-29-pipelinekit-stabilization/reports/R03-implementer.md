@@ -1,0 +1,73 @@
+# R03 implementation report
+
+Status: DONE, awaiting controller fresh review. The implementation and this evidence are committed together; the controller handoff and scratch report record the resulting commit SHA.
+
+Base: `06ae863035d343e087a10ef837ecb7e449fedff4`, branch `fix/stabilization-batch-1`. Initial tracked diff was empty. The existing untracked `audit/` and `docs/PIPELINEKIT_AUDIT_GUIDE.md` were preserved. No original checkout/audit, dependency, tools/platform floor, concurrency setting, CLOSURE or progress changes; no push or merge.
+
+## Implementation
+
+Each private partition owns an `AdmissionGate`, cached normalized timeout and integer donor reserve. Resource acquisition returns the actual `AdmissionLease` plus optional donor key. Local acquisition, queue installation and availability recheck now use `acquire(timeout:)`; donor acquisition uses one `tryAcquire(reserving:)` operation. Removed the raw continuations, separate canQueue/install protocol, duplicate queued increment, task-group timer, sibling-wide deletion, weak release closures and unstructured normal release task. Both success and thrown-error paths await the local/donor lease release and execution metadata/event emission before returning. Cancellation is checked before admission and after a lease is returned. The gate retains its independently reviewed cancellation and timer machinery unchanged.
+
+Selector/default-partition behavior, borrowing enablement, reservedCapacityPercentage/deprecated alias semantics, per-partition accounting, metadata keys and event payloads remain. Partition statistics now obtain active/queued counts from the gate. Admission errors alone count as timeouts; an admitted handler error is no longer counted as a queue timeout. The reserved share still truncates the historical `Double(capacity) * percentage` product toward zero. It clamps at capacity before Int conversion: on the tested 64-bit target, `Double(Int.max)` rounds to 2^63 and cannot itself be converted to Int. Otherwise the nonnegative scaled product is strictly below that upper boundary. Public construction validates positive capacities, nonnegative queues and finite reserve percentages in 0...1 before those operations.
+
+Controller boundary clarification before commit: a 100% reserve must retain the exact Int capacity, including values beyond Double's exact-integer range. The clamp follows that endpoint contract; for fractional percentages it preserves the established truncated Double product with safe clamping. Compatibility cost: an odd large capacity whose old conversion rounded down at 100% could accidentally lend a slot; it now lends none, and the Int.max conversion trap is removed. This is an intentional correction to the full-reserve contract. Int.max/Int.max-1 tests establish those selected endpoints, not an exhaustive numeric proof. Full-reserve equality also follows directly from the adjacent scaled-product comparison and capacity branch.
+
+Partition timeout normalization reuses the existing module-internal `BulkheadQueueTimeout.normalize` without duplicate TimeInterval conversion. Nil is unbounded, finite nonpositive values normalize to zero, supported positive values are at most 86,400 seconds, and nonfinite/oversized positive values intentionally fail the configuration precondition. The migration document now names both timed wrappers, including queue-size-zero behavior, the deliberate policy break, and the need for I01's next-minor Breaking entry. Legacy Bulkhead has no timeout option. No arbitrary-handler deadline or preemptive cancellation claim is made.
+
+The only new seams are package-visible partition observation and admission-gate injection. Supplied gates are required to match all configured partition keys and limits; every injected test uses the actual public capacity, queue size and per-partition timeout. Public default-clock and public configuration paths are also covered. No per-command timeout API was introduced.
+
+## Red/green evidence and commands
+
+Every command below ran from the isolated worktree through the reviewed V04 watchdog. Swift cache access used the approved escalation prefix. Raw logs, run JSON and process traces are retained under the exact IDs.
+
+| ID | Exact command after the common runner prefix | Root / runner result |
+|---|---|---|
+| R03-001-handoff-red | `--id R03-001-handoff-red --timeout 600 -- swift test --filter PartitionedBulkheadAdmissionTests.testQueuedHandoffTransfersOneLease` | 1 / 1; 1 test, 8 expected assertion failures; 12.452 s. |
+| R03-002-timeout-red | `--id R03-002-timeout-red --timeout 10 -- swift test --skip-build --filter PartitionedBulkheadAdmissionTests.testPublicQueueTimeoutReturnsWhileHolderIsActive` | -15 / 124; expected watchdog termination; 10.041 s. |
+| R03-003-focused | `--id R03-003-focused --timeout 600 -- swift test --filter 'PartitionedBulkheadAdmissionTests\|PartitionedBulkheadConfigurationTests\|BulkheadAdmissionConservationTests\|BulkheadMiddlewareTests'` | 0 / 0; all 27 tests passed; 12.698 s. |
+| R03-004-debug-full | `--id R03-004-debug-full --timeout 600 -- swift test --parallel --skip PipelineKitPerformanceTests` | 0 / 0; 1,057 distinct XCTest progress records and 20 Swift Testing cases passed; 21.280 s. |
+| R03-005-timeout-validation | `--id R03-005-timeout-validation --timeout 300 -- python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/r02_timeout_validation.py --id R03-005 --wrapper all` | 0 / 0; 20/20 intentional-precondition rows passed; 76.319 s. |
+| R03-006-config-validation | `--id R03-006-config-validation --timeout 180 -- python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/r03_configuration_validation.py --id R03-006` | 0 / 0; 8/8 intentional-precondition rows passed; 30.616 s. |
+
+Common runner prefix: `python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py`. The filter in the retained JSON is the literal pipe-separated regex; pipes are quoted in the shell command, not separate invocations.
+
+All six runs report cleanup settled, zero survivors and no runner error. Only the deliberate old-code timeout run reports watchdog_timeout=true; it sent two identity-checked SIGTERMs (Swift root and owned XCTest process). Every other run reports no timeout and no termination action. Each invalid-config child returned Swift test status 1 and the exact expected precondition diagnostic; all 28 children were joined. No unrelated trap can satisfy the drivers' diagnostic check.
+
+R03-001 is behavioral red. Before it, production changed only by adding the approved observation seam. Each capacity-1/2 fixture queued three handlers, including a throwing handler, acknowledged queue and handler entry, joined every fixture task and checked occupancy after each handoff. Old active counts became 2/3/4 at capacity 1 and 3/4/5 at capacity 2; both ended at phantom active count 3 while the handler ledger was empty. Green requires exact handler/occupancy equality throughout and zero final counts.
+
+R03-002 selected an already-built public 10 ms timeout test which holds A until B returns. Ten seconds allows test-process startup and is many times the focused handler budget; a 600-second deadline was unnecessary for this known hang. Its raw stdout log is empty because Swift test retained no child output before termination. Thus the preserved run/process records establish an unresolved selected-test process and successful watchdog cleanup, not an instrumented old timer-expiry trace. The old task-group/raw-continuation source explains the hang, and the independent handoff red already establishes the behavioral regression. The successful public test and acknowledged manual-clock tests establish the repaired behavior.
+
+## Coverage and source-only limits
+
+| Finding / constraint | R03 evidence supplied for fresh review |
+|---|---|
+| R-F02 | `testQueuedHandoffTransfersOneLease` gives old/new occupancy evidence at capacities 1/2 with three handoffs and success/error settlement. Shared queue reuse, cancellation and handoff schedules now run through ordinary, legacy and partitioned adapters. |
+| R-F03 | `testTimedOutWaiterDoesNotWaitForHolderOrOrphanSibling` installs B, advances one second, then installs C under the same four-second partition timeout. At B's acknowledged expiry A stays held and C stays queued; C enters before its later deadline and retains its lease after that deadline. All A/B/C tasks and both manual sleeper calls settle. `testCancelledWaiterDoesNotOrphanSiblingBeforeOrDuringGrant` uses a nil-timeout partition, preserves C, checks cancellation after handler entry retains the lease, and forces post-grant cancellation with the synchronous next-clock-read callback. |
+| R-F04 | `testDonorReserveAndQueuePriorityAreAtomic` races two borrowers for the sole lendable slot, covers borrowing enabled/disabled and both configuration labels, checks actual donor restoration, rejects a borrower while donor-owned work queues, and races a fresh borrower with donor release while the queued owner takes the slot. `testReserveRoundingAndIntegerCapacityBoundaries` covers capacities 1/2/3/5/10, reserve fractions 0/0.2/0.3/0.5/1, and Int.max / Int.max-1 boundaries, including 1.nextDown. Public borrowed success and handler-throw paths both restore the donor. The old check/debit race was not forced; its elimination follows from the one gate reservation operation plus these observed schedules and R01's accepted primitive tests. |
+| R-A06 | No wrapper-level canQueue/install gap remains: local acquisition rechecks and installs in one AdmissionGate actor operation. The shared three-wrapper handoff, one-place queue reuse/replacement and queue-full schedules run at the wrapper boundary. No claim is made that the old gap's exact interleaving was forced. |
+
+The shared boundary test now covers both timed wrappers: ten finite values across queue limits 0/1, free admission followed by occupied admission, negative extremes, zero, tiny positive rounding, 86,400 and its predecessor. The isolated timeout matrix covers the maximum's successor, 1e30, NaN and both infinities for both wrappers and both queue limits. Public configuration tests pin selector fallback and metadata, missing-default rejection, deprecated alias forwarding, integer reserve boundaries, and valid construction. The separate partition validation probe covers zero/negative capacity, negative queue, negative/above-one reserve and all three nonfinite reserve forms.
+
+The focused green contains 4 shared conservation tests, 13 ordinary/timed-wrapper tests, 5 partition admission tests and 5 partition configuration tests. The final full suite runs the later test amendment that additionally launches a borrower concurrently with donor release. After focused capture, production changed only in two API-documentation passages; boundary/driver formatting and migration wording were also completed. The final full run is the only complete Debug run. No unchanged passed suite was repeated.
+
+## Source identity and warnings
+
+`logs/R03-001-source-state.json` pins R03-001/002, including the observation-only old source and first tests. `logs/R03-003-source-state.json` pins focused green. `logs/R03-final-source-state.json` is authoritative for R03-004/005/006 and stores eight final source/test/doc/driver hashes, tracked diff, full new-file contents and four unchanged dependency hashes (Package.swift, AdmissionGate, ordinary wrapper/helper and ManualAdmissionClock). The three manifests intentionally differ; earlier run association was preserved. All final hashes were rechecked after all validation.
+
+Final production SHA-256: `ff87d2023b3e62dc373827aaaab92ad12b8900eea3f3f88bda2b7386c8d84d5c`.
+Final tracked source/test/docs/driver diff SHA-256: `a4fd48d78069351b8b979833a460445116e4ce102b12ba64783ca6c113b3288c`.
+
+`logs/R03-evidence-summary.json` preserves initial branch/status, run outcomes, counts and the old empty-output limitation. `logs/R03-warnings.json` normalizes compiler warnings by relative path plus diagnostic message, excluding line/column changes and duplicate displayed source snippets. Red: 5 existing kinds / 5 occurrences. Focused: 6 existing kinds / 8 occurrences. Final full and isolated probes: no compiler diagnostic lines. Across the retained logs there are zero new normalized compiler kinds and zero observed runtime-warning lines, including separate SwiftLog `warning PipelineKit...:` scans. All 28 intended precondition diagnostics are counted separately. Incremental/parallel output is not a globally warning-free baseline claim; existing C02-N1 fixture and R02-N1 compiler debt remain deferred. The obsolete weak-partition-capture warning disappears with the deleted release closures.
+
+## Files and self-review
+
+- `Sources/PipelineKitResilienceCircuitBreaker/PartitionedBulkheadMiddleware.swift`: per-partition lease ownership, cached timeout/reserve policy, checked configuration, synchronous settlement, package test seams and API documentation.
+- `Tests/PipelineKitResilienceTests/PartitionedBulkheadAdmissionTests.swift`: five new acknowledged partition admission schedules.
+- `Tests/PipelineKitResilienceTests/BulkheadAdmissionConservationTests.swift`: partitioned factory and third subject in the existing shared matrix.
+- `Tests/PipelineKitResilienceTests/BulkheadMiddlewareTests.swift`: both timed wrappers in boundary/probe/public-clock rows.
+- `Tests/PipelineKitResilienceTests/PartitionedBulkheadConfigurationTests.swift`: rounding, selector/metadata and configuration validation.
+- `repros/r02_timeout_validation.py`: ordinary/partitioned/all probe selection; prior raw R02 evidence is unchanged.
+- `repros/r03_configuration_validation.py`: bounded, joined invalid partition-configuration child probes.
+- `docs/migrations/first-stabilization-batch.md`, execution `VALIDATION.md`, this report and exact R03 logs/manifests.
+
+Self-review checked post-acquisition cancellation release, success/error owner identity, local queue rechecks, donor reserve validation and subtraction preconditions, preserved rounding, selector fallback, metrics completion, actual public-policy matching in injected tests, and joining fixture work. No unresolved scoped correctness concern was found. The inherited R01 limit remains explicit: gate acquisition/release return does not guarantee every internal timer/cancellation task has exited; the manual clock acknowledges sleeper calls, not every internal task's complete lifetime. No runtime-extreme clock proof or performance/platform matrix claim is added. Controller owns fresh review and CLOSURE/progress decisions.

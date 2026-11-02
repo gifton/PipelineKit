@@ -1,0 +1,114 @@
+{
+  "id": "V04-011-matrix-refuse_term",
+  "cwd": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization",
+  "command": [
+    "/opt/homebrew/opt/python@3.14/bin/python3.14",
+    "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/v04_process_fixtures.py",
+    "--worker",
+    "refuse_term",
+    "/var/folders/_c/7_fgg5v57d56kt4wd9bcsdj40000gn/T/V04-011-matrix-refuse_term-8xrpr9l0"
+  ],
+  "started_utc": "2026-10-30T23:19:45.524763+00:00",
+  "elapsed_seconds": 5.042,
+  "exit_status": -9,
+  "watchdog_timeout": true,
+  "log": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/V04-011-matrix-refuse_term.log",
+  "runner_exit_status": 124,
+  "runner_error": null,
+  "cleanup": {
+    "settled": true,
+    "survivors": [],
+    "outcomes": [
+      {
+        "identity": {
+          "pid": 47887,
+          "start": [
+            1793402385,
+            525260
+          ]
+        },
+        "state": "gone"
+      }
+    ],
+    "inspection_errors": [],
+    "term_grace_seconds": 2.0,
+    "kill_grace_seconds": 3.0
+  },
+  "event_errors": [],
+  "completion_reason": "timeout",
+  "unexpected_descendants": [],
+  "owned_processes": [
+    {
+      "identity": {
+        "pid": 47887,
+        "start": [
+          1793402385,
+          525260
+        ]
+      },
+      "observed_parent": null,
+      "first_seen_seconds": 0.002318,
+      "observations": [
+        {
+          "ppid": 47886,
+          "pgid": 47887,
+          "state": 2
+        }
+      ]
+    }
+  ],
+  "termination_actions": [
+    {
+      "identity": {
+        "pid": 47887,
+        "start": [
+          1793402385,
+          525260
+        ]
+      },
+      "signal": "SIGTERM",
+      "elapsed_seconds": 3.001548,
+      "verified_before_signal": {
+        "pid": 47887,
+        "start": [
+          1793402385,
+          525260
+        ],
+        "ppid": 47886,
+        "pgid": 47887,
+        "state": 2
+      },
+      "result": "sent"
+    },
+    {
+      "identity": {
+        "pid": 47887,
+        "start": [
+          1793402385,
+          525260
+        ]
+      },
+      "signal": "SIGKILL",
+      "elapsed_seconds": 5.015228,
+      "verified_before_signal": {
+        "pid": 47887,
+        "start": [
+          1793402385,
+          525260
+        ],
+        "ppid": 47886,
+        "pgid": 47887,
+        "state": 2
+      },
+      "result": "sent"
+    }
+  ],
+  "process_events": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/V04-011-matrix-refuse_term.processes.jsonl",
+  "ownership_backend": "macOS libproc PID + start timeval",
+  "containment_limits": [
+    "Only lineages observed before reparenting are owned; instant unobserved daemonization can escape.",
+    "Identity check and kill are separate syscalls; PID reuse in that interval cannot be excluded.",
+    "Zombie means no executing process; non-child zombie reaping belongs to its parent.",
+    "SIGKILL of the runner or host failure can bypass cleanup; Linux is unsupported and unvalidated."
+  ]
+}

@@ -1,0 +1,128 @@
+Building for debugging...
+[Computing dependencies]
+[Using on-disk description]
+[16 / 129]
+[19 / 129] Atomics
+[26 / 119] PipelineKitCore
+[29 / 118] PipelineKit
+[33 / 125] _ResilienceFoundation
+[41 / 128] _CircuitBreaker
+[50 / 122] PipelineKitResilience
+[54 / 129] PipelineKitPooling
+[59 / 122] PipelineKitTestSupport
+[80 / 89] PipelineKitCoreTests-product
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCoreTests/Errors/CancellationErrorTests.swift:88:9: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+ 86 |         
+ 87 |         // Cancel after a short delay
+ 88 |         Task {
+    |         |- warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+    |         `- note: to silence this warning, handle the error inside the task, or store/discard the task value explicitly
+ 89 |             try await Task.sleep(nanoseconds: 25_000_000) // 25ms
+ 90 |             task.cancel()
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCoreTests/Errors/CancellationErrorTests.swift:170:9: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+168 |         
+169 |         // Cancel after 50ms
+170 |         Task {
+    |         |- warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+    |         `- note: to silence this warning, handle the error inside the task, or store/discard the task value explicitly
+171 |             try await Task.sleep(nanoseconds: 50_000_000)
+172 |             task.cancel()
+
+[#NoUseUnstructuredThrowingTask]: <https://docs.swift.org/compiler/documentation/diagnostics/no-use-throwing-unstructured-task>
+[82 / 91] PipelineKitCoreTests-product
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCoreTests/Middleware/MiddlewareTests.swift:138:25: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+136 |         
+137 |         _ = try await middleware.execute(command, context: context) { _, ctx in
+138 |             let value = await ctx.getMetadata("test") as? String
+    |                         `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+139 |             XCTAssertEqual(value, "modified")
+140 |             return "done"
+
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCoreTests/Pipeline/PipelineTests.swift:241:32: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+239 |             try await middleware2.execute(cmd, context: ctx) { c, finalCtx in
+240 |                 // Verify context has both values
+241 |                 let metadata = await finalCtx.getMetadata()
+    |                                `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+242 |                 XCTAssertEqual(metadata["key1"] as? String, "value1")
+243 |                 XCTAssertEqual(metadata["key2"] as? String, "value2")
+
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>
+[88 / 90] PipelineKitCoreTests-product
+Build complete! (2.77 sec)
+Test Suite 'Selected tests' started at 2026-10-30 13:00:18.628.
+Test Suite 'PipelineKitTests.xctest' started at 2026-10-30 13:00:18.629.
+Test Suite 'PipelineKitTests.xctest' passed at 2026-10-30 13:00:18.629.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 13:00:18.629.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 13:00:18.711.
+Test Suite 'PipelineKitTestSupportTests.xctest' started at 2026-10-30 13:00:18.712.
+Test Suite 'PipelineKitTestSupportTests.xctest' passed at 2026-10-30 13:00:18.712.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 13:00:18.712.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 13:00:18.794.
+Test Suite 'PipelineKitSecurityTests.xctest' started at 2026-10-30 13:00:18.795.
+Test Suite 'PipelineKitSecurityTests.xctest' passed at 2026-10-30 13:00:18.795.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 13:00:18.795.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 13:00:18.877.
+Test Suite 'PipelineKitResilienceTests.xctest' started at 2026-10-30 13:00:18.878.
+Test Suite 'PipelineKitResilienceTests.xctest' passed at 2026-10-30 13:00:18.878.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 13:00:18.878.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 13:00:18.960.
+Test Suite 'PipelineKitPoolingTests.xctest' started at 2026-10-30 13:00:18.960.
+Test Suite 'PipelineKitPoolingTests.xctest' passed at 2026-10-30 13:00:18.961.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 13:00:18.961.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 13:00:19.043.
+Test Suite 'PipelineKitPerformanceTests.xctest' started at 2026-10-30 13:00:19.044.
+Test Suite 'PipelineKitPerformanceTests.xctest' passed at 2026-10-30 13:00:19.044.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 13:00:19.044.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 13:00:19.125.
+Test Suite 'PipelineKitObservabilityTests.xctest' started at 2026-10-30 13:00:19.126.
+Test Suite 'PipelineKitObservabilityTests.xctest' passed at 2026-10-30 13:00:19.126.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 13:00:19.126.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 13:00:19.188.
+Test Suite 'PipelineKitCoreTests.xctest' started at 2026-10-30 13:00:19.189.
+Test Suite 'CancellationErrorTests' started at 2026-10-30 13:00:19.189.
+Test Case '-[PipelineKitCoreTests.CancellationErrorTests testCancellationInLongRunningOperation]' started.
+Test Case '-[PipelineKitCoreTests.CancellationErrorTests testCancellationInLongRunningOperation]' passed (0.051 seconds).
+Test Case '-[PipelineKitCoreTests.CancellationErrorTests testCheckCancellationInAsyncContext]' started.
+Test Case '-[PipelineKitCoreTests.CancellationErrorTests testCheckCancellationInAsyncContext]' passed (0.027 seconds).
+Test Case '-[PipelineKitCoreTests.CancellationErrorTests testCheckCancellationMultipleTimes]' started.
+Test Case '-[PipelineKitCoreTests.CancellationErrorTests testCheckCancellationMultipleTimes]' passed (0.001 seconds).
+Test Case '-[PipelineKitCoreTests.CancellationErrorTests testCheckCancellationPerformance]' started.
+Test Case '-[PipelineKitCoreTests.CancellationErrorTests testCheckCancellationPerformance]' passed (0.011 seconds).
+Test Case '-[PipelineKitCoreTests.CancellationErrorTests testCheckCancellationWhenCancelled]' started.
+Test Case '-[PipelineKitCoreTests.CancellationErrorTests testCheckCancellationWhenCancelled]' passed (0.000 seconds).
+Test Case '-[PipelineKitCoreTests.CancellationErrorTests testCheckCancellationWhenNotCancelled]' started.
+Test Case '-[PipelineKitCoreTests.CancellationErrorTests testCheckCancellationWhenNotCancelled]' passed (0.000 seconds).
+Test Case '-[PipelineKitCoreTests.CancellationErrorTests testCheckCancellationWithContext]' started.
+Test Case '-[PipelineKitCoreTests.CancellationErrorTests testCheckCancellationWithContext]' passed (0.000 seconds).
+Test Case '-[PipelineKitCoreTests.CancellationErrorTests testCheckCancellationWithEmptyContext]' started.
+Test Case '-[PipelineKitCoreTests.CancellationErrorTests testCheckCancellationWithEmptyContext]' passed (0.000 seconds).
+Test Case '-[PipelineKitCoreTests.CancellationErrorTests testCheckCancellationWithLongContext]' started.
+Test Case '-[PipelineKitCoreTests.CancellationErrorTests testCheckCancellationWithLongContext]' passed (0.000 seconds).
+Test Suite 'CancellationErrorTests' passed at 2026-10-30 13:00:19.282.
+	 Executed 9 tests, with 0 failures (0 unexpected) in 0.091 (0.092) seconds
+Test Suite 'PipelineKitCoreTests.xctest' passed at 2026-10-30 13:00:19.282.
+	 Executed 9 tests, with 0 failures (0 unexpected) in 0.091 (0.092) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 13:00:19.282.
+	 Executed 9 tests, with 0 failures (0 unexpected) in 0.091 (0.093) seconds
+100,000 cancellation checks in 0.010984063148498535s
+Test Suite 'Selected tests' started at 2026-10-30 13:00:19.367.
+Test Suite 'PipelineKitCacheTests.xctest' started at 2026-10-30 13:00:19.368.
+Test Suite 'PipelineKitCacheTests.xctest' passed at 2026-10-30 13:00:19.368.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 13:00:19.368.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds

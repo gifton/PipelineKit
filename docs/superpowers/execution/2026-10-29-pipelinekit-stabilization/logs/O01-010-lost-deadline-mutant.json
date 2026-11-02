@@ -1,0 +1,15 @@
+{
+  "id": "O01-010-lost-deadline-mutant",
+  "cwd": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization",
+  "command": [
+    "swift",
+    "test",
+    "--filter",
+    "UDPTransportLifecycleTests.testMissingSendCallbackSettlesOnTimeoutOrClose"
+  ],
+  "started_utc": "2026-10-30T22:21:39.247811+00:00",
+  "elapsed_seconds": 30.041,
+  "exit_status": -15,
+  "watchdog_timeout": true,
+  "log": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/O01-010-lost-deadline-mutant.log"
+}

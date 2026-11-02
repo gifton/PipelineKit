@@ -1,0 +1,231 @@
+{
+  "inherited_I01_baseline_occurrences": 50,
+  "inherited_I01_normalized_kinds": 20,
+  "normalization": "Relative path and full diagnostic text, excluding shifted line/column and caret echoes.",
+  "compiler_by_run": {
+    "FINAL-FIX-001-red-build": {
+      "primary_occurrences": 2,
+      "normalized": {
+        "Tests/PipelineKitCoreTests/Middleware/MiddlewareTests.swift: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]": 1,
+        "Tests/PipelineKitCoreTests/Pipeline/PipelineTests.swift: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]": 1
+      },
+      "new_vs_baseline": []
+    },
+    "FINAL-FIX-002-context-red": {
+      "primary_occurrences": 0,
+      "normalized": {},
+      "new_vs_baseline": []
+    },
+    "FINAL-FIX-003-context-red-direct": {
+      "primary_occurrences": 0,
+      "normalized": {},
+      "new_vs_baseline": []
+    },
+    "FINAL-FIX-004-context-red-direct": {
+      "primary_occurrences": 0,
+      "normalized": {},
+      "new_vs_baseline": []
+    },
+    "FINAL-FIX-005-matrix-debug": {
+      "primary_occurrences": 27,
+      "normalized": {
+        "Tests/PipelineKitSecurityTests/AuthorizationMiddlewareTests.swift: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]": 2,
+        "Tests/PipelineKitResilienceTests/TimeoutMiddlewareCompileTests.swift: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]": 1,
+        "Tests/PipelineKitResilienceTests/PartitionedBulkheadConfigurationTests.swift: warning: 'maxBorrowPercentage' is deprecated: renamed to 'reservedCapacityPercentage' [#DeprecatedDeclaration]": 1,
+        "Tests/PipelineKitResilienceTests/PartitionedBulkheadConfigurationTests.swift: warning: 'init(partitions:partitionExtractor:defaultPartition:allowBorrowing:maxBorrowPercentage:emitMetrics:)' is deprecated: maxBorrowPercentage has always been the reserved (non-lendable) share \u2014 use reservedCapacityPercentage, which has identical semantics. [#DeprecatedDeclaration]": 1,
+        "Sources/PipelineKitCache/CachingMiddleware.swift: warning: use of protocol 'Decodable' as a type must be written 'any Decodable'; this will be an error in a future Swift language mode [#ExistentialAny]": 1,
+        "Tests/PipelineKitPerformanceTests/PipelinePerformanceTests.swift: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]": 6,
+        "Tests/PipelineKitCoreTests/Context/EventEmissionTests.swift: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]": 3,
+        "Tests/PipelineKitCoreTests/Middleware/MiddlewareTests.swift: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]": 2,
+        "Tests/PipelineKitCoreTests/Pipeline/PipelineTests.swift: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]": 2,
+        "Tests/PipelineKitCoreTests/Core/CommandContextThreadSafetyTests.swift: warning: immutable value 'key' was never used; consider replacing with '_' or removing it [#NoUsage]": 1,
+        "Tests/PipelineKitCacheTests/NextGuardSuppressionTests.swift: warning: 'is' test is always true": 4,
+        "Tests/PipelineKitCacheTests/CompressionMiddlewareTests.swift: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]": 2,
+        "Tests/PipelineKitCacheTests/SimpleCachingMiddlewareTests.swift: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]": 1
+      },
+      "new_vs_baseline": []
+    },
+    "FINAL-FIX-006-affected-debug": {
+      "primary_occurrences": 0,
+      "normalized": {},
+      "new_vs_baseline": []
+    },
+    "FINAL-FIX-007-affected-release": {
+      "primary_occurrences": 49,
+      "normalized": {
+        "Sources/PipelineKitCore/Context/ExecutionContext.swift: warning: 'withValue(_:operation:isolation:file:line:)' is deprecated: Prefer the 'nonisolated(nonsending)' overload with stricter execution on caller context semantics: withValue(_:operation:file:line:) [#DeprecatedDeclaration]": 1,
+        "Sources/PipelineKitCache/CachingMiddleware.swift: warning: use of protocol 'Decodable' as a type must be written 'any Decodable'; this will be an error in a future Swift language mode [#ExistentialAny]": 1,
+        "Sources/PipelineKitSecurity/AuditLogger.swift: warning: 'withValue(_:operation:isolation:file:line:)' is deprecated: Prefer the 'nonisolated(nonsending)' overload with stricter execution on caller context semantics: withValue(_:operation:file:line:) [#DeprecatedDeclaration]": 1,
+        "Tests/PipelineKitPerformanceTests/BackPressurePerformanceTests.swift: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]": 1,
+        "Tests/PipelineKitPerformanceTests/PipelinePerformanceTests.swift: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]": 6,
+        "Tests/PipelineKitCacheTests/CompressionMiddlewareTests.swift: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]": 2,
+        "Tests/PipelineKitCacheTests/NextGuardSuppressionTests.swift: warning: 'is' test is always true": 4,
+        "Tests/PipelineKitCacheTests/SimpleCachingMiddlewareTests.swift: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]": 1,
+        "Tests/PipelineKitSecurityTests/AuthorizationMiddlewareTests.swift: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]": 2,
+        "Tests/PipelineKitObservabilityTests/PrometheusExporterTests.swift: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]": 18,
+        "Tests/PipelineKitCoreTests/Context/EventEmissionTests.swift: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]": 3,
+        "Tests/PipelineKitCoreTests/Core/CommandContextThreadSafetyTests.swift: warning: immutable value 'key' was never used; consider replacing with '_' or removing it [#NoUsage]": 1,
+        "Tests/PipelineKitCoreTests/Errors/CancellationErrorTests.swift: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]": 2,
+        "Tests/PipelineKitCoreTests/Middleware/MiddlewareTests.swift: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]": 1,
+        "Tests/PipelineKitCoreTests/Pipeline/PipelineTests.swift: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]": 1,
+        "Tests/PipelineKitResilienceTests/AsyncSemaphoreCancellationTests.swift: warning: immutable value 'i' was never used; consider replacing with '_' or removing it [#NoUsage]": 1,
+        "Tests/PipelineKitResilienceTests/PartitionedBulkheadConfigurationTests.swift: warning: 'maxBorrowPercentage' is deprecated: renamed to 'reservedCapacityPercentage' [#DeprecatedDeclaration]": 1,
+        "Tests/PipelineKitResilienceTests/PartitionedBulkheadConfigurationTests.swift: warning: 'init(partitions:partitionExtractor:defaultPartition:allowBorrowing:maxBorrowPercentage:emitMetrics:)' is deprecated: maxBorrowPercentage has always been the reserved (non-lendable) share \u2014 use reservedCapacityPercentage, which has identical semantics. [#DeprecatedDeclaration]": 1,
+        "Tests/PipelineKitResilienceTests/TimeoutMiddlewareCompileTests.swift: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]": 1
+      },
+      "new_vs_baseline": []
+    },
+    "FINAL-FIX-008-debug-discovery": {
+      "primary_occurrences": 0,
+      "normalized": {},
+      "new_vs_baseline": []
+    },
+    "FINAL-FIX-009-debug-full": {
+      "primary_occurrences": 0,
+      "normalized": {},
+      "new_vs_baseline": []
+    },
+    "FINAL-FIX-010-release-discovery": {
+      "primary_occurrences": 3,
+      "normalized": {
+        "Sources/PipelineKitCore/Context/ExecutionContext.swift: warning: 'withValue(_:operation:isolation:file:line:)' is deprecated: Prefer the 'nonisolated(nonsending)' overload with stricter execution on caller context semantics: withValue(_:operation:file:line:) [#DeprecatedDeclaration]": 1,
+        "Sources/PipelineKitCache/CachingMiddleware.swift: warning: use of protocol 'Decodable' as a type must be written 'any Decodable'; this will be an error in a future Swift language mode [#ExistentialAny]": 1,
+        "Sources/PipelineKitSecurity/AuditLogger.swift: warning: 'withValue(_:operation:isolation:file:line:)' is deprecated: Prefer the 'nonisolated(nonsending)' overload with stricter execution on caller context semantics: withValue(_:operation:file:line:) [#DeprecatedDeclaration]": 1
+      },
+      "new_vs_baseline": []
+    },
+    "FINAL-FIX-011-release-full": {
+      "primary_occurrences": 0,
+      "normalized": {},
+      "new_vs_baseline": []
+    },
+    "FINAL-FIX-012-tsan": {
+      "primary_occurrences": 27,
+      "normalized": {
+        "Sources/PipelineKitCache/CachingMiddleware.swift: warning: use of protocol 'Decodable' as a type must be written 'any Decodable'; this will be an error in a future Swift language mode [#ExistentialAny]": 1,
+        "Tests/PipelineKitPerformanceTests/PipelinePerformanceTests.swift: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]": 6,
+        "Tests/PipelineKitCacheTests/NextGuardSuppressionTests.swift: warning: 'is' test is always true": 4,
+        "Tests/PipelineKitCacheTests/CompressionMiddlewareTests.swift: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]": 2,
+        "Tests/PipelineKitCacheTests/SimpleCachingMiddlewareTests.swift: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]": 1,
+        "Tests/PipelineKitCoreTests/Middleware/MiddlewareTests.swift: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]": 2,
+        "Tests/PipelineKitCoreTests/Pipeline/PipelineTests.swift: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]": 2,
+        "Tests/PipelineKitSecurityTests/AuthorizationMiddlewareTests.swift: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]": 2,
+        "Tests/PipelineKitResilienceTests/TimeoutMiddlewareCompileTests.swift: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]": 1,
+        "Tests/PipelineKitCoreTests/Core/CommandContextThreadSafetyTests.swift: warning: immutable value 'key' was never used; consider replacing with '_' or removing it [#NoUsage]": 1,
+        "Tests/PipelineKitResilienceTests/PartitionedBulkheadConfigurationTests.swift: warning: 'maxBorrowPercentage' is deprecated: renamed to 'reservedCapacityPercentage' [#DeprecatedDeclaration]": 1,
+        "Tests/PipelineKitResilienceTests/PartitionedBulkheadConfigurationTests.swift: warning: 'init(partitions:partitionExtractor:defaultPartition:allowBorrowing:maxBorrowPercentage:emitMetrics:)' is deprecated: maxBorrowPercentage has always been the reserved (non-lendable) share \u2014 use reservedCapacityPercentage, which has identical semantics. [#DeprecatedDeclaration]": 1,
+        "Tests/PipelineKitCoreTests/Context/EventEmissionTests.swift: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]": 3
+      },
+      "new_vs_baseline": []
+    },
+    "FINAL-FIX-013-consumer-debug-build": {
+      "primary_occurrences": 1,
+      "normalized": {
+        "Sources/PipelineKitCache/CachingMiddleware.swift: warning: use of protocol 'Decodable' as a type must be written 'any Decodable'; this will be an error in a future Swift language mode [#ExistentialAny]": 1
+      },
+      "new_vs_baseline": []
+    },
+    "FINAL-FIX-014-cache-identity-debug": {
+      "primary_occurrences": 0,
+      "normalized": {},
+      "new_vs_baseline": []
+    },
+    "FINAL-FIX-015-consumer-release-build": {
+      "primary_occurrences": 3,
+      "normalized": {
+        "Sources/PipelineKitCore/Context/ExecutionContext.swift: warning: 'withValue(_:operation:isolation:file:line:)' is deprecated: Prefer the 'nonisolated(nonsending)' overload with stricter execution on caller context semantics: withValue(_:operation:file:line:) [#DeprecatedDeclaration]": 1,
+        "Sources/PipelineKitCache/CachingMiddleware.swift: warning: use of protocol 'Decodable' as a type must be written 'any Decodable'; this will be an error in a future Swift language mode [#ExistentialAny]": 1,
+        "Sources/PipelineKitSecurity/AuditLogger.swift: warning: 'withValue(_:operation:isolation:file:line:)' is deprecated: Prefer the 'nonisolated(nonsending)' overload with stricter execution on caller context semantics: withValue(_:operation:file:line:) [#DeprecatedDeclaration]": 1
+      },
+      "new_vs_baseline": []
+    },
+    "FINAL-FIX-016-cache-identity-release": {
+      "primary_occurrences": 0,
+      "normalized": {},
+      "new_vs_baseline": []
+    }
+  },
+  "runtime_configuration_by_run": {
+    "FINAL-FIX-001-red-build": {
+      "warning_count": 0,
+      "warnings": [],
+      "unsupported_semaphore_count": 0
+    },
+    "FINAL-FIX-002-context-red": {
+      "warning_count": 0,
+      "warnings": [],
+      "unsupported_semaphore_count": 0
+    },
+    "FINAL-FIX-003-context-red-direct": {
+      "warning_count": 0,
+      "warnings": [],
+      "unsupported_semaphore_count": 0
+    },
+    "FINAL-FIX-004-context-red-direct": {
+      "warning_count": 0,
+      "warnings": [],
+      "unsupported_semaphore_count": 0
+    },
+    "FINAL-FIX-005-matrix-debug": {
+      "warning_count": 0,
+      "warnings": [],
+      "unsupported_semaphore_count": 0
+    },
+    "FINAL-FIX-006-affected-debug": {
+      "warning_count": 0,
+      "warnings": [],
+      "unsupported_semaphore_count": 0
+    },
+    "FINAL-FIX-007-affected-release": {
+      "warning_count": 0,
+      "warnings": [],
+      "unsupported_semaphore_count": 0
+    },
+    "FINAL-FIX-008-debug-discovery": {
+      "warning_count": 0,
+      "warnings": [],
+      "unsupported_semaphore_count": 0
+    },
+    "FINAL-FIX-009-debug-full": {
+      "warning_count": 0,
+      "warnings": [],
+      "unsupported_semaphore_count": 0
+    },
+    "FINAL-FIX-010-release-discovery": {
+      "warning_count": 0,
+      "warnings": [],
+      "unsupported_semaphore_count": 0
+    },
+    "FINAL-FIX-011-release-full": {
+      "warning_count": 0,
+      "warnings": [],
+      "unsupported_semaphore_count": 0
+    },
+    "FINAL-FIX-012-tsan": {
+      "warning_count": 0,
+      "warnings": [],
+      "unsupported_semaphore_count": 0
+    },
+    "FINAL-FIX-013-consumer-debug-build": {
+      "warning_count": 0,
+      "warnings": [],
+      "unsupported_semaphore_count": 0
+    },
+    "FINAL-FIX-014-cache-identity-debug": {
+      "warning_count": 0,
+      "warnings": [],
+      "unsupported_semaphore_count": 0
+    },
+    "FINAL-FIX-015-consumer-release-build": {
+      "warning_count": 0,
+      "warnings": [],
+      "unsupported_semaphore_count": 0
+    },
+    "FINAL-FIX-016-cache-identity-release": {
+      "warning_count": 0,
+      "warnings": [],
+      "unsupported_semaphore_count": 0
+    }
+  },
+  "limits": "Incremental builds do not emit every inherited warning. No warning-free branch claim. FINAL-FIX-003 diagnostic environment dump was redacted before staging; see its redaction record."
+}

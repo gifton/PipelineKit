@@ -1,0 +1,25 @@
+{
+  "id": "R05-001-original-api-red",
+  "cwd": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization",
+  "head": "36af96b68a377885c3b7897a0cc10c21739a6697",
+  "branch": "fix/stabilization-batch-1",
+  "git_status": " M docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/DECISIONS.md\n M docs/superpowers/plans/2026-10-29-pipelinekit-stabilization-resilience.md\n?? Tests/PipelineKitResilienceTests/RateLimitScopeContractTests.swift\n?? audit/\n?? docs/PIPELINEKIT_AUDIT_GUIDE.md\n?? docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/r05_source_state.py\n",
+  "source_sha256": {
+    "Sources/PipelineKitResilienceRateLimiting/RateLimiter.swift": "16f616ac6ffb9052372c9a5a7c745b1696ba342f9e8b7806ef903cf2482fe680",
+    "Sources/PipelineKitResilienceRateLimiting/Algorithms/TokenBucket.swift": "988756dd44e58a1b21cf2f44be822a23a3b2babc5d4bb9680bb66a18eae8c81a",
+    "Sources/PipelineKitResilienceRateLimiting/Algorithms/SlidingWindow.swift": "b50805a4b1cea4f52f7fa10d8f33f4cfa74bcdc7ac06c7feb26db4aec6375e43",
+    "Sources/PipelineKitResilienceRateLimiting/Algorithms/FixedWindow.swift": "18f60fe8703d16aa021e61a8039dd1fbbb1107eefbee8d1a3680dd9071aa5aa9",
+    "Sources/PipelineKitResilienceRateLimiting/Algorithms/LeakyBucket.swift": "52a6ab73d451bbd715c0bc6b5ca23144ac1dd5b46ce077f110061d9a64700be4",
+    "Tests/PipelineKitResilienceTests/RateLimitScopeContractTests.swift": "f497d07fc1ca206e7b4fa1f5cc3009c20f70e609550e1cc20f12eb3eaa12b492",
+    "docs/migrations/first-stabilization-batch.md": "8cac634ec43534bef4a25c99764e63c17b656b25c45cd03cc08b05da5576b12a"
+  },
+  "retained_sha256": {
+    "audit/pipelinekit/2026-10-28-a93a713-local/logs/V300-global-rate.json": "4b389c1f0445f76e266acb3f3a1e4b2b6b8c855343f654202a955030cd270f70",
+    "audit/pipelinekit/2026-10-28-a93a713-local/logs/V300-global-rate.log": "0efe0ab9e6efa33ce851876b08f701568d98ec00512a422ece91bc74992050cc",
+    "Package.swift": "f9e66a25c968fd8d4a1461efd4c4a62fcc0e1e63bcca2f0bd617e8edd9f18adb",
+    "Package.resolved": "f3fa663ca0f1c77b0b5019bce908ef38a95911202c5f1c16de2d4fe01965ddc4",
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py": "9fad75b0f9d7216c7467bab2d3b9fd341ef5e2313fd4365c491234eafb480dd0"
+  },
+  "diff": "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/R05-001-original-api-red-source.diff",
+  "diff_sha256": "60018b1a9b62f55c0d16a9757aab96eaa6c3fcdc6b749455f9e3f8cea9409842"
+}

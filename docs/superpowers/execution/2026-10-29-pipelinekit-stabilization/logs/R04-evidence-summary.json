@@ -1,0 +1,157 @@
+{
+  "base": "d3d31014d0668a8aded29344e4b43eb739f0a6f0",
+  "runs": {
+    "R04-001-recovery-red": {
+      "command": [
+        "swift",
+        "test",
+        "--filter",
+        "HealthRecoveryContractTests.testBlockedServiceRecoversWhenFailureWindowExpires"
+      ],
+      "elapsed_seconds": 9.317,
+      "exit_status": 1,
+      "runner_exit_status": 1,
+      "watchdog_timeout": false,
+      "runner_error": null,
+      "cleanup_settled": true,
+      "survivors": [],
+      "termination_actions": [],
+      "xctest_summary_lines": [],
+      "xctest_progress_count": 0,
+      "xctest_progress_unique": 0,
+      "swift_testing_summary": [],
+      "artifacts": {
+        "R04-001-recovery-red.log": "bf3ae43fafd3fb5dff09cb0f3e7b19edf5ef6b442c0280057b4e336921cb8c6f",
+        "R04-001-recovery-red.json": "4f0497f8e2ac55cbf75a34ab0f84c0c6ff5ca39bbe9bb29947f909041f2321ca",
+        "R04-001-recovery-red.processes.jsonl": "a99e21bc091087b020d3bcace420fb785427195589530a81ca40fc9affb7039b"
+      }
+    },
+    "R04-002-recovery-red": {
+      "command": [
+        "swift",
+        "test",
+        "--filter",
+        "HealthRecoveryContractTests"
+      ],
+      "elapsed_seconds": 14.008,
+      "exit_status": 1,
+      "runner_exit_status": 1,
+      "watchdog_timeout": false,
+      "runner_error": null,
+      "cleanup_settled": true,
+      "survivors": [],
+      "termination_actions": [],
+      "xctest_summary_lines": [
+        "Executed 11 tests, with 250 failures (0 unexpected) in 5.572 (5.573) seconds",
+        "Executed 11 tests, with 250 failures (0 unexpected) in 5.572 (5.574) seconds"
+      ],
+      "xctest_progress_count": 0,
+      "xctest_progress_unique": 0,
+      "swift_testing_summary": [],
+      "artifacts": {
+        "R04-002-recovery-red.log": "a28591f63cd9ec547d1a1ab03650238266d6b0fa3f6f24f485a7cc9accdcc9dc",
+        "R04-002-recovery-red.json": "ae04353b279ae2a3e7ca7a0a89f7cc7833354bdde8ed674d8d1da8e4872e0a0c",
+        "R04-002-recovery-red.processes.jsonl": "1fdf57ed560b3c228a660e9a57720d093ed0795dd7fff297140536af87d44eb8"
+      }
+    },
+    "R04-003-health-focused": {
+      "command": [
+        "swift",
+        "test",
+        "--filter",
+        "HealthRecoveryContractTests|HealthCheckMiddlewareTests"
+      ],
+      "elapsed_seconds": 9.688,
+      "exit_status": 0,
+      "runner_exit_status": 0,
+      "watchdog_timeout": false,
+      "runner_error": null,
+      "cleanup_settled": true,
+      "survivors": [],
+      "termination_actions": [],
+      "xctest_summary_lines": [
+        "Executed 11 tests, with 0 failures (0 unexpected) in 0.056 (0.056) seconds",
+        "Executed 13 tests, with 3 tests skipped and 0 failures (0 unexpected) in 0.147 (0.148) seconds",
+        "Executed 24 tests, with 3 tests skipped and 0 failures (0 unexpected) in 0.203 (0.204) seconds",
+        "Executed 24 tests, with 3 tests skipped and 0 failures (0 unexpected) in 0.203 (0.205) seconds"
+      ],
+      "xctest_progress_count": 0,
+      "xctest_progress_unique": 0,
+      "swift_testing_summary": [],
+      "artifacts": {
+        "R04-003-health-focused.log": "cbcabf874b09c8c48e2b11aa099d39aa52ae7ab0edef038baa4c97feaaec77f2",
+        "R04-003-health-focused.json": "57e330a57eb2b2d178753c51f7bace6e56a8c2a1d41d4287bc3b099b6b72b9a5",
+        "R04-003-health-focused.processes.jsonl": "1f8db1218763ee0abdcac67a48b94b21eb36c48f42afe267ef41bd21178937ef"
+      }
+    },
+    "R04-004-branch-controls-red": {
+      "command": [
+        "swift",
+        "test",
+        "--filter",
+        "HealthRecoveryContractTests.testPartiallyExpiredWindowUsesFreshProbeOrUnknown|HealthRecoveryContractTests.testProbeExpiryWithSufficientSuccessfulRequests"
+      ],
+      "elapsed_seconds": 10.286,
+      "exit_status": 1,
+      "runner_exit_status": 1,
+      "watchdog_timeout": false,
+      "runner_error": null,
+      "cleanup_settled": true,
+      "survivors": [],
+      "termination_actions": [],
+      "xctest_summary_lines": [
+        "Executed 2 tests, with 101 failures (0 unexpected) in 0.254 (0.254) seconds",
+        "Executed 2 tests, with 101 failures (0 unexpected) in 0.254 (0.255) seconds"
+      ],
+      "xctest_progress_count": 0,
+      "xctest_progress_unique": 0,
+      "swift_testing_summary": [],
+      "artifacts": {
+        "R04-004-branch-controls-red.log": "134ac76c804bc4f45624129f08ea36bc332e14873af947341ef4166cc216dfc4",
+        "R04-004-branch-controls-red.json": "e0b688ebd2fc888df041a8106f9ef9f88741154f6d27458839ca61a5333cdf7d",
+        "R04-004-branch-controls-red.processes.jsonl": "883cab94e3a904dd39dd6d56aaa6d5e4be67210b24a9e7496d70255c8abd7954"
+      }
+    },
+    "R04-005-debug-full": {
+      "command": [
+        "swift",
+        "test",
+        "--parallel",
+        "--skip",
+        "PipelineKitPerformanceTests"
+      ],
+      "elapsed_seconds": 19.433,
+      "exit_status": 0,
+      "runner_exit_status": 0,
+      "watchdog_timeout": false,
+      "runner_error": null,
+      "cleanup_settled": true,
+      "survivors": [],
+      "termination_actions": [],
+      "xctest_summary_lines": [],
+      "xctest_progress_count": 1121,
+      "xctest_progress_unique": 1121,
+      "swift_testing_summary": [
+        "\udbc4\udc5b  Test run with 20 tests in 5 suites passed after 0.001 seconds."
+      ],
+      "artifacts": {
+        "R04-005-debug-full.log": "93f46ff5f694a70188259ae39999e41320dfb85448d456d841679d66b1c526dc",
+        "R04-005-debug-full.json": "f15676c33da58e61de50506d164b054640aae3965f492416f7ea76161d3b6a99",
+        "R04-005-debug-full.processes.jsonl": "a3f65e7c5f445ab9854058d5acefcbabd38d8b243f590a4e807a04efb50eb69c"
+      }
+    }
+  },
+  "source_states": {
+    "R04-001-source-state.json": "060c4b813039c088a963cba818eebc407a296e241b6603feaccdb72d50eb120e",
+    "R04-002-source-state.json": "339a91d1956f41e98a0e4e28f9cb8c7fbf89d29acbccf80ef05378a323cb3b71",
+    "R04-003-source-state.json": "c633cd7310bed5d009e8dd7d5faa53bf12f9b15ff560dd509d040eeb0bcf72c7",
+    "R04-004-source-state.json": "93e2e2a6fc16502b3254cd7b1b6c654388edd91db98903c2d9e998021dbf33ea",
+    "R04-final-source-state.json": "dd78e7a54760fd275335487aa6cb0ebdca4ec0b2a98f22421a88e951abbf4bb4"
+  },
+  "limitations": [
+    "R04-001 is a fixture build failure, not behavioral red.",
+    "Full parallel XCTest progress denotes selections, not individual pass/skip counts.",
+    "Runtime/configuration diagnostics are separately scanned; absence in incremental/parallel output is not a clean-baseline claim.",
+    "Automatic scheduling and monitor lifecycle were not runtime-verified; R-F06 remains open."
+  ]
+}

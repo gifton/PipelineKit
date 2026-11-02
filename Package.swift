@@ -134,7 +134,7 @@ let package = Package(
         // Resilience module tests
         .testTarget(
             name: "PipelineKitResilienceTests",
-            dependencies: ["PipelineKitResilience", "PipelineKitTestSupport"],
+            dependencies: ["PipelineKitResilience", "PipelineKitTestSupport", "_ResilienceFoundation"],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency"),
                 .unsafeFlags(["-enable-testing"], .when(configuration: .debug))

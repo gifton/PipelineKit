@@ -1,0 +1,74 @@
+Building for debugging...
+[Computing dependencies]
+[Using on-disk description]
+[2 / 7] PipelineKitTestSupportTests-product
+[6 / 9] PipelineKitTestSupportTests-product
+[9 / 13] PipelineKitTestSupportTests-product
+Build complete! (1.26 sec)
+Test Suite 'Selected tests' started at 2026-10-30 13:11:43.178.
+Test Suite 'PipelineKitTests.xctest' started at 2026-10-30 13:11:43.179.
+Test Suite 'PipelineKitTests.xctest' passed at 2026-10-30 13:11:43.179.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 13:11:43.179.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 13:11:43.238.
+Test Suite 'PipelineKitTestSupportTests.xctest' started at 2026-10-30 13:11:43.239.
+Test Suite 'ThroughputMeasurementTests' started at 2026-10-30 13:11:43.239.
+Test Case '-[PipelineKitTestSupportTests.ThroughputMeasurementTests testMismatchInZeroDurationBatchFailsBeforeRetry]' started.
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitTestSupportTests/ThroughputMeasurementTests.swift:40: error: -[PipelineKitTestSupportTests.ThroughputMeasurementTests testMismatchInZeroDurationBatchFailsBeforeRetry] : failed - Expected mismatch
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitTestSupportTests/ThroughputMeasurementTests.swift:44: error: -[PipelineKitTestSupportTests.ThroughputMeasurementTests testMismatchInZeroDurationBatchFailsBeforeRetry] : XCTAssertEqual failed: ("[3, 6]") is not equal to ("[3]")
+Test Case '-[PipelineKitTestSupportTests.ThroughputMeasurementTests testMismatchInZeroDurationBatchFailsBeforeRetry]' failed (0.094 seconds).
+Test Case '-[PipelineKitTestSupportTests.ThroughputMeasurementTests testRepeatedZeroDurationFailsAfterBoundedRetries]' started.
+Test Case '-[PipelineKitTestSupportTests.ThroughputMeasurementTests testRepeatedZeroDurationFailsAfterBoundedRetries]' passed (0.000 seconds).
+Test Case '-[PipelineKitTestSupportTests.ThroughputMeasurementTests testZeroDurationRetriesWithMoreWork]' started.
+Test Case '-[PipelineKitTestSupportTests.ThroughputMeasurementTests testZeroDurationRetriesWithMoreWork]' passed (0.000 seconds).
+Test Suite 'ThroughputMeasurementTests' failed at 2026-10-30 13:11:43.334.
+	 Executed 3 tests, with 2 failures (0 unexpected) in 0.095 (0.095) seconds
+Test Suite 'PipelineKitTestSupportTests.xctest' failed at 2026-10-30 13:11:43.334.
+	 Executed 3 tests, with 2 failures (0 unexpected) in 0.095 (0.095) seconds
+Test Suite 'Selected tests' failed at 2026-10-30 13:11:43.334.
+	 Executed 3 tests, with 2 failures (0 unexpected) in 0.095 (0.096) seconds
+Test Suite 'Selected tests' started at 2026-10-30 13:11:43.412.
+Test Suite 'PipelineKitSecurityTests.xctest' started at 2026-10-30 13:11:43.413.
+Test Suite 'PipelineKitSecurityTests.xctest' passed at 2026-10-30 13:11:43.413.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 13:11:43.413.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 13:11:43.489.
+Test Suite 'PipelineKitResilienceTests.xctest' started at 2026-10-30 13:11:43.490.
+Test Suite 'PipelineKitResilienceTests.xctest' passed at 2026-10-30 13:11:43.490.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 13:11:43.490.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 13:11:43.566.
+Test Suite 'PipelineKitPoolingTests.xctest' started at 2026-10-30 13:11:43.567.
+Test Suite 'PipelineKitPoolingTests.xctest' passed at 2026-10-30 13:11:43.567.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 13:11:43.567.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 13:11:43.643.
+Test Suite 'PipelineKitPerformanceTests.xctest' started at 2026-10-30 13:11:43.644.
+Test Suite 'PipelineKitPerformanceTests.xctest' passed at 2026-10-30 13:11:43.644.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 13:11:43.644.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 13:11:43.720.
+Test Suite 'PipelineKitObservabilityTests.xctest' started at 2026-10-30 13:11:43.720.
+Test Suite 'PipelineKitObservabilityTests.xctest' passed at 2026-10-30 13:11:43.720.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 13:11:43.721.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 13:11:43.798.
+Test Suite 'PipelineKitCoreTests.xctest' started at 2026-10-30 13:11:43.799.
+Test Suite 'PipelineKitCoreTests.xctest' passed at 2026-10-30 13:11:43.799.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 13:11:43.799.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 13:11:43.876.
+Test Suite 'PipelineKitCacheTests.xctest' started at 2026-10-30 13:11:43.876.
+Test Suite 'PipelineKitCacheTests.xctest' passed at 2026-10-30 13:11:43.876.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 13:11:43.876.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Note: Some test targets reported failures:
+  - PipelineKitTestSupportTests (XCTest)

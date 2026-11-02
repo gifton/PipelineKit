@@ -1,0 +1,435 @@
+{
+  "id": "V04-011-matrix-cleanup_failure",
+  "mode": "cleanup_failure",
+  "fixture_directory": "/var/folders/_c/7_fgg5v57d56kt4wd9bcsdj40000gn/T/V04-011-matrix-cleanup_failure-vs_9_5h0",
+  "old_runner": false,
+  "invocation": [
+    "/opt/homebrew/opt/python@3.14/bin/python3.14",
+    "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/v04_process_fixtures.py",
+    "--inject",
+    "cleanup_failure",
+    "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py",
+    "--id",
+    "V04-011-matrix-cleanup_failure",
+    "--timeout",
+    "3",
+    "--",
+    "/opt/homebrew/opt/python@3.14/bin/python3.14",
+    "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/v04_process_fixtures.py",
+    "--worker",
+    "cleanup_failure",
+    "/var/folders/_c/7_fgg5v57d56kt4wd9bcsdj40000gn/T/V04-011-matrix-cleanup_failure-vs_9_5h0"
+  ],
+  "owned_before_detach_acknowledged": true,
+  "detached": {
+    "pid": 47973,
+    "ppid": 47971,
+    "pgid": 47973,
+    "state": 2,
+    "start": [
+      1793402392,
+      879712
+    ]
+  },
+  "runner_status": 125,
+  "metadata": {
+    "id": "V04-011-matrix-cleanup_failure",
+    "cwd": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization",
+    "command": [
+      "/opt/homebrew/opt/python@3.14/bin/python3.14",
+      "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/v04_process_fixtures.py",
+      "--worker",
+      "cleanup_failure",
+      "/var/folders/_c/7_fgg5v57d56kt4wd9bcsdj40000gn/T/V04-011-matrix-cleanup_failure-vs_9_5h0"
+    ],
+    "started_utc": "2026-10-30T23:19:52.827992+00:00",
+    "elapsed_seconds": 5.156,
+    "exit_status": null,
+    "watchdog_timeout": false,
+    "log": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/V04-011-matrix-cleanup_failure.log",
+    "runner_exit_status": 125,
+    "runner_error": "RuntimeError: V04 injected cleanup failure after acknowledged detach",
+    "cleanup": {
+      "settled": false,
+      "survivors": [
+        {
+          "identity": {
+            "pid": 47971,
+            "start": [
+              1793402392,
+              828566
+            ]
+          },
+          "state": "live"
+        },
+        {
+          "identity": {
+            "pid": 47973,
+            "start": [
+              1793402392,
+              879712
+            ]
+          },
+          "state": "live"
+        }
+      ],
+      "outcomes": [
+        {
+          "identity": {
+            "pid": 47971,
+            "start": [
+              1793402392,
+              828566
+            ]
+          },
+          "state": "live"
+        },
+        {
+          "identity": {
+            "pid": 47973,
+            "start": [
+              1793402392,
+              879712
+            ]
+          },
+          "state": "live"
+        }
+      ],
+      "inspection_errors": [],
+      "term_grace_seconds": 2.0,
+      "kill_grace_seconds": 3.0
+    },
+    "event_errors": [],
+    "completion_reason": "runner_error",
+    "unexpected_descendants": [],
+    "owned_processes": [
+      {
+        "identity": {
+          "pid": 47971,
+          "start": [
+            1793402392,
+            828566
+          ]
+        },
+        "observed_parent": null,
+        "first_seen_seconds": 0.00235,
+        "observations": [
+          {
+            "ppid": 47970,
+            "pgid": 47971,
+            "state": 2
+          }
+        ]
+      },
+      {
+        "identity": {
+          "pid": 47973,
+          "start": [
+            1793402392,
+            879712
+          ]
+        },
+        "observed_parent": {
+          "pid": 47971,
+          "start": [
+            1793402392,
+            828566
+          ]
+        },
+        "first_seen_seconds": 0.052546,
+        "observations": [
+          {
+            "ppid": 47971,
+            "pgid": 47971,
+            "state": 2
+          },
+          {
+            "ppid": 47971,
+            "pgid": 47973,
+            "state": 2
+          }
+        ]
+      }
+    ],
+    "termination_actions": [
+      {
+        "identity": {
+          "pid": 47971,
+          "start": [
+            1793402392,
+            828566
+          ]
+        },
+        "signal": "SIGTERM",
+        "elapsed_seconds": 0.134526,
+        "verified_before_signal": {
+          "pid": 47971,
+          "start": [
+            1793402392,
+            828566
+          ],
+          "ppid": 47970,
+          "pgid": 47971,
+          "state": 2
+        },
+        "result": "signal_error",
+        "error": "PermissionError: V04 injected signal denial"
+      },
+      {
+        "identity": {
+          "pid": 47973,
+          "start": [
+            1793402392,
+            879712
+          ]
+        },
+        "signal": "SIGTERM",
+        "elapsed_seconds": 0.134599,
+        "verified_before_signal": {
+          "pid": 47973,
+          "start": [
+            1793402392,
+            879712
+          ],
+          "ppid": 47971,
+          "pgid": 47973,
+          "state": 2
+        },
+        "result": "signal_error",
+        "error": "PermissionError: V04 injected signal denial"
+      },
+      {
+        "identity": {
+          "pid": 47971,
+          "start": [
+            1793402392,
+            828566
+          ]
+        },
+        "signal": "SIGKILL",
+        "elapsed_seconds": 2.155684,
+        "verified_before_signal": {
+          "pid": 47971,
+          "start": [
+            1793402392,
+            828566
+          ],
+          "ppid": 47970,
+          "pgid": 47971,
+          "state": 2
+        },
+        "result": "signal_error",
+        "error": "PermissionError: V04 injected signal denial"
+      },
+      {
+        "identity": {
+          "pid": 47973,
+          "start": [
+            1793402392,
+            879712
+          ]
+        },
+        "signal": "SIGKILL",
+        "elapsed_seconds": 2.15579,
+        "verified_before_signal": {
+          "pid": 47973,
+          "start": [
+            1793402392,
+            879712
+          ],
+          "ppid": 47971,
+          "pgid": 47973,
+          "state": 2
+        },
+        "result": "signal_error",
+        "error": "PermissionError: V04 injected signal denial"
+      }
+    ],
+    "process_events": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/V04-011-matrix-cleanup_failure.processes.jsonl",
+    "ownership_backend": "macOS libproc PID + start timeval",
+    "containment_limits": [
+      "Only lineages observed before reparenting are owned; instant unobserved daemonization can escape.",
+      "Identity check and kill are separate syscalls; PID reuse in that interval cannot be excluded.",
+      "Zombie means no executing process; non-child zombie reaping belongs to its parent.",
+      "SIGKILL of the runner or host failure can bypass cleanup; Linux is unsupported and unvalidated."
+    ]
+  },
+  "owned_survivors_before_independent_cleanup": [
+    {
+      "pid": 47971,
+      "ppid": 47970,
+      "pgid": 47971,
+      "state": 2,
+      "start": [
+        1793402392,
+        828566
+      ]
+    },
+    {
+      "pid": 47973,
+      "ppid": 47971,
+      "pgid": 47971,
+      "state": 2,
+      "start": [
+        1793402392,
+        879712
+      ]
+    }
+  ],
+  "sentinel_survived": true,
+  "sentinel_was_signaled": false,
+  "owned_after_cleanup": {
+    "settled": false,
+    "survivors": [
+      {
+        "identity": {
+          "pid": 47971,
+          "start": [
+            1793402392,
+            828566
+          ]
+        },
+        "state": "live"
+      },
+      {
+        "identity": {
+          "pid": 47973,
+          "start": [
+            1793402392,
+            879712
+          ]
+        },
+        "state": "live"
+      }
+    ],
+    "outcomes": [
+      {
+        "identity": {
+          "pid": 47971,
+          "start": [
+            1793402392,
+            828566
+          ]
+        },
+        "state": "live"
+      },
+      {
+        "identity": {
+          "pid": 47973,
+          "start": [
+            1793402392,
+            879712
+          ]
+        },
+        "state": "live"
+      }
+    ],
+    "inspection_errors": [],
+    "term_grace_seconds": 2.0,
+    "kill_grace_seconds": 3.0
+  },
+  "passed": true,
+  "independent_cleanup": {
+    "settled": true,
+    "actions": [
+      {
+        "identity": {
+          "pid": 47973,
+          "ppid": 47971,
+          "pgid": 47973,
+          "state": 2,
+          "start": [
+            1793402392,
+            879712
+          ]
+        },
+        "signal": 15,
+        "result": "sent"
+      },
+      {
+        "identity": {
+          "pid": 47971,
+          "ppid": 47970,
+          "pgid": 47971,
+          "state": 2,
+          "start": [
+            1793402392,
+            828566
+          ]
+        },
+        "signal": 15,
+        "result": "sent"
+      },
+      {
+        "identity": {
+          "pid": 47968,
+          "ppid": 47661,
+          "pgid": 47661,
+          "state": 2,
+          "start": [
+            1793402392,
+            717256
+          ]
+        },
+        "signal": 15,
+        "result": "sent"
+      },
+      {
+        "identity": {
+          "pid": 47968,
+          "ppid": 47661,
+          "pgid": 47661,
+          "state": 2,
+          "start": [
+            1793402392,
+            717256
+          ]
+        },
+        "signal": 9,
+        "result": "sent"
+      }
+    ],
+    "identities": [
+      {
+        "pid": 47968,
+        "ppid": 47661,
+        "pgid": 47661,
+        "state": 2,
+        "start": [
+          1793402392,
+          717256
+        ]
+      },
+      {
+        "pid": 47970,
+        "ppid": 47661,
+        "pgid": 47661,
+        "state": 2,
+        "start": [
+          1793402392,
+          775583
+        ]
+      },
+      {
+        "pid": 47971,
+        "ppid": 47970,
+        "pgid": 47971,
+        "state": 2,
+        "start": [
+          1793402392,
+          828566
+        ]
+      },
+      {
+        "pid": 47973,
+        "ppid": 47971,
+        "pgid": 47973,
+        "state": 2,
+        "start": [
+          1793402392,
+          879712
+        ]
+      }
+    ]
+  }
+}

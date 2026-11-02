@@ -1,5 +1,8 @@
 # PipelineKit Resilience Patterns
 
+For the next minor release, follow the [compiled stabilization migration guide](../migrations/first-stabilization-batch.md). Ordinary and partitioned queue timeouts accept nil (unbounded), finite nonpositive values (no wait), or finite positive values at most 86,400 seconds; nonfinite and larger positive values are invalid. Nil does not preserve a longer finite deadline. Capacity remains owned until downstream work settles. Distributed scope-key changes require coordinated counter migration; typed timeout classification ignores non-timeout PipelineError payload text.
+
+
 This document provides guidance on using PipelineKit's resilience middleware effectively. Understanding when and how to use each pattern is critical for building robust, production-ready command pipelines.
 
 ## Pattern Overview
@@ -47,9 +50,9 @@ different priority values.
 
 3. **Bulkhead Third**: Bound concurrent executions (or, with `PartitionedBulkheadMiddleware`, isolate them by partition — tenant, service, etc.) to prevent one workload from starving the rest.
 
-4. **Timeout Fourth**: Bound the worst-case execution time. This applies to the retry loop as a whole.
+4. **Timeout Fourth**: Request cancellation of the retry loop after its budget. Cancellation-insensitive work can delay settlement; this is not a hard deadline.
 
-5. **Retry Last (Innermost)**: Retry transient failures from the handler. The retry loop is bounded by the timeout. Since all four share `.resilience` priority, adding them to `addMiddleware` in this exact sequence is what actually produces this order.
+5. **Retry Last (Innermost)**: Retry transient failures from the handler. The timeout requests cancellation of the retry loop; completion still requires downstream settlement. Since all four share `.resilience` priority, adding them to `addMiddleware` in this exact sequence is what actually produces this order.
 
 ## Choosing the Right Pattern
 

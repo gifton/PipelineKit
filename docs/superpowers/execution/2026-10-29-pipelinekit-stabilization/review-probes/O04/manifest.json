@@ -1,0 +1,12 @@
+{
+  "base": "7eea361fbaebb12199dcd9581a485ece170648f8",
+  "head": "45f7404",
+  "hypothesis": "A positive Duration above Int64.max seconds traps in components before saturation; negative guard returns before components.",
+  "source_path": "Sources/PipelineKitPooling/DurationNanoseconds.swift",
+  "runner_source_path": "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py",
+  "sha256": {
+    "DurationNanoseconds.swift": "fb778ac9cf97fad9e316f241532a98515934d528ae40e9b9d4ddd657dea8af14",
+    "main.swift": "8b8ce44f35344c034dfef4c19537b844752e1ad0fdab3929c1a872c53f3ebdf9",
+    "repros/run_check.py": "9fad75b0f9d7216c7467bab2d3b9fd341ef5e2313fd4365c491234eafb480dd0"
+  }
+}

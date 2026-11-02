@@ -1,0 +1,113 @@
+Building for debugging...
+[Computing dependencies]
+[Using on-disk description]
+[1 / 4] PipelineKit
+[2 / 3] PipelineKit
+[4 / 5] PipelineKit
+[9 / 11] PipelineKitObservability
+[10 / 11] PipelineKitTests-product
+[12 / 13] PipelineKitTests-product
+[13 / 14] PipelineKitTests-product
+[19 / 23] PipelineKitTests-product
+[22 / 23] PipelineKitTestSupportTests-product
+[25 / 26] PipelineKitSecurityTests-product
+[28 / 29] PipelineKitResilienceTests-product
+[31 / 32] PipelineKitPoolingTests-product
+[34 / 35] PipelineKitPerformanceTests-product
+[37 / 38] PipelineKitObservabilityTests-product
+[40 / 42] PipelineKitCoreTests-product
+[43 / 44] PipelineKitCacheTests-product
+[52 / 52] PipelineKitTestSupport-product
+Build complete! (4.67 sec)
+Test Suite 'Selected tests' started at 2026-10-30 16:57:05.152.
+Test Suite 'PipelineKitTests.xctest' started at 2026-10-30 16:57:05.153.
+Test Suite 'DynamicPipelineChainCacheTests' started at 2026-10-30 16:57:05.153.
+Test Case '-[PipelineKitTests.DynamicPipelineChainCacheTests testDynamicPipelineInvalidatesOnAddMiddleware]' started.
+Test Case '-[PipelineKitTests.DynamicPipelineChainCacheTests testDynamicPipelineInvalidatesOnAddMiddleware]' passed (0.001 seconds).
+Test Case '-[PipelineKitTests.DynamicPipelineChainCacheTests testDynamicPipelineInvalidatesOnHandlerReplace]' started.
+Test Case '-[PipelineKitTests.DynamicPipelineChainCacheTests testDynamicPipelineInvalidatesOnHandlerReplace]' passed (0.000 seconds).
+Test Case '-[PipelineKitTests.DynamicPipelineChainCacheTests testDynamicPipelineInvalidatesOnHandlerReRegister]' started.
+Test Case '-[PipelineKitTests.DynamicPipelineChainCacheTests testDynamicPipelineInvalidatesOnHandlerReRegister]' passed (0.000 seconds).
+Test Case '-[PipelineKitTests.DynamicPipelineChainCacheTests testDynamicPipelineInvalidatesOnUnregister]' started.
+Test Case '-[PipelineKitTests.DynamicPipelineChainCacheTests testDynamicPipelineInvalidatesOnUnregister]' passed (0.000 seconds).
+Test Case '-[PipelineKitTests.DynamicPipelineChainCacheTests testDynamicPipelineSendTwiceSucceeds]' started.
+Test Case '-[PipelineKitTests.DynamicPipelineChainCacheTests testDynamicPipelineSendTwiceSucceeds]' passed (0.000 seconds).
+Test Suite 'DynamicPipelineChainCacheTests' passed at 2026-10-30 16:57:05.155.
+	 Executed 5 tests, with 0 failures (0 unexpected) in 0.002 (0.002) seconds
+Test Suite 'StandardPipelineChainCacheTests' started at 2026-10-30 16:57:05.155.
+Test Case '-[PipelineKitTests.StandardPipelineChainCacheTests testCachedPipelineReleasesAfterExecution]' started.
+2026-10-30T16:57:05-0700 warning PipelineKit.Core: [PipelineKit] SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features.
+2026-10-30T16:57:05-0700 warning PipelineKit.Core: [PipelineKit] SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features.
+2026-10-30T16:57:05-0700 warning PipelineKit.Core: [PipelineKit] SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features.
+2026-10-30T16:57:05-0700 warning PipelineKit.Core: [PipelineKit] SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features.
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitTests/PipelineChainCacheTests.swift:166: error: -[PipelineKitTests.StandardPipelineChainCacheTests testCachedPipelineReleasesAfterExecution] : XCTAssertNil failed: "PipelineKit.StandardPipeline<PipelineKitTests.(unknown context at $109cfad48).EchoCommand, PipelineKitTests.(unknown context at $109cfae10).LifetimeHandler>" - typed pipeline retained in success
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitTests/PipelineChainCacheTests.swift:167: error: -[PipelineKitTests.StandardPipelineChainCacheTests testCachedPipelineReleasesAfterExecution] : XCTAssertNil failed: "PipelineKitTests.(unknown context at $109cfae10).LifetimeHandler" - typed handler retained in success
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitTests/PipelineChainCacheTests.swift:166: error: -[PipelineKitTests.StandardPipelineChainCacheTests testCachedPipelineReleasesAfterExecution] : XCTAssertNil failed: "PipelineKit.StandardPipeline<PipelineKitTests.(unknown context at $109cfad48).EchoCommand, PipelineKitTests.(unknown context at $109cfae10).LifetimeHandler>" - typed pipeline retained in throwing
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitTests/PipelineChainCacheTests.swift:167: error: -[PipelineKitTests.StandardPipelineChainCacheTests testCachedPipelineReleasesAfterExecution] : XCTAssertNil failed: "PipelineKitTests.(unknown context at $109cfae10).LifetimeHandler" - typed handler retained in throwing
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitTests/PipelineChainCacheTests.swift:166: error: -[PipelineKitTests.StandardPipelineChainCacheTests testCachedPipelineReleasesAfterExecution] : XCTAssertNil failed: "PipelineKit.StandardPipeline<PipelineKitTests.(unknown context at $109cfad48).EchoCommand, PipelineKitTests.(unknown context at $109cfae10).LifetimeHandler>" - typed pipeline retained in middlewareMutation
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitTests/PipelineChainCacheTests.swift:167: error: -[PipelineKitTests.StandardPipelineChainCacheTests testCachedPipelineReleasesAfterExecution] : XCTAssertNil failed: "PipelineKitTests.(unknown context at $109cfae10).LifetimeHandler" - typed handler retained in middlewareMutation
+Test Case '-[PipelineKitTests.StandardPipelineChainCacheTests testCachedPipelineReleasesAfterExecution]' failed (0.175 seconds).
+Test Case '-[PipelineKitTests.StandardPipelineChainCacheTests testStandardPipelineInvalidatesOnAddMiddleware]' started.
+Test Case '-[PipelineKitTests.StandardPipelineChainCacheTests testStandardPipelineInvalidatesOnAddMiddleware]' passed (0.000 seconds).
+Test Case '-[PipelineKitTests.StandardPipelineChainCacheTests testStandardPipelineInvalidatesOnClearMiddlewares]' started.
+Test Case '-[PipelineKitTests.StandardPipelineChainCacheTests testStandardPipelineInvalidatesOnClearMiddlewares]' passed (0.000 seconds).
+Test Case '-[PipelineKitTests.StandardPipelineChainCacheTests testStandardPipelineRepeatedExecutionsAllSucceed]' started.
+Test Case '-[PipelineKitTests.StandardPipelineChainCacheTests testStandardPipelineRepeatedExecutionsAllSucceed]' passed (0.000 seconds).
+Test Case '-[PipelineKitTests.StandardPipelineChainCacheTests testStandardPipelineReusesChainAcrossExecutions]' started.
+Test Case '-[PipelineKitTests.StandardPipelineChainCacheTests testStandardPipelineReusesChainAcrossExecutions]' passed (0.000 seconds).
+Test Suite 'StandardPipelineChainCacheTests' failed at 2026-10-30 16:57:05.331.
+	 Executed 5 tests, with 6 failures (0 unexpected) in 0.176 (0.176) seconds
+Test Suite 'PipelineKitTests.xctest' failed at 2026-10-30 16:57:05.331.
+	 Executed 10 tests, with 6 failures (0 unexpected) in 0.177 (0.178) seconds
+Test Suite 'Selected tests' failed at 2026-10-30 16:57:05.331.
+	 Executed 10 tests, with 6 failures (0 unexpected) in 0.177 (0.179) seconds
+Test Suite 'Selected tests' started at 2026-10-30 16:57:05.411.
+Test Suite 'PipelineKitTestSupportTests.xctest' started at 2026-10-30 16:57:05.412.
+Test Suite 'PipelineKitTestSupportTests.xctest' passed at 2026-10-30 16:57:05.412.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 16:57:05.412.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 16:57:05.491.
+Test Suite 'PipelineKitSecurityTests.xctest' started at 2026-10-30 16:57:05.491.
+Test Suite 'PipelineKitSecurityTests.xctest' passed at 2026-10-30 16:57:05.492.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 16:57:05.492.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 16:57:05.570.
+Test Suite 'PipelineKitResilienceTests.xctest' started at 2026-10-30 16:57:05.571.
+Test Suite 'PipelineKitResilienceTests.xctest' passed at 2026-10-30 16:57:05.571.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 16:57:05.571.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 16:57:05.648.
+Test Suite 'PipelineKitPoolingTests.xctest' started at 2026-10-30 16:57:05.649.
+Test Suite 'PipelineKitPoolingTests.xctest' passed at 2026-10-30 16:57:05.649.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 16:57:05.649.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 16:57:05.727.
+Test Suite 'PipelineKitPerformanceTests.xctest' started at 2026-10-30 16:57:05.728.
+Test Suite 'PipelineKitPerformanceTests.xctest' passed at 2026-10-30 16:57:05.728.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 16:57:05.728.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 16:57:05.806.
+Test Suite 'PipelineKitObservabilityTests.xctest' started at 2026-10-30 16:57:05.807.
+Test Suite 'PipelineKitObservabilityTests.xctest' passed at 2026-10-30 16:57:05.807.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 16:57:05.807.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 16:57:05.886.
+Test Suite 'PipelineKitCoreTests.xctest' started at 2026-10-30 16:57:05.887.
+Test Suite 'PipelineKitCoreTests.xctest' passed at 2026-10-30 16:57:05.887.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 16:57:05.887.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 16:57:05.965.
+Test Suite 'PipelineKitCacheTests.xctest' started at 2026-10-30 16:57:05.965.
+Test Suite 'PipelineKitCacheTests.xctest' passed at 2026-10-30 16:57:05.965.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 16:57:05.965.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Note: Some test targets reported failures:
+  - PipelineKitTests (XCTest)

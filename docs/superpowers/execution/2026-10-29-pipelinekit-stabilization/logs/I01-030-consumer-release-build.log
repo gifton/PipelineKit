@@ -1,0 +1,69 @@
+Building for production...
+[Computing dependencies]
+[Pre-planning 1 / 481]
+[Planning deferred tasks]
+[96 / 196] swift-crypto_Crypto
+[97 / 196]
+[107 / 208] Atomics
+[119 / 221]
+[134 / 238]
+[140 / 238] Crypto
+[147 / 260]
+[148 / 260]
+[153 / 260]
+[155 / 260]
+[158 / 260]
+[162 / 260]
+[164 / 260]
+[165 / 260]
+[173 / 260] Atomics
+[180 / 261] Logging
+[180 / 261] PipelineKitCore
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Sources/PipelineKitCore/Context/ExecutionContext.swift:94:45: warning: 'withValue(_:operation:isolation:file:line:)' is deprecated: Prefer the 'nonisolated(nonsending)' overload with stricter execution on caller context semantics: withValue(_:operation:file:line:) [#DeprecatedDeclaration]
+ 92 |         operation: () async throws -> T
+ 93 |     ) async rethrows -> T {
+ 94 |         try await ExecutionContext.$current.withValue(
+    |                                             `- warning: 'withValue(_:operation:isolation:file:line:)' is deprecated: Prefer the 'nonisolated(nonsending)' overload with stricter execution on caller context semantics: withValue(_:operation:file:line:) [#DeprecatedDeclaration]
+ 95 |             ExecutionContext(trace: snapshot.trace, progress: progress),
+ 96 |             operation: operation,
+
+[#DeprecatedDeclaration]: <https://docs.swift.org/compiler/documentation/diagnostics/deprecated-declaration>
+[189 / 263] PipelineKitCore
+[196 / 264] PipelineKit
+[198 / 265] PipelineKit
+[206 / 267] _ResilienceFoundation
+[211 / 271]
+[212 / 271] _ResilienceFoundation
+[220 / 273] _CircuitBreaker
+[224 / 275] _RateLimiting
+[230 / 275] _CircuitBreaker
+[236 / 275] PipelineKitObservability
+[244 / 277] PipelineKitCache
+[249 / 280] _ResilienceCore
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Sources/PipelineKitCache/CachingMiddleware.swift:189:47: warning: use of protocol 'Decodable' as a type must be written 'any Decodable'; this will be an error in a future Swift language mode [#ExistentialAny]
+187 |             // For other Decodable types, try generic decoding
+188 |             // Note: We use Decodable.Type here (not `any Decodable.Type`) because we need to call init on it
+189 |             if let decodableType = T.self as? Decodable.Type {
+    |                                               `- warning: use of protocol 'Decodable' as a type must be written 'any Decodable'; this will be an error in a future Swift language mode [#ExistentialAny]
+190 |                 let value = try decodableType.init(from: try container.superDecoder(forKey: .result))
+191 |                 guard let typedValue = value as? T else {
+
+[#ExistentialAny]: <https://docs.swift.org/compiler/documentation/diagnostics/existential-any>
+[262 / 281] PipelineKitCache
+[262 / 281] PipelineKitResilience
+[271 / 283] PipelineKitSecurity
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Sources/PipelineKitSecurity/AuditLogger.swift:169:41: warning: 'withValue(_:operation:isolation:file:line:)' is deprecated: Prefer the 'nonisolated(nonsending)' overload with stricter execution on caller context semantics: withValue(_:operation:file:line:) [#DeprecatedDeclaration]
+167 |         operation: () async throws -> T
+168 |     ) async rethrows -> T {
+169 |         try await AuditContext.$current.withValue(context, operation: operation)
+    |                                         `- warning: 'withValue(_:operation:isolation:file:line:)' is deprecated: Prefer the 'nonisolated(nonsending)' overload with stricter execution on caller context semantics: withValue(_:operation:file:line:) [#DeprecatedDeclaration]
+170 |     }
+171 | }
+
+[#DeprecatedDeclaration]: <https://docs.swift.org/compiler/documentation/diagnostics/deprecated-declaration>
+[273 / 284] PipelineKitSecurity
+[280 / 285] Consumer-product
+[282 / 286] Consumer-product
+[284 / 286] Consumer-product
+[285 / 286] Consumer-product
+Build complete! (18.38 sec)

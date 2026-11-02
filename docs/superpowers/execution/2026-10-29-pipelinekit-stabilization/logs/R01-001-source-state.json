@@ -1,0 +1,15 @@
+{
+  "id": "R01-001-api-red",
+  "head": "4a40820f9a84a4eaa52ef74a02e9995eafb43ccd",
+  "branch": "fix/stabilization-batch-1",
+  "status": " M Package.swift\n?? Tests/PipelineKitResilienceTests/AdmissionGateContractTests.swift\n?? Tests/PipelineKitResilienceTests/Support/\n?? audit/\n?? docs/PIPELINEKIT_AUDIT_GUIDE.md\n",
+  "tracked_diff": "diff --git a/Package.swift b/Package.swift\nindex f9ae402..6cc182d 100644\n--- a/Package.swift\n+++ b/Package.swift\n@@ -134,7 +134,7 @@ let package = Package(\n         // Resilience module tests\n         .testTarget(\n             name: \"PipelineKitResilienceTests\",\n-            dependencies: [\"PipelineKitResilience\", \"PipelineKitTestSupport\"],\n+            dependencies: [\"PipelineKitResilience\", \"PipelineKitTestSupport\", \"_ResilienceFoundation\"],\n             swiftSettings: [\n                 .enableExperimentalFeature(\"StrictConcurrency\"),\n                 .unsafeFlags([\"-enable-testing\"], .when(configuration: .debug))\n",
+  "tracked_diff_sha256": "c45ab20425e1a1e6350adbce697be7bb323764370f4a080dec960d8edaa4e61c",
+  "files": {
+    "Package.swift": "f9e66a25c968fd8d4a1461efd4c4a62fcc0e1e63bcca2f0bd617e8edd9f18adb",
+    "Sources/PipelineKitResilienceFoundation/Admission/AdmissionGate.swift": null,
+    "Tests/PipelineKitResilienceTests/AdmissionGateContractTests.swift": "1370e2a3b0c904312a447aaee5600d7bb097524b34bc8a48050e9a4f066e6c30",
+    "Tests/PipelineKitResilienceTests/Support/ManualAdmissionClock.swift": "535f6d0e7fc297af972672d33067933c2425acaaa0c913ee157eda8b8bc02e94"
+  },
+  "note": "New prerequisite API is absent; compile red is not wrapper behavioral evidence."
+}

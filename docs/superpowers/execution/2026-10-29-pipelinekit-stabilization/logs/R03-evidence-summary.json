@@ -1,0 +1,169 @@
+{
+  "base": "06ae863035d343e087a10ef837ecb7e449fedff4",
+  "initial_branch": "fix/stabilization-batch-1",
+  "initial_status": [
+    "?? audit/",
+    "?? docs/PIPELINEKIT_AUDIT_GUIDE.md"
+  ],
+  "initial_tracked_diff": "",
+  "runs": [
+    {
+      "id": "R03-001-handoff-red",
+      "command": [
+        "swift",
+        "test",
+        "--filter",
+        "PartitionedBulkheadAdmissionTests.testQueuedHandoffTransfersOneLease"
+      ],
+      "elapsed_seconds": 12.452,
+      "exit_status": 1,
+      "runner_exit_status": 1,
+      "watchdog_timeout": false,
+      "runner_error": null,
+      "cleanup_settled": true,
+      "survivors": [],
+      "termination_actions": []
+    },
+    {
+      "id": "R03-002-timeout-red",
+      "command": [
+        "swift",
+        "test",
+        "--skip-build",
+        "--filter",
+        "PartitionedBulkheadAdmissionTests.testPublicQueueTimeoutReturnsWhileHolderIsActive"
+      ],
+      "elapsed_seconds": 10.041,
+      "exit_status": -15,
+      "runner_exit_status": 124,
+      "watchdog_timeout": true,
+      "runner_error": null,
+      "cleanup_settled": true,
+      "survivors": [],
+      "termination_actions": [
+        {
+          "identity": {
+            "pid": 14159,
+            "start": [
+              1793412178,
+              679178
+            ]
+          },
+          "signal": "SIGTERM",
+          "elapsed_seconds": 10.007066,
+          "verified_before_signal": {
+            "pid": 14159,
+            "start": [
+              1793412178,
+              679178
+            ],
+            "ppid": 14145,
+            "pgid": 14159,
+            "state": 2
+          },
+          "result": "sent"
+        },
+        {
+          "identity": {
+            "pid": 14343,
+            "start": [
+              1793412181,
+              517055
+            ]
+          },
+          "signal": "SIGTERM",
+          "elapsed_seconds": 10.008574,
+          "verified_before_signal": {
+            "pid": 14343,
+            "start": [
+              1793412181,
+              517055
+            ],
+            "ppid": 14159,
+            "pgid": 14343,
+            "state": 2
+          },
+          "result": "sent"
+        }
+      ]
+    },
+    {
+      "id": "R03-003-focused",
+      "command": [
+        "swift",
+        "test",
+        "--filter",
+        "PartitionedBulkheadAdmissionTests|PartitionedBulkheadConfigurationTests|BulkheadAdmissionConservationTests|BulkheadMiddlewareTests"
+      ],
+      "elapsed_seconds": 12.698,
+      "exit_status": 0,
+      "runner_exit_status": 0,
+      "watchdog_timeout": false,
+      "runner_error": null,
+      "cleanup_settled": true,
+      "survivors": [],
+      "termination_actions": []
+    },
+    {
+      "id": "R03-004-debug-full",
+      "command": [
+        "swift",
+        "test",
+        "--parallel",
+        "--skip",
+        "PipelineKitPerformanceTests"
+      ],
+      "elapsed_seconds": 21.28,
+      "exit_status": 0,
+      "runner_exit_status": 0,
+      "watchdog_timeout": false,
+      "runner_error": null,
+      "cleanup_settled": true,
+      "survivors": [],
+      "termination_actions": []
+    },
+    {
+      "id": "R03-005-timeout-validation",
+      "command": [
+        "python3",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/r02_timeout_validation.py",
+        "--id",
+        "R03-005",
+        "--wrapper",
+        "all"
+      ],
+      "elapsed_seconds": 76.319,
+      "exit_status": 0,
+      "runner_exit_status": 0,
+      "watchdog_timeout": false,
+      "runner_error": null,
+      "cleanup_settled": true,
+      "survivors": [],
+      "termination_actions": []
+    },
+    {
+      "id": "R03-006-config-validation",
+      "command": [
+        "python3",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/r03_configuration_validation.py",
+        "--id",
+        "R03-006"
+      ],
+      "elapsed_seconds": 30.616,
+      "exit_status": 0,
+      "runner_exit_status": 0,
+      "watchdog_timeout": false,
+      "runner_error": null,
+      "cleanup_settled": true,
+      "survivors": [],
+      "termination_actions": []
+    }
+  ],
+  "focused_tests": 27,
+  "full_distinct_xctest_progress_records": 1057,
+  "full_swift_testing_cases": 20,
+  "invalid_timeout_rows": 20,
+  "invalid_partition_configuration_rows": 8,
+  "old_timeout_raw_output_bytes": 0,
+  "old_timeout_output_limit": "Swift test retained no stdout before watchdog termination; use the run/process records for hang and cleanup evidence, not an instrumented old expiry trace."
+}

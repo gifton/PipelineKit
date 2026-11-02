@@ -1,0 +1,146 @@
+Building for debugging...
+[Computing dependencies]
+[Using on-disk description]
+[1 / 74] _RateLimiting
+[2 / 68] PipelineKitObservability
+[5 / 71] PipelineKitObservability
+[8 / 69] PipelineKitObservability
+[25 / 38] PipelineKitObservabilityTests-product
+[28 / 41] PipelineKitTestSupportTests-product
+[44 / 49] PipelineKitObservabilityTests-product
+[48 / 51] PipelineKitObservabilityTests-product
+[50 / 54] PipelineKitObservabilityTests-product
+Build complete! (2.22 sec)
+Test Suite 'Selected tests' started at 2026-10-30 19:35:39.714.
+Test Suite 'PipelineKitTests.xctest' started at 2026-10-30 19:35:39.715.
+Test Suite 'PipelineKitTests.xctest' passed at 2026-10-30 19:35:39.715.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 19:35:39.715.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 19:35:39.800.
+Test Suite 'PipelineKitTestSupportTests.xctest' started at 2026-10-30 19:35:39.800.
+Test Suite 'PipelineKitTestSupportTests.xctest' passed at 2026-10-30 19:35:39.800.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 19:35:39.800.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 19:35:39.883.
+Test Suite 'PipelineKitSecurityTests.xctest' started at 2026-10-30 19:35:39.884.
+Test Suite 'PipelineKitSecurityTests.xctest' passed at 2026-10-30 19:35:39.884.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 19:35:39.884.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 19:35:39.978.
+Test Suite 'PipelineKitResilienceTests.xctest' started at 2026-10-30 19:35:39.979.
+Test Suite 'PipelineKitResilienceTests.xctest' passed at 2026-10-30 19:35:39.979.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 19:35:39.979.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 19:35:40.064.
+Test Suite 'PipelineKitPoolingTests.xctest' started at 2026-10-30 19:35:40.065.
+Test Suite 'PipelineKitPoolingTests.xctest' passed at 2026-10-30 19:35:40.065.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 19:35:40.065.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 19:35:40.148.
+Test Suite 'PipelineKitPerformanceTests.xctest' started at 2026-10-30 19:35:40.149.
+Test Suite 'PipelineKitPerformanceTests.xctest' passed at 2026-10-30 19:35:40.149.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 19:35:40.149.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 19:35:40.211.
+Test Suite 'PipelineKitObservabilityTests.xctest' started at 2026-10-30 19:35:40.212.
+Test Suite 'StatsDExporterTests' started at 2026-10-30 19:35:40.212.
+Test Case '-[PipelineKitObservabilityTests.StatsDExporterTests testBatchingTriggersOnInterval]' started.
+Test Case '-[PipelineKitObservabilityTests.StatsDExporterTests testBatchingTriggersOnInterval]' passed (0.052 seconds).
+Test Case '-[PipelineKitObservabilityTests.StatsDExporterTests testBatchingTriggersOnSize]' started.
+Test Case '-[PipelineKitObservabilityTests.StatsDExporterTests testBatchingTriggersOnSize]' passed (0.000 seconds).
+Test Case '-[PipelineKitObservabilityTests.StatsDExporterTests testBatchRecording]' started.
+Test Case '-[PipelineKitObservabilityTests.StatsDExporterTests testBatchRecording]' passed (0.000 seconds).
+Test Case '-[PipelineKitObservabilityTests.StatsDExporterTests testConcurrentBatching]' started.
+Test Case '-[PipelineKitObservabilityTests.StatsDExporterTests testConcurrentBatching]' passed (0.001 seconds).
+Test Case '-[PipelineKitObservabilityTests.StatsDExporterTests testConcurrentRecording]' started.
+Test Case '-[PipelineKitObservabilityTests.StatsDExporterTests testConcurrentRecording]' passed (0.001 seconds).
+Test Case '-[PipelineKitObservabilityTests.StatsDExporterTests testConvenienceCounter]' started.
+Test Case '-[PipelineKitObservabilityTests.StatsDExporterTests testConvenienceCounter]' passed (0.000 seconds).
+Test Case '-[PipelineKitObservabilityTests.StatsDExporterTests testConvenienceGauge]' started.
+Test Case '-[PipelineKitObservabilityTests.StatsDExporterTests testConvenienceGauge]' passed (0.000 seconds).
+Test Case '-[PipelineKitObservabilityTests.StatsDExporterTests testConvenienceTimer]' started.
+Test Case '-[PipelineKitObservabilityTests.StatsDExporterTests testConvenienceTimer]' passed (0.000 seconds).
+Test Case '-[PipelineKitObservabilityTests.StatsDExporterTests testCustomConfiguration]' started.
+Test Case '-[PipelineKitObservabilityTests.StatsDExporterTests testCustomConfiguration]' passed (0.000 seconds).
+Test Case '-[PipelineKitObservabilityTests.StatsDExporterTests testDefaultConfiguration]' started.
+Test Case '-[PipelineKitObservabilityTests.StatsDExporterTests testDefaultConfiguration]' passed (0.000 seconds).
+Test Case '-[PipelineKitObservabilityTests.StatsDExporterTests testErrorHandlerCalled]' started.
+Test Case '-[PipelineKitObservabilityTests.StatsDExporterTests testErrorHandlerCalled]' passed (0.001 seconds).
+Test Case '-[PipelineKitObservabilityTests.StatsDExporterTests testForceFlush]' started.
+Test Case '-[PipelineKitObservabilityTests.StatsDExporterTests testForceFlush]' passed (0.000 seconds).
+Test Case '-[PipelineKitObservabilityTests.StatsDExporterTests testGlobalTagMerging]' started.
+Test Case '-[PipelineKitObservabilityTests.StatsDExporterTests testGlobalTagMerging]' passed (0.000 seconds).
+Test Case '-[PipelineKitObservabilityTests.StatsDExporterTests testMetricNameSanitization]' started.
+Test Case '-[PipelineKitObservabilityTests.StatsDExporterTests testMetricNameSanitization]' passed (0.000 seconds).
+Test Case '-[PipelineKitObservabilityTests.StatsDExporterTests testMetricPrefix]' started.
+Test Case '-[PipelineKitObservabilityTests.StatsDExporterTests testMetricPrefix]' passed (0.000 seconds).
+Test Case '-[PipelineKitObservabilityTests.StatsDExporterTests testRecordCounter]' started.
+Test Case '-[PipelineKitObservabilityTests.StatsDExporterTests testRecordCounter]' passed (0.000 seconds).
+Test Case '-[PipelineKitObservabilityTests.StatsDExporterTests testRecordGauge]' started.
+Test Case '-[PipelineKitObservabilityTests.StatsDExporterTests testRecordGauge]' passed (0.000 seconds).
+Test Case '-[PipelineKitObservabilityTests.StatsDExporterTests testRecordTimer]' started.
+Test Case '-[PipelineKitObservabilityTests.StatsDExporterTests testRecordTimer]' passed (0.000 seconds).
+Test Case '-[PipelineKitObservabilityTests.StatsDExporterTests testTagOverride]' started.
+Test Case '-[PipelineKitObservabilityTests.StatsDExporterTests testTagOverride]' passed (0.000 seconds).
+Test Case '-[PipelineKitObservabilityTests.StatsDExporterTests testTimeBlock]' started.
+Test Case '-[PipelineKitObservabilityTests.StatsDExporterTests testTimeBlock]' passed (0.014 seconds).
+Test Suite 'StatsDExporterTests' passed at 2026-10-30 19:35:40.286.
+	 Executed 20 tests, with 0 failures (0 unexpected) in 0.073 (0.074) seconds
+Test Suite 'StatsDStartupContractTests' started at 2026-10-30 19:35:40.286.
+Test Case '-[PipelineKitObservabilityTests.StatsDStartupContractTests testCloseDiscardsBufferedRecordsAndJoinsFlushTimer]' started.
+Test Case '-[PipelineKitObservabilityTests.StatsDStartupContractTests testCloseDiscardsBufferedRecordsAndJoinsFlushTimer]' passed (0.000 seconds).
+Test Case '-[PipelineKitObservabilityTests.StatsDStartupContractTests testCloseDuringStartupClosesLateTransport]' started.
+Test Case '-[PipelineKitObservabilityTests.StatsDStartupContractTests testCloseDuringStartupClosesLateTransport]' passed (0.000 seconds).
+Test Case '-[PipelineKitObservabilityTests.StatsDStartupContractTests testCloseJoinsTimerAlreadyWaitingForStartup]' started.
+Test Case '-[PipelineKitObservabilityTests.StatsDStartupContractTests testCloseJoinsTimerAlreadyWaitingForStartup]' passed (0.000 seconds).
+Test Case '-[PipelineKitObservabilityTests.StatsDStartupContractTests testConcurrentNonemptyBatchesWaitForOneStartup]' started.
+Test Case '-[PipelineKitObservabilityTests.StatsDStartupContractTests testConcurrentNonemptyBatchesWaitForOneStartup]' passed (0.000 seconds).
+Test Case '-[PipelineKitObservabilityTests.StatsDStartupContractTests testExplicitStartAndDefaultBatchReportInvalidConfiguration]' started.
+Test Case '-[PipelineKitObservabilityTests.StatsDStartupContractTests testExplicitStartAndDefaultBatchReportInvalidConfiguration]' passed (0.000 seconds).
+Test Case '-[PipelineKitObservabilityTests.StatsDStartupContractTests testInjectedTransportIsReadyAndClosesOnce]' started.
+Test Case '-[PipelineKitObservabilityTests.StatsDStartupContractTests testInjectedTransportIsReadyAndClosesOnce]' passed (0.000 seconds).
+Test Case '-[PipelineKitObservabilityTests.StatsDStartupContractTests testNonemptyForceFlushReportsStartupFailureAndRetries]' started.
+Test Case '-[PipelineKitObservabilityTests.StatsDStartupContractTests testNonemptyForceFlushReportsStartupFailureAndRetries]' passed (0.000 seconds).
+Test Case '-[PipelineKitObservabilityTests.StatsDStartupContractTests testRecordAfterCloseReportsFailure]' started.
+Test Case '-[PipelineKitObservabilityTests.StatsDStartupContractTests testRecordAfterCloseReportsFailure]' passed (0.000 seconds).
+Test Case '-[PipelineKitObservabilityTests.StatsDStartupContractTests testStartupFailureSettlesEveryBatchAndCanRestart]' started.
+Test Case '-[PipelineKitObservabilityTests.StatsDStartupContractTests testStartupFailureSettlesEveryBatchAndCanRestart]' passed (0.000 seconds).
+Test Suite 'StatsDStartupContractTests' passed at 2026-10-30 19:35:40.288.
+	 Executed 9 tests, with 0 failures (0 unexpected) in 0.002 (0.003) seconds
+Test Suite 'PipelineKitObservabilityTests.xctest' passed at 2026-10-30 19:35:40.288.
+	 Executed 29 tests, with 0 failures (0 unexpected) in 0.075 (0.077) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 19:35:40.288.
+	 Executed 29 tests, with 0 failures (0 unexpected) in 0.075 (0.078) seconds
+[MetricsExporter] Error: sendFailed("Simulated failure")
+[MetricsExporter] Error: transportClosed
+[MetricsExporter] Error: transportClosed
+[MetricsExporter] Error: transportClosed
+[MetricsExporter] Error: transportClosed
+[MetricsExporter] Error: transportClosed
+[MetricsExporter] Error: invalidConfiguration("Invalid port: 0")
+[MetricsExporter] Error: invalidConfiguration("Invalid port: 0")
+[MetricsExporter] Error: connectionFailed("fixture-startup")
+[MetricsExporter] Error: transportClosed
+[MetricsExporter] Error: transportClosed
+[MetricsExporter] Error: transportClosed
+[MetricsExporter] Error: connectionFailed("fixture-startup")
+[MetricsExporter] Error: connectionFailed("fixture-startup")
+[MetricsExporter] Error: connectionFailed("fixture-startup")
+Test Suite 'Selected tests' started at 2026-10-30 19:35:40.372.
+Test Suite 'PipelineKitCoreTests.xctest' started at 2026-10-30 19:35:40.373.
+Test Suite 'PipelineKitCoreTests.xctest' passed at 2026-10-30 19:35:40.373.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 19:35:40.373.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 19:35:40.455.
+Test Suite 'PipelineKitCacheTests.xctest' started at 2026-10-30 19:35:40.456.
+Test Suite 'PipelineKitCacheTests.xctest' passed at 2026-10-30 19:35:40.456.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 19:35:40.456.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds

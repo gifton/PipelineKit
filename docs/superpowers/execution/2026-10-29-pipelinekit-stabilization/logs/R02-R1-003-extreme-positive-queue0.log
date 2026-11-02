@@ -1,0 +1,56 @@
+error: Process '/Applications/Xcode.app/Contents/Developer/usr/bin/xctest -XCTest PipelineKitResilienceTests.BulkheadMiddlewareTests/testQueueTimeoutConfigurationValidationProbe /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/.build/out/Products/Debug/PipelineKitResilienceTests.xctest' exited with unexpected signal code 5
+Test Suite 'Selected tests' started at 2026-10-30 18:47:54.425.
+Test Suite 'PipelineKitTests.xctest' started at 2026-10-30 18:47:54.426.
+Test Suite 'PipelineKitTests.xctest' passed at 2026-10-30 18:47:54.426.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 18:47:54.426.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 18:47:54.501.
+Test Suite 'PipelineKitTestSupportTests.xctest' started at 2026-10-30 18:47:54.502.
+Test Suite 'PipelineKitTestSupportTests.xctest' passed at 2026-10-30 18:47:54.502.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 18:47:54.502.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 18:47:54.576.
+Test Suite 'PipelineKitSecurityTests.xctest' started at 2026-10-30 18:47:54.577.
+Test Suite 'PipelineKitSecurityTests.xctest' passed at 2026-10-30 18:47:54.577.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 18:47:54.577.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 18:47:54.636.
+Test Suite 'PipelineKitResilienceTests.xctest' started at 2026-10-30 18:47:54.636.
+Test Suite 'BulkheadMiddlewareTests' started at 2026-10-30 18:47:54.636.
+Test Case '-[PipelineKitResilienceTests.BulkheadMiddlewareTests testQueueTimeoutConfigurationValidationProbe]' started.
+_CircuitBreaker/BulkheadMiddleware.swift:388: Precondition failed: Bulkhead queue timeout must be finite and no greater than 86400 seconds
+Test Suite 'Selected tests' started at 2026-10-30 18:47:54.711.
+Test Suite 'PipelineKitPoolingTests.xctest' started at 2026-10-30 18:47:54.711.
+Test Suite 'PipelineKitPoolingTests.xctest' passed at 2026-10-30 18:47:54.711.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 18:47:54.712.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 18:47:54.789.
+Test Suite 'PipelineKitPerformanceTests.xctest' started at 2026-10-30 18:47:54.789.
+Test Suite 'PipelineKitPerformanceTests.xctest' passed at 2026-10-30 18:47:54.789.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 18:47:54.789.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 18:47:54.867.
+Test Suite 'PipelineKitObservabilityTests.xctest' started at 2026-10-30 18:47:54.868.
+Test Suite 'PipelineKitObservabilityTests.xctest' passed at 2026-10-30 18:47:54.868.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 18:47:54.868.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 18:47:54.946.
+Test Suite 'PipelineKitCoreTests.xctest' started at 2026-10-30 18:47:54.947.
+Test Suite 'PipelineKitCoreTests.xctest' passed at 2026-10-30 18:47:54.947.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 18:47:54.947.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 18:47:55.023.
+Test Suite 'PipelineKitCacheTests.xctest' started at 2026-10-30 18:47:55.024.
+Test Suite 'PipelineKitCacheTests.xctest' passed at 2026-10-30 18:47:55.024.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 18:47:55.024.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Note: Some test targets reported failures:
+  - PipelineKitResilienceTests (XCTest)

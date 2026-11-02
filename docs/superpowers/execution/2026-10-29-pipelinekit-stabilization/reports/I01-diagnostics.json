@@ -1,0 +1,353 @@
+{
+  "baseline_occurrences": 50,
+  "baseline_normalized_kinds": 20,
+  "normalization": "relative source path plus full diagnostic text; line/column and caret echo ignored. Verbose manifest command lines beginning warning: are tool chatter, not compiler diagnostics.",
+  "compiler_by_run": {
+    "I01-001-consumer-debug-build.log": {
+      "primary_occurrences": 3,
+      "normalized": {
+        "Sources/PipelineKitCache/CachingMiddleware.swift: warning: use of protocol 'Decodable' as a type must be written 'any Decodable'; this will be an error in a future Swift language mode [#ExistentialAny]": 1,
+        "Sources/PipelineKitSecurity/AuditLogger.swift: warning: 'withValue(_:operation:isolation:file:line:)' is deprecated: Prefer the 'nonisolated(nonsending)' overload with stricter execution on caller context semantics: withValue(_:operation:file:line:) [#DeprecatedDeclaration]": 1,
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer/Sources/Consumer/CompiledExamples.swift: warning: initialization of immutable value 'encryptor' was never used; consider replacing with assignment to '_' or removing it [#NoUsage]": 1
+      },
+      "new_vs_baseline": [
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer/Sources/Consumer/CompiledExamples.swift: warning: initialization of immutable value 'encryptor' was never used; consider replacing with assignment to '_' or removing it [#NoUsage]"
+      ]
+    },
+    "I01-002-hardware.log": {
+      "primary_occurrences": 0,
+      "normalized": {},
+      "new_vs_baseline": []
+    },
+    "I01-003-consumer-debug-build.log": {
+      "primary_occurrences": 0,
+      "normalized": {},
+      "new_vs_baseline": []
+    },
+    "I01-004-composition-debug.log": {
+      "primary_occurrences": 0,
+      "normalized": {},
+      "new_vs_baseline": []
+    },
+    "I01-005-routing-debug.log": {
+      "primary_occurrences": 0,
+      "normalized": {},
+      "new_vs_baseline": []
+    },
+    "I01-006-cache-identity-debug.log": {
+      "primary_occurrences": 0,
+      "normalized": {},
+      "new_vs_baseline": []
+    },
+    "I01-007-encryption-debug.log": {
+      "primary_occurrences": 0,
+      "normalized": {},
+      "new_vs_baseline": []
+    },
+    "I01-008-bulkhead-debug.log": {
+      "primary_occurrences": 0,
+      "normalized": {},
+      "new_vs_baseline": []
+    },
+    "I01-013-consumer-debug-build.log": {
+      "primary_occurrences": 0,
+      "normalized": {},
+      "new_vs_baseline": []
+    },
+    "I01-014-composition-security-debug.log": {
+      "primary_occurrences": 0,
+      "normalized": {},
+      "new_vs_baseline": []
+    },
+    "I01-015-bulkhead-debug.log": {
+      "primary_occurrences": 0,
+      "normalized": {},
+      "new_vs_baseline": []
+    },
+    "I01-016-udp-close-debug.log": {
+      "primary_occurrences": 0,
+      "normalized": {},
+      "new_vs_baseline": []
+    },
+    "I01-017-statsd-startup-debug.log": {
+      "primary_occurrences": 0,
+      "normalized": {},
+      "new_vs_baseline": []
+    },
+    "I01-018-metrics-debug.log": {
+      "primary_occurrences": 0,
+      "normalized": {},
+      "new_vs_baseline": []
+    },
+    "I01-019-udp-failure-close-debug.log": {
+      "primary_occurrences": 0,
+      "normalized": {},
+      "new_vs_baseline": []
+    },
+    "I01-020-root-debug-build.log": {
+      "primary_occurrences": 0,
+      "normalized": {},
+      "new_vs_baseline": []
+    },
+    "I01-021-root-release-build.log": {
+      "primary_occurrences": 3,
+      "normalized": {
+        "Sources/PipelineKitCore/Context/ExecutionContext.swift: warning: 'withValue(_:operation:isolation:file:line:)' is deprecated: Prefer the 'nonisolated(nonsending)' overload with stricter execution on caller context semantics: withValue(_:operation:file:line:) [#DeprecatedDeclaration]": 1,
+        "Sources/PipelineKitCache/CachingMiddleware.swift: warning: use of protocol 'Decodable' as a type must be written 'any Decodable'; this will be an error in a future Swift language mode [#ExistentialAny]": 1,
+        "Sources/PipelineKitSecurity/AuditLogger.swift: warning: 'withValue(_:operation:isolation:file:line:)' is deprecated: Prefer the 'nonisolated(nonsending)' overload with stricter execution on caller context semantics: withValue(_:operation:file:line:) [#DeprecatedDeclaration]": 1
+      },
+      "new_vs_baseline": []
+    },
+    "I01-022-debug-discovery.log": {
+      "primary_occurrences": 0,
+      "normalized": {},
+      "new_vs_baseline": []
+    },
+    "I01-023-debug-full.log": {
+      "primary_occurrences": 0,
+      "normalized": {},
+      "new_vs_baseline": []
+    },
+    "I01-024-release-discovery.log": {
+      "primary_occurrences": 49,
+      "normalized": {
+        "Sources/PipelineKitCore/Context/ExecutionContext.swift: warning: 'withValue(_:operation:isolation:file:line:)' is deprecated: Prefer the 'nonisolated(nonsending)' overload with stricter execution on caller context semantics: withValue(_:operation:file:line:) [#DeprecatedDeclaration]": 1,
+        "Sources/PipelineKitCache/CachingMiddleware.swift: warning: use of protocol 'Decodable' as a type must be written 'any Decodable'; this will be an error in a future Swift language mode [#ExistentialAny]": 1,
+        "Sources/PipelineKitSecurity/AuditLogger.swift: warning: 'withValue(_:operation:isolation:file:line:)' is deprecated: Prefer the 'nonisolated(nonsending)' overload with stricter execution on caller context semantics: withValue(_:operation:file:line:) [#DeprecatedDeclaration]": 1,
+        "Tests/PipelineKitPerformanceTests/BackPressurePerformanceTests.swift: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]": 1,
+        "Tests/PipelineKitPerformanceTests/PipelinePerformanceTests.swift: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]": 6,
+        "Tests/PipelineKitCacheTests/CompressionMiddlewareTests.swift: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]": 2,
+        "Tests/PipelineKitCacheTests/NextGuardSuppressionTests.swift: warning: 'is' test is always true": 4,
+        "Tests/PipelineKitCacheTests/SimpleCachingMiddlewareTests.swift: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]": 1,
+        "Tests/PipelineKitSecurityTests/AuthorizationMiddlewareTests.swift: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]": 2,
+        "Tests/PipelineKitCoreTests/Context/EventEmissionTests.swift: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]": 3,
+        "Tests/PipelineKitCoreTests/Core/CommandContextThreadSafetyTests.swift: warning: immutable value 'key' was never used; consider replacing with '_' or removing it [#NoUsage]": 1,
+        "Tests/PipelineKitCoreTests/Errors/CancellationErrorTests.swift: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]": 2,
+        "Tests/PipelineKitCoreTests/Middleware/MiddlewareTests.swift: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]": 1,
+        "Tests/PipelineKitCoreTests/Pipeline/PipelineTests.swift: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]": 1,
+        "Tests/PipelineKitObservabilityTests/PrometheusExporterTests.swift: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]": 18,
+        "Tests/PipelineKitResilienceTests/AsyncSemaphoreCancellationTests.swift: warning: immutable value 'i' was never used; consider replacing with '_' or removing it [#NoUsage]": 1,
+        "Tests/PipelineKitResilienceTests/PartitionedBulkheadConfigurationTests.swift: warning: 'maxBorrowPercentage' is deprecated: renamed to 'reservedCapacityPercentage' [#DeprecatedDeclaration]": 1,
+        "Tests/PipelineKitResilienceTests/PartitionedBulkheadConfigurationTests.swift: warning: 'init(partitions:partitionExtractor:defaultPartition:allowBorrowing:maxBorrowPercentage:emitMetrics:)' is deprecated: maxBorrowPercentage has always been the reserved (non-lendable) share \u2014 use reservedCapacityPercentage, which has identical semantics. [#DeprecatedDeclaration]": 1,
+        "Tests/PipelineKitResilienceTests/TimeoutMiddlewareCompileTests.swift: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]": 1
+      },
+      "new_vs_baseline": []
+    },
+    "I01-025-release-full.log": {
+      "primary_occurrences": 0,
+      "normalized": {},
+      "new_vs_baseline": []
+    },
+    "I01-026-tsan.log": {
+      "primary_occurrences": 51,
+      "normalized": {
+        "Sources/PipelineKitCore/Context/ExecutionContext.swift: warning: 'withValue(_:operation:isolation:file:line:)' is deprecated: Prefer the 'nonisolated(nonsending)' overload with stricter execution on caller context semantics: withValue(_:operation:file:line:) [#DeprecatedDeclaration]": 1,
+        "Sources/PipelineKitCache/CachingMiddleware.swift: warning: use of protocol 'Decodable' as a type must be written 'any Decodable'; this will be an error in a future Swift language mode [#ExistentialAny]": 1,
+        "Sources/PipelineKitSecurity/AuditLogger.swift: warning: 'withValue(_:operation:isolation:file:line:)' is deprecated: Prefer the 'nonisolated(nonsending)' overload with stricter execution on caller context semantics: withValue(_:operation:file:line:) [#DeprecatedDeclaration]": 1,
+        "Tests/PipelineKitPerformanceTests/BackPressurePerformanceTests.swift: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]": 1,
+        "Tests/PipelineKitPerformanceTests/PipelinePerformanceTests.swift: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]": 6,
+        "Tests/PipelineKitCacheTests/CompressionMiddlewareTests.swift: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]": 2,
+        "Tests/PipelineKitCacheTests/NextGuardSuppressionTests.swift: warning: 'is' test is always true": 4,
+        "Tests/PipelineKitCacheTests/SimpleCachingMiddlewareTests.swift: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]": 1,
+        "Tests/PipelineKitCoreTests/Middleware/MiddlewareTests.swift: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]": 2,
+        "Tests/PipelineKitCoreTests/Pipeline/PipelineTests.swift: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]": 2,
+        "Tests/PipelineKitSecurityTests/AuthorizationMiddlewareTests.swift: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]": 2,
+        "Tests/PipelineKitResilienceTests/TimeoutMiddlewareCompileTests.swift: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]": 1,
+        "Tests/PipelineKitResilienceTests/AsyncSemaphoreCancellationTests.swift: warning: immutable value 'i' was never used; consider replacing with '_' or removing it [#NoUsage]": 1,
+        "Tests/PipelineKitResilienceTests/PartitionedBulkheadConfigurationTests.swift: warning: 'maxBorrowPercentage' is deprecated: renamed to 'reservedCapacityPercentage' [#DeprecatedDeclaration]": 1,
+        "Tests/PipelineKitResilienceTests/PartitionedBulkheadConfigurationTests.swift: warning: 'init(partitions:partitionExtractor:defaultPartition:allowBorrowing:maxBorrowPercentage:emitMetrics:)' is deprecated: maxBorrowPercentage has always been the reserved (non-lendable) share \u2014 use reservedCapacityPercentage, which has identical semantics. [#DeprecatedDeclaration]": 1,
+        "Tests/PipelineKitObservabilityTests/PrometheusExporterTests.swift: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]": 18,
+        "Tests/PipelineKitCoreTests/Errors/CancellationErrorTests.swift: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]": 2,
+        "Tests/PipelineKitCoreTests/Context/EventEmissionTests.swift: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]": 3,
+        "Tests/PipelineKitCoreTests/Core/CommandContextThreadSafetyTests.swift: warning: immutable value 'key' was never used; consider replacing with '_' or removing it [#NoUsage]": 1
+      },
+      "new_vs_baseline": []
+    },
+    "I01-027-release-performance.log": {
+      "primary_occurrences": 3,
+      "normalized": {
+        "Sources/PipelineKitCore/Context/ExecutionContext.swift: warning: 'withValue(_:operation:isolation:file:line:)' is deprecated: Prefer the 'nonisolated(nonsending)' overload with stricter execution on caller context semantics: withValue(_:operation:file:line:) [#DeprecatedDeclaration]": 1,
+        "Sources/PipelineKitCache/CachingMiddleware.swift: warning: use of protocol 'Decodable' as a type must be written 'any Decodable'; this will be an error in a future Swift language mode [#ExistentialAny]": 1,
+        "Sources/PipelineKitSecurity/AuditLogger.swift: warning: 'withValue(_:operation:isolation:file:line:)' is deprecated: Prefer the 'nonisolated(nonsending)' overload with stricter execution on caller context semantics: withValue(_:operation:file:line:) [#DeprecatedDeclaration]": 1
+      },
+      "new_vs_baseline": []
+    },
+    "I01-030-consumer-release-build.log": {
+      "primary_occurrences": 3,
+      "normalized": {
+        "Sources/PipelineKitCore/Context/ExecutionContext.swift: warning: 'withValue(_:operation:isolation:file:line:)' is deprecated: Prefer the 'nonisolated(nonsending)' overload with stricter execution on caller context semantics: withValue(_:operation:file:line:) [#DeprecatedDeclaration]": 1,
+        "Sources/PipelineKitCache/CachingMiddleware.swift: warning: use of protocol 'Decodable' as a type must be written 'any Decodable'; this will be an error in a future Swift language mode [#ExistentialAny]": 1,
+        "Sources/PipelineKitSecurity/AuditLogger.swift: warning: 'withValue(_:operation:isolation:file:line:)' is deprecated: Prefer the 'nonisolated(nonsending)' overload with stricter execution on caller context semantics: withValue(_:operation:file:line:) [#DeprecatedDeclaration]": 1
+      },
+      "new_vs_baseline": []
+    },
+    "I01-031-composition-security-release.log": {
+      "primary_occurrences": 0,
+      "normalized": {},
+      "new_vs_baseline": []
+    },
+    "I01-032-routing-release.log": {
+      "primary_occurrences": 0,
+      "normalized": {},
+      "new_vs_baseline": []
+    },
+    "I01-033-cache-identity-release.log": {
+      "primary_occurrences": 0,
+      "normalized": {},
+      "new_vs_baseline": []
+    },
+    "I01-034-encryption-release.log": {
+      "primary_occurrences": 0,
+      "normalized": {},
+      "new_vs_baseline": []
+    },
+    "I01-035-bulkhead-release.log": {
+      "primary_occurrences": 0,
+      "normalized": {},
+      "new_vs_baseline": []
+    },
+    "I01-036-udp-close-release.log": {
+      "primary_occurrences": 0,
+      "normalized": {},
+      "new_vs_baseline": []
+    },
+    "I01-037-statsd-startup-release.log": {
+      "primary_occurrences": 0,
+      "normalized": {},
+      "new_vs_baseline": []
+    },
+    "I01-038-metrics-release.log": {
+      "primary_occurrences": 0,
+      "normalized": {},
+      "new_vs_baseline": []
+    },
+    "I01-039-udp-failure-close-release.log": {
+      "primary_occurrences": 0,
+      "normalized": {},
+      "new_vs_baseline": []
+    },
+    "I01-040-examples-debug-build.log": {
+      "primary_occurrences": 0,
+      "normalized": {},
+      "new_vs_baseline": []
+    },
+    "I01-041-examples-debug-build.log": {
+      "primary_occurrences": 2,
+      "normalized": {
+        "Sources/PipelineKitCore/Context/ExecutionContext.swift: warning: 'withValue(_:operation:isolation:file:line:)' is deprecated: Prefer the 'nonisolated(nonsending)' overload with stricter execution on caller context semantics: withValue(_:operation:file:line:) [#DeprecatedDeclaration]": 1,
+        "Sources/PipelineKitSecurity/AuditLogger.swift: warning: 'withValue(_:operation:isolation:file:line:)' is deprecated: Prefer the 'nonisolated(nonsending)' overload with stricter execution on caller context semantics: withValue(_:operation:file:line:) [#DeprecatedDeclaration]": 1
+      },
+      "new_vs_baseline": []
+    },
+    "I01-042-negative-original-command.log": {
+      "primary_occurrences": 0,
+      "normalized": {},
+      "new_vs_baseline": []
+    },
+    "I01-043-runtime-availability.log": {
+      "primary_occurrences": 0,
+      "normalized": {},
+      "new_vs_baseline": []
+    },
+    "I01-044-final-examples-debug.log": {
+      "primary_occurrences": 0,
+      "normalized": {},
+      "new_vs_baseline": []
+    },
+    "I01-045-final-examples-release.log": {
+      "primary_occurrences": 3,
+      "normalized": {
+        "Sources/PipelineKitCore/Context/ExecutionContext.swift: warning: 'withValue(_:operation:isolation:file:line:)' is deprecated: Prefer the 'nonisolated(nonsending)' overload with stricter execution on caller context semantics: withValue(_:operation:file:line:) [#DeprecatedDeclaration]": 1,
+        "Sources/PipelineKitCache/CachingMiddleware.swift: warning: use of protocol 'Decodable' as a type must be written 'any Decodable'; this will be an error in a future Swift language mode [#ExistentialAny]": 1,
+        "Sources/PipelineKitSecurity/AuditLogger.swift: warning: 'withValue(_:operation:isolation:file:line:)' is deprecated: Prefer the 'nonisolated(nonsending)' overload with stricter execution on caller context semantics: withValue(_:operation:file:line:) [#DeprecatedDeclaration]": 1
+      },
+      "new_vs_baseline": []
+    }
+  },
+  "runtime_configuration_by_run": {
+    "I01-001-consumer-debug-build.log": [],
+    "I01-002-hardware.log": [],
+    "I01-003-consumer-debug-build.log": [],
+    "I01-004-composition-debug.log": [
+      "2026-10-30T23:03:41-0700 warning PipelineKit.Core: [PipelineKit] SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features."
+    ],
+    "I01-005-routing-debug.log": [],
+    "I01-006-cache-identity-debug.log": [],
+    "I01-007-encryption-debug.log": [],
+    "I01-008-bulkhead-debug.log": [],
+    "I01-013-consumer-debug-build.log": [],
+    "I01-014-composition-security-debug.log": [],
+    "I01-015-bulkhead-debug.log": [],
+    "I01-016-udp-close-debug.log": [],
+    "I01-017-statsd-startup-debug.log": [],
+    "I01-018-metrics-debug.log": [],
+    "I01-019-udp-failure-close-debug.log": [],
+    "I01-020-root-debug-build.log": [],
+    "I01-021-root-release-build.log": [],
+    "I01-022-debug-discovery.log": [],
+    "I01-023-debug-full.log": [
+      "2026-10-30T23:07:23-0700 warning PipelineKit.Core: [PipelineKit] SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features.",
+      "2026-10-30T23:07:23-0700 warning PipelineKit.Core: [PipelineKit] SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features.",
+      "2026-10-30T23:07:23-0700 warning PipelineKit.Core: [PipelineKit] SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features.",
+      "2026-10-30T23:07:23-0700 warning PipelineKit.Core: [PipelineKit] SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features.",
+      "2026-10-30T23:07:23-0700 warning PipelineKit.Core: [PipelineKit] SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features.",
+      "2026-10-30T23:07:23-0700 warning PipelineKit.Core: [PipelineKit] SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features.",
+      "2026-10-30T23:07:23-0700 warning PipelineKit.Core: [PipelineKit] SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features.",
+      "2026-10-30T23:07:23-0700 warning PipelineKit.Core: [PipelineKit] SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features.",
+      "2026-10-30T23:07:23-0700 warning PipelineKit.Core: [PipelineKit] SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features.",
+      "2026-10-30T23:07:23-0700 warning PipelineKit.Core: [PipelineKit] SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features.",
+      "2026-10-30T23:07:23-0700 warning PipelineKit.Core: [PipelineKit] SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features.",
+      "2026-10-30T23:07:23-0700 warning PipelineKit.Core: [PipelineKit] SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features.",
+      "2026-10-30T23:07:24-0700 warning PipelineKit.Core: [PipelineKit] SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features.",
+      "2026-10-30T23:07:24-0700 warning PipelineKit.Core: [PipelineKit] SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features.",
+      "2026-10-30T23:07:24-0700 warning PipelineKit.Core: [PipelineKit] SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features.",
+      "2026-10-30T23:07:24-0700 warning PipelineKit.Core: [PipelineKit] SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features.",
+      "2026-10-30T23:07:24-0700 warning PipelineKit.Core: [PipelineKit] SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features."
+    ],
+    "I01-024-release-discovery.log": [],
+    "I01-025-release-full.log": [
+      "2026-10-30T23:09:12-0700 warning PipelineKit.Core: [PipelineKit] SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features.",
+      "2026-10-30T23:09:12-0700 warning PipelineKit.Core: [PipelineKit] SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features.",
+      "2026-10-30T23:09:12-0700 warning PipelineKit.Core: [PipelineKit] SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features.",
+      "2026-10-30T23:09:12-0700 warning PipelineKit.Core: [PipelineKit] SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features.",
+      "2026-10-30T23:09:12-0700 warning PipelineKit.Core: [PipelineKit] SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features.",
+      "2026-10-30T23:09:15-0700 warning PipelineKit.Core: [PipelineKit] SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features.",
+      "2026-10-30T23:09:15-0700 warning PipelineKit.Core: [PipelineKit] SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features.",
+      "2026-10-30T23:09:15-0700 warning PipelineKit.Core: [PipelineKit] SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features.",
+      "2026-10-30T23:09:15-0700 warning PipelineKit.Core: [PipelineKit] SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features.",
+      "2026-10-30T23:09:15-0700 warning PipelineKit.Core: [PipelineKit] SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features.",
+      "2026-10-30T23:09:15-0700 warning PipelineKit.Core: [PipelineKit] SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features.",
+      "2026-10-30T23:09:15-0700 warning PipelineKit.Core: [PipelineKit] SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features.",
+      "2026-10-30T23:09:15-0700 warning PipelineKit.Core: [PipelineKit] SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features.",
+      "2026-10-30T23:09:15-0700 warning PipelineKit.Core: [PipelineKit] SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features.",
+      "2026-10-30T23:09:15-0700 warning PipelineKit.Core: [PipelineKit] SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features.",
+      "2026-10-30T23:09:15-0700 warning PipelineKit.Core: [PipelineKit] SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features.",
+      "2026-10-30T23:09:15-0700 warning PipelineKit.Core: [PipelineKit] SimpleSemaphore ignores maxQueueMemory and maxOutstanding. Use BackPressureAsyncSemaphore from PipelineKitResilience for these features."
+    ],
+    "I01-026-tsan.log": [],
+    "I01-027-release-performance.log": [],
+    "I01-030-consumer-release-build.log": [],
+    "I01-031-composition-security-release.log": [],
+    "I01-032-routing-release.log": [],
+    "I01-033-cache-identity-release.log": [],
+    "I01-034-encryption-release.log": [],
+    "I01-035-bulkhead-release.log": [],
+    "I01-036-udp-close-release.log": [],
+    "I01-037-statsd-startup-release.log": [],
+    "I01-038-metrics-release.log": [],
+    "I01-039-udp-failure-close-release.log": [],
+    "I01-040-examples-debug-build.log": [],
+    "I01-041-examples-debug-build.log": [],
+    "I01-042-negative-original-command.log": [],
+    "I01-043-runtime-availability.log": [],
+    "I01-044-final-examples-debug.log": [],
+    "I01-045-final-examples-release.log": []
+  },
+  "new_vs_baseline": [
+    [
+      "I01-001-consumer-debug-build.log",
+      "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer/Sources/Consumer/CompiledExamples.swift: warning: initialization of immutable value 'encryptor' was never used; consider replacing with assignment to '_' or removing it [#NoUsage]"
+    ]
+  ],
+  "limits": "Incremental builds may omit unchanged warnings. Runtime/configuration messages are not compiler-baseline debt. Initial generated-example unused-value warning was corrected before final build."
+}

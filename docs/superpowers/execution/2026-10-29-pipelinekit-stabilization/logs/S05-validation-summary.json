@@ -1,0 +1,749 @@
+{
+  "base": "6545ba3a0300ab4c5f655a0f397ac107c960aa70",
+  "baseline_warning_sha256": "9ecdcd316b7537619bf828b6a77a8931d04992ec9900ae482af1e661a23521a2",
+  "runs": [
+    {
+      "id": "S05-001",
+      "command": [
+        "swift",
+        "test",
+        "--filter",
+        "CompressionCompletionContractTests"
+      ],
+      "exit_status": 1,
+      "runner_exit_status": 1,
+      "watchdog_timeout": false,
+      "elapsed_seconds": 10.229,
+      "cleanup_settled": true,
+      "survivors": [],
+      "termination_actions": [],
+      "runner_error": null,
+      "compiler_warnings": {},
+      "new_compiler_warnings": {},
+      "runtime_configuration_warnings": {},
+      "other_warning_lines": [],
+      "compiler_errors": [],
+      "test_summary": [
+        "2",
+        "25",
+        "0"
+      ],
+      "parallel_progress": null,
+      "swift_testing_summary": [],
+      "artifacts": {
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/S05-001.log": "33a86ca98b6a15d447654035d270aa4db6173c10ea177fe6f507ba6383193744",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/S05-001.json": "ef959c5bcf1bf337009ff2eb9c5af669c4a61a916cc0dd4d07122bb8eaf1f3c5",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/S05-001.processes.jsonl": "b9a8c44a117756d45dc7e183b63f80ad5ffd6af58b81fc203c8c094c1616d3de"
+      },
+      "source_state": {
+        "head": "6545ba3a0300ab4c5f655a0f397ac107c960aa70",
+        "branch": "fix/stabilization-batch-1",
+        "status": "?? Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift\n?? audit/\n?? docs/PIPELINEKIT_AUDIT_GUIDE.md\n?? docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/S05-capture-state.py\n",
+        "diff": "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/S05-001-source.diff",
+        "diff_sha256": "6555562f7a2bd7ca9554a0e9bf30b8d0752467452564a350c5fd72f5b0a78810",
+        "files": {
+          "Sources/PipelineKitCache/CompressionMiddleware.swift": "dc6233af36bb36bcf25dfc18f836db5a5b4f196652631c2c0a1ba6f260861893",
+          "Tests/PipelineKitCacheTests/CompressionMiddlewareTests.swift": "cf8bdefaa87dcd35d1d967e0a958fbc6fce40056c8be7b59d4a4c75178d21322",
+          "Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift": "afe86316aaa16338ed33dfc2b9d40d9329297c203f11d835081ff0389870c5e4",
+          "docs/migrations/first-stabilization-batch.md": "3c1eedf4022bcdeb57852d56edd59250de5c9cf9091d5e7c080e26c4b5688aff"
+        },
+        "compression_header": "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/compression.h",
+        "compression_header_sha256": "62485df0c0bc5c9a789a6ff93b92dae217a47eca199c3b2dff303583a85f8375"
+      }
+    },
+    {
+      "id": "S05-002",
+      "command": [
+        "swift",
+        "test",
+        "--filter",
+        "CompressionCompletionContractTests"
+      ],
+      "exit_status": 1,
+      "runner_exit_status": 1,
+      "watchdog_timeout": false,
+      "elapsed_seconds": 5.125,
+      "cleanup_settled": true,
+      "survivors": [],
+      "termination_actions": [],
+      "runner_error": null,
+      "compiler_warnings": {},
+      "new_compiler_warnings": {},
+      "runtime_configuration_warnings": {},
+      "other_warning_lines": [],
+      "compiler_errors": [
+        "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:30:102: error: extra argument 'maxOutputSize' in call",
+        "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:35:98: error: extra argument 'maxOutputSize' in call",
+        "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:43:66: error: extra argument 'maxOutputSize' in call",
+        "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:56:91: error: extra argument 'maxOutputSize' in call",
+        "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:62:114: error: extra argument 'maxOutputSize' in call",
+        "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:76:84: error: extra argument 'maxOutputSize' in call",
+        "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:79:106: error: extra argument 'maxOutputSize' in call",
+        "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:91:118: error: extra argument 'maxOutputSize' in call",
+        "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:96:98: error: extra argument 'maxOutputSize' in call",
+        "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:100:103: error: extra argument 'maxOutputSize' in call",
+        "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:111:90: error: extra argument 'maxOutputSize' in call",
+        "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:116:81: error: extra argument 'maxOutputSize' in call",
+        "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:138:103: error: extra argument 'maxOutputSize' in call",
+        "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:154:85: error: extra argument 'maxOutputSize' in call",
+        "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:199:18: error: generic parameter 'ContentType' could not be inferred",
+        "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:200:54: error: value of type 'UnsafePointer<ContentType>' has no member 'bindMemory'"
+      ],
+      "test_summary": null,
+      "parallel_progress": null,
+      "swift_testing_summary": [],
+      "artifacts": {
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/S05-002.log": "5f31293679752cab0a58d6237a7f44df7beb8f3055c787cdc568b1c67bf810a8",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/S05-002.json": "847503073737ff0d4c717e79450d025b15939f1ed9260450d2e1fc7f1e1a8b22",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/S05-002.processes.jsonl": "aadff58d18959510fb363b8be3b39031d2ecafaab3cbd792f5572c2737ba1952"
+      },
+      "source_state": {
+        "head": "6545ba3a0300ab4c5f655a0f397ac107c960aa70",
+        "branch": "fix/stabilization-batch-1",
+        "status": " M docs/superpowers/plans/2026-10-29-pipelinekit-stabilization-security-cache.md\n?? Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift\n?? audit/\n?? docs/PIPELINEKIT_AUDIT_GUIDE.md\n?? docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/S05-capture-state.py\n",
+        "diff": "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/S05-002-source.diff",
+        "diff_sha256": "abad0c69c015c013d77e53ea3f94185e19a08ccc24c6c304899696527a6b988b",
+        "files": {
+          "Sources/PipelineKitCache/CompressionMiddleware.swift": "dc6233af36bb36bcf25dfc18f836db5a5b4f196652631c2c0a1ba6f260861893",
+          "Tests/PipelineKitCacheTests/CompressionMiddlewareTests.swift": "cf8bdefaa87dcd35d1d967e0a958fbc6fce40056c8be7b59d4a4c75178d21322",
+          "Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift": "17c0b971c9610f8fcec3abc4312ef29cea852170336a29a2e7247f188abc302b",
+          "docs/migrations/first-stabilization-batch.md": "3c1eedf4022bcdeb57852d56edd59250de5c9cf9091d5e7c080e26c4b5688aff"
+        },
+        "compression_header": "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/compression.h",
+        "compression_header_sha256": "62485df0c0bc5c9a789a6ff93b92dae217a47eca199c3b2dff303583a85f8375"
+      }
+    },
+    {
+      "id": "S05-003",
+      "command": [
+        "swift",
+        "test",
+        "--filter",
+        "CompressionCompletionContractTests"
+      ],
+      "exit_status": 1,
+      "runner_exit_status": 1,
+      "watchdog_timeout": false,
+      "elapsed_seconds": 4.848,
+      "cleanup_settled": true,
+      "survivors": [],
+      "termination_actions": [],
+      "runner_error": null,
+      "compiler_warnings": {
+        "Tests/PipelineKitCacheTests/CompressionMiddlewareTests.swift: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]": 2
+      },
+      "new_compiler_warnings": {},
+      "runtime_configuration_warnings": {},
+      "other_warning_lines": [],
+      "compiler_errors": [
+        "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionMiddlewareTests.swift:169:77: error: extra argument 'maxOutputSize' in call",
+        "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionMiddlewareTests.swift:175:81: error: extra argument 'maxOutputSize' in call",
+        "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionMiddlewareTests.swift:224:41: error: extra argument 'maxOutputSize' in call"
+      ],
+      "test_summary": null,
+      "parallel_progress": null,
+      "swift_testing_summary": [],
+      "artifacts": {
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/S05-003.log": "ad23655c6890de202b003f05887f913135d53c21964df185d5214b2ba186529a",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/S05-003.json": "9b080ac256bf4acfd9ed309e72b20dd6a6b3f96b782e3a93b11cc203ca24d93a",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/S05-003.processes.jsonl": "2fed071eccff3fa1c6e5bfa8d874a71ad0db13f181f1dfb628488285e4df1982"
+      },
+      "source_state": {
+        "head": "6545ba3a0300ab4c5f655a0f397ac107c960aa70",
+        "branch": "fix/stabilization-batch-1",
+        "status": " M Tests/PipelineKitCacheTests/CompressionMiddlewareTests.swift\n M docs/superpowers/plans/2026-10-29-pipelinekit-stabilization-security-cache.md\n?? Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift\n?? audit/\n?? docs/PIPELINEKIT_AUDIT_GUIDE.md\n?? docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/S05-capture-state.py\n",
+        "diff": "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/S05-003-source.diff",
+        "diff_sha256": "9c3ffb4b2017b5d94d29640e50320e9fa43220ef3952924025b3569e297a6c6a",
+        "files": {
+          "Sources/PipelineKitCache/CompressionMiddleware.swift": "dc6233af36bb36bcf25dfc18f836db5a5b4f196652631c2c0a1ba6f260861893",
+          "Tests/PipelineKitCacheTests/CompressionMiddlewareTests.swift": "f871a3a1f12115a202872ca8e14ec20e6f6fd948f7ba56555133bea221ec87e7",
+          "Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift": "15a8c0b14a535024e833ed8adeda60f0c307d36f7d2f87c013f7658979b661fd",
+          "docs/migrations/first-stabilization-batch.md": "3c1eedf4022bcdeb57852d56edd59250de5c9cf9091d5e7c080e26c4b5688aff"
+        },
+        "compression_header": "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/compression.h",
+        "compression_header_sha256": "62485df0c0bc5c9a789a6ff93b92dae217a47eca199c3b2dff303583a85f8375"
+      }
+    },
+    {
+      "id": "S05-004",
+      "command": [
+        "swift",
+        "test",
+        "--filter",
+        "CompressionCompletionContractTests"
+      ],
+      "exit_status": 1,
+      "runner_exit_status": 1,
+      "watchdog_timeout": false,
+      "elapsed_seconds": 4.837,
+      "cleanup_settled": true,
+      "survivors": [],
+      "termination_actions": [],
+      "runner_error": null,
+      "compiler_warnings": {},
+      "new_compiler_warnings": {},
+      "runtime_configuration_warnings": {},
+      "other_warning_lines": [],
+      "compiler_errors": [
+        "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Sources/PipelineKitCache/CompressionMiddleware.swift:457:44: error: missing arguments for parameters 'dst_ptr', 'dst_size', 'src_ptr', 'src_size', 'state' in call"
+      ],
+      "test_summary": null,
+      "parallel_progress": null,
+      "swift_testing_summary": [],
+      "artifacts": {
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/S05-004.log": "9067eff4c09ba43c146ac725768ae5b9cc5ed84da0697f83393284f7470411d1",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/S05-004.json": "449bd64fcf41764d23169df1427104ece3ad2a3b7d54ed000274845b4d80cb1b",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/S05-004.processes.jsonl": "6b7134e68c62ab680526de128882f7e1e71ac7a7c66756dd7c4b31f573457863"
+      },
+      "source_state": {
+        "head": "6545ba3a0300ab4c5f655a0f397ac107c960aa70",
+        "branch": "fix/stabilization-batch-1",
+        "status": " M Sources/PipelineKitCache/CompressionMiddleware.swift\n M Tests/PipelineKitCacheTests/CompressionMiddlewareTests.swift\n M docs/superpowers/plans/2026-10-29-pipelinekit-stabilization-security-cache.md\n?? Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift\n?? audit/\n?? docs/PIPELINEKIT_AUDIT_GUIDE.md\n?? docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/S05-capture-state.py\n",
+        "diff": "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/S05-004-source.diff",
+        "diff_sha256": "4528fbe29e39bf7f76bc430847ff2909db24c6600d64d72bf7d36ea7eebfb4fd",
+        "files": {
+          "Sources/PipelineKitCache/CompressionMiddleware.swift": "3e995728c9a288b242ddf8c1f33a3f911c340b590dc5b39c3887575d410d2337",
+          "Tests/PipelineKitCacheTests/CompressionMiddlewareTests.swift": "f871a3a1f12115a202872ca8e14ec20e6f6fd948f7ba56555133bea221ec87e7",
+          "Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift": "15a8c0b14a535024e833ed8adeda60f0c307d36f7d2f87c013f7658979b661fd",
+          "docs/migrations/first-stabilization-batch.md": "3c1eedf4022bcdeb57852d56edd59250de5c9cf9091d5e7c080e26c4b5688aff"
+        },
+        "compression_header": "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/compression.h",
+        "compression_header_sha256": "62485df0c0bc5c9a789a6ff93b92dae217a47eca199c3b2dff303583a85f8375"
+      }
+    },
+    {
+      "id": "S05-005",
+      "command": [
+        "swift",
+        "test",
+        "--filter",
+        "CompressionCompletionContractTests"
+      ],
+      "exit_status": 1,
+      "runner_exit_status": 1,
+      "watchdog_timeout": false,
+      "elapsed_seconds": 8.495,
+      "cleanup_settled": true,
+      "survivors": [],
+      "termination_actions": [],
+      "runner_error": null,
+      "compiler_warnings": {
+        "Tests/PipelineKitCacheTests/CompressionMiddlewareTests.swift: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]": 2
+      },
+      "new_compiler_warnings": {},
+      "runtime_configuration_warnings": {},
+      "other_warning_lines": [],
+      "compiler_errors": [],
+      "test_summary": [
+        "7",
+        "24",
+        "0"
+      ],
+      "parallel_progress": null,
+      "swift_testing_summary": [],
+      "artifacts": {
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/S05-005.log": "92fa2874303423ab22e6bc3263f8f0da18585a475dfabc358c400312e9907cba",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/S05-005.json": "f2ff494f3ebf4c80cbf22c89adc57fed2f5d5b69f1b4f067bbf9d4e141204360",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/S05-005.processes.jsonl": "435ea63b4d35babd75e266f48400a53e1e500e6abd9e3eaaf3d617680d27bfab"
+      },
+      "source_state": {
+        "head": "6545ba3a0300ab4c5f655a0f397ac107c960aa70",
+        "branch": "fix/stabilization-batch-1",
+        "status": " M Sources/PipelineKitCache/CompressionMiddleware.swift\n M Tests/PipelineKitCacheTests/CompressionMiddlewareTests.swift\n M docs/superpowers/plans/2026-10-29-pipelinekit-stabilization-security-cache.md\n?? Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift\n?? audit/\n?? docs/PIPELINEKIT_AUDIT_GUIDE.md\n?? docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/S05-capture-state.py\n",
+        "diff": "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/S05-005-source.diff",
+        "diff_sha256": "4df27d9b89071493485450511075649b80474c5ba949630002d312cfad049e45",
+        "files": {
+          "Sources/PipelineKitCache/CompressionMiddleware.swift": "a9ecfb38f6cdbd15cfcc1b29e5e5de80912f25b627c960ad4662231d1dbf899b",
+          "Tests/PipelineKitCacheTests/CompressionMiddlewareTests.swift": "f871a3a1f12115a202872ca8e14ec20e6f6fd948f7ba56555133bea221ec87e7",
+          "Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift": "8a4b7c5475b1f3c938837141b6e50a5bdf86f8098c20a8c2afeb1e080dfa787b",
+          "docs/migrations/first-stabilization-batch.md": "3c1eedf4022bcdeb57852d56edd59250de5c9cf9091d5e7c080e26c4b5688aff"
+        },
+        "compression_header": "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/compression.h",
+        "compression_header_sha256": "62485df0c0bc5c9a789a6ff93b92dae217a47eca199c3b2dff303583a85f8375"
+      }
+    },
+    {
+      "id": "S05-006",
+      "command": [
+        "swift",
+        "test",
+        "--filter",
+        "CompressionCompletionContractTests"
+      ],
+      "exit_status": 0,
+      "runner_exit_status": 0,
+      "watchdog_timeout": false,
+      "elapsed_seconds": 8.521,
+      "cleanup_settled": true,
+      "survivors": [],
+      "termination_actions": [],
+      "runner_error": null,
+      "compiler_warnings": {},
+      "new_compiler_warnings": {},
+      "runtime_configuration_warnings": {},
+      "other_warning_lines": [],
+      "compiler_errors": [],
+      "test_summary": [
+        "8",
+        "0",
+        "0"
+      ],
+      "parallel_progress": null,
+      "swift_testing_summary": [],
+      "artifacts": {
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/S05-006.log": "be249f2bab62b816bc711f337de9b79da72d852b5bd06ffde240b9975304c7b1",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/S05-006.json": "a8fc70669266aca4b3f8c7e094fba13ce8365f21bf1f751dd2155e8bbc3b3cba",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/S05-006.processes.jsonl": "97a183351cbf7ae9bf63f5a5a1cf42eeff8051f88bfef7e6ab500b93aaee8be5"
+      },
+      "source_state": {
+        "head": "6545ba3a0300ab4c5f655a0f397ac107c960aa70",
+        "branch": "fix/stabilization-batch-1",
+        "status": " M Sources/PipelineKitCache/CompressionMiddleware.swift\n M Tests/PipelineKitCacheTests/CompressionMiddlewareTests.swift\n M docs/superpowers/plans/2026-10-29-pipelinekit-stabilization-security-cache.md\n?? Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift\n?? audit/\n?? docs/PIPELINEKIT_AUDIT_GUIDE.md\n?? docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/S05-capture-state.py\n?? docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/S05-stream-boundary.swift\n",
+        "diff": "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/S05-006-source.diff",
+        "diff_sha256": "365b0bfbd71246db0a5b531be54c1cdcb20f6fc2bb0776b07f7f8722d197889f",
+        "files": {
+          "Sources/PipelineKitCache/CompressionMiddleware.swift": "3b8de72d6bf721cc8e067cbb4a76b4deb8bf30524f52aaea80c6855cc93c9bd0",
+          "Tests/PipelineKitCacheTests/CompressionMiddlewareTests.swift": "f871a3a1f12115a202872ca8e14ec20e6f6fd948f7ba56555133bea221ec87e7",
+          "Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift": "a76f4181de9d7a0287ed59ddab1a8e4cb01fd2857d01df177b00feb9c9934671",
+          "docs/migrations/first-stabilization-batch.md": "3c1eedf4022bcdeb57852d56edd59250de5c9cf9091d5e7c080e26c4b5688aff"
+        },
+        "compression_header": "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/compression.h",
+        "compression_header_sha256": "62485df0c0bc5c9a789a6ff93b92dae217a47eca199c3b2dff303583a85f8375"
+      }
+    },
+    {
+      "id": "S05-007",
+      "command": [
+        "swift",
+        "test",
+        "--filter",
+        "Compression"
+      ],
+      "exit_status": 1,
+      "runner_exit_status": 1,
+      "watchdog_timeout": false,
+      "elapsed_seconds": 6.659,
+      "cleanup_settled": true,
+      "survivors": [],
+      "termination_actions": [],
+      "runner_error": null,
+      "compiler_warnings": {},
+      "new_compiler_warnings": {},
+      "runtime_configuration_warnings": {},
+      "other_warning_lines": [],
+      "compiler_errors": [],
+      "test_summary": [
+        "14",
+        "5",
+        "2"
+      ],
+      "parallel_progress": null,
+      "swift_testing_summary": [],
+      "artifacts": {
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/S05-007.log": "6feebf1d56d5ce623a0611d89791c87c4877dc1b12cd71f1d6bdc8b7f178b859",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/S05-007.json": "1dc9d9b19c7f98826557751ae43ccba0e141406e531af9ffc2b25021b79dba72",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/S05-007.processes.jsonl": "1ca94a3fea9122983faa34584a6e148bfe1d577ddc0d94aee6d3c78345a36e10"
+      },
+      "source_state": {
+        "head": "6545ba3a0300ab4c5f655a0f397ac107c960aa70",
+        "branch": "fix/stabilization-batch-1",
+        "status": " M Sources/PipelineKitCache/CompressionMiddleware.swift\n M Tests/PipelineKitCacheTests/CompressionMiddlewareTests.swift\n M docs/migrations/first-stabilization-batch.md\n M docs/superpowers/plans/2026-10-29-pipelinekit-stabilization-security-cache.md\n?? Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift\n?? audit/\n?? docs/PIPELINEKIT_AUDIT_GUIDE.md\n?? docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/S05-capture-state.py\n?? docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/S05-stream-boundary.swift\n",
+        "diff": "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/S05-007-source.diff",
+        "diff_sha256": "cd45a543224f52c85531667debb97ed4dae544fdffd71b5e59585e963a50f727",
+        "files": {
+          "Sources/PipelineKitCache/CompressionMiddleware.swift": "3b8de72d6bf721cc8e067cbb4a76b4deb8bf30524f52aaea80c6855cc93c9bd0",
+          "Tests/PipelineKitCacheTests/CompressionMiddlewareTests.swift": "f871a3a1f12115a202872ca8e14ec20e6f6fd948f7ba56555133bea221ec87e7",
+          "Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift": "a76f4181de9d7a0287ed59ddab1a8e4cb01fd2857d01df177b00feb9c9934671",
+          "docs/migrations/first-stabilization-batch.md": "8cac634ec43534bef4a25c99764e63c17b656b25c45cd03cc08b05da5576b12a"
+        },
+        "compression_header": "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/compression.h",
+        "compression_header_sha256": "62485df0c0bc5c9a789a6ff93b92dae217a47eca199c3b2dff303583a85f8375"
+      }
+    },
+    {
+      "id": "S05-008",
+      "command": [
+        "swift",
+        "test",
+        "--filter",
+        "Compression"
+      ],
+      "exit_status": 0,
+      "runner_exit_status": 0,
+      "watchdog_timeout": false,
+      "elapsed_seconds": 8.119,
+      "cleanup_settled": true,
+      "survivors": [],
+      "termination_actions": [],
+      "runner_error": null,
+      "compiler_warnings": {
+        "Tests/PipelineKitCacheTests/CompressionMiddlewareTests.swift: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]": 2
+      },
+      "new_compiler_warnings": {},
+      "runtime_configuration_warnings": {},
+      "other_warning_lines": [],
+      "compiler_errors": [],
+      "test_summary": [
+        "14",
+        "0",
+        "0"
+      ],
+      "parallel_progress": null,
+      "swift_testing_summary": [],
+      "artifacts": {
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/S05-008.log": "383d683086d0c0f335e1b89e3d4a7177f034c1bee32c9cf73e0d4e38b18e016c",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/S05-008.json": "14f82ac6812db45604e6d608b347ad9cb0dde81eb34ebe42f05a422a0b3ccb00",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/S05-008.processes.jsonl": "8f89658f4f0a2c4d11dc209a8cfd2f9bf567d2a30627f42dc1af45e8d4fafe7c"
+      },
+      "source_state": {
+        "head": "6545ba3a0300ab4c5f655a0f397ac107c960aa70",
+        "branch": "fix/stabilization-batch-1",
+        "status": " M Sources/PipelineKitCache/CompressionMiddleware.swift\n M Tests/PipelineKitCacheTests/CompressionMiddlewareTests.swift\n M docs/migrations/first-stabilization-batch.md\n M docs/superpowers/plans/2026-10-29-pipelinekit-stabilization-security-cache.md\n?? Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift\n?? audit/\n?? docs/PIPELINEKIT_AUDIT_GUIDE.md\n?? docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/S05-capture-state.py\n?? docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/S05-stream-boundary.swift\n",
+        "diff": "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/S05-008-source.diff",
+        "diff_sha256": "9d08d937deb1631c10dd0530687f81919edb057cbdfbebca26f99866886cae73",
+        "files": {
+          "Sources/PipelineKitCache/CompressionMiddleware.swift": "cc2484f00e8b0f6b906488fe6f89e8aae8619b24e56229089300b61e2ed10a20",
+          "Tests/PipelineKitCacheTests/CompressionMiddlewareTests.swift": "03dfcbf36b68ea42eb0d2845c2f94df0412379e3d6484367937e84f3d9a8984e",
+          "Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift": "a76f4181de9d7a0287ed59ddab1a8e4cb01fd2857d01df177b00feb9c9934671",
+          "docs/migrations/first-stabilization-batch.md": "8cac634ec43534bef4a25c99764e63c17b656b25c45cd03cc08b05da5576b12a"
+        },
+        "compression_header": "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/compression.h",
+        "compression_header_sha256": "62485df0c0bc5c9a789a6ff93b92dae217a47eca199c3b2dff303583a85f8375"
+      }
+    },
+    {
+      "id": "S05-009",
+      "command": [
+        "swift",
+        "test",
+        "--filter",
+        "CompressionMiddlewareTests"
+      ],
+      "exit_status": 0,
+      "runner_exit_status": 0,
+      "watchdog_timeout": false,
+      "elapsed_seconds": 7.922,
+      "cleanup_settled": true,
+      "survivors": [],
+      "termination_actions": [],
+      "runner_error": null,
+      "compiler_warnings": {
+        "Tests/PipelineKitCacheTests/CompressionMiddlewareTests.swift: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]": 2
+      },
+      "new_compiler_warnings": {},
+      "runtime_configuration_warnings": {},
+      "other_warning_lines": [],
+      "compiler_errors": [],
+      "test_summary": [
+        "6",
+        "0",
+        "0"
+      ],
+      "parallel_progress": null,
+      "swift_testing_summary": [],
+      "artifacts": {
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/S05-009.log": "32cb22d79cf355c6c9d6230eb19ff2179d5fd725f718eb936e75ae1716434cfa",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/S05-009.json": "2ffddfe58bc437866118be9f98b1bf43d33d5798cb8718207f6af7d0ecefefb8",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/S05-009.processes.jsonl": "78a351d0c01885ffaf3c5f5366c28f579e574feab4686a8f460092d064ad9b7e"
+      },
+      "source_state": {
+        "head": "6545ba3a0300ab4c5f655a0f397ac107c960aa70",
+        "branch": "fix/stabilization-batch-1",
+        "status": " M Sources/PipelineKitCache/CompressionMiddleware.swift\n M Tests/PipelineKitCacheTests/CompressionMiddlewareTests.swift\n M docs/migrations/first-stabilization-batch.md\n M docs/superpowers/plans/2026-10-29-pipelinekit-stabilization-security-cache.md\n?? Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift\n?? audit/\n?? docs/PIPELINEKIT_AUDIT_GUIDE.md\n?? docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/S05-capture-state.py\n?? docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/S05-stream-boundary.swift\n",
+        "diff": "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/S05-009-source.diff",
+        "diff_sha256": "06618a02795bb9fbba22af1f1bd25c37577542d2a6c3c3b196e9745a6474261e",
+        "files": {
+          "Sources/PipelineKitCache/CompressionMiddleware.swift": "6978ba0fda8d3e364e6e50e1a111791ee83b61b458ffda398f4de228677318e8",
+          "Tests/PipelineKitCacheTests/CompressionMiddlewareTests.swift": "59bb3e1fd027effe6b50683fffd66adfe0111a8d320af46775835959ce942b3f",
+          "Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift": "a76f4181de9d7a0287ed59ddab1a8e4cb01fd2857d01df177b00feb9c9934671",
+          "docs/migrations/first-stabilization-batch.md": "8cac634ec43534bef4a25c99764e63c17b656b25c45cd03cc08b05da5576b12a"
+        },
+        "compression_header": "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/compression.h",
+        "compression_header_sha256": "62485df0c0bc5c9a789a6ff93b92dae217a47eca199c3b2dff303583a85f8375"
+      }
+    },
+    {
+      "id": "S05-010",
+      "command": [
+        "swift",
+        "test",
+        "--parallel",
+        "--skip",
+        "PipelineKitPerformanceTests"
+      ],
+      "exit_status": 0,
+      "runner_exit_status": 0,
+      "watchdog_timeout": false,
+      "elapsed_seconds": 19.566,
+      "cleanup_settled": true,
+      "survivors": [],
+      "termination_actions": [],
+      "runner_error": null,
+      "compiler_warnings": {},
+      "new_compiler_warnings": {},
+      "runtime_configuration_warnings": {},
+      "other_warning_lines": [],
+      "compiler_errors": [],
+      "test_summary": null,
+      "parallel_progress": [
+        "1102",
+        "1102"
+      ],
+      "swift_testing_summary": [
+        "Test run with 20 tests in 5 suites passed after 0.002 seconds."
+      ],
+      "artifacts": {
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/S05-010.log": "fb13d2e454d2316bbd623b74f63adeb4afc17ed0ff0f2154929330760d4128a9",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/S05-010.json": "b7f0fedefa73d6fd7bb0838613fb6732194f0bb17e92a0d2331351d6dd513603",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/S05-010.processes.jsonl": "4daf186612624eefc0fd0035409785e6efb9eff5ad0993f6037b2713516c1238"
+      },
+      "source_state": {
+        "head": "6545ba3a0300ab4c5f655a0f397ac107c960aa70",
+        "branch": "fix/stabilization-batch-1",
+        "status": " M Sources/PipelineKitCache/CompressionMiddleware.swift\n M Tests/PipelineKitCacheTests/CompressionMiddlewareTests.swift\n M docs/migrations/first-stabilization-batch.md\n M docs/superpowers/plans/2026-10-29-pipelinekit-stabilization-security-cache.md\n?? Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift\n?? audit/\n?? docs/PIPELINEKIT_AUDIT_GUIDE.md\n?? docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/S05-capture-state.py\n?? docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/S05-stream-boundary.swift\n",
+        "diff": "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/S05-010-source.diff",
+        "diff_sha256": "06618a02795bb9fbba22af1f1bd25c37577542d2a6c3c3b196e9745a6474261e",
+        "files": {
+          "Sources/PipelineKitCache/CompressionMiddleware.swift": "6978ba0fda8d3e364e6e50e1a111791ee83b61b458ffda398f4de228677318e8",
+          "Tests/PipelineKitCacheTests/CompressionMiddlewareTests.swift": "59bb3e1fd027effe6b50683fffd66adfe0111a8d320af46775835959ce942b3f",
+          "Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift": "a76f4181de9d7a0287ed59ddab1a8e4cb01fd2857d01df177b00feb9c9934671",
+          "docs/migrations/first-stabilization-batch.md": "8cac634ec43534bef4a25c99764e63c17b656b25c45cd03cc08b05da5576b12a"
+        },
+        "compression_header": "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/compression.h",
+        "compression_header_sha256": "62485df0c0bc5c9a789a6ff93b92dae217a47eca199c3b2dff303583a85f8375"
+      }
+    },
+    {
+      "id": "S05-P01",
+      "command": [
+        "swift",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/S05-stream-boundary.swift"
+      ],
+      "exit_status": 0,
+      "runner_exit_status": 0,
+      "watchdog_timeout": false,
+      "elapsed_seconds": 0.406,
+      "cleanup_settled": true,
+      "survivors": [],
+      "termination_actions": [],
+      "runner_error": null,
+      "compiler_warnings": {},
+      "new_compiler_warnings": {},
+      "runtime_configuration_warnings": {},
+      "other_warning_lines": [],
+      "compiler_errors": [],
+      "test_summary": null,
+      "parallel_progress": null,
+      "swift_testing_summary": [],
+      "artifacts": {
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/S05-P01.log": "3d60187e88024d76d341891388be51fab0e0c52dafb04b278a34144690f38c1a",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/S05-P01.json": "0c56e6d84954b7da5ee26b17846975012ee145b18809a9b0fed04c32fb15abb3",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/S05-P01.processes.jsonl": "5a98170cb825ed0a4e9106b7ddcd19ec6ef472fd27d686ca5cf8bff48fa6ec91"
+      }
+    },
+    {
+      "id": "S05-P02",
+      "command": [
+        "swift",
+        "-e",
+        "import Foundation; import Compression; for (name, codec) in [(\"DEFLATE\", COMPRESSION_ZLIB), (\"LZFSE\", COMPRESSION_LZFSE), (\"LZ4\", COMPRESSION_LZ4)] { for count in [1, 99, 100, 101, 128] { let data = Data(repeating: 65, count: count); data.withUnsafeBytes { (source: UnsafeRawBufferPointer) in let destination = UnsafeMutablePointer<UInt8>.allocate(capacity: 1024); defer { destination.deallocate() }; let result = compression_encode_buffer(destination, 1024, source.bindMemory(to: UInt8.self).baseAddress!, count, nil, codec); print(name, count, result) } } }"
+      ],
+      "exit_status": 0,
+      "runner_exit_status": 0,
+      "watchdog_timeout": false,
+      "elapsed_seconds": 0.263,
+      "cleanup_settled": true,
+      "survivors": [],
+      "termination_actions": [],
+      "runner_error": null,
+      "compiler_warnings": {},
+      "new_compiler_warnings": {},
+      "runtime_configuration_warnings": {},
+      "other_warning_lines": [],
+      "compiler_errors": [],
+      "test_summary": null,
+      "parallel_progress": null,
+      "swift_testing_summary": [],
+      "artifacts": {
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/S05-P02.log": "def52041d2991cede47eafa5c4478c59c8c03a05712b483cbec396e9949af824",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/S05-P02.json": "bf9b8dfc9d0b1047b83a6cf457860b6e71e3047bb32fcaf5d9b8d2fa37bb2231",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/S05-P02.processes.jsonl": "de075f67532eea9dc82133cb10d6ca5213db41294f729d0b348c4386f42b18b2"
+      }
+    },
+    {
+      "id": "S05-ENV",
+      "command": [
+        "swift",
+        "--version"
+      ],
+      "exit_status": 0,
+      "runner_exit_status": 0,
+      "watchdog_timeout": false,
+      "elapsed_seconds": 0.123,
+      "cleanup_settled": true,
+      "survivors": [],
+      "termination_actions": [],
+      "runner_error": null,
+      "compiler_warnings": {},
+      "new_compiler_warnings": {},
+      "runtime_configuration_warnings": {},
+      "other_warning_lines": [],
+      "compiler_errors": [],
+      "test_summary": null,
+      "parallel_progress": null,
+      "swift_testing_summary": [],
+      "artifacts": {
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/S05-ENV.log": "448e3f9c46706640fe62ea0140ecfccbb330baba2076b2916c0423af9642ee06",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/S05-ENV.json": "e4f30db8e550384e3372d149f6eb137b7858c0c7c7232b77235cd006903db929",
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/S05-ENV.processes.jsonl": "504b5b8bca29b0d90051f43f671547864ba78524a59ad6128d7cc18cb662b993"
+      }
+    }
+  ],
+  "evidence_limit": "Incremental builds and parallel successful-test output suppression prevent a global warning census. Existing C02-N1 remains separate. Linux Compression branch unavailable; no decoder execution claimed there.",
+  "final_source": {
+    "head": "6545ba3a0300ab4c5f655a0f397ac107c960aa70",
+    "branch": "fix/stabilization-batch-1",
+    "status": " M Sources/PipelineKitCache/CompressionMiddleware.swift\n M Tests/PipelineKitCacheTests/CompressionMiddlewareTests.swift\n M docs/migrations/first-stabilization-batch.md\n M docs/superpowers/plans/2026-10-29-pipelinekit-stabilization-security-cache.md\n?? Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift\n?? audit/\n?? docs/PIPELINEKIT_AUDIT_GUIDE.md\n?? docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/S05-capture-state.py\n?? docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/S05-stream-boundary.swift\n",
+    "diff": "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/S05-010-source.diff",
+    "diff_sha256": "06618a02795bb9fbba22af1f1bd25c37577542d2a6c3c3b196e9745a6474261e",
+    "files": {
+      "Sources/PipelineKitCache/CompressionMiddleware.swift": "6978ba0fda8d3e364e6e50e1a111791ee83b61b458ffda398f4de228677318e8",
+      "Tests/PipelineKitCacheTests/CompressionMiddlewareTests.swift": "59bb3e1fd027effe6b50683fffd66adfe0111a8d320af46775835959ce942b3f",
+      "Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift": "a76f4181de9d7a0287ed59ddab1a8e4cb01fd2857d01df177b00feb9c9934671",
+      "docs/migrations/first-stabilization-batch.md": "8cac634ec43534bef4a25c99764e63c17b656b25c45cd03cc08b05da5576b12a"
+    },
+    "compression_header": "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/compression.h",
+    "compression_header_sha256": "62485df0c0bc5c9a789a6ff93b92dae217a47eca199c3b2dff303583a85f8375"
+  },
+  "final_source_unchanged": true,
+  "live_caller_scan": {
+    "command": [
+      "rg",
+      "-n",
+      "CompressionUtility|decompress\\(",
+      "Sources",
+      "Tests",
+      "Examples",
+      "docs/migrations",
+      "docs/guides",
+      "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer",
+      "README.md",
+      "CHANGELOG.md",
+      "-g",
+      "*.swift",
+      "-g",
+      "*.md"
+    ],
+    "output": "docs/migrations/first-stabilization-batch.md:408:Every `CompressionUtility.decompress` call must now supply a positive `maxOutputSize`:\ndocs/migrations/first-stabilization-batch.md:416:    try CompressionUtility.decompress(\nTests/PipelineKitCacheTests/CompressionMiddlewareTests.swift:143:        let ratioResult = CompressionUtility.compressionRatio(\nTests/PipelineKitCacheTests/CompressionMiddlewareTests.swift:173:                XCTAssertEqual(try CompressionUtility.decompress(\nTests/PipelineKitCacheTests/CompressionMiddlewareTests.swift:179:            XCTAssertEqual(try CompressionUtility.decompress(\nTests/PipelineKitCacheTests/CompressionMiddlewareTests.swift:216:        let compressed = try CompressionUtility.compress(\nTests/PipelineKitCacheTests/CompressionMiddlewareTests.swift:227:        let decompressed = try CompressionUtility.decompress(\nTests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:20:                let compressed = try CompressionUtility.compress(original, using: algorithm)\nTests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:29:                                try CompressionUtility.decompress(\nTests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:34:                            let decoded = try CompressionUtility.decompress(\nTests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:42:                XCTAssertEqual(try CompressionUtility.decompress(\nTests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:53:                    let compressed = try CompressionUtility.compress(original, using: algorithm)\nTests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:55:                        let decoded = try CompressionUtility.decompress(\nTests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:62:                            try CompressionUtility.decompress(compressed, using: algorithm, maxOutputSize: count - 1)\nTests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:74:                let compressed = try CompressionUtility.compress(original, using: algorithm)\nTests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:75:                XCTAssertEqual(try CompressionUtility.decompress(\nTests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:79:                    try CompressionUtility.decompress(compressed, using: algorithm, maxOutputSize: count - 1)\nTests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:87:            let compressed = try CompressionUtility.compress(Data(repeating: 65, count: 101), using: algorithm)\nTests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:91:                        try CompressionUtility.decompress(data, using: algorithm, originalSize: hint, maxOutputSize: 101)\nTests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:96:                        try CompressionUtility.decompress(data, using: algorithm, maxOutputSize: limit)\nTests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:100:            XCTAssertEqual(try CompressionUtility.decompress(Data(), using: algorithm, maxOutputSize: 1), Data())\nTests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:107:            let compressed = try CompressionUtility.compress(original, using: algorithm)\nTests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:110:                    XCTAssertEqual(try CompressionUtility.decompress(\nTests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:115:            XCTAssertEqual(try CompressionUtility.decompress(\nTests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:124:            let compressed = try CompressionUtility.compress(original, using: algorithm)\nTests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:137:                        try CompressionUtility.decompress(\nTests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:150:                    let compressed = try CompressionUtility.compress(original, using: algorithm)\nTests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:154:                                try CompressionUtility.decompress(\nTests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:173:            XCTAssertEqual(try CompressionUtility.decompress(compressed, using: algorithm, maxOutputSize: 1), Data())\nTests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:175:                try CompressionUtility.decompress(compressed + Data([0]), using: algorithm, maxOutputSize: 1)\nTests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:178:                try CompressionUtility.decompress(Data(compressed.dropLast()), using: algorithm, maxOutputSize: 1)\nTests/PipelineKitCacheTests/CompressionCompletionContractTests.swift:205:    // Independent of CompressionUtility and every codec: deterministic xorshift64* bytes.\nSources/PipelineKitCache/CompressionMiddleware.swift:108:                let compressedData = try CompressionUtility.compress(\nSources/PipelineKitCache/CompressionMiddleware.swift:161:                let compressedData = try CompressionUtility.compress(\nSources/PipelineKitCache/CompressionMiddleware.swift:361:public final class CompressionUtility: Sendable {\nSources/PipelineKitCache/CompressionMiddleware.swift:435:    public static func decompress(\n",
+    "excluded": "Immutable audit, review probes, historical execution logs and design/plan records; live Consumer included."
+  },
+  "probe_source": {
+    "head": "6545ba3a0300ab4c5f655a0f397ac107c960aa70",
+    "probe_path": "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/S05-stream-boundary.swift",
+    "probe_sha256": "718ca397c32da01b58018f0897dd5510f161d23c877dc1ba38fabadf25c40303",
+    "production_state_at_P01": "S05-005-source.json",
+    "note": "P01 invokes only Apple Compression, not PipelineKit. Probe hash recorded after execution; the retained probe source has not been edited since that run.",
+    "P02_source": "The complete inline Swift source is recorded in S05-P02.json command.",
+    "host": [
+      "ProductName:\t\tmacOS",
+      "ProductVersion:\t\t27.0.1",
+      "BuildVersion:\t\t26A434"
+    ],
+    "architecture": "arm64"
+  },
+  "completion_matrix": {
+    "enum_cases": 5,
+    "platform_codecs": 3,
+    "decode_outcomes": 680,
+    "full_data_successes": 270,
+    "explicit_errors": 410,
+    "raw_no_finalize_stall_observations": 5,
+    "per_method_counts": [
+      {
+        "method": "testDecodeCompletesOrThrowsForEverySizeHintAndLimit",
+        "full_data_successes": 110,
+        "explicit_errors": 50,
+        "success_derivation": "5 \u00d7 2 \u00d7 (5 \u00d7 2 + 1)",
+        "error_derivation": "5 \u00d7 2 \u00d7 5"
+      },
+      {
+        "method": "testSmallPayloadRoundTrips",
+        "full_data_successes": 100,
+        "explicit_errors": 30,
+        "success_derivation": "5 \u00d7 5 \u00d7 2 \u00d7 2",
+        "error_derivation": "5 \u00d7 3 \u00d7 2"
+      },
+      {
+        "method": "testExactLimitAtWorkingBufferBoundary",
+        "full_data_successes": 15,
+        "explicit_errors": 15,
+        "success_derivation": "5 \u00d7 3",
+        "error_derivation": "5 \u00d7 3"
+      },
+      {
+        "method": "testInvalidArgumentsAreRejectedBeforeEmptyInputCompatibility",
+        "full_data_successes": 5,
+        "explicit_errors": 50,
+        "success_derivation": "5",
+        "error_derivation": "5 \u00d7 2 \u00d7 (2 + 3)"
+      },
+      {
+        "method": "testHugeHintsAndLimitsDoNotRequireHugeAllocation",
+        "full_data_successes": 35,
+        "explicit_errors": 0,
+        "success_derivation": "5 \u00d7 (3 \u00d7 2 + 1)",
+        "error_derivation": "0"
+      },
+      {
+        "method": "testTruncatedCorruptAndStalledStreamsNeverReturnPrefixes",
+        "full_data_successes": 0,
+        "explicit_errors": 75,
+        "success_derivation": "0",
+        "error_derivation": "5 \u00d7 5 \u00d7 3"
+      },
+      {
+        "method": "testTrailingAndConcatenatedStreamsAreRejected",
+        "full_data_successes": 0,
+        "explicit_errors": 180,
+        "success_derivation": "0",
+        "error_derivation": "5 \u00d7 3 \u00d7 2 \u00d7 3 \u00d7 2"
+      },
+      {
+        "method": "testEncodedEmptyStreamRequiresCompletionAndRejectsTrailingInput",
+        "full_data_successes": 5,
+        "explicit_errors": 10,
+        "success_derivation": "5",
+        "error_derivation": "5 \u00d7 2"
+      }
+    ],
+    "correction": {
+      "finding": "S05-N1",
+      "scope": "Authored totals only; no tests rerun or raw evidence changed.",
+      "final_source_hashes_verified": 4,
+      "raw_artifact_hashes_verified": 39,
+      "protected_files_identical_to_7cd9208": 67,
+      "probe_source_hash_verified": true
+    }
+  },
+  "runner_sha256": "9fad75b0f9d7216c7467bab2d3b9fd341ef5e2313fd4365c491234eafb480dd0",
+  "capture_script_sha256": "43251b50302c030b654e7ab91e3c4916a82a09256b52b1bebd8dcbd9dbdcc0f0",
+  "retained_audit": [
+    {
+      "path": "audit/pipelinekit/2026-10-28-a93a713-local/logs/V206b-decompress.log",
+      "sha256": "b9e5529da9359114622ee33b5c1488118c6c1b73773c97524ed193c87fd4e014",
+      "matches_original_checkout": true
+    },
+    {
+      "path": "audit/pipelinekit/2026-10-28-a93a713-local/logs/V206b-decompress.json",
+      "sha256": "aab81a4eb9689151453c7c1f2be2b4d2139bd17d486751257079b6bc10c70ada",
+      "matches_original_checkout": true
+    }
+  ],
+  "staging_check": {
+    "source_and_reports_exit_status": 0,
+    "aggregate_exit_status": 2,
+    "trailing_whitespace_findings": 109,
+    "all_findings_in_retained_raw_log_or_diff_evidence": true,
+    "disposition": "Preserve raw evidence bytes; scoped implementation/report check passes."
+  }
+}

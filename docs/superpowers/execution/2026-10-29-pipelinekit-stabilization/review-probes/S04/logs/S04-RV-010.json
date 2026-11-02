@@ -1,0 +1,67 @@
+{
+  "id": "S04-RV-010",
+  "cwd": "/private/tmp/pipelinekit-s04-review-jhh4bmpi",
+  "command": [
+    "/private/tmp/pipelinekit-s04-review-jhh4bmpi/secondary/probe",
+    "drop",
+    "100000"
+  ],
+  "started_utc": "2026-10-31T03:46:08.971151+00:00",
+  "elapsed_seconds": 0.198,
+  "exit_status": 0,
+  "watchdog_timeout": false,
+  "log": "/private/tmp/pipelinekit-s04-review-jhh4bmpi/logs/S04-RV-010.log",
+  "runner_exit_status": 0,
+  "runner_error": null,
+  "cleanup": {
+    "settled": true,
+    "survivors": [],
+    "outcomes": [
+      {
+        "identity": {
+          "pid": 58815,
+          "start": [
+            1793418368,
+            971735
+          ]
+        },
+        "state": "gone"
+      }
+    ],
+    "inspection_errors": [],
+    "term_grace_seconds": 2.0,
+    "kill_grace_seconds": 3.0
+  },
+  "event_errors": [],
+  "completion_reason": "root_exit",
+  "unexpected_descendants": [],
+  "owned_processes": [
+    {
+      "identity": {
+        "pid": 58815,
+        "start": [
+          1793418368,
+          971735
+        ]
+      },
+      "observed_parent": null,
+      "first_seen_seconds": 0.002242,
+      "observations": [
+        {
+          "ppid": 58811,
+          "pgid": 58815,
+          "state": 2
+        }
+      ]
+    }
+  ],
+  "termination_actions": [],
+  "process_events": "/private/tmp/pipelinekit-s04-review-jhh4bmpi/logs/S04-RV-010.processes.jsonl",
+  "ownership_backend": "macOS libproc PID + start timeval",
+  "containment_limits": [
+    "Only lineages observed before reparenting are owned; instant unobserved daemonization can escape.",
+    "Identity check and kill are separate syscalls; PID reuse in that interval cannot be excluded.",
+    "Zombie means no executing process; non-child zombie reaping belongs to its parent.",
+    "SIGKILL of the runner or host failure can bypass cleanup; Linux is unsupported and unvalidated."
+  ]
+}

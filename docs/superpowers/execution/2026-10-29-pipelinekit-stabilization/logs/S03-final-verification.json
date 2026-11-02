@@ -1,0 +1,40 @@
+{
+  "final_source_run": "S03-007-full-debug",
+  "unchanged_from_final_run": true,
+  "files": {
+    "README.md": "8bb710539e0114929ce7505af361b60e68c8afb091114dff5500ae50a428fd9a",
+    "Sources/PipelineKitCache/CachedMiddleware.swift": "68aef1955ae9058462cf9df010e7b9802e308f1f58f92527451324532749d1ca",
+    "Sources/PipelineKitCache/CachingMiddleware.swift": "4ebb40e820dcb0635a15fb0e2ce0001295c0e413ce7a8f295778f09840154622",
+    "Sources/PipelineKitCache/SimpleCachingMiddleware.swift": "2e0334233e4d65412ad6a2ec1b2c40204de8941368f5cecc3e57fa7d1c2628f2",
+    "Tests/PipelineKitCacheTests/CachingMiddlewareTests.swift": "17714c005a58d65017b6bf02dfbc381f1935ab3db4ca2d06f2628a2699c1013d",
+    "Tests/PipelineKitCacheTests/LRUEvolutionTests.swift": "f13a48825daf0987d77396efb556a96c86fb4e37149b7d18b1a6699e37bb2ec3",
+    "Tests/PipelineKitCacheTests/NextGuardSuppressionTests.swift": "34041957d8f4f70f22338a9276c6c58e8c9f8afa6491ee8fe8fbe2265cbf01d4",
+    "Tests/PipelineKitCacheTests/SimpleCachingMiddlewareTests.swift": "44a69634dd9a4ad33be2b74fce8a46ea37f34baf18333c09f62510b60e1e2f34",
+    "docs/getting-started/quick-start.md": "643f2ea0f9d49b23ddc2632f11c3e4f65f2f6e88a45d1a719e940968bc8aac77",
+    "docs/guides/architecture.md": "acbfccca262237ddf5547213ca5dc5d1aeb1508a7e0080be87d9c53b5b4dcf6d",
+    "docs/migrations/first-stabilization-batch.md": "3c1eedf4022bcdeb57852d56edd59250de5c9cf9091d5e7c080e26c4b5688aff",
+    "docs/tutorials/custom-middleware.md": "1b1b56b62fd647cfd81f42e795115871fd0bdf5996bbd76faaa90876195af592",
+    "Sources/PipelineKitCache/CacheKeyNamespace.swift": "23e92a7d827a487031cc19c9e89d7d312c5c358c5b6368aeb229bd3b2a18eef8",
+    "Tests/PipelineKitCacheTests/CacheIdentityContractTests.swift": "fcf7e7945e2ad7382fb118c5a331ed477458c61489e12cb72daf1f6610cc4498"
+  },
+  "retained_inputs": {
+    "Examples/Package.swift": "104d13e07e3e9ce38c719dd8ef84bfbf53fb30cdeabf3f7bdc15f4d54cf171f8",
+    "Package.resolved": "f3fa663ca0f1c77b0b5019bce908ef38a95911202c5f1c16de2d4fe01965ddc4",
+    "Package.swift": "f9e66a25c968fd8d4a1461efd4c4a62fcc0e1e63bcca2f0bd617e8edd9f18adb",
+    "audit/pipelinekit/2026-10-28-a93a713-local/logs/V207b-cache-identity.json": "36b78df9a5230ff3268135109893dc7c4314a24ad491a30f986d5d536d0a5f4f",
+    "audit/pipelinekit/2026-10-28-a93a713-local/logs/V207b-cache-identity.log": "8a8536d41f2dcefc136c1f212f38b439ea2f3fd7beb21fe5bcde011fd8976dc9",
+    "audit/pipelinekit/2026-10-28-a93a713-local/logs/V208b-hash-collision.json": "b756a1bc05cea68090d5e4c6b8a634ae429d9278d359a264cf1883da8b71e2e2",
+    "audit/pipelinekit/2026-10-28-a93a713-local/logs/V208b-hash-collision.log": "e4119f2d489095bd21f00e19598b0b3b62ac9b294de8b686c14a41d6800e9489"
+  },
+  "controller_owned_excluded": [
+    "docs/superpowers/plans/2026-10-29-pipelinekit-stabilization-security-cache.md",
+    "docs/superpowers/plans/2026-10-29-pipelinekit-stabilization.md"
+  ],
+  "examples_compile_coverage": "Examples/Sources were source-scanned with --no-ignore: no cache callers; standalone package not built by this task; migration snippet compilation belongs to I01.",
+  "implementation_commit": "75391161d8023f395914eedb4de3170d4b0788cb",
+  "evidence_scripts": {
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/S03_capture_state.py": "c1d5eb7ff0af5fcbd77084eface847bba2952cf8e64309a9aa177f2de2920cb0",
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/S03_summarize.py": "ed57c3a8714f38705a288c568bd40f248d8b432aea2a53fea0337dbfd6d35b97"
+  },
+  "committed_implementation_hashes_match": true
+}

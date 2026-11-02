@@ -371,20 +371,18 @@ final class SecurityPolicyMiddlewareTests: XCTestCase {
         let command = ValidCommand(text: "Performance test string")
         let context = CommandContext()
         
-        let iterations = 10000
-        let start = Date()
-        
-        for _ in 0..<iterations {
-            _ = try await middleware.execute(command, context: context) { cmd, _ in
-                try await cmd.execute()
+        let opsPerSecond = try await ThroughputMeasurement.measure(iterations: 10000) { iterations in
+            var matchingResults = 0
+            for _ in 0..<iterations {
+                let result = try await middleware.execute(command, context: context) { cmd, _ in
+                    try await cmd.execute()
+                }
+                if result == "Performance test string" { matchingResults += 1 }
             }
+            return matchingResults
         }
-        
-        let duration = Date().timeIntervalSince(start)
-        let opsPerSecond = Double(iterations) / duration
-        
-        print("Security policy validation performance: \(Int(opsPerSecond)) ops/sec")
-        XCTAssertGreaterThan(opsPerSecond, 50000) // Should handle at least 50k ops/sec
+        print("Security policy validation performance: \(opsPerSecond) ops/sec")
+        XCTAssertGreaterThan(opsPerSecond, 50000)
     }
     
     // MARK: - Concurrent Validation Tests

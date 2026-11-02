@@ -1,0 +1,75 @@
+Building for debugging...
+[Computing dependencies]
+[Using on-disk description]
+[1 / 1]
+[2 / 68] _ResilienceFoundation
+[4 / 70] _ResilienceFoundation
+[22 / 31] PipelineKitTestSupportTests-product
+Build complete! (1.66 sec)
+Test Suite 'Selected tests' started at 2026-10-30 14:54:44.116.
+Test Suite 'PipelineKitTests.xctest' started at 2026-10-30 14:54:44.117.
+Test Suite 'PipelineKitTests.xctest' passed at 2026-10-30 14:54:44.117.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 14:54:44.117.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 14:54:44.193.
+Test Suite 'PipelineKitTestSupportTests.xctest' started at 2026-10-30 14:54:44.194.
+Test Suite 'PipelineKitTestSupportTests.xctest' passed at 2026-10-30 14:54:44.194.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 14:54:44.194.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 14:54:44.269.
+Test Suite 'PipelineKitSecurityTests.xctest' started at 2026-10-30 14:54:44.270.
+Test Suite 'PipelineKitSecurityTests.xctest' passed at 2026-10-30 14:54:44.270.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 14:54:44.270.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 14:54:44.328.
+Test Suite 'PipelineKitResilienceTests.xctest' started at 2026-10-30 14:54:44.329.
+Test Suite 'AdmissionGateContractTests' started at 2026-10-30 14:54:44.329.
+Test Case '-[PipelineKitResilienceTests.AdmissionGateContractTests testCancellationRegistrationAndGrantRaces]' started.
+Test Case '-[PipelineKitResilienceTests.AdmissionGateContractTests testCancellationRegistrationAndGrantRaces]' passed (0.001 seconds).
+Test Case '-[PipelineKitResilienceTests.AdmissionGateContractTests testLeaseConservationMatrix]' started.
+Test Case '-[PipelineKitResilienceTests.AdmissionGateContractTests testLeaseConservationMatrix]' passed (0.001 seconds).
+Test Case '-[PipelineKitResilienceTests.AdmissionGateContractTests testNonpositiveTimeoutOnlyRejectsWaitingAndProductionTimerSettles]' started.
+Test Case '-[PipelineKitResilienceTests.AdmissionGateContractTests testNonpositiveTimeoutOnlyRejectsWaitingAndProductionTimerSettles]' passed (0.002 seconds).
+Test Case '-[PipelineKitResilienceTests.AdmissionGateContractTests testReservedAcquisitionIsAtomic]' started.
+Test Case '-[PipelineKitResilienceTests.AdmissionGateContractTests testReservedAcquisitionIsAtomic]' passed (0.001 seconds).
+Test Case '-[PipelineKitResilienceTests.AdmissionGateContractTests testTimeoutRemovesOnlyItsWaiter]' started.
+Test Case '-[PipelineKitResilienceTests.AdmissionGateContractTests testTimeoutRemovesOnlyItsWaiter]' passed (0.000 seconds).
+Test Suite 'AdmissionGateContractTests' passed at 2026-10-30 14:54:44.335.
+	 Executed 5 tests, with 0 failures (0 unexpected) in 0.006 (0.006) seconds
+Test Suite 'PipelineKitResilienceTests.xctest' passed at 2026-10-30 14:54:44.335.
+	 Executed 5 tests, with 0 failures (0 unexpected) in 0.006 (0.006) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 14:54:44.335.
+	 Executed 5 tests, with 0 failures (0 unexpected) in 0.006 (0.007) seconds
+Test Suite 'Selected tests' started at 2026-10-30 14:54:44.409.
+Test Suite 'PipelineKitPoolingTests.xctest' started at 2026-10-30 14:54:44.409.
+Test Suite 'PipelineKitPoolingTests.xctest' passed at 2026-10-30 14:54:44.409.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 14:54:44.410.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 14:54:44.485.
+Test Suite 'PipelineKitPerformanceTests.xctest' started at 2026-10-30 14:54:44.486.
+Test Suite 'PipelineKitPerformanceTests.xctest' passed at 2026-10-30 14:54:44.486.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 14:54:44.486.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 14:54:44.561.
+Test Suite 'PipelineKitObservabilityTests.xctest' started at 2026-10-30 14:54:44.562.
+Test Suite 'PipelineKitObservabilityTests.xctest' passed at 2026-10-30 14:54:44.562.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 14:54:44.562.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 14:54:44.638.
+Test Suite 'PipelineKitCoreTests.xctest' started at 2026-10-30 14:54:44.639.
+Test Suite 'PipelineKitCoreTests.xctest' passed at 2026-10-30 14:54:44.639.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 14:54:44.639.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 14:54:44.714.
+Test Suite 'PipelineKitCacheTests.xctest' started at 2026-10-30 14:54:44.714.
+Test Suite 'PipelineKitCacheTests.xctest' passed at 2026-10-30 14:54:44.714.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 14:54:44.714.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds

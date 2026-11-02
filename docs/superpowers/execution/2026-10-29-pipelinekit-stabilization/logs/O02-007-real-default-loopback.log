@@ -1,0 +1,42 @@
+Building for debugging...
+[Pre-planning 1 / 214]
+[Planning deferred tasks]
+[4 / 23]
+[22 / 86]
+[34 / 91]
+[42 / 91]
+[61 / 91]
+[63 / 91] Atomics
+[75 / 91] Atomics
+[81 / 95] Logging
+[94 / 134]
+[96 / 134]
+[98 / 134]
+[104 / 134]
+[106 / 134]
+[107 / 134]
+[124 / 134] PipelineKitCore
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Sources/PipelineKitCore/Context/ExecutionContext.swift:94:45: warning: 'withValue(_:operation:isolation:file:line:)' is deprecated: Prefer the 'nonisolated(nonsending)' overload with stricter execution on caller context semantics: withValue(_:operation:file:line:) [#DeprecatedDeclaration]
+ 92 |         operation: () async throws -> T
+ 93 |     ) async rethrows -> T {
+ 94 |         try await ExecutionContext.$current.withValue(
+    |                                             `- warning: 'withValue(_:operation:isolation:file:line:)' is deprecated: Prefer the 'nonisolated(nonsending)' overload with stricter execution on caller context semantics: withValue(_:operation:file:line:) [#DeprecatedDeclaration]
+ 95 |             ExecutionContext(trace: snapshot.trace, progress: progress),
+ 96 |             operation: operation,
+
+[#DeprecatedDeclaration]: <https://docs.swift.org/compiler/documentation/diagnostics/deprecated-declaration>
+[129 / 139] PipelineKitCore
+[148 / 160] PipelineKit
+[156 / 162] PipelineKitObservability
+[158 / 181]
+[175 / 181] PipelineKitObservability
+[181 / 186] PipelineKitObservability
+[184 / 188] PipelineKitObservability
+[186 / 189] Consumer-product
+[188 / 189] Consumer-product
+Build complete! (5.71 sec)
+{"bytes":31,"mode":"statsd-startup","phase":"receipt_acknowledged","record":1}
+{"bytes":32,"mode":"statsd-startup","phase":"receipt_acknowledged","record":2}
+{"bytes":31,"mode":"statsd-startup","phase":"receipt_acknowledged","record":3}
+{"mode":"statsd-startup","phase":"three_receipts_and_close_acknowledged"}
+[MetricsExporter] Error: transportClosed

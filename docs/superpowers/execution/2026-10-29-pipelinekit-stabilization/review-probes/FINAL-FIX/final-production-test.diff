@@ -1,0 +1,917 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 66b1679..8c1a7ad 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -55,17 +55,18 @@ No release version or tag is selected by this batch.
+   path (e.g. cache hits). Debug-only; release builds are unchanged. ([#97])
+ 
+ ### Removed
+-- `NextGuardWarningSuppressing` conformance removed from the twelve
++- `NextGuardWarningSuppressing` conformance removed from the eleven
+   throw-based short-circuiting middlewares (`BackPressureMiddleware`,
+   `CircuitBreakerMiddleware`, `RateLimitingMiddleware`,
+-  `EnhancedRateLimitingMiddleware`, `BulkheadMiddleware`,
++  `EnhancedRateLimitingMiddleware`,
+   `PartitionedBulkheadMiddleware`, `HealthCheckMiddleware`,
+   `ValidationMiddleware`, `SecurityPolicyMiddleware`,
+   `AuthenticationMiddleware`, `AuthorizationMiddleware`,
+   `MockAuthenticationMiddleware`), re-arming the dropped-chain diagnostic
+   for those types. Observable only to code checking
+   `is any NextGuardWarningSuppressing`; the cache middlewares keep the
+-  conformance. ([#97])
++  conformance. `BulkheadMiddleware` also retains the marker because successful
++  fallback/custom policies can legitimately return without calling `next()`. ([#97])
+ 
+ ## [0.5.4] - 2026-08-15
+ 
+diff --git a/Sources/PipelineKitCache/LRUStorage.swift b/Sources/PipelineKitCache/LRUStorage.swift
+index e7202b9..7a129dc 100644
+--- a/Sources/PipelineKitCache/LRUStorage.swift
++++ b/Sources/PipelineKitCache/LRUStorage.swift
+@@ -159,20 +159,22 @@ final class LRUStorage<Value> {
+     /// - Parameters:
+     ///   - value: The value to store.
+     ///   - key: The key to associate with `value`.
+-    /// - Returns: The key that was evicted to make room, or `nil` if no eviction
+-    ///   occurred. This lets callers perform any extra bookkeeping tied to the
+-    ///   evicted key.
++    /// - Returns: The evicted key (if any) and the value displaced by replacement
++    ///   or eviction. A caller holding a lock must retain `retiredValue` through
++    ///   unlock so caller-owned payload destruction observes committed state.
+     /// - Complexity: O(1).
+     @discardableResult
+-    func setValue(_ value: Value, forKey key: String) -> String? {
++    func setValue(_ value: Value, forKey key: String) -> (evictedKey: String?, retiredValue: Value?) {
+         // Update-in-place: replace value and promote, never evict.
+         if let existing = map[key] {
++            let retiredValue = existing.value
+             existing.value = value
+             moveToTail(existing)
+-            return nil
++            return (nil, retiredValue)
+         }
+ 
+         var evictedKey: String?
++        var retiredValue: Value?
+ 
+         // Evict the LRU entry (head) when inserting a new key at capacity. The
+         // `head` guard makes eviction a no-op when the store is empty (e.g. the
+@@ -180,6 +182,7 @@ final class LRUStorage<Value> {
+         // still admitted before subsequent inserts start evicting.
+         if map.count >= maxSize, let lru = head {
+             evictedKey = lru.key
++            retiredValue = lru.value
+             unlink(lru)
+             map.removeValue(forKey: lru.key)
+         }
+@@ -187,26 +190,33 @@ final class LRUStorage<Value> {
+         let node = Node(key: key, value: value)
+         map[key] = node
+         appendAtTail(node)
+-        return evictedKey
++        return (evictedKey, retiredValue)
+     }
+ 
+     /// Removes the entry for `key`, if present.
+     ///
+     /// - Parameter key: The key to remove.
++    /// - Returns: The removed value, to retain through any caller-held lock.
+     /// - Complexity: O(1).
+-    func removeValue(forKey key: String) {
+-        guard let node = map.removeValue(forKey: key) else { return }
++    @discardableResult
++    func removeValue(forKey key: String) -> Value? {
++        guard let node = map.removeValue(forKey: key) else { return nil }
+         unlink(node)
++        return node.value
+     }
+ 
+     /// Removes all entries.
+     ///
+-    /// - Complexity: O(n) (releasing nodes); the list pointers are reset to
+-    ///   `nil`. Inter-node links are dropped as the nodes deallocate.
+-    func removeAll() {
++    /// - Returns: Removed values, to retain through any caller-held lock.
++    /// - Complexity: O(n) time and temporary ownership storage. Inter-node links
++    ///   are dropped as the nodes deallocate; predecessors remain weak.
++    @discardableResult
++    func removeAll() -> [Value] {
++        let retiredValues = values
+         map.removeAll(keepingCapacity: false)
+         head = nil
+         tail = nil
++        return retiredValues
+     }
+ 
+     /// The keys ordered from least-recently-used (first) to most-recently-used
+diff --git a/Sources/PipelineKitCache/SimpleCachingMiddleware.swift b/Sources/PipelineKitCache/SimpleCachingMiddleware.swift
+index 715992a..8b21ab9 100644
+--- a/Sources/PipelineKitCache/SimpleCachingMiddleware.swift
++++ b/Sources/PipelineKitCache/SimpleCachingMiddleware.swift
+@@ -143,8 +143,12 @@ public final class SimpleCachingMiddleware: Middleware, NextGuardWarningSuppress
+     // MARK: - Cache Management
+ 
+     private func getCachedResult<T>(for key: String, as type: T.Type) -> T? {
++        var retired: CacheEntry?
+         lock.lock()
+-        defer { lock.unlock() }
++        defer {
++            lock.unlock()
++            withExtendedLifetime(retired) {}
++        }
+ 
+         // Inspect without promoting first so an expired entry is not counted as a
+         // use before removal.
+@@ -154,7 +158,7 @@ public final class SimpleCachingMiddleware: Middleware, NextGuardWarningSuppress
+ 
+         // Check if expired
+         if entry.isExpired {
+-            storage.removeValue(forKey: key)
++            retired = storage.removeValue(forKey: key)
+             return nil
+         }
+ 
+@@ -166,43 +170,45 @@ public final class SimpleCachingMiddleware: Middleware, NextGuardWarningSuppress
+ 
+     private func setCachedResult<T>(_ result: T, for key: String) {
+         lock.lock()
+-        defer { lock.unlock() }
+-
+-        // Insert/update + promote. When a new key pushes the store past its
+-        // capacity, `LRUStorage` evicts the least-recently-used entry; updating an
+-        // existing key never evicts. This preserves the prior
+-        // `cache.count >= maxSize && cache[key] == nil` eviction rule. An unlimited
+-        // (`nil`) `maxSize` was mapped to `Int.max`, so eviction never fires.
+-        storage.setValue(CacheEntry(value: result, timestamp: Date(), ttl: ttl), forKey: key)
++        // Only the replaced/evicted entry escapes; ordinary insertion stays O(1).
++        let retired = storage.setValue(CacheEntry(value: result, timestamp: Date(), ttl: ttl), forKey: key).retiredValue
++        lock.unlock()
++        withExtendedLifetime(retired) {}
+     }
+ 
+-    /// Clears all cached entries.
++    /// Clears all cached entries, including expired ones.
+     ///
+-    /// This operation is thread-safe and removes all entries from the cache,
+-    /// including expired ones.
++    /// Payloads are released after the empty state is committed and unlocked.
++    /// `CacheRetirementContractTests` exercises synchronous destructor reentry.
++    /// - Complexity: O(n) time and temporary ownership storage.
+     public func clear() {
+         lock.lock()
+-        defer { lock.unlock() }
+-        storage.removeAll()
++        let retired = storage.removeAll()
++        lock.unlock()
++        withExtendedLifetime(retired) {}
+     }
+ 
+     /// Removes expired entries from the cache.
+     ///
+     /// Call this periodically to free memory from expired entries that haven't
+-    /// been accessed (and thus auto-removed).
++    /// been accessed (and thus auto-removed). Payloads are released after unlock,
++    /// as exercised by `CacheRetirementContractTests`.
++    /// - Complexity: O(n) scanning plus O(k) retirement storage for k removals.
+     public func removeExpired() {
+         lock.lock()
+-        defer { lock.unlock() }
+-
+-        // Snapshot keys, then drop those whose entry is expired. `peek` is used so
+-        // the inspection does not alter recency. Removal of each key is O(1).
++        // Key inspection does not alter recency. Each removal is O(1).
+         let expiredKeys = storage.keysInLRUOrder().filter { key in
+             storage.peek(forKey: key)?.isExpired ?? false
+         }
+-
++        var retired: [CacheEntry] = []
++        retired.reserveCapacity(expiredKeys.count)
+         for key in expiredKeys {
+-            storage.removeValue(forKey: key)
++            if let entry = storage.removeValue(forKey: key) {
++                retired.append(entry)
++            }
+         }
++        lock.unlock()
++        withExtendedLifetime(retired) {}
+     }
+ 
+     /// Gets current cache statistics.
+diff --git a/Sources/PipelineKitCore/Context/CommandContext.swift b/Sources/PipelineKitCore/Context/CommandContext.swift
+index 000c01d..b47a02a 100644
+--- a/Sources/PipelineKitCore/Context/CommandContext.swift
++++ b/Sources/PipelineKitCore/Context/CommandContext.swift
+@@ -63,6 +63,19 @@ public final class CommandContext: @unchecked Sendable {
+         return try operation()
+     }
+ 
++    /// Retains the displaced slot through unlock, including wrong-type name
++    /// collisions. The transform runs under the same lock as the read/write;
++    /// metadata/metrics merges therefore remain atomic. Only this slot is held,
++    /// not a copy of the complete context. Covered by CommandContextRetirementTests.
++    private func mutateValue(forKey key: String, _ transform: (AnySendable?) -> AnySendable?) {
++        let retired = withLock {
++            let previous = _storage[key]
++            _storage[key] = transform(previous)
++            return previous
++        }
++        withExtendedLifetime(retired) {}
++    }
++
+     // MARK: - Public Properties
+     
+     /// The command metadata associated with this context
+@@ -104,13 +117,7 @@ public final class CommandContext: @unchecked Sendable {
+             withLock { _storage[key.name]?.get(T.self) }
+         }
+         set {
+-            withLock {
+-                if let newValue = newValue {
+-                    _storage[key.name] = AnySendable(newValue)
+-                } else {
+-                    _storage[key.name] = nil
+-                }
+-            }
++            mutateValue(forKey: key.name) { _ in newValue.map(AnySendable.init) }
+         }
+     }
+ 
+@@ -153,9 +160,7 @@ public final class CommandContext: @unchecked Sendable {
+ 
+     /// Sets all metadata (replaces existing)
+     public func setMetadata(_ metadata: [String: any Sendable]) {
+-        withLock {
+-            _storage[ContextKeys.metadata.name] = AnySendable(metadata)
+-        }
++        mutateValue(forKey: ContextKeys.metadata.name) { _ in AnySendable(metadata) }
+     }
+ 
+     /// Gets a specific metadata value
+@@ -166,21 +171,21 @@ public final class CommandContext: @unchecked Sendable {
+ 
+     /// Sets a specific metadata value
+     public func setMetadata(_ key: String, value: any Sendable) {
+-        withLock {
+-            var currentMetadata: [String: any Sendable] = _storage[ContextKeys.metadata.name]?.get([String: any Sendable].self) ?? [:]
++        mutateValue(forKey: ContextKeys.metadata.name) { previous in
++            var currentMetadata: [String: any Sendable] = previous?.get([String: any Sendable].self) ?? [:]
+             currentMetadata[key] = value
+-            _storage[ContextKeys.metadata.name] = AnySendable(currentMetadata)
++            return AnySendable(currentMetadata)
+         }
+     }
+ 
+     /// Updates metadata with multiple key-value pairs
+     public func updateMetadata(_ updates: [String: any Sendable]) {
+-        withLock {
+-            var currentMetadata: [String: any Sendable] = _storage[ContextKeys.metadata.name]?.get([String: any Sendable].self) ?? [:]
++        mutateValue(forKey: ContextKeys.metadata.name) { previous in
++            var currentMetadata: [String: any Sendable] = previous?.get([String: any Sendable].self) ?? [:]
+             for (key, value) in updates {
+                 currentMetadata[key] = value
+             }
+-            _storage[ContextKeys.metadata.name] = AnySendable(currentMetadata)
++            return AnySendable(currentMetadata)
+         }
+     }
+     
+@@ -195,9 +200,7 @@ public final class CommandContext: @unchecked Sendable {
+ 
+     /// Sets all metrics (replaces existing)
+     public func setMetrics(_ metrics: [String: any Sendable]) {
+-        withLock {
+-            _storage[ContextKeys.metrics.name] = AnySendable(metrics)
+-        }
++        mutateValue(forKey: ContextKeys.metrics.name) { _ in AnySendable(metrics) }
+     }
+ 
+     /// Gets a specific metric value
+@@ -208,10 +211,10 @@ public final class CommandContext: @unchecked Sendable {
+ 
+     /// Sets a specific metric value
+     public func setMetric(_ key: String, value: any Sendable) {
+-        withLock {
+-            var currentMetrics: [String: any Sendable] = _storage[ContextKeys.metrics.name]?.get([String: any Sendable].self) ?? [:]
++        mutateValue(forKey: ContextKeys.metrics.name) { previous in
++            var currentMetrics: [String: any Sendable] = previous?.get([String: any Sendable].self) ?? [:]
+             currentMetrics[key] = value
+-            _storage[ContextKeys.metrics.name] = AnySendable(currentMetrics)
++            return AnySendable(currentMetrics)
+         }
+     }
+ 
+@@ -222,12 +225,12 @@ public final class CommandContext: @unchecked Sendable {
+ 
+     /// Updates metrics with multiple key-value pairs
+     public func updateMetrics(_ updates: [String: any Sendable]) {
+-        withLock {
+-            var currentMetrics: [String: any Sendable] = _storage[ContextKeys.metrics.name]?.get([String: any Sendable].self) ?? [:]
++        mutateValue(forKey: ContextKeys.metrics.name) { previous in
++            var currentMetrics: [String: any Sendable] = previous?.get([String: any Sendable].self) ?? [:]
+             for (key, value) in updates {
+                 currentMetrics[key] = value
+             }
+-            _storage[ContextKeys.metrics.name] = AnySendable(currentMetrics)
++            return AnySendable(currentMetrics)
+         }
+     }
+ 
+@@ -242,9 +245,13 @@ public final class CommandContext: @unchecked Sendable {
+     // MARK: - Utility Methods
+ 
+     /// Removes all values from the context except command metadata.
++    /// Retired values are released after metadata restoration and unlock;
++    /// `CommandContextRetirementTests` exercises reentrant reads at destruction.
++    /// - Complexity: O(n) destruction; single-value mutations retain only one slot.
+     public func clear() {
+-        withLock {
+-            _storage.removeAll(keepingCapacity: true)
++        let retired = withLock {
++            let previous = _storage
++            _storage = [:]
+             // Restore command metadata
+             _storage[ContextKeys.commandID.name] = AnySendable(commandMetadata.id)
+             // Intentionally do not restore startTime; it must be explicitly set
+@@ -257,7 +264,9 @@ public final class CommandContext: @unchecked Sendable {
+                 _storage[ContextKeys.correlationID.name] = AnySendable(correlationID)
+                 _storage[ContextKeys.requestID.name] = AnySendable(correlationID)
+             }
++            return previous
+         }
++        withExtendedLifetime(retired) {}
+     }
+ 
+     /// Creates a snapshot of all values in the context.
+@@ -314,9 +323,7 @@ public final class CommandContext: @unchecked Sendable {
+     /// Removes a value from the context.
+     /// - Parameter key: The context key to remove
+     public func remove<T>(_ key: ContextKey<T>) {
+-        withLock {
+-            _storage[key.name] = nil
+-        }
++        mutateValue(forKey: key.name) { _ in nil }
+     }
+ 
+     /// Updates multiple values using a closure.
+@@ -330,9 +337,7 @@ public final class CommandContext: @unchecked Sendable {
+     /// Marks this context as cancelled with the specified reason.
+     /// - Parameter reason: The reason for cancellation
+     public func markAsCancelled(reason: CancellationReason) {
+-        withLock {
+-            _storage[ContextKeys.cancellationReason.name] = AnySendable(reason)
+-        }
++        self[ContextKeys.cancellationReason] = reason
+     }
+ 
+     /// Gets the cancellation reason if the context has been cancelled.
+diff --git a/Tests/PipelineKitCacheTests/LRUEvolutionTests.swift b/Tests/PipelineKitCacheTests/LRUEvolutionTests.swift
+index a624a6e..f42c0d1 100644
+--- a/Tests/PipelineKitCacheTests/LRUEvolutionTests.swift
++++ b/Tests/PipelineKitCacheTests/LRUEvolutionTests.swift
+@@ -136,9 +136,9 @@ final class LRUEvolutionTests: XCTestCase {
+         XCTAssertFalse(storage.contains("missing"))
+ 
+         // Insert a, b, c.
+-        XCTAssertNil(storage.setValue(1, forKey: "a"))
+-        XCTAssertNil(storage.setValue(2, forKey: "b"))
+-        XCTAssertNil(storage.setValue(3, forKey: "c"))
++        XCTAssertNil(storage.setValue(1, forKey: "a").evictedKey)
++        XCTAssertNil(storage.setValue(2, forKey: "b").evictedKey)
++        XCTAssertNil(storage.setValue(3, forKey: "c").evictedKey)
+         XCTAssertEqual(storage.count, 3)
+         XCTAssertEqual(storage.keysInLRUOrder(), ["a", "b", "c"]) // LRU..MRU
+ 
+@@ -151,14 +151,14 @@ final class LRUEvolutionTests: XCTestCase {
+         XCTAssertEqual(storage.keysInLRUOrder(), ["b", "c", "a"])
+ 
+         // Insert `d` at capacity -> evicts LRU `b`, returns "b".
+-        let evicted = storage.setValue(4, forKey: "d")
++        let evicted = storage.setValue(4, forKey: "d").evictedKey
+         XCTAssertEqual(evicted, "b")
+         XCTAssertEqual(storage.count, 3)
+         XCTAssertFalse(storage.contains("b"))
+         XCTAssertEqual(storage.keysInLRUOrder(), ["c", "a", "d"])
+ 
+         // Update existing `c` -> no eviction, promotes `c`.
+-        let noEvict = storage.setValue(30, forKey: "c")
++        let noEvict = storage.setValue(30, forKey: "c").evictedKey
+         XCTAssertNil(noEvict)
+         XCTAssertEqual(storage.value(forKey: "c"), 30)
+         XCTAssertEqual(storage.keysInLRUOrder(), ["a", "d", "c"])
+@@ -218,10 +218,10 @@ final class LRUEvolutionTests: XCTestCase {
+     /// A store with `maxSize == 1` keeps only the most recent key.
+     func testLRUStorageCapacityOne() {
+         let storage = LRUStorage<Int>(maxSize: 1)
+-        XCTAssertNil(storage.setValue(1, forKey: "a"))
++        XCTAssertNil(storage.setValue(1, forKey: "a").evictedKey)
+         XCTAssertEqual(storage.keysInLRUOrder(), ["a"])
+ 
+-        let evicted = storage.setValue(2, forKey: "b")
++        let evicted = storage.setValue(2, forKey: "b").evictedKey
+         XCTAssertEqual(evicted, "a")
+         XCTAssertEqual(storage.count, 1)
+         XCTAssertEqual(storage.keysInLRUOrder(), ["b"])
+@@ -273,7 +273,7 @@ final class LRUEvolutionTests: XCTestCase {
+     private func insertValue(_ index: Int, into storage: LRUStorage<LifetimeValue>, witness: WeakValue) -> String? {
+         let value = LifetimeValue()
+         witness.value = value
+-        return storage.setValue(value, forKey: String(index))
++        return storage.setValue(value, forKey: String(index)).evictedKey
+     }
+ 
+     // MARK: - SimpleCachingMiddleware LRU via stats
+diff --git a/Tests/PipelineKitResilienceTests/RateLimitScopeContractTests.swift b/Tests/PipelineKitResilienceTests/RateLimitScopeContractTests.swift
+index 7430263..afb5e28 100644
+--- a/Tests/PipelineKitResilienceTests/RateLimitScopeContractTests.swift
++++ b/Tests/PipelineKitResilienceTests/RateLimitScopeContractTests.swift
+@@ -206,21 +206,18 @@ final class RateLimitScopeContractTests: XCTestCase {
+             let limiter = makeLimiter(strategy, scope: .global, clock: clock)
+             _ = try await limiter.allowRequest(identifier: "A")
+             clock.set(1_299)
+-            // TokenBucket consume updates lastAccess; sliding admission records a recent request.
+-            _ = try await limiter.allowRequest(identifier: "A", cost: 0)
++            // Adaptive refills at 0.1 token/second: consume the full token at 1299.
++            // Retaining it admits no unit request at 1300 (only 0.1 token refilled);
++            // recreating it during cleanup would incorrectly admit that request.
++            // The nonrefilling bucket accepts a zero-cost touch. Sliding window ignores
++            // cost and records this denied request, so both update recent activity.
++            let touched = try await limiter.allowRequest(identifier: "A", cost: strategy == .adaptive ? 1 : 0)
++            XCTAssertEqual(touched, strategy != .slidingWindow, "\(strategy)")
+             clock.set(1_300)
+             let status = await limiter.getStatus(identifier: "B")
+             let afterCleanup = try await limiter.allowRequest(identifier: "B")
+-            if strategy == .adaptive {
+-                // The earlier admission with zero cost has refilled this one-token bucket.
+-                XCTAssertEqual(status.remaining, 1)
+-                XCTAssertTrue(afterCleanup)
+-                let repeated = try await limiter.allowRequest(identifier: "A")
+-                XCTAssertFalse(repeated)
+-            } else {
+-                XCTAssertEqual(status.remaining, 0, "\(strategy)")
+-                XCTAssertFalse(afterCleanup, "\(strategy)")
+-            }
++            XCTAssertEqual(status.remaining, 0, "\(strategy)")
++            XCTAssertFalse(afterCleanup, "\(strategy)")
+         }
+     }
+ 
+diff --git a/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift b/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift
+index 26605e6..8368b94 100644
+--- a/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift
++++ b/Tests/PipelineKitSecurityTests/SecurityCapabilityContractTests.swift
+@@ -139,7 +139,7 @@ private extension SecurityCapabilityContractTests {
+                 try await pipeline.addMiddlewares(middleware)
+                 return try await pipeline.execute(command, context: context)
+             case .anyStandard:
+-                let pipeline = AnyStandardPipeline(handler: handler)
++                let pipeline = AnyStandardPipeline(handler: handler, options: .init(maxConcurrency: 10, maxOutstanding: nil))
+                 for stage in middleware {
+                     try await pipeline.addMiddleware(stage)
+                 }
+diff --git a/Tests/PipelineKitTests/Pipeline/PipelineTests.swift b/Tests/PipelineKitTests/Pipeline/PipelineTests.swift
+index 0b6a103..6a82731 100644
+--- a/Tests/PipelineKitTests/Pipeline/PipelineTests.swift
++++ b/Tests/PipelineKitTests/Pipeline/PipelineTests.swift
+@@ -145,7 +145,7 @@ final class PipelineTests: XCTestCase {
+     
+     func testPriorityPipeline() async throws {
+         let handler = TransformHandler()
+-        let pipeline = AnyStandardPipeline(handler: handler)
++        let pipeline = AnyStandardPipeline(handler: handler, options: .init(maxConcurrency: 10, maxOutstanding: nil))
+         let context = CommandContext.test()
+         
+         // Add middlewares with different priorities (lower number = higher priority)
+diff --git a/Tests/PipelineKitTests/PipelineChainCacheTests.swift b/Tests/PipelineKitTests/PipelineChainCacheTests.swift
+index 8034e21..ab3e58a 100644
+--- a/Tests/PipelineKitTests/PipelineChainCacheTests.swift
++++ b/Tests/PipelineKitTests/PipelineChainCacheTests.swift
+@@ -135,7 +135,7 @@ private func lifetimeWitness(_ scenario: LifetimeScenario, route: LifetimeRoute)
+     let pipeline: LifetimePipeline
+     switch route {
+     case .typed: pipeline = .typed(StandardPipeline(handler: handler))
+-    case .erased: pipeline = .erased(AnyStandardPipeline(handler: handler))
++    case .erased: pipeline = .erased(AnyStandardPipeline(handler: handler, options: .init(maxConcurrency: 10, maxOutstanding: nil)))
+     }
+     let witness = LifetimeWitness(pipeline: pipeline.object, handler: handler)
+     if scenario != .neverExecuted {
+diff --git a/Tests/PipelineKitCacheTests/CacheRetirementContractTests.swift b/Tests/PipelineKitCacheTests/CacheRetirementContractTests.swift
+new file mode 100644
+index 0000000..05dffe2
+--- /dev/null
++++ b/Tests/PipelineKitCacheTests/CacheRetirementContractTests.swift
+@@ -0,0 +1,177 @@
++import Foundation
++import Synchronization
++import XCTest
++import PipelineKit
++import PipelineKitCache
++
++// All routes use only public cache APIs and checked Sendable payloads.
++// The watchdog bounds a regression that deadlocks during synchronous destruction.
++final class CacheRetirementContractTests: XCTestCase {
++    func testPublicDiscardRetirementMatrix() async throws {
++        for path in DiscardPath.allCases {
++            try await exercise(path)
++        }
++    }
++
++    func testConcurrentMissReplacementRetiresAfterCommittedInsertion() async throws {
++        let cache = makeCache()
++        let events = CacheRetirementEvents()
++        let gate = MissGate()
++        let first = Task {
++            try await fill(cache, key: "same", value: "first", events: events, gate: gate)
++        }
++        let second = Task {
++            try await fill(cache, key: "same", value: "second", events: events, gate: gate)
++        }
++        await gate.waitForBothMisses()
++        XCTAssertEqual(cache.getStats(), CacheStats(totalEntries: 0, expiredEntries: 0, activeEntries: 0))
++        await gate.release("first")
++        let firstOutcome = await first.result
++        XCTAssertTrue(events.values.isEmpty)
++        await gate.release("second")
++        let secondOutcome = await second.result
++        // Join both fills before unwrapping either error outcome.
++        let firstWitness = try firstOutcome.get()
++        let secondWitness = try secondOutcome.get()
++        events.returned()
++        XCTAssertNil(firstWitness.value)
++        XCTAssertNotNil(secondWitness.value)
++        XCTAssertEqual(events.values, [CacheRelease(value: "first", stats: CacheStats(totalEntries: 1, expiredEntries: 0, activeEntries: 1))])
++        XCTAssertTrue(events.didReturn)
++        try await assertHit(cache, key: "same", witness: secondWitness)
++        cache.clear()
++        XCTAssertNil(secondWitness.value)
++        XCTAssertEqual(events.values.last, CacheRelease(value: "second", stats: CacheStats(totalEntries: 0, expiredEntries: 0, activeEntries: 0)))
++    }
++
++    private func exercise(_ path: DiscardPath) async throws {
++        let cache = makeCache(ttl: path.expires ? -1 : 60)
++        let events = CacheRetirementEvents()
++        let first = try await fill(cache, key: "a", value: "a", events: events)
++        let second = try await fill(cache, key: "b", value: "b", events: events)
++        XCTAssertNotNil(first.value)
++        XCTAssertNotNil(second.value)
++        XCTAssertTrue(events.values.isEmpty)
++        var replacement: WeakCachePayload?
++        switch path {
++        case .clear: cache.clear()
++        case .sweep: cache.removeExpired()
++        case .lookupExpiration:
++            replacement = try await fill(cache, key: "a", value: "new-a", events: events)
++        case .promoteThenEvict:
++            try await assertHit(cache, key: "a", witness: first)
++            replacement = try await fill(cache, key: "c", value: "c", events: events)
++        }
++        events.returned()
++        switch path {
++        case .clear, .sweep:
++            XCTAssertNil(first.value, "\(path)")
++            XCTAssertNil(second.value, "\(path)")
++            XCTAssertEqual(Set(events.values.map(\.value)), ["a", "b"], "\(path)")
++            XCTAssertEqual(events.values.count, 2, "\(path)")
++            for event in events.values {
++                XCTAssertEqual(event.stats, CacheStats(totalEntries: 0, expiredEntries: 0, activeEntries: 0), "\(path)")
++            }
++        case .lookupExpiration:
++            XCTAssertNil(first.value)
++            XCTAssertNotNil(second.value)
++            XCTAssertNotNil(replacement?.value)
++            XCTAssertEqual(events.values, [CacheRelease(value: "a", stats: CacheStats(totalEntries: 1, expiredEntries: 1, activeEntries: 0))])
++        case .promoteThenEvict:
++            XCTAssertNotNil(first.value)
++            XCTAssertNil(second.value)
++            XCTAssertNotNil(replacement?.value)
++            XCTAssertEqual(events.values, [CacheRelease(value: "b", stats: CacheStats(totalEntries: 2, expiredEntries: 0, activeEntries: 2))])
++            try await assertHit(cache, key: "a", witness: first)
++            try await assertHit(cache, key: "c", witness: replacement!)
++        }
++        XCTAssertTrue(events.didReturn, "\(path)")
++        let expectedRemaining = path == .clear || path == .sweep ? 0 : 2
++        XCTAssertEqual(cache.getStats().totalEntries, expectedRemaining, "\(path)")
++        cache.clear()
++        XCTAssertNil(first.value)
++        XCTAssertNil(second.value)
++        XCTAssertNil(replacement?.value)
++        XCTAssertEqual(events.values.count, replacement == nil ? 2 : 3, "\(path)")
++    }
++}
++
++private enum DiscardPath: CaseIterable {
++    case clear, lookupExpiration, sweep, promoteThenEvict
++    var expires: Bool { self == .lookupExpiration || self == .sweep }
++}
++
++private struct RetirementCommand: Command {
++    typealias Result = CachePayload
++    let key: String
++}
++
++private final class CachePayload: Sendable {
++    let value: String
++    let onRelease: @Sendable () -> Void
++    init(value: String, onRelease: @escaping @Sendable () -> Void) {
++        self.value = value
++        self.onRelease = onRelease
++    }
++    deinit { onRelease() }
++}
++
++private struct WeakCachePayload: Sendable { weak var value: CachePayload? }
++private struct CacheRelease: Sendable, Equatable { let value: String; let stats: CacheStats? }
++
++private final class CacheRetirementEvents: Sendable {
++    private struct State { var values: [CacheRelease] = []; var returned = false }
++    private let state = Mutex(State())
++    func record(_ value: CacheRelease) { state.withLock { $0.values.append(value) } }
++    func returned() { state.withLock { $0.returned = true } }
++    var values: [CacheRelease] { state.withLock { $0.values } }
++    var didReturn: Bool { state.withLock { $0.returned } }
++}
++
++private func makeCache(ttl: TimeInterval = 60) -> SimpleCachingMiddleware {
++    SimpleCachingMiddleware(ttl: ttl, maxSize: 2, keyGenerator: ClosureCacheKeyGenerator { command, _, _ in
++        (command as! RetirementCommand).key
++    })
++}
++
++private func makePayload(value: String, cache: SimpleCachingMiddleware, events: CacheRetirementEvents) -> CachePayload {
++    CachePayload(value: value) { [weak cache] in
++        events.record(CacheRelease(value: value, stats: cache?.getStats()))
++    }
++}
++
++private func fill(
++    _ cache: SimpleCachingMiddleware, key: String, value: String,
++    events: CacheRetirementEvents, gate: MissGate? = nil
++) async throws -> WeakCachePayload {
++    let result = try await cache.execute(RetirementCommand(key: key), context: CommandContext()) { _, _ in
++        if let gate { await gate.arrive(value) }
++        return makePayload(value: value, cache: cache, events: events)
++    }
++    XCTAssertEqual(result.value, value)
++    return WeakCachePayload(value: result)
++}
++
++private func assertHit(_ cache: SimpleCachingMiddleware, key: String, witness: WeakCachePayload) async throws {
++    let result = try await cache.execute(RetirementCommand(key: key), context: CommandContext()) { _, _ in
++        XCTFail("Expected cached identity for \(key)")
++        return CachePayload(value: "unexpected", onRelease: {})
++    }
++    XCTAssertTrue(result === witness.value)
++}
++
++private actor MissGate {
++    var arrivals: [String: CheckedContinuation<Void, Never>] = [:]
++    var both: CheckedContinuation<Void, Never>?
++    func arrive(_ value: String) async {
++        await withCheckedContinuation { continuation in
++            arrivals[value] = continuation
++            if arrivals.count == 2 { both?.resume(); both = nil }
++        }
++    }
++    func waitForBothMisses() async {
++        if arrivals.count == 2 { return }
++        await withCheckedContinuation { both = $0 }
++    }
++    func release(_ value: String) { arrivals.removeValue(forKey: value)!.resume() }
++}
+diff --git a/Tests/PipelineKitCoreTests/Context/CommandContextRetirementTests.swift b/Tests/PipelineKitCoreTests/Context/CommandContextRetirementTests.swift
+new file mode 100644
+index 0000000..1d5737d
+--- /dev/null
++++ b/Tests/PipelineKitCoreTests/Context/CommandContextRetirementTests.swift
+@@ -0,0 +1,232 @@
++import Foundation
++import Synchronization
++import XCTest
++import PipelineKitCore
++
++// A release under the context lock either traps or blocks at the callback read.
++// Run this class with the execution watchdog, including old-source controls.
++final class CommandContextRetirementTests: XCTestCase {
++    func testTypedReplacementReentry() {
++        exercise(.typedReplace)
++    }
++
++    func testPublicMutationRetirementMatrix() {
++        for path in MutationPath.allCases where path != .typedReplace {
++            exercise(path)
++        }
++    }
++
++    func testClearReleasesEveryPayloadAfterRestoringMetadata() {
++        let context = CommandContext(metadata: DefaultCommandMetadata(userID: "owner", correlationID: "correlation"))
++        let observations = RetirementObservations()
++        var witnesses: [WeakContextPayload] = []
++        for key in ["custom", "metadata", "metrics", "requestID", "commandID"] {
++            witnesses.append(install(in: context, key: key, observations: observations) { context in
++                context.snapshotRaw().count == 5 && context.userID == "owner" &&
++                    context.requestID == "correlation" && context.correlationID == "correlation" &&
++                    context[ContextKeys.commandID] == context.commandMetadata.id &&
++                    context.getMetadata().isEmpty && context.getMetrics().isEmpty
++            })
++        }
++        XCTAssertTrue(witnesses.allSatisfy { $0.value != nil })
++        context.clear()
++        observations.returned()
++        XCTAssertTrue(witnesses.allSatisfy { $0.value == nil })
++        XCTAssertEqual(observations.states, Array(repeating: true, count: witnesses.count))
++        XCTAssertTrue(observations.didReturn)
++    }
++
++    func testConcurrentMetadataAndMetricsMergesConserveDisjointUpdatesAndRetireValues() async {
++        let context = CommandContext()
++        let observations = RetirementObservations()
++        let count = 64
++        var witnesses: [WeakContextPayload] = []
++        for index in 0..<count {
++            let key = "item-\(index)"
++            let payload = ContextPayload { [weak context] in
++                guard let context else { observations.record(false); return }
++                observations.record(context.getMetadata(key) as? Int == index && context.getMetric(key) as? Int == index)
++            }
++            context.setMetadata(key, value: payload)
++            context.setMetric(key, value: payload)
++            witnesses.append(WeakContextPayload(value: payload))
++        }
++        let gate = RetirementStartGate(expected: count)
++        await withTaskGroup(of: Void.self) { group in
++            for index in 0..<count {
++                group.addTask {
++                    await gate.arrive()
++                    let key = "item-\(index)"
++                    context.updateMetadata([key: index, "added-\(index)": index])
++                    context.updateMetrics([key: index, "added-\(index)": index])
++                }
++            }
++        }
++        observations.returned()
++        XCTAssertEqual(context.getMetadata().count, count * 2)
++        XCTAssertEqual(context.getMetrics().count, count * 2)
++        for index in 0..<count {
++            XCTAssertEqual(context.getMetadata("added-\(index)") as? Int, index)
++            XCTAssertEqual(context.getMetric("added-\(index)") as? Int, index)
++        }
++        XCTAssertTrue(witnesses.allSatisfy { $0.value == nil })
++        XCTAssertEqual(observations.states, Array(repeating: true, count: count))
++        XCTAssertTrue(observations.didReturn)
++    }
++
++    private func exercise(_ path: MutationPath) {
++        let context = CommandContext()
++        let observations = RetirementObservations()
++        context[ContextKey<Int>("unrelated")] = 73
++        let witness = install(in: context, key: path.key, nested: path.nested, observations: observations) { context in
++            path.isCommitted(in: context) && context[ContextKey<Int>("unrelated")] == 73
++        }
++        XCTAssertNotNil(witness.value, "\(path)")
++        FileHandle.standardError.write(Data("CONTEXT-RETIRE before \(path)\n".utf8))
++        path.mutate(context)
++        observations.returned()
++        FileHandle.standardError.write(Data("CONTEXT-RETIRE returned \(path)\n".utf8))
++        XCTAssertNil(witness.value, "\(path)")
++        XCTAssertEqual(observations.states, [true], "\(path)")
++        XCTAssertTrue(observations.didReturn, "\(path)")
++    }
++
++    private func install(
++        in context: CommandContext,
++        key: String,
++        nested: Bool = false,
++        observations: RetirementObservations,
++        isCommitted: @escaping @Sendable (CommandContext) -> Bool
++    ) -> WeakContextPayload {
++        let payload = ContextPayload { [weak context] in
++            FileHandle.standardError.write(Data("CONTEXT-RETIRE callback-enter \(key)\n".utf8))
++            guard let context else { observations.record(false); return }
++            observations.record(isCommitted(context))
++            FileHandle.standardError.write(Data("CONTEXT-RETIRE callback-return \(key)\n".utf8))
++        }
++        if nested {
++            context[ContextKey<[String: any Sendable]>(key)] = ["old": payload, "keep": 7]
++        } else {
++            context[ContextKey<ContextPayload>(key)] = payload
++        }
++        return WeakContextPayload(value: payload)
++    }
++}
++
++private enum MutationPath: CaseIterable, Sendable {
++    case typedReplace, typedSameType, typedNil, remove, updateClosure
++    case metadataReplace, metadataSet, metadataMerge, metadataProperty, metadataTyped, metadataDynamic
++    case metricsReplace, metricSet, metricStore, metricsMerge, metricsProperty, metricsTyped, metricsDynamic, duration
++    case metadataCollisionReplace, metadataCollisionSet, metadataCollisionMerge
++    case metricsCollisionReplace, metricsCollisionSet, metricsCollisionStore, metricsCollisionMerge
++    case requestProperty, userProperty, correlationProperty, startProperty, dynamicTrace, cancellation
++
++    var key: String {
++        switch self {
++        case .metadataReplace, .metadataSet, .metadataMerge, .metadataProperty, .metadataTyped, .metadataDynamic,
++             .metadataCollisionReplace, .metadataCollisionSet, .metadataCollisionMerge: "metadata"
++        case .metricsReplace, .metricSet, .metricStore, .metricsMerge, .metricsProperty, .metricsTyped, .metricsDynamic,
++             .duration, .metricsCollisionReplace, .metricsCollisionSet, .metricsCollisionStore, .metricsCollisionMerge: "metrics"
++        case .requestProperty: "requestID"
++        case .userProperty: "userID"
++        case .correlationProperty: "correlationID"
++        case .startProperty: "startTime"
++        case .dynamicTrace: "traceID"
++        case .cancellation: "cancellationReason"
++        default: "custom"
++        }
++    }
++
++    var nested: Bool {
++        switch self {
++        case .metadataReplace, .metadataSet, .metadataMerge, .metadataProperty, .metadataTyped, .metadataDynamic,
++             .metricsReplace, .metricSet, .metricStore, .metricsMerge, .metricsProperty, .metricsTyped, .metricsDynamic, .duration: true
++        default: false
++        }
++    }
++
++    func mutate(_ context: CommandContext) {
++        switch self {
++        case .typedReplace: context[ContextKey<Int>(key)] = 9
++        case .typedSameType: context[ContextKey<ContextPayload>(key)] = ContextPayload({})
++        case .typedNil: context[ContextKey<ContextPayload>(key)] = nil
++        case .remove: context.remove(ContextKey<ContextPayload>(key))
++        case .updateClosure: context.update { $0[ContextKey<Int>(key)] = 9 }
++        case .metadataReplace, .metadataCollisionReplace: context.setMetadata(["old": 9])
++        case .metadataSet, .metadataCollisionSet: context.setMetadata("old", value: 9)
++        case .metadataMerge, .metadataCollisionMerge: context.updateMetadata(["old": 9, "new": 11])
++        case .metadataProperty: context.metadata = ["old": 9]
++        case .metadataTyped: context[ContextKeys.metadata] = ["old": 9]
++        case .metadataDynamic: context[dynamicMember: \.metadata] = ["old": 9]
++        case .metricsReplace, .metricsCollisionReplace: context.setMetrics(["old": 9])
++        case .metricSet, .metricsCollisionSet: context.setMetric("old", value: 9)
++        case .metricStore, .metricsCollisionStore: context.storeMetric("old", value: 9)
++        case .metricsMerge, .metricsCollisionMerge: context.updateMetrics(["old": 9, "new": 11])
++        case .metricsProperty: context.metrics = ["old": 9]
++        case .metricsTyped: context[ContextKeys.metrics] = ["old": 9]
++        case .metricsDynamic: context[dynamicMember: \.metrics] = ["old": 9]
++        case .duration:
++            context.startTime = Date(timeIntervalSinceNow: -1)
++            context.recordDuration("old")
++        case .requestProperty: context.requestID = "new"
++        case .userProperty: context.userID = "new"
++        case .correlationProperty: context.correlationID = "new"
++        case .startProperty: context.startTime = Date(timeIntervalSince1970: 42)
++        case .dynamicTrace: context[dynamicMember: \.traceID] = "new"
++        case .cancellation: context.markAsCancelled(reason: .userCancellation)
++        }
++    }
++
++    func isCommitted(in context: CommandContext) -> Bool {
++        switch self {
++        case .typedNil, .remove: return !context.contains(ContextKey<Int>(key))
++        case .typedSameType: return context[ContextKey<ContextPayload>(key)] != nil
++        case .typedReplace, .updateClosure: return context[ContextKey<Int>(key)] == 9
++        case .requestProperty, .userProperty, .correlationProperty, .dynamicTrace:
++            return context[ContextKey<String>(key)] == "new"
++        case .startProperty: return context.startTime == Date(timeIntervalSince1970: 42)
++        case .cancellation: return context.getCancellationReason() == .userCancellation
++        case .duration: return (context.getMetric("old") as? TimeInterval ?? -1) >= 0 && context.getMetric("keep") as? Int == 7
++        default:
++            let values = key == "metadata" ? context.getMetadata() : context.getMetrics()
++            let preserves = self == .metadataSet || self == .metadataMerge || self == .metricSet || self == .metricStore || self == .metricsMerge
++            let merges = self == .metadataMerge || self == .metadataCollisionMerge || self == .metricsMerge || self == .metricsCollisionMerge
++            return values["old"] as? Int == 9 &&
++                (preserves ? values["keep"] as? Int == 7 : values["keep"] == nil) &&
++                (merges ? values["new"] as? Int == 11 : values["new"] == nil)
++        }
++    }
++}
++
++private final class ContextPayload: Sendable {
++    let onRelease: @Sendable () -> Void
++    init(_ onRelease: @escaping @Sendable () -> Void) { self.onRelease = onRelease }
++    deinit { onRelease() }
++}
++
++private struct WeakContextPayload: Sendable { weak var value: ContextPayload? }
++
++private final class RetirementObservations: Sendable {
++    private struct State { var values: [Bool] = []; var returned = false }
++    private let state = Mutex(State())
++    func record(_ value: Bool) { state.withLock { $0.values.append(value) } }
++    func returned() { state.withLock { $0.returned = true } }
++    var states: [Bool] { state.withLock { $0.values } }
++    var didReturn: Bool { state.withLock { $0.returned } }
++}
++
++private actor RetirementStartGate {
++    let expected: Int
++    var arrivals: [CheckedContinuation<Void, Never>] = []
++    init(expected: Int) { self.expected = expected }
++    func arrive() async {
++        await withCheckedContinuation { continuation in
++            arrivals.append(continuation)
++            if arrivals.count == expected {
++                let waiting = arrivals
++                arrivals.removeAll()
++                for waiter in waiting { waiter.resume() }
++            }
++        }
++    }
++}

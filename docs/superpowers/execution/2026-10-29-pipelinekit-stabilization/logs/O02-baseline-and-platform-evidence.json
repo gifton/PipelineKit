@@ -1,0 +1,52 @@
+{
+  "base": "a188b5471e9bf8b6bd424203199c778c716fa099",
+  "legacy_exporter_sha256": "b8f2e69b1ada113ed55f9186c201e58fef0a87fa8e6cce37cc77d47661446a62",
+  "legacy_startup_excerpt": "    /// Sends data via UDP (legacy).\n    private func sendLegacy(_ data: String) async {\n        #if canImport(Network)\n        do {\n            try await ensureConnection()\n            \n            guard let messageData = data.data(using: .utf8) else {\n                reportError(MetricsError.invalidData(\"Failed to encode metric data\"))\n                return\n            }\n            \n            if case .connected(let connection) = connectionState {\n                connection.send(content: messageData, completion: .contentProcessed { [weak self] error in\n                    if let error = error {\n                        Task { [weak self] in\n                            await self?.handleSendError(error)\n                        }\n                    }\n                })\n            }\n        } catch {\n            reportError(error)\n        }\n        #endif\n    }\n    \n    #if canImport(Network)\n    /// Ensures connection is established.\n    private func ensureConnection() async throws {\n        switch connectionState {\n        case .connected:\n            return // Already connected\n            \n        case .connecting:\n            // Wait for connection to complete\n            await withCheckedContinuation { continuation in\n                self.connectionContinuation = continuation\n            }\n            \n        case .disconnected, .failed:\n            try await connect()\n        }\n    }\n    \n    /// Establishes a new connection.\n    private func connect() async throws {\n        connectionState = .connecting\n        \n        let host = NWEndpoint.Host(configuration.host)\n        let port = NWEndpoint.Port(integerLiteral: UInt16(configuration.port))\n        let connection = NWConnection(host: host, port: port, using: .udp)\n        \n        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in\n            connection.stateUpdateHandler = { [weak self] state in\n                Task { [weak self] in\n                    await self?.handleConnectionStateChange(state, connection: connection)\n                }\n            }\n            \n            connection.start(queue: .global())\n            continuation.resume()\n        }\n    }\n    \n    /// Handles connection state changes.\n    private func handleConnectionStateChange(_ state: NWConnection.State, connection: NWConnection) async {\n        switch state {\n        case .ready:\n            connectionState = .connected(connection)\n            connectionContinuation?.resume()\n            connectionContinuation = nil\n            \n        case .failed(let error):\n            connectionState = .failed(error)\n            connectionContinuation?.resume()\n            connectionContinuation = nil\n            reportError(MetricsError.connectionFailed(error))\n            \n        case .cancelled:\n            connectionState = .disconnected\n            connectionContinuation?.resume()\n            connectionContinuation = nil\n            \n        default:\n            break // Ignore other states\n        }\n    }\n    \n    /// Handles send errors.\n    private func handleSendError(_ error: NWError) async {\n        connectionState = .disconnected\n        reportError(MetricsError.sendFailed(error.localizedDescription))\n    }\n    #endif\n    \n",
+  "legacy_first_batch_loss_runtime_observed": false,
+  "legacy_evidence_classification": "Source-only: connect resumes immediately after connection.start while sendLegacy sends only if state is already connected. Concurrent connecting callers overwrite one connectionContinuation. The new factory seam was absent; O02-001 is API compile-red, not a behavioral reproduction.",
+  "historical_V406": {
+    "supervisor": {
+      "id": "V406-udp-close",
+      "cwd": "/Users/goftin/dev/gsuite/PipelineKit",
+      "command": [
+        "/private/tmp/pipelinekit-audit-a93a713-consumer/out/Products/Debug/ObservabilityProbe",
+        "udp-close"
+      ],
+      "started_utc": "2026-10-30T04:52:25.530682+00:00",
+      "elapsed_seconds": 0.021,
+      "exit_status": -5,
+      "watchdog_timeout": false,
+      "log": "/Users/goftin/dev/gsuite/PipelineKit/audit/pipelinekit/2026-10-28-a93a713-local/logs/V406-udp-close.log"
+    },
+    "hashes_match": {
+      "audit/pipelinekit/2026-10-28-a93a713-local/logs/V406-udp-close.json": true,
+      "audit/pipelinekit/2026-10-28-a93a713-local/logs/V406-udp-close.log": true
+    },
+    "classification": "Retained O01 transport crash evidence; not claimed as legacy StatsD first-batch loss."
+  },
+  "accepted_O01_real_evidence_sha256": {
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/O01-013-final-real-close.json": "3e511a172ba7afc680346e470fda0636794478b354fa1bb72617b3a26429c045",
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/O01-013-final-real-close.log": "f1fd80eebb5c36b2df94f218a4c553f7fa9609f142becee2c95ad5924b06449f",
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/O01-014-final-real-failure.json": "b48440fda3510a6c4f7a34c9779559beed9525a4cf1388ec87cdc126b32f0dd3",
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/O01-014-final-real-failure.log": "f292f665f9d2a952bc0b9c12616351092943c8c7098cb39aa033b1a84e7b5793"
+  },
+  "network_unavailable": {
+    "platform_inventory": {
+      "/Applications": [
+        "Xcode.app"
+      ],
+      "container_cli": {
+        "docker": null,
+        "podman": null,
+        "container": null
+      },
+      "swift_executable": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swift"
+    },
+    "runtime_executed": false,
+    "source_route": "Default StatsD factory awaits UDPTransport; its #else throws connectionFailed(Network framework not available). start throws/reports; each nonempty flush catches/reports. Conditional testDefaultConstructorReportsNetworkUnavailable checks both routes on a supported non-Network test host.",
+    "udp_source_sha256": "71e7d7772bf5d05d71eca37c8f857dcfb2e7c6cdea69647e48f94530493dc3f8",
+    "network_else_present": true,
+    "conditional_test_present": true,
+    "limit": "This macOS host imports Network; no Linux runtime or container tool is available in the retained inventory. I01 owns non-Network runtime/platform execution."
+  }
+}

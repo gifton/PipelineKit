@@ -1,0 +1,93 @@
+Building for debugging...
+[Computing dependencies]
+[Using on-disk description]
+[8 / 92] Atomics
+[16 / 83] Crypto
+[18 / 83] PipelineKitCore
+[21 / 84] PipelineKit
+[23 / 85] PipelineKit
+[29 / 97] _ResilienceFoundation
+[33 / 99] _ResilienceFoundation
+[39 / 102] PipelineKitObservability
+[49 / 111] PipelineKitCache
+[55 / 108] PipelineKitResilience
+[61 / 118] PipelineKitPooling
+[65 / 113] PipelineKitSecurity
+[69 / 116] PipelineKitTestSupport
+[71 / 117] PipelineKitTestSupport
+Build complete! (2.45 sec)
+Test Suite 'Selected tests' started at 2026-10-30 17:22:40.249.
+Test Suite 'PipelineKitTests.xctest' started at 2026-10-30 17:22:40.249.
+Test Suite 'PipelineConfigurationErrorTests' started at 2026-10-30 17:22:40.249.
+Test Case '-[PipelineKitTests.PipelineConfigurationErrorTests testConcurrentMiddlewareModification]' started.
+Test Case '-[PipelineKitTests.PipelineConfigurationErrorTests testConcurrentMiddlewareModification]' passed (0.001 seconds).
+Test Case '-[PipelineKitTests.PipelineConfigurationErrorTests testContextMissingRequiredData]' started.
+Test Case '-[PipelineKitTests.PipelineConfigurationErrorTests testContextMissingRequiredData]' passed (0.001 seconds).
+Test Case '-[PipelineKitTests.PipelineConfigurationErrorTests testDuplicateMiddlewareWarning]' started.
+Test Case '-[PipelineKitTests.PipelineConfigurationErrorTests testDuplicateMiddlewareWarning]' passed (0.000 seconds).
+Test Case '-[PipelineKitTests.PipelineConfigurationErrorTests testEmptyPipelineThrows]' started.
+Test Case '-[PipelineKitTests.PipelineConfigurationErrorTests testEmptyPipelineThrows]' passed (0.000 seconds).
+Test Case '-[PipelineKitTests.PipelineConfigurationErrorTests testInvalidCommandType]' started.
+Test Case '-[PipelineKitTests.PipelineConfigurationErrorTests testInvalidCommandType]' passed (0.000 seconds).
+Test Case '-[PipelineKitTests.PipelineConfigurationErrorTests testInvalidMiddlewareOrder]' started.
+Test Case '-[PipelineKitTests.PipelineConfigurationErrorTests testInvalidMiddlewareOrder]' passed (0.000 seconds).
+Test Case '-[PipelineKitTests.PipelineConfigurationErrorTests testMaximumMiddlewareDepthExceeded]' started.
+Test Case '-[PipelineKitTests.PipelineConfigurationErrorTests testMaximumMiddlewareDepthExceeded]' passed (0.000 seconds).
+Test Case '-[PipelineKitTests.PipelineConfigurationErrorTests testMiddlewareNotFoundError]' started.
+Test Case '-[PipelineKitTests.PipelineConfigurationErrorTests testMiddlewareNotFoundError]' passed (0.000 seconds).
+Test Case '-[PipelineKitTests.PipelineConfigurationErrorTests testPipelineWithOnlyMiddlewareNoHandler]' started.
+Test Case '-[PipelineKitTests.PipelineConfigurationErrorTests testPipelineWithOnlyMiddlewareNoHandler]' passed (0.000 seconds).
+Test Suite 'PipelineConfigurationErrorTests' passed at 2026-10-30 17:22:40.253.
+	 Executed 9 tests, with 0 failures (0 unexpected) in 0.003 (0.004) seconds
+Test Suite 'PipelineKitTests.xctest' passed at 2026-10-30 17:22:40.253.
+	 Executed 9 tests, with 0 failures (0 unexpected) in 0.003 (0.004) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 17:22:40.253.
+	 Executed 9 tests, with 0 failures (0 unexpected) in 0.003 (0.005) seconds
+Test Suite 'Selected tests' started at 2026-10-30 17:22:40.328.
+Test Suite 'PipelineKitTestSupportTests.xctest' started at 2026-10-30 17:22:40.329.
+Test Suite 'PipelineKitTestSupportTests.xctest' passed at 2026-10-30 17:22:40.329.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 17:22:40.329.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 17:22:40.405.
+Test Suite 'PipelineKitSecurityTests.xctest' started at 2026-10-30 17:22:40.406.
+Test Suite 'PipelineKitSecurityTests.xctest' passed at 2026-10-30 17:22:40.406.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 17:22:40.406.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 17:22:40.483.
+Test Suite 'PipelineKitResilienceTests.xctest' started at 2026-10-30 17:22:40.484.
+Test Suite 'PipelineKitResilienceTests.xctest' passed at 2026-10-30 17:22:40.484.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 17:22:40.484.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 17:22:40.560.
+Test Suite 'PipelineKitPoolingTests.xctest' started at 2026-10-30 17:22:40.561.
+Test Suite 'PipelineKitPoolingTests.xctest' passed at 2026-10-30 17:22:40.561.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 17:22:40.561.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 17:22:40.636.
+Test Suite 'PipelineKitPerformanceTests.xctest' started at 2026-10-30 17:22:40.637.
+Test Suite 'PipelineKitPerformanceTests.xctest' passed at 2026-10-30 17:22:40.637.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 17:22:40.637.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 17:22:40.713.
+Test Suite 'PipelineKitObservabilityTests.xctest' started at 2026-10-30 17:22:40.714.
+Test Suite 'PipelineKitObservabilityTests.xctest' passed at 2026-10-30 17:22:40.714.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 17:22:40.714.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 17:22:40.791.
+Test Suite 'PipelineKitCoreTests.xctest' started at 2026-10-30 17:22:40.791.
+Test Suite 'PipelineKitCoreTests.xctest' passed at 2026-10-30 17:22:40.792.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 17:22:40.792.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 17:22:40.869.
+Test Suite 'PipelineKitCacheTests.xctest' started at 2026-10-30 17:22:40.870.
+Test Suite 'PipelineKitCacheTests.xctest' passed at 2026-10-30 17:22:40.870.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 17:22:40.870.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds

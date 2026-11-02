@@ -280,20 +280,18 @@ final class MiddlewareTests: XCTestCase {
         let command = TestCommand(input: "perf")
         let context = CommandContext()
         
-        let iterations = 10000
-        let start = Date()
-        
-        for _ in 0..<iterations {
-            _ = try await middleware.execute(command, context: context) { cmd, _ in
-                try await cmd.execute()
+        let opsPerSecond = try await ThroughputMeasurement.measure(iterations: 10000) { iterations in
+            var matchingResults = 0
+            for _ in 0..<iterations {
+                let result = try await middleware.execute(command, context: context) { cmd, _ in
+                    try await cmd.execute()
+                }
+                if result == "Result: perf" { matchingResults += 1 }
             }
+            return matchingResults
         }
-        
-        let duration = Date().timeIntervalSince(start)
-        let opsPerSecond = Double(iterations) / duration
-        
-        print("Middleware performance: \(Int(opsPerSecond)) ops/sec")
-        XCTAssertGreaterThan(opsPerSecond, 20000) // Should handle at least 20k ops/sec
+        print("Middleware performance: \(opsPerSecond) ops/sec")
+        XCTAssertGreaterThan(opsPerSecond, 20000)
     }
     
     // MARK: - Memory Management Tests

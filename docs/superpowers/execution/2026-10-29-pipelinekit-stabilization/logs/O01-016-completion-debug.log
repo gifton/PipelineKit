@@ -1,0 +1,82 @@
+Building for debugging...
+[Computing dependencies]
+[Using on-disk description]
+[1 / 2]
+[1 / 2] PipelineKitResilienceTests-product
+[2 / 5] PipelineKitObservabilityTests-product
+[4 / 7] PipelineKitObservabilityTests-product
+[6 / 7] PipelineKitObservabilityTests-product
+Build complete! (2.22 sec)
+Test Suite 'Selected tests' started at 2026-10-30 15:35:28.238.
+Test Suite 'PipelineKitTests.xctest' started at 2026-10-30 15:35:28.239.
+Test Suite 'PipelineKitTests.xctest' passed at 2026-10-30 15:35:28.239.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 15:35:28.239.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 15:35:28.326.
+Test Suite 'PipelineKitTestSupportTests.xctest' started at 2026-10-30 15:35:28.327.
+Test Suite 'PipelineKitTestSupportTests.xctest' passed at 2026-10-30 15:35:28.327.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 15:35:28.327.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 15:35:28.417.
+Test Suite 'PipelineKitSecurityTests.xctest' started at 2026-10-30 15:35:28.418.
+Test Suite 'PipelineKitSecurityTests.xctest' passed at 2026-10-30 15:35:28.418.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 15:35:28.418.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 15:35:28.506.
+Test Suite 'PipelineKitResilienceTests.xctest' started at 2026-10-30 15:35:28.507.
+Test Suite 'PipelineKitResilienceTests.xctest' passed at 2026-10-30 15:35:28.507.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 15:35:28.507.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 15:35:28.598.
+Test Suite 'PipelineKitPoolingTests.xctest' started at 2026-10-30 15:35:28.598.
+Test Suite 'PipelineKitPoolingTests.xctest' passed at 2026-10-30 15:35:28.598.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 15:35:28.599.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 15:35:28.686.
+Test Suite 'PipelineKitPerformanceTests.xctest' started at 2026-10-30 15:35:28.687.
+Test Suite 'PipelineKitPerformanceTests.xctest' passed at 2026-10-30 15:35:28.687.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 15:35:28.687.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 15:35:28.756.
+Test Suite 'PipelineKitObservabilityTests.xctest' started at 2026-10-30 15:35:28.757.
+Test Suite 'UDPTransportLifecycleTests' started at 2026-10-30 15:35:28.757.
+Test Case '-[PipelineKitObservabilityTests.UDPTransportLifecycleTests testCancellationBeforeRegistrationAndAfterCompletion]' started.
+Test Case '-[PipelineKitObservabilityTests.UDPTransportLifecycleTests testCancellationBeforeRegistrationAndAfterCompletion]' passed (0.002 seconds).
+Test Case '-[PipelineKitObservabilityTests.UDPTransportLifecycleTests testConcurrentSendBatchFailureSettlesSiblings]' started.
+Test Case '-[PipelineKitObservabilityTests.UDPTransportLifecycleTests testConcurrentSendBatchFailureSettlesSiblings]' passed (0.001 seconds).
+Test Case '-[PipelineKitObservabilityTests.UDPTransportLifecycleTests testConfigurationValidationPrecedesDriverStartAndDurationConversion]' started.
+Test Case '-[PipelineKitObservabilityTests.UDPTransportLifecycleTests testConfigurationValidationPrecedesDriverStartAndDurationConversion]' passed (0.000 seconds).
+Test Case '-[PipelineKitObservabilityTests.UDPTransportLifecycleTests testMissingSendCallbackSettlesOnTimeoutOrClose]' started.
+Test Case '-[PipelineKitObservabilityTests.UDPTransportLifecycleTests testMissingSendCallbackSettlesOnTimeoutOrClose]' passed (0.002 seconds).
+Test Case '-[PipelineKitObservabilityTests.UDPTransportLifecycleTests testRecoverableFailuresStopAtConfiguredAttemptCount]' started.
+Test Case '-[PipelineKitObservabilityTests.UDPTransportLifecycleTests testRecoverableFailuresStopAtConfiguredAttemptCount]' passed (0.001 seconds).
+Test Case '-[PipelineKitObservabilityTests.UDPTransportLifecycleTests testRetryBackoffIsOwnedByCancellationAndClose]' started.
+Test Case '-[PipelineKitObservabilityTests.UDPTransportLifecycleTests testRetryBackoffIsOwnedByCancellationAndClose]' passed (0.001 seconds).
+Test Case '-[PipelineKitObservabilityTests.UDPTransportLifecycleTests testSetupCallerCancellationBeforeAndAfterRegistration]' started.
+Test Case '-[PipelineKitObservabilityTests.UDPTransportLifecycleTests testSetupCallerCancellationBeforeAndAfterRegistration]' passed (0.000 seconds).
+Test Case '-[PipelineKitObservabilityTests.UDPTransportLifecycleTests testSetupTerminalStateMatrix]' started.
+Test Case '-[PipelineKitObservabilityTests.UDPTransportLifecycleTests testSetupTerminalStateMatrix]' passed (0.001 seconds).
+Test Suite 'UDPTransportLifecycleTests' passed at 2026-10-30 15:35:28.765.
+	 Executed 8 tests, with 0 failures (0 unexpected) in 0.008 (0.009) seconds
+Test Suite 'PipelineKitObservabilityTests.xctest' passed at 2026-10-30 15:35:28.765.
+	 Executed 8 tests, with 0 failures (0 unexpected) in 0.008 (0.009) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 15:35:28.765.
+	 Executed 8 tests, with 0 failures (0 unexpected) in 0.008 (0.009) seconds
+Test Suite 'Selected tests' started at 2026-10-30 15:35:28.853.
+Test Suite 'PipelineKitCoreTests.xctest' started at 2026-10-30 15:35:28.854.
+Test Suite 'PipelineKitCoreTests.xctest' passed at 2026-10-30 15:35:28.854.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 15:35:28.854.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 15:35:28.941.
+Test Suite 'PipelineKitCacheTests.xctest' started at 2026-10-30 15:35:28.942.
+Test Suite 'PipelineKitCacheTests.xctest' passed at 2026-10-30 15:35:28.942.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 15:35:28.942.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds

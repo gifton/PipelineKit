@@ -1,0 +1,40 @@
+diff --git a/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift b/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift
+new file mode 100644
+index 0000000..569bc80
+--- /dev/null
++++ b/Tests/PipelineKitCacheTests/CompressionCompletionContractTests.swift
+@@ -0,0 +1,34 @@
++#if canImport(Compression)
++import Foundation
++import PipelineKitCache
++import XCTest
++
++final class CompressionCompletionContractTests: XCTestCase {
++    // Baseline uses the old API; new-signature compile failures are recorded separately.
++    func testBaselineSmallHintsDoNotReturnPrefixes() throws {
++        let original = Data(repeating: 65, count: 100_000)
++        for algorithm in CompressionAlgorithm.allCases {
++            let compressed = try CompressionUtility.compress(original, using: algorithm)
++            for hint: Int? in [nil, 17] {
++                let decoded = try CompressionUtility.decompress(compressed, using: algorithm, originalSize: hint)
++                XCTAssertEqual(decoded, original, "\(algorithm), hint \(String(describing: hint)), returned \(decoded.count) bytes")
++            }
++        }
++    }
++
++    func testBaselineNonemptySmallPayloadsRoundTrip() throws {
++        for algorithm in CompressionAlgorithm.allCases {
++            for size in [1, 99, 100] {
++                let original = Data(repeating: 65, count: size)
++                let compressed = try CompressionUtility.compress(original, using: algorithm)
++                do {
++                    let decoded = try CompressionUtility.decompress(compressed, using: algorithm, originalSize: size)
++                    XCTAssertEqual(decoded, original, "\(algorithm), size \(size)")
++                } catch {
++                    XCTFail("\(algorithm), size \(size), round trip threw \(error)")
++                }
++            }
++        }
++    }
++}
++#endif

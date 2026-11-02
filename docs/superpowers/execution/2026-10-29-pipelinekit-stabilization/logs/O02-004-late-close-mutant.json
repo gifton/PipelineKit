@@ -1,0 +1,6204 @@
+{
+  "id": "O02-004-late-close-mutant",
+  "cwd": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization",
+  "command": [
+    "swift",
+    "test",
+    "--filter",
+    "StatsDStartupContractTests.testCloseDuringStartupClosesLateTransport"
+  ],
+  "started_utc": "2026-10-31T02:33:59.897352+00:00",
+  "elapsed_seconds": 8.992,
+  "exit_status": 1,
+  "watchdog_timeout": false,
+  "log": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/O02-004-late-close-mutant.log",
+  "runner_exit_status": 1,
+  "runner_error": null,
+  "cleanup": {
+    "settled": true,
+    "survivors": [],
+    "outcomes": [
+      {
+        "identity": {
+          "pid": 26489,
+          "start": [
+            1793414039,
+            898226
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26492,
+          "start": [
+            1793414039,
+            995119
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26495,
+          "start": [
+            1793414040,
+            125419
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26497,
+          "start": [
+            1793414040,
+            177076
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26498,
+          "start": [
+            1793414040,
+            265562
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26500,
+          "start": [
+            1793414040,
+            515334
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26501,
+          "start": [
+            1793414040,
+            591415
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26502,
+          "start": [
+            1793414040,
+            683644
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26503,
+          "start": [
+            1793414040,
+            688225
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26522,
+          "start": [
+            1793414040,
+            760071
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26526,
+          "start": [
+            1793414040,
+            878733
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26525,
+          "start": [
+            1793414040,
+            878717
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26524,
+          "start": [
+            1793414040,
+            876333
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26523,
+          "start": [
+            1793414040,
+            876289
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26530,
+          "start": [
+            1793414040,
+            964940
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26528,
+          "start": [
+            1793414040,
+            964925
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26527,
+          "start": [
+            1793414040,
+            964925
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26529,
+          "start": [
+            1793414040,
+            964926
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26531,
+          "start": [
+            1793414041,
+            35538
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26532,
+          "start": [
+            1793414041,
+            40423
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26533,
+          "start": [
+            1793414041,
+            41674
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26534,
+          "start": [
+            1793414041,
+            46245
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26535,
+          "start": [
+            1793414041,
+            105331
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26536,
+          "start": [
+            1793414041,
+            110279
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26550,
+          "start": [
+            1793414041,
+            188342
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26551,
+          "start": [
+            1793414041,
+            192771
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26563,
+          "start": [
+            1793414041,
+            194385
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26561,
+          "start": [
+            1793414041,
+            194301
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26572,
+          "start": [
+            1793414041,
+            205523
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26575,
+          "start": [
+            1793414041,
+            205632
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26576,
+          "start": [
+            1793414041,
+            227743
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26577,
+          "start": [
+            1793414041,
+            227745
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26589,
+          "start": [
+            1793414041,
+            266093
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26588,
+          "start": [
+            1793414041,
+            266062
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26613,
+          "start": [
+            1793414041,
+            293261
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26612,
+          "start": [
+            1793414041,
+            293259
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26615,
+          "start": [
+            1793414041,
+            322530
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26614,
+          "start": [
+            1793414041,
+            322531
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26616,
+          "start": [
+            1793414041,
+            375476
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26617,
+          "start": [
+            1793414041,
+            454006
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26618,
+          "start": [
+            1793414041,
+            555776
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26619,
+          "start": [
+            1793414041,
+            560435
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26625,
+          "start": [
+            1793414041,
+            627274
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26638,
+          "start": [
+            1793414041,
+            649141
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26639,
+          "start": [
+            1793414041,
+            660226
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26640,
+          "start": [
+            1793414041,
+            707951
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26641,
+          "start": [
+            1793414041,
+            786769
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26642,
+          "start": [
+            1793414041,
+            874501
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26643,
+          "start": [
+            1793414041,
+            879122
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26661,
+          "start": [
+            1793414041,
+            964110
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26662,
+          "start": [
+            1793414041,
+            976486
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26663,
+          "start": [
+            1793414042,
+            90877
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26664,
+          "start": [
+            1793414042,
+            168710
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26665,
+          "start": [
+            1793414042,
+            168718
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26666,
+          "start": [
+            1793414042,
+            300341
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26667,
+          "start": [
+            1793414042,
+            304721
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26668,
+          "start": [
+            1793414042,
+            370620
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26669,
+          "start": [
+            1793414042,
+            417454
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26678,
+          "start": [
+            1793414042,
+            502644
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26677,
+          "start": [
+            1793414042,
+            502626
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26676,
+          "start": [
+            1793414042,
+            502585
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26675,
+          "start": [
+            1793414042,
+            502543
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26674,
+          "start": [
+            1793414042,
+            502372
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26673,
+          "start": [
+            1793414042,
+            502369
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26672,
+          "start": [
+            1793414042,
+            502301
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26671,
+          "start": [
+            1793414042,
+            502242
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26670,
+          "start": [
+            1793414042,
+            502241
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26685,
+          "start": [
+            1793414042,
+            503109
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26684,
+          "start": [
+            1793414042,
+            503062
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26682,
+          "start": [
+            1793414042,
+            503031
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26683,
+          "start": [
+            1793414042,
+            503042
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26681,
+          "start": [
+            1793414042,
+            502996
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26680,
+          "start": [
+            1793414042,
+            502984
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26679,
+          "start": [
+            1793414042,
+            502899
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26695,
+          "start": [
+            1793414042,
+            738387
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26694,
+          "start": [
+            1793414042,
+            738360
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26692,
+          "start": [
+            1793414042,
+            738343
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26693,
+          "start": [
+            1793414042,
+            738355
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26691,
+          "start": [
+            1793414042,
+            738323
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26690,
+          "start": [
+            1793414042,
+            738316
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26689,
+          "start": [
+            1793414042,
+            738288
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26688,
+          "start": [
+            1793414042,
+            738261
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26687,
+          "start": [
+            1793414042,
+            738213
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26686,
+          "start": [
+            1793414042,
+            738203
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26696,
+          "start": [
+            1793414042,
+            932329
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26697,
+          "start": [
+            1793414042,
+            937091
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26698,
+          "start": [
+            1793414043,
+            8405
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26699,
+          "start": [
+            1793414043,
+            65250
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26715,
+          "start": [
+            1793414043,
+            149309
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26714,
+          "start": [
+            1793414043,
+            149306
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26713,
+          "start": [
+            1793414043,
+            149293
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26712,
+          "start": [
+            1793414043,
+            149288
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26711,
+          "start": [
+            1793414043,
+            149216
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26710,
+          "start": [
+            1793414043,
+            149212
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26709,
+          "start": [
+            1793414043,
+            149187
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26708,
+          "start": [
+            1793414043,
+            149094
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26707,
+          "start": [
+            1793414043,
+            149082
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26706,
+          "start": [
+            1793414043,
+            149079
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26705,
+          "start": [
+            1793414043,
+            149061
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26704,
+          "start": [
+            1793414043,
+            149004
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26703,
+          "start": [
+            1793414043,
+            148917
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26702,
+          "start": [
+            1793414043,
+            148879
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26701,
+          "start": [
+            1793414043,
+            148870
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26700,
+          "start": [
+            1793414043,
+            148804
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26719,
+          "start": [
+            1793414043,
+            333483
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26718,
+          "start": [
+            1793414043,
+            333477
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26717,
+          "start": [
+            1793414043,
+            333447
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26716,
+          "start": [
+            1793414043,
+            333413
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26726,
+          "start": [
+            1793414043,
+            380130
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26724,
+          "start": [
+            1793414043,
+            380122
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26723,
+          "start": [
+            1793414043,
+            380077
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26722,
+          "start": [
+            1793414043,
+            380038
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26721,
+          "start": [
+            1793414043,
+            380024
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26720,
+          "start": [
+            1793414043,
+            380023
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26727,
+          "start": [
+            1793414043,
+            554817
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26728,
+          "start": [
+            1793414043,
+            559669
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26729,
+          "start": [
+            1793414043,
+            629588
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26732,
+          "start": [
+            1793414043,
+            769636
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26736,
+          "start": [
+            1793414043,
+            796084
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26741,
+          "start": [
+            1793414043,
+            824175
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26745,
+          "start": [
+            1793414043,
+            848280
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26749,
+          "start": [
+            1793414044,
+            470057
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26751,
+          "start": [
+            1793414044,
+            845151
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26750,
+          "start": [
+            1793414044,
+            844192
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26768,
+          "start": [
+            1793414045,
+            180147
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26763,
+          "start": [
+            1793414045,
+            179358
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26762,
+          "start": [
+            1793414045,
+            179145
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26761,
+          "start": [
+            1793414045,
+            178946
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26759,
+          "start": [
+            1793414045,
+            178111
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26758,
+          "start": [
+            1793414045,
+            177860
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26757,
+          "start": [
+            1793414045,
+            177603
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26756,
+          "start": [
+            1793414045,
+            176662
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26884,
+          "start": [
+            1793414045,
+            292455
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26888,
+          "start": [
+            1793414045,
+            295542
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26889,
+          "start": [
+            1793414045,
+            296942
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26885,
+          "start": [
+            1793414045,
+            292455
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26883,
+          "start": [
+            1793414045,
+            292454
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26890,
+          "start": [
+            1793414045,
+            297017
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26886,
+          "start": [
+            1793414045,
+            292637
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26887,
+          "start": [
+            1793414045,
+            294001
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26892,
+          "start": [
+            1793414045,
+            543011
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26891,
+          "start": [
+            1793414045,
+            541764
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26901,
+          "start": [
+            1793414045,
+            659562
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26899,
+          "start": [
+            1793414045,
+            657271
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26898,
+          "start": [
+            1793414045,
+            657028
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26897,
+          "start": [
+            1793414045,
+            656800
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26896,
+          "start": [
+            1793414045,
+            656544
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26895,
+          "start": [
+            1793414045,
+            656121
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26894,
+          "start": [
+            1793414045,
+            654606
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26893,
+          "start": [
+            1793414045,
+            652421
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26902,
+          "start": [
+            1793414045,
+            855429
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26918,
+          "start": [
+            1793414045,
+            948819
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26919,
+          "start": [
+            1793414046,
+            112899
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26920,
+          "start": [
+            1793414046,
+            227203
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26921,
+          "start": [
+            1793414046,
+            408640
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26922,
+          "start": [
+            1793414046,
+            538384
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26923,
+          "start": [
+            1793414046,
+            682791
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26924,
+          "start": [
+            1793414046,
+            833862
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26925,
+          "start": [
+            1793414046,
+            963776
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26926,
+          "start": [
+            1793414047,
+            91862
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26927,
+          "start": [
+            1793414047,
+            225507
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26928,
+          "start": [
+            1793414047,
+            367466
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26929,
+          "start": [
+            1793414047,
+            498726
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26930,
+          "start": [
+            1793414047,
+            578891
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26931,
+          "start": [
+            1793414047,
+            657029
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26932,
+          "start": [
+            1793414047,
+            735418
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26933,
+          "start": [
+            1793414047,
+            814576
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26934,
+          "start": [
+            1793414047,
+            893227
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26935,
+          "start": [
+            1793414047,
+            971813
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26936,
+          "start": [
+            1793414048,
+            200043
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26937,
+          "start": [
+            1793414048,
+            279884
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26938,
+          "start": [
+            1793414048,
+            359783
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26939,
+          "start": [
+            1793414048,
+            414084
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26940,
+          "start": [
+            1793414048,
+            467828
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26941,
+          "start": [
+            1793414048,
+            521294
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26942,
+          "start": [
+            1793414048,
+            574776
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26943,
+          "start": [
+            1793414048,
+            628769
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26965,
+          "start": [
+            1793414048,
+            686212
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26978,
+          "start": [
+            1793414048,
+            745446
+          ]
+        },
+        "state": "gone"
+      },
+      {
+        "identity": {
+          "pid": 26979,
+          "start": [
+            1793414048,
+            804866
+          ]
+        },
+        "state": "gone"
+      }
+    ],
+    "inspection_errors": [],
+    "term_grace_seconds": 2.0,
+    "kill_grace_seconds": 3.0
+  },
+  "event_errors": [],
+  "completion_reason": "root_exit",
+  "unexpected_descendants": [],
+  "owned_processes": [
+    {
+      "identity": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "observed_parent": null,
+      "first_seen_seconds": 0.002128,
+      "observations": [
+        {
+          "ppid": 26478,
+          "pgid": 26489,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26492,
+        "start": [
+          1793414039,
+          995119
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 0.110571,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26492,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26495,
+        "start": [
+          1793414040,
+          125419
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 0.229379,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26495,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26497,
+        "start": [
+          1793414040,
+          177076
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 0.304159,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26497,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26498,
+        "start": [
+          1793414040,
+          265562
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 0.394797,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26498,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26500,
+        "start": [
+          1793414040,
+          515334
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 0.619612,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26500,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26501,
+        "start": [
+          1793414040,
+          591415
+        ]
+      },
+      "observed_parent": {
+        "pid": 26500,
+        "start": [
+          1793414040,
+          515334
+        ]
+      },
+      "first_seen_seconds": 0.710364,
+      "observations": [
+        {
+          "ppid": 26500,
+          "pgid": 26501,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26502,
+        "start": [
+          1793414040,
+          683644
+        ]
+      },
+      "observed_parent": {
+        "pid": 26500,
+        "start": [
+          1793414040,
+          515334
+        ]
+      },
+      "first_seen_seconds": 0.791408,
+      "observations": [
+        {
+          "ppid": 26500,
+          "pgid": 26502,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26503,
+        "start": [
+          1793414040,
+          688225
+        ]
+      },
+      "observed_parent": {
+        "pid": 26502,
+        "start": [
+          1793414040,
+          683644
+        ]
+      },
+      "first_seen_seconds": 0.791473,
+      "observations": [
+        {
+          "ppid": 26502,
+          "pgid": 26502,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26522,
+        "start": [
+          1793414040,
+          760071
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 0.87566,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26522,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26526,
+        "start": [
+          1793414040,
+          878733
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 0.996877,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26526,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26525,
+        "start": [
+          1793414040,
+          878717
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 0.996937,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26525,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26524,
+        "start": [
+          1793414040,
+          876333
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 0.996959,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26524,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26523,
+        "start": [
+          1793414040,
+          876289
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 0.996977,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26523,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26530,
+        "start": [
+          1793414040,
+          964940
+        ]
+      },
+      "observed_parent": {
+        "pid": 26523,
+        "start": [
+          1793414040,
+          876289
+        ]
+      },
+      "first_seen_seconds": 1.08137,
+      "observations": [
+        {
+          "ppid": 26523,
+          "pgid": 26530,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26528,
+        "start": [
+          1793414040,
+          964925
+        ]
+      },
+      "observed_parent": {
+        "pid": 26524,
+        "start": [
+          1793414040,
+          876333
+        ]
+      },
+      "first_seen_seconds": 1.081489,
+      "observations": [
+        {
+          "ppid": 26524,
+          "pgid": 26528,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26527,
+        "start": [
+          1793414040,
+          964925
+        ]
+      },
+      "observed_parent": {
+        "pid": 26525,
+        "start": [
+          1793414040,
+          878717
+        ]
+      },
+      "first_seen_seconds": 1.081562,
+      "observations": [
+        {
+          "ppid": 26525,
+          "pgid": 26527,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26529,
+        "start": [
+          1793414040,
+          964926
+        ]
+      },
+      "observed_parent": {
+        "pid": 26526,
+        "start": [
+          1793414040,
+          878733
+        ]
+      },
+      "first_seen_seconds": 1.081629,
+      "observations": [
+        {
+          "ppid": 26526,
+          "pgid": 26529,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26531,
+        "start": [
+          1793414041,
+          35538
+        ]
+      },
+      "observed_parent": {
+        "pid": 26523,
+        "start": [
+          1793414040,
+          876289
+        ]
+      },
+      "first_seen_seconds": 1.152976,
+      "observations": [
+        {
+          "ppid": 26523,
+          "pgid": 26531,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26532,
+        "start": [
+          1793414041,
+          40423
+        ]
+      },
+      "observed_parent": {
+        "pid": 26531,
+        "start": [
+          1793414041,
+          35538
+        ]
+      },
+      "first_seen_seconds": 1.153066,
+      "observations": [
+        {
+          "ppid": 26531,
+          "pgid": 26531,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26533,
+        "start": [
+          1793414041,
+          41674
+        ]
+      },
+      "observed_parent": {
+        "pid": 26526,
+        "start": [
+          1793414040,
+          878733
+        ]
+      },
+      "first_seen_seconds": 1.1532,
+      "observations": [
+        {
+          "ppid": 26526,
+          "pgid": 26533,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26534,
+        "start": [
+          1793414041,
+          46245
+        ]
+      },
+      "observed_parent": {
+        "pid": 26533,
+        "start": [
+          1793414041,
+          41674
+        ]
+      },
+      "first_seen_seconds": 1.153243,
+      "observations": [
+        {
+          "ppid": 26533,
+          "pgid": 26533,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26535,
+        "start": [
+          1793414041,
+          105331
+        ]
+      },
+      "observed_parent": {
+        "pid": 26524,
+        "start": [
+          1793414040,
+          876333
+        ]
+      },
+      "first_seen_seconds": 1.214104,
+      "observations": [
+        {
+          "ppid": 26524,
+          "pgid": 26535,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26536,
+        "start": [
+          1793414041,
+          110279
+        ]
+      },
+      "observed_parent": {
+        "pid": 26535,
+        "start": [
+          1793414041,
+          105331
+        ]
+      },
+      "first_seen_seconds": 1.214184,
+      "observations": [
+        {
+          "ppid": 26535,
+          "pgid": 26535,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26550,
+        "start": [
+          1793414041,
+          188342
+        ]
+      },
+      "observed_parent": {
+        "pid": 26525,
+        "start": [
+          1793414040,
+          878717
+        ]
+      },
+      "first_seen_seconds": 1.305237,
+      "observations": [
+        {
+          "ppid": 26525,
+          "pgid": 26550,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26551,
+        "start": [
+          1793414041,
+          192771
+        ]
+      },
+      "observed_parent": {
+        "pid": 26550,
+        "start": [
+          1793414041,
+          188342
+        ]
+      },
+      "first_seen_seconds": 1.305319,
+      "observations": [
+        {
+          "ppid": 26550,
+          "pgid": 26550,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26563,
+        "start": [
+          1793414041,
+          194385
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 1.305425,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26563,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26561,
+        "start": [
+          1793414041,
+          194301
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 1.305442,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26561,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26572,
+        "start": [
+          1793414041,
+          205523
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 1.326782,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26572,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26575,
+        "start": [
+          1793414041,
+          205632
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 1.326837,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26575,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26576,
+        "start": [
+          1793414041,
+          227743
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 1.35309,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26576,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26577,
+        "start": [
+          1793414041,
+          227745
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 1.35322,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26577,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26589,
+        "start": [
+          1793414041,
+          266093
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 1.375868,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26589,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26588,
+        "start": [
+          1793414041,
+          266062
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 1.375925,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26588,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26613,
+        "start": [
+          1793414041,
+          293261
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 1.403964,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26613,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26612,
+        "start": [
+          1793414041,
+          293259
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 1.404025,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26612,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26615,
+        "start": [
+          1793414041,
+          322530
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 1.434322,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26615,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26614,
+        "start": [
+          1793414041,
+          322531
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 1.434378,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26614,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26616,
+        "start": [
+          1793414041,
+          375476
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 1.49272,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26616,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26617,
+        "start": [
+          1793414041,
+          454006
+        ]
+      },
+      "observed_parent": {
+        "pid": 26616,
+        "start": [
+          1793414041,
+          375476
+        ]
+      },
+      "first_seen_seconds": 1.573096,
+      "observations": [
+        {
+          "ppid": 26616,
+          "pgid": 26617,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26618,
+        "start": [
+          1793414041,
+          555776
+        ]
+      },
+      "observed_parent": {
+        "pid": 26616,
+        "start": [
+          1793414041,
+          375476
+        ]
+      },
+      "first_seen_seconds": 1.670578,
+      "observations": [
+        {
+          "ppid": 26616,
+          "pgid": 26618,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26619,
+        "start": [
+          1793414041,
+          560435
+        ]
+      },
+      "observed_parent": {
+        "pid": 26618,
+        "start": [
+          1793414041,
+          555776
+        ]
+      },
+      "first_seen_seconds": 1.670664,
+      "observations": [
+        {
+          "ppid": 26618,
+          "pgid": 26618,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26625,
+        "start": [
+          1793414041,
+          627274
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 1.731888,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26625,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26638,
+        "start": [
+          1793414041,
+          649141
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 1.752386,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26638,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26639,
+        "start": [
+          1793414041,
+          660226
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 1.782751,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26639,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26640,
+        "start": [
+          1793414041,
+          707951
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 1.811143,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26489,
+          "state": 2
+        },
+        {
+          "ppid": 26489,
+          "pgid": 26640,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26641,
+        "start": [
+          1793414041,
+          786769
+        ]
+      },
+      "observed_parent": {
+        "pid": 26640,
+        "start": [
+          1793414041,
+          707951
+        ]
+      },
+      "first_seen_seconds": 1.895634,
+      "observations": [
+        {
+          "ppid": 26640,
+          "pgid": 26641,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26642,
+        "start": [
+          1793414041,
+          874501
+        ]
+      },
+      "observed_parent": {
+        "pid": 26640,
+        "start": [
+          1793414041,
+          707951
+        ]
+      },
+      "first_seen_seconds": 1.986549,
+      "observations": [
+        {
+          "ppid": 26640,
+          "pgid": 26642,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26643,
+        "start": [
+          1793414041,
+          879122
+        ]
+      },
+      "observed_parent": {
+        "pid": 26642,
+        "start": [
+          1793414041,
+          874501
+        ]
+      },
+      "first_seen_seconds": 1.98664,
+      "observations": [
+        {
+          "ppid": 26642,
+          "pgid": 26642,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26661,
+        "start": [
+          1793414041,
+          964110
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 2.075845,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26661,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26662,
+        "start": [
+          1793414041,
+          976486
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 2.106168,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26662,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26663,
+        "start": [
+          1793414042,
+          90877
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 2.209269,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26663,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26664,
+        "start": [
+          1793414042,
+          168710
+        ]
+      },
+      "observed_parent": {
+        "pid": 26663,
+        "start": [
+          1793414042,
+          90877
+        ]
+      },
+      "first_seen_seconds": 2.300062,
+      "observations": [
+        {
+          "ppid": 26663,
+          "pgid": 26664,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26665,
+        "start": [
+          1793414042,
+          168718
+        ]
+      },
+      "observed_parent": {
+        "pid": 26663,
+        "start": [
+          1793414042,
+          90877
+        ]
+      },
+      "first_seen_seconds": 2.300116,
+      "observations": [
+        {
+          "ppid": 26663,
+          "pgid": 26665,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26666,
+        "start": [
+          1793414042,
+          300341
+        ]
+      },
+      "observed_parent": {
+        "pid": 26663,
+        "start": [
+          1793414042,
+          90877
+        ]
+      },
+      "first_seen_seconds": 2.409331,
+      "observations": [
+        {
+          "ppid": 26663,
+          "pgid": 26666,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26667,
+        "start": [
+          1793414042,
+          304721
+        ]
+      },
+      "observed_parent": {
+        "pid": 26666,
+        "start": [
+          1793414042,
+          300341
+        ]
+      },
+      "first_seen_seconds": 2.409403,
+      "observations": [
+        {
+          "ppid": 26666,
+          "pgid": 26666,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26668,
+        "start": [
+          1793414042,
+          370620
+        ]
+      },
+      "observed_parent": {
+        "pid": 26663,
+        "start": [
+          1793414042,
+          90877
+        ]
+      },
+      "first_seen_seconds": 2.49815,
+      "observations": [
+        {
+          "ppid": 26663,
+          "pgid": 26668,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26669,
+        "start": [
+          1793414042,
+          417454
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 2.528613,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26669,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26678,
+        "start": [
+          1793414042,
+          502644
+        ]
+      },
+      "observed_parent": {
+        "pid": 26669,
+        "start": [
+          1793414042,
+          417454
+        ]
+      },
+      "first_seen_seconds": 2.605146,
+      "observations": [
+        {
+          "ppid": 26669,
+          "pgid": 26669,
+          "state": 2
+        },
+        {
+          "ppid": 26669,
+          "pgid": 26678,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26677,
+        "start": [
+          1793414042,
+          502626
+        ]
+      },
+      "observed_parent": {
+        "pid": 26669,
+        "start": [
+          1793414042,
+          417454
+        ]
+      },
+      "first_seen_seconds": 2.605256,
+      "observations": [
+        {
+          "ppid": 26669,
+          "pgid": 26669,
+          "state": 2
+        },
+        {
+          "ppid": 26669,
+          "pgid": 26677,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26676,
+        "start": [
+          1793414042,
+          502585
+        ]
+      },
+      "observed_parent": {
+        "pid": 26669,
+        "start": [
+          1793414042,
+          417454
+        ]
+      },
+      "first_seen_seconds": 2.605291,
+      "observations": [
+        {
+          "ppid": 26669,
+          "pgid": 26669,
+          "state": 2
+        },
+        {
+          "ppid": 26669,
+          "pgid": 26676,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26675,
+        "start": [
+          1793414042,
+          502543
+        ]
+      },
+      "observed_parent": {
+        "pid": 26669,
+        "start": [
+          1793414042,
+          417454
+        ]
+      },
+      "first_seen_seconds": 2.605322,
+      "observations": [
+        {
+          "ppid": 26669,
+          "pgid": 26669,
+          "state": 2
+        },
+        {
+          "ppid": 26669,
+          "pgid": 26675,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26674,
+        "start": [
+          1793414042,
+          502372
+        ]
+      },
+      "observed_parent": {
+        "pid": 26669,
+        "start": [
+          1793414042,
+          417454
+        ]
+      },
+      "first_seen_seconds": 2.605354,
+      "observations": [
+        {
+          "ppid": 26669,
+          "pgid": 26669,
+          "state": 2
+        },
+        {
+          "ppid": 26669,
+          "pgid": 26674,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26673,
+        "start": [
+          1793414042,
+          502369
+        ]
+      },
+      "observed_parent": {
+        "pid": 26669,
+        "start": [
+          1793414042,
+          417454
+        ]
+      },
+      "first_seen_seconds": 2.605383,
+      "observations": [
+        {
+          "ppid": 26669,
+          "pgid": 26669,
+          "state": 2
+        },
+        {
+          "ppid": 26669,
+          "pgid": 26673,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26672,
+        "start": [
+          1793414042,
+          502301
+        ]
+      },
+      "observed_parent": {
+        "pid": 26669,
+        "start": [
+          1793414042,
+          417454
+        ]
+      },
+      "first_seen_seconds": 2.605412,
+      "observations": [
+        {
+          "ppid": 26669,
+          "pgid": 26669,
+          "state": 2
+        },
+        {
+          "ppid": 26669,
+          "pgid": 26672,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26671,
+        "start": [
+          1793414042,
+          502242
+        ]
+      },
+      "observed_parent": {
+        "pid": 26669,
+        "start": [
+          1793414042,
+          417454
+        ]
+      },
+      "first_seen_seconds": 2.605444,
+      "observations": [
+        {
+          "ppid": 26669,
+          "pgid": 26669,
+          "state": 2
+        },
+        {
+          "ppid": 26669,
+          "pgid": 26671,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26670,
+        "start": [
+          1793414042,
+          502241
+        ]
+      },
+      "observed_parent": {
+        "pid": 26669,
+        "start": [
+          1793414042,
+          417454
+        ]
+      },
+      "first_seen_seconds": 2.605476,
+      "observations": [
+        {
+          "ppid": 26669,
+          "pgid": 26669,
+          "state": 2
+        },
+        {
+          "ppid": 26669,
+          "pgid": 26670,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26685,
+        "start": [
+          1793414042,
+          503109
+        ]
+      },
+      "observed_parent": {
+        "pid": 26669,
+        "start": [
+          1793414042,
+          417454
+        ]
+      },
+      "first_seen_seconds": 2.64014,
+      "observations": [
+        {
+          "ppid": 26669,
+          "pgid": 26685,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26684,
+        "start": [
+          1793414042,
+          503062
+        ]
+      },
+      "observed_parent": {
+        "pid": 26669,
+        "start": [
+          1793414042,
+          417454
+        ]
+      },
+      "first_seen_seconds": 2.640229,
+      "observations": [
+        {
+          "ppid": 26669,
+          "pgid": 26684,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26682,
+        "start": [
+          1793414042,
+          503031
+        ]
+      },
+      "observed_parent": {
+        "pid": 26669,
+        "start": [
+          1793414042,
+          417454
+        ]
+      },
+      "first_seen_seconds": 2.640262,
+      "observations": [
+        {
+          "ppid": 26669,
+          "pgid": 26682,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26683,
+        "start": [
+          1793414042,
+          503042
+        ]
+      },
+      "observed_parent": {
+        "pid": 26669,
+        "start": [
+          1793414042,
+          417454
+        ]
+      },
+      "first_seen_seconds": 2.640291,
+      "observations": [
+        {
+          "ppid": 26669,
+          "pgid": 26683,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26681,
+        "start": [
+          1793414042,
+          502996
+        ]
+      },
+      "observed_parent": {
+        "pid": 26669,
+        "start": [
+          1793414042,
+          417454
+        ]
+      },
+      "first_seen_seconds": 2.640322,
+      "observations": [
+        {
+          "ppid": 26669,
+          "pgid": 26681,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26680,
+        "start": [
+          1793414042,
+          502984
+        ]
+      },
+      "observed_parent": {
+        "pid": 26669,
+        "start": [
+          1793414042,
+          417454
+        ]
+      },
+      "first_seen_seconds": 2.640367,
+      "observations": [
+        {
+          "ppid": 26669,
+          "pgid": 26680,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26679,
+        "start": [
+          1793414042,
+          502899
+        ]
+      },
+      "observed_parent": {
+        "pid": 26669,
+        "start": [
+          1793414042,
+          417454
+        ]
+      },
+      "first_seen_seconds": 2.640396,
+      "observations": [
+        {
+          "ppid": 26669,
+          "pgid": 26679,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26695,
+        "start": [
+          1793414042,
+          738387
+        ]
+      },
+      "observed_parent": {
+        "pid": 26669,
+        "start": [
+          1793414042,
+          417454
+        ]
+      },
+      "first_seen_seconds": 2.863111,
+      "observations": [
+        {
+          "ppid": 26669,
+          "pgid": 26695,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26694,
+        "start": [
+          1793414042,
+          738360
+        ]
+      },
+      "observed_parent": {
+        "pid": 26669,
+        "start": [
+          1793414042,
+          417454
+        ]
+      },
+      "first_seen_seconds": 2.863205,
+      "observations": [
+        {
+          "ppid": 26669,
+          "pgid": 26694,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26692,
+        "start": [
+          1793414042,
+          738343
+        ]
+      },
+      "observed_parent": {
+        "pid": 26669,
+        "start": [
+          1793414042,
+          417454
+        ]
+      },
+      "first_seen_seconds": 2.863237,
+      "observations": [
+        {
+          "ppid": 26669,
+          "pgid": 26692,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26693,
+        "start": [
+          1793414042,
+          738355
+        ]
+      },
+      "observed_parent": {
+        "pid": 26669,
+        "start": [
+          1793414042,
+          417454
+        ]
+      },
+      "first_seen_seconds": 2.863265,
+      "observations": [
+        {
+          "ppid": 26669,
+          "pgid": 26693,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26691,
+        "start": [
+          1793414042,
+          738323
+        ]
+      },
+      "observed_parent": {
+        "pid": 26669,
+        "start": [
+          1793414042,
+          417454
+        ]
+      },
+      "first_seen_seconds": 2.863292,
+      "observations": [
+        {
+          "ppid": 26669,
+          "pgid": 26691,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26690,
+        "start": [
+          1793414042,
+          738316
+        ]
+      },
+      "observed_parent": {
+        "pid": 26669,
+        "start": [
+          1793414042,
+          417454
+        ]
+      },
+      "first_seen_seconds": 2.86332,
+      "observations": [
+        {
+          "ppid": 26669,
+          "pgid": 26690,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26689,
+        "start": [
+          1793414042,
+          738288
+        ]
+      },
+      "observed_parent": {
+        "pid": 26669,
+        "start": [
+          1793414042,
+          417454
+        ]
+      },
+      "first_seen_seconds": 2.863361,
+      "observations": [
+        {
+          "ppid": 26669,
+          "pgid": 26689,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26688,
+        "start": [
+          1793414042,
+          738261
+        ]
+      },
+      "observed_parent": {
+        "pid": 26669,
+        "start": [
+          1793414042,
+          417454
+        ]
+      },
+      "first_seen_seconds": 2.86339,
+      "observations": [
+        {
+          "ppid": 26669,
+          "pgid": 26688,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26687,
+        "start": [
+          1793414042,
+          738213
+        ]
+      },
+      "observed_parent": {
+        "pid": 26669,
+        "start": [
+          1793414042,
+          417454
+        ]
+      },
+      "first_seen_seconds": 2.863417,
+      "observations": [
+        {
+          "ppid": 26669,
+          "pgid": 26687,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26686,
+        "start": [
+          1793414042,
+          738203
+        ]
+      },
+      "observed_parent": {
+        "pid": 26669,
+        "start": [
+          1793414042,
+          417454
+        ]
+      },
+      "first_seen_seconds": 2.863448,
+      "observations": [
+        {
+          "ppid": 26669,
+          "pgid": 26686,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26696,
+        "start": [
+          1793414042,
+          932329
+        ]
+      },
+      "observed_parent": {
+        "pid": 26669,
+        "start": [
+          1793414042,
+          417454
+        ]
+      },
+      "first_seen_seconds": 3.061299,
+      "observations": [
+        {
+          "ppid": 26669,
+          "pgid": 26696,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26697,
+        "start": [
+          1793414042,
+          937091
+        ]
+      },
+      "observed_parent": {
+        "pid": 26696,
+        "start": [
+          1793414042,
+          932329
+        ]
+      },
+      "first_seen_seconds": 3.061378,
+      "observations": [
+        {
+          "ppid": 26696,
+          "pgid": 26696,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26698,
+        "start": [
+          1793414043,
+          8405
+        ]
+      },
+      "observed_parent": {
+        "pid": 26669,
+        "start": [
+          1793414042,
+          417454
+        ]
+      },
+      "first_seen_seconds": 3.122067,
+      "observations": [
+        {
+          "ppid": 26669,
+          "pgid": 26698,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26699,
+        "start": [
+          1793414043,
+          65250
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 3.182977,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26699,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26715,
+        "start": [
+          1793414043,
+          149309
+        ]
+      },
+      "observed_parent": {
+        "pid": 26699,
+        "start": [
+          1793414043,
+          65250
+        ]
+      },
+      "first_seen_seconds": 3.26448,
+      "observations": [
+        {
+          "ppid": 26699,
+          "pgid": 26715,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26714,
+        "start": [
+          1793414043,
+          149306
+        ]
+      },
+      "observed_parent": {
+        "pid": 26699,
+        "start": [
+          1793414043,
+          65250
+        ]
+      },
+      "first_seen_seconds": 3.264576,
+      "observations": [
+        {
+          "ppid": 26699,
+          "pgid": 26714,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26713,
+        "start": [
+          1793414043,
+          149293
+        ]
+      },
+      "observed_parent": {
+        "pid": 26699,
+        "start": [
+          1793414043,
+          65250
+        ]
+      },
+      "first_seen_seconds": 3.264618,
+      "observations": [
+        {
+          "ppid": 26699,
+          "pgid": 26713,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26712,
+        "start": [
+          1793414043,
+          149288
+        ]
+      },
+      "observed_parent": {
+        "pid": 26699,
+        "start": [
+          1793414043,
+          65250
+        ]
+      },
+      "first_seen_seconds": 3.264648,
+      "observations": [
+        {
+          "ppid": 26699,
+          "pgid": 26712,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26711,
+        "start": [
+          1793414043,
+          149216
+        ]
+      },
+      "observed_parent": {
+        "pid": 26699,
+        "start": [
+          1793414043,
+          65250
+        ]
+      },
+      "first_seen_seconds": 3.264677,
+      "observations": [
+        {
+          "ppid": 26699,
+          "pgid": 26711,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26710,
+        "start": [
+          1793414043,
+          149212
+        ]
+      },
+      "observed_parent": {
+        "pid": 26699,
+        "start": [
+          1793414043,
+          65250
+        ]
+      },
+      "first_seen_seconds": 3.264711,
+      "observations": [
+        {
+          "ppid": 26699,
+          "pgid": 26710,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26709,
+        "start": [
+          1793414043,
+          149187
+        ]
+      },
+      "observed_parent": {
+        "pid": 26699,
+        "start": [
+          1793414043,
+          65250
+        ]
+      },
+      "first_seen_seconds": 3.264739,
+      "observations": [
+        {
+          "ppid": 26699,
+          "pgid": 26709,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26708,
+        "start": [
+          1793414043,
+          149094
+        ]
+      },
+      "observed_parent": {
+        "pid": 26699,
+        "start": [
+          1793414043,
+          65250
+        ]
+      },
+      "first_seen_seconds": 3.264766,
+      "observations": [
+        {
+          "ppid": 26699,
+          "pgid": 26708,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26707,
+        "start": [
+          1793414043,
+          149082
+        ]
+      },
+      "observed_parent": {
+        "pid": 26699,
+        "start": [
+          1793414043,
+          65250
+        ]
+      },
+      "first_seen_seconds": 3.264881,
+      "observations": [
+        {
+          "ppid": 26699,
+          "pgid": 26707,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26706,
+        "start": [
+          1793414043,
+          149079
+        ]
+      },
+      "observed_parent": {
+        "pid": 26699,
+        "start": [
+          1793414043,
+          65250
+        ]
+      },
+      "first_seen_seconds": 3.264909,
+      "observations": [
+        {
+          "ppid": 26699,
+          "pgid": 26706,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26705,
+        "start": [
+          1793414043,
+          149061
+        ]
+      },
+      "observed_parent": {
+        "pid": 26699,
+        "start": [
+          1793414043,
+          65250
+        ]
+      },
+      "first_seen_seconds": 3.264936,
+      "observations": [
+        {
+          "ppid": 26699,
+          "pgid": 26705,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26704,
+        "start": [
+          1793414043,
+          149004
+        ]
+      },
+      "observed_parent": {
+        "pid": 26699,
+        "start": [
+          1793414043,
+          65250
+        ]
+      },
+      "first_seen_seconds": 3.264964,
+      "observations": [
+        {
+          "ppid": 26699,
+          "pgid": 26704,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26703,
+        "start": [
+          1793414043,
+          148917
+        ]
+      },
+      "observed_parent": {
+        "pid": 26699,
+        "start": [
+          1793414043,
+          65250
+        ]
+      },
+      "first_seen_seconds": 3.264992,
+      "observations": [
+        {
+          "ppid": 26699,
+          "pgid": 26703,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26702,
+        "start": [
+          1793414043,
+          148879
+        ]
+      },
+      "observed_parent": {
+        "pid": 26699,
+        "start": [
+          1793414043,
+          65250
+        ]
+      },
+      "first_seen_seconds": 3.265019,
+      "observations": [
+        {
+          "ppid": 26699,
+          "pgid": 26702,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26701,
+        "start": [
+          1793414043,
+          148870
+        ]
+      },
+      "observed_parent": {
+        "pid": 26699,
+        "start": [
+          1793414043,
+          65250
+        ]
+      },
+      "first_seen_seconds": 3.265045,
+      "observations": [
+        {
+          "ppid": 26699,
+          "pgid": 26701,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26700,
+        "start": [
+          1793414043,
+          148804
+        ]
+      },
+      "observed_parent": {
+        "pid": 26699,
+        "start": [
+          1793414043,
+          65250
+        ]
+      },
+      "first_seen_seconds": 3.265079,
+      "observations": [
+        {
+          "ppid": 26699,
+          "pgid": 26700,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26719,
+        "start": [
+          1793414043,
+          333483
+        ]
+      },
+      "observed_parent": {
+        "pid": 26699,
+        "start": [
+          1793414043,
+          65250
+        ]
+      },
+      "first_seen_seconds": 3.452081,
+      "observations": [
+        {
+          "ppid": 26699,
+          "pgid": 26719,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26718,
+        "start": [
+          1793414043,
+          333477
+        ]
+      },
+      "observed_parent": {
+        "pid": 26699,
+        "start": [
+          1793414043,
+          65250
+        ]
+      },
+      "first_seen_seconds": 3.452136,
+      "observations": [
+        {
+          "ppid": 26699,
+          "pgid": 26718,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26717,
+        "start": [
+          1793414043,
+          333447
+        ]
+      },
+      "observed_parent": {
+        "pid": 26699,
+        "start": [
+          1793414043,
+          65250
+        ]
+      },
+      "first_seen_seconds": 3.452155,
+      "observations": [
+        {
+          "ppid": 26699,
+          "pgid": 26717,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26716,
+        "start": [
+          1793414043,
+          333413
+        ]
+      },
+      "observed_parent": {
+        "pid": 26699,
+        "start": [
+          1793414043,
+          65250
+        ]
+      },
+      "first_seen_seconds": 3.452169,
+      "observations": [
+        {
+          "ppid": 26699,
+          "pgid": 26716,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26726,
+        "start": [
+          1793414043,
+          380130
+        ]
+      },
+      "observed_parent": {
+        "pid": 26699,
+        "start": [
+          1793414043,
+          65250
+        ]
+      },
+      "first_seen_seconds": 3.503452,
+      "observations": [
+        {
+          "ppid": 26699,
+          "pgid": 26726,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26724,
+        "start": [
+          1793414043,
+          380122
+        ]
+      },
+      "observed_parent": {
+        "pid": 26699,
+        "start": [
+          1793414043,
+          65250
+        ]
+      },
+      "first_seen_seconds": 3.503507,
+      "observations": [
+        {
+          "ppid": 26699,
+          "pgid": 26724,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26723,
+        "start": [
+          1793414043,
+          380077
+        ]
+      },
+      "observed_parent": {
+        "pid": 26699,
+        "start": [
+          1793414043,
+          65250
+        ]
+      },
+      "first_seen_seconds": 3.503524,
+      "observations": [
+        {
+          "ppid": 26699,
+          "pgid": 26723,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26722,
+        "start": [
+          1793414043,
+          380038
+        ]
+      },
+      "observed_parent": {
+        "pid": 26699,
+        "start": [
+          1793414043,
+          65250
+        ]
+      },
+      "first_seen_seconds": 3.503543,
+      "observations": [
+        {
+          "ppid": 26699,
+          "pgid": 26722,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26721,
+        "start": [
+          1793414043,
+          380024
+        ]
+      },
+      "observed_parent": {
+        "pid": 26699,
+        "start": [
+          1793414043,
+          65250
+        ]
+      },
+      "first_seen_seconds": 3.503556,
+      "observations": [
+        {
+          "ppid": 26699,
+          "pgid": 26721,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26720,
+        "start": [
+          1793414043,
+          380023
+        ]
+      },
+      "observed_parent": {
+        "pid": 26699,
+        "start": [
+          1793414043,
+          65250
+        ]
+      },
+      "first_seen_seconds": 3.503568,
+      "observations": [
+        {
+          "ppid": 26699,
+          "pgid": 26720,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26727,
+        "start": [
+          1793414043,
+          554817
+        ]
+      },
+      "observed_parent": {
+        "pid": 26699,
+        "start": [
+          1793414043,
+          65250
+        ]
+      },
+      "first_seen_seconds": 3.67703,
+      "observations": [
+        {
+          "ppid": 26699,
+          "pgid": 26727,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26728,
+        "start": [
+          1793414043,
+          559669
+        ]
+      },
+      "observed_parent": {
+        "pid": 26727,
+        "start": [
+          1793414043,
+          554817
+        ]
+      },
+      "first_seen_seconds": 3.67727,
+      "observations": [
+        {
+          "ppid": 26727,
+          "pgid": 26727,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26729,
+        "start": [
+          1793414043,
+          629588
+        ]
+      },
+      "observed_parent": {
+        "pid": 26699,
+        "start": [
+          1793414043,
+          65250
+        ]
+      },
+      "first_seen_seconds": 3.737489,
+      "observations": [
+        {
+          "ppid": 26699,
+          "pgid": 26729,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26732,
+        "start": [
+          1793414043,
+          769636
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 3.879107,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26732,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26736,
+        "start": [
+          1793414043,
+          796084
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 3.899626,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26736,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26741,
+        "start": [
+          1793414043,
+          824175
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 3.929935,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26741,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26745,
+        "start": [
+          1793414043,
+          848280
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 3.954302,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26745,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26749,
+        "start": [
+          1793414044,
+          470057
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 4.599769,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26749,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26751,
+        "start": [
+          1793414044,
+          845151
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 4.958396,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26751,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26750,
+        "start": [
+          1793414044,
+          844192
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 4.958445,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26750,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26768,
+        "start": [
+          1793414045,
+          180147
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 5.308934,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26768,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26763,
+        "start": [
+          1793414045,
+          179358
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 5.308987,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26763,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26762,
+        "start": [
+          1793414045,
+          179145
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 5.309005,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26762,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26761,
+        "start": [
+          1793414045,
+          178946
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 5.309019,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26761,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26759,
+        "start": [
+          1793414045,
+          178111
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 5.309033,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26759,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26758,
+        "start": [
+          1793414045,
+          177860
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 5.309045,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26758,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26757,
+        "start": [
+          1793414045,
+          177603
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 5.309057,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26757,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26756,
+        "start": [
+          1793414045,
+          176662
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 5.309068,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26756,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26884,
+        "start": [
+          1793414045,
+          292455
+        ]
+      },
+      "observed_parent": {
+        "pid": 26756,
+        "start": [
+          1793414045,
+          176662
+        ]
+      },
+      "first_seen_seconds": 5.42642,
+      "observations": [
+        {
+          "ppid": 26756,
+          "pgid": 26756,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26888,
+        "start": [
+          1793414045,
+          295542
+        ]
+      },
+      "observed_parent": {
+        "pid": 26757,
+        "start": [
+          1793414045,
+          177603
+        ]
+      },
+      "first_seen_seconds": 5.426548,
+      "observations": [
+        {
+          "ppid": 26757,
+          "pgid": 26757,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26889,
+        "start": [
+          1793414045,
+          296942
+        ]
+      },
+      "observed_parent": {
+        "pid": 26758,
+        "start": [
+          1793414045,
+          177860
+        ]
+      },
+      "first_seen_seconds": 5.426621,
+      "observations": [
+        {
+          "ppid": 26758,
+          "pgid": 26758,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26885,
+        "start": [
+          1793414045,
+          292455
+        ]
+      },
+      "observed_parent": {
+        "pid": 26759,
+        "start": [
+          1793414045,
+          178111
+        ]
+      },
+      "first_seen_seconds": 5.426696,
+      "observations": [
+        {
+          "ppid": 26759,
+          "pgid": 26759,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26883,
+        "start": [
+          1793414045,
+          292454
+        ]
+      },
+      "observed_parent": {
+        "pid": 26761,
+        "start": [
+          1793414045,
+          178946
+        ]
+      },
+      "first_seen_seconds": 5.42676,
+      "observations": [
+        {
+          "ppid": 26761,
+          "pgid": 26761,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26890,
+        "start": [
+          1793414045,
+          297017
+        ]
+      },
+      "observed_parent": {
+        "pid": 26762,
+        "start": [
+          1793414045,
+          179145
+        ]
+      },
+      "first_seen_seconds": 5.426822,
+      "observations": [
+        {
+          "ppid": 26762,
+          "pgid": 26762,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26886,
+        "start": [
+          1793414045,
+          292637
+        ]
+      },
+      "observed_parent": {
+        "pid": 26763,
+        "start": [
+          1793414045,
+          179358
+        ]
+      },
+      "first_seen_seconds": 5.426884,
+      "observations": [
+        {
+          "ppid": 26763,
+          "pgid": 26763,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26887,
+        "start": [
+          1793414045,
+          294001
+        ]
+      },
+      "observed_parent": {
+        "pid": 26768,
+        "start": [
+          1793414045,
+          180147
+        ]
+      },
+      "first_seen_seconds": 5.426945,
+      "observations": [
+        {
+          "ppid": 26768,
+          "pgid": 26768,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26892,
+        "start": [
+          1793414045,
+          543011
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 5.660731,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26892,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26891,
+        "start": [
+          1793414045,
+          541764
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 5.660815,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26891,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26901,
+        "start": [
+          1793414045,
+          659562
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 5.778903,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26901,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26899,
+        "start": [
+          1793414045,
+          657271
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 5.778968,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26899,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26898,
+        "start": [
+          1793414045,
+          657028
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 5.778987,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26898,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26897,
+        "start": [
+          1793414045,
+          656800
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 5.779001,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26897,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26896,
+        "start": [
+          1793414045,
+          656544
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 5.779014,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26896,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26895,
+        "start": [
+          1793414045,
+          656121
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 5.779027,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26895,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26894,
+        "start": [
+          1793414045,
+          654606
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 5.77904,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26894,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26893,
+        "start": [
+          1793414045,
+          652421
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 5.779069,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26893,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26902,
+        "start": [
+          1793414045,
+          855429
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 5.969186,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26902,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26918,
+        "start": [
+          1793414045,
+          948819
+        ]
+      },
+      "observed_parent": {
+        "pid": 26902,
+        "start": [
+          1793414045,
+          855429
+        ]
+      },
+      "first_seen_seconds": 6.06029,
+      "observations": [
+        {
+          "ppid": 26902,
+          "pgid": 26902,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26919,
+        "start": [
+          1793414046,
+          112899
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 6.230062,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26919,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26920,
+        "start": [
+          1793414046,
+          227203
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 6.342821,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26920,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26921,
+        "start": [
+          1793414046,
+          408640
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 6.537658,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26921,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26922,
+        "start": [
+          1793414046,
+          538384
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 6.64294,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26922,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26923,
+        "start": [
+          1793414046,
+          682791
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 6.795034,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26923,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26924,
+        "start": [
+          1793414046,
+          833862
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 6.940061,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26924,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26925,
+        "start": [
+          1793414046,
+          963776
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 7.076191,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26925,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26926,
+        "start": [
+          1793414047,
+          91862
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 7.197908,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26926,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26927,
+        "start": [
+          1793414047,
+          225507
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 7.328355,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26927,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26928,
+        "start": [
+          1793414047,
+          367466
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 7.480282,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26928,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26929,
+        "start": [
+          1793414047,
+          498726
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 7.631295,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26929,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26930,
+        "start": [
+          1793414047,
+          578891
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 7.692176,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26930,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26931,
+        "start": [
+          1793414047,
+          657029
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 7.781296,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26931,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26932,
+        "start": [
+          1793414047,
+          735418
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 7.842083,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26932,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26933,
+        "start": [
+          1793414047,
+          814576
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 7.933389,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26933,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26934,
+        "start": [
+          1793414047,
+          893227
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 8.012861,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26934,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26935,
+        "start": [
+          1793414047,
+          971813
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 8.099803,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26935,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26936,
+        "start": [
+          1793414048,
+          200043
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 8.304874,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26936,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26937,
+        "start": [
+          1793414048,
+          279884
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 8.396177,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26937,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26938,
+        "start": [
+          1793414048,
+          359783
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 8.487486,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26938,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26939,
+        "start": [
+          1793414048,
+          414084
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 8.517915,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26939,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26940,
+        "start": [
+          1793414048,
+          467828
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 8.578646,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26940,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26941,
+        "start": [
+          1793414048,
+          521294
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 8.639393,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26941,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26942,
+        "start": [
+          1793414048,
+          574776
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 8.69146,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26942,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26943,
+        "start": [
+          1793414048,
+          628769
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 8.752224,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26943,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26965,
+        "start": [
+          1793414048,
+          686212
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 8.802053,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26965,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26978,
+        "start": [
+          1793414048,
+          745446
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 8.858661,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26978,
+          "state": 2
+        }
+      ]
+    },
+    {
+      "identity": {
+        "pid": 26979,
+        "start": [
+          1793414048,
+          804866
+        ]
+      },
+      "observed_parent": {
+        "pid": 26489,
+        "start": [
+          1793414039,
+          898226
+        ]
+      },
+      "first_seen_seconds": 8.916151,
+      "observations": [
+        {
+          "ppid": 26489,
+          "pgid": 26979,
+          "state": 2
+        }
+      ]
+    }
+  ],
+  "termination_actions": [],
+  "process_events": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/O02-004-late-close-mutant.processes.jsonl",
+  "ownership_backend": "macOS libproc PID + start timeval",
+  "containment_limits": [
+    "Only lineages observed before reparenting are owned; instant unobserved daemonization can escape.",
+    "Identity check and kill are separate syscalls; PID reuse in that interval cannot be excluded.",
+    "Zombie means no executing process; non-child zombie reaping belongs to its parent.",
+    "SIGKILL of the runner or host failure can bypass cleanup; Linux is unsupported and unvalidated."
+  ]
+}

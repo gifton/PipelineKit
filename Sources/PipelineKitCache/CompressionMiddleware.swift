@@ -368,7 +368,11 @@ public final class CompressionUtility: Sendable {
         return sourceSize + sourceSize / 100 + 16
     }
     
-    /// Compress data using the specified algorithm.
+    /// Compress data using the specified algorithm, including nonempty small payloads.
+    ///
+    /// Empty input retains its empty representation. `testSmallPayloadRoundTrips` in
+    /// `CompressionCompletionContractTests` covers the empty and small-payload contract.
+    /// Middleware callers still decide whether compression is beneficial.
     public static func compress(
         _ data: Data,
         using algorithm: CompressionAlgorithm,
@@ -376,16 +380,16 @@ public final class CompressionUtility: Sendable {
     ) throws -> Data {
         guard !data.isEmpty else { return data }
         
-        // Skip compression for small data where overhead would make it larger
-        // Most compression algorithms add ~12-20 bytes of metadata/headers
-        guard data.count > 100 else { return data }
-        
         return try data.withUnsafeBytes { sourceBuffer in
             guard let sourcePtr = sourceBuffer.bindMemory(to: UInt8.self).baseAddress else {
                 throw CompressionError.compressionFailed("Invalid source data")
             }
             
-            let destinationSize = maxCompressedSize(for: data.count)
+            let (sizeWithOverhead, overheadOverflow) = data.count.addingReportingOverflow(data.count / 100)
+            let (destinationSize, sizeOverflow) = sizeWithOverhead.addingReportingOverflow(16)
+            guard !overheadOverflow, !sizeOverflow else {
+                throw CompressionError.dataTooLarge(data.count)
+            }
             let destinationBuffer = UnsafeMutablePointer<UInt8>.allocate(capacity: destinationSize)
             defer { destinationBuffer.deallocate() }
             
@@ -410,38 +414,99 @@ public final class CompressionUtility: Sendable {
         }
     }
     
-    /// Decompress data using the specified algorithm.
+    /// Decode one complete compressed stream within a caller-selected output byte limit.
+    ///
+    /// - Parameters:
+    ///   - data: One compressed stream. Empty input returns empty after argument validation.
+    ///   - algorithm: The existing platform codec selected by `CompressionAlgorithm`.
+    ///   - originalSize: Optional nonnegative allocation hint, not an expected length or
+    ///     completion signal. The initial reservation is capped at `maxOutputSize` and 64 KiB.
+    ///   - maxOutputSize: Required positive maximum number of decoded bytes to return.
+    /// - Returns: All decoded bytes after the platform reports end-of-stream with no trailing
+    ///   input. `CompressionCompletionContractTests` exercises limits, hints and malformed input.
+    /// - Throws: `CompressionError.decompressionFailed` for invalid arguments, initialization
+    ///   failure, platform-reported corruption, incomplete input, lack of progress or bytes
+    ///   following the first stream.
+    ///   `CompressionError.dataTooLarge(maxOutputSize)` if decoding produces an excess byte.
+    ///
+    /// The destination buffer is at most 64 KiB and no larger than the output limit.
+    /// The codec manages its own internal state. At the exact limit, one destination byte is
+    /// reused to distinguish completion from overflow; that byte is never appended to output.
     public static func decompress(
         _ data: Data,
         using algorithm: CompressionAlgorithm,
-        originalSize: Int? = nil
+        originalSize: Int? = nil,
+        maxOutputSize: Int
     ) throws -> Data {
+        guard maxOutputSize > 0 else {
+            throw CompressionError.decompressionFailed("Maximum output size must be positive")
+        }
+        if let originalSize, originalSize < 0 {
+            throw CompressionError.decompressionFailed("Original size hint must be nonnegative")
+        }
         guard !data.isEmpty else { return data }
         
-        return try data.withUnsafeBytes { sourceBuffer in
+        return try data.withUnsafeBytes { (sourceBuffer: UnsafeRawBufferPointer) in
             guard let sourcePtr = sourceBuffer.bindMemory(to: UInt8.self).baseAddress else {
                 throw CompressionError.decompressionFailed("Invalid source data")
             }
-            
-            // Estimate decompressed size (use original if known)
-            let destinationSize = originalSize ?? (data.count * 10)
-            let destinationBuffer = UnsafeMutablePointer<UInt8>.allocate(capacity: destinationSize)
+
+            let bufferCapacity: Int = min(maxOutputSize, 64 * 1024)
+            let destinationBuffer = UnsafeMutablePointer<UInt8>.allocate(capacity: bufferCapacity)
             defer { destinationBuffer.deallocate() }
-            
-            let decompressedSize = compression_decode_buffer(
-                destinationBuffer,
-                destinationSize,
-                sourcePtr,
-                data.count,
-                nil,
-                algorithm.foundationAlgorithm
+
+            var stream = compression_stream(
+                dst_ptr: destinationBuffer, dst_size: 0, src_ptr: sourcePtr, src_size: 0, state: nil
             )
-            
-            guard decompressedSize > 0 else {
-                throw CompressionError.decompressionFailed("Decompression returned no data")
+            guard compression_stream_init(&stream, COMPRESSION_STREAM_DECODE, algorithm.foundationAlgorithm) == COMPRESSION_STATUS_OK else {
+                throw CompressionError.decompressionFailed("Could not initialize decoder")
             }
-            
-            return Data(bytes: destinationBuffer, count: decompressedSize)
+            defer { compression_stream_destroy(&stream) }
+            stream.src_ptr = sourcePtr
+            // DEFLATE/LZFSE may buffer trailing input before returning END (S05-P01).
+            // Withhold the last byte so END before supplying it proves trailing data.
+            // testTrailingAndConcatenatedStreamsAreRejected covers all enum cases.
+            stream.src_size = data.count - 1
+            var suppliedFinalByte = false
+
+            var output = Data(capacity: min(originalSize ?? bufferCapacity, bufferCapacity))
+            while true {
+                // Subtraction is safe because append below is guarded by the remaining capacity.
+                let remainingCapacity: Int = maxOutputSize - output.count
+                let offeredCapacity: Int = remainingCapacity > 0 ? min(bufferCapacity, remainingCapacity) : 1
+                let inputBefore: Int = stream.src_size
+                stream.dst_ptr = destinationBuffer
+                stream.dst_size = offeredCapacity
+
+                let flags: Int32 = suppliedFinalByte ? Int32(COMPRESSION_STREAM_FINALIZE.rawValue) : 0
+                let status = compression_stream_process(&stream, flags)
+                guard status == COMPRESSION_STATUS_OK || status == COMPRESSION_STATUS_END else {
+                    throw CompressionError.decompressionFailed("Invalid or incomplete compressed stream")
+                }
+                let produced: Int = offeredCapacity - stream.dst_size
+                guard produced <= remainingCapacity else {
+                    throw CompressionError.dataTooLarge(maxOutputSize)
+                }
+                output.append(destinationBuffer, count: produced)
+
+                if status == COMPRESSION_STATUS_END {
+                    guard suppliedFinalByte, stream.src_size == 0 else {
+                        throw CompressionError.decompressionFailed("Trailing bytes after compressed stream")
+                    }
+                    return output
+                }
+                if stream.src_size == inputBefore && produced == 0 {
+                    guard !suppliedFinalByte else {
+                        throw CompressionError.decompressionFailed("Decoder made no progress before completion")
+                    }
+                    // Drain all buffered output before offering the withheld byte. On the
+                    // next call FINALIZE makes incomplete input terminal; this refill occurs once.
+                    // Preserve any unconsumed prefix and extend its contiguous buffer by one.
+                    // Its size is at most data.count - 1 before this addition.
+                    stream.src_size += 1
+                    suppliedFinalByte = true
+                }
+            }
         }
     }
     

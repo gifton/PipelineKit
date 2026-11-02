@@ -1,0 +1,105 @@
+Building for debugging...
+[Computing dependencies]
+[Using on-disk description]
+Build complete! (0.67 sec)
+Test Suite 'Selected tests' started at 2026-10-30 21:01:34.315.
+Test Suite 'PipelineKitTests.xctest' started at 2026-10-30 21:01:34.316.
+Test Suite 'PipelineKitTests.xctest' passed at 2026-10-30 21:01:34.316.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 21:01:34.316.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 21:01:34.394.
+Test Suite 'PipelineKitTestSupportTests.xctest' started at 2026-10-30 21:01:34.395.
+Test Suite 'PipelineKitTestSupportTests.xctest' passed at 2026-10-30 21:01:34.395.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 21:01:34.395.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 21:01:34.473.
+Test Suite 'PipelineKitSecurityTests.xctest' started at 2026-10-30 21:01:34.473.
+Test Suite 'PipelineKitSecurityTests.xctest' passed at 2026-10-30 21:01:34.473.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 21:01:34.473.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 21:01:34.550.
+Test Suite 'PipelineKitResilienceTests.xctest' started at 2026-10-30 21:01:34.551.
+Test Suite 'PipelineKitResilienceTests.xctest' passed at 2026-10-30 21:01:34.551.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 21:01:34.551.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 21:01:34.628.
+Test Suite 'PipelineKitPoolingTests.xctest' started at 2026-10-30 21:01:34.629.
+Test Suite 'PipelineKitPoolingTests.xctest' passed at 2026-10-30 21:01:34.629.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 21:01:34.629.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 21:01:34.706.
+Test Suite 'PipelineKitPerformanceTests.xctest' started at 2026-10-30 21:01:34.707.
+Test Suite 'PipelineKitPerformanceTests.xctest' passed at 2026-10-30 21:01:34.707.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 21:01:34.707.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 21:01:34.784.
+Test Suite 'PipelineKitObservabilityTests.xctest' started at 2026-10-30 21:01:34.785.
+Test Suite 'PipelineKitObservabilityTests.xctest' passed at 2026-10-30 21:01:34.785.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 21:01:34.785.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 21:01:34.861.
+Test Suite 'PipelineKitCoreTests.xctest' started at 2026-10-30 21:01:34.862.
+Test Suite 'PipelineKitCoreTests.xctest' passed at 2026-10-30 21:01:34.862.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 21:01:34.862.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 21:01:34.921.
+Test Suite 'PipelineKitCacheTests.xctest' started at 2026-10-30 21:01:34.922.
+Test Suite 'CompressionCompletionContractTests' started at 2026-10-30 21:01:34.922.
+Test Case '-[PipelineKitCacheTests.CompressionCompletionContractTests testDecodeCompletesOrThrowsForEverySizeHintAndLimit]' started.
+Test Case '-[PipelineKitCacheTests.CompressionCompletionContractTests testDecodeCompletesOrThrowsForEverySizeHintAndLimit]' passed (0.016 seconds).
+Test Case '-[PipelineKitCacheTests.CompressionCompletionContractTests testEncodedEmptyStreamRequiresCompletionAndRejectsTrailingInput]' started.
+Test Case '-[PipelineKitCacheTests.CompressionCompletionContractTests testEncodedEmptyStreamRequiresCompletionAndRejectsTrailingInput]' passed (0.000 seconds).
+Test Case '-[PipelineKitCacheTests.CompressionCompletionContractTests testExactLimitAtWorkingBufferBoundary]' started.
+Test Case '-[PipelineKitCacheTests.CompressionCompletionContractTests testExactLimitAtWorkingBufferBoundary]' passed (0.079 seconds).
+Test Case '-[PipelineKitCacheTests.CompressionCompletionContractTests testHugeHintsAndLimitsDoNotRequireHugeAllocation]' started.
+Test Case '-[PipelineKitCacheTests.CompressionCompletionContractTests testHugeHintsAndLimitsDoNotRequireHugeAllocation]' passed (0.000 seconds).
+Test Case '-[PipelineKitCacheTests.CompressionCompletionContractTests testInvalidArgumentsAreRejectedBeforeEmptyInputCompatibility]' started.
+Test Case '-[PipelineKitCacheTests.CompressionCompletionContractTests testInvalidArgumentsAreRejectedBeforeEmptyInputCompatibility]' passed (0.000 seconds).
+Test Case '-[PipelineKitCacheTests.CompressionCompletionContractTests testSmallPayloadRoundTrips]' started.
+Test Case '-[PipelineKitCacheTests.CompressionCompletionContractTests testSmallPayloadRoundTrips]' passed (0.001 seconds).
+Test Case '-[PipelineKitCacheTests.CompressionCompletionContractTests testTrailingAndConcatenatedStreamsAreRejected]' started.
+Test Case '-[PipelineKitCacheTests.CompressionCompletionContractTests testTrailingAndConcatenatedStreamsAreRejected]' passed (0.043 seconds).
+Test Case '-[PipelineKitCacheTests.CompressionCompletionContractTests testTruncatedCorruptAndStalledStreamsNeverReturnPrefixes]' started.
+Test Case '-[PipelineKitCacheTests.CompressionCompletionContractTests testTruncatedCorruptAndStalledStreamsNeverReturnPrefixes]' passed (0.002 seconds).
+Test Suite 'CompressionCompletionContractTests' passed at 2026-10-30 21:01:35.065.
+	 Executed 8 tests, with 0 failures (0 unexpected) in 0.143 (0.143) seconds
+Test Suite 'CompressionMiddlewareTests' started at 2026-10-30 21:01:35.065.
+Test Case '-[PipelineKitCacheTests.CompressionMiddlewareTests testCompressionBelowThreshold]' started.
+Test Case '-[PipelineKitCacheTests.CompressionMiddlewareTests testCompressionBelowThreshold]' passed (0.000 seconds).
+Test Case '-[PipelineKitCacheTests.CompressionMiddlewareTests testCompressionDecompression]' started.
+Test Case '-[PipelineKitCacheTests.CompressionMiddlewareTests testCompressionDecompression]' passed (0.000 seconds).
+Test Case '-[PipelineKitCacheTests.CompressionMiddlewareTests testCompressionMiddleware]' started.
+Test Case '-[PipelineKitCacheTests.CompressionMiddlewareTests testCompressionMiddleware]' passed (0.000 seconds).
+Test Case '-[PipelineKitCacheTests.CompressionMiddlewareTests testCompressionRatio]' started.
+Test Case '-[PipelineKitCacheTests.CompressionMiddlewareTests testCompressionRatio]' passed (0.000 seconds).
+Test Case '-[PipelineKitCacheTests.CompressionMiddlewareTests testSmallBeneficialPayloadUsesConfiguredThreshold]' started.
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionMiddlewareTests.swift:166: error: -[PipelineKitCacheTests.CompressionMiddlewareTests testSmallBeneficialPayloadUsesConfiguredThreshold] : XCTAssertEqual failed: ("small") is not equal to ("small.compressed")
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionMiddlewareTests.swift:167: error: -[PipelineKitCacheTests.CompressionMiddlewareTests testSmallBeneficialPayloadUsesConfiguredThreshold] : XCTAssertEqual failed: ("nil") is not equal to ("Optional(true)")
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionMiddlewareTests.swift:168: error: -[PipelineKitCacheTests.CompressionMiddlewareTests testSmallBeneficialPayloadUsesConfiguredThreshold] : XCTAssertEqual failed: threw error "decompressionFailed("Invalid or incomplete compressed stream")"
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionMiddlewareTests.swift:173: error: -[PipelineKitCacheTests.CompressionMiddlewareTests testSmallBeneficialPayloadUsesConfiguredThreshold] : XCTAssertEqual failed: ("nil") is not equal to ("Optional(true)")
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CompressionMiddlewareTests.swift:174: error: -[PipelineKitCacheTests.CompressionMiddlewareTests testSmallBeneficialPayloadUsesConfiguredThreshold] : XCTAssertEqual failed: threw error "decompressionFailed("Invalid or incomplete compressed stream")"
+Test Case '-[PipelineKitCacheTests.CompressionMiddlewareTests testSmallBeneficialPayloadUsesConfiguredThreshold]' failed (0.111 seconds).
+Test Case '-[PipelineKitCacheTests.CompressionMiddlewareTests testSmallPayloadWithoutCompressionBenefitRemainsUncompressed]' started.
+Test Case '-[PipelineKitCacheTests.CompressionMiddlewareTests testSmallPayloadWithoutCompressionBenefitRemainsUncompressed]' passed (0.000 seconds).
+Test Suite 'CompressionMiddlewareTests' failed at 2026-10-30 21:01:35.177.
+	 Executed 6 tests, with 5 failures (2 unexpected) in 0.112 (0.112) seconds
+Test Suite 'PipelineKitCacheTests.xctest' failed at 2026-10-30 21:01:35.177.
+	 Executed 14 tests, with 5 failures (2 unexpected) in 0.254 (0.255) seconds
+Test Suite 'Selected tests' failed at 2026-10-30 21:01:35.177.
+	 Executed 14 tests, with 5 failures (2 unexpected) in 0.254 (0.256) seconds
+Compression Statistics:
+- Algorithm: zlib
+- Original: 1000 bytes
+- Compressed: 11 bytes
+- Ratio: 90.91x
+- Throughput: 36.70 MB/s
+Note: Some test targets reported failures:
+  - PipelineKitCacheTests (XCTest)

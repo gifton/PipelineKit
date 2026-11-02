@@ -1,0 +1,4 @@
+{"event": "owned", "identity": {"pid": 47923, "start": [1793402391, 10887]}, "observed_parent": null, "elapsed_seconds": 0.002121}
+{"event": "owned", "identity": {"pid": 47924, "start": [1793402391, 60001]}, "observed_parent": {"pid": 47923, "start": [1793402391, 10887]}, "elapsed_seconds": 0.062291}
+{"event": "signal", "identity": {"pid": 47923, "start": [1793402391, 10887]}, "signal": "SIGTERM", "elapsed_seconds": 0.143347, "verified_before_signal": {"pid": 47923, "start": [1793402391, 10887], "ppid": 47922, "pgid": 47923, "state": 2}, "result": "sent"}
+{"event": "signal", "identity": {"pid": 47924, "start": [1793402391, 60001]}, "signal": "SIGTERM", "elapsed_seconds": 0.143413, "verified_before_signal": {"pid": 47924, "start": [1793402391, 60001], "ppid": 47923, "pgid": 47924, "state": 2}, "result": "sent"}

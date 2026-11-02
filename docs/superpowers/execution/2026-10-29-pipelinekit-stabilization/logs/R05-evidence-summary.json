@@ -1,0 +1,162 @@
+{
+  "baseline_warning_sha256": "9ecdcd316b7537619bf828b6a77a8931d04992ec9900ae482af1e661a23521a2",
+  "runs": [
+    {
+      "id": "R05-001-original-api-red",
+      "command": [
+        "swift",
+        "test",
+        "--filter",
+        "RateLimitScopeContractTests"
+      ],
+      "elapsed_seconds": 10.51,
+      "exit_status": 1,
+      "runner_exit_status": 1,
+      "watchdog_timeout": false,
+      "runner_error": null,
+      "cleanup_settled": true,
+      "survivors": [],
+      "termination_actions": [],
+      "compiler_warnings": {},
+      "new_compiler_warnings": [],
+      "other_warning_or_configuration_lines": {},
+      "xctest_summaries": [
+        "Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds",
+        "Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds",
+        "Executed 8 tests, with 41 failures (0 unexpected) in 0.211 (0.212) seconds",
+        "Executed 8 tests, with 41 failures (0 unexpected) in 0.211 (0.213) seconds"
+      ],
+      "xctest_progress": null,
+      "swift_testing_summaries": [],
+      "assertion_failure_count": 41,
+      "final_source_matches": {
+        "Sources/PipelineKitResilienceRateLimiting/RateLimiter.swift": false,
+        "Sources/PipelineKitResilienceRateLimiting/Algorithms/TokenBucket.swift": false,
+        "Sources/PipelineKitResilienceRateLimiting/Algorithms/SlidingWindow.swift": false,
+        "Sources/PipelineKitResilienceRateLimiting/Algorithms/FixedWindow.swift": false,
+        "Sources/PipelineKitResilienceRateLimiting/Algorithms/LeakyBucket.swift": false,
+        "Tests/PipelineKitResilienceTests/RateLimitScopeContractTests.swift": false,
+        "docs/migrations/first-stabilization-batch.md": false
+      },
+      "retained_matches": {
+        "audit/pipelinekit/2026-10-28-a93a713-local/logs/V300-global-rate.json": true,
+        "audit/pipelinekit/2026-10-28-a93a713-local/logs/V300-global-rate.log": true,
+        "Package.swift": true,
+        "Package.resolved": true,
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py": true
+      }
+    },
+    {
+      "id": "R05-002-focused",
+      "command": [
+        "swift",
+        "test",
+        "--filter",
+        "RateLimitScopeContractTests"
+      ],
+      "elapsed_seconds": 10.028,
+      "exit_status": 0,
+      "runner_exit_status": 0,
+      "watchdog_timeout": false,
+      "runner_error": null,
+      "cleanup_settled": true,
+      "survivors": [],
+      "termination_actions": [],
+      "compiler_warnings": {
+        "Tests/PipelineKitCoreTests/Middleware/MiddlewareTests.swift: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]": 1,
+        "Tests/PipelineKitCoreTests/Pipeline/PipelineTests.swift: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]": 1
+      },
+      "new_compiler_warnings": [],
+      "other_warning_or_configuration_lines": {},
+      "xctest_summaries": [
+        "Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds",
+        "Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds",
+        "Executed 14 tests, with 0 failures (0 unexpected) in 0.004 (0.005) seconds"
+      ],
+      "xctest_progress": null,
+      "swift_testing_summaries": [],
+      "assertion_failure_count": 0,
+      "final_source_matches": {
+        "Sources/PipelineKitResilienceRateLimiting/RateLimiter.swift": true,
+        "Sources/PipelineKitResilienceRateLimiting/Algorithms/TokenBucket.swift": true,
+        "Sources/PipelineKitResilienceRateLimiting/Algorithms/SlidingWindow.swift": true,
+        "Sources/PipelineKitResilienceRateLimiting/Algorithms/FixedWindow.swift": true,
+        "Sources/PipelineKitResilienceRateLimiting/Algorithms/LeakyBucket.swift": true,
+        "Tests/PipelineKitResilienceTests/RateLimitScopeContractTests.swift": true,
+        "docs/migrations/first-stabilization-batch.md": false
+      },
+      "retained_matches": {
+        "audit/pipelinekit/2026-10-28-a93a713-local/logs/V300-global-rate.json": true,
+        "audit/pipelinekit/2026-10-28-a93a713-local/logs/V300-global-rate.log": true,
+        "Package.swift": true,
+        "Package.resolved": true,
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py": true
+      }
+    },
+    {
+      "id": "R05-003-debug-full",
+      "command": [
+        "swift",
+        "test",
+        "--parallel",
+        "--skip",
+        "PipelineKitPerformanceTests"
+      ],
+      "elapsed_seconds": 18.46,
+      "exit_status": 0,
+      "runner_exit_status": 0,
+      "watchdog_timeout": false,
+      "runner_error": null,
+      "cleanup_settled": true,
+      "survivors": [],
+      "termination_actions": [],
+      "compiler_warnings": {},
+      "new_compiler_warnings": [],
+      "other_warning_or_configuration_lines": {},
+      "xctest_summaries": [],
+      "xctest_progress": [
+        [
+          "1135",
+          "1135"
+        ]
+      ],
+      "swift_testing_summaries": [
+        "Test run with 20 tests in 5 suites passed after 0.002 seconds."
+      ],
+      "assertion_failure_count": 0,
+      "final_source_matches": {
+        "Sources/PipelineKitResilienceRateLimiting/RateLimiter.swift": true,
+        "Sources/PipelineKitResilienceRateLimiting/Algorithms/TokenBucket.swift": true,
+        "Sources/PipelineKitResilienceRateLimiting/Algorithms/SlidingWindow.swift": true,
+        "Sources/PipelineKitResilienceRateLimiting/Algorithms/FixedWindow.swift": true,
+        "Sources/PipelineKitResilienceRateLimiting/Algorithms/LeakyBucket.swift": true,
+        "Tests/PipelineKitResilienceTests/RateLimitScopeContractTests.swift": true,
+        "docs/migrations/first-stabilization-batch.md": true
+      },
+      "retained_matches": {
+        "audit/pipelinekit/2026-10-28-a93a713-local/logs/V300-global-rate.json": true,
+        "audit/pipelinekit/2026-10-28-a93a713-local/logs/V300-global-rate.log": true,
+        "Package.swift": true,
+        "Package.resolved": true,
+        "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py": true
+      }
+    }
+  ],
+  "evidence_sha256": {
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/R05-001-original-api-red-source-state.json": "70188ab6f739b39b5f14fde9a00231c9e3a968cca91818cf8a9f2d6b645f9060",
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/R05-001-original-api-red-source.diff": "60018b1a9b62f55c0d16a9757aab96eaa6c3fcdc6b749455f9e3f8cea9409842",
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/R05-001-original-api-red.json": "cd3d4fa52c24f4bba398c07bf20915e6be27f4783a955b1dab16d5e3a57bdb30",
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/R05-001-original-api-red.log": "e041b404e88acd6d282709fd20811e7c58b687e5cde79c21464782679cc2dda5",
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/R05-001-original-api-red.processes.jsonl": "c56c441ceb867bc0cd6eaa32845f7c043ff035e2f16e85f3f722a189d0312152",
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/R05-002-focused-source-state.json": "bcb0b602e17c2025fba0c7b98b34692ac6435a0d3e211a32412dd2c9f437020a",
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/R05-002-focused-source.diff": "35476769abaf793b98d1a95e22c0f3c7c534f5943e947e7d8ea13e1d1d4ea26b",
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/R05-002-focused.json": "681aa8554cd7c90e8e45ebb033b56c26b77c7dbb7a11e8856e95ab616b986cd9",
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/R05-002-focused.log": "89aabdec5773cbcb8490cf3c6b05a6243b44462ba30f44d4aeef16f8bce42daa",
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/R05-002-focused.processes.jsonl": "626e1935a786dd4dad400e797bef2a7a7c5a851a60e14a4cb3debe12987ba665",
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/R05-003-debug-full-source-state.json": "8d1cc3c2e1680bb8441b347e0a9dfbbed1265963759257587aefbe7a78b90a10",
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/R05-003-debug-full-source.diff": "6e063ea9333496a5d949e7b96d3d20c69c2494a02b685ba555bdaf8eecc39e18",
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/R05-003-debug-full.json": "2f786605a3fab9f447763f9d3ede3c37a9833ddf3bef86cfe0ab195432ff5e22",
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/R05-003-debug-full.log": "87bfc2fb569c8f9847b999ea2b0e85a712411ca3481bac25e7db23a0c36fec29",
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/R05-003-debug-full.processes.jsonl": "d4db13541b154870c1835f26e0e47eab511d2575af300f1f5b68c2dc2142f670"
+  }
+}

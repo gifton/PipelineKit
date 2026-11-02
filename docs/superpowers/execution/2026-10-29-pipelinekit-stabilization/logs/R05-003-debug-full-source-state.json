@@ -1,0 +1,25 @@
+{
+  "id": "R05-003-debug-full",
+  "cwd": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization",
+  "head": "36af96b68a377885c3b7897a0cc10c21739a6697",
+  "branch": "fix/stabilization-batch-1",
+  "git_status": " M Sources/PipelineKitResilienceRateLimiting/Algorithms/FixedWindow.swift\n M Sources/PipelineKitResilienceRateLimiting/Algorithms/LeakyBucket.swift\n M Sources/PipelineKitResilienceRateLimiting/Algorithms/SlidingWindow.swift\n M Sources/PipelineKitResilienceRateLimiting/Algorithms/TokenBucket.swift\n M Sources/PipelineKitResilienceRateLimiting/RateLimiter.swift\n M docs/migrations/first-stabilization-batch.md\n M docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/DECISIONS.md\n M docs/superpowers/plans/2026-10-29-pipelinekit-stabilization-resilience.md\n?? Tests/PipelineKitResilienceTests/RateLimitScopeContractTests.swift\n?? audit/\n?? docs/PIPELINEKIT_AUDIT_GUIDE.md\n?? docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/r05_source_state.py\n",
+  "source_sha256": {
+    "Sources/PipelineKitResilienceRateLimiting/RateLimiter.swift": "976b3a5a04b82c934ae40a47ca8c6ee10ee7bd51551359de5ee908029fc74b82",
+    "Sources/PipelineKitResilienceRateLimiting/Algorithms/TokenBucket.swift": "57f2db475103c550461ce8a5aa059b617851185d5f98d7b989041b9c4578734a",
+    "Sources/PipelineKitResilienceRateLimiting/Algorithms/SlidingWindow.swift": "97b62097d756505bb89e2ba17c5562b71439aa06c726db4b447299bb867ef687",
+    "Sources/PipelineKitResilienceRateLimiting/Algorithms/FixedWindow.swift": "37a5c274b7305e5bd54e5ab5b75a3da5a534a3c998643262c119fc5884ee636a",
+    "Sources/PipelineKitResilienceRateLimiting/Algorithms/LeakyBucket.swift": "5ca9196649843fcfbcb602f47c944aead27ef97752f724fec65fb8c20c99c2d9",
+    "Tests/PipelineKitResilienceTests/RateLimitScopeContractTests.swift": "096f9410ead6be3ef8e507f9c2e986197cde5cc968db58894d84b3084f2b1b29",
+    "docs/migrations/first-stabilization-batch.md": "b6840365d2b214979cafaff6d29d4a41326ccae236d29253d4ebe36366573969"
+  },
+  "retained_sha256": {
+    "audit/pipelinekit/2026-10-28-a93a713-local/logs/V300-global-rate.json": "4b389c1f0445f76e266acb3f3a1e4b2b6b8c855343f654202a955030cd270f70",
+    "audit/pipelinekit/2026-10-28-a93a713-local/logs/V300-global-rate.log": "0efe0ab9e6efa33ce851876b08f701568d98ec00512a422ece91bc74992050cc",
+    "Package.swift": "f9e66a25c968fd8d4a1461efd4c4a62fcc0e1e63bcca2f0bd617e8edd9f18adb",
+    "Package.resolved": "f3fa663ca0f1c77b0b5019bce908ef38a95911202c5f1c16de2d4fe01965ddc4",
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py": "9fad75b0f9d7216c7467bab2d3b9fd341ef5e2313fd4365c491234eafb480dd0"
+  },
+  "diff": "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/R05-003-debug-full-source.diff",
+  "diff_sha256": "6e063ea9333496a5d949e7b96d3d20c69c2494a02b685ba555bdaf8eecc39e18"
+}

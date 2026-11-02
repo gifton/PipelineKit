@@ -1,0 +1,42 @@
+{
+  "source_revision": "e733c5d",
+  "production_source": "Sources/PipelineKitCache/LRUStorage.swift",
+  "source_sha256": "e774ff34c135df060b98937121fcde4b3bda54a3808ab8050a21931ffb7e5f04",
+  "probe_sha256": "74c20de9b2e6eba9e9a3f8d6bca7bd8600ab57c06271cbb9adc72739481e7939",
+  "watchdog_sha256": "9fad75b0f9d7216c7467bab2d3b9fd341ef5e2313fd4365c491234eafb480dd0",
+  "max_count": 100000,
+  "modes": [
+    "clear",
+    "drop"
+  ],
+  "counts": [
+    3,
+    100000
+  ],
+  "secondary_probe_sha256": "3881f082f738af6651cd2c94fd3583168be91a705d5e29e9c9b36c9cfc132554",
+  "compile_flags": [
+    "-swift-version",
+    "6",
+    "-O",
+    "-g"
+  ],
+  "runs": [
+    "S04-RV-001",
+    "S04-RV-002",
+    "S04-RV-003",
+    "S04-RV-004",
+    "S04-RV-005",
+    "S04-RV-006",
+    "S04-RV-007",
+    "S04-RV-008",
+    "S04-RV-009",
+    "S04-RV-010",
+    "S04-RV-011",
+    "S04-RV-012",
+    "S04-RV-013",
+    "S04-RV-014",
+    "S04-RV-015"
+  ],
+  "secondary_joined_probe_sha256": "dee41c8184b9b86fb4328ad188599f41e22e4ac94df2c2f6bf5494934edaf35f",
+  "secondary_probe_settlement": "S04-RV-006..010 retained as initial probes that called exit(0) from worker; S04-RV-011..015 supersede them with main observing Thread.isFinished and normal process return."
+}

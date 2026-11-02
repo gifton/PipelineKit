@@ -1,0 +1,201 @@
+FFFFFF.FFFFFFFFFFFFF
+======================================================================
+FAIL: test_compiler_failure (__main__.RunnerTests.test_compiler_failure)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Scripts/ci/tests/test_validation_gates.py", line 46, in test_compiler_failure
+    result, _ = self.run_runner(LIST_FAIL='1')
+                ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Scripts/ci/tests/test_validation_gates.py", line 40, in run_runner
+    self.assertFalse(any('NONE' in a for a in calls))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: True is not false
+
+======================================================================
+FAIL: test_default_runs_all_nonperformance_and_retains_failure (__main__.RunnerTests.test_default_runs_all_nonperformance_and_retains_failure)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Scripts/ci/tests/test_validation_gates.py", line 52, in test_default_runs_all_nonperformance_and_retains_failure
+    result, calls = self.run_runner(FAIL_MATCH='PipelineKitCoreTests')
+                    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Scripts/ci/tests/test_validation_gates.py", line 40, in run_runner
+    self.assertFalse(any('NONE' in a for a in calls))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: True is not false
+
+======================================================================
+FAIL: test_empty_selection (__main__.RunnerTests.test_empty_selection)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Scripts/ci/tests/test_validation_gates.py", line 74, in test_empty_selection
+    result, calls = self.run_runner('--filter', 'NoSuchTest')
+                    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Scripts/ci/tests/test_validation_gates.py", line 40, in run_runner
+    self.assertFalse(any('NONE' in a for a in calls))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: True is not false
+
+======================================================================
+FAIL: test_failure_without_failed_text (__main__.RunnerTests.test_failure_without_failed_text)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Scripts/ci/tests/test_validation_gates.py", line 43, in test_failure_without_failed_text
+    result, _ = self.run_runner('--target', 'PipelineKitCore', FAIL_MATCH='PipelineKitCoreTests')
+                ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Scripts/ci/tests/test_validation_gates.py", line 40, in run_runner
+    self.assertFalse(any('NONE' in a for a in calls))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: True is not false
+
+======================================================================
+FAIL: test_filter_only_forwarded (__main__.RunnerTests.test_filter_only_forwarded)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Scripts/ci/tests/test_validation_gates.py", line 57, in test_filter_only_forwarded
+    result, calls = self.run_runner('--filter', 'CancellationErrorTests')
+                    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Scripts/ci/tests/test_validation_gates.py", line 40, in run_runner
+    self.assertFalse(any('NONE' in a for a in calls))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: True is not false
+
+======================================================================
+FAIL: test_intersection (__main__.RunnerTests.test_intersection)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Scripts/ci/tests/test_validation_gates.py", line 61, in test_intersection
+    result, calls = self.run_runner('--target', 'PipelineKitCore', '--filter', 'CancellationErrorTests')
+                    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Scripts/ci/tests/test_validation_gates.py", line 40, in run_runner
+    self.assertFalse(any('NONE' in a for a in calls))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: True is not false
+
+======================================================================
+FAIL: test_success_without_formatted_matches (__main__.RunnerTests.test_success_without_formatted_matches)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Scripts/ci/tests/test_validation_gates.py", line 49, in test_success_without_formatted_matches
+    result, _ = self.run_runner('--target', 'PipelineKitCore')
+                ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Scripts/ci/tests/test_validation_gates.py", line 40, in run_runner
+    self.assertFalse(any('NONE' in a for a in calls))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: True is not false
+
+======================================================================
+FAIL: test_verbose_preserves_output (__main__.RunnerTests.test_verbose_preserves_output)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Scripts/ci/tests/test_validation_gates.py", line 65, in test_verbose_preserves_output
+    result, _ = self.run_runner('--verbose', '--filter', 'CancellationErrorTests', OUTPUT='unique diagnostic')
+                ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Scripts/ci/tests/test_validation_gates.py", line 40, in run_runner
+    self.assertFalse(any('NONE' in a for a in calls))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: True is not false
+
+======================================================================
+FAIL: test_required_jobs_preserve_existing_policy (__main__.StatusTests.test_required_jobs_preserve_existing_policy) (job='BUILD_RESULT', result='success')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Scripts/ci/tests/test_validation_gates.py", line 92, in test_required_jobs_preserve_existing_policy
+    self.assertEqual(proc.returncode == 0, result != 'failure')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False != True
+
+======================================================================
+FAIL: test_required_jobs_preserve_existing_policy (__main__.StatusTests.test_required_jobs_preserve_existing_policy) (job='BUILD_RESULT', result='cancelled')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Scripts/ci/tests/test_validation_gates.py", line 92, in test_required_jobs_preserve_existing_policy
+    self.assertEqual(proc.returncode == 0, result != 'failure')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False != True
+
+======================================================================
+FAIL: test_required_jobs_preserve_existing_policy (__main__.StatusTests.test_required_jobs_preserve_existing_policy) (job='BUILD_RESULT', result='skipped')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Scripts/ci/tests/test_validation_gates.py", line 92, in test_required_jobs_preserve_existing_policy
+    self.assertEqual(proc.returncode == 0, result != 'failure')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False != True
+
+======================================================================
+FAIL: test_required_jobs_preserve_existing_policy (__main__.StatusTests.test_required_jobs_preserve_existing_policy) (job='TEST_RESULT', result='success')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Scripts/ci/tests/test_validation_gates.py", line 92, in test_required_jobs_preserve_existing_policy
+    self.assertEqual(proc.returncode == 0, result != 'failure')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False != True
+
+======================================================================
+FAIL: test_required_jobs_preserve_existing_policy (__main__.StatusTests.test_required_jobs_preserve_existing_policy) (job='TEST_RESULT', result='cancelled')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Scripts/ci/tests/test_validation_gates.py", line 92, in test_required_jobs_preserve_existing_policy
+    self.assertEqual(proc.returncode == 0, result != 'failure')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False != True
+
+======================================================================
+FAIL: test_required_jobs_preserve_existing_policy (__main__.StatusTests.test_required_jobs_preserve_existing_policy) (job='TEST_RESULT', result='skipped')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Scripts/ci/tests/test_validation_gates.py", line 92, in test_required_jobs_preserve_existing_policy
+    self.assertEqual(proc.returncode == 0, result != 'failure')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False != True
+
+======================================================================
+FAIL: test_required_jobs_preserve_existing_policy (__main__.StatusTests.test_required_jobs_preserve_existing_policy) (job='SWIFTLINT_RESULT', result='success')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Scripts/ci/tests/test_validation_gates.py", line 92, in test_required_jobs_preserve_existing_policy
+    self.assertEqual(proc.returncode == 0, result != 'failure')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False != True
+
+======================================================================
+FAIL: test_required_jobs_preserve_existing_policy (__main__.StatusTests.test_required_jobs_preserve_existing_policy) (job='SWIFTLINT_RESULT', result='cancelled')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Scripts/ci/tests/test_validation_gates.py", line 92, in test_required_jobs_preserve_existing_policy
+    self.assertEqual(proc.returncode == 0, result != 'failure')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False != True
+
+======================================================================
+FAIL: test_required_jobs_preserve_existing_policy (__main__.StatusTests.test_required_jobs_preserve_existing_policy) (job='SWIFTLINT_RESULT', result='skipped')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Scripts/ci/tests/test_validation_gates.py", line 92, in test_required_jobs_preserve_existing_policy
+    self.assertEqual(proc.returncode == 0, result != 'failure')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False != True
+
+======================================================================
+FAIL: test_security_result_matrix_and_linux_advisory (__main__.StatusTests.test_security_result_matrix_and_linux_advisory) (security='success')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Scripts/ci/tests/test_validation_gates.py", line 84, in test_security_result_matrix_and_linux_advisory
+    self.assertEqual(result.returncode == 0, security == 'success', result.stdout + result.stderr)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False != True : bash: /Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Scripts/ci/check-required-status.sh: No such file or directory
+
+
+======================================================================
+FAIL: test_trivy_finding_gates_and_upload (__main__.StatusTests.test_trivy_finding_gates_and_upload)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Scripts/ci/tests/test_validation_gates.py", line 98, in test_trivy_finding_gates_and_upload
+    self.assertIn("exit-code: '1'", scan, name)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: "exit-code: '1'" not found in "v0.36.0\n      with:\n        scan-type: 'fs'\n        scan-ref: '.'\n        severity: 'CRITICAL,HIGH'\n        format: 'sarif'\n        output: 'trivy-results.sarif'\n        trivy-config: .trivy.yaml\n        token-setup-trivy: ${{ secrets.GITHUB_TOKEN }}\n" : ci.yml
+
+----------------------------------------------------------------------
+Ran 12 tests in 1.616s
+
+FAILED (failures=19)

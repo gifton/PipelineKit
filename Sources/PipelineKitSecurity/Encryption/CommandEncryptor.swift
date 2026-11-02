@@ -6,107 +6,103 @@ import PipelineKit
 @preconcurrency import Crypto
 #endif
 
-/// Manages encryption keys and operations for command encryption.
+/// Encrypts and reconstructs complete Codable commands using AES-GCM-256.
 ///
-/// Uses Apple's CryptoKit for secure encryption with AES-GCM.
-/// Supports key rotation and secure key storage.
+/// The returned envelope stores ciphertext and metadata only. Commands must encode
+/// all state needed for reconstruction in their Codable conformance.
 ///
-/// Example:
 /// ```swift
-/// let encryptor = CommandEncryptor()
-/// let encrypted = try encryptor.encrypt(command)
-/// let decrypted = try encryptor.decrypt(encrypted)
+/// let encryptor = await CommandEncryptor(keyStore: keyStore)
+/// let encrypted = try await encryptor.encrypt(command)
+/// let decrypted = try await encryptor.decrypt(encrypted)
 /// ```
 public actor CommandEncryptor {
-    private var currentKey: SendableSymmetricKey
-    private var keyRotationInterval: TimeInterval
+    private var currentKeySnapshot: EncryptionKeySnapshot
+    private let keyRotationInterval: TimeInterval
     private var lastKeyRotation: Date
     private let keyStore: any KeyStore
-    
-    /// Creates a command encryptor with specified configuration.
+
+    /// Creates an encryptor, loading one atomic key snapshot or storing a new key.
     ///
     /// - Parameters:
-    ///   - keyStore: Storage for encryption keys
-    ///   - keyRotationInterval: How often to rotate keys (default: 24 hours)
+    ///   - keyStore: Storage that retains keys by their version identifiers.
+    ///   - keyRotationInterval: Time before encryption triggers rotation (default: 24 hours).
     public init(
         keyStore: any KeyStore,
-        keyRotationInterval: TimeInterval = 86400 // 24 hours
+        keyRotationInterval: TimeInterval = 86400
     ) async {
         self.keyStore = keyStore
         self.keyRotationInterval = keyRotationInterval
         self.lastKeyRotation = Date()
-        
-        // Initialize with a new key or load existing
-        if let existingKey = await keyStore.currentKey {
-            self.currentKey = existingKey
+
+        if let snapshot = await keyStore.currentKeySnapshot {
+            self.currentKeySnapshot = snapshot
         } else {
-            self.currentKey = SendableSymmetricKey(size: .bits256)
-            await keyStore.store(key: currentKey, identifier: UUID().uuidString)
+            let snapshot = EncryptionKeySnapshot(
+                key: SendableSymmetricKey(size: .bits256),
+                identifier: UUID().uuidString
+            )
+            await keyStore.store(key: snapshot.key, identifier: snapshot.identifier)
+            self.currentKeySnapshot = snapshot
         }
     }
-    
-    /// Encrypts sensitive fields in a command.
+
+    /// JSON-encodes and encrypts the complete command.
     ///
-    /// - Parameter command: The command to encrypt
-    /// - Returns: Encrypted command data
-    /// - Throws: Encryption errors
-    public func encrypt<T: Command>(_ command: T) async throws -> EncryptedCommand<T> {
+    /// - Returns: Ciphertext and the identifier of the captured key used to seal it.
+    /// - Throws: Encoding or cryptographic errors, or `.invalidKey` for a non-256-bit key.
+    public func encrypt<T: Command & Codable>(_ command: T) async throws -> EncryptedCommand<T> {
         await rotateKeyIfNeeded()
-        
-        let sensitiveData = try JSONSerialization.data(
-            withJSONObject: command.sensitiveFields,
-            options: .sortedKeys
-        )
-        
-        let sealed = try AES.GCM.seal(sensitiveData, using: currentKey.key)
-        
+        let snapshot = currentKeySnapshot
+        guard snapshot.key.key.bitCount == 256 else {
+            throw PipelineError.encryption(reason: .invalidKey)
+        }
+
+        let data = try JSONEncoder().encode(command)
+        let sealed = try AES.GCM.seal(data, using: snapshot.key.key)
         guard let combinedData = sealed.combined else {
             throw PipelineError.encryption(reason: .encryptionFailed("Failed to create sealed box"))
         }
-        
+
         return EncryptedCommand(
-            originalCommand: command,
             encryptedData: combinedData,
-            keyIdentifier: await keyStore.currentKeyIdentifier ?? "default",
+            keyIdentifier: snapshot.identifier,
             algorithm: "AES-GCM-256"
         )
     }
-    
-    /// Decrypts an encrypted command.
+
+    /// Authenticates and JSON-decodes a complete command using the envelope's key identifier.
     ///
-    /// - Parameter encrypted: The encrypted command
-    /// - Returns: Decrypted command
-    /// - Throws: Decryption errors
-    public func decrypt<T: Command>(_ encrypted: EncryptedCommand<T>) async throws -> T {
+    /// - Throws: Unsupported-algorithm, missing-key or invalid-key errors; cryptographic
+    ///   authentication and decoding errors propagate unchanged. Expired keys cannot be recovered.
+    public func decrypt<T: Command & Codable>(_ encrypted: EncryptedCommand<T>) async throws -> T {
+        guard encrypted.algorithm == "AES-GCM-256" else {
+            throw PipelineError.encryption(reason: .algorithmNotSupported(encrypted.algorithm))
+        }
         guard let key = await keyStore.key(for: encrypted.keyIdentifier) else {
             throw PipelineError.encryption(reason: .keyNotFound(identifier: encrypted.keyIdentifier))
         }
-        
+        guard key.key.bitCount == 256 else {
+            throw PipelineError.encryption(reason: .invalidKey)
+        }
+
         let sealedBox = try AES.GCM.SealedBox(combined: encrypted.encryptedData)
-        let decryptedData = try AES.GCM.open(sealedBox, using: key.key)
-        
-        let fields = try JSONSerialization.jsonObject(
-            with: decryptedData,
-            options: []
-        ) as? [String: Any] ?? [:]
-        
-        let command = encrypted.originalCommand
-        command.updateSensitiveFields(fields)
-        
-        return command
+        let data = try AES.GCM.open(sealedBox, using: key.key)
+        return try JSONDecoder().decode(T.self, from: data)
     }
-    
-    /// Forces a key rotation.
+
+    /// Stores a new key version before publishing its complete snapshot to this encryptor.
+    /// Previously stored keys remain governed by the key store's explicit expiration policy.
     public func rotateKey() async {
-        let newKey = SendableSymmetricKey(size: .bits256)
-        let identifier = UUID().uuidString
-        
-        await keyStore.store(key: newKey, identifier: identifier)
-        currentKey = newKey
+        let snapshot = EncryptionKeySnapshot(
+            key: SendableSymmetricKey(size: .bits256),
+            identifier: UUID().uuidString
+        )
+        await keyStore.store(key: snapshot.key, identifier: snapshot.identifier)
+        currentKeySnapshot = snapshot
         lastKeyRotation = Date()
     }
-    
-    /// Checks if key rotation is needed based on the interval.
+
     private func rotateKeyIfNeeded() async {
         if Date().timeIntervalSince(lastKeyRotation) > keyRotationInterval {
             await rotateKey()
@@ -114,23 +110,18 @@ public actor CommandEncryptor {
     }
 }
 
-/// Encrypted command wrapper.
+/// Ciphertext-only envelope. `T` identifies the decoded command type without storing a command.
 public struct EncryptedCommand<T: Command>: Sendable {
-    /// The original command (with sensitive fields removed)
-    public let originalCommand: T
-    
-    /// Encrypted sensitive data
+    /// Combined AES-GCM nonce, ciphertext and authentication tag for the complete encoded command.
     public let encryptedData: Data
-    
-    /// Identifier of the key used for encryption
+
+    /// Identifier of the key used to produce `encryptedData`.
     public let keyIdentifier: String
-    
-    /// Encryption algorithm used
+
+    /// Format identifier; `CommandEncryptor` produces and accepts `AES-GCM-256`.
     public let algorithm: String
-    
-    /// Creates an encrypted command (primarily for testing)
-    public init(originalCommand: T, encryptedData: Data, keyIdentifier: String, algorithm: String) {
-        self.originalCommand = originalCommand
+
+    public init(encryptedData: Data, keyIdentifier: String, algorithm: String) {
         self.encryptedData = encryptedData
         self.keyIdentifier = keyIdentifier
         self.algorithm = algorithm
@@ -138,8 +129,8 @@ public struct EncryptedCommand<T: Command>: Sendable {
 }
 
 /// Sendable wrapper for SymmetricKey to work with Swift 6 strict concurrency.
-/// CryptoKit's SymmetricKey is not Sendable, but it's actually safe to send
-/// between actors as it's an immutable value type.
+/// The wrapped key is an immutable value stored in a `let` property; this wrapper
+/// exposes no mutation of that value.
 public struct SendableSymmetricKey: @unchecked Sendable {
     public let key: SymmetricKey
     
@@ -154,16 +145,15 @@ public struct SendableSymmetricKey: @unchecked Sendable {
 
 /// Protocol for key storage implementations.
 public protocol KeyStore: Sendable {
-    /// Current encryption key
-    var currentKey: SendableSymmetricKey? { get async }
-    
-    /// Current key identifier
-    var currentKeyIdentifier: String? { get async }
+    /// The current key and its identifier, captured atomically by the store.
+    /// Implementations must return both values from the same stored version.
+    var currentKeySnapshot: EncryptionKeySnapshot? { get async }
     
     /// Retrieve a key by identifier
     func key(for identifier: String) async -> SendableSymmetricKey?
     
-    /// Store a key with identifier
+    /// Store a key and publish its current snapshot atomically. Use a fresh identifier
+    /// for each key version and retain previous versions until explicitly expired.
     func store(key: SendableSymmetricKey, identifier: String) async
     
     /// Remove expired keys

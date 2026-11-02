@@ -1,0 +1,65 @@
+{
+  "i01_base": "a6979832b0665aaf6b6769e9d16fa0cd044442c6",
+  "implementation_source": "6bd49c4fe1ee0aac9f174871bc691c7f96b5b50c",
+  "states": [
+    {
+      "state": "001",
+      "run_numbers": [
+        "001"
+      ],
+      "main_sha256": "c4dc52bb79de4e0b9a238eb5a1d27c5679a1ebbcbd7dfe40cc14863b1d6a8f11",
+      "compiled_examples_sha256": "71a2336511c3dbb51ee3cb78bd8105972aaa1f0de33bf7dfe11eed2da339b44b",
+      "provenance": "Reconstructed from contemporaneous I01-001 diff; both original captured SHA-256 values verified."
+    },
+    {
+      "state": "003",
+      "run_numbers": [
+        "003",
+        "004",
+        "005",
+        "006",
+        "007",
+        "008"
+      ],
+      "main_sha256": "7329d55c20b8e387ad952f7918e31fa0399bb2488c8f1aa867c2603bb66b7255",
+      "compiled_examples_sha256": "6c4dac3b4fe1d46feffd4d0794a48b0027b71b5fa1837422bc643b474305afcb",
+      "provenance": "Intermediate snapshot reconstructed by reversing the two exact subsequent fixture corrections (supported erased options and queue policy); no contemporaneous full snapshot claimed."
+    },
+    {
+      "state": "013",
+      "run_numbers": [
+        "013",
+        "014",
+        "015",
+        "016",
+        "017",
+        "018",
+        "019",
+        "030",
+        "031",
+        "032",
+        "033",
+        "034",
+        "035",
+        "036",
+        "037",
+        "038",
+        "039"
+      ],
+      "main_sha256": "9e434f98d0fefa76004160a67feb4df46f83dcf4a2fd4b48d371ff0ac6cc1e14",
+      "compiled_examples_sha256": "670a418f8f3d1b4eb4c70457856310af613df1511ad02cd6db8bb473a96d4d89",
+      "provenance": "Matches captured I01-runtime-source.json hashes; all final consumer runtime modes used this source."
+    },
+    {
+      "state": "044",
+      "run_numbers": [
+        "044",
+        "045"
+      ],
+      "main_sha256": "9e434f98d0fefa76004160a67feb4df46f83dcf4a2fd4b48d371ff0ac6cc1e14",
+      "compiled_examples_sha256": "af713e8a68506a6c08cd4fa3d1d60d5981f3d53bce43c2fa1821a9d4256813f8",
+      "provenance": "Final documentation-only authorization example refinement; runtime main unchanged."
+    }
+  ],
+  "root_source": "All root source/tests/manifests unchanged from I01 base; I01-final-source.json records final hashes."
+}

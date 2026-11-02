@@ -1,0 +1,158 @@
+{
+  "captured_utc": "2026-10-31T06:51:34.137238+00:00",
+  "reviewed_head": "2c3001b533aaf97d4ce2794b0b994e541e010fe7",
+  "original_base": "a93a713d937e25f68855f22b0720f33c93329b09",
+  "source_directory": "/private/tmp/PipelineKit-final-review-lru-2c3001b",
+  "copied_inputs": {
+    "main.swift": "3a744489aaf202258130465c9afb3cc7456278af389528cb13dacbb7f4ac6e84",
+    "main-compile001.swift": "4eed0f4dc27b5ee249a933c77ddc48e87226a3e5d4184e82f65166f396fadd9f",
+    "compile.py": "9d16ae1b08a52d40118bed1a61ea25a062357ceb5fc339a72ce8bf40ac413232",
+    "compile-baseline-clean.py": "8dcbb638cdc22dcc38fe4f0c49a76a1d866dfc25ddfd38108f1a829fe3ead2da",
+    "LRUStorage.swift": "3d92aabbe54c602f8bffe34a4d2c3edf9215d301ddb13051723e85f7d4c377fb",
+    "SimpleCachingMiddleware.swift": "1ad4828701080a310d4700d0eba2f2bcd5c98274a8429ccdb504afcc6bc7863f",
+    "manifest.json": "3e4eaeba5017411852115ae2fcfcfe45372f52212fe8d2866472ad6b55c8ceab"
+  },
+  "verified_manifest_paths": [
+    "/private/tmp/PipelineKit-final-review-lru-2c3001b/main.swift",
+    "/private/tmp/PipelineKit-final-review-lru-2c3001b/compile.py",
+    "/private/tmp/PipelineKit-final-review-lru-2c3001b/LRUStorage.swift",
+    "/private/tmp/PipelineKit-final-review-lru-2c3001b/SimpleCachingMiddleware.swift",
+    "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Sources/PipelineKitCache/LRUStorage.swift",
+    "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Sources/PipelineKitCache/SimpleCachingMiddleware.swift",
+    "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py",
+    "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer/.build/out/Products/Debug/PipelineKitCache.o",
+    "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer/.build/out/Products/Debug/PipelineKit.o",
+    "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer/.build/out/Products/Debug/PipelineKitCore.o",
+    "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer/.build/out/Products/Debug/PipelineKitObservability.o",
+    "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer/.build/out/Products/Debug/Atomics.o",
+    "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer/.build/out/Products/Debug/_AtomicsShims.o",
+    "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/Consumer/.build/out/Products/Debug/Logging.o",
+    "/private/tmp/PipelineKit-final-review-lru-2c3001b/main-compile001.swift",
+    "/private/tmp/PipelineKit-final-review-lru-2c3001b/compile-baseline-clean.py",
+    "/private/tmp/PipelineKit-final-review-lru-2c3001b/final-probe",
+    "/private/tmp/PipelineKit-final-review-lru-2c3001b/baseline-probe-clean",
+    "/private/tmp/PipelineKit-final-review-lru-2c3001b/libReviewBaselineCache.dylib"
+  ],
+  "raw_artifacts": {
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/FINAL-RV-LRU-BASELINE-001.json": "e3eb6533b48a2336fc32809b64fa23f2f11662ab4865498438d2e5bc64bfdc38",
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/FINAL-RV-LRU-BASELINE-001.log": "0e8840768ab1c3b2587d2632085f9475beacd0cb278a9c2abb5bb2f21af6f524",
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/FINAL-RV-LRU-BASELINE-001.processes.jsonl": "c82755c57522cbd1966dc864521b81aca98af77259768e2ff1a37e67544088a2",
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/FINAL-RV-LRU-BASELINE-002.json": "f720cdf9452a10185117022fe4cc039c5e359eea9bc8b7054140cc2af378cea7",
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/FINAL-RV-LRU-BASELINE-002.log": "8adf7d09b7cd08acc7cf480fca80c5218ec2e8ca2675aabd665fe2ebf7b06056",
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/FINAL-RV-LRU-BASELINE-002.processes.jsonl": "f2ab53628cf1493c05fdeb603db326e32eca19a8185816442a4e5c06521aeaaf",
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/FINAL-RV-LRU-COMPILE-001.json": "ba97af3a9076777906116df6a38c0fe583db3baa7124c98af6615fa62b3ac7f2",
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/FINAL-RV-LRU-COMPILE-001.log": "223bdc602bc399f18aea4e97221fd8cd7369e43d9b7939978670ae6df2164c15",
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/FINAL-RV-LRU-COMPILE-001.processes.jsonl": "27e326421b39864e48e8daf26df82ddb40b6623f3912df76e44543ffab2f4123",
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/FINAL-RV-LRU-COMPILE-002.json": "eddcbaaddfe3f7e82a523654b015fa99fd8ce12a815c0e3d6dcc5ec22fdfa95b",
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/FINAL-RV-LRU-COMPILE-002.log": "9c67ec6ad5541001615032a2d46b2fbb904f80214cb0212932d36c7f24d9c3f9",
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/FINAL-RV-LRU-COMPILE-002.processes.jsonl": "eeaa419d60db6a63387b307d18b21e6a292e4c6ac2294f2c58738821bfb3b869",
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/FINAL-RV-LRU-COMPILE-003.json": "334e97e29a632005f006216a51774c1cedbdbd37766357f5c3e31cb218b62bca",
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/FINAL-RV-LRU-COMPILE-003.log": "bcce07277b61c6f427b02554f85404b6db5b97e8aaaa01b6bfd8bb641338d2b4",
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/FINAL-RV-LRU-COMPILE-003.processes.jsonl": "741bda131b2d3260ef3f7b6aa49449e8e70e1bfc3676545a29d4c613eaa23808",
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/FINAL-RV-LRU-CONTROL-001.json": "a94b93f5dc93907bafcf288336c923c2cd52d3776efc96945454d90809011864",
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/FINAL-RV-LRU-CONTROL-001.log": "5800155244c40e01b5afcb13055a7d732b1e8088a49fac6bdd0162f7a38509dd",
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/FINAL-RV-LRU-CONTROL-001.processes.jsonl": "ebe771a4c0bc70ab8024739a045987e13d06b76dc17ad84b1155cf0ef56f2113",
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/FINAL-RV-LRU-REENTER-001.json": "0cb47e112b0ba8b3beef0f4024e4e6a1fdec756cdd45cde87580b9f4df95e681",
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/FINAL-RV-LRU-REENTER-001.log": "72c4b8832a199bc7cae6a4fb65fdd0a8ea5615f64c340370ba1d2abcdea72179",
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/FINAL-RV-LRU-REENTER-001.processes.jsonl": "2a63c31e83bcb284a09764395474682b966e230a4a038b45251c6015b15760e4"
+  },
+  "runs": [
+    {
+      "id": "FINAL-RV-LRU-BASELINE-001",
+      "command": [
+        "/private/tmp/PipelineKit-final-review-lru-2c3001b/baseline-probe",
+        "reenter"
+      ],
+      "cwd": "/private/tmp/PipelineKit-final-review-lru-2c3001b",
+      "exit_status": 0,
+      "runner_exit_status": 0,
+      "watchdog_timeout": false,
+      "cleanup_settled": true,
+      "survivors": []
+    },
+    {
+      "id": "FINAL-RV-LRU-BASELINE-002",
+      "command": [
+        "/private/tmp/PipelineKit-final-review-lru-2c3001b/baseline-probe-clean",
+        "reenter"
+      ],
+      "cwd": "/private/tmp/PipelineKit-final-review-lru-2c3001b",
+      "exit_status": 0,
+      "runner_exit_status": 0,
+      "watchdog_timeout": false,
+      "cleanup_settled": true,
+      "survivors": []
+    },
+    {
+      "id": "FINAL-RV-LRU-COMPILE-001",
+      "command": [
+        "python3",
+        "/private/tmp/PipelineKit-final-review-lru-2c3001b/compile.py"
+      ],
+      "cwd": "/private/tmp/PipelineKit-final-review-lru-2c3001b",
+      "exit_status": 1,
+      "runner_exit_status": 1,
+      "watchdog_timeout": false,
+      "cleanup_settled": true,
+      "survivors": []
+    },
+    {
+      "id": "FINAL-RV-LRU-COMPILE-002",
+      "command": [
+        "python3",
+        "/private/tmp/PipelineKit-final-review-lru-2c3001b/compile.py"
+      ],
+      "cwd": "/private/tmp/PipelineKit-final-review-lru-2c3001b",
+      "exit_status": 0,
+      "runner_exit_status": 0,
+      "watchdog_timeout": false,
+      "cleanup_settled": true,
+      "survivors": []
+    },
+    {
+      "id": "FINAL-RV-LRU-COMPILE-003",
+      "command": [
+        "python3",
+        "/private/tmp/PipelineKit-final-review-lru-2c3001b/compile-baseline-clean.py"
+      ],
+      "cwd": "/private/tmp/PipelineKit-final-review-lru-2c3001b",
+      "exit_status": 0,
+      "runner_exit_status": 0,
+      "watchdog_timeout": false,
+      "cleanup_settled": true,
+      "survivors": []
+    },
+    {
+      "id": "FINAL-RV-LRU-CONTROL-001",
+      "command": [
+        "/private/tmp/PipelineKit-final-review-lru-2c3001b/final-probe",
+        "control"
+      ],
+      "cwd": "/private/tmp/PipelineKit-final-review-lru-2c3001b",
+      "exit_status": 0,
+      "runner_exit_status": 0,
+      "watchdog_timeout": false,
+      "cleanup_settled": true,
+      "survivors": []
+    },
+    {
+      "id": "FINAL-RV-LRU-REENTER-001",
+      "command": [
+        "/private/tmp/PipelineKit-final-review-lru-2c3001b/final-probe",
+        "reenter"
+      ],
+      "cwd": "/private/tmp/PipelineKit-final-review-lru-2c3001b",
+      "exit_status": -15,
+      "runner_exit_status": 124,
+      "watchdog_timeout": true,
+      "cleanup_settled": true,
+      "survivors": []
+    }
+  ],
+  "limits": "Final probe imports public PipelineKitCache from existing I01 Consumer Debug build; baseline compiles exact baseline cache source files against final support dependency objects, not a full baseline package build.",
+  "fixture_diagnostics": "COMPILE-001 is rejected captured-var fixture; COMPILE-002/003 retain weak/implicit-strong-capture warning; BASELINE-001 duplicate support-object linking is superseded by clean BASELINE-002. No binary, module or cache artifact committed.",
+  "reviewed_source_snapshots": {
+    "final-LRUStorage.swift": "e774ff34c135df060b98937121fcde4b3bda54a3808ab8050a21931ffb7e5f04",
+    "final-SimpleCachingMiddleware.swift": "2e0334233e4d65412ad6a2ec1b2c40204de8941368f5cecc3e57fa7d1c2628f2"
+  }
+}

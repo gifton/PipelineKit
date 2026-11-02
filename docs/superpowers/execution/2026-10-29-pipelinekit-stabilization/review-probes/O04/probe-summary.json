@@ -1,0 +1,126 @@
+{
+  "compiler": "Apple Swift version 6.4.2 (swiftlang-6.4.2.1.9 clang-2100.4.1.1)",
+  "mode": "swiftc -g; no optimization flag",
+  "runs": {
+    "O04-RV-001": {
+      "command": [
+        "swift",
+        "--version"
+      ],
+      "exit_status": 0,
+      "runner_exit_status": 0,
+      "watchdog_timeout": false,
+      "runner_error": null,
+      "completion_reason": "root_exit",
+      "unexpected_descendants": [],
+      "termination_actions": [],
+      "event_errors": [],
+      "cleanup": {
+        "settled": true,
+        "survivors": [],
+        "inspection_errors": []
+      }
+    },
+    "O04-RV-002": {
+      "command": [
+        "swiftc",
+        "-g",
+        "DurationNanoseconds.swift",
+        "main.swift",
+        "-o",
+        "duration-probe"
+      ],
+      "exit_status": 0,
+      "runner_exit_status": 0,
+      "watchdog_timeout": false,
+      "runner_error": null,
+      "completion_reason": "root_exit",
+      "unexpected_descendants": [],
+      "termination_actions": [],
+      "event_errors": [],
+      "cleanup": {
+        "settled": true,
+        "survivors": [],
+        "inspection_errors": []
+      }
+    },
+    "O04-RV-003": {
+      "command": [
+        "/private/tmp/o04-review-45f7404-cii11rst/duration-probe",
+        "positive"
+      ],
+      "exit_status": -5,
+      "runner_exit_status": -5,
+      "watchdog_timeout": false,
+      "runner_error": null,
+      "completion_reason": "root_exit",
+      "unexpected_descendants": [],
+      "termination_actions": [],
+      "event_errors": [],
+      "cleanup": {
+        "settled": true,
+        "survivors": [],
+        "inspection_errors": []
+      }
+    },
+    "O04-RV-004": {
+      "command": [
+        "/private/tmp/o04-review-45f7404-cii11rst/duration-probe",
+        "negative"
+      ],
+      "exit_status": 0,
+      "runner_exit_status": 0,
+      "watchdog_timeout": false,
+      "runner_error": null,
+      "completion_reason": "root_exit",
+      "unexpected_descendants": [],
+      "termination_actions": [],
+      "event_errors": [],
+      "cleanup": {
+        "settled": true,
+        "survivors": [],
+        "inspection_errors": []
+      }
+    },
+    "O04-RV-005": {
+      "command": [
+        "/private/tmp/o04-review-45f7404-cii11rst/duration-probe",
+        "control"
+      ],
+      "exit_status": 0,
+      "runner_exit_status": 0,
+      "watchdog_timeout": false,
+      "runner_error": null,
+      "completion_reason": "root_exit",
+      "unexpected_descendants": [],
+      "termination_actions": [],
+      "event_errors": [],
+      "cleanup": {
+        "settled": true,
+        "survivors": [],
+        "inspection_errors": []
+      }
+    }
+  },
+  "sha256": {
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/O04-RV-001.json": "9f45966bf9990bc3e493d0d91cc095ad5f39fd363aac06e41f73736c7007131f",
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/O04-RV-001.log": "448e3f9c46706640fe62ea0140ecfccbb330baba2076b2916c0423af9642ee06",
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/O04-RV-001.processes.jsonl": "82737cbed576e5936b1e52ed6e917fb9c339b27000c1ac375141e40a5a50bb84",
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/O04-RV-002.json": "05fca262b6ec7b9e7a1b4b5570236ff76399c39ab02bc9c3adec2a56b6dc40f9",
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/O04-RV-002.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/O04-RV-002.processes.jsonl": "af68bb84fb2dc6d0527c11a596037289df90763b7e934c768d82684a9e302e24",
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/O04-RV-003.json": "5269d08bcb71c390b66f63c44d17685420998b2f04769169f2354c3ae2555d10",
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/O04-RV-003.log": "2a0a7beed3a6dea517037a0c828aa77c3b602f6787e6529ed0e520e9dc00762b",
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/O04-RV-003.processes.jsonl": "44a218e835522d506a1e89976418677d2d2fb5aeabdba99b425824d1a8eb46cc",
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/O04-RV-004.json": "00350071873629c04f89d82f6d4511414e84efa2d61e93e8e6039184faab3689",
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/O04-RV-004.log": "c895cb9d7d06da4142e3659d78e66f91949d7a79c745861d4dbd8e3ba423d767",
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/O04-RV-004.processes.jsonl": "063b60f22e47401684919a58642e71cc4de18fd0337ed6459b993aba5153782b",
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/O04-RV-005.json": "00a117b7faf633c8c2752f83fc8ffff7701f567dd15502ef86d1fc117f00e45f",
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/O04-RV-005.log": "917bd72593a937fa157c30fa3eeeb651c3b86a9f2a0b0172077e63ae2804008a",
+    "docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/O04-RV-005.processes.jsonl": "e568b98a091c440e2e386c1191c598729274faf848b3974afb8b7a0af20261ff",
+    "/private/tmp/o04-review-45f7404-cii11rst/DurationNanoseconds.swift": "fb778ac9cf97fad9e316f241532a98515934d528ae40e9b9d4ddd657dea8af14",
+    "/private/tmp/o04-review-45f7404-cii11rst/main.swift": "8b8ce44f35344c034dfef4c19537b844752e1ad0fdab3929c1a872c53f3ebdf9",
+    "/private/tmp/o04-review-45f7404-cii11rst/repros/run_check.py": "9fad75b0f9d7216c7467bab2d3b9fd341ef5e2313fd4365c491234eafb480dd0",
+    "/private/tmp/o04-review-45f7404-cii11rst/duration-probe": "7fdb7c4945641f406b67acf29a88de93bf0004a4c5ea01a12fa951ae69b40df4"
+  }
+}

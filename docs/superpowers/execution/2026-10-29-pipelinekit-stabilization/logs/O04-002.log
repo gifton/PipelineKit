@@ -1,0 +1,118 @@
+Building for debugging...
+[Computing dependencies]
+[Using on-disk description]
+[2 / 8] PipelineKitObservabilityTests-product
+[4 / 10] PipelineKitObservabilityTests-product
+[10 / 12] PipelineKitObservabilityTests-product
+Build complete! (1.43 sec)
+Test Suite 'Selected tests' started at 2026-10-30 22:34:45.999.
+Test Suite 'PipelineKitTests.xctest' started at 2026-10-30 22:34:46.000.
+Test Suite 'PipelineKitTests.xctest' passed at 2026-10-30 22:34:46.000.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 22:34:46.000.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 22:34:46.085.
+Test Suite 'PipelineKitTestSupportTests.xctest' started at 2026-10-30 22:34:46.086.
+Test Suite 'PipelineKitTestSupportTests.xctest' passed at 2026-10-30 22:34:46.086.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 22:34:46.086.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 22:34:46.169.
+Test Suite 'PipelineKitSecurityTests.xctest' started at 2026-10-30 22:34:46.170.
+Test Suite 'PipelineKitSecurityTests.xctest' passed at 2026-10-30 22:34:46.170.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 22:34:46.170.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 22:34:46.255.
+Test Suite 'PipelineKitResilienceTests.xctest' started at 2026-10-30 22:34:46.256.
+Test Suite 'PipelineKitResilienceTests.xctest' passed at 2026-10-30 22:34:46.256.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 22:34:46.256.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 22:34:46.340.
+Test Suite 'PipelineKitPoolingTests.xctest' started at 2026-10-30 22:34:46.341.
+Test Suite 'PipelineKitPoolingTests.xctest' passed at 2026-10-30 22:34:46.341.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 22:34:46.342.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 22:34:46.428.
+Test Suite 'PipelineKitPerformanceTests.xctest' started at 2026-10-30 22:34:46.429.
+Test Suite 'PipelineKitPerformanceTests.xctest' passed at 2026-10-30 22:34:46.429.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 22:34:46.429.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 22:34:46.495.
+Test Suite 'PipelineKitObservabilityTests.xctest' started at 2026-10-30 22:34:46.496.
+Test Suite 'TypeSafeMetricTests' started at 2026-10-30 22:34:46.496.
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testCounterDefaultValue]' started.
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testCounterDefaultValue]' passed (0.000 seconds).
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testCounterSpecificMethods]' started.
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testCounterSpecificMethods]' passed (0.000 seconds).
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testCounterToSnapshot]' started.
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testCounterToSnapshot]' passed (0.000 seconds).
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testCreateCounter]' started.
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testCreateCounter]' passed (0.000 seconds).
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testCreateGauge]' started.
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testCreateGauge]' passed (0.000 seconds).
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testCreateHistogram]' started.
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testCreateHistogram]' passed (0.000 seconds).
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testCreateTimer]' started.
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/TypeSafeMetricTests.swift:33: error: -[PipelineKitObservabilityTests.TypeSafeMetricTests testCreateTimer] : XCTAssertEqualWithAccuracy failed: ("0.123") is not equal to ("123.0") +/- ("1e-09")
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testCreateTimer]' failed (0.201 seconds).
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testEmptyMetricName]' started.
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testEmptyMetricName]' passed (0.000 seconds).
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testGaugeSpecificMethods]' started.
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testGaugeSpecificMethods]' passed (0.000 seconds).
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testGaugeToSnapshot]' started.
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testGaugeToSnapshot]' passed (0.000 seconds).
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testHistogramToSnapshot]' started.
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testHistogramToSnapshot]' passed (0.000 seconds).
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testLargeValues]' started.
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testLargeValues]' passed (0.000 seconds).
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testManyTags]' started.
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testManyTags]' passed (0.000 seconds).
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testMetricIsSendable]' started.
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testMetricIsSendable]' passed (0.000 seconds).
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testMetricKindRawValues]' started.
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testMetricKindRawValues]' passed (0.000 seconds).
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testMetricKindTypes]' started.
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testMetricKindTypes]' passed (0.000 seconds).
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testNegativeValues]' started.
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testNegativeValues]' passed (0.000 seconds).
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testTimerToSnapshot]' started.
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/TypeSafeMetricTests.swift:90: error: -[PipelineKitObservabilityTests.TypeSafeMetricTests testTimerToSnapshot] : XCTAssertEqualWithAccuracy failed: ("0.5") is not equal to ("500.0") +/- ("1e-09")
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testTimerToSnapshot]' failed (0.000 seconds).
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testTimestampConversion]' started.
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testTimestampConversion]' passed (0.000 seconds).
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testTimestampDefault]' started.
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testTimestampDefault]' passed (0.000 seconds).
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testTypedAndSnapshotTimerUnitsAgree]' started.
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/TypeSafeMetricTests.swift:100: error: -[PipelineKitObservabilityTests.TypeSafeMetricTests testTypedAndSnapshotTimerUnitsAgree] : XCTAssertEqualWithAccuracy failed: ("0.25") is not equal to ("250.0") +/- ("1e-09")
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/TypeSafeMetricTests.swift:101: error: -[PipelineKitObservabilityTests.TypeSafeMetricTests testTypedAndSnapshotTimerUnitsAgree] : XCTAssertEqualWithAccuracy failed: ("0.25") is not equal to ("250.0") +/- ("1e-09")
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/TypeSafeMetricTests.swift:100: error: -[PipelineKitObservabilityTests.TypeSafeMetricTests testTypedAndSnapshotTimerUnitsAgree] : XCTAssertEqualWithAccuracy failed: ("1.0") is not equal to ("1000.0") +/- ("1e-09")
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/TypeSafeMetricTests.swift:101: error: -[PipelineKitObservabilityTests.TypeSafeMetricTests testTypedAndSnapshotTimerUnitsAgree] : XCTAssertEqualWithAccuracy failed: ("1.0") is not equal to ("1000.0") +/- ("1e-09")
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/TypeSafeMetricTests.swift:100: error: -[PipelineKitObservabilityTests.TypeSafeMetricTests testTypedAndSnapshotTimerUnitsAgree] : XCTAssertEqualWithAccuracy failed: ("1.25") is not equal to ("1250.0") +/- ("1e-09")
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/TypeSafeMetricTests.swift:101: error: -[PipelineKitObservabilityTests.TypeSafeMetricTests testTypedAndSnapshotTimerUnitsAgree] : XCTAssertEqualWithAccuracy failed: ("1.25") is not equal to ("1250.0") +/- ("1e-09")
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testTypedAndSnapshotTimerUnitsAgree]' failed (0.001 seconds).
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testZeroValues]' started.
+Test Case '-[PipelineKitObservabilityTests.TypeSafeMetricTests testZeroValues]' passed (0.000 seconds).
+Test Suite 'TypeSafeMetricTests' failed at 2026-10-30 22:34:46.701.
+	 Executed 22 tests, with 8 failures (0 unexpected) in 0.204 (0.205) seconds
+Test Suite 'PipelineKitObservabilityTests.xctest' failed at 2026-10-30 22:34:46.701.
+	 Executed 22 tests, with 8 failures (0 unexpected) in 0.204 (0.206) seconds
+Test Suite 'Selected tests' failed at 2026-10-30 22:34:46.701.
+	 Executed 22 tests, with 8 failures (0 unexpected) in 0.204 (0.206) seconds
+Test Suite 'Selected tests' started at 2026-10-30 22:34:46.785.
+Test Suite 'PipelineKitCoreTests.xctest' started at 2026-10-30 22:34:46.786.
+Test Suite 'PipelineKitCoreTests.xctest' passed at 2026-10-30 22:34:46.786.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 22:34:46.786.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 22:34:46.869.
+Test Suite 'PipelineKitCacheTests.xctest' started at 2026-10-30 22:34:46.870.
+Test Suite 'PipelineKitCacheTests.xctest' passed at 2026-10-30 22:34:46.870.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 22:34:46.870.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Note: Some test targets reported failures:
+  - PipelineKitObservabilityTests (XCTest)

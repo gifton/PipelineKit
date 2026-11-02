@@ -1,0 +1,113 @@
+# R02 implementation report
+
+Status: DONE, awaiting controller fresh review.
+
+Initial implementation commit: `d912867dc8fa12a624c0024d568838c281a08de8` — `fix(bulkhead): conserve admission across queues and handoffs`.
+
+## Implementation and validation
+
+
+Base: `996cf367c0edca1c973e111825e5eb0968312393`, branch `fix/stabilization-batch-1`. The initial tracked source diff was empty. The existing untracked audit and audit guide were preserved. The controller's later R03 dependency/file-list clarification and its validation ruling were retained; the plan change is not part of this task's staged files.
+
+Both wrappers now consume `AdmissionGate` leases. Ordinary admission removes `QueuedCommands` and semaphore-token ownership, uses the gate's actual occupancy for metrics, and awaits lease release plus metadata emission on success/error. Legacy `Bulkhead` removes its count/raw-continuation handoff and unstructured defer release; `getStats()` awaits the shared gate snapshot. Existing policy/error APIs and tagged shared-capacity behavior remain. Successful fallback/custom returns regain `NextGuardWarningSuppressing`; throwing and accidental-omission controls run through the actual guarded chain builder.
+
+All commands ran from the isolated worktree through the reviewed external watchdog, with approved Swift cache access:
+
+| ID | Exact command | Result |
+|---|---|---|
+| R02-001-wrapper-red | `python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id R02-001-wrapper-red --timeout 600 -- swift test --filter 'BulkheadAdmissionConservationTests\|NextGuardSuppressionConformanceTests'` | Root/runner 1/1; 4 resilience tests, 22 expected assertion failures; 1 additional matching security test passed. 14.780 s. |
+| R02-002-focused-green | `python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id R02-002-focused-green --timeout 600 -- swift test --filter 'BulkheadAdmissionConservationTests\|BulkheadMiddlewareTests\|ResilientMiddlewareTests\|NextGuardSuppressionConformanceTests'` | Root/runner 0/0; 22 resilience tests plus 1 matching security test, zero failures. 12.762 s. |
+| R02-003-debug-full | `python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id R02-003-debug-full --timeout 600 -- swift test --parallel --skip PipelineKitPerformanceTests` | Root/runner 0/0; 1,046 distinct XCTest progress records and 20 Swift Testing cases passed. 15.704 s. |
+
+Every run reports `watchdog_timeout=false`, `cleanup.settled=true`, zero survivors and no runner error or termination action. The full Debug run is the only full run and uses the same substantive source as focused green.
+
+Red was behavioral: the only production change before R02-001 was a controller-approved, observation-only `admissionSnapshot()` backed by the existing semaphore statistics. The old acquisition/release logic was unchanged. After the first legitimate queued wave, ordinary waves 1–7 were rejected (14 assertions). Legacy cancelled waiters entered the cancellation-insensitive handler and returned success twice (2 assertions). Valid fallback/custom results emitted false never-called warnings in Array, ContiguousArray and PipelineBuilder routes (6 assertions). Both capacity-1/2 legacy handoff traces happened to remain within capacity; the old non-FIFO interleaving was **not** forced. Its source defect is the decrement-before-resumed-waiter-increment window removed by the shared lease gate, whose reservation transition was independently accepted in R01.
+
+The shared adapter/ledger in `BulkheadAdmissionConservationTests.swift` is intentionally small and ready for R03 to add a partitioned factory to the subject list. Both wrappers run eight acknowledged contended waves with a one-place queue, including success, handler throw and queued cancellation; queue/active counts return to zero. Both run capacity-1/2 handoffs against a fresh arrival and cancellation/retained-active-handler/full-queue/replacement schedules. Tasks acknowledge attempts, queue observation, entry, cancellation/expiry and settlement; every fixture task is joined, and no sleep establishes ordering. Ordinary-only manual-clock waves additionally cover four expiries with the holder still active, replacement queue reuse, successful/throwing replacement settlement, post-grant deadline expiry and queue metadata. Legacy has no public queue timeout; no timeout case is silently claimed for it. The production-clock timeout smoke now holds its handler behind an explicit release and has no CI/simulator skip. Zero/negative ordinary timeout boundaries, tagged/taskGroup shared occupancy, immediate metadata settlement and legacy stats settlement are covered by their focused tests.
+
+| Finding / constraint | R02 evidence for controller review |
+|---|---|
+| R-F01 | Behavioral queue exhaustion red; live gate queue ownership replaces unreleased queue reservations; repeated success/error/cancel/timeout waves pass with zero final occupancy. |
+| R-F15 | Old count/raw-continuation ownership removed; explicit awaited release and atomic gate transfer now own handoff. Shared capacity-1/2 schedules and cancelled-waiter red/green pass; the particular old fresh-arrival interleaving remains source-established, not empirically forced. |
+| R-A01 | Successful fallback/custom warning red/green through both chain representations plus real builder path; wrong-result-type/custom-error and accidental dropped-chain controls retained. |
+
+`logs/R02-001-source-state.json` records the observation-only red state, exact changed hashes/diff and the initial new test file. `logs/R02-002-source-state.json` and `logs/R02-final-source-state.json` record the focused/full state, six source/test hashes and the exact tracked/new-file diffs. Focused/full-stage relevant tracked diff SHA-256: `9854560aab46c9ef530b93cc4ab61056480e51b7442eef6b442868554f2c47e9`. All six hashes and the tracked source/test diff were rechecked after the complete suite without mismatch. Raw logs, run JSON and process traces are retained under the exact R02 IDs. `git diff --check` passed.
+
+Warning analysis in `logs/R02-warnings.json` normalizes compiler diagnostics by relative path plus diagnostic text, excluding line/column shifts. Red: 2 existing unique diagnostics / 2 occurrences; focused: 8 existing unique / 10 occurrences; full: zero compiler diagnostics in its incremental output; zero new normalized compiler diagnostics in all runs. Runtime scanning separately includes SwiftLog `warning PipelineKit...` forms and reports zero emitted runtime-warning lines in these raw logs; the warning-sink test separately asserts the six false red warnings, zero corresponding green warnings, and one expected accidental-omission warning per Debug route. Parallel output can omit successful child output, so this is not a clean global-warning-baseline claim. Existing C02-N1 fixture warning debt is unchanged and separately deferred.
+
+No platform-floor/settings/dependency changes, original audit edits, pushes or merges. No performance, hard arbitrary-handler deadline, or final integration closure claim. Controller owns CLOSURE/progress and the fresh review.
+
+## Changed source and tests
+
+- `Sources/PipelineKitResilienceCircuitBreaker/BulkheadMiddleware.swift`: shared gate, owned lease execution paths, snapshot-backed occupancy, package-only observation/injection seams, fallback warning marker. Removed obsolete unsubstantiated semaphore performance claims adjacent to the changed implementation.
+- `Sources/PipelineKitResilienceCore/ResilientMiddleware.swift`: only the legacy Bulkhead implementation/import changes; retry middleware behavior unchanged.
+- `Tests/PipelineKitResilienceTests/BulkheadAdmissionConservationTests.swift`: shared ordinary/legacy adapter, handler/terminal ledger and four regression cases. R03 can add its adapter to `subjects(capacity:queue:)` without duplicating schedules.
+- `Tests/PipelineKitResilienceTests/BulkheadMiddlewareTests.swift`: bounded real timeout smoke; no sleep/skip for that timeout; nonpositive timeouts; deprecated tagged/taskGroup shared capacity and tag metadata; metadata assertions immediately after execution.
+- `Tests/PipelineKitResilienceTests/ResilientMiddlewareTests.swift`: legacy stats already settled on successful/error return.
+- `Tests/PipelineKitResilienceTests/NextGuardSuppressionConformanceTests.swift`: remove the inappropriate Bulkhead negative conformance assertion, retain throw-only middleware checks, add 5-policy × 3-route guarded matrix plus accidental omission controls.
+- Execution `VALIDATION.md`, this report, and exact `logs/R02-*` evidence. Controller-owned plan and audit artifacts are not staged.
+
+## Self-review
+
+Checked release ownership for immediate admission, queued grant, cancellation before grant, cancellation during handoff, successful/error handler settlement, queue full/timeout, and fallback/custom short circuits. Every normal owned return path awaits release; no wrapper-owned raw continuation, separate active count, queue reservation counter or release task remains. The only internal gate timer/cancellation tasks are the accepted R01 implementation. No new claim is made that every internal callback has exited when the wrapper returns; clock fixtures acknowledge all sleeper calls settling.
+
+The ordinary snapshot and gate-injection seams were explicitly approved by the controller. They are package-only, hold no duplicate state, and all injected test gates match the configured capacity/queue limits. Public initialization validates positive capacity/nonnegative queue limits; queue timeout must be finite, with zero/negative timeout allowing available capacity but refusing a wait. Legacy maps `maxWaitingCalls` directly to the gate queue limit and exposes no new timeout policy.
+
+The source invariant behind legacy handoff is now the same actor-owned remove/grant/resume transition approved in R01. R02 handoff tests measure live entered handlers and exact occupancy, but no claim is made that the old non-FIFO race was forced. R01 by itself did not close these wrapper findings. No correctness concern remains from self-review; final closure is for the controller after independent review.
+
+## Final source SHA-256
+
+- `Sources/PipelineKitResilienceCircuitBreaker/BulkheadMiddleware.swift`: `f4c12de1b32b09d3dad2db8c68f4b9c0e6ffcac74cb7e664e979d4445e788709`
+- `Sources/PipelineKitResilienceCore/ResilientMiddleware.swift`: `2283d280f276dd0abe446459418811b49b22879db0e9d4e9b9e0e48cf9b8b994`
+- `Tests/PipelineKitResilienceTests/BulkheadAdmissionConservationTests.swift`: `3686ad46e8b414e18cb31ceaf98a0d68d522568a5d76ee1930975efa02d6c2bf`
+- `Tests/PipelineKitResilienceTests/NextGuardSuppressionConformanceTests.swift`: `a5f2688875d9d9a66a1fd38243d3720e71efed97dd78eda0c21f9f76c218afe4`
+- `Tests/PipelineKitResilienceTests/BulkheadMiddlewareTests.swift`: `d25e591a1fd02a3606eb43e5778abd91b296638f5c730c3af09d04987df05c28`
+- `Tests/PipelineKitResilienceTests/ResilientMiddlewareTests.swift`: `19963acc8712fafd47a2db1f7f34e08ad78f87344f89eaf18b15928c3811d9f8`
+
+
+### R02 final self-review control (test-only)
+
+Controller self-review requested an immediate-admission cancellation control. Production source hashes remain identical to R02-002/R02-003. Added `testImmediateAdmissionCancellationReleasesCapacity` to the shared harness: for both wrappers, a task cancelled before admission must not enter the handler, and an immediately admitted handler that cancels itself and throws `CancellationError` must release capacity before the wrapper returns. Each case joins its task, asserts zero active/queued ownership, and successfully executes a fresh replacement. This does not force suspension in the narrow grant-to-wrapper-check interval; the ordinary wrapper's explicit post-acquisition cancellation check and awaited catch release establish that path by source inspection.
+
+`python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id R02-004-immediate-cancellation --timeout 600 -- swift test --filter BulkheadAdmissionConservationTests.testImmediateAdmissionCancellationReleasesCapacity` passed its 1 test in 9.218 s; root/runner 0/0, no timeout, cleanup settled, zero survivors, no termination actions. It emitted zero compiler/runtime warning lines. No full suite was rerun for this test-only addition; the full R02-003 result remains 1,046 XCTest records plus 20 Swift Testing cases.
+
+`logs/R02-004-source-state.json` records the final six file hashes, complete diff, and the exact test-only delta from the staged focused/full state; the common harness's final SHA-256 is `3686ad46e8b414e18cb31ceaf98a0d68d522568a5d76ee1930975efa02d6c2bf`. The prior `R02-final-source-state.json` remains the unmodified source/test manifest for R02-002/R02-003. The final delta hash is `469060adf83b1594ce215d2538eed62992375692b7fbf20e6043e078db7612c1`. All final hashes were rechecked after R02-004. Staged source/test/document whitespace checks pass; the immutable raw compiler logs retain 9 trailing-whitespace snippet lines, so the unrestricted staged whitespace check reports those evidence-only lines.
+
+
+## R02 fix round 1 — R02-I1 timeout representability and R02-N2 labels
+
+Fix base: `d912867dc8fa12a624c0024d568838c281a08de8`. Initial source changes were empty; controller-owned resilience and master-plan clarifications remain unstaged. The original R02 raw logs/manifests are unchanged. R02-I1 was source-established by review; no redundant old-source overflow/crash reproduction was run in this fix round.
+
+R02-I1 is addressed by a cached `Duration?` normalized during `BulkheadMiddleware` initialization. The module-internal `BulkheadQueueTimeout.normalize` helper accepts nil, rejects nonfinite values and positive values greater than 86,400 seconds with the explicit precondition `Bulkhead queue timeout must be finite and no greater than 86400 seconds`, maps every finite nonpositive input directly to `.zero`, and only then converts a supported positive input. The queue path consumes this cached value; it performs no TimeInterval conversion while contended. Tiny positive inputs round to the nearest attosecond and use no-wait semantics if that rounds to zero. The helper stays internal to `_CircuitBreaker` in the existing source file so R03 can reuse the exact policy; PartitionedBulkheadMiddleware, the legacy wrapper and AdmissionGate are unchanged.
+
+The controller approved the 24-hour positive cap as a deliberate documented behavior break, not a claim that Swift's intrinsic Duration range is 24 hours. Public queueTimeout documentation and `docs/migrations/first-stabilization-batch.md` describe the contract, reason and migration cost. Existing longer finite queue budgets must revisit their policy; nil plus application-managed cancellation removes the built-in deadline and is not equivalent to the previous finite budget. I01 owns the consolidated next-minor **Breaking** entry and must include this change. This does not establish a handler deadline or preemptive cancellation.
+
+The checked-conversion and immediate-addition reasoning is bounded to the Swift 6.2 source used in review. Positive input is at most 86,400 seconds, hence at most `86_400 * 10^18` attoseconds. [Duration's Double conversion](https://github.com/swiftlang/swift/blob/swift-6.2-RELEASE/stdlib/public/core/Duration.swift#L141-L166) scales into its signed 128-bit representation. [Clock.sleep(for:)](https://github.com/swiftlang/swift/blob/swift-6.2-RELEASE/stdlib/public/Concurrency/Clock.swift#L98-L105) immediately advances now; [ContinuousClock's construction and advancement](https://github.com/swiftlang/swift/blob/swift-6.2-RELEASE/stdlib/public/Concurrency/ContinuousClock.swift#L82-L131) use Int64 seconds plus a subsecond nanosecond part and Duration addition. The absolute attosecond bound for that immediate addition is below `(2^63 + 86_401) * 10^18 < 2^124 < 2^127`. This proves headroom for those two operations, not arbitrary clocks, every runtime timer conversion or arbitrarily extreme absolute instants: Duration.components itself exposes Int64 seconds. The boundary test exercises the conservative Duration-addition bound without decomposing the extreme result, and checks actual ContinuousClock.now advancement by the chosen limit.
+
+`testQueueTimeoutRangeAndNormalizationBoundaries` exercises 10 values × queue limits 0/1: `-Double.greatestFiniteMagnitude`, `-1e30`, `-1`, zero, `Double.leastNonzeroMagnitude`, `1e-20`, `1e-18`, 0.001, `86_400.nextDown`, and exactly 86,400. Each row first enters a held handler with free capacity, then checks the occupied behavior. No-wait inputs time out without installing a sleeper, positive nonzero inputs reject a zero-length queue, and positive queued inputs acknowledge the manual sleeper before expiry. Every row checks that the original handler retains its permit until explicit settlement and returns active/queued occupancy to zero. Existing repeated timeout/replacement, handler-error, cancellation, fallback and tagged-mode tests remain in the focused/full runs.
+
+`testQueueTimeoutConfigurationValidationProbe` checks valid public construction in ordinary runs. The bounded `repros/r02_timeout_validation.py` driver selects invalid values in separate built XCTest processes: `86_400.nextUp`, `1e30`, NaN, positive infinity and negative infinity, each with queue limit 0/1. All 10 children return Swift test exit 1 after XCTest signal 5 and exactly one occurrence of the explicit precondition diagnostic. The driver requires that diagnostic as well as failure; an unrelated conversion overflow cannot satisfy the control. It joins every child and records per-case output/status in `R02-R1-003-cases.json` and the ten named raw logs. Invalid positive configuration is intentionally rejected at initialization, including queue limit zero; it is not deferred until a holder is admitted.
+
+| ID | Exact command | Outcome |
+|---|---|---|
+| R02-R1-001-focused | `python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id R02-R1-001-focused --timeout 600 -- swift test --filter 'BulkheadAdmissionConservationTests\|BulkheadMiddlewareTests\|ResilientMiddlewareTests\|NextGuardSuppressionConformanceTests'` | 25 resilience + 1 security tests passed; root/runner 0/0; 12.966 s. Initial normalized helper location. |
+| R02-R1-002-boundaries | `python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id R02-R1-002-boundaries --timeout 600 -- swift test --filter BulkheadMiddlewareTests.testQueueTimeout` | 3 tests passed; root/runner 0/0; 10.219 s. Rebuilt after the controller-requested move to module-internal helper scope for R03. |
+| R02-R1-003-validation-probes | `python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id R02-R1-003-validation-probes --timeout 600 -- python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/r02_timeout_validation.py --id R02-R1-003` | 10/10 expected-precondition rows passed; driver/root/runner 0/0; 37.994 s. Child Swift test exits are intentionally 1. |
+| R02-R1-004-debug-full | `python3 docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py --id R02-R1-004-debug-full --timeout 600 -- swift test --parallel --skip PipelineKitPerformanceTests` | 1,049 distinct XCTest progress records and 20 Swift Testing cases passed; root/runner 0/0; 19.273 s. |
+
+All four outer run records have no watchdog timeout or runner error, settled cleanup, zero survivors and zero termination actions. The final full run uses the same source as R1-002/003 and includes the prior R02-004 immediate-cancellation test plus both new tests. The earlier R02-003 full result remains historical evidence for its original production source, not this fix. No repeated full suite at an unchanged source was run.
+
+`logs/R02-R1-source-state.json` identifies R1-001 before internalizing the helper. `logs/R02-R1-final-source-state.json` identifies R1-002/003/004, stores final source/test/driver/migration hashes and exact tracked/new-file diffs, and pins the unchanged AdmissionGate, legacy wrapper, manual clock and shared conservation harness. Final tracked diff SHA-256: `e5ebf8ff9a2adc9b6f0fc2fff5ed3894e8607d375eac1136443d099a9b1b3b40`. All recorded files and dependencies, plus the tracked diff, matched after full validation.
+
+`logs/R02-R1-warnings.json` retains normalized path+diagnostic counts. R1-001 emitted 2 existing compiler kinds / 2 occurrences; R1-002 emitted 7 existing kinds / 9 occurrences; R1-003/004 emitted zero compiler diagnostics. Zero new compiler kinds and zero runtime-warning lines were observed in the retained logs, including scanning SwiftLog prefixes. The 10 expected configuration precondition messages are counted separately. This is not a globally clean warning-baseline claim; R02-N1 compiler debt and C02-N1 fixture debt remain separately deferred.
+
+R02-N2 is corrected in VALIDATION, the permanent implementer report, and the scratch task report: the extra selected case was `PipelineKitSecurityTests.NextGuardSuppressionConformanceTests.testThrowBasedSecurityMiddlewaresDoNotSuppressNextGuardWarnings`, not a core test. Original counts remain 4 resilience + 1 security in red and 22 resilience + 1 security in the initial focused green. Raw logs were not edited.
+
+Self-review checked finite/nonfinite ordering, extreme-negative zero normalization before conversion, cached admission use, exact maximum/next-representable behavior, queue-zero precedence, tiny-positive rounding, default-clock immediate-addition headroom, explicit precondition diagnostics and task/process settlement. No remaining R02-I1 correctness concern was found. No R01 ownership rewrite, third-party dependency, setting/floor change, original audit edit, push or merge. The controller owns fresh re-review, R03 matrix extension, CLOSURE/progress, and I01 release/migration consolidation.
+
+### Fix round 1 final hashes
+
+- `Sources/PipelineKitResilienceCircuitBreaker/BulkheadMiddleware.swift`: `71e5dc3ec2d8cdefcb3da20255423e1fbb6e6bc05830a739ba95a827fae56698`
+- `Tests/PipelineKitResilienceTests/BulkheadMiddlewareTests.swift`: `9f25ea738142e05bcfe037bc97d75139ea739da971ee25bb70c61ac08345b4f9`
+- `docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/r02_timeout_validation.py`: `0ce8068ddd975abbdd8d85ef0696292b78e9fa1c4a2eb84e37f306796b318e28`
+- `docs/migrations/first-stabilization-batch.md`: `5a3b59035237601e28877d6f44217b0651fd5025b5a6b965c5cfc31f5fa4a08c`

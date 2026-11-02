@@ -1,0 +1,223 @@
+{
+  "id": "V04-015-matrix-refuse_term",
+  "mode": "refuse_term",
+  "fixture_directory": "/var/folders/_c/7_fgg5v57d56kt4wd9bcsdj40000gn/T/V04-015-matrix-refuse_term-28iqo_h6",
+  "old_runner": false,
+  "invocation": [
+    "/opt/homebrew/opt/python@3.14/bin/python3.14",
+    "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/run_check.py",
+    "--id",
+    "V04-015-matrix-refuse_term",
+    "--timeout",
+    "3",
+    "--",
+    "/opt/homebrew/opt/python@3.14/bin/python3.14",
+    "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/v04_process_fixtures.py",
+    "--worker",
+    "refuse_term",
+    "/var/folders/_c/7_fgg5v57d56kt4wd9bcsdj40000gn/T/V04-015-matrix-refuse_term-28iqo_h6"
+  ],
+  "runner_status": 124,
+  "metadata": {
+    "id": "V04-015-matrix-refuse_term",
+    "cwd": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization",
+    "command": [
+      "/opt/homebrew/opt/python@3.14/bin/python3.14",
+      "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/v04_process_fixtures.py",
+      "--worker",
+      "refuse_term",
+      "/var/folders/_c/7_fgg5v57d56kt4wd9bcsdj40000gn/T/V04-015-matrix-refuse_term-28iqo_h6"
+    ],
+    "started_utc": "2026-10-30T23:25:16.336738+00:00",
+    "elapsed_seconds": 5.039,
+    "exit_status": -9,
+    "watchdog_timeout": true,
+    "log": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/V04-015-matrix-refuse_term.log",
+    "runner_exit_status": 124,
+    "runner_error": null,
+    "cleanup": {
+      "settled": true,
+      "survivors": [],
+      "outcomes": [
+        {
+          "identity": {
+            "pid": 51069,
+            "start": [
+              1793402716,
+              337196
+            ]
+          },
+          "state": "gone"
+        }
+      ],
+      "inspection_errors": [],
+      "term_grace_seconds": 2.0,
+      "kill_grace_seconds": 3.0
+    },
+    "event_errors": [],
+    "completion_reason": "timeout",
+    "unexpected_descendants": [],
+    "owned_processes": [
+      {
+        "identity": {
+          "pid": 51069,
+          "start": [
+            1793402716,
+            337196
+          ]
+        },
+        "observed_parent": null,
+        "first_seen_seconds": 0.002129,
+        "observations": [
+          {
+            "ppid": 51068,
+            "pgid": 51069,
+            "state": 2
+          }
+        ]
+      }
+    ],
+    "termination_actions": [
+      {
+        "identity": {
+          "pid": 51069,
+          "start": [
+            1793402716,
+            337196
+          ]
+        },
+        "signal": "SIGTERM",
+        "elapsed_seconds": 3.000347,
+        "verified_before_signal": {
+          "pid": 51069,
+          "start": [
+            1793402716,
+            337196
+          ],
+          "ppid": 51068,
+          "pgid": 51069,
+          "state": 2
+        },
+        "result": "sent"
+      },
+      {
+        "identity": {
+          "pid": 51069,
+          "start": [
+            1793402716,
+            337196
+          ]
+        },
+        "signal": "SIGKILL",
+        "elapsed_seconds": 5.013493,
+        "verified_before_signal": {
+          "pid": 51069,
+          "start": [
+            1793402716,
+            337196
+          ],
+          "ppid": 51068,
+          "pgid": 51069,
+          "state": 2
+        },
+        "result": "sent"
+      }
+    ],
+    "process_events": "/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/logs/V04-015-matrix-refuse_term.processes.jsonl",
+    "ownership_backend": "macOS libproc PID + start timeval",
+    "containment_limits": [
+      "Only lineages observed before reparenting are owned; instant unobserved daemonization can escape.",
+      "Identity check and kill are separate syscalls; PID reuse in that interval cannot be excluded.",
+      "Zombie means no executing process; non-child zombie reaping belongs to its parent.",
+      "SIGKILL of the runner or host failure can bypass cleanup; Linux is unsupported and unvalidated."
+    ]
+  },
+  "owned_survivors_before_independent_cleanup": [],
+  "sentinel_survived": true,
+  "sentinel_was_signaled": false,
+  "owned_after_cleanup": {
+    "settled": true,
+    "survivors": [],
+    "outcomes": [
+      {
+        "identity": {
+          "pid": 51069,
+          "start": [
+            1793402716,
+            337196
+          ]
+        },
+        "state": "gone"
+      }
+    ],
+    "inspection_errors": [],
+    "term_grace_seconds": 2.0,
+    "kill_grace_seconds": 3.0
+  },
+  "passed": true,
+  "independent_cleanup": {
+    "settled": true,
+    "actions": [
+      {
+        "identity": {
+          "pid": 51067,
+          "ppid": 50951,
+          "pgid": 50951,
+          "state": 2,
+          "start": [
+            1793402716,
+            240345
+          ]
+        },
+        "signal": 15,
+        "result": "sent"
+      },
+      {
+        "identity": {
+          "pid": 51067,
+          "ppid": 50951,
+          "pgid": 50951,
+          "state": 2,
+          "start": [
+            1793402716,
+            240345
+          ]
+        },
+        "signal": 9,
+        "result": "sent"
+      }
+    ],
+    "identities": [
+      {
+        "pid": 51067,
+        "ppid": 50951,
+        "pgid": 50951,
+        "state": 2,
+        "start": [
+          1793402716,
+          240345
+        ]
+      },
+      {
+        "pid": 51068,
+        "ppid": 50951,
+        "pgid": 50951,
+        "state": 2,
+        "start": [
+          1793402716,
+          293732
+        ]
+      },
+      {
+        "pid": 51069,
+        "ppid": 51068,
+        "pgid": 51069,
+        "state": 2,
+        "start": [
+          1793402716,
+          337196
+        ]
+      }
+    ]
+  }
+}

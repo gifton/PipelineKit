@@ -1,0 +1,90 @@
+Building for debugging...
+[Computing dependencies]
+[Pre-planning 1 / 1026]
+[Planning deferred tasks]
+[1 / 2]
+[2 / 2] PipelineKitSecurity
+[8 / 8] PipelineKitSecurityTests-product
+[16 / 19] PipelineKitCoreTests-product
+[23 / 34] PipelineKitCacheTests-product
+[25 / 36] PipelineKitCacheTests-product
+[31 / 35] PipelineKitCacheTests-product
+Build complete! (2.58 sec)
+Test Suite 'Selected tests' started at 2026-10-30 20:15:14.888.
+Test Suite 'PipelineKitTests.xctest' started at 2026-10-30 20:15:14.889.
+Test Suite 'PipelineKitTests.xctest' passed at 2026-10-30 20:15:14.889.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 20:15:14.889.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 20:15:14.977.
+Test Suite 'PipelineKitTestSupportTests.xctest' started at 2026-10-30 20:15:14.978.
+Test Suite 'PipelineKitTestSupportTests.xctest' passed at 2026-10-30 20:15:14.978.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 20:15:14.978.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 20:15:15.066.
+Test Suite 'PipelineKitSecurityTests.xctest' started at 2026-10-30 20:15:15.067.
+Test Suite 'PipelineKitSecurityTests.xctest' passed at 2026-10-30 20:15:15.067.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 20:15:15.067.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 20:15:15.153.
+Test Suite 'PipelineKitResilienceTests.xctest' started at 2026-10-30 20:15:15.153.
+Test Suite 'PipelineKitResilienceTests.xctest' passed at 2026-10-30 20:15:15.153.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 20:15:15.154.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 20:15:15.238.
+Test Suite 'PipelineKitPoolingTests.xctest' started at 2026-10-30 20:15:15.239.
+Test Suite 'PipelineKitPoolingTests.xctest' passed at 2026-10-30 20:15:15.239.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 20:15:15.239.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 20:15:15.319.
+Test Suite 'PipelineKitPerformanceTests.xctest' started at 2026-10-30 20:15:15.320.
+Test Suite 'PipelineKitPerformanceTests.xctest' passed at 2026-10-30 20:15:15.320.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 20:15:15.320.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 20:15:15.405.
+Test Suite 'PipelineKitObservabilityTests.xctest' started at 2026-10-30 20:15:15.406.
+Test Suite 'PipelineKitObservabilityTests.xctest' passed at 2026-10-30 20:15:15.406.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 20:15:15.406.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 20:15:15.487.
+Test Suite 'PipelineKitCoreTests.xctest' started at 2026-10-30 20:15:15.488.
+Test Suite 'PipelineKitCoreTests.xctest' passed at 2026-10-30 20:15:15.488.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 20:15:15.488.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 20:15:15.550.
+Test Suite 'PipelineKitCacheTests.xctest' started at 2026-10-30 20:15:15.551.
+Test Suite 'CacheIdentityContractTests' started at 2026-10-30 20:15:15.551.
+Test Case '-[PipelineKitCacheTests.CacheIdentityContractTests testCacheIdentityMatrix]' started.
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CacheIdentityContractTests.swift:20: error: -[PipelineKitCacheTests.CacheIdentityContractTests testCacheIdentityMatrix] : XCTAssertEqual failed: ("one/alice") is not equal to ("two/alice") - Cached
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CacheIdentityContractTests.swift:20: error: -[PipelineKitCacheTests.CacheIdentityContractTests testCacheIdentityMatrix] : XCTAssertEqual failed: ("one/bob") is not equal to ("two/bob") - Cached
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CacheIdentityContractTests.swift:20: error: -[PipelineKitCacheTests.CacheIdentityContractTests testCacheIdentityMatrix] : XCTAssertEqual failed: ("one/alice") is not equal to ("two/alice") - Conditional
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CacheIdentityContractTests.swift:20: error: -[PipelineKitCacheTests.CacheIdentityContractTests testCacheIdentityMatrix] : XCTAssertEqual failed: ("one/alice") is not equal to ("one/bob") - Conditional
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CacheIdentityContractTests.swift:20: error: -[PipelineKitCacheTests.CacheIdentityContractTests testCacheIdentityMatrix] : XCTAssertEqual failed: ("one/alice") is not equal to ("two/bob") - Conditional
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CacheIdentityContractTests.swift:20: error: -[PipelineKitCacheTests.CacheIdentityContractTests testCacheIdentityMatrix] : XCTAssertEqual failed: ("one/alice") is not equal to ("two/alice") - Simple
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CacheIdentityContractTests.swift:20: error: -[PipelineKitCacheTests.CacheIdentityContractTests testCacheIdentityMatrix] : XCTAssertEqual failed: ("one/alice") is not equal to ("one/bob") - Simple
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CacheIdentityContractTests.swift:20: error: -[PipelineKitCacheTests.CacheIdentityContractTests testCacheIdentityMatrix] : XCTAssertEqual failed: ("one/alice") is not equal to ("two/bob") - Simple
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CacheIdentityContractTests.swift:20: error: -[PipelineKitCacheTests.CacheIdentityContractTests testCacheIdentityMatrix] : XCTAssertEqual failed: ("one/alice") is not equal to ("one/bob") - Caching
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CacheIdentityContractTests.swift:20: error: -[PipelineKitCacheTests.CacheIdentityContractTests testCacheIdentityMatrix] : XCTAssertEqual failed: ("two/alice") is not equal to ("two/bob") - Caching
+Test Case '-[PipelineKitCacheTests.CacheIdentityContractTests testCacheIdentityMatrix]' failed (0.193 seconds).
+Test Case '-[PipelineKitCacheTests.CacheIdentityContractTests testEqualHashValuesDoNotShareResults]' started.
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CacheIdentityContractTests.swift:38: error: -[PipelineKitCacheTests.CacheIdentityContractTests testEqualHashValuesDoNotShareResults] : XCTAssertEqual failed: ("one") is not equal to ("two") - SimpleCachingMiddleware
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CacheIdentityContractTests.swift:38: error: -[PipelineKitCacheTests.CacheIdentityContractTests testEqualHashValuesDoNotShareResults] : XCTAssertEqual failed: ("one") is not equal to ("two") - CachingMiddleware
+Test Case '-[PipelineKitCacheTests.CacheIdentityContractTests testEqualHashValuesDoNotShareResults]' failed (0.001 seconds).
+Test Case '-[PipelineKitCacheTests.CacheIdentityContractTests testExplicitKeysStillNamespaceDifferentCommandTypes]' started.
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitCacheTests/CacheIdentityContractTests.swift:48: error: -[PipelineKitCacheTests.CacheIdentityContractTests testExplicitKeysStillNamespaceDifferentCommandTypes] : XCTAssertEqual failed: ("left") is not equal to ("right")
+Test Case '-[PipelineKitCacheTests.CacheIdentityContractTests testExplicitKeysStillNamespaceDifferentCommandTypes]' failed (0.000 seconds).
+Test Suite 'CacheIdentityContractTests' failed at 2026-10-30 20:15:15.746.
+	 Executed 3 tests, with 13 failures (0 unexpected) in 0.194 (0.195) seconds
+Test Suite 'PipelineKitCacheTests.xctest' failed at 2026-10-30 20:15:15.746.
+	 Executed 3 tests, with 13 failures (0 unexpected) in 0.194 (0.195) seconds
+Test Suite 'Selected tests' failed at 2026-10-30 20:15:15.746.
+	 Executed 3 tests, with 13 failures (0 unexpected) in 0.194 (0.195) seconds
+Note: Some test targets reported failures:
+  - PipelineKitCacheTests (XCTest)

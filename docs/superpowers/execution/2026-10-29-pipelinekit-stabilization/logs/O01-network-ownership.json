@@ -1,0 +1,22 @@
+{
+  "header": "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks/Network.framework/Versions/A/Headers/connection.h",
+  "sha256": "133b5ab70b01c760bd83063e81a0293eecc23b6b8728512c8a4aa54e76b9a328",
+  "excerpts": [
+    {
+      "start": 134,
+      "end": 151,
+      "text": " * @function nw_connection_set_state_changed_handler\n *\n * @abstract\n *\t\tSets the state change handler. For clients that need to perform cleanup when the\n *\t\tconnection has been cancelled, the nw_connection_state_cancelled state will\n *\t\tbe delivered last.\n *\n * @param connection\n *\t\tThe connection object.\n *\n * @param handler\n *\t\tThe state changed handler to call when the connection state changes.\n *\t\tPass NULL to remove the state changed handler.\n */\nAPI_AVAILABLE(macos(10.14), ios(12.0), watchos(5.0), tvos(12.0))\nvoid\nnw_connection_set_state_changed_handler(nw_connection_t connection,\n\t\t\t\t\t\t\t\t_Nullable nw_connection_state_changed_handler_t handler);"
+    },
+    {
+      "start": 219,
+      "end": 234,
+      "text": " * @function nw_connection_set_queue\n *\n * @abstract\n *\t\tSets the client callback queue, on which blocks for events will\n *\t\tbe scheduled. This must be done before calling nw_connection_start().\n *\n * @param connection\n *\t\tThe connection object.\n *\n * @param queue\n *\t\tThe client's dispatch queue.\n */\nAPI_AVAILABLE(macos(10.14), ios(12.0), watchos(5.0), tvos(12.0))\nvoid\nnw_connection_set_queue(nw_connection_t connection,\n\t\t\t\t\t\tdispatch_queue_t queue);"
+    },
+    {
+      "start": 272,
+      "end": 290,
+      "text": " * @function nw_connection_cancel\n *\n * @abstract\n *\t\tCancel the connection. This will close the connection, and negotiate over the network\n *\t\tif applicable for the protocol. The process of cancellation will be completed\n *\t\tasynchronously, and the final callback event delivered to the caller will be a state\n *\t\tupdate with a value of nw_connection_state_cancelled. Once this update is delivered, the\n *\t\tcaller may clean up any associated memory or objects.\n *\n *\t\tOutstanding sends and receives will receive errors before the state changes to cancelled.\n *\t\tThere is no guarantee that any outstanding sends that have not yet delivered send completion handlers\n *\t\twill send data before the connection is closed.\n *\n * @param connection\n *\t\tThe connection object.\n */\nAPI_AVAILABLE(macos(10.14), ios(12.0), watchos(5.0), tvos(12.0))\nvoid\nnw_connection_cancel(nw_connection_t connection);"
+    }
+  ],
+  "ownership_review": "NWConnection creation is confined to adapter initialization; every subsequent method/property access is enqueued on one private serial DispatchQueue. Network delivers its events on that same callback queue. Callbacks capture only Sendable event/completion closures. UDPTransport event stream serializes callback arrival into actor terminal transitions; adapter clears the state handler before cancel. The @unchecked Sendable boundary covers queue-confined mutable started/cancelled flags and the connection reference, with no mutable state read from caller tasks."
+}

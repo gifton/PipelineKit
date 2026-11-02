@@ -1,0 +1,327 @@
+{
+  "normalization": "relative source/test path plus diagnostic text; omit line/column and duplicate source-snippet diagnostics",
+  "runtime_scan": "SwiftLog warning PipelineKit.*: and [WARN]/[Warning]/[warning] forms; counts are observed output, not a global warning-free claim",
+  "baseline_unique": 20,
+  "rows": {
+    "R03-001-handoff-red.log": {
+      "compiler_counts": {
+        "Sources/PipelineKitResilienceCircuitBreaker/PartitionedBulkheadMiddleware.swift: 'weak' ownership of capture 'partition' differs from implicitly-captured strong reference in outer scope [#ImplicitStrongCapture]": 1,
+        "Tests/PipelineKitResilienceTests/PartitionedBulkheadConfigurationTests.swift: 'maxBorrowPercentage' is deprecated: renamed to 'reservedCapacityPercentage' [#DeprecatedDeclaration]": 1,
+        "Tests/PipelineKitResilienceTests/PartitionedBulkheadConfigurationTests.swift: 'init(partitions:partitionExtractor:defaultPartition:allowBorrowing:maxBorrowPercentage:emitMetrics:)' is deprecated: maxBorrowPercentage has always been the reserved (non-lendable) share \u2014 use reservedCapacityPercentage, which has identical semantics. [#DeprecatedDeclaration]": 1,
+        "Tests/PipelineKitCoreTests/Middleware/MiddlewareTests.swift: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]": 1,
+        "Tests/PipelineKitCoreTests/Pipeline/PipelineTests.swift: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]": 1
+      },
+      "compiler_unique": 5,
+      "compiler_occurrences": 5,
+      "new_compiler_kinds": [],
+      "runtime_warning_lines": [],
+      "runtime_warning_occurrences": 0,
+      "expected_precondition_occurrences": 0
+    },
+    "R03-002-timeout-red.log": {
+      "compiler_counts": {},
+      "compiler_unique": 0,
+      "compiler_occurrences": 0,
+      "new_compiler_kinds": [],
+      "runtime_warning_lines": [],
+      "runtime_warning_occurrences": 0,
+      "expected_precondition_occurrences": 0
+    },
+    "R03-003-focused.log": {
+      "compiler_counts": {
+        "Tests/PipelineKitSecurityTests/AuthorizationMiddlewareTests.swift: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]": 2,
+        "Tests/PipelineKitCoreTests/Errors/CancellationErrorTests.swift: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]": 2,
+        "Tests/PipelineKitCoreTests/Middleware/MiddlewareTests.swift: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]": 1,
+        "Tests/PipelineKitCoreTests/Pipeline/PipelineTests.swift: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]": 1,
+        "Tests/PipelineKitResilienceTests/PartitionedBulkheadConfigurationTests.swift: 'maxBorrowPercentage' is deprecated: renamed to 'reservedCapacityPercentage' [#DeprecatedDeclaration]": 1,
+        "Tests/PipelineKitResilienceTests/PartitionedBulkheadConfigurationTests.swift: 'init(partitions:partitionExtractor:defaultPartition:allowBorrowing:maxBorrowPercentage:emitMetrics:)' is deprecated: maxBorrowPercentage has always been the reserved (non-lendable) share \u2014 use reservedCapacityPercentage, which has identical semantics. [#DeprecatedDeclaration]": 1
+      },
+      "compiler_unique": 6,
+      "compiler_occurrences": 8,
+      "new_compiler_kinds": [],
+      "runtime_warning_lines": [],
+      "runtime_warning_occurrences": 0,
+      "expected_precondition_occurrences": 0
+    },
+    "R03-004-debug-full.log": {
+      "compiler_counts": {},
+      "compiler_unique": 0,
+      "compiler_occurrences": 0,
+      "new_compiler_kinds": [],
+      "runtime_warning_lines": [],
+      "runtime_warning_occurrences": 0,
+      "expected_precondition_occurrences": 0
+    },
+    "R03-005-ordinary-above-limit-queue0.log": {
+      "compiler_counts": {},
+      "compiler_unique": 0,
+      "compiler_occurrences": 0,
+      "new_compiler_kinds": [],
+      "runtime_warning_lines": [],
+      "runtime_warning_occurrences": 0,
+      "expected_precondition_occurrences": 1
+    },
+    "R03-005-ordinary-above-limit-queue1.log": {
+      "compiler_counts": {},
+      "compiler_unique": 0,
+      "compiler_occurrences": 0,
+      "new_compiler_kinds": [],
+      "runtime_warning_lines": [],
+      "runtime_warning_occurrences": 0,
+      "expected_precondition_occurrences": 1
+    },
+    "R03-005-ordinary-extreme-positive-queue0.log": {
+      "compiler_counts": {},
+      "compiler_unique": 0,
+      "compiler_occurrences": 0,
+      "new_compiler_kinds": [],
+      "runtime_warning_lines": [],
+      "runtime_warning_occurrences": 0,
+      "expected_precondition_occurrences": 1
+    },
+    "R03-005-ordinary-extreme-positive-queue1.log": {
+      "compiler_counts": {},
+      "compiler_unique": 0,
+      "compiler_occurrences": 0,
+      "new_compiler_kinds": [],
+      "runtime_warning_lines": [],
+      "runtime_warning_occurrences": 0,
+      "expected_precondition_occurrences": 1
+    },
+    "R03-005-ordinary-nan-queue0.log": {
+      "compiler_counts": {},
+      "compiler_unique": 0,
+      "compiler_occurrences": 0,
+      "new_compiler_kinds": [],
+      "runtime_warning_lines": [],
+      "runtime_warning_occurrences": 0,
+      "expected_precondition_occurrences": 1
+    },
+    "R03-005-ordinary-nan-queue1.log": {
+      "compiler_counts": {},
+      "compiler_unique": 0,
+      "compiler_occurrences": 0,
+      "new_compiler_kinds": [],
+      "runtime_warning_lines": [],
+      "runtime_warning_occurrences": 0,
+      "expected_precondition_occurrences": 1
+    },
+    "R03-005-ordinary-negative-infinity-queue0.log": {
+      "compiler_counts": {},
+      "compiler_unique": 0,
+      "compiler_occurrences": 0,
+      "new_compiler_kinds": [],
+      "runtime_warning_lines": [],
+      "runtime_warning_occurrences": 0,
+      "expected_precondition_occurrences": 1
+    },
+    "R03-005-ordinary-negative-infinity-queue1.log": {
+      "compiler_counts": {},
+      "compiler_unique": 0,
+      "compiler_occurrences": 0,
+      "new_compiler_kinds": [],
+      "runtime_warning_lines": [],
+      "runtime_warning_occurrences": 0,
+      "expected_precondition_occurrences": 1
+    },
+    "R03-005-ordinary-positive-infinity-queue0.log": {
+      "compiler_counts": {},
+      "compiler_unique": 0,
+      "compiler_occurrences": 0,
+      "new_compiler_kinds": [],
+      "runtime_warning_lines": [],
+      "runtime_warning_occurrences": 0,
+      "expected_precondition_occurrences": 1
+    },
+    "R03-005-ordinary-positive-infinity-queue1.log": {
+      "compiler_counts": {},
+      "compiler_unique": 0,
+      "compiler_occurrences": 0,
+      "new_compiler_kinds": [],
+      "runtime_warning_lines": [],
+      "runtime_warning_occurrences": 0,
+      "expected_precondition_occurrences": 1
+    },
+    "R03-005-partitioned-above-limit-queue0.log": {
+      "compiler_counts": {},
+      "compiler_unique": 0,
+      "compiler_occurrences": 0,
+      "new_compiler_kinds": [],
+      "runtime_warning_lines": [],
+      "runtime_warning_occurrences": 0,
+      "expected_precondition_occurrences": 1
+    },
+    "R03-005-partitioned-above-limit-queue1.log": {
+      "compiler_counts": {},
+      "compiler_unique": 0,
+      "compiler_occurrences": 0,
+      "new_compiler_kinds": [],
+      "runtime_warning_lines": [],
+      "runtime_warning_occurrences": 0,
+      "expected_precondition_occurrences": 1
+    },
+    "R03-005-partitioned-extreme-positive-queue0.log": {
+      "compiler_counts": {},
+      "compiler_unique": 0,
+      "compiler_occurrences": 0,
+      "new_compiler_kinds": [],
+      "runtime_warning_lines": [],
+      "runtime_warning_occurrences": 0,
+      "expected_precondition_occurrences": 1
+    },
+    "R03-005-partitioned-extreme-positive-queue1.log": {
+      "compiler_counts": {},
+      "compiler_unique": 0,
+      "compiler_occurrences": 0,
+      "new_compiler_kinds": [],
+      "runtime_warning_lines": [],
+      "runtime_warning_occurrences": 0,
+      "expected_precondition_occurrences": 1
+    },
+    "R03-005-partitioned-nan-queue0.log": {
+      "compiler_counts": {},
+      "compiler_unique": 0,
+      "compiler_occurrences": 0,
+      "new_compiler_kinds": [],
+      "runtime_warning_lines": [],
+      "runtime_warning_occurrences": 0,
+      "expected_precondition_occurrences": 1
+    },
+    "R03-005-partitioned-nan-queue1.log": {
+      "compiler_counts": {},
+      "compiler_unique": 0,
+      "compiler_occurrences": 0,
+      "new_compiler_kinds": [],
+      "runtime_warning_lines": [],
+      "runtime_warning_occurrences": 0,
+      "expected_precondition_occurrences": 1
+    },
+    "R03-005-partitioned-negative-infinity-queue0.log": {
+      "compiler_counts": {},
+      "compiler_unique": 0,
+      "compiler_occurrences": 0,
+      "new_compiler_kinds": [],
+      "runtime_warning_lines": [],
+      "runtime_warning_occurrences": 0,
+      "expected_precondition_occurrences": 1
+    },
+    "R03-005-partitioned-negative-infinity-queue1.log": {
+      "compiler_counts": {},
+      "compiler_unique": 0,
+      "compiler_occurrences": 0,
+      "new_compiler_kinds": [],
+      "runtime_warning_lines": [],
+      "runtime_warning_occurrences": 0,
+      "expected_precondition_occurrences": 1
+    },
+    "R03-005-partitioned-positive-infinity-queue0.log": {
+      "compiler_counts": {},
+      "compiler_unique": 0,
+      "compiler_occurrences": 0,
+      "new_compiler_kinds": [],
+      "runtime_warning_lines": [],
+      "runtime_warning_occurrences": 0,
+      "expected_precondition_occurrences": 1
+    },
+    "R03-005-partitioned-positive-infinity-queue1.log": {
+      "compiler_counts": {},
+      "compiler_unique": 0,
+      "compiler_occurrences": 0,
+      "new_compiler_kinds": [],
+      "runtime_warning_lines": [],
+      "runtime_warning_occurrences": 0,
+      "expected_precondition_occurrences": 1
+    },
+    "R03-005-timeout-validation.log": {
+      "compiler_counts": {},
+      "compiler_unique": 0,
+      "compiler_occurrences": 0,
+      "new_compiler_kinds": [],
+      "runtime_warning_lines": [],
+      "runtime_warning_occurrences": 0,
+      "expected_precondition_occurrences": 0
+    },
+    "R03-006-above-one-reserve.log": {
+      "compiler_counts": {},
+      "compiler_unique": 0,
+      "compiler_occurrences": 0,
+      "new_compiler_kinds": [],
+      "runtime_warning_lines": [],
+      "runtime_warning_occurrences": 0,
+      "expected_precondition_occurrences": 1
+    },
+    "R03-006-config-validation.log": {
+      "compiler_counts": {},
+      "compiler_unique": 0,
+      "compiler_occurrences": 0,
+      "new_compiler_kinds": [],
+      "runtime_warning_lines": [],
+      "runtime_warning_occurrences": 0,
+      "expected_precondition_occurrences": 0
+    },
+    "R03-006-nan-reserve.log": {
+      "compiler_counts": {},
+      "compiler_unique": 0,
+      "compiler_occurrences": 0,
+      "new_compiler_kinds": [],
+      "runtime_warning_lines": [],
+      "runtime_warning_occurrences": 0,
+      "expected_precondition_occurrences": 1
+    },
+    "R03-006-negative-capacity.log": {
+      "compiler_counts": {},
+      "compiler_unique": 0,
+      "compiler_occurrences": 0,
+      "new_compiler_kinds": [],
+      "runtime_warning_lines": [],
+      "runtime_warning_occurrences": 0,
+      "expected_precondition_occurrences": 1
+    },
+    "R03-006-negative-infinity-reserve.log": {
+      "compiler_counts": {},
+      "compiler_unique": 0,
+      "compiler_occurrences": 0,
+      "new_compiler_kinds": [],
+      "runtime_warning_lines": [],
+      "runtime_warning_occurrences": 0,
+      "expected_precondition_occurrences": 1
+    },
+    "R03-006-negative-queue.log": {
+      "compiler_counts": {},
+      "compiler_unique": 0,
+      "compiler_occurrences": 0,
+      "new_compiler_kinds": [],
+      "runtime_warning_lines": [],
+      "runtime_warning_occurrences": 0,
+      "expected_precondition_occurrences": 1
+    },
+    "R03-006-negative-reserve.log": {
+      "compiler_counts": {},
+      "compiler_unique": 0,
+      "compiler_occurrences": 0,
+      "new_compiler_kinds": [],
+      "runtime_warning_lines": [],
+      "runtime_warning_occurrences": 0,
+      "expected_precondition_occurrences": 1
+    },
+    "R03-006-positive-infinity-reserve.log": {
+      "compiler_counts": {},
+      "compiler_unique": 0,
+      "compiler_occurrences": 0,
+      "new_compiler_kinds": [],
+      "runtime_warning_lines": [],
+      "runtime_warning_occurrences": 0,
+      "expected_precondition_occurrences": 1
+    },
+    "R03-006-zero-capacity.log": {
+      "compiler_counts": {},
+      "compiler_unique": 0,
+      "compiler_occurrences": 0,
+      "new_compiler_kinds": [],
+      "runtime_warning_lines": [],
+      "runtime_warning_occurrences": 0,
+      "expected_precondition_occurrences": 1
+    }
+  },
+  "deferred": "Existing C02-N1 fixture and R02-N1 compiler warning debt is unchanged."
+}

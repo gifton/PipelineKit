@@ -40,6 +40,11 @@ public struct HealthCheckMiddleware: Middleware {
     /// Configuration for `HealthCheckMiddleware`: the sliding window and thresholds
     /// used to compute per-service `HealthState`, the custom `HealthCheck`s to run in
     /// the background, and how blocking and metrics are handled.
+    ///
+    /// Recovery contracts are exercised by `HealthRecoveryContractTests`:
+    /// `testBlockedServiceRecoversWhenFailureWindowExpires`,
+    /// `testFreshUnhealthyProbeStillBlocksAndStaleProbeDoesNot`, and
+    /// `testSuccessThresholdAppliesWhileUnhealthyHasSufficientCurrentRequests`.
     public struct Configuration: Sendable {
         /// Interval between health checks
         public let checkInterval: TimeInterval
@@ -80,20 +85,21 @@ public struct HealthCheckMiddleware: Middleware {
         ///   - checkInterval: Interval, in seconds, between automatic background
         ///     health checks for every service in `healthChecks`. Also used to judge
         ///     whether a stored health-check result is still fresh enough to influence
-        ///     the computed health state — a result older than twice this interval is
-        ///     ignored. Defaults to `30.0`.
+        ///     the computed health state. Results expire at their timestamp plus twice
+        ///     this interval. Defaults to `30.0`.
         ///   - failureThreshold: Number of consecutive command failures for a service
         ///     that mark it `.unhealthy`. Only evaluated once at least `minRequests`
         ///     requests are present in the current window. Defaults to `5`.
         ///   - successThreshold: Number of consecutive command successes required,
-        ///     once a service is `.unhealthy`, before it becomes eligible to leave that
-        ///     state. Defaults to `3`.
+        ///     once a service is `.unhealthy` and still has at least `minRequests` in
+        ///     its current window, before it becomes eligible to leave that state.
+        ///     Defaults to `3`.
         ///   - windowSize: Size, in seconds, of the sliding time window used to compute
         ///     success rate and average response time; requests older than this are
         ///     pruned. Defaults to `60.0`.
         ///   - minRequests: Minimum number of requests that must be present in the
         ///     current window before success-rate/response-time thresholds are
-        ///     evaluated; below this, the last known health-check result (or
+        ///     evaluated; below this, a fresh health-check result (or
         ///     `.unknown`) is used instead. Defaults to `10`.
         ///   - successRateThreshold: Minimum fraction (`0.0`–`1.0`) of successful
         ///     requests in the window required to avoid a `.degraded` state. Defaults
@@ -151,19 +157,18 @@ public struct HealthCheckMiddleware: Middleware {
         case healthy
 
         /// The success rate or average response time fell outside its configured
-        /// threshold, or the most recent standalone health check reported degradation.
+        /// threshold, or a fresh standalone health check reported degradation.
         case degraded
 
         /// Consecutive command failures reached `Configuration.failureThreshold`, the
         /// service has not yet recovered with `Configuration.successThreshold`
-        /// consecutive successes, or the most recent standalone health check reported
+        /// consecutive successes, or a fresh standalone health check reported
         /// failure. When `Configuration.blockUnhealthyServices` is `true`,
         /// `execute(_:context:next:)` rejects commands for services in this state.
         case unhealthy
 
-        /// No outcomes have been recorded for the service yet, or fewer than
-        /// `Configuration.minRequests` have been recorded in the current window and no
-        /// standalone health check has run.
+        /// Fewer than `Configuration.minRequests` are in the current window and no
+        /// fresh standalone health check supplies a state.
         case unknown
     }
 
@@ -177,13 +182,23 @@ public struct HealthCheckMiddleware: Middleware {
     /// - Parameter configuration: The thresholds, custom health checks, and callbacks
     ///   to use.
     public init(configuration: Configuration) {
+        self.init(configuration: configuration, now: { Date() }, startPeriodicHealthChecks: true)
+    }
+
+    init(
+        configuration: Configuration,
+        now: @escaping @Sendable () -> Date,
+        startPeriodicHealthChecks: Bool = true
+    ) {
         self.configuration = configuration
-        let monitor = HealthMonitor(configuration: configuration)
+        let monitor = HealthMonitor(configuration: configuration, now: now)
         self.healthMonitor = monitor
 
         // Start background health checks
-        Task {
-            await monitor.startPeriodicHealthChecks()
+        if startPeriodicHealthChecks {
+            Task {
+                await monitor.startPeriodicHealthChecks()
+            }
         }
     }
 
@@ -514,11 +529,13 @@ public struct HealthCheckResult: Sendable {
 
 private actor HealthMonitor {
     private let configuration: HealthCheckMiddleware.Configuration
+    private let now: @Sendable () -> Date
     private var serviceStats: [String: ServiceHealthStats] = [:]
     private var healthCheckTask: Task<Void, Never>?
 
-    init(configuration: HealthCheckMiddleware.Configuration) {
+    init(configuration: HealthCheckMiddleware.Configuration, now: @escaping @Sendable () -> Date) {
         self.configuration = configuration
+        self.now = now
     }
 
     deinit {
@@ -545,6 +562,8 @@ private actor HealthMonitor {
     }
 
     func getHealthState(for service: String) -> HealthCheckMiddleware.HealthState {
+        let evaluationTime = now()
+        updateHealthState(for: service, at: evaluationTime)
         guard let stats = serviceStats[service] else {
             return .unknown
         }
@@ -553,6 +572,8 @@ private actor HealthMonitor {
     }
 
     func getHealthStatus(for service: String) -> HealthStatus {
+        let evaluationTime = now()
+        updateHealthState(for: service, at: evaluationTime)
         guard let stats = serviceStats[service] else {
             return HealthStatus(
                 state: .unknown,
@@ -568,9 +589,11 @@ private actor HealthMonitor {
     }
 
     func getAllHealthStatus() -> [String: HealthStatus] {
+        let evaluationTime = now()
         var result: [String: HealthStatus] = [:]
 
         for (service, stats) in serviceStats {
+            updateHealthState(for: service, at: evaluationTime)
             result[service] = stats.toHealthStatus()
         }
 
@@ -578,15 +601,17 @@ private actor HealthMonitor {
     }
 
     func recordSuccess(service: String, duration: TimeInterval) {
+        let evaluationTime = now()
         ensureServiceStats(for: service)
-        serviceStats[service]?.recordSuccess(duration: duration)
-        updateHealthState(for: service)
+        serviceStats[service]?.recordSuccess(duration: duration, at: evaluationTime)
+        updateHealthState(for: service, at: evaluationTime)
     }
 
     func recordFailure(service: String, error: (any Error), duration: TimeInterval) {
+        let evaluationTime = now()
         ensureServiceStats(for: service)
-        serviceStats[service]?.recordFailure(duration: duration)
-        updateHealthState(for: service)
+        serviceStats[service]?.recordFailure(duration: duration, at: evaluationTime)
+        updateHealthState(for: service, at: evaluationTime)
     }
 
     func performHealthCheck(for service: String) async -> HealthCheckResult {
@@ -638,11 +663,12 @@ private actor HealthMonitor {
         }
 
         // Update stats based on health check result
+        let evaluationTime = now()
         ensureServiceStats(for: serviceName)
         serviceStats[serviceName]?.lastHealthCheck = result
 
         // Update state if changed
-        updateHealthState(for: serviceName)
+        updateHealthState(for: serviceName, at: evaluationTime)
 
         return result
     }
@@ -656,11 +682,11 @@ private actor HealthMonitor {
         }
     }
 
-    private func updateHealthState(for service: String) {
+    private func updateHealthState(for service: String, at evaluationTime: Date) {
         guard let stats = serviceStats[service] else { return }
 
         let oldState = stats.currentState
-        let newState = stats.calculateHealthState()
+        let newState = stats.calculateHealthState(at: evaluationTime)
 
         if oldState != newState {
             stats.currentState = newState
@@ -692,40 +718,31 @@ private class ServiceHealthStats {
         self.configuration = configuration
     }
 
-    func recordSuccess(duration: TimeInterval) {
-        let now = Date()
+    func recordSuccess(duration: TimeInterval, at now: Date) {
         requests.append(RequestRecord(
             timestamp: now,
             success: true,
             duration: duration
         ))
-
-        consecutiveSuccesses += 1
-        consecutiveFailures = 0
-
-        // Clean old requests
-        cleanOldRequests(before: now.addingTimeInterval(-configuration.windowSize))
     }
 
-    func recordFailure(duration: TimeInterval) {
-        let now = Date()
+    func recordFailure(duration: TimeInterval, at now: Date) {
         requests.append(RequestRecord(
             timestamp: now,
             success: false,
             duration: duration
         ))
-
-        consecutiveFailures += 1
-        consecutiveSuccesses = 0
-
-        // Clean old requests
-        cleanOldRequests(before: now.addingTimeInterval(-configuration.windowSize))
     }
 
-    func calculateHealthState() -> HealthCheckMiddleware.HealthState {
+    func calculateHealthState(at now: Date) -> HealthCheckMiddleware.HealthState {
+        refreshRequests(at: now)
+        let freshCheck = lastHealthCheck.flatMap { check in
+            now.timeIntervalSince(check.timestamp) < configuration.checkInterval * 2 ? check : nil
+        }
+
         // Check if we have minimum requests
         guard requests.count >= configuration.minRequests else {
-            return lastHealthCheck?.status ?? .unknown
+            return freshCheck?.status ?? .unknown
         }
 
         // Calculate success rate
@@ -755,8 +772,7 @@ private class ServiceHealthStats {
         }
 
         // Check last health check result
-        if let lastCheck = lastHealthCheck,
-           lastCheck.timestamp.timeIntervalSinceNow > -configuration.checkInterval * 2 {
+        if let lastCheck = freshCheck {
             if lastCheck.status == .unhealthy {
                 return .unhealthy
             } else if lastCheck.status == .degraded {
@@ -784,8 +800,21 @@ private class ServiceHealthStats {
         )
     }
 
-    private func cleanOldRequests(before cutoff: Date) {
+    private func refreshRequests(at now: Date) {
+        let cutoff = now.addingTimeInterval(-configuration.windowSize)
         requests.removeAll { $0.timestamp < cutoff }
+
+        consecutiveFailures = 0
+        consecutiveSuccesses = 0
+        guard let last = requests.last else { return }
+        for request in requests.reversed() {
+            guard request.success == last.success else { break }
+            if request.success {
+                consecutiveSuccesses += 1
+            } else {
+                consecutiveFailures += 1
+            }
+        }
     }
 }
 
@@ -815,8 +844,10 @@ public struct HealthStatus: Sendable {
     /// older than `Configuration.windowSize`.
     public let totalRequests: Int
 
-    /// The current consecutive-failure count; reset to `0` by the next successful
-    /// request.
+    /// The consecutive-failure suffix within the current window; reset to `0` by a
+    /// successful request or when the entire suffix expires.
+    /// Covered by `HealthRecoveryContractTests.testBlockedServiceRecoversWhenFailureWindowExpires`
+    /// and `testExpiredFailuresDoNotContributeToNewConsecutiveFailureRun`.
     public let recentFailures: Int
 
     /// The timestamp of the most recent standalone `HealthCheck.check()` result, if

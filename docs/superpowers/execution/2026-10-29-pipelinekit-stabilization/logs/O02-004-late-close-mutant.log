@@ -1,0 +1,78 @@
+Building for debugging...
+[Computing dependencies]
+[Using on-disk description]
+[1 / 1]
+[2 / 68] PipelineKitObservability
+[4 / 70] PipelineKitObservability
+[7 / 68] PipelineKitObservability
+[24 / 37] PipelineKitObservabilityTests-product
+[33 / 48] PipelineKitResilienceTests-product
+[42 / 47] PipelineKitObservabilityTests-product
+[48 / 52] PipelineKitObservabilityTests-product
+Build complete! (2.26 sec)
+Test Suite 'Selected tests' started at 2026-10-30 19:34:07.576.
+Test Suite 'PipelineKitTests.xctest' started at 2026-10-30 19:34:07.577.
+Test Suite 'PipelineKitTests.xctest' passed at 2026-10-30 19:34:07.577.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 19:34:07.577.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 19:34:07.654.
+Test Suite 'PipelineKitTestSupportTests.xctest' started at 2026-10-30 19:34:07.655.
+Test Suite 'PipelineKitTestSupportTests.xctest' passed at 2026-10-30 19:34:07.655.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 19:34:07.655.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 19:34:07.733.
+Test Suite 'PipelineKitSecurityTests.xctest' started at 2026-10-30 19:34:07.734.
+Test Suite 'PipelineKitSecurityTests.xctest' passed at 2026-10-30 19:34:07.734.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 19:34:07.734.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 19:34:07.812.
+Test Suite 'PipelineKitResilienceTests.xctest' started at 2026-10-30 19:34:07.813.
+Test Suite 'PipelineKitResilienceTests.xctest' passed at 2026-10-30 19:34:07.813.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 19:34:07.813.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 19:34:07.890.
+Test Suite 'PipelineKitPoolingTests.xctest' started at 2026-10-30 19:34:07.891.
+Test Suite 'PipelineKitPoolingTests.xctest' passed at 2026-10-30 19:34:07.891.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 19:34:07.891.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 19:34:07.969.
+Test Suite 'PipelineKitPerformanceTests.xctest' started at 2026-10-30 19:34:07.970.
+Test Suite 'PipelineKitPerformanceTests.xctest' passed at 2026-10-30 19:34:07.970.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 19:34:07.970.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 19:34:08.030.
+Test Suite 'PipelineKitObservabilityTests.xctest' started at 2026-10-30 19:34:08.030.
+Test Suite 'StatsDStartupContractTests' started at 2026-10-30 19:34:08.030.
+Test Case '-[PipelineKitObservabilityTests.StatsDStartupContractTests testCloseDuringStartupClosesLateTransport]' started.
+/Users/goftin/dev/gsuite/PipelineKit/.claude/worktrees/pipelinekit-stabilization/Tests/PipelineKitObservabilityTests/StatsDStartupContractTests.swift:109: error: -[PipelineKitObservabilityTests.StatsDStartupContractTests testCloseDuringStartupClosesLateTransport] : XCTAssertEqual failed: ("0") is not equal to ("1")
+Test Case '-[PipelineKitObservabilityTests.StatsDStartupContractTests testCloseDuringStartupClosesLateTransport]' failed (0.168 seconds).
+Test Suite 'StatsDStartupContractTests' failed at 2026-10-30 19:34:08.198.
+	 Executed 1 test, with 1 failure (0 unexpected) in 0.168 (0.168) seconds
+Test Suite 'PipelineKitObservabilityTests.xctest' failed at 2026-10-30 19:34:08.198.
+	 Executed 1 test, with 1 failure (0 unexpected) in 0.168 (0.168) seconds
+Test Suite 'Selected tests' failed at 2026-10-30 19:34:08.198.
+	 Executed 1 test, with 1 failure (0 unexpected) in 0.168 (0.169) seconds
+[MetricsExporter] Error: transportClosed
+[MetricsExporter] Error: transportClosed
+[MetricsExporter] Error: transportClosed
+[MetricsExporter] Error: transportClosed
+Test Suite 'Selected tests' started at 2026-10-30 19:34:08.277.
+Test Suite 'PipelineKitCoreTests.xctest' started at 2026-10-30 19:34:08.278.
+Test Suite 'PipelineKitCoreTests.xctest' passed at 2026-10-30 19:34:08.278.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 19:34:08.278.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'Selected tests' started at 2026-10-30 19:34:08.356.
+Test Suite 'PipelineKitCacheTests.xctest' started at 2026-10-30 19:34:08.357.
+Test Suite 'PipelineKitCacheTests.xctest' passed at 2026-10-30 19:34:08.357.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-10-30 19:34:08.357.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Note: Some test targets reported failures:
+  - PipelineKitObservabilityTests (XCTest)
