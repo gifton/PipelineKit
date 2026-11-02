@@ -2,11 +2,11 @@
 
 These source and behavior changes are intended for the next minor release under
 [VERSIONING.md](../../VERSIONING.md); no release version or tag is selected here.
-All Swift fences in this guide, plus the README/security-guide examples changed by this
-batch, are extracted into the ordinary-import Consumer by
-[`i01_compile_examples.py`](../superpowers/execution/2026-10-29-pipelinekit-stabilization/repros/i01_compile_examples.py).
-The extractor records exact snippet hashes and its import/function harness. Debug and Release
-consumer builds compile them; the I01 validation record records results and platform limits.
+All Swift fences in this guide, plus the README/security/resilience-guide examples changed by
+this batch, are extracted into the ordinary-import Consumer by
+[`extract_stabilization_examples.py`](../../Scripts/validation/extract_stabilization_examples.py).
+The extractor records exact snippet hashes and its import/function harness under `.build/validation/`.
+See the [validation instructions](../../Scripts/validation/README.md) to compile them in Debug and Release.
 Unchanged historical examples elsewhere are outside that compilation claim.
 
 ## Breaking: explicit validation and sanitization capabilities
@@ -258,7 +258,7 @@ before the flush/close sequence.
 Sampling and aggregation semantics are unchanged; OBS-001, OBS-005 and OBS-009 remain open.
 The existing default configuration still disables aggregation. The public consumer mode
 `statsd-startup` compiles this construction/start/flush/close shape and verifies the first
-nonempty default-exporter batch on real loopback. See the I01 validation record for example compilation and platform integration checks.
+nonempty default-exporter batch on real loopback.
 
 ## Breaking: immutable Metrics configuration and explicit flush capability
 
@@ -307,7 +307,7 @@ needs a complete flush across reconfiguration, it must quiesce and join its prod
 and explicitly flush each relevant exporter, and then close those it owns. This change makes
 no new aggregation-quiescence or UDP-delivery guarantee. The standalone Examples package has
 no removed-slot or synchronous `configure(with:)` caller; its host/port convenience calls remain
-source-compatible. The I01 validation record reports standalone example and migration-snippet compilation separately.
+source-compatible.
 
 
 ## Breaking: explicit complete cache identity (SCP-04 / SCP-05)
@@ -404,10 +404,9 @@ remain; this change does not add invalidation fencing for in-flight fills or sin
 A deployment must also clear or version entries when result-varying application configuration
 changes without an accompanying key change.
 
-The task tests exercise all four APIs and their convenience paths in the root test package.
-No existing standalone `Examples/Sources` cache caller required migration. The snippets above are included in the compiled example manifest; the final platform matrix
-remains explicit in the I01 validation record.
-S04 separately owns LRU predecessor cycles.
+`CacheIdentityContractTests` exercises all four APIs and their convenience paths in the root
+test package. No existing standalone `Examples/Sources` cache caller required migration.
+The snippets above are included in the compiled example manifest described at the top of this guide.
 
 ## Breaking: complete bounded decompression (SCP-07)
 
@@ -454,10 +453,9 @@ them from trusted originals; do not infer that arbitrary failed decompression is
 Codec mappings and level behavior are unchanged: `.zlib` and `.gzip` use Apple's raw
 DEFLATE codec, `.lzfse` and `.brotli` use LZFSE, and `.lz4` uses Apple's framed LZ4.
 SCP-08 remains open; these aliases do not establish gzip or Brotli interoperability or
-working compression-level selection. The root contract suite compiles the new API and
-exercises all five cases on the Compression-capable host. The standalone Examples package
-has no decompression caller to migrate. Standalone Examples and migration snippets have separate build evidence in the I01 validation
-record; absent platforms remain release-readiness gaps.
+working compression-level selection. `CompressionCompletionContractTests` compiles the new
+API and exercises all five cases on a Compression-capable host. The standalone Examples
+package has no decompression caller to migrate.
 
 
 ## Breaking: rate-limit scope and distributed counter keys (R-F08)
@@ -507,10 +505,9 @@ Per-identifier priority reset remains unsupported, while `reset()` clears all lo
 windows. Neither reset form resets distributed counters; R-F10 remains deferred. Use an
 explicit administrative store operation for those counters when needed.
 
-The scope contract suite covers the seven strategies, four scopes, exact store keys and
+`RateLimitScopeContractTests` covers the seven strategies, four scopes, exact store keys and
 boundaries using an internal clock seam; the public initializer retains wall-clock `Date`
-behavior. The I01 validation record covers available platform/Release integration; the consolidated
-next-minor **Breaking** entry includes this migration.
+behavior. The consolidated next-minor **Breaking** changelog entry includes this migration.
 
 ## Breaking: structural pipeline timeout classification (R-F21)
 
@@ -548,10 +545,13 @@ monitor task ownership and production callback-task settlement remain outside th
 
 Timer snapshots convert seconds to milliseconds once. Pool latency conversion includes whole
 seconds, clamps negatives to zero and saturates at UInt64.max, including Duration values whose
-whole seconds exceed Int64.max. The final O04 regression is part of I01’s rediscovered full suite.
+whole seconds exceed Int64.max. `TypeSafeMetricTests` and `DurationNanosecondsTests` exercise
+these conversions.
 
 The selected repairs do not promise hard deadlines for cancellation-insensitive handlers,
 preemptive cancellation, durable execution, exactly-once side effects, in-flight cache fill
-fencing, key-memory zeroization or UDP delivery acknowledgement. The execution-owned ledger
-keeps all 47 deferred findings open. Swift 6.2/OS 26, Linux and hosted security/branch-protection
-verification require the named release-owner checks when unavailable locally.
+fencing, key-memory zeroization or UDP delivery acknowledgement. The
+[historical scope ledger](https://github.com/gifton/PipelineKit/blob/159d89bc33c7d8b51de15bf7a638e2a250a557a7/docs/superpowers/execution/2026-10-29-pipelinekit-stabilization/reports/FINAL-ledger.json)
+records the 37 selected and 47 deferred findings. Release validation must include the supported
+Swift 6.2/OS 26 and Linux configurations plus hosted security and branch-protection checks;
+a local build with a newer toolchain does not establish that coverage.

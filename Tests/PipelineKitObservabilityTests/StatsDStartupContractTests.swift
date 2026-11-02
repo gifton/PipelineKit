@@ -248,8 +248,8 @@ final class StatsDStartupContractTests: XCTestCase {
     #endif
 
     private func waitForStartupWaiters(_ count: Int, exporter: StatsDExporter) async {
-        // Observe actual registration, not an elapsed scheduling delay. The
-        // external run_check.py watchdog bounds a broken registration path.
+        // Observe actual registration, not an elapsed scheduling delay. Run under
+        // Scripts/validation/run_check.py to bound a broken registration path.
         while await exporter.startupWaiterCount != count { await Task.yield() }
     }
 }

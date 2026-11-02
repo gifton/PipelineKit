@@ -114,6 +114,9 @@ if not is_release:
     sys.exit('expected Release configuration')
 if args[0] == 'build':
     if '--build-tests' in args:
+        if ('-Xswiftc', '-enable-testing') not in zip(args, args[1:]):
+            print("module 'PipelineKit' was not compiled for testing", file=sys.stderr)
+            sys.exit(43)
         if os.environ['COMPILE_FAILURE'] == 'true':
             sys.exit(42)
         artifact.touch()
@@ -169,7 +172,7 @@ else:
         for enforcement in ('false', 'true'):
             with self.subTest(enforcement=enforcement):
                 result, calls = self.run_workflow(enforcement, compile_failure='true')
-                self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+                self.assertEqual(result.returncode, 42, result.stdout + result.stderr)
                 self.assertFalse(any(call[0] == 'test' for call in calls), calls)
 
     def test_benchmark_failures_follow_enforcement(self):

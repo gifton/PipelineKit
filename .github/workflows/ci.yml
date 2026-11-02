@@ -534,7 +534,7 @@ jobs:
     - name: Build Performance Tests
       # swift test needs every test target, even with a performance-only filter.
       # Keep compilation failures outside the advisory benchmark-result step.
-      run: swift build --configuration release --build-tests
+      run: swift build --configuration release --build-tests -Xswiftc -enable-testing
 
     - name: Run Performance Tests
       run: |
