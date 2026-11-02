@@ -56,14 +56,12 @@ public actor ConcurrentPipeline: Pipeline {
     /// Creates a new concurrent pipeline with back-pressure control.
     ///
     /// - Parameter options: Configuration options including concurrency limits and back-pressure strategy.
+    ///   Nil limits are unlimited. A configured `.error(timeout:)` bounds admission
+    ///   only. Its timeout must be finite and at most 86400 seconds; nonpositive
+    ///   values permit immediate admission only. Invalid timeouts fail a precondition.
     public init(options: PipelineOptions = PipelineOptions()) {
         self.options = options
-        self.semaphore = BackPressureSemaphore(
-            maxConcurrency: options.maxConcurrency ?? 10,
-            maxOutstanding: options.maxOutstanding,
-            maxQueueMemory: options.maxQueueMemory,
-            strategy: options.backPressureStrategy
-        )
+        self.semaphore = BackPressureSemaphore(options: options)
     }
     
     
@@ -113,7 +111,7 @@ public actor ConcurrentPipeline: Pipeline {
         }
 
         let token = try await semaphore.acquire()
-        defer { _ = token } // Keep token alive until end of scope
+        defer { token.release() } // Release only after the routed handler settles.
 
         return try await pipeline.execute(command, context: context)
     }
@@ -134,7 +132,9 @@ public actor ConcurrentPipeline: Pipeline {
     /// - Parameters:
     ///   - command: The command to execute.
     ///   - context: Optional command context. If nil, a fresh context is created.
-    ///   - timeout: Maximum time to wait for semaphore acquisition, in seconds.
+    ///   - timeout: Maximum time to wait for semaphore acquisition, in seconds,
+    ///     overriding the configured strategy timeout. Must be finite and at most
+    ///     86400 seconds; nonpositive values permit immediate admission only.
     /// - Returns: The result of the command execution.
     /// - Throws: `PipelineError.handlerNotFound` if no pipeline is registered for the
     ///   command type, `PipelineError.backPressure(reason: .timeout(duration:))` if the
@@ -166,7 +166,7 @@ public actor ConcurrentPipeline: Pipeline {
             throw PipelineError.backPressure(reason: .timeout(duration: timeout))
         }
 
-        defer { _ = token } // Keep token alive until end of scope
+        defer { token.release() } // Release only after the routed handler settles.
 
         return try await pipeline.execute(command, context: commandContext)
     }
@@ -222,11 +222,13 @@ public actor ConcurrentPipeline: Pipeline {
         let semaphoreStats = await semaphore.getStats()
         return PipelineCapacityStats(
             maxConcurrency: semaphoreStats.maxConcurrency,
-            maxOutstanding: semaphoreStats.maxOutstanding,
+            maxOutstanding: options.maxOutstanding,
             activeOperations: semaphoreStats.activeOperations,
             queuedOperations: semaphoreStats.queuedOperations,
             totalOutstanding: semaphoreStats.totalOutstanding,
-            utilizationPercent: Double(semaphoreStats.activeOperations) / Double(semaphoreStats.maxConcurrency) * 100,
+            utilizationPercent: options.maxConcurrency.map {
+                $0 > 0 ? Double(semaphoreStats.activeOperations) / Double($0) * 100 : 0
+            } ?? 0,
             registeredPipelineCount: pipelines.count
         )
     }
@@ -242,7 +244,7 @@ public actor ConcurrentPipeline: Pipeline {
 
 /// Statistics about pipeline capacity and utilization.
 public struct PipelineCapacityStats: Sendable {
-    /// Maximum allowed concurrent operations.
+    /// Maximum allowed concurrent operations; Int.max represents an unlimited configuration.
     public let maxConcurrency: Int
     
     /// Maximum allowed outstanding operations (nil = unlimited).
@@ -257,7 +259,7 @@ public struct PipelineCapacityStats: Sendable {
     /// Total outstanding operations (active + queued).
     public let totalOutstanding: Int
     
-    /// Current utilization as a percentage (0-100).
+    /// Current concurrency utilization as a percentage (0-100); zero when unlimited.
     public let utilizationPercent: Double
     
     /// Number of registered command type pipelines.
