@@ -5,9 +5,7 @@ import Foundation
 import XCTest
 
 final class CompressionCompletionContractTests: XCTestCase {
-    // Exercise every enum case: zlib/gzip currently use raw DEFLATE,
-    // lzfse/brotli use LZFSE, and lz4 uses Apple's framed LZ4.
-    // The aliases and ignored compression level remain the separate SCP-08 issue.
+    // Exercise every canonical format; legacy label routes have separate fixed fixtures.
     func testDecodeCompletesOrThrowsForEverySizeHintAndLimit() throws {
         let count = 100_000
         let fixtures = [
