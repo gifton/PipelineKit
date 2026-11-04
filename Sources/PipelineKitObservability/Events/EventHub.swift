@@ -7,6 +7,14 @@
 
 import Foundation
 import PipelineKitCore
+import Synchronization
+
+/// Invalidated before a newer configuration is submitted to the hub.
+final class EventSubscriptionGeneration: Sendable {
+    private let active = Mutex(true)
+    var isActive: Bool { active.withLock { $0 } }
+    func invalidate() { active.withLock { $0 = false } }
+}
 
 /// Protocol for components that want to receive events.
 public protocol EventSubscriber: AnyObject, Sendable {
@@ -23,13 +31,11 @@ public protocol EventSubscriber: AnyObject, Sendable {
 /// 1. **Actor isolation**: Ensures thread-safe subscriber management
 /// 2. **Weak references**: Prevents retain cycles with automatic cleanup
 /// 3. **Fire-and-forget**: Non-blocking event delivery via Task{}
-/// 4. **Task{} not Task.detached**: Inherits actor executor to avoid hop (~200ns savings)
+/// 4. **Delivery task**: Schedules subscriber delivery on the hub actor
 /// 5. **Periodic cleanup**: Removes nil weak references to prevent memory leak
 ///
-/// ## Performance Characteristics
-/// - emit() overhead: ~250ns (Task creation + actor hop)
-/// - Fan-out: O(n) where n = number of subscribers
-/// - Memory: Weak references prevent retention
+/// Synchronous `emit` schedules one task per event; it does not impose a queue
+/// limit or backpressure. Subscriber fan-out visits each registered subscriber.
 public actor EventHub: EventEmitter {
     // MARK: - Private Types
 
@@ -48,6 +54,7 @@ public actor EventHub: EventEmitter {
 
     /// Weak references to subscribers
     private var subscribers: [WeakBox] = []
+    private var replaceableSubscriptions: [UUID: ObjectIdentifier] = [:]
     
     /// Weak reference to the parent ObservabilitySystem if this hub is part of one
     internal weak var parentSystem: ObservabilitySystem?
@@ -66,30 +73,24 @@ public actor EventHub: EventEmitter {
     /// Creates a new event hub.
     ///
     /// - Parameter cleanupInterval: Interval for cleaning up nil weak references (default: 60s)
+    /// - Precondition: A finite positive interval representable as at least one
+    ///   nanosecond and fewer than 2^64 nanoseconds.
     public init(cleanupInterval: TimeInterval = 60.0) {
+        _ = NumericDuration.nanoseconds(cleanupInterval, positive: true)
         self.cleanupInterval = cleanupInterval
         Task {
             await startCleanupTask()
         }
     }
 
-    // Note: No deinit needed, and none is possible here without a data race:
-    // `cleanupTask` is actor-isolated state, so it cannot be read or cancelled
-    // from a (nonisolated) deinit. Instead, the cleanup loop in
-    // `startCleanupTask()` captures `self` weakly and only retains the actor for
-    // the brief window in which `performCleanup()` runs. While the loop is asleep
-    // it holds no strong reference, so once all external references are dropped
-    // the actor deallocates; the loop's `guard let self else { break }` then
-    // ends the task on its next wake-up. This avoids the permanent retain cycle
-    // a strong capture would create.
+    deinit { cleanupTask?.cancel() }
 
     // MARK: - EventEmitter Conformance
 
     /// Emits an event to all subscribers using fire-and-forget pattern.
     ///
     /// This method is nonisolated and synchronous for performance.
-    /// It uses Task{} to inherit the actor's executor, avoiding the
-    /// overhead of Task.detached which would require an executor hop.
+    /// Delivery runs asynchronously on the hub actor.
     ///
     /// ## Fire-and-Forget Design
     /// - Events are delivered asynchronously without waiting for completion
@@ -104,7 +105,6 @@ public actor EventHub: EventEmitter {
     ///
     /// - Parameter event: The event to emit
     public nonisolated func emit(_ event: PipelineEvent) {
-        // Use Task{} not Task.detached to inherit actor executor
         // Weak self prevents retain cycles and allows clean deallocation
         Task { [weak self] in
             await self?.deliverEvent(event)
@@ -138,6 +138,26 @@ public actor EventHub: EventEmitter {
     public func unsubscribe(_ subscriber: any EventSubscriber) {
         let id = ObjectIdentifier(subscriber)
         subscribers.removeAll { $0.id == id }
+    }
+
+    /// One actor turn switches the owner slot and returns its actual displaced
+    /// subscriber. A superseded submission must not retire the installed route.
+    func replaceSubscription(
+        owner: UUID,
+        generation: EventSubscriptionGeneration,
+        with subscriber: (any EventSubscriber)?
+    ) -> (installed: Bool, retired: (any EventSubscriber)?) {
+        guard generation.isActive else { return (false, nil) }
+        var retired: (any EventSubscriber)?
+        if let identifier = replaceableSubscriptions.removeValue(forKey: owner) {
+            retired = subscribers.first { $0.id == identifier }?.subscriber
+            subscribers.removeAll { $0.id == identifier }
+        }
+        if let subscriber {
+            subscribe(subscriber)
+            replaceableSubscriptions[owner] = ObjectIdentifier(subscriber)
+        }
+        return (true, retired)
     }
 
     /// Gets the current number of active subscribers.
@@ -181,10 +201,11 @@ public actor EventHub: EventEmitter {
     /// the actor deallocates and the next wake-up exits via the
     /// `guard let self else { break }` check.
     private func startCleanupTask() async {
-        let interval = cleanupInterval
+        let interval = NumericDuration.nanoseconds(cleanupInterval, positive: true)
         cleanupTask = Task { [weak self] in
             while !Task.isCancelled {
-                try? await Task.sleep(nanoseconds: UInt64(interval * 1_000_000_000))
+                do { try await Task.sleep(nanoseconds: interval) }
+                catch { return }
                 guard let self else { break }
                 await self.performCleanup()
             }
@@ -195,6 +216,8 @@ public actor EventHub: EventEmitter {
     private func performCleanup() {
         let beforeCount = subscribers.count
         subscribers.removeAll { $0.subscriber == nil }
+        let liveIDs = Set(subscribers.map(\.id))
+        replaceableSubscriptions = replaceableSubscriptions.filter { liveIDs.contains($0.value) }
         let removed = beforeCount - subscribers.count
 
         if removed > 0 {

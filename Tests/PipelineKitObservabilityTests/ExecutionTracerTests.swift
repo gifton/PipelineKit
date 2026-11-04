@@ -192,10 +192,51 @@ final class ExecutionTracerTests: XCTestCase {
 
         let traces = await tracer.getAllTraces()
 
-        // Should have purged old traces, keeping only recent ones
-        // Note: Purging happens on next add after exceeding limit
-        XCTAssertLessThanOrEqual(traces.count, 6)
-        XCTAssertGreaterThan(traces.count, 0)
+        XCTAssertEqual(traces.count, 3)
+        // Existing identities remain available; new identities are rejected at capacity.
+        XCTAssertEqual(Set(traces.map(\.correlationID)), Set(["trace1", "trace2", "trace3"]))
+        let dropped = await tracer.droppedTraceCount
+        XCTAssertEqual(dropped, 3)
+        // An existing trace remains writable at capacity.
+        _ = await tracer.startSpan(name: "additional", correlationID: "trace1")
+        let existing = await tracer.getTrace(correlationID: "trace1")
+        XCTAssertEqual(existing?.spans.count, 2)
+    }
+
+    func testZeroRetentionReleasesAdmission() async {
+        let tracer = ExecutionTracer(configuration: .init(maxTraces: 1, retentionTime: 0))
+        _ = await tracer.startSpan(name: "first", correlationID: "first")
+        _ = await tracer.startSpan(name: "second", correlationID: "second")
+        let traces = await tracer.getAllTraces()
+        XCTAssertEqual(traces.map(\.correlationID), ["second"])
+        let dropped = await tracer.droppedTraceCount
+        XCTAssertEqual(dropped, 0)
+        await tracer.clearAllTraces()
+        let afterClear = await tracer.getAllTraces()
+        XCTAssertTrue(afterClear.isEmpty)
+    }
+
+    func testZeroTraceCapacityDoesNotRetainTraces() async {
+        let tracer = ExecutionTracer(configuration: .init(maxTraces: 0))
+        let span = await tracer.startSpan(name: "disabled", correlationID: "zero")
+        await tracer.endSpan(span, correlationID: "zero", result: .success)
+        let traces = await tracer.getAllTraces()
+        XCTAssertTrue(traces.isEmpty)
+    }
+
+    func testReusedCompletedTraceBecomesActiveUntilNewSpanEnds() async throws {
+        let tracer = ExecutionTracer()
+        let first = await tracer.startSpan(name: "first", correlationID: "reused")
+        await tracer.endSpan(first, correlationID: "reused", result: .success)
+        let complete = await tracer.getTrace(correlationID: "reused")
+        XCTAssertNotNil(complete?.endTime)
+        let second = await tracer.startSpan(name: "second", correlationID: "reused")
+        let active = await tracer.getTrace(correlationID: "reused")
+        XCTAssertNil(active?.endTime)
+        XCTAssertEqual(active?.spans.count, 2)
+        await tracer.endSpan(second, correlationID: "reused", result: .success)
+        let completedAgain = await tracer.getTrace(correlationID: "reused")
+        XCTAssertNotNil(completedAgain?.endTime)
     }
 
     // MARK: - Multiple Correlation IDs
