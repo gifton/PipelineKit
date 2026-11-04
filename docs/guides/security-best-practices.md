@@ -562,15 +562,33 @@ for the incompatible legacy format and recovery limits.
 
 ### Field-Level Encryption
 
-`EncryptionMiddleware` automatically encrypts and decrypts only the fields you name, using any
-type conforming to the `EncryptionService` protocol. `PipelineKitSecurity`'s own AES-GCM
-implementation is internal, so production code supplies its own conformer — this one follows the
-same shape:
+`EncryptionMiddleware` encrypts configured sensitive command fields and decrypts fields exposed by
+`DecryptableResult`. Existing `EncryptionService` conformers support the built-in typed hints
+(`String`, `Int`, `Double`, `Bool`, `Date`, and `Data`). Custom or missing hints require the
+opt-in `SerializedPlaintextDecrypting` capability, which returns authenticated serialized bytes.
+The service must verify authentication before returning any plaintext.
+
+`typeHint` and `encodingFormat` are advisory, untrusted metadata. The current AES-GCM
+service authenticates only the serialized plaintext; it does not authenticate these fields.
+Callers must select and validate the expected type and format independently of the hints.
+
+For an unknown JSON type hint, the result receives `TypedData` and explicitly chooses its
+`Decodable` type with `decode(as:)`; the hint never resolves a runtime type. Missing hints and
+unknown non-JSON hints yield raw serialized `Data`. In particular, a legacy nil-hint envelope
+containing an encoded `Data` value yields the JSON base64 string bytes, including its quotes,
+not the decoded binary value. Emit explicit hints for new primitive and `Data` envelopes.
+Services without the capability fail these serialized paths with `EncryptionError.decryptionFailed`;
+partial decryption records and omits only the failed fields.
+
+`PipelineKitSecurity`'s AES-GCM implementation is internal, so production code supplies its own
+conformer. This example shares authenticated byte extraction between typed and serialized decoding:
 
 ```swift
+import Foundation
 import CryptoKit
+import PipelineKitSecurity
 
-struct AESGCMEncryptionService: EncryptionService {
+struct AESGCMEncryptionService: SerializedPlaintextDecrypting {
     private let key = SymmetricKey(size: .bits256)
 
     func encrypt<T: Encodable>(_ value: T) async throws -> EncryptedData {
@@ -580,21 +598,38 @@ struct AESGCMEncryptionService: EncryptionService {
             ciphertext: sealed.ciphertext,
             nonce: sealed.nonce.withUnsafeBytes { Data($0) },
             tag: sealed.tag,
-            algorithm: "AES-GCM-256"
+            algorithm: "AES-GCM-256",
+            typeHint: String(describing: T.self)
         )
     }
 
-    func decrypt<T: Decodable>(_ data: EncryptedData, as type: T.Type) async throws -> T {
+    func decryptSerializedPlaintext(_ data: EncryptedData) async throws -> Data {
+        guard data.algorithm == "AES-GCM-256" else {
+            throw EncryptionError.unsupportedAlgorithm(data.algorithm)
+        }
+        guard let tag = data.tag else {
+            throw EncryptionError.decryptionFailed("Missing authentication tag")
+        }
         let box = try AES.GCM.SealedBox(
             nonce: try AES.GCM.Nonce(data: data.nonce),
             ciphertext: data.ciphertext,
-            tag: data.tag ?? Data()
+            tag: tag
         )
-        let decrypted = try AES.GCM.open(box, using: key)
-        return try JSONDecoder().decode(type, from: decrypted)
+        return try AES.GCM.open(box, using: key)
     }
 
-    func validate() async throws {}
+    func decrypt<T: Decodable>(_ data: EncryptedData, as type: T.Type) async throws -> T {
+        let plaintext = try await decryptSerializedPlaintext(data)
+        return try JSONDecoder().decode(type, from: plaintext)
+    }
+
+    func validate() async throws {
+        let encrypted = try await encrypt("validation")
+        let decrypted = try await decrypt(encrypted, as: String.self)
+        guard decrypted == "validation" else {
+            throw EncryptionError.decryptionFailed("Encryption service validation failed")
+        }
+    }
 }
 
 let encryptionMiddleware = EncryptionMiddleware(

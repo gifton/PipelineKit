@@ -10,7 +10,7 @@ import PipelineKit
 /// 
 /// Note: Uses @unchecked Sendable because SymmetricKey from CryptoKit isn't marked
 /// as Sendable but is actually safe to use across actors as it's immutable.
-struct StandardEncryptionService: EncryptionService, @unchecked Sendable {
+struct StandardEncryptionService: SerializedPlaintextDecrypting, @unchecked Sendable {
     private let key: SymmetricKey
     
     init(key: SymmetricKey? = nil) {
@@ -28,7 +28,8 @@ struct StandardEncryptionService: EncryptionService, @unchecked Sendable {
                 ciphertext: sealed.ciphertext,
                 nonce: sealed.nonce.withUnsafeBytes { Data($0) },
                 tag: sealed.tag,
-                algorithm: "AES-GCM-256"
+                algorithm: "AES-GCM-256",
+                typeHint: String(describing: T.self)
             )
         } catch {
             throw PipelineError.encryption(reason: .encryptionFailed(error.localizedDescription))
@@ -36,6 +37,15 @@ struct StandardEncryptionService: EncryptionService, @unchecked Sendable {
     }
     
     func decrypt<T: Decodable>(_ data: EncryptedData, as type: T.Type) async throws -> T {
+        let plaintext = try await decryptSerializedPlaintext(data)
+        do {
+            return try JSONDecoder().decode(type, from: plaintext)
+        } catch {
+            throw PipelineError.encryption(reason: .decryptionFailed(error.localizedDescription))
+        }
+    }
+
+    func decryptSerializedPlaintext(_ data: EncryptedData) async throws -> Data {
         guard data.algorithm == "AES-GCM-256" else {
             throw PipelineError.encryption(reason: .algorithmNotSupported(data.algorithm))
         }
@@ -51,10 +61,7 @@ struct StandardEncryptionService: EncryptionService, @unchecked Sendable {
                 tag: tag
             )
             
-            let decryptedData = try AES.GCM.open(sealedBox, using: key)
-            
-            let decoder = JSONDecoder()
-            return try decoder.decode(type, from: decryptedData)
+            return try AES.GCM.open(sealedBox, using: key)
         } catch {
             throw PipelineError.encryption(reason: .decryptionFailed(error.localizedDescription))
         }

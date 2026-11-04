@@ -8,6 +8,20 @@ public protocol EncryptionService: Sendable {
     func validate() async throws
 }
 
+/// Opt-in access to authenticated serialized plaintext for field-level results.
+///
+/// Conformers must authenticate the encrypted payload before returning its exact
+/// plaintext bytes. Do not deserialize and re-encode the payload, or return bytes
+/// when authentication fails. This is distinct from `decrypt(_:as: Data.self)`,
+/// which decodes a serialized `Data` value (for example, a JSON base64 string).
+///
+/// `typeHint` and `encodingFormat` are advisory, untrusted metadata. The current
+/// AES-GCM service authenticates only the serialized plaintext, not these fields.
+/// Callers must select and validate the expected type and format independently.
+public protocol SerializedPlaintextDecrypting: EncryptionService {
+    func decryptSerializedPlaintext(_ data: EncryptedData) async throws -> Data
+}
+
 /// Type-erased container for decrypted values
 public struct DecryptedValue: Sendable {
     private let value: any Sendable
