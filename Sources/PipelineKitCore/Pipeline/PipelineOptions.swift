@@ -13,7 +13,7 @@ import Foundation
 /// - **suspend**: Suspends the producer until capacity becomes available
 /// - **dropOldest**: Removes the oldest queued command to make room
 /// - **dropNewest**: Rejects the new command if queue is full
-/// - **error**: Throws an error immediately or after timeout
+/// - **error**: Rejects excess outstanding work or applies an admission timeout
 ///
 /// ## Example
 /// ```swift
@@ -114,7 +114,17 @@ public enum BackPressureStrategy: Sendable, Equatable {
     /// Preserves existing work at the cost of rejecting new requests.
     case dropNewest
     
-    /// Throw an error immediately or after the specified timeout.
-    /// - Parameter timeout: Maximum time to wait before throwing. If nil, throws immediately.
+    /// Controls admission waiting when execution capacity is occupied.
+    ///
+    /// A nil timeout allows waiting without an admission deadline while the
+    /// outstanding limit permits queueing; exceeding that limit throws immediately.
+    /// A finite nonpositive timeout permits immediate acquisition only. A positive
+    /// timeout bounds waiting and must be at most 86400 seconds. Nonfinite values
+    /// and values above that bound fail a precondition when constructing the
+    /// concurrent pipeline or back-pressure semaphore.
+    ///
+    /// An explicit per-call acquisition timeout overrides this deadline while
+    /// retaining the queue rejection policy. Deadlines end at acquisition and
+    /// do not cancel or shorten execution of an admitted command.
     case error(timeout: TimeInterval?)
 }

@@ -243,20 +243,6 @@ final class CommandContextObservabilityTests: XCTestCase {
     
     // MARK: - Performance Tests
     
-    func testObservabilitySetupPerformance() {
-        measure {
-            let expectation = XCTestExpectation(description: "Setup performance")
-            
-            Task {
-                let context = CommandContext()
-                await context.setupObservability(.production)
-                expectation.fulfill()
-            }
-            
-            wait(for: [expectation], timeout: 1.0)
-        }
-    }
-    
     func testObservabilityRetrievalPerformance() async throws {
         let context = CommandContext()
         await context.setupObservability(.development)

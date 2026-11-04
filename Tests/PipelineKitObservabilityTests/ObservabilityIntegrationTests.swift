@@ -270,30 +270,6 @@ final class ObservabilityIntegrationTests: XCTestCase {
         await context.recordTimer(name: "test", duration: 1.0) // Should not crash
     }
     
-    // MARK: - Performance Tests
-    
-    func testObservabilitySystemPerformance() async throws {
-        let context = CommandContext()
-        await context.setupObservability(.production)
-        
-        measure {
-            let expectation = XCTestExpectation(description: "Performance test")
-            
-            Task {
-                // Record many metrics rapidly
-                for i in 0..<1000 {
-                    await context.recordCounter(
-                        name: "perf.counter",
-                        value: Double(i),
-                        tags: ["index": "\(i)"]
-                    )
-                }
-                expectation.fulfill()
-            }
-            
-            wait(for: [expectation], timeout: 10.0)
-        }
-    }
 }
 
 // MARK: - Test Helpers

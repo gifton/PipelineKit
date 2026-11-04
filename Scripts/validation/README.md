@@ -58,6 +58,21 @@ must contain both `S06_NEGATIVE_CAPACITY_REACHED` and
 `Precondition failed: maxEvents must be nonnegative`; a different failure does not
 validate the negative-capacity contract. The other three drivers must return zero.
 
+## Concurrent pipeline admission timeout bounds
+
+After building the root Debug tests, run the admission boundary driver under the
+watchdog. It checks the semaphore constructor, concurrent pipeline constructor,
+and explicit acquisition path with accepted boundary controls and rejected
+nonfinite or oversized values. Rejection requires the probe's reached sentinel,
+the intended precondition diagnostic, and absence of the accepted sentinel.
+The driver writes individual logs and a JSON result to the selected directory.
+
+```sh
+python3 Scripts/validation/run_check.py --id admission-bounds-001 --timeout 180 -- \
+  python3 Scripts/validation/check_admission_timeout_bounds.py \
+    --logs /private/tmp/pipelinekit-admission-bounds-001
+```
+
 ## Command watchdog
 
 `run_check.py` records a command's output, exit status, timeout, observed process

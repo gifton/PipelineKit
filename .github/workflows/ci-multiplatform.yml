@@ -102,16 +102,13 @@ jobs:
           echo "Tests completed at $(date)"
           exit $OVERALL_EXIT_CODE
 
-      - name: Build (Release)
-        run: swift build -c release
-
       - name: Export coverage
         run: |
           set -euo pipefail
 
-          # Find test binary and profdata
-          BIN=$(find .build -name "*PackageTests.xctest" -type d | head -n1)/Contents/MacOS/$(basename $(find .build -name "*PackageTests.xctest" -type d | head -n1) .xctest)
-          PROF=$(find .build -name default.profdata | head -n1)
+          # Coverage belongs to Debug; cached Release test binaries are separate.
+          BIN=.build/debug/PipelineKitPackageTests.xctest/Contents/MacOS/PipelineKitPackageTests
+          PROF=.build/debug/codecov/default.profdata
 
           if [[ -f "$BIN" && -f "$PROF" ]]; then
             echo "Found test binary: $BIN"
@@ -138,6 +135,13 @@ jobs:
           name: coverage-macos
           path: coverage.lcov
           if-no-files-found: ignore
+
+      - name: Build (Release)
+        run: swift build --configuration release --build-tests -Xswiftc -enable-testing
+
+      - name: Test (Release)
+        # Benchmarks retain their separate advisory lane; correctness failures are fatal.
+        run: swift test --configuration release --skip-build --skip PipelineKitPerformanceTests
 
   ios-sim:
     name: iOS 26 • Simulator Tests

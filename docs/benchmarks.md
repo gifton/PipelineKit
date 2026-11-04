@@ -13,7 +13,17 @@ Performance tests are located in the `Tests/PipelineKitPerformanceTests` target 
 - **PipelinePerformanceTests**: Core pipeline execution benchmarks
 - **CommandContextPerformanceTests**: Context metadata operation benchmarks  
 - **BackPressurePerformanceTests**: Concurrency control and semaphore benchmarks
+- **SimpleCachingPerformanceTests**: Cached pipeline execution measurements
+- **ObservabilityPerformanceTests**: Context recording and event emission measurements
+- **CoreValuePerformanceTests**: Context key and execution priority operations
+- **SecurityValidationPerformanceTests**: Command sanitization and validation measurements
 - **PerformanceTestConfiguration**: Shared configuration for CI-aware test settings
+
+Direct XCTest `measure` and `measureMetrics` calls belong in this target rather than
+correctness targets. `PerformanceWorkflowTests.test_xctest_measurements_use_performance_target`
+checks that placement in CI. Benchmark classes skip simulator execution; functional tests
+remain in their module's correctness target. This keeps simulator scheduling and fixed
+benchmark time limits from deciding correctness results.
 
 ## Running Performance Tests
 

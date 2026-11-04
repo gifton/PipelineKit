@@ -273,15 +273,4 @@ final class CommandValidatorTests: XCTestCase {
         XCTAssertEqual(unicodeText.count, 8) // Verify our assumption
     }
     
-    func testPerformanceOfEmailValidation() {
-        // Given
-        let emails = (0..<1000).map { "user\($0)@example.com" }
-        
-        // When/Then - Should complete quickly
-        measure {
-            for email in emails {
-                _ = try? CommandValidator.validateEmail(email)
-            }
-        }
-    }
 }

@@ -421,28 +421,4 @@ final class SimpleCachingMiddlewareTests: XCTestCase {
         XCTAssertEqual(stats.totalEntries, 1)
     }
 
-    // MARK: - Performance Tests
-
-    func testCachingPerformance() throws {
-        let cache = SimpleCachingMiddleware(ttl: 300, keyGenerator: Self.fixtureKey)
-        let iterations = 10000
-
-        measure(metrics: [XCTClockMetric()]) {
-            let expectation = expectation(description: "Performance test")
-            expectation.expectedFulfillmentCount = iterations
-
-            Task {
-                let pipeline = StandardPipeline(handler: TestHandler())
-                try await pipeline.addMiddleware(cache)
-                let context = CommandContext()
-
-                for _ in 0..<iterations {
-                    _ = try await pipeline.execute(TestCommand(id: "perf"), context: context)
-                    expectation.fulfill()
-                }
-            }
-
-            wait(for: [expectation], timeout: 10)
-        }
-    }
 }

@@ -278,32 +278,6 @@ final class CommandSanitizerTests: XCTestCase {
         XCTAssertEqual(truncated.count, 10)
     }
     
-    // MARK: - Performance Tests
-    
-    func testSanitizeHTMLPerformance() {
-        // Given
-        let html = "<script>alert('XSS')</script><div onclick='hack()'>Test</div>" + String(repeating: "Normal text ", count: 100)
-        
-        // When/Then
-        measure {
-            for _ in 0..<100 {
-                _ = CommandSanitizer.sanitizeHTML(html)
-            }
-        }
-    }
-    
-    func testRemoveNonPrintablePerformance() {
-        // Given
-        let input = String(repeating: "Test\u{0000}String\u{0001}With\u{001F}NonPrintable ", count: 100)
-        
-        // When/Then
-        measure {
-            for _ in 0..<100 {
-                _ = CommandSanitizer.removeNonPrintable(input)
-            }
-        }
-    }
-    
     // MARK: - Integration Tests
     
     func testFullSanitizationPipeline() {

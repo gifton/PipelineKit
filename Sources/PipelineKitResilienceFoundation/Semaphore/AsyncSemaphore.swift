@@ -63,14 +63,15 @@ public actor AsyncSemaphore {
     /// Kept as a reference type so `tryResume` can mutate `state` in place while
     /// the instance is held by value-typed storage (the `PriorityHeap`).
     private class Waiter {
-        let id = UUID()
+        let id: UUID
         /// Monotonic FIFO ordering key. Lower values are served first.
         let seq: UInt64
         var state = WaiterState.waiting
         let continuation: ContinuationType
         var timeoutTask: Task<Void, Never>?
 
-        init(seq: UInt64, continuation: ContinuationType) {
+        init(id: UUID, seq: UInt64, continuation: ContinuationType) {
+            self.id = id
             self.seq = seq
             self.continuation = continuation
         }
@@ -146,40 +147,26 @@ public actor AsyncSemaphore {
         }
         
         // Slow path: need to wait
-        // Use a final class to capture the waiter ID for the cancellation handler
-        final class WaiterIdBox: @unchecked Sendable {
-            var id: UUID?
-        }
-        let waiterIdBox = WaiterIdBox()
+        // Registration and onCancel share only an immutable value. Mutable waiter
+        // state remains actor-isolated; no publication box crosses executors.
+        let waiterID = UUID()
         
         try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-                let waiter = Waiter(seq: nextSeq, continuation: .regular(continuation))
+                let waiter = Waiter(id: waiterID, seq: nextSeq, continuation: .regular(continuation))
                 nextSeq &+= 1
-                waiterIdBox.id = waiter.id
                 waiters.insert(waiter)
 
-                // Cancellation race fix (TOCTOU): `Task.checkCancellation()` above
-                // closes the common case, but the task may be cancelled between that
-                // check and this body running. In that window `onCancel` may have
-                // already fired while `waiterIdBox.id` was still nil (so it did
-                // nothing), which would otherwise leave this continuation orphaned
-                // and never resumed. Claim and resume it here.
-                //
-                // Remove from the heap first to uphold the invariant "a waiter is in
-                // the heap iff it is unresumed" at every resume site. This runs
-                // synchronously on the actor, so a concurrent `signal()` cannot
-                // interleave. Idempotent: a late `onCancel` finds the waiter already
-                // gone (`remove` returns nil) and becomes a no-op.
+                // Registration observes cancellation even if onCancel ran before
+                // insertion. Removal and resumption occur in this actor turn.
                 if Task.isCancelled, waiters.remove(id: waiter.id) != nil {
                     waiter.cancelTimeout()
                     _ = waiter.tryResume(with: .cancelled)
                 }
             }
-        } onCancel: { [weak self, waiterIdBox] in
-            guard let waiterId = waiterIdBox.id else { return }
+        } onCancel: { [weak self, waiterID] in
             Task { @Sendable [weak self] in
-                await self?.handleCancellationForWaiter(waiterId: waiterId)
+                await self?.handleCancellationForWaiter(waiterId: waiterID)
             }
         }
 
@@ -239,17 +226,14 @@ public actor AsyncSemaphore {
         }
         
         // Slow path: need to wait with timeout
-        // Use a final class to capture the waiter ID for the cancellation handler
-        final class WaiterIdBox: @unchecked Sendable {
-            var id: UUID?
-        }
-        let waiterIdBox = WaiterIdBox()
+        // Registration and onCancel share only an immutable value. Mutable waiter
+        // state remains actor-isolated; no publication box crosses executors.
+        let waiterID = UUID()
         
         let acquired = await withTaskCancellationHandler {
             await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
-                let waiter = Waiter(seq: nextSeq, continuation: .timeout(continuation))
+                let waiter = Waiter(id: waiterID, seq: nextSeq, continuation: .timeout(continuation))
                 nextSeq &+= 1
-                waiterIdBox.id = waiter.id
 
                 // Create timeout task
                 let timeoutTask = Task { [weak self, waiterId = waiter.id] in
@@ -262,24 +246,16 @@ public actor AsyncSemaphore {
                 waiter.timeoutTask = timeoutTask
                 waiters.insert(waiter)
 
-                // Cancellation race fix (TOCTOU): mirrors `wait()`. If the task was
-                // cancelled between the `Task.isCancelled` check above and this body
-                // running, `onCancel` may have already fired with a nil id and done
-                // nothing; claim and resume here so the continuation is not orphaned.
-                // Remove from the heap first (invariant: in-heap iff unresumed). A
-                // timeout waiter resumed with `.cancelled` returns `false`. We also
-                // cancel the timeout task we just created. Idempotent: a late
-                // `onCancel` finds the waiter already gone and becomes a no-op.
+                // Mirrors wait(): cancellation observed during registration
+                // removes ownership before resuming. A late handler is a no-op.
                 if Task.isCancelled, waiters.remove(id: waiter.id) != nil {
                     waiter.cancelTimeout()
                     _ = waiter.tryResume(with: .cancelled)
                 }
             }
-        } onCancel: { [weak self, waiterIdBox] in
-            // Handle task cancellation for specific waiter
-            guard let waiterId = waiterIdBox.id else { return }
+        } onCancel: { [weak self, waiterID] in
             Task { @Sendable [weak self] in
-                await self?.handleCancellationForWaiter(waiterId: waiterId)
+                await self?.handleCancellationForWaiter(waiterId: waiterID)
             }
         }
 

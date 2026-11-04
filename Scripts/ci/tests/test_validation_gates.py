@@ -1,5 +1,6 @@
 import json
 import os
+import re
 from pathlib import Path
 import subprocess
 import shutil
@@ -11,6 +12,63 @@ ROOT = Path(__file__).resolve().parents[3]
 RUNNER = ROOT / 'Scripts/run-tests.sh'
 STATUS = ROOT / 'Scripts/ci/check-required-status.sh'
 TESTS = ['PipelineKitTests.General/testOne', 'PipelineKitCoreTests.CancellationErrorTests/testCancel', 'PipelineKitCoreTests.Other/testOther', 'PipelineKitTestSupportTests.Support/testOne', 'PipelineKitPerformanceTests.Perf/testFast']
+
+
+def xctest_measurement_lines(source):
+    # Ignore comments and string literals, keeping line numbers for diagnostics.
+    masked = list(source)
+    index = 0
+    while index < len(source):
+        start = index
+        if source.startswith('//', index):
+            end = source.find('\n', index)
+            index = len(source) if end < 0 else end
+        elif source.startswith('/*', index):
+            index += 2
+            depth = 1
+            while index < len(source) and depth:
+                if source.startswith('/*', index):
+                    depth += 1
+                    index += 2
+                elif source.startswith('*/', index):
+                    depth -= 1
+                    index += 2
+                else:
+                    index += 1
+        else:
+            quote_start = index
+            while quote_start < len(source) and source[quote_start] == '#':
+                quote_start += 1
+            if quote_start == len(source) or source[quote_start] != '"':
+                index += 1
+                continue
+            hashes = source[index:quote_start]
+            quote = '"""' if source.startswith('"""', quote_start) else '"'
+            closing = quote + hashes
+            escape = '\\' + hashes
+            index = quote_start + len(quote)
+            while index < len(source):
+                if source.startswith(closing, index):
+                    index += len(closing)
+                    break
+                if source.startswith(escape, index):
+                    index = min(len(source), index + len(escape) + 1)
+                else:
+                    index += 1
+        for position in range(start, index):
+            if masked[position] != '\n':
+                masked[position] = ' '
+    code = ''.join(masked)
+    lines = []
+    for match in re.finditer(r'\b(?:measure|measureMetrics)\s*(?:\(|\{)', code):
+        prefix = code[:match.start()].rstrip()
+        if re.search(r'\bfunc$', prefix):
+            continue
+        if prefix.endswith('.') and not re.search(r'\b(?:self|super)\s*\.$', prefix):
+            # Helpers such as ThroughputMeasurement.measure test other contracts.
+            continue
+        lines.append(code.count('\n', 0, match.start()) + 1)
+    return lines
 
 class RunnerTests(unittest.TestCase):
     def setUp(self):
@@ -95,7 +153,7 @@ else:
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual(len(calls), 1)
 
-class PerformanceWorkflowTests(unittest.TestCase):
+class SwiftWorkflowTests(unittest.TestCase):
     """Exercise the real workflow shell with controlled Swift process outcomes."""
 
     def setUp(self):
@@ -127,29 +185,73 @@ elif args[0] == 'test':
         artifact.touch()
     if not artifact.exists():
         sys.exit('test executable missing')
-    sys.exit(int(os.environ['BENCHMARK_EXIT']))
+    sys.exit(int(os.environ['TEST_EXIT']))
 else:
     sys.exit('unexpected Swift command')
 ''')
         swift.chmod(0o755)
 
-    def run_step(self, name):
+    def run_step(self, name, workflow='ci.yml', indent=4):
         # Read the scalar/block shell directly from the workflow, so this test
         # exercises its failure handling rather than a duplicate implementation.
-        lines = (ROOT / '.github/workflows/ci.yml').read_text().splitlines()
-        start = lines.index(f'    - name: {name}') + 1
+        lines = (ROOT / '.github/workflows' / workflow).read_text().splitlines()
+        marker = ' ' * indent + f'- name: {name}'
+        if marker not in lines:
+            self.fail(f'Missing workflow step: {name}')
+        start = lines.index(marker) + 1
+        run_prefix = ' ' * (indent + 2) + 'run: '
         for index in range(start, len(lines)):
-            if lines[index].startswith('      run: '):
-                value = lines[index].removeprefix('      run: ')
+            if lines[index].startswith(' ' * indent + '- '):
+                break
+            if lines[index].startswith(run_prefix):
+                value = lines[index].removeprefix(run_prefix)
                 if value != '|':
                     return value
                 block = []
                 for line in lines[index + 1:]:
-                    if line and not line.startswith('        '):
+                    if line and not line.startswith(' ' * (indent + 4)):
                         break
                     block.append(line)
                 return textwrap.dedent('\n'.join(block))
         self.fail(f'Missing shell step: {name}')
+
+
+class PerformanceWorkflowTests(SwiftWorkflowTests):
+    def test_xctest_measurements_use_performance_target(self):
+        misplaced = []
+        for path in sorted((ROOT / 'Tests').rglob('*.swift')):
+            if path.relative_to(ROOT / 'Tests').parts[0] == 'PipelineKitPerformanceTests':
+                continue
+            misplaced.extend(f'{path.relative_to(ROOT)}:{line}'
+                             for line in xctest_measurement_lines(path.read_text()))
+        self.assertEqual(misplaced, [],
+                         'Move XCTest measurements into PipelineKitPerformanceTests: ' + ', '.join(misplaced))
+
+    def test_measurement_detection_covers_direct_and_inherited_calls(self):
+        source = 'measure { work() }\nself.measure(metrics: []) {}\nsuper.measureMetrics([], automaticallyStartMeasuring: true) {}'
+        self.assertEqual(xctest_measurement_lines(source), [1, 2, 3])
+
+    def test_measurement_detection_ignores_helpers_comments_and_literals(self):
+        source = '''// measure { example() }
+/* self.measure(metrics: []) {} */
+let example = "measure {}"
+let multiline = """
+measure {}
+"""
+let raw = #"measure(metrics: []) {}"#
+ThroughputMeasurement.measure(iterations: 3) { $0 }
+OtherHelper . measure() {}
+func measure() {}
+'''
+        self.assertEqual(xctest_measurement_lines(source), [])
+
+    def test_raw_string_backslash_does_not_hide_later_measurement(self):
+        source = 'let raw = #"\\"#\nmeasure { work() }\nlet other = #""#'
+        self.assertEqual(xctest_measurement_lines(source), [2])
+
+    def test_nested_block_comment_does_not_report_measurement(self):
+        source = '/* outer /* inner */\nmeasure { example() }\n*/\nmeasure { work() }'
+        self.assertEqual(xctest_measurement_lines(source), [4])
 
     def run_workflow(self, enforcement='false', compile_failure='false', benchmark_exit='0'):
         calls_path = self.dir / 'calls'
@@ -158,7 +260,7 @@ else:
         artifact.unlink(missing_ok=True)
         env = dict(os.environ, PATH=str(self.dir) + os.pathsep + os.environ['PATH'],
                    CALLS=str(calls_path), ALL_TESTS_BUILT=str(artifact),
-                   COMPILE_FAILURE=compile_failure, BENCHMARK_EXIT=benchmark_exit)
+                   COMPILE_FAILURE=compile_failure, TEST_EXIT=benchmark_exit)
         for name in ('Build Performance Tests', 'Run Performance Tests'):
             script = self.run_step(name).replace('${{ env.ENFORCE_PERFORMANCE }}', enforcement)
             result = subprocess.run(['bash', '-e', '-o', 'pipefail', '-c', script],
@@ -190,6 +292,41 @@ else:
         executions = [call for call in calls if call[0] == 'test']
         self.assertEqual(len(executions), 1, calls)
         self.assertEqual(executions[0][executions[0].index('--filter') + 1], 'PipelineKitPerformanceTests')
+
+
+class ReleaseWorkflowTests(SwiftWorkflowTests):
+    def run_workflow(self, compile_failure='false', test_exit='0'):
+        calls_path = self.dir / 'calls'
+        env = dict(os.environ, PATH=str(self.dir) + os.pathsep + os.environ['PATH'],
+                   CALLS=str(calls_path), ALL_TESTS_BUILT=str(self.dir / 'all-tests-built'),
+                   COMPILE_FAILURE=compile_failure, TEST_EXIT=test_exit)
+        for name in ('Build (Release)', 'Test (Release)'):
+            script = self.run_step(name, 'ci-multiplatform.yml', indent=6)
+            result = subprocess.run(['bash', '-e', '-o', 'pipefail', '-c', script],
+                                    env=env, cwd=self.dir, text=True, capture_output=True, timeout=10)
+            if result.returncode:
+                break
+        calls = [json.loads(line) for line in calls_path.read_text().splitlines()]
+        return result, calls
+
+    def test_release_executes_correctness_suite(self):
+        result, calls = self.run_workflow()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual([call[0] for call in calls], ['build', 'test'], calls)
+        execution = calls[-1]
+        self.assertIn('--skip-build', execution)
+        self.assertNotIn('--filter', execution)
+        self.assertEqual(execution[execution.index('--skip') + 1], 'PipelineKitPerformanceTests')
+
+    def test_release_compile_failure_prevents_execution(self):
+        result, calls = self.run_workflow(compile_failure='true')
+        self.assertEqual(result.returncode, 42, result.stdout + result.stderr)
+        self.assertEqual([call[0] for call in calls], ['build'], calls)
+
+    def test_release_test_failure_is_fatal(self):
+        result, calls = self.run_workflow(test_exit='7')
+        self.assertEqual(result.returncode, 7, result.stdout + result.stderr)
+        self.assertEqual([call[0] for call in calls], ['build', 'test'], calls)
 
 
 class StatusTests(unittest.TestCase):

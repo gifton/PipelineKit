@@ -12,7 +12,18 @@ public protocol SecurityValidatable {
 
 /// Configuration for security policies applied to commands.
 public struct SecurityPolicy: Sendable {
-    /// Maximum allowed command size in bytes
+    /// Maximum estimated logical content size for reflection-based validation.
+    ///
+    /// Strings contribute their UTF-8 byte count, `Data` its byte count, and
+    /// supported scalar values each contribute `MemoryLayout<Any>.size`.
+    /// Scalars are `Bool`, `Int`/`UInt`, their 8/16/32/64-bit variants, `Float`,
+    /// `Double`, `UUID` and `Date`.
+    /// Arrays, nested values and present optionals contribute their reflected
+    /// contents; container/storage overhead and absent optionals contribute zero.
+    /// This is neither a serialized size nor a process-memory budget. Commands
+    /// implementing `SecurityValidatable` define their own validation instead.
+    /// See `testSupportedLeavesHaveSameSizeInEveryContainerShape` and
+    /// `testEmptyAndAbsentPayloadsFitZeroLimit` for boundary coverage.
     public let maxCommandSize: Int
     
     /// Whether to allow HTML content in string fields
@@ -69,6 +80,17 @@ public struct SecurityPolicy: Sendable {
 /// 
 /// This middleware applies configured security policies to all commands,
 /// providing an additional layer of protection beyond basic validation.
+///
+/// Reflection covers visible children (including superclass fields) and the supported leaves documented by
+/// `SecurityPolicy.maxCommandSize`. Opaque leaves and contents hidden by custom
+/// mirrors are not measured; use `SecurityValidatable` for a domain-specific
+/// contract. Reflected reference cycles are rejected, while repeated acyclic
+/// references are counted per occurrence. Size errors report the observed sum
+/// when the limit is first exceeded, saturated at `Int.max` on overflow.
+/// These behaviors are covered by `testDirectAndIndirectReferenceCyclesRejectBeforeHandler`,
+/// `testRepeatedReferenceOccurrencesEachContributeSize`,
+/// `testSizeRejectionStopsBeforeLaterPayloadReflection` and
+/// `testBudgetRejectsOverflowEvenWhenLimitIsIntMax`.
 public struct SecurityPolicyMiddleware: Middleware {
     public let priority: ExecutionPriority = .custom
     private let policy: SecurityPolicy
@@ -98,50 +120,31 @@ public struct SecurityPolicyMiddleware: Middleware {
     
     /// Validates a command using reflection to inspect its properties
     private func validateUsingReflection<T>(_ command: T) throws {
-        let mirror = Mirror(reflecting: command)
-        
-        // Estimate command size (this is approximate)
-        let estimatedSize = estimateSize(of: command)
-        if estimatedSize > policy.maxCommandSize {
-            throw PipelineError.securityPolicy(reason: .commandTooLarge(
-                size: estimatedSize,
-                maxSize: policy.maxCommandSize
-            ))
-        }
-        
-        // Validate each property
-        try validateMirror(mirror, path: "")
+        var budget = SecurityCommandSizeBudget(limit: policy.maxCommandSize)
+        try budget.add(0)
+        try estimateSize(of: command, budget: &budget)
+        try validateStrings(in: command)
     }
     
-    /// Recursively validates properties using reflection
-    private func validateMirror(_ mirror: Mirror, path: String) throws {
-        for child in mirror.children {
-            let fieldName = child.label ?? "unknown"
-            let fieldPath = path.isEmpty ? fieldName : "\(path).\(fieldName)"
-            
-            // Validate strings
-            if let stringValue = child.value as? String {
-                try validateString(stringValue, field: fieldPath)
+    private func validateStrings(in value: Any) throws {
+        try walkReflectedValues(value) { value, path in
+            if let stringValue = value as? String {
+                try validateString(stringValue, field: path)
+                return false
             }
-            // Validate optional strings
-            else if let optionalString = child.value as? String? {
+            if let optionalString = value as? String? {
                 if let stringValue = optionalString {
-                    try validateString(stringValue, field: fieldPath)
+                    try validateString(stringValue, field: path)
                 }
+                return false
             }
-            // Validate arrays of strings
-            else if let stringArray = child.value as? [String] {
+            if let stringArray = value as? [String] {
                 for (index, stringValue) in stringArray.enumerated() {
-                    try validateString(stringValue, field: "\(fieldPath)[\(index)]")
+                    try validateString(stringValue, field: "\(path)[\(index)]")
                 }
+                return false
             }
-            // Recursively validate nested objects
-            else if !isSimpleType(child.value) {
-                let childMirror = Mirror(reflecting: child.value)
-                if !childMirror.children.isEmpty {
-                    try validateMirror(childMirror, path: fieldPath)
-                }
-            }
+            return !isSimpleType(value) && !(value is Data)
         }
     }
     
@@ -181,38 +184,89 @@ public struct SecurityPolicyMiddleware: Middleware {
         return OptimizedValidators.containsHTML(string)
     }
     
-    /// Estimates the size of a value in bytes
-    private func estimateSize(of value: Any) -> Int {
-        var size = 0
-        let mirror = Mirror(reflecting: value)
-        
-        size += estimateMirrorSize(mirror)
-        
-        return size
+    /// Charges leaves before inspecting children, including array elements and
+    /// optional payloads. See testSupportedLeavesHaveSameSizeInEveryContainerShape.
+    private func estimateSize(of value: Any, budget: inout SecurityCommandSizeBudget) throws {
+        try walkReflectedValues(value) { value, _ in
+            if let string = value as? String {
+                try budget.add(string.utf8.count)
+                return false
+            }
+            if let data = value as? Data {
+                try budget.add(data.count)
+                return false
+            }
+            if isSimpleType(value) {
+                try budget.add(MemoryLayout<Any>.size)
+                return false
+            }
+            return true
+        }
     }
-    
-    /// Recursively estimates the size of mirrored properties
-    private func estimateMirrorSize(_ mirror: Mirror) -> Int {
-        var size = 0
-        
-        for child in mirror.children {
-            if let string = child.value as? String {
-                size += string.utf8.count
-            } else if let data = child.value as? Data {
-                size += data.count
-            } else if let array = child.value as? [Any] {
-                size += array.reduce(0) { $0 + estimateSize(of: $1) }
-            } else if isSimpleType(child.value) {
-                size += MemoryLayout<Any>.size
-            } else {
-                let childMirror = Mirror(reflecting: child.value)
-                if !childMirror.children.isEmpty {
-                    size += estimateMirrorSize(childMirror)
+
+    /// Visits children lazily using an explicit stack. Covered by
+    /// testDeeplyNestedOptionalContainersRetainTheirLeafSize,
+    /// testDeepAcyclicReferencesRetainTheirLeafSizes and
+    /// testSizeRejectionStopsBeforeLaterPayloadReflection. Superclass traversal
+    /// is covered by testInheritedStoredPropertiesContributeSize and
+    /// testInheritedStringPropertiesAreValidated.
+    private func walkReflectedValues(
+        _ root: Any, descend: (Any, String) throws -> Bool
+    ) throws {
+        var activeReferences: Set<ObjectIdentifier> = []
+        var frames: [ReflectionFrame] = [.value(root, path: "")]
+
+        while let frame = frames.popLast() {
+            switch frame {
+            case .value(let value, let path):
+                guard try descend(value, path) else { continue }
+                let reference = try enterReference(value, activeReferences: &activeReferences)
+                let mirror = Mirror(reflecting: value)
+                frames.append(.children(
+                    owner: value, mirror: mirror, iterator: mirror.children.makeIterator(),
+                    path: path, reference: reference
+                ))
+            case .children(let owner, let mirror, let iterator, let path, let reference):
+                if let child = iterator.next() {
+                    frames.append(.children(
+                        owner: owner, mirror: mirror, iterator: iterator, path: path, reference: reference
+                    ))
+                    let field = child.label ?? "unknown"
+                    let fieldPath = path.isEmpty ? field : "\(path).\(field)"
+                    frames.append(.value(child.value, path: fieldPath))
+                } else if let superclass = mirror.superclassMirror {
+                    frames.append(.children(
+                        owner: owner, mirror: superclass, iterator: superclass.children.makeIterator(),
+                        path: path, reference: reference
+                    ))
+                } else if let reference {
+                    activeReferences.remove(reference)
                 }
             }
         }
-        
-        return size
+    }
+
+    private enum ReflectionFrame {
+        case value(Any, path: String)
+        case children(
+            owner: Any, mirror: Mirror, iterator: Mirror.Children.Iterator,
+            path: String, reference: ObjectIdentifier?
+        )
+    }
+
+    /// Tracks only the current path so separate occurrences of an alias count
+    /// separately; see testRepeatedReferenceOccurrencesEachContributeSize.
+    private func enterReference(
+        _ value: Any, activeReferences: inout Set<ObjectIdentifier>
+    ) throws -> ObjectIdentifier? {
+        guard type(of: value) is AnyClass else { return nil }
+        let reference = ObjectIdentifier(value as AnyObject)
+        guard activeReferences.insert(reference).inserted else {
+            throw PipelineError.securityPolicy(reason: .validationFailed(
+                reason: "Reference cycle requires custom SecurityValidatable validation"
+            ))
+        }
+        return reference
     }
     
     /// Determines if a value is a simple type (doesn't need deep inspection)
@@ -222,5 +276,23 @@ public struct SecurityPolicyMiddleware: Middleware {
                value is Int32 || value is Int64 || value is UInt ||
                value is UInt8 || value is UInt16 || value is UInt32 ||
                value is UInt64 || value is UUID || value is Date
+    }
+}
+
+/// Accumulates nonnegative leaf charges and rejects on the first excess.
+/// Overflow behavior is exercised by testBudgetRejectsOverflowEvenWhenLimitIsIntMax.
+struct SecurityCommandSizeBudget {
+    let limit: Int
+    private(set) var size: Int = 0
+
+    mutating func add(_ bytes: Int) throws {
+        let (total, overflow) = size.addingReportingOverflow(bytes)
+        guard !overflow && total <= limit else {
+            throw PipelineError.securityPolicy(reason: .commandTooLarge(
+                size: overflow ? Int.max : total,
+                maxSize: limit
+            ))
+        }
+        size = total
     }
 }

@@ -208,24 +208,4 @@ final class ContextKeyTests: XCTestCase {
         XCTAssertTrue(keys.contains(ContextKeys.userID))
     }
     
-    // MARK: - Performance Tests
-    
-    func testKeyCreationPerformance() {
-        measure {
-            for i in 0..<10000 {
-                _ = ContextKey<String>("key\(i)")
-            }
-        }
-    }
-    
-    func testKeyComparisonPerformance() {
-        let key1 = ContextKey<String>("test")
-        let key2 = ContextKey<String>("test")
-        
-        measure {
-            for _ in 0..<100000 {
-                _ = key1 == key2
-            }
-        }
-    }
 }

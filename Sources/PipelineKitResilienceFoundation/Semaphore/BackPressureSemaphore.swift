@@ -12,7 +12,9 @@ public actor BackPressureSemaphore {
     private let maxOutstanding: Int
     private let maxQueueMemory: Int?
     private let strategy: BackPressureStrategy
-    private let waiterTimeout: TimeInterval
+    private let waiterTimeout: TimeInterval?
+    private let admissionTimeout: Duration?
+    private let now: @Sendable () -> Date
     
     // MARK: - State (All Actor-Isolated)
     
@@ -38,6 +40,7 @@ public actor BackPressureSemaphore {
         let enqueuedAt: Date
         let priority: QueuePriority
         let estimatedSize: Int
+        var timeoutTask: Task<Void, Never>?
     }
     
     public enum QueuePriority: Int, Comparable, Sendable {
@@ -53,6 +56,10 @@ public actor BackPressureSemaphore {
     
     // MARK: - Initialization
 
+    /// A nil outstanding limit retains the legacy ten-times-concurrency default.
+    /// Configured admission timeouts must be finite and at most 86400 seconds;
+    /// finite nonpositive values permit immediate admission only. Invalid values
+    /// fail a precondition. `waiterTimeout` separately bounds legacy queue age.
     public init(
         maxConcurrency: Int,
         maxOutstanding: Int? = nil,
@@ -60,13 +67,65 @@ public actor BackPressureSemaphore {
         strategy: BackPressureStrategy = .suspend,
         waiterTimeout: TimeInterval = 300
     ) {
-        self.maxConcurrency = maxConcurrency
-        self.maxOutstanding = maxOutstanding ?? (maxConcurrency * 10)
+        self.init(
+            resolvedConcurrency: maxConcurrency,
+            resolvedOutstanding: maxOutstanding ?? Self.saturatingMultiply(maxConcurrency, by: 10),
+            maxQueueMemory: maxQueueMemory, strategy: strategy, waiterTimeout: waiterTimeout, now: Date.init
+        )
+    }
+
+    /// PipelineOptions uses nil for unlimited; the public semaphore initializer
+    /// retains its existing ten-times-concurrency default for nil outstanding.
+    package init(options: PipelineOptions, now: @escaping @Sendable () -> Date = Date.init) {
+        self.init(
+            resolvedConcurrency: options.maxConcurrency ?? Int.max,
+            resolvedOutstanding: options.maxOutstanding ?? Int.max,
+            maxQueueMemory: options.maxQueueMemory,
+            strategy: options.backPressureStrategy, waiterTimeout: nil, now: now
+        )
+    }
+
+    private init(
+        resolvedConcurrency: Int, resolvedOutstanding: Int,
+        maxQueueMemory: Int?, strategy: BackPressureStrategy, waiterTimeout: TimeInterval?,
+        now: @escaping @Sendable () -> Date
+    ) {
+        self.maxConcurrency = resolvedConcurrency
+        self.maxOutstanding = resolvedOutstanding
         self.maxQueueMemory = maxQueueMemory
         self.strategy = strategy
         self.waiterTimeout = waiterTimeout
-        self.availablePermits = maxConcurrency
+        self.now = now
+        if case .error(let timeout) = strategy {
+            self.admissionTimeout = Self.normalizeTimeout(timeout)
+        } else {
+            self.admissionTimeout = nil
+        }
+        self.availablePermits = resolvedConcurrency
         self.waiters = Self.makeWaiterHeap()
+    }
+
+    /// Matches the bulkhead queue timeout contract. Nonpositive finite values
+    /// allow immediate admission only; unsupported values fail at the boundary.
+    private static func normalizeTimeout(_ timeout: TimeInterval?) -> Duration? {
+        guard let timeout else { return nil }
+        precondition(
+            timeout.isFinite && timeout <= 86_400,
+            "Back-pressure admission timeout must be finite and no greater than 86400 seconds"
+        )
+        return timeout <= 0 ? .zero : .seconds(timeout)
+    }
+
+    // Saturation preserves a representable upper bound for the legacy Int stats.
+    // testCapacityArithmeticBoundaries covers both multipliers and summed sizes.
+    static func saturatingMultiply(_ value: Int, by multiplier: Int) -> Int {
+        let (result, overflow) = value.multipliedReportingOverflow(by: multiplier)
+        return overflow ? Int.max : result
+    }
+
+    static func saturatingAdd(_ lhs: Int, _ rhs: Int) -> Int {
+        let (result, overflow) = lhs.addingReportingOverflow(rhs)
+        return overflow ? Int.max : result
     }
 
     /// Builds an empty waiter heap with the canonical ordering.
@@ -93,6 +152,7 @@ public actor BackPressureSemaphore {
     
     /// Start the cleanup task after initialization
     private func startCleanupTask() {
+        guard waiterTimeout != nil else { return }
         if cleanupTask == nil {
             cleanupTask = Task { [weak self] in
                 // Lifecycle: the strong reference to the actor must be scoped
@@ -116,119 +176,119 @@ public actor BackPressureSemaphore {
     
     // MARK: - Core Operations
     
-    /// Acquires a permit, waiting if necessary.
+    /// Acquires a permit, applying the configured `.error(timeout:)` admission
+    /// deadline. The deadline ends at acquisition and never covers handler work.
     public func acquire(
         priority: QueuePriority = .normal,
         estimatedSize: Int = 1024
     ) async throws -> SemaphoreToken {
-        // Ensure cleanup task is running
+        let timeoutValue: TimeInterval?
+        if case .error(let timeout) = strategy { timeoutValue = timeout }
+        else { timeoutValue = nil }
+        return try await acquire(
+            waitTimeout: admissionTimeout, timeoutValue: timeoutValue,
+            priority: priority, estimatedSize: estimatedSize
+        )
+    }
+
+    /// Acquires with an explicit admission deadline, overriding the strategy's
+    /// timeout. Finite nonpositive values permit immediate admission only.
+    /// Nonfinite values or values above 86400 seconds fail a precondition.
+    public func acquire(
+        timeout: TimeInterval,
+        priority: QueuePriority = .normal,
+        estimatedSize: Int = 1024
+    ) async throws -> SemaphoreToken? {
+        try await acquire(
+            waitTimeout: Self.normalizeTimeout(timeout), timeoutValue: timeout,
+            priority: priority, estimatedSize: estimatedSize
+        )
+    }
+
+    private func acquire(
+        waitTimeout: Duration?, timeoutValue: TimeInterval?,
+        priority: QueuePriority, estimatedSize: Int
+    ) async throws -> SemaphoreToken {
+        try Task.checkCancellation()
         startCleanupTask()
-        
-        // Fast path: immediate acquisition
-        if availablePermits > 0 && waiters.isEmpty {
+
+        if availablePermits > 0 && waiters.isEmpty && activeTokens < maxOutstanding {
             availablePermits -= 1
             activeTokens += 1
-            totalProcessed += 1
-            
+            totalProcessed = Self.saturatingAdd(totalProcessed, 1)
             return SemaphoreToken { [weak self] in
                 Task { await self?.release() }
             }
         }
-        
-        // Check queue limits
-        try checkQueueLimits(estimatedSize: estimatedSize)
-        
-        // Slow path: queue and wait
-        // Capture waiter ID before withTaskCancellationHandler for proper cancellation targeting
-        let waiterID = UUID()
-        let enqueuedAt = Date()
 
-        let token = try await withTaskCancellationHandler {
-            try await withCheckedThrowingContinuation { continuation in
-                let waiter = Waiter(
-                    id: waiterID,
-                    continuation: continuation,
-                    enqueuedAt: enqueuedAt,
-                    priority: priority,
-                    estimatedSize: estimatedSize
-                )
-                insertWaiter(waiter)
-            }
-        } onCancel: {
-            Task { [weak self] in
-                await self?.cancelWaiter(waiterID)
-            }
+        let estimatedSize = max(0, estimatedSize)
+        if let waitTimeout, let timeoutValue, waitTimeout <= .zero {
+            throw PipelineError.backPressure(reason: .timeout(duration: timeoutValue))
         }
 
-        // Cancellation race fix (lost wakeup), ported from SimpleSemaphore
-        // (PR #73): `onCancel` merely *spawns* an unstructured task to run
-        // `cancelWaiter`, while a concurrent `SemaphoreToken.release()` spawns
-        // an unstructured task to run `release()`. Those two tasks race for the
-        // actor. If `release()` wins, it pops this (already-cancelled) waiter
-        // from the heap and resumes it with a fresh token, and the later
-        // `cancelWaiter` finds nothing to do — so a cancelled `acquire()` would
-        // return a token. Callers that rely on cancellation throwing may then
-        // strand the token (e.g. inside a completed `Task`'s result that is
-        // never consumed), trapping the permit forever and deadlocking every
-        // future waiter.
-        //
-        // Detect that outcome here, in the waiter's own task, where the
-        // cancellation flag is unambiguous: if `release()` won the race, the
-        // task's cancel flag was necessarily set *before* `onCancel` fired, so
-        // it is visible by the time we resume. Forward the permit (waking the
-        // next waiter, or restoring a permit) and honor cancellation by
-        // throwing. `SemaphoreToken.release()` is idempotent, and the pending
-        // `cancelWaiter` task remains a harmless no-op because `release()`
-        // already removed this waiter from the heap. If instead `cancelWaiter`
-        // won the race, the continuation above threw and this code is never
-        // reached.
+        let waiterID = UUID()
+        let token: SemaphoreToken = try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { continuation in
+                // Handles cancellation before this continuation registers, including
+                // cancellation whose handler already attempted removal.
+                guard !Task.isCancelled else {
+                    continuation.resume(throwing: CancellationError())
+                    return
+                }
+                do {
+                    let evictedID = try planQueueAdmission(estimatedSize: estimatedSize)
+                    var waiter = Waiter(
+                        id: waiterID, continuation: continuation, enqueuedAt: now(),
+                        priority: priority, estimatedSize: estimatedSize
+                    )
+                    if let waitTimeout, let timeoutValue {
+                        let deadline = ContinuousClock.now.advanced(by: waitTimeout)
+                        waiter.timeoutTask = Task { [weak self] in
+                            do { try await Task.sleep(until: deadline, clock: .continuous) }
+                            catch { return }
+                            await self?.timeoutWaiter(waiterID, duration: timeoutValue)
+                        }
+                    }
+                    // Eligibility checks precede the replacement's first mutation;
+                    // plan, eviction and registration share this actor turn.
+                    if let evictedID, let evicted = waiters.remove(id: evictedID) {
+                        evicted.timeoutTask?.cancel()
+                        evicted.continuation.resume(throwing:
+                            PipelineError.backPressure(reason: .commandDropped(reason: "Dropped to make room"))
+                        )
+                    }
+                    insertWaiter(waiter)
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            }
+        } onCancel: {
+            Task { [weak self] in await self?.cancelWaiter(waiterID) }
+        }
+
+        // A grant can win the actor turn before cancellation removal. Returning
+        // that token here conserves its permit; the token release is idempotent.
         if Task.isCancelled {
             token.release()
             throw CancellationError()
         }
         return token
     }
-    
-    /// Attempts to acquire with a timeout.
-    public func acquire(
-        timeout: TimeInterval,
-        priority: QueuePriority = .normal,
-        estimatedSize: Int = 1024
-    ) async throws -> SemaphoreToken? {
-        return try await withThrowingTaskGroup(of: SemaphoreToken?.self) { group in
-            group.addTask { @Sendable in
-                try await self.acquire(priority: priority, estimatedSize: estimatedSize)
-            }
-            
-            group.addTask { @Sendable in
-                try await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
-                return nil // Timeout occurred
-            }
-            
-            // Wait for first task to complete
-            if let result = try await group.next() {
-                group.cancelAll()
-                if let token = result {
-                    return token
-                } else {
-                    // Timeout occurred
-                    throw PipelineError.backPressure(reason: .timeout(duration: timeout))
-                }
-            }
-            
-            return nil
-        }
+
+    private func timeoutWaiter(_ waiterID: UUID, duration: TimeInterval) {
+        guard let waiter = waiters.remove(id: waiterID) else { return }
+        waiter.continuation.resume(throwing: PipelineError.backPressure(reason: .timeout(duration: duration)))
     }
-    
+
     /// Attempts to acquire without waiting.
     public func tryAcquire() -> SemaphoreToken? {
-        guard availablePermits > 0 && waiters.isEmpty else {
+        guard availablePermits > 0 && waiters.isEmpty && activeTokens < maxOutstanding else {
             return nil
         }
         
         availablePermits -= 1
         activeTokens += 1
-        totalProcessed += 1
+        totalProcessed = Self.saturatingAdd(totalProcessed, 1)
         
         return SemaphoreToken { [weak self] in
             Task { await self?.release() }
@@ -241,6 +301,7 @@ public actor BackPressureSemaphore {
         
         // Process next waiter if any
         if let waiter = extractNextWaiter() {
+            waiter.timeoutTask?.cancel()
             activeTokens += 1
             let token = SemaphoreToken { [weak self] in
                 Task { await self?.release() }
@@ -270,22 +331,27 @@ public actor BackPressureSemaphore {
         // `remove(id:)` returns the waiter only if it was still queued; if it was
         // already handed off by release(), it returns nil and no action is needed.
         if let waiter = waiters.remove(id: waiterID) {
+            waiter.timeoutTask?.cancel()
             waiter.continuation.resume(throwing: CancellationError())
         }
     }
     
-    private func checkQueueLimits(estimatedSize: Int) throws {
+    // testNoWaitAcquisitionDoesNotEvictRegisteredWaiter and
+    // testDropOldestPlansMemoryBeforeEvictingHeapRoot cover rejected replacements.
+    private func planQueueAdmission(estimatedSize: Int) throws -> UUID? {
+        var evictedID: UUID?
         // Check if adding this new waiter would exceed the limit
-        let totalOutstanding = activeTokens + waiters.count
+        let totalOutstanding = Self.saturatingAdd(activeTokens, waiters.count)
+        let proposedOutstanding = Self.saturatingAdd(totalOutstanding, 1)
         
-        if totalOutstanding + 1 > maxOutstanding {
+        if proposedOutstanding > maxOutstanding {
             switch strategy {
             case .suspend:
                 // Allow 2x for suspend strategy
-                if totalOutstanding + 1 > maxOutstanding * 2 {
+                if proposedOutstanding > Self.saturatingMultiply(maxOutstanding, by: 2) {
                     throw PipelineError.backPressure(reason: .queueFull(
-                        current: totalOutstanding + 1,
-                        limit: maxOutstanding * 2
+                        current: proposedOutstanding,
+                        limit: Self.saturatingMultiply(maxOutstanding, by: 2)
                     ))
                 }
                 
@@ -296,13 +362,7 @@ public actor BackPressureSemaphore {
                 // array implementation dropped `waiters.first`, which equals
                 // `extractMin()` under this ordering, so behavior is unchanged.
                 // Revisit the semantics in a follow-up milestone.
-                if let oldest = waiters.extractMin() {
-                    oldest.continuation.resume(throwing:
-                        PipelineError.backPressure(reason: .commandDropped(
-                            reason: "Dropped to make room"
-                        ))
-                    )
-                }
+                evictedID = waiters.peek()?.id
                 
             case .dropNewest:
                 throw PipelineError.backPressure(reason: .commandDropped(
@@ -313,7 +373,7 @@ public actor BackPressureSemaphore {
                 if timeout == nil {
                     // No timeout specified, throw immediately
                     throw PipelineError.backPressure(reason: .queueFull(
-                        current: totalOutstanding + 1,
+                        current: proposedOutstanding,
                         limit: maxOutstanding
                     ))
                 }
@@ -323,17 +383,25 @@ public actor BackPressureSemaphore {
         
         // Check memory limit
         if let maxMemory = maxQueueMemory {
-            let currentMemory = waiters.allElements().reduce(0) { $0 + $1.estimatedSize }
-            if currentMemory + estimatedSize > maxMemory {
+            // Sum retained waiters directly: subtracting from saturated totals
+            // could hide overflow and understate prospective memory.
+            let currentMemory = waiters.allElements().reduce(0) { total, waiter in
+                waiter.id == evictedID ? total : Self.saturatingAdd(total, waiter.estimatedSize)
+            }
+            if currentMemory > maxMemory || estimatedSize > maxMemory - currentMemory {
                 throw PipelineError.backPressure(reason: .memoryPressure)
             }
         }
+        return evictedID
     }
     
     // MARK: - Cleanup
 
-    private func cleanupExpiredWaiters() {
-        let now = Date()
+    func cleanupExpiredWaiters() {
+        // PipelineOptions has no legacy age limit. Its deadline is owned solely
+        // by each waiter (testPipelineOptionsDoNotInheritLegacyFiveMinuteCleanup).
+        guard let waiterTimeout else { return }
+        let now = now()
         // Snapshot the heap (a value-typed array copy) so we can mutate the heap
         // while iterating. `now.timeIntervalSince(enqueuedAt)` is positive for
         // waiters that enqueued in the past, so this fires once the wait exceeds
@@ -345,6 +413,7 @@ public actor BackPressureSemaphore {
             // `remove(id:)` returns nil if the waiter was already handed off by
             // release() between snapshot and removal, which prevents double-resume.
             if let removed = waiters.remove(id: waiter.id) {
+                removed.timeoutTask?.cancel()
                 removed.continuation.resume(throwing:
                     PipelineError.backPressure(reason: .timeout(duration: waiterTimeout))
                 )
@@ -361,12 +430,12 @@ public actor BackPressureSemaphore {
             availableResources: availablePermits,
             activeOperations: activeTokens,
             queuedOperations: waiters.count,
-            totalOutstanding: activeTokens + waiters.count,
-            queueMemoryUsage: waiters.allElements().reduce(0) { $0 + $1.estimatedSize },
+            totalOutstanding: Self.saturatingAdd(activeTokens, waiters.count),
+            queueMemoryUsage: waiters.allElements().reduce(0) { Self.saturatingAdd($0, $1.estimatedSize) },
             // `peek()` is the heap root (highest-priority, earliest-enqueued),
             // matching the previous `waiters.first`. Preserves prior behavior even
             // though it is not strictly the time-oldest waiter.
-            oldestWaiterAge: waiters.peek()?.enqueuedAt.timeIntervalSinceNow.magnitude
+            oldestWaiterAge: waiters.peek().map { max(0, now().timeIntervalSince($0.enqueuedAt)) }
         )
     }
 
@@ -375,9 +444,10 @@ public actor BackPressureSemaphore {
     
     public func healthCheck() -> SemaphoreHealth {
         let stats = getStats()
-        let queueUtilization = Double(stats.queuedOperations) / Double(maxOutstanding)
+        let queueUtilization = maxOutstanding > 0
+            ? Double(stats.queuedOperations) / Double(maxOutstanding) : 0
         let memoryUtilization = maxQueueMemory.map {
-            Double(stats.queueMemoryUsage) / Double($0)
+            $0 > 0 ? Double(stats.queueMemoryUsage) / Double($0) : 0
         } ?? 0
         
         let isHealthy = (stats.oldestWaiterAge ?? 0) < 60 &&
@@ -402,6 +472,7 @@ public actor BackPressureSemaphore {
         // with identical ordering. Resuming from the snapshot (rather than from the
         // live heap) avoids mutating the heap mid-iteration.
         for waiter in waiters.allElements() {
+            waiter.timeoutTask?.cancel()
             waiter.continuation.resume(throwing: shutdownError)
         }
         waiters = Self.makeWaiterHeap()
@@ -423,12 +494,15 @@ extension PipelineError {
 /// Statistics about the semaphore's current state.
 @frozen
 public struct SemaphoreStats: Sendable {
+    /// Int.max represents an unlimited PipelineOptions concurrency limit.
     public let maxConcurrency: Int
+    /// Int.max represents an unlimited or saturated outstanding bound.
     public let maxOutstanding: Int
     public let availableResources: Int
     public let activeOperations: Int
     public let queuedOperations: Int
     public let totalOutstanding: Int
+    /// Sum of nonnegative estimates, saturated at Int.max.
     public let queueMemoryUsage: Int
     public let oldestWaiterAge: TimeInterval?
 }
