@@ -31,9 +31,9 @@ final class StatsDTelemetryContractTests: XCTestCase {
             let exporter = StatsDExporter(configuration: .init(
                 flushInterval: 60, aggregation: .init(enabled: aggregationEnabled, flushInterval: 60)
             ), transport: transport)
-            let failures = Mutex(0)
+            let failures = TelemetrySharedState(0)
             await exporter.setErrorHandler { error in
-                if case MetricsError.invalidData = error { failures.withLock { $0 += 1 } }
+                if case MetricsError.invalidData = error { failures.update { $0 += 1 } }
             }
             for type in ["counter", "gauge", "timer", "histogram", "custom"] {
                 await exporter.record(.init(name: type, type: type))
@@ -41,7 +41,7 @@ final class StatsDTelemetryContractTests: XCTestCase {
             await exporter.forceFlush()
             let packets = await transport.getMetricsAsStrings()
             XCTAssertEqual(packets, ["counter:1.0|c"])
-            XCTAssertEqual(failures.withLock { $0 }, 4)
+            XCTAssertEqual(failures.value, 4)
             await exporter.close()
         }
     }
@@ -52,9 +52,9 @@ final class StatsDTelemetryContractTests: XCTestCase {
             let exporter = StatsDExporter(configuration: .init(
                 flushInterval: 60, aggregation: .init(enabled: aggregationEnabled, flushInterval: 60)
             ), transport: transport)
-            let failures = Mutex(0)
+            let failures = TelemetrySharedState(0)
             await exporter.setErrorHandler { error in
-                if case MetricsError.invalidData = error { failures.withLock { $0 += 1 } }
+                if case MetricsError.invalidData = error { failures.update { $0 += 1 } }
             }
             await exporter.record(.init(name: "seconds", type: "timer", value: 1, unit: "seconds"))
             await exporter.record(.init(name: "legacy", type: "timer", value: 2))
@@ -62,7 +62,7 @@ final class StatsDTelemetryContractTests: XCTestCase {
             await exporter.forceFlush()
             let packets = await transport.getMetricsAsStrings()
             XCTAssertEqual(packets.sorted(), ["legacy:2.0|ms", "milliseconds:3.0|ms"])
-            XCTAssertEqual(failures.withLock { $0 }, 1)
+            XCTAssertEqual(failures.value, 1)
             await exporter.close()
         }
     }
@@ -78,16 +78,16 @@ final class StatsDTelemetryContractTests: XCTestCase {
             let exporter = StatsDExporter(configuration: .init(
                 flushInterval: 60, aggregation: .init(enabled: true, flushInterval: 60)
             ), transport: transport)
-            let failures = Mutex(0)
+            let failures = TelemetrySharedState(0)
             await exporter.setErrorHandler { error in
-                if case MetricsError.invalidData = error { failures.withLock { $0 += 1 } }
+                if case MetricsError.invalidData = error { failures.update { $0 += 1 } }
             }
             await exporter.record(first)
             await exporter.record(conflicting)
             await exporter.forceFlush()
             let packets = await transport.getMetricsAsStrings()
             XCTAssertEqual(packets, [expected])
-            XCTAssertEqual(failures.withLock { $0 }, 1)
+            XCTAssertEqual(failures.value, 1)
             await exporter.close()
         }
     }
@@ -95,9 +95,9 @@ final class StatsDTelemetryContractTests: XCTestCase {
     func testDescendantAfterTimerSettlementMustJoinTransportClose() async {
         let premature = expectation(description: "stale task-local owner does not bypass close settlement")
         premature.isInverted = true
-        let observing = Mutex(true)
+        let observing = TelemetrySharedState(true)
         let transport = DescendantCloseTelemetryTransport {
-            if observing.withLock({ $0 }) { premature.fulfill() }
+            if observing.value { premature.fulfill() }
         }
         let exporter = StatsDExporter(configuration: .init(maxBatchSize: 100, flushInterval: 0), transport: transport)
         await transport.install(exporter)
@@ -108,7 +108,7 @@ final class StatsDTelemetryContractTests: XCTestCase {
         await transport.releaseChild()
         await transport.waitForClose()
         await fulfillment(of: [premature], timeout: 0.2)
-        observing.withLock { $0 = false }
+        observing.update { $0 = false }
         await transport.releaseClose()
         await transport.joinChild()
         await exporter.close()
@@ -137,28 +137,28 @@ final class StatsDTelemetryContractTests: XCTestCase {
     }
 
     func testStartupFactoryCanReenterClose() async {
-        let reference = Mutex<StatsDExporter?>(nil)
+        let reference = TelemetrySharedState<StatsDExporter?>(nil)
         let transport = TelemetryPacketTransport(onSend: {})
         let exporter = StatsDExporter(configuration: .default, transportFactory: {
-            let exporter = reference.withLock { $0 }
+            let exporter = reference.value
             await exporter?.close()
             return transport
         })
-        reference.withLock { $0 = exporter }
+        reference.update { $0 = exporter }
         do {
             try await exporter.start()
             XCTFail("Factory closed exporter before publishing transport")
         } catch TransportError.transportClosed { } catch { XCTFail("Unexpected error: \(error)") }
         await exporter.close()
-        reference.withLock { $0 = nil }
+        reference.update { $0 = nil }
     }
 
     func testNestedStartupFactoryCanCloseOuterExporter() async {
-        let outerReference = Mutex<StatsDExporter?>(nil)
+        let outerReference = TelemetrySharedState<StatsDExporter?>(nil)
         let innerTransport = TelemetryPacketTransport(onSend: {})
         let outerTransport = TelemetryPacketTransport(onSend: {})
         let inner = StatsDExporter(configuration: .default, transportFactory: {
-            let outer = outerReference.withLock { $0 }
+            let outer = outerReference.value
             await outer?.close()
             return innerTransport
         })
@@ -166,14 +166,14 @@ final class StatsDTelemetryContractTests: XCTestCase {
             try await inner.start()
             return outerTransport
         })
-        outerReference.withLock { $0 = outer }
+        outerReference.update { $0 = outer }
         do {
             try await outer.start()
             XCTFail("Nested factory closed the outer exporter")
         } catch TransportError.transportClosed { } catch { XCTFail("Unexpected error: \(error)") }
         await outer.close()
         await inner.close()
-        outerReference.withLock { $0 = nil }
+        outerReference.update { $0 = nil }
     }
 
     func testCapacityFlushAndFinalFlushEachDeliverTheirRetainedObservationsOnce() async throws {
@@ -212,14 +212,14 @@ final class StatsDTelemetryContractTests: XCTestCase {
     func testEmptyMetricNameIsRejected() async throws {
         let transport = try await MockTransport(configuration: .init())
         let exporter = StatsDExporter(configuration: .init(maxBatchSize: 1), transport: transport)
-        let failures = Mutex(0)
+        let failures = TelemetrySharedState(0)
         await exporter.setErrorHandler { error in
-            if case MetricsError.invalidData = error { failures.withLock { $0 += 1 } }
+            if case MetricsError.invalidData = error { failures.update { $0 += 1 } }
         }
         await exporter.counter("")
         let packets = await transport.getMetricsAsStrings()
         XCTAssertTrue(packets.isEmpty)
-        XCTAssertEqual(failures.withLock { $0 }, 1)
+        XCTAssertEqual(failures.value, 1)
         await exporter.close()
     }
 
@@ -230,9 +230,9 @@ final class StatsDTelemetryContractTests: XCTestCase {
                 maxBatchSize: 100, flushInterval: 60,
                 aggregation: .init(enabled: aggregationEnabled, flushInterval: 60)
             ), transport: transport)
-            let failures = Mutex(0)
+            let failures = TelemetrySharedState(0)
             await exporter.setErrorHandler { error in
-                if case MetricsError.invalidData = error { failures.withLock { $0 += 1 } }
+                if case MetricsError.invalidData = error { failures.update { $0 += 1 } }
             }
             await exporter.counter("valid", value: 3)
             for type in ["counter", "gauge", "timer", "histogram"] {
@@ -243,7 +243,7 @@ final class StatsDTelemetryContractTests: XCTestCase {
             await exporter.forceFlush()
             let packets = await transport.getMetricsAsStrings()
             XCTAssertEqual(packets, ["valid:3.0|c"])
-            XCTAssertEqual(failures.withLock { $0 }, 12)
+            XCTAssertEqual(failures.value, 12)
             await exporter.close()
         }
     }
@@ -253,16 +253,16 @@ final class StatsDTelemetryContractTests: XCTestCase {
         let exporter = StatsDExporter(configuration: .init(
             flushInterval: 60, aggregation: .init(enabled: true, flushInterval: 60)
         ), transport: transport)
-        let failures = Mutex(0)
+        let failures = TelemetrySharedState(0)
         await exporter.setErrorHandler { error in
-            if case MetricsError.invalidData = error { failures.withLock { $0 += 1 } }
+            if case MetricsError.invalidData = error { failures.update { $0 += 1 } }
         }
         await exporter.counter("large", value: Double.greatestFiniteMagnitude)
         await exporter.counter("large", value: Double.greatestFiniteMagnitude)
         await exporter.forceFlush()
         let packets = await transport.getMetricsAsStrings()
         XCTAssertEqual(packets, ["large:1.7976931348623157e+308|c"])
-        XCTAssertEqual(failures.withLock { $0 }, 1)
+        XCTAssertEqual(failures.value, 1)
         await exporter.close()
     }
 
@@ -310,11 +310,11 @@ final class StatsDTelemetryContractTests: XCTestCase {
         ), transport: transport, sleep: { try await sleeper.sleep($0) })
         await exporter.counter("discarded")
         await sleeper.waitForCount(1)
-        let closed = Mutex(0)
-        let firstClose = Task { await exporter.close(); closed.withLock { $0 += 1 } }
-        let secondClose = Task { await exporter.close(); closed.withLock { $0 += 1 } }
+        let closed = TelemetrySharedState(0)
+        let firstClose = Task { await exporter.close(); closed.update { $0 += 1 } }
+        let secondClose = Task { await exporter.close(); closed.update { $0 += 1 } }
         while !(await exporter.isClosed) { await Task.yield() }
-        XCTAssertEqual(closed.withLock { $0 }, 0)
+        XCTAssertEqual(closed.value, 0)
         await sleeper.release(1)
         await firstClose.value
         await secondClose.value
@@ -322,7 +322,7 @@ final class StatsDTelemetryContractTests: XCTestCase {
         let timers = await exporter.timerTasks.count
         XCTAssertTrue(packets.isEmpty)
         XCTAssertEqual(timers, 0)
-        XCTAssertEqual(closed.withLock { $0 }, 2)
+        XCTAssertEqual(closed.value, 2)
     }
 
     func testSleepingAggregationTimerDoesNotRetainExporter() async throws {
@@ -352,14 +352,14 @@ final class StatsDTelemetryContractTests: XCTestCase {
         await transport.waitForCloseEntry()
         await fulfillment(of: [returned], timeout: 1)
         guard await transport.didReturn else { await transport.releaseClose(); return }
-        let finished = Mutex(false)
-        let externalClose = Task { await exporter.close(); finished.withLock { $0 = true } }
-        XCTAssertFalse(finished.withLock { $0 })
+        let finished = TelemetrySharedState(false)
+        let externalClose = Task { await exporter.close(); finished.update { $0 = true } }
+        XCTAssertFalse(finished.value)
         await transport.releaseClose()
         await externalClose.value
         let closes = await transport.closeCount
         XCTAssertEqual(closes, 1)
-        XCTAssertTrue(finished.withLock { $0 })
+        XCTAssertTrue(finished.value)
         await transport.uninstall()
     }
 
@@ -414,15 +414,15 @@ final class StatsDTelemetryContractTests: XCTestCase {
                 maxBatchSize: 1, flushInterval: 60,
                 aggregation: .init(enabled: aggregationEnabled, flushInterval: 60)
             ), transport: transport)
-            let failures = Mutex<Int>(0)
+            let failures = TelemetrySharedState(0)
             await exporter.setErrorHandler { error in
-                if case MetricsError.invalidData = error { failures.withLock { $0 += 1 } }
+                if case MetricsError.invalidData = error { failures.update { $0 += 1 } }
             }
             for tags in malformedTags { await exporter.counter("safe", tags: tags) }
             await exporter.forceFlush()
             let packets = await transport.getMetricsAsStrings()
             XCTAssertTrue(packets.isEmpty)
-            XCTAssertEqual(failures.withLock { $0 }, malformedTags.count)
+            XCTAssertEqual(failures.value, malformedTags.count)
             await exporter.close()
         }
     }
@@ -541,6 +541,18 @@ final class StatsDTelemetryContractTests: XCTestCase {
         let output = aggregator.forceFlush()
         XCTAssertEqual(output.first { $0.0.type == "counter" }?.0.value ?? -1, 4, accuracy: 0.000_001)
         XCTAssertEqual(output.first { $0.0.type == "gauge" }?.0.value ?? -1, 5, accuracy: 0.000_001)
+    }
+}
+
+private final class TelemetrySharedState<Value: Sendable>: Sendable {
+    private let storage: Mutex<Value>
+
+    init(_ value: Value) { storage = Mutex(value) }
+
+    var value: Value { storage.withLock { $0 } }
+
+    func update(_ body: (inout Value) -> Void) {
+        storage.withLock { body(&$0) }
     }
 }
 
