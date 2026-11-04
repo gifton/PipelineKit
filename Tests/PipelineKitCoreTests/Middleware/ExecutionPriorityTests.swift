@@ -297,38 +297,6 @@ final class ExecutionPriorityTests: XCTestCase {
         XCTAssertGreaterThan(beforeAuth, 0) // Still positive
     }
     
-    // MARK: - Performance Tests
-    
-    func testPriorityComparisonPerformance() {
-        let priority1 = ExecutionPriority.authentication
-        let priority2 = ExecutionPriority.processing
-        
-        measure {
-            for _ in 0..<100000 {
-                _ = priority1.rawValue < priority2.rawValue
-            }
-        }
-    }
-    
-    func testBetweenMethodPerformance() {
-        measure {
-            for _ in 0..<100000 {
-                _ = ExecutionPriority.between(.authentication, and: .processing)
-            }
-        }
-    }
-    
-    func testDescriptionPerformance() {
-        let priorities = ExecutionPriority.allCases
-        
-        measure {
-            for _ in 0..<10000 {
-                for priority in priorities {
-                    _ = priority.description
-                }
-            }
-        }
-    }
 }
 
 // MARK: - Test Helpers

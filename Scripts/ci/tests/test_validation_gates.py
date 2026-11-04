@@ -1,5 +1,6 @@
 import json
 import os
+import re
 from pathlib import Path
 import subprocess
 import shutil
@@ -11,6 +12,63 @@ ROOT = Path(__file__).resolve().parents[3]
 RUNNER = ROOT / 'Scripts/run-tests.sh'
 STATUS = ROOT / 'Scripts/ci/check-required-status.sh'
 TESTS = ['PipelineKitTests.General/testOne', 'PipelineKitCoreTests.CancellationErrorTests/testCancel', 'PipelineKitCoreTests.Other/testOther', 'PipelineKitTestSupportTests.Support/testOne', 'PipelineKitPerformanceTests.Perf/testFast']
+
+
+def xctest_measurement_lines(source):
+    # Ignore comments and string literals, keeping line numbers for diagnostics.
+    masked = list(source)
+    index = 0
+    while index < len(source):
+        start = index
+        if source.startswith('//', index):
+            end = source.find('\n', index)
+            index = len(source) if end < 0 else end
+        elif source.startswith('/*', index):
+            index += 2
+            depth = 1
+            while index < len(source) and depth:
+                if source.startswith('/*', index):
+                    depth += 1
+                    index += 2
+                elif source.startswith('*/', index):
+                    depth -= 1
+                    index += 2
+                else:
+                    index += 1
+        else:
+            quote_start = index
+            while quote_start < len(source) and source[quote_start] == '#':
+                quote_start += 1
+            if quote_start == len(source) or source[quote_start] != '"':
+                index += 1
+                continue
+            hashes = source[index:quote_start]
+            quote = '"""' if source.startswith('"""', quote_start) else '"'
+            closing = quote + hashes
+            escape = '\\' + hashes
+            index = quote_start + len(quote)
+            while index < len(source):
+                if source.startswith(closing, index):
+                    index += len(closing)
+                    break
+                if source.startswith(escape, index):
+                    index = min(len(source), index + len(escape) + 1)
+                else:
+                    index += 1
+        for position in range(start, index):
+            if masked[position] != '\n':
+                masked[position] = ' '
+    code = ''.join(masked)
+    lines = []
+    for match in re.finditer(r'\b(?:measure|measureMetrics)\s*(?:\(|\{)', code):
+        prefix = code[:match.start()].rstrip()
+        if re.search(r'\bfunc$', prefix):
+            continue
+        if prefix.endswith('.') and not re.search(r'\b(?:self|super)\s*\.$', prefix):
+            # Helpers such as ThroughputMeasurement.measure test other contracts.
+            continue
+        lines.append(code.count('\n', 0, match.start()) + 1)
+    return lines
 
 class RunnerTests(unittest.TestCase):
     def setUp(self):
@@ -159,6 +217,42 @@ else:
 
 
 class PerformanceWorkflowTests(SwiftWorkflowTests):
+    def test_xctest_measurements_use_performance_target(self):
+        misplaced = []
+        for path in sorted((ROOT / 'Tests').rglob('*.swift')):
+            if path.relative_to(ROOT / 'Tests').parts[0] == 'PipelineKitPerformanceTests':
+                continue
+            misplaced.extend(f'{path.relative_to(ROOT)}:{line}'
+                             for line in xctest_measurement_lines(path.read_text()))
+        self.assertEqual(misplaced, [],
+                         'Move XCTest measurements into PipelineKitPerformanceTests: ' + ', '.join(misplaced))
+
+    def test_measurement_detection_covers_direct_and_inherited_calls(self):
+        source = 'measure { work() }\nself.measure(metrics: []) {}\nsuper.measureMetrics([], automaticallyStartMeasuring: true) {}'
+        self.assertEqual(xctest_measurement_lines(source), [1, 2, 3])
+
+    def test_measurement_detection_ignores_helpers_comments_and_literals(self):
+        source = '''// measure { example() }
+/* self.measure(metrics: []) {} */
+let example = "measure {}"
+let multiline = """
+measure {}
+"""
+let raw = #"measure(metrics: []) {}"#
+ThroughputMeasurement.measure(iterations: 3) { $0 }
+OtherHelper . measure() {}
+func measure() {}
+'''
+        self.assertEqual(xctest_measurement_lines(source), [])
+
+    def test_raw_string_backslash_does_not_hide_later_measurement(self):
+        source = 'let raw = #"\\"#\nmeasure { work() }\nlet other = #""#'
+        self.assertEqual(xctest_measurement_lines(source), [2])
+
+    def test_nested_block_comment_does_not_report_measurement(self):
+        source = '/* outer /* inner */\nmeasure { example() }\n*/\nmeasure { work() }'
+        self.assertEqual(xctest_measurement_lines(source), [4])
+
     def run_workflow(self, enforcement='false', compile_failure='false', benchmark_exit='0'):
         calls_path = self.dir / 'calls'
         calls_path.write_text('')
