@@ -403,3 +403,143 @@ _ = encryptor // Retain this actor in the application service that encrypts comm
 
 }
 
+@MainActor func compiled_security_composition() async throws {
+// docs/guides/security-best-practices.md, Swift fence 17
+// Failure counts must live in a reference type with its own synchronization: `execute(_:context:next:)`
+// is a non-mutating protocol requirement, so a struct can't carry `var` state mutated there.
+actor FailureCounter {
+    private var counts: [String: Int] = [:]
+
+    func increment(_ key: String) -> Int {
+        counts[key, default: 0] += 1
+        return counts[key]!
+    }
+}
+
+struct SecurityMetricsMiddleware: Middleware {
+    // Register before AuthenticationMiddleware at the same priority.
+    let priority: ExecutionPriority = .authentication
+    private let threshold = 5
+    private let failureCounts = FailureCounter()
+
+    func execute<T: Command>(
+        _ command: T,
+        context: CommandContext,
+        next: @escaping MiddlewareNext<T>
+    ) async throws -> T.Result {
+        do {
+            return try await next(command, context)
+        } catch {
+            // Track failures by the CLAIMED (unauthenticated) identity in `context.userID`, not
+            // by the authenticated "authUserId" metadata key: this middleware also needs to
+            // count authentication failures, and "authUserId" is only ever set *after*
+            // AuthenticationMiddleware succeeds — a failed attempt never sets it. Counting the
+            // claimed identity is the correct choice for brute-force detection; just don't use
+            // this counter (or its key) to make an authorization decision.
+            if let userID = context.userID {
+                let failures = await failureCounts.increment(userID)
+
+                if failures >= threshold {
+                    // Log security event
+                    print("SECURITY: Multiple failures for user \(userID)")
+                }
+            }
+            throw error
+        }
+    }
+}
+
+// docs/guides/security-best-practices.md, Swift fence 18
+// Application-owned event types and allowlisted fields must contain no sensitive payloads.
+struct MaskingAuditLogger: AuditLogger {
+    private let wrapped: any AuditLogger
+
+    init(wrapping logger: any AuditLogger) {
+        self.wrapped = logger
+    }
+
+    func log(_ event: any AuditEvent) async {
+        struct MaskedEvent: AuditEvent {
+            let eventType: String
+            let timestamp: Date
+            let eventMetadata: [String: any Sendable]
+        }
+
+        let allowedKeys: Set<String> = ["commandType", "commandId", "traceId", "spanId", "duration"]
+        var metadata = event.metadata.filter { allowedKeys.contains($0.key) }
+        metadata["masked"] = true
+        let filtered = MaskedEvent(
+            eventType: event.eventType, timestamp: event.timestamp, eventMetadata: metadata
+        )
+        await AuditContext.$current.withValue(nil) {
+            await wrapped.log(filtered)
+        }
+    }
+}
+
+let maskedLogger = MaskingAuditLogger(wrapping: ConsoleAuditLogger.production)
+let auditMiddleware = AuditLoggingMiddleware(logger: maskedLogger)
+
+// docs/guides/security-best-practices.md, Swift fence 19
+struct SecureErrorMiddleware: Middleware {
+    // Register before metrics and authentication at the same priority.
+    let priority: ExecutionPriority = .authentication
+
+    func execute<T: Command>(
+        _ command: T,
+        context: CommandContext,
+        next: @escaping MiddlewareNext<T>
+    ) async throws -> T.Result {
+        do {
+            return try await next(command, context)
+        } catch {
+            // Log the real error for debugging (never sent to the client). `context.userID` here
+            // is the unauthenticated, caller-claimed identity — fine for a diagnostic log line
+            // (it labels who *said* they were making the request), but never treat it as verified.
+            print("Command \(T.self) failed for user \(context.userID ?? "unknown"): \(error)")
+
+            // Return a sanitized error to the client
+            throw sanitizeError(error)
+        }
+    }
+
+    private func sanitizeError(_ error: Error) -> Error {
+        switch error {
+        case let pipelineError as PipelineError:
+            switch pipelineError {
+            case .authentication, .rateLimitExceeded:
+                return pipelineError // These cases carry only fixed text and scalar retry details.
+
+            case .validation:
+                // Application-defined reasons and field names can contain sensitive values.
+                return PipelineError.validation(field: nil, reason: .custom("Invalid request"))
+
+            case .authorization:
+                return PipelineError.authorization(reason: .invalidCredentials)
+
+            default:
+                // Hide implementation details
+                return PipelineError.executionFailed(message: "Internal server error", context: nil)
+            }
+
+        default:
+            return PipelineError.executionFailed(message: "Internal server error", context: nil)
+        }
+    }
+}
+
+// docs/guides/security-best-practices.md, Swift fence 20
+func addSecurityWrappers<C: Command, H: CommandHandler>(
+    to pipeline: StandardPipeline<C, H>,
+    authentication: AuthenticationMiddleware
+) async throws where H.CommandType == C {
+    try await pipeline.addMiddlewares([
+        SecureErrorMiddleware(),
+        SecurityMetricsMiddleware(),
+        authentication
+    ])
+}
+
+
+}
+
