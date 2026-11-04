@@ -240,10 +240,15 @@ public enum CompressionAlgorithm: String, Sendable, CaseIterable {
 /// payloads are LZFSE. These labels never select genuine gzip or Brotli streams.
 /// `CompressionFormatContractTests` verifies each mapping with fixed legacy fixtures.
 public enum LegacyCompressionAlgorithm: String, Sendable, CaseIterable {
+    /// Historical `zlib` label selecting raw DEFLATE decoding.
     case zlib
+    /// Historical `gzip` label selecting raw DEFLATE decoding without a gzip container.
     case gzip
+    /// Historical label selecting Apple's LZFSE decoding.
     case lzfse
+    /// Historical `brotli` label selecting LZFSE decoding, not the Brotli format.
     case brotli
+    /// Historical `lz4` label selecting Apple's framed LZ4 decoding.
     case lz4
 
     fileprivate var canonicalAlgorithm: CompressionAlgorithm {
@@ -287,11 +292,19 @@ public protocol CompressibleResult {
 
 /// Errors that can occur during compression operations.
 public enum CompressionError: Error, LocalizedError, Sendable {
+    /// Compression failed for the associated diagnostic reason.
     case compressionFailed(String)
+    /// Decompression failed for the associated validation or decoding reason.
     case decompressionFailed(String)
+    /// The associated algorithm identifier is unsupported.
     case unsupportedAlgorithm(String)
+    /// Encoding allocation overflowed, or decoding exceeded the associated output limit.
+    ///
+    /// The associated byte count is the input size for encoding allocation overflow,
+    /// or the caller's `maxOutputSize` for a decoding limit violation.
     case dataTooLarge(Int)
     
+    /// A human-readable description of the error and its associated value.
     public var errorDescription: String? {
         switch self {
         case .compressionFailed(let reason):

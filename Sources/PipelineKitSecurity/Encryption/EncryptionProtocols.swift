@@ -19,6 +19,14 @@ public protocol EncryptionService: Sendable {
 /// AES-GCM service authenticates only the serialized plaintext, not these fields.
 /// Callers must select and validate the expected type and format independently.
 public protocol SerializedPlaintextDecrypting: EncryptionService {
+    /// Decrypts an authenticated payload into its original serialized plaintext bytes.
+    ///
+    /// Conformers must authenticate before returning bytes and must not deserialize
+    /// or re-encode the plaintext. Callers must independently validate the expected
+    /// type and encoding format; the container's advisory metadata is untrusted.
+    /// - Parameter data: The encrypted payload and its associated container metadata.
+    /// - Returns: The exact serialized plaintext, before value decoding.
+    /// - Throws: An error if authentication or decryption fails.
     func decryptSerializedPlaintext(_ data: EncryptedData) async throws -> Data
 }
 
