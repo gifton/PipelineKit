@@ -1,4 +1,5 @@
 import Foundation
+import PipelineKitCore
 import PipelineKit  // For PipelineError
 
 /// An async-safe counting semaphore for controlling concurrent access to resources.
@@ -116,6 +117,7 @@ public actor AsyncSemaphore {
     ///
     /// - Parameter value: The initial number of available resources.
     public init(value: Int) {
+        precondition(value >= 0, "Semaphore capacity must be nonnegative")
         self.availableResources = value
         // FIFO ordering: the waiter with the smallest sequence number is served
         // first. The comparator returns `true` when `a` should be extracted
@@ -211,9 +213,12 @@ public actor AsyncSemaphore {
     /// and returns immediately. Otherwise, it suspends until a resource is released
     /// or the timeout expires.
     ///
-    /// - Parameter timeout: The maximum time to wait, in seconds
+    /// - Parameter timeout: Finite seconds no greater than 86400. Nonpositive values
+    ///   attempt immediate acquisition without queuing.
     /// - Returns: True if a resource was acquired, false if timeout occurred or task was cancelled
     public func acquire(timeout: TimeInterval) async -> Bool {
+        precondition(timeout.isFinite && timeout <= 86_400,
+                     "Semaphore admission timeout must be finite and no greater than 86400 seconds")
         // Check for cancellation before proceeding
         if Task.isCancelled {
             return false
@@ -225,6 +230,8 @@ public actor AsyncSemaphore {
             return true
         }
         
+        guard timeout > 0 else { return false }
+
         // Slow path: need to wait with timeout
         // Registration and onCancel share only an immutable value. Mutable waiter
         // state remains actor-isolated; no publication box crosses executors.
@@ -237,7 +244,7 @@ public actor AsyncSemaphore {
 
                 // Create timeout task
                 let timeoutTask = Task { [weak self, waiterId = waiter.id] in
-                    try? await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
+                    try? await Task.sleep(nanoseconds: NumericDuration.nanoseconds(timeout))
 
                     // If we reach here, timeout occurred
                     await self?.handleTimeout(waiterId: waiterId)
@@ -283,6 +290,7 @@ public actor AsyncSemaphore {
         // the lowest-sequence (earliest-enqueued) waiter. If there are no waiters,
         // restore an available resource instead.
         guard let waiter = waiters.extractMin() else {
+            precondition(availableResources < Int.max, "Semaphore resource count cannot exceed Int.max")
             availableResources += 1
             return
         }

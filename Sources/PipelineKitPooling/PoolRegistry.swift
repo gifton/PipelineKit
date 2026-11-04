@@ -22,17 +22,23 @@ public actor PoolRegistry {
     }
 
     /// Cleanup interval for removing dead weak references (seconds; thread-safe)
-    private static let _cleanupIntervalSeconds = ManagedAtomic<Int64>(30)
+    private static let _cleanupIntervalSeconds = ManagedAtomic<UInt64>(30.0.bitPattern)
     public static var cleanupInterval: TimeInterval {
-        get { TimeInterval(_cleanupIntervalSeconds.load(ordering: .relaxed)) }
-        set { _cleanupIntervalSeconds.store(Int64(newValue), ordering: .relaxed) }
+        get { Double(bitPattern: _cleanupIntervalSeconds.load(ordering: .relaxed)) }
+        set {
+            _ = NumericDuration.nanoseconds(newValue, positive: true)
+            _cleanupIntervalSeconds.store(newValue.bitPattern, ordering: .relaxed)
+        }
     }
 
     /// Minimum interval between pool shrink operations (seconds; thread-safe)
-    private static let _minimumShrinkIntervalSeconds = ManagedAtomic<Int64>(10)
+    private static let _minimumShrinkIntervalSeconds = ManagedAtomic<UInt64>(10.0.bitPattern)
     public static var minimumShrinkInterval: TimeInterval {
-        get { TimeInterval(_minimumShrinkIntervalSeconds.load(ordering: .relaxed)) }
-        set { _minimumShrinkIntervalSeconds.store(Int64(newValue), ordering: .relaxed) }
+        get { Double(bitPattern: _minimumShrinkIntervalSeconds.load(ordering: .relaxed)) }
+        set {
+            precondition(newValue.isFinite && newValue >= 0, "Pool shrink interval must be finite and nonnegative")
+            _minimumShrinkIntervalSeconds.store(newValue.bitPattern, ordering: .relaxed)
+        }
     }
 
     /// Enable intelligent shrinking based on usage patterns (thread-safe)
@@ -52,12 +58,7 @@ public actor PoolRegistry {
     // MARK: - Initialization
     
     private init() {
-        // Validate cleanup interval in debug builds only
-        precondition(Self.cleanupInterval > 0,
-                     "PoolRegistry.cleanupInterval must be positive (got \(Self.cleanupInterval))")
-        
-        // Ensure a sane value even if precondition is stripped in release
-        let safeInterval = max(Self.cleanupInterval, 1.0)
+        let safeInterval = Self.cleanupInterval
         
         Task { [weak self] in
             await self?.startCleanupTaskWithInterval(safeInterval)
@@ -158,6 +159,7 @@ public actor PoolRegistry {
     ///   - percentage: Target percentage (0.0 to 1.0) of maximum pool size
     ///   - force: If true, bypass throttling (use sparingly for critical pressure)
     public func shrinkAllPools(toPercentage percentage: Double, force: Bool = false) async {
+        precondition(percentage.isFinite, "Pool shrink percentage must be finite")
         // Validate and clamp percentage
         let clampedPercentage = max(0.0, min(1.0, percentage))
         
@@ -307,7 +309,7 @@ public actor PoolRegistry {
     private func startCleanupTaskWithInterval(_ interval: TimeInterval) {
         cleanupTask = Task { [weak self] in
             while !Task.isCancelled {
-                try? await Task.sleep(nanoseconds: UInt64(interval * 1_000_000_000))
+                try? await Task.sleep(nanoseconds: NumericDuration.nanoseconds(interval, positive: true))
                 await self?.cleanupDeadEntries()
             }
         }
@@ -391,7 +393,8 @@ private final class WeakPoolBox: @unchecked Sendable {
             let clampedPercentage = max(0.0, min(1.0, percentage))
             let stats = await pool.statistics
             // Use maxSize as the baseline for percentage calculation
-            let targetSize = Int(Double(stats.maxSize) * clampedPercentage)
+            let targetSize = clampedPercentage == 1 ? stats.maxSize
+                : NumericDuration.saturatedNonnegativeInt(Double(stats.maxSize) * clampedPercentage)
             await pool.shrink(to: targetSize)
         }
     }
@@ -436,7 +439,9 @@ private final class WeakPoolBox: @unchecked Sendable {
         
         guard let lastTime = lastShrinkTime else { return true }
         let elapsed = lastTime.duration(to: ContinuousClock.now)
-        return elapsed >= Duration.seconds(PoolRegistry.minimumShrinkInterval)
+        let components = elapsed.components
+        let elapsedSeconds = Double(components.seconds) + Double(components.attoseconds) / 1_000_000_000_000_000_000
+        return elapsedSeconds >= PoolRegistry.minimumShrinkInterval
     }
     
     private func updateLastShrinkTime() {

@@ -50,6 +50,8 @@ public actor PoolMetricsCollector {
         collectionInterval: TimeInterval = 30,
         maxHistorySize: Int = 1000
     ) {
+        _ = NumericDuration.nanoseconds(collectionInterval, positive: true)
+        precondition(maxHistorySize >= 0, "Pool metrics history size must be nonnegative")
         self.collectionInterval = collectionInterval
         self.maxHistorySize = maxHistorySize
     }
@@ -183,7 +185,7 @@ public actor PoolMetricsCollector {
             await exportSnapshot(snapshot)
 
             // Wait for next collection
-            try? await Task.sleep(nanoseconds: UInt64(collectionInterval * 1_000_000_000))
+            try? await Task.sleep(nanoseconds: NumericDuration.nanoseconds(collectionInterval, positive: true))
         }
     }
 

@@ -135,6 +135,16 @@ public struct HealthCheckMiddleware: Middleware {
             emitMetrics: Bool = true,
             blockUnhealthyServices: Bool = false
         ) {
+            _ = NumericDuration.nanoseconds(checkInterval, positive: true)
+            precondition(windowSize.isFinite && windowSize > 0, "Health window must be finite and positive")
+            precondition(failureThreshold >= 0 && successThreshold >= 0 && minRequests >= 0,
+                         "Health thresholds must be nonnegative")
+            precondition(successRateThreshold.isFinite && (0...1).contains(successRateThreshold),
+                         "Health success rate threshold must be between zero and one")
+            if let responseTimeThreshold { _ = NumericDuration.nanoseconds(responseTimeThreshold) }
+            for check in healthChecks.values {
+                if let timeout = check.timeout { _ = NumericDuration.nanoseconds(timeout) }
+            }
             self.checkInterval = checkInterval
             self.failureThreshold = failureThreshold
             self.successThreshold = successThreshold
@@ -556,7 +566,7 @@ private actor HealthMonitor {
                 }
 
                 // Wait for next check interval
-                try? await Task.sleep(nanoseconds: UInt64(configuration.checkInterval * 1_000_000_000))
+                try? await Task.sleep(nanoseconds: NumericDuration.nanoseconds(configuration.checkInterval, positive: true))
             }
         }
     }
@@ -637,6 +647,7 @@ private actor HealthMonitor {
 
         // Perform health check with timeout if specified
         if let timeout = healthCheck.timeout ?? configuration.responseTimeThreshold {
+            let timeoutNanoseconds = NumericDuration.nanoseconds(timeout)
             do {
                 result = try await withThrowingTaskGroup(of: HealthCheckResult.self) { group in
                     group.addTask {
@@ -644,7 +655,7 @@ private actor HealthMonitor {
                     }
 
                     group.addTask {
-                        try await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
+                        try await Task.sleep(nanoseconds: timeoutNanoseconds)
                         throw HealthCheckError.timeout
                     }
 

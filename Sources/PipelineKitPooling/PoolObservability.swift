@@ -278,13 +278,14 @@ public actor PoolObservability {
     
     /// Starts periodic metric export
     public func startExporting(interval: TimeInterval = 60.0) {
+        _ = NumericDuration.nanoseconds(interval, positive: true)
         self.exportInterval = interval
         
         guard exportTask == nil else { return }
         
         exportTask = Task { [weak self] in
             while !Task.isCancelled {
-                try? await Task.sleep(nanoseconds: UInt64(interval * 1_000_000_000))
+                try? await Task.sleep(nanoseconds: NumericDuration.nanoseconds(interval, positive: true))
                 await self?.exportMetrics()
             }
         }

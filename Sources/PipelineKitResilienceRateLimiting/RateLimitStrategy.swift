@@ -14,6 +14,23 @@ public enum RateLimitStrategy: Sendable {
     /// Leaky bucket algorithm with specified capacity and leak rate
     case leakyBucket(capacity: Int, leakRate: TimeInterval)
     
+    internal func validate() {
+        switch self {
+        case let .tokenBucket(capacity, rate):
+            precondition(capacity.isFinite && capacity >= 0, "Token capacity must be finite and nonnegative")
+            precondition(rate.isFinite && rate >= 0, "Refill rate must be finite and nonnegative")
+        case let .slidingWindow(window, requestCount), let .fixedWindow(window, requestCount), let .distributed(_, window, requestCount):
+            precondition(window.isFinite && window > 0, "Rate limit window must be finite and positive")
+            precondition(requestCount >= 0, "Rate limit count must be nonnegative")
+        case let .leakyBucket(capacity, rate):
+            precondition(capacity >= 0, "Leaky bucket capacity must be nonnegative")
+            precondition(rate.isFinite && rate > 0, "Leak interval must be finite and positive")
+        case let .adaptive(baseRate, _):
+            precondition(baseRate >= 0, "Adaptive base rate must be nonnegative")
+        case .priorityBased: break
+        }
+    }
+
     /// Adaptive rate limiting based on system load
     case adaptive(baseRate: Int, loadFactor: @Sendable () async -> Double)
     
@@ -34,6 +51,8 @@ public struct RateLimitConfig: Sendable {
     public let windowSize: TimeInterval
     
     public init(maxRequests: Int, windowSize: TimeInterval) {
+        precondition(maxRequests >= 0, "Rate limit count must be nonnegative")
+        precondition(windowSize.isFinite && windowSize > 0, "Rate limit window must be finite and positive")
         self.maxRequests = maxRequests
         self.windowSize = windowSize
     }
