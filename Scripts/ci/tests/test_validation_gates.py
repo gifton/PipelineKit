@@ -406,6 +406,68 @@ if '--log' in args:
         self.assertLess(job.index('- name: Test (Release)'), release)
 
 
+class TelemetryWorkflowTests(SwiftWorkflowTests):
+    def run_telemetry_gate(self, failure=''):
+        calls = self.dir / 'telemetry-calls'
+        calls.write_text('')
+        shim = self.dir / 'telemetry-shim'
+        shim.write_text(f'#!{sys.executable}\n' + r'''
+import json, os, pathlib, sys
+args = sys.argv[1:]
+program = pathlib.Path(sys.argv[0]).name
+kind = 'python' if program != 'swift' else 'swift'
+with open(os.environ['TELEMETRY_CALLS'], 'a') as log:
+    log.write(json.dumps([kind, args]) + "\n")
+stage = args[0]
+if args[:2] == ['-m', 'venv']:
+    stage = 'venv'
+    target = pathlib.Path(args[2]) / 'bin' / 'python'
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.symlink_to(os.environ['TELEMETRY_SHIM'])
+elif args[:2] == ['-m', 'pip']:
+    stage = 'pip'
+if '--configuration' in args:
+    stage += ':' + args[args.index('--configuration') + 1]
+if stage == os.environ['TELEMETRY_FAILURE']:
+    sys.exit(73)
+''')
+        shim.chmod(0o755)
+        for name in ('python3', 'swift'):
+            target = self.dir / name
+            if target.exists():
+                target.unlink()
+            target.symlink_to(shim)
+        env = dict(os.environ, PATH=str(self.dir) + os.pathsep + os.environ['PATH'],
+                   TELEMETRY_CALLS=str(calls), TELEMETRY_SHIM=str(shim), TELEMETRY_FAILURE=failure,
+                   RUNNER_TEMP=str(self.dir / 'runner space'), GITHUB_RUN_ID='456', GITHUB_RUN_ATTEMPT='2')
+        script = self.run_step('Telemetry protocol validation (Debug + Release)', 'ci-multiplatform.yml', indent=6)
+        result = subprocess.run(['bash', '-e', '-o', 'pipefail', '-c', script], cwd=self.dir,
+                                env=env, text=True, capture_output=True, timeout=10)
+        return result, [json.loads(line) for line in calls.read_text().splitlines()]
+
+    def test_runs_built_consumer_oracle_in_both_configurations(self):
+        result, calls = self.run_telemetry_gate()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        tail = calls[-4:]
+        for offset, configuration in [(0, 'debug'), (2, 'release')]:
+            self.assertEqual(tail[offset], ['swift', ['build', '--package-path', 'Tests/Integration/Consumer',
+                                                     '--configuration', configuration]])
+            self.assertEqual(tail[offset + 1], ['python', ['Scripts/validation/check_telemetry_formats.py',
+                '--configuration', configuration, '--log',
+                str(self.dir / 'runner space' / '456-2' / f'telemetry-{configuration}.log')]])
+
+    def test_every_protocol_validation_stage_failure_is_fatal(self):
+        stages = ['venv', 'pip', 'Scripts/ci/tests/test_telemetry_oracle.py',
+                  'Scripts/validation/extract_stabilization_examples.py', 'build:debug',
+                  'Scripts/validation/check_telemetry_formats.py:debug', 'build:release',
+                  'Scripts/validation/check_telemetry_formats.py:release']
+        for stage in stages:
+            with self.subTest(stage=stage):
+                shutil.rmtree(self.dir / 'runner space', ignore_errors=True)
+                result, _ = self.run_telemetry_gate(stage)
+                self.assertEqual(result.returncode, 73, result.stdout + result.stderr)
+
+
 class StatusTests(unittest.TestCase):
     def test_security_result_matrix_and_linux_advisory(self):
         for security in ('success', 'failure', 'cancelled', 'skipped'):

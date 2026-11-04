@@ -573,6 +573,7 @@ do {
     case "encryption": try await encryption()
     case "bulkhead": try await bulkhead()
     case "metrics": try await metrics()
+    case "telemetry-export": try await telemetryExport()
     #if canImport(Darwin) && canImport(Network)
     case "statsd-startup": try await statsdStartup()
     case "udp-close": try await udpClose(expectSendFailure: false)

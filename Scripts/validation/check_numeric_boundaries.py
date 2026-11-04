@@ -82,6 +82,25 @@ def main():
         cases.extend((entry, value, False) for value in invalid + ["0"])
         cases.extend((entry, value, True) for value in ["0.125", "1e-300", "1e30"])
     cases.append(("pool-shrink", repr(sys.float_info.max), True))
+    for entry in ["telemetry-batch-interval", "telemetry-aggregation-interval"]:
+        cases.extend((entry, value, False) for value in invalid + ["1e30"])
+        cases.extend((entry, value, True) for value in ["0", "1e-20", "0.125", "86401", repr(upper)])
+    for entry in ["telemetry-sample-rate", "telemetry-type-rate", "telemetry-jitter"]:
+        cases.extend((entry, value, False) for value in ["nan", "inf", "-inf"])
+        cases.extend((entry, value, True) for value in ["-1", "0", "0.25", "1", "2"])
+    for entry in ["telemetry-batch-capacity", "telemetry-aggregation-series", "telemetry-aggregation-values",
+                  "telemetry-pool-window"]:
+        cases.extend((entry, value, False) for value in ["-1", "0"])
+        cases.extend((entry, value, True) for value in ["1", str(2**63-1)])
+    for entry in ["telemetry-storage-series", "telemetry-storage-history", "telemetry-pool-series", "telemetry-trace-capacity"]:
+        cases.append((entry, "-1", False))
+        cases.extend((entry, value, True) for value in ["0", "1", str(2**63-1)])
+    cases.extend(("telemetry-storage-age", value, False) for value in invalid)
+    cases.extend(("telemetry-storage-age", value, True) for value in ["0", "0.125", "1e30"])
+    cases.extend(("telemetry-trace-retention", value, False) for value in invalid)
+    cases.extend(("telemetry-trace-retention", value, True) for value in ["0", "0.125", "1e30"])
+    cases.extend(("telemetry-event-cleanup", value, False) for value in invalid + ["0", "1e-20", "1e30"])
+    cases.extend(("telemetry-event-cleanup", value, True) for value in ["0.125", "86401", repr(upper)])
     if args.entries:
         selected = set(args.entries.split(","))
         available = {entry for entry, _, _ in cases}
@@ -93,6 +112,10 @@ def main():
                            PIPELINEKIT_NUMERIC_VALUE=value, SWIFT_BACKTRACE="enable=no")
         suite = "PipelineKitPoolingTests.PoolingNumericBoundaryTests" if entry.startswith("pool-") else "PipelineKitResilienceTests.NumericBoundaryTests"
         probe = f"{suite}/testNumericConfigurationProbe"
+        if entry.startswith("telemetry-"):
+            suite = ("PipelineKitPoolingTests.PoolTelemetryNumericBoundaryTests" if entry.startswith("telemetry-pool-")
+                     else "PipelineKitObservabilityTests.TelemetryNumericBoundaryTests")
+            probe = f"{suite}/testNumericConfigurationProbe"
         if entry == "compression-size":
             probe = "PipelineKitCacheTests.CompressionMiddlewareTests/testCompressionSizeNumericConfigurationProbe"
         command = resolve_probe_command(root, args.configuration, probe, xctest)

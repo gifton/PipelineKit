@@ -4,6 +4,7 @@ import Foundation
 import PipelineKit
 import PipelineKitCache
 import PipelineKitObservability
+import PipelineKitPooling
 import PipelineKitResilience
 import PipelineKitSecurity
 
@@ -632,6 +633,42 @@ func writePayload(_ bytes: Data) throws -> Data {
     try CompressionUtility.compress(bytes, using: .rawDeflate)
 }
 #endif
+
+}
+
+// docs/migrations/telemetry-hardening.md, Swift fence 1
+@MainActor func compiled_docs_migrations_telemetry_hardening_md_1() async throws {
+
+let telemetryStorage = MetricsStorage(maxSnapshotsPerMetric: 100, maxSeries: 2_000)
+await telemetryStorage.record(.counter("requests", tags: ["route": "/users"]))
+let telemetryDiagnostics = await telemetryStorage.diagnostics
+print(telemetryDiagnostics.droppedSeries)
+
+}
+
+// docs/migrations/telemetry-hardening.md, Swift fence 2
+@MainActor func compiled_docs_migrations_telemetry_hardening_md_2() async throws {
+let scrapeStorage = MetricsStorage(maxSnapshotsPerMetric: 1)
+let prometheus = PrometheusExporter(metricsStorage: scrapeStorage)
+await scrapeStorage.record(.counter("requests", value: 2))
+await scrapeStorage.record(.counter("requests", value: 3))
+_ = await scrapeStorage.drain()
+let scrape = await prometheus.exportWithDiagnostics()
+print(scrape.text) // requests_total remains 5 after draining history.
+print(scrape.rejectedSeries.count)
+await scrapeStorage.clear()
+
+}
+
+// docs/migrations/telemetry-hardening.md, Swift fence 3
+@MainActor func compiled_docs_migrations_telemetry_hardening_md_3() async throws {
+
+let poolTelemetry = PoolObservability(maximumSeries: 2_000, distributionWindowSize: 1_000)
+await poolTelemetry.recordHistogram("pool_latency_ms", value: 2, labels: ["pool": "requests"])
+let poolSnapshot = await poolTelemetry.captureSnapshot()
+let poolScrape = poolSnapshot.prometheusFormatWithDiagnostics()
+print(poolScrape.text)
+print(poolScrape.rejectedSeriesCount)
 
 }
 

@@ -12,6 +12,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 See the [compiled migration guide](docs/migrations/first-stabilization-batch.md) before upgrading.
 No release version or tag is selected by this batch.
 
+- The [telemetry migration](docs/migrations/telemetry-hardening.md) documents cumulative
+  Prometheus scrape state, configurable series limits, recent-window pool percentiles,
+  and corrected StatsD delivery/sampling. Raw history drains no longer reset scrape
+  totals; explicit storage clear/reset does. Invalid or colliding wire definitions
+  are omitted with diagnostics. Pool snapshot label keys are now quoted and escaped.
+
 - See the [security, serialization, and numeric migration](docs/migrations/security-serialization-and-numeric-safety.md)
   for actual compression format names, removed ignored level options, and the explicit
   legacy-label decoder. Custom encrypted result fields use the opt-in

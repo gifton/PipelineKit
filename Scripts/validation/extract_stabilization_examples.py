@@ -21,7 +21,8 @@ BASELINE = 'a93a713d937e25f68855f22b0720f33c93329b09'
 FENCE = re.compile(r'```swift\n(.*?)```', re.S)
 FILES = ['docs/migrations/first-stabilization-batch.md', 'README.md',
          'docs/guides/security-best-practices.md', 'docs/guides/resilience-patterns.md',
-         'docs/migrations/security-serialization-and-numeric-safety.md']
+         'docs/migrations/security-serialization-and-numeric-safety.md',
+         'docs/migrations/telemetry-hardening.md']
 SECURITY_COMPOSITION_DEFINITIONS = [
     r'\bstruct SecurityMetricsMiddleware\s*:',
     r'\bstruct MaskingAuditLogger\s*:',
