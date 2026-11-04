@@ -3,6 +3,148 @@ import XCTest
 import Foundation
 
 final class MetricsStorageTests: XCTestCase {
+    func testSeriesCapacityRetainsExistingIdentitiesUntilClear() async {
+        let storage = MetricsStorage(maxSeries: 2)
+        await storage.record(.counter("requests", value: 1, tags: ["tenant": "a"]))
+        await storage.record(.counter("requests", value: 2, tags: ["tenant": "b"]))
+        await storage.record(.counter("requests", value: 100, tags: ["tenant": "c"]))
+        _ = await storage.drain()
+        await storage.record(.counter("requests", value: 100, tags: ["tenant": "c"]))
+        await storage.record(.counter("requests", value: 3, tags: ["tenant": "a"]))
+
+        let count = await storage.seriesCount
+        let diagnostics = await storage.diagnostics
+        XCTAssertEqual(count, 2)
+        XCTAssertEqual(diagnostics.droppedSeries, 2)
+        let raw = await storage.getAll()
+        XCTAssertEqual(raw.count, 1)
+        XCTAssertEqual(raw.first?.tags["tenant"], "a")
+        await storage.clear()
+        await storage.record(.counter("requests", value: 7, tags: ["tenant": "c"]))
+        let reset = await storage.getAll()
+        XCTAssertEqual(reset.first?.tags["tenant"], "c")
+        let resetDiagnostics = await storage.diagnostics
+        XCTAssertEqual(resetDiagnostics.droppedSeries, 0)
+    }
+
+    func testZeroLimitsDisableTheirRespectiveViews() async {
+        for limit in [0] {
+            let noHistory = MetricsStorage(maxSnapshotsPerMetric: limit)
+            await noHistory.record(.counter("requests", value: 3))
+            let historyCount = await noHistory.count
+            let scrape = await PrometheusExporter(metricsStorage: noHistory).export()
+            XCTAssertEqual(historyCount, 0)
+            XCTAssertTrue(scrape.contains("requests_total 3\n"))
+
+            let disabled = MetricsStorage(maxSeries: limit)
+            await disabled.record(.counter("requests", value: 3))
+            let seriesCount = await disabled.seriesCount
+            let diagnostics = await disabled.diagnostics
+            XCTAssertEqual(seriesCount, 0)
+            XCTAssertEqual(diagnostics.droppedSeries, 1)
+        }
+    }
+
+    func testNonFiniteAndMissingNumericValuesAreRejectedBeforeAdmission() async {
+        let storage = MetricsStorage(maxSeries: 1)
+        for kind in ["counter", "gauge", "histogram", "timer"] {
+            for value in [Double.nan, .infinity, -.infinity] {
+                await storage.record(.init(name: "invalid", type: kind, value: value))
+            }
+        }
+        await storage.record(.init(name: "invalid", type: "gauge"))
+        await storage.record(.counter("valid", value: 2))
+        let raw = await storage.getAll()
+        let diagnostics = await storage.diagnostics
+        XCTAssertEqual(raw.count, 1)
+        XCTAssertEqual(raw.first?.name, "valid")
+        XCTAssertEqual(diagnostics.rejectedValues, 13)
+        XCTAssertEqual(diagnostics.droppedSeries, 0)
+    }
+
+    func testPreEpochPruneAgeRetainsHistory() async {
+        let storage = MetricsStorage()
+        await storage.record(.init(name: "old", type: "counter", value: 1, timestamp: 0))
+        for age in [Double.greatestFiniteMagnitude] {
+            await storage.pruneOlderThan(age)
+            let count = await storage.count
+            XCTAssertEqual(count, 1)
+        }
+    }
+
+    func testLatestByNameUsesRecordOrderAcrossSeriesAndCallerTimestamps() async {
+        let storage = MetricsStorage()
+        await storage.record(.init(name: "g", type: "gauge", value: 1, timestamp: 100, tags: ["id": "a"]))
+        await storage.record(.init(name: "g", type: "gauge", value: 2, timestamp: 1, tags: ["id": "b"]))
+        let latest = await storage.getLatest(name: "g")
+        XCTAssertEqual(latest?.value, 2)
+        let snapshots = await storage.get(name: "g")
+        XCTAssertEqual(snapshots.map(\.value), [1, 2])
+    }
+
+    func testAggregationPreservesCompleteSeriesIdentity() async throws {
+        let storage = MetricsStorage()
+        let inputs: [MetricSnapshot] = [
+            .init(name: "shared", type: "counter", value: 2, tags: ["tenant": "a"], unit: "bytes"),
+            .init(name: "shared", type: "counter", value: 3, tags: ["tenant": "a"], unit: "bytes"),
+            .init(name: "shared", type: "counter", value: 7, tags: ["tenant": "b"], unit: "bytes"),
+            .init(name: "shared", type: "counter", value: 11, tags: ["tenant": "a"], unit: "items"),
+            .init(name: "shared", type: "gauge", value: 13, tags: ["tenant": "a"], unit: "bytes")
+        ]
+        for snapshot in inputs { await storage.record(snapshot) }
+
+        let aggregated = await storage.aggregate()
+        XCTAssertEqual(aggregated.count, 4)
+        let values = aggregated.map { ($0.type, $0.tags["tenant"], $0.unit, $0.value) }
+        XCTAssertTrue(values.contains { $0.0 == "counter" && $0.1 == "a" && $0.2 == "bytes" && $0.3 == 5 })
+        XCTAssertTrue(values.contains { $0.0 == "counter" && $0.1 == "b" && $0.2 == "bytes" && $0.3 == 7 })
+        XCTAssertTrue(values.contains { $0.0 == "counter" && $0.1 == "a" && $0.2 == "items" && $0.3 == 11 })
+        XCTAssertTrue(values.contains { $0.0 == "gauge" && $0.1 == "a" && $0.2 == "bytes" && $0.3 == 13 })
+    }
+
+    func testAggregationPreservesDelimiterAndEmptyTagValues() async {
+        let storage = MetricsStorage()
+        let tags: [[String: String]] = [
+            ["a": "b,c:d"], ["a": "b", "c": "d"], ["a": ""], [:],
+            ["a:b": "c"], ["a": "b:c"], ["a": "line\n\\\"value"]
+        ]
+        for (index, dimensions) in tags.enumerated() {
+            await storage.record(.counter("shared", value: Double(index + 1), tags: dimensions))
+        }
+
+        let aggregated = await storage.aggregate()
+        XCTAssertEqual(aggregated.count, tags.count)
+        for (index, dimensions) in tags.enumerated() {
+            let match = aggregated.filter { $0.tags == dimensions }
+            XCTAssertEqual(match.count, 1)
+            XCTAssertEqual(match.first?.value, Double(index + 1))
+        }
+    }
+
+    func testAggregationCountsNilCounterAsOneIncrement() async {
+        let storage = MetricsStorage()
+        await storage.record(.init(name: "requests", type: "counter"))
+        await storage.record(.counter("requests", value: 2))
+
+        let aggregated = await storage.aggregate()
+        XCTAssertEqual(aggregated.count, 1)
+        XCTAssertEqual(aggregated.first?.value, 3)
+    }
+
+    func testSnapshotCapacityAppliesIndependentlyToEachSeries() async {
+        let storage = MetricsStorage(maxSnapshotsPerMetric: 1)
+        await storage.record(.counter("requests", value: 1, tags: ["tenant": "a"]))
+        await storage.record(.counter("requests", value: 2, tags: ["tenant": "b"]))
+        await storage.record(.counter("requests", value: 3, tags: ["tenant": "a"]))
+
+        let snapshots = await storage.get(name: "requests")
+        XCTAssertEqual(snapshots.count, 2)
+        XCTAssertEqual(snapshots.first { $0.tags["tenant"] == "a" }?.value, 3)
+        XCTAssertEqual(snapshots.first { $0.tags["tenant"] == "b" }?.value, 2)
+        let uniqueNames = await storage.uniqueMetricCount
+        XCTAssertEqual(uniqueNames, 1)
+    }
+
     // MARK: - Basic Operations
     
     func testRecordAndRetrieve() async {

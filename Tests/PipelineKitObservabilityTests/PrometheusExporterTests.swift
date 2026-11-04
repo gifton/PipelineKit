@@ -9,6 +9,193 @@ import XCTest
 @testable import PipelineKitObservability
 
 final class PrometheusExporterTests: XCTestCase {
+    func testExplicitNonMillisecondTimerUnitsAreRejectedWithoutRelabelingValues() async {
+        let storage = MetricsStorage()
+        await storage.record(.init(name: "seconds", type: "timer", value: 1, unit: "s"))
+        await storage.record(.init(name: "legacy", type: "timer", value: 1))
+        await storage.record(.timer("current", duration: 0.002))
+        let result = await PrometheusExporter(metricsStorage: storage).exportWithDiagnostics()
+        XCTAssertEqual(sampleLines(result.text), ["current_milliseconds 2", "legacy_milliseconds 1"])
+        XCTAssertEqual(result.rejectedSeries.map { $0.reason.rawValue }, ["unsupportedUnit"])
+    }
+
+    func testScrapeSurvivesDrainAndPruningUntilExplicitClear() async {
+        let storage = MetricsStorage()
+        let exporter = PrometheusExporter(metricsStorage: storage)
+        await storage.record(.counter("requests", value: 2))
+        _ = await storage.drain()
+        let drained = await exporter.export()
+        XCTAssertEqual(sampleLines(drained), ["requests_total 2"])
+        await storage.record(.init(name: "requests", type: "counter", value: 3, timestamp: 0))
+        await storage.pruneOlderThan(0)
+        let pruned = await exporter.export()
+        XCTAssertEqual(sampleLines(pruned), ["requests_total 5"])
+        await storage.clear()
+        let cleared = await exporter.export()
+        XCTAssertEqual(cleared, "")
+        await storage.record(.counter("requests", value: 1))
+        let restarted = await exporter.export()
+        XCTAssertEqual(sampleLines(restarted), ["requests_total 1"])
+    }
+
+    func testNegativeCounterUpdateIsRetainedRawButCannotDecreaseScrape() async {
+        let storage = MetricsStorage()
+        await storage.record(.counter("requests", value: 10))
+        await storage.record(.counter("requests", value: -4))
+        await storage.record(.counter("requests", value: 2))
+        let raw = await storage.getAll()
+        XCTAssertEqual(raw.map(\.value), [10, -4, 2])
+        let output = await PrometheusExporter(metricsStorage: storage).export()
+        XCTAssertEqual(sampleLines(output), ["requests_total 12"])
+        let diagnostics = await storage.diagnostics
+        XCTAssertEqual(diagnostics.rejectedPrometheusUpdates, 1)
+    }
+
+    func testOverflowingCounterAndHistogramUpdatesLeaveFiniteScrapeState() async {
+        let storage = MetricsStorage()
+        for kind in ["counter", "histogram"] {
+            await storage.record(.init(name: kind, type: kind, value: Double.greatestFiniteMagnitude))
+            await storage.record(.init(name: kind, type: kind, value: Double.greatestFiniteMagnitude))
+        }
+        let output = await PrometheusExporter(metricsStorage: storage).export()
+        XCTAssertTrue(output.contains("counter_total 1.7976931348623157e+308"))
+        XCTAssertTrue(output.contains("histogram_sum 1.7976931348623157e+308"))
+        XCTAssertTrue(output.contains("histogram_count 1\n"))
+        XCTAssertFalse(output.contains(" inf"))
+        let diagnostics = await storage.diagnostics
+        XCTAssertEqual(diagnostics.rejectedPrometheusUpdates, 2)
+        let raw = await storage.getAll()
+        XCTAssertEqual(raw.count, 4)
+        let aggregate = await storage.aggregate()
+        XCTAssertTrue(aggregate.allSatisfy { $0.value?.isFinite == true })
+    }
+
+    func testRejectionsAreObservableAndDoNotHideUnrelatedValidFamilies() async {
+        let storage = MetricsStorage()
+        await storage.record(.gauge("invalid name", value: 1))
+        await storage.record(.gauge("a.b", value: 1))
+        await storage.record(.gauge("a_b", value: 2))
+        await storage.record(.gauge("valid", value: 7))
+        let result = await PrometheusExporter(metricsStorage: storage).exportWithDiagnostics()
+        XCTAssertEqual(sampleLines(result.text), ["valid 7"])
+        XCTAssertEqual(result.rejectedSeries.count, 3)
+        XCTAssertEqual(result.rejectedSeries.filter { $0.reason == .conflictingDefinition }.count, 2)
+        XCTAssertEqual(result.rejectedSeries.filter { $0.reason == .invalidMetricName }.count, 1)
+    }
+
+    func testRepeatedCounterUpdatesProduceOneCumulativeSamplePerSeries() async {
+        let storage = MetricsStorage()
+        await storage.record(.counter("requests", value: 2, tags: ["tenant": "a"]))
+        await storage.record(.init(name: "requests", type: "counter", tags: ["tenant": "a"]))
+        await storage.record(.counter("requests", value: 7, tags: ["tenant": "b"]))
+        let exporter = PrometheusExporter(metricsStorage: storage)
+
+        let output = await exporter.export()
+        XCTAssertEqual(sampleLines(output), ["requests_total{tenant=\"a\"} 3", "requests_total{tenant=\"b\"} 7"])
+        let repeated = await exporter.export()
+        XCTAssertEqual(repeated, output)
+        let aggregated = await exporter.exportAggregated()
+        XCTAssertEqual(aggregated, output)
+    }
+
+    func testRepeatedGaugeUpdatesKeepLatestValueForEachSeries() async {
+        let storage = MetricsStorage()
+        await storage.record(.gauge("memory", value: 2, tags: ["tenant": "a"]))
+        await storage.record(.gauge("memory", value: 7, tags: ["tenant": "b"]))
+        await storage.record(.gauge("memory", value: 5, tags: ["tenant": "a"]))
+        let exporter = PrometheusExporter(metricsStorage: storage)
+
+        let output = await exporter.export()
+        XCTAssertEqual(sampleLines(output), ["memory{tenant=\"a\"} 5", "memory{tenant=\"b\"} 7"])
+    }
+
+    func testCounterTotalSurvivesHistoryEvictionBeforeFirstScrape() async {
+        let storage = MetricsStorage(maxSnapshotsPerMetric: 1)
+        await storage.record(.counter("requests", value: 2))
+        await storage.record(.counter("requests", value: 3))
+        let exporter = PrometheusExporter(metricsStorage: storage)
+
+        let first = await exporter.export()
+        XCTAssertEqual(sampleLines(first), ["requests_total 5"])
+        await storage.record(.counter("requests", value: 7))
+        let second = await exporter.export()
+        XCTAssertEqual(sampleLines(second), ["requests_total 12"])
+    }
+
+    func testHistogramAccumulatesSumCountAndInfiniteBucketPerSeries() async {
+        let storage = MetricsStorage(maxSnapshotsPerMetric: 1)
+        await storage.record(.init(name: "sizes", type: "histogram", value: 2, tags: ["tenant": "a"]))
+        await storage.record(.init(name: "sizes", type: "histogram", value: 3, tags: ["tenant": "a"]))
+        await storage.record(.init(name: "sizes", type: "histogram", value: 7, tags: ["tenant": "b"]))
+        let exporter = PrometheusExporter(metricsStorage: storage)
+
+        let output = await exporter.export()
+        XCTAssertEqual(sampleLines(output), [
+            "sizes_bucket{le=\"+Inf\",tenant=\"a\"} 2",
+            "sizes_bucket{le=\"+Inf\",tenant=\"b\"} 1",
+            "sizes_count{tenant=\"a\"} 2",
+            "sizes_count{tenant=\"b\"} 1",
+            "sizes_sum{tenant=\"a\"} 5",
+            "sizes_sum{tenant=\"b\"} 7"
+        ])
+        let repeated = await exporter.export()
+        XCTAssertEqual(repeated, output)
+    }
+
+    func testInvalidMetricAndLabelNamesCannotInjectExpositionLines() async {
+        let invalidNames = ["", "1invalid", "bad name", "bad\ninjected 1", "bad/metric", "métric"]
+        for name in invalidNames {
+            let storage = MetricsStorage()
+            await storage.record(.gauge(name, value: 1))
+            let output = await PrometheusExporter(metricsStorage: storage).export()
+            XCTAssertEqual(output, "", "Unexpected exposition for metric name \(name.debugDescription)")
+        }
+        for label in ["", "1invalid", "bad-name", "bad:label", "bad\ninjected", "__name__"] {
+            let storage = MetricsStorage()
+            await storage.record(.gauge("valid", value: 1, tags: [label: "value"]))
+            let output = await PrometheusExporter(metricsStorage: storage).export()
+            XCTAssertEqual(output, "", "Unexpected exposition for label name \(label.debugDescription)")
+        }
+    }
+
+    func testConflictingWireFamiliesAreRejectedRegardlessOfRecordOrder() async {
+        let collisions: [[MetricSnapshot]] = [
+            [.gauge("a.b", value: 1), .gauge("a_b", value: 2)],
+            [.counter("requests", value: 1), .gauge("requests_total", value: 2)],
+            [.timer("duration", duration: 1), .gauge("duration_milliseconds", value: 2)],
+            [.init(name: "sizes", type: "histogram", value: 1), .gauge("sizes_sum", value: 2)],
+            [.gauge("shared", value: 1, unit: "bytes"), .gauge("shared", value: 2, unit: "items")],
+            [.gauge("shared", value: 1), .counter("shared", value: 2)]
+        ]
+        for inputs in collisions {
+            for sequence in [inputs, Array(inputs.reversed())] {
+                let storage = MetricsStorage()
+                for snapshot in sequence { await storage.record(snapshot) }
+                let output = await PrometheusExporter(metricsStorage: storage).export()
+                XCTAssertEqual(output, "", "Conflicting families must not depend on dictionary/record order")
+            }
+        }
+    }
+
+    func testEmptyAndAbsentLabelsDoNotProduceEquivalentDuplicateSamples() async {
+        let storage = MetricsStorage()
+        await storage.record(.gauge("load", value: 1))
+        await storage.record(.gauge("load", value: 2, tags: ["optional": ""]))
+        let output = await PrometheusExporter(metricsStorage: storage).export()
+        XCTAssertEqual(output, "")
+    }
+
+    func testHistogramRejectsUserBucketBoundaryLabel() async {
+        let storage = MetricsStorage()
+        await storage.record(.init(name: "sizes", type: "histogram", value: 1, tags: ["le": "user"]))
+        let output = await PrometheusExporter(metricsStorage: storage).export()
+        XCTAssertEqual(output, "")
+    }
+
+    private func sampleLines(_ output: String) -> [String] {
+        output.split(separator: "\n").filter { !$0.hasPrefix("#") }.map(String.init).sorted()
+    }
+
     // MARK: - Counter Tests
 
     func testExportCounter() async throws {
