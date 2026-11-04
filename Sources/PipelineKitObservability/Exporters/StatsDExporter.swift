@@ -1,8 +1,18 @@
 import Foundation
+import PipelineKitCore
 
 /// StatsD exporter with lazy transport startup and explicit shutdown.
 /// Call `forceFlush()` before `close()` to attempt delivery of buffered metrics.
 public actor StatsDExporter: FlushableMetricRecorder {
+    private struct OperationToken: Hashable, Sendable {
+        let exporterID: UUID
+        let id: UUID
+    }
+
+    private enum OperationContext {
+        @TaskLocal static var owners: Set<OperationToken> = []
+    }
+
     /// Configuration for the exporter.
     public struct Configuration: Sendable {
         public let host: String
@@ -36,6 +46,10 @@ public actor StatsDExporter: FlushableMetricRecorder {
             aggregation: AggregationConfiguration = AggregationConfiguration(),
             transportTimeout: TimeInterval = 1.0
         ) {
+            _ = NumericDuration.nanoseconds(flushInterval)
+            precondition(maxBatchSize > 0, "StatsD batch capacity must be positive")
+            precondition(sampleRate.isFinite && sampleRatesByType.values.allSatisfy(\.isFinite),
+                         "StatsD sample rates must be finite")
             self.host = host
             self.port = port
             self.prefix = prefix
@@ -62,6 +76,9 @@ public actor StatsDExporter: FlushableMetricRecorder {
         let task: Task<any MetricsTransport, any Error>
     }
 
+    private let operationID = UUID()
+    private var activeOperations: Set<UUID> = []
+    private var aggregationWireIdentities: [MetricSeriesIdentity: MetricSeriesIdentity] = [:]
     private let configuration: Configuration
     private let transportFactory: @Sendable () async throws -> any MetricsTransport
     private var transport: (any MetricsTransport)?
@@ -72,8 +89,11 @@ public actor StatsDExporter: FlushableMetricRecorder {
     internal private(set) var startupWaiterCount = 0
 
     private var buffer: [String] = []
-    private var flushTask: Task<Void, Never>?
-    private let aggregator: MetricAggregator?
+    private enum FlushKind { case batch, aggregation }
+    private var timerGenerations: [FlushKind: UUID] = [:]
+    internal private(set) var timerTasks: [UUID: Task<Void, Never>] = [:]
+    private let sleep: @Sendable (TimeInterval) async throws -> Void
+    private var aggregator: MetricAggregator?
     private var errorHandler: (@Sendable (any Error) -> Void)?
 
     /// Installs or clears error reporting before recording or explicit startup.
@@ -94,6 +114,13 @@ public actor StatsDExporter: FlushableMetricRecorder {
 
     /// Creates an exporter owning an already initialized transport, including its close.
     public init(configuration: Configuration, transport: any MetricsTransport) {
+        self.init(configuration: configuration, transport: transport,
+                  sleep: { try await Task.sleep(nanoseconds: NumericDuration.nanoseconds($0)) })
+    }
+
+    internal init(configuration: Configuration, transport: any MetricsTransport,
+                  sleep: @escaping @Sendable (TimeInterval) async throws -> Void) {
+        self.sleep = sleep
         self.configuration = configuration
         self.transportFactory = { transport }
         self.aggregator = configuration.aggregation.enabled
@@ -103,8 +130,12 @@ public actor StatsDExporter: FlushableMetricRecorder {
 
     internal init(
         configuration: Configuration,
-        transportFactory: @escaping @Sendable () async throws -> any MetricsTransport
+        transportFactory: @escaping @Sendable () async throws -> any MetricsTransport,
+        sleep: @escaping @Sendable (TimeInterval) async throws -> Void = {
+            try await Task.sleep(nanoseconds: NumericDuration.nanoseconds($0))
+        }
     ) {
+        self.sleep = sleep
         self.configuration = configuration
         self.transportFactory = transportFactory
         self.aggregator = configuration.aggregation.enabled
@@ -112,7 +143,7 @@ public actor StatsDExporter: FlushableMetricRecorder {
     }
 
     deinit {
-        flushTask?.cancel()
+        for task in timerTasks.values { task.cancel() }
         startup?.task.cancel()
     }
 
@@ -135,21 +166,26 @@ public actor StatsDExporter: FlushableMetricRecorder {
         } else {
             let id = UUID()
             let factory = transportFactory
+            let inherited = OperationContext.owners
             let task = Task { () throws -> any MetricsTransport in
-                do {
-                    let candidate = try await factory()
-                    guard !self.isClosed, self.startup?.id == id else {
-                        // Only this task owns an unpublished candidate. Coverage:
-                        // testCloseDuringStartupClosesLateTransport.
-                        await candidate.close()
-                        throw TransportError.transportClosed
+                let token = beginOperation()
+                defer { endOperation(token) }
+                return try await OperationContext.$owners.withValue(inherited.union([token])) {
+                    do {
+                        let candidate = try await factory()
+                        guard !self.isClosed, self.startup?.id == id else {
+                            // Only this task owns an unpublished candidate. Coverage:
+                            // testCloseDuringStartupClosesLateTransport.
+                            await candidate.close()
+                            throw TransportError.transportClosed
+                        }
+                        self.transport = candidate
+                        self.startup = nil
+                        return candidate
+                    } catch {
+                        if self.startup?.id == id { self.startup = nil }
+                        throw error
                     }
-                    self.transport = candidate
-                    self.startup = nil
-                    return candidate
-                } catch {
-                    if self.startup?.id == id { self.startup = nil }
-                    throw error
                 }
             }
             owned = Startup(id: id, task: task)
@@ -172,40 +208,49 @@ public actor StatsDExporter: FlushableMetricRecorder {
     /// Call `forceFlush()` first to attempt delivery. UDP has no delivery acknowledgement.
     /// A cancellation-insensitive factory or transport can delay close indefinitely.
     /// Repeated/concurrent close shares settlement (`testCloseDuringStartupClosesLateTransport`).
+    /// Reentrant close from an owned startup, send, or close callback invalidates
+    /// immediately but does not await its own task; an external close joins it.
     public func close() async {
+        let isReentrant = OperationContext.owners.contains {
+            $0.exporterID == operationID && activeOperations.contains($0.id)
+        }
         if let closeTask {
-            await closeTask.value
+            if !isReentrant { await closeTask.value }
             return
         }
         isClosed = true
         buffer.removeAll()
         let pendingStartup = startup?.task
-        let pendingFlush = flushTask
+        let pendingTimers = Array(timerTasks.values)
         let ready = transport
         startup = nil
         transport = nil
         pendingStartup?.cancel()
-        pendingFlush?.cancel()
-        let aggregator = aggregator
+        for task in pendingTimers { task.cancel() }
+        timerGenerations.removeAll()
+        aggregator = nil
+        aggregationWireIdentities.removeAll()
+        let token = beginOperation()
+        let owners = OperationContext.owners.union([token])
         let closing = Task {
-            await ready?.close()
-            _ = await pendingStartup?.result
-            await pendingFlush?.value
-            if let aggregator { _ = await aggregator.forceFlush() }
+            defer { endOperation(token) }
+            await OperationContext.$owners.withValue(owners) {
+                await ready?.close()
+                _ = await pendingStartup?.result
+                for task in pendingTimers { await task.value }
+            }
         }
         closeTask = closing
-        await closing.value
-        flushTask = nil
+        if !isReentrant {
+            await closing.value
+            timerTasks.removeAll()
+        }
     }
 
     // MARK: - Sampling Logic
     
-    /// Stable hash function for deterministic sampling across program runs.
-    /// DJB2 accumulation followed by a splitmix64 finalizer: raw DJB2 of a
-    /// short string (< ~13 bytes) never wraps UInt64, so its value is tiny
-    /// relative to UInt64.max and `hash / UInt64.max` collapses toward 0 —
-    /// which made rate-based sampling keep everything for typical metric
-    /// names. The finalizer spreads the value uniformly across UInt64.
+    /// Name-based DJB2 hashing with splitmix64 finalization.
+    /// Stable short-name decisions are covered by `testDeterministicSampling`.
     nonisolated private func stableHash(_ string: String) -> UInt64 {
         var hash: UInt64 = 5381
         for byte in string.utf8 {
@@ -246,80 +291,75 @@ public actor StatsDExporter: FlushableMetricRecorder {
             reportError(TransportError.transportClosed)
             return
         }
+        guard !snapshot.name.isEmpty,
+              let value = snapshot.value ?? (snapshot.type == "counter" ? 1 : nil), value.isFinite else {
+            reportError(MetricsError.invalidData("StatsD requires a nonempty name and finite value; only counters may omit values"))
+            return
+        }
+        guard snapshot.type != "timer" || snapshot.unit == nil || snapshot.unit == "ms" else {
+            reportError(MetricsError.invalidData("StatsD timers require milliseconds"))
+            return
+        }
+        let tags = mergeTags(configuration.globalTags, snapshot.tags)
+        guard StatsDTextFormat.areValidTags(tags) else {
+            reportError(MetricsError.invalidData("Tags contain unsupported StatsD delimiters or an empty key"))
+            return
+        }
         // Check if we should sample this metric
         let (shouldSample, rate) = self.shouldSample(snapshot)
         guard shouldSample else { return }  // Drop if not sampled
         
-        // If aggregation is enabled, aggregate instead of sending immediately
-        if let aggregator = aggregator {
-            // Note: Counter scaling happens inside aggregator for pre-scaled values
-            let success = await aggregator.aggregate(snapshot, sampleRate: rate)
-            if !success {
-                // Buffer full, force flush and retry
-                await flushAggregatedMetrics()
-                _ = await aggregator.aggregate(snapshot, sampleRate: rate)
+        if snapshot.type == "counter" && !((snapshot.value ?? 1) / rate).isFinite {
+            reportError(MetricsError.invalidData("Counter sampling compensation overflowed"))
+            return
+        }
+        if aggregator != nil {
+            // Explicit and inherited tags that encode the same series share one
+            // gauge update order (testAggregationUsesEffectiveGlobalTagsForLatestGauge).
+            let effectiveSnapshot = MetricSnapshot(name: snapshot.name, type: snapshot.type,
+                value: snapshot.value, timestamp: snapshot.timestamp, tags: tags, unit: snapshot.unit)
+            let rawIdentity = MetricSeriesIdentity(name: snapshot.name, type: snapshot.type,
+                                                   unit: snapshot.unit, tags: tags)
+            let wireIdentity = MetricSeriesIdentity(name: wireName(snapshot.name), type: statsdType(for: snapshot.type),
+                                                    unit: nil, tags: tags)
+            if let existing = aggregationWireIdentities[wireIdentity], existing != rawIdentity {
+                reportError(MetricsError.invalidData("Conflicting StatsD wire definition in aggregation window"))
+                return
             }
+            do {
+                if try aggregator?.aggregate(effectiveSnapshot, sampleRate: rate) == false {
+                    drainAggregatedMetrics()
+                    _ = try aggregator?.aggregate(effectiveSnapshot, sampleRate: rate)
+                    aggregationWireIdentities[wireIdentity] = rawIdentity
+                    scheduleAggregationFlushIfNeeded()
+                    await flushBuffer()
+                } else {
+                    aggregationWireIdentities[wireIdentity] = rawIdentity
+                    scheduleAggregationFlushIfNeeded()
+                }
+            } catch { reportError(error) }
         } else {
-            // Original path: scale and send immediately
-            var adjustedSnapshot = snapshot
-            if snapshot.type == "counter" && rate < 1.0 {
-                // Use default value of 1.0 if value is nil (standard counter increment)
-                let effectiveValue = snapshot.value ?? 1.0
-                adjustedSnapshot = MetricSnapshot(
-                    name: snapshot.name,
-                    type: snapshot.type,
-                    value: effectiveValue / rate,  // Scale up to compensate for sampling
-                    timestamp: snapshot.timestamp,
-                    tags: snapshot.tags,
-                    unit: snapshot.unit
-                )
+            // The receiver applies @rate compensation to the retained raw amount.
+            guard let packet = formatMetric(snapshot, sampleRate: rate) else {
+                reportError(MetricsError.invalidData("Metric cannot be encoded as a StatsD packet"))
+                return
             }
-            
-            let line = formatMetric(adjustedSnapshot, sampleRate: rate)
-            await bufferMetric(line)
+            await bufferMetric(packet)
         }
     }
-    
-    /// Formats a metric in StatsD format (pure function - can be nonisolated).
-    nonisolated private func formatMetric(_ snapshot: MetricSnapshot, sampleRate: Double = 1.0) -> String {
-        var name = sanitizeMetricName(snapshot.name)
-        if let prefix = configuration.prefix {
-            name = "\(prefix).\(name)"
-        }
-        
-        let value = snapshot.value ?? 1.0
-        let typeChar = statsdType(for: snapshot.type)
-        
-        // Build base metric line
-        var line = "\(name):\(value)|\(typeChar)"
-        
-        // Add sample rate if sampling is active
-        if sampleRate < 1.0 {
-            line += "|@\(sampleRate)"
-        }
-        
-        // Add tags (DogStatsD format)
-        let allTags = mergeTags(configuration.globalTags, snapshot.tags)
-        if !allTags.isEmpty {
-            let tagString = allTags
-                .sorted { $0.key < $1.key }
-                .map { "\($0.key):\($0.value)" }
-                .joined(separator: ",")
-            line += "|#\(tagString)"
-        }
-        
-        return line
+
+    nonisolated private func formatMetric(_ snapshot: MetricSnapshot, sampleRate: Double = 1.0) -> String? {
+        StatsDTextFormat.packet(name: wireName(snapshot.name), value: snapshot.value ?? 1,
+            type: statsdType(for: snapshot.type), sampleRate: sampleRate,
+            tags: mergeTags(configuration.globalTags, snapshot.tags))
     }
-    
-    /// Sanitizes metric names for StatsD compatibility.
-    nonisolated private func sanitizeMetricName(_ name: String) -> String {
-        name.replacingOccurrences(of: " ", with: "_")
-            .replacingOccurrences(of: ":", with: "_")
-            .replacingOccurrences(of: "|", with: "_")
-            .replacingOccurrences(of: "@", with: "_")
-            .replacingOccurrences(of: "#", with: "_")
+
+    nonisolated private func wireName(_ name: String) -> String {
+        let name = StatsDTextFormat.sanitizeMetricName(name)
+        if let prefix = configuration.prefix { return StatsDTextFormat.sanitizeMetricName(prefix) + "." + name }
+        return name
     }
-    
+
     /// Gets the StatsD type character.
     nonisolated private func statsdType(for type: String) -> String {
         #if DEBUG
@@ -362,41 +402,81 @@ public actor StatsDExporter: FlushableMetricRecorder {
     }
 
     private func scheduleFlushIfNeeded() {
-        guard !isClosed, !buffer.isEmpty, flushTask == nil else { return }
-        let interval = configuration.flushInterval
-        flushTask = Task { [weak self] in
+        guard !buffer.isEmpty else { return }
+        scheduleTimer(.batch, interval: configuration.flushInterval)
+    }
+
+    private func scheduleAggregationFlushIfNeeded() {
+        guard aggregator?.isEmpty == false else { return }
+        let configuration = configuration.aggregation
+        let jitter = Double.random(in: -configuration.flushJitter...configuration.flushJitter)
+        scheduleTimer(.aggregation, interval: configuration.flushDelay(jitter: jitter))
+    }
+
+    private func scheduleTimer(_ kind: FlushKind, interval: TimeInterval) {
+        guard !isClosed, timerGenerations[kind] == nil else { return }
+        let id = UUID()
+        timerGenerations[kind] = id
+        let sleep = sleep
+        timerTasks[id] = Task { [weak self] in
             do {
-                try await Task.sleep(for: .seconds(interval))
+                try await sleep(interval)
                 try Task.checkCancellation()
-            } catch { return }
-            await self?.flushFromTimer()
+                await self?.flushFromTimer(kind, generation: id)
+            } catch { }
+            await self?.finishTimer(id)
         }
     }
 
-    private func flushFromTimer() async {
+    private func finishTimer(_ id: UUID) {
+        timerTasks.removeValue(forKey: id)
+    }
+
+    private func cancelTimer(_ kind: FlushKind) {
+        if let id = timerGenerations.removeValue(forKey: kind) {
+            timerTasks[id]?.cancel()
+        }
+    }
+
+    private func flushFromTimer(_ kind: FlushKind, generation: UUID) async {
+        guard !isClosed, timerGenerations[kind] == generation else { return }
+        timerGenerations.removeValue(forKey: kind)
+        if kind == .aggregation { drainAggregatedMetrics() }
         await flushBuffer()
-        flushTask = nil
-        scheduleFlushIfNeeded()
     }
 
     /// Each invocation retains its nonempty batch across readiness and send.
     private func flushBuffer() async {
         guard !isClosed, !buffer.isEmpty else { return }
+        cancelTimer(.batch)
         let batch = buffer
         buffer.removeAll(keepingCapacity: true)
-        // Keep the timer's task handle until it settles, so close can join an
-        // in-flight timer flush as well as cancel a sleeping timer.
+        // Timer task entries remain owned until their send or cancellation settles.
+        let token = beginOperation()
+        defer { endOperation(token) }
         do {
-            let ready = try await readyTransport()
-            let packets = batch.map { Data($0.utf8) }
-            if packets.count == 1 {
-                try await ready.send(packets[0])
-            } else {
-                try await ready.sendBatch(packets)
+            try await OperationContext.$owners.withValue(OperationContext.owners.union([token])) {
+                let ready = try await readyTransport()
+                let packets = batch.map { Data($0.utf8) }
+                if packets.count == 1 {
+                    try await ready.send(packets[0])
+                } else {
+                    try await ready.sendBatch(packets)
+                }
             }
         } catch {
             reportError(error)
         }
+    }
+
+    private func beginOperation() -> OperationToken {
+        let token = OperationToken(exporterID: operationID, id: UUID())
+        activeOperations.insert(token.id)
+        return token
+    }
+
+    private func endOperation(_ token: OperationToken) {
+        activeOperations.remove(token.id)
     }
 
     /// Reports an error through the configured handler.
@@ -419,26 +499,27 @@ public actor StatsDExporter: FlushableMetricRecorder {
         await forceFlush()
     }
 
-    /// Forces a flush of buffered metrics.
+    /// Attempts delivery of buffered metrics. This does not join sends already
+    /// owned by concurrent record calls; quiesce producers before shutdown.
     public func forceFlush() async {
         guard !isClosed else { return }
-        // Flush aggregated metrics first if enabled
-        if aggregator != nil {
-            await flushAggregatedMetrics()
-        }
+        drainAggregatedMetrics()
         await flushBuffer()
     }
-    
-    /// Flushes aggregated metrics from the aggregator.
-    private func flushAggregatedMetrics() async {
-        guard let aggregator = aggregator else { return }
-        
-        let aggregatedMetrics = await aggregator.forceFlush()
-        for (snapshot, sampleRate) in aggregatedMetrics {
-            let line = formatMetric(snapshot, sampleRate: sampleRate)
-            await bufferMetric(line)
+
+    private func drainAggregatedMetrics() {
+        cancelTimer(.aggregation)
+        guard let metrics = aggregator?.flush() else { return }
+        aggregationWireIdentities.removeAll(keepingCapacity: true)
+        for (snapshot, rate) in metrics {
+            if let packet = formatMetric(snapshot, sampleRate: rate) {
+                buffer.append(packet)
+            } else {
+                reportError(MetricsError.invalidData("Aggregate cannot be encoded as a StatsD packet"))
+            }
         }
     }
+
 }
 
 // MARK: - Test Support
