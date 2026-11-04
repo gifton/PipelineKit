@@ -420,7 +420,7 @@ import PipelineKitCache
 func decodeCachedPayload(_ compressed: Data, sizeHint: Int?) throws -> Data {
     try CompressionUtility.decompress(
         compressed,
-        using: .zlib,
+        using: .rawDeflate,
         originalSize: sizeHint,
         maxOutputSize: 1_048_576
     )
@@ -450,12 +450,11 @@ uses the compressed result only when it is smaller. Old small utility outputs ha
 format marker: recover them using application-owned format/size metadata or regenerate
 them from trusted originals; do not infer that arbitrary failed decompression is raw data.
 
-Codec mappings and level behavior are unchanged: `.zlib` and `.gzip` use Apple's raw
-DEFLATE codec, `.lzfse` and `.brotli` use LZFSE, and `.lz4` uses Apple's framed LZ4.
-SCP-08 remains open; these aliases do not establish gzip or Brotli interoperability or
-working compression-level selection. `CompressionCompletionContractTests` compiles the new
-API and exercises all five cases on a Compression-capable host. The standalone Examples
-package has no decompression caller to migrate.
+The follow-up [compression format migration](security-serialization-and-numeric-safety.md#compression-names-and-stored-data)
+replaces misleading aliases with actual format names, removes ignored level options,
+and provides an explicit decoder for historical labels. `CompressionCompletionContractTests`
+exercises complete bounded decoding on a Compression-capable host. The standalone
+Examples package has no decompression caller to migrate.
 
 
 ## Breaking: rate-limit scope and distributed counter keys (R-F08)

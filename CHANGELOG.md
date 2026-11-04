@@ -12,6 +12,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 See the [compiled migration guide](docs/migrations/first-stabilization-batch.md) before upgrading.
 No release version or tag is selected by this batch.
 
+- See the [security, serialization, and numeric migration](docs/migrations/security-serialization-and-numeric-safety.md)
+  for actual compression format names, removed ignored level options, and the explicit
+  legacy-label decoder. Custom encrypted result fields use the opt-in
+  `SerializedPlaintextDecrypting` capability; existing typed encryption services remain valid.
+  Numeric configuration now rejects invalid inputs before conversion, preserves intentional
+  zero/no-wait behavior, and bounds derived arithmetic. Only admission waits have a 24-hour cap.
 - Follow-up admission and security changes are described in the
   [core stabilization notes](docs/migrations/core-admission-and-security.md).
   Configured admission deadlines now take effect, nil pipeline capacity limits are
@@ -29,7 +35,8 @@ No release version or tag is selected by this batch.
   fallbacks are removed. Invalidate all old cache contents; namespace encoding has changed.
 - Decompression requires positive `maxOutputSize`, returns a complete bounded stream or throws,
   and rejects truncation/trailing data. Small nonempty utility compression now emits codec data;
-  old unmarked raw outputs require application metadata or regeneration. Codec aliases remain.
+  old unmarked raw outputs require application metadata or regeneration. Historical codec
+  labels are supported by the explicit legacy decoder described above.
 - Ordinary and partitioned bulkhead queue timeouts accept finite positive values up to 86,400
   seconds, finite nonpositive values for no wait, and nil for unbounded waiting. Nonfinite or
   larger positive values are invalid. Nil is not an equivalent finite deadline above 24 hours.
@@ -62,6 +69,12 @@ No release version or tag is selected by this batch.
   path (e.g. cache hits). Debug-only; release builds are unchanged. ([#97])
 
 ### Fixed
+- Encrypted result decoding preserves authenticated serialized bytes for custom objects,
+  arrays, and hintless envelopes; authentication failures throw before plaintext is returned.
+  Type and encoding hints remain unauthenticated metadata.
+- Security guide examples now mask enriched audit metadata and place error sanitization
+  and metrics outside authentication. Fractional pool intervals retain their precision;
+  retry, timeout, rate-limit, and pooling numeric boundary regressions are covered.
 - Rate-limit cleanup conditionally removes unchanged idle token-bucket and sliding-window
   entries, preserving admissions and resets that occur while cleanup awaits child actors.
 - Semaphore cancellation handlers share immutable waiter identifiers. Concurrent pipeline

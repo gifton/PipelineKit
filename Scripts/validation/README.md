@@ -73,6 +73,52 @@ python3 Scripts/validation/run_check.py --id admission-bounds-001 --timeout 180 
     --logs /private/tmp/pipelinekit-admission-bounds-001
 ```
 
+## Numeric boundaries and compression interoperability
+
+Build the root tests in each configuration before running these host checks. The
+numeric driver executes each input in an isolated test process with a 30-second
+per-case timeout. On macOS it invokes the built XCTest bundle directly when
+available. Accepted inputs must reach both probe sentinels and exit successfully;
+rejected inputs must reach the probe, omit the accepted sentinel, and fail. Debug
+also requires the precondition diagnostic; optimized Release builds may omit it.
+Timeouts and unrelated startup failures do not count as successful rejection.
+The numeric log directory must not already exist; it contains per-case logs and
+`report.json`.
+
+The compression driver runs the built raw-DEFLATE output probe, then independently
+decodes its four emitted samples with Python zlib. It requires exact original
+bytes, end-of-stream, no trailing input, and rejection as zlib/gzip containers.
+Portable XCTest fixtures separately cover canonical formats and every legacy
+label, including output limits and truncated, trailing, concatenated, and empty
+streams. The compression probe has a 60-second timeout; it retains partial output
+and terminates its process group, escalating to KILL for surviving children.
+Both drivers return nonzero on failure; neither builds Swift tests.
+
+```sh
+swift build --build-tests
+swift build --configuration release --build-tests -Xswiftc -enable-testing
+validation_run=.build/validation/numeric-compression-001
+for configuration in debug release; do
+  python3 Scripts/validation/check_numeric_boundaries.py \
+    --configuration "$configuration" --logs "$validation_run/numeric-$configuration" || exit "$?"
+  python3 Scripts/validation/check_compression_formats.py \
+    --configuration "$configuration" --log "$validation_run/compression-$configuration.log" || exit "$?"
+done
+```
+
+Choose a fresh `validation_run` for each invocation. The macOS job in
+`ci-multiplatform.yml` runs both checks as fatal gates after the corresponding
+Debug and Release tests. CI paths use
+`$RUNNER_TEMP/${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}` with separate configuration
+names, so a rerun does not reuse the numeric driver's directory. The quick CI
+Python suite executes these real workflow shell blocks with controlled driver
+failures, checking that each failure remains fatal and both configurations and
+log paths reach the drivers.
+`test_numeric_probe_resolution.py` covers both SwiftPM bundle layouts and correct
+configuration selection. `test_compression_watchdog.py` uses real controlled
+processes to check timeout diagnostics and child termination, including refusal
+of TERM. Both run in quick CI.
+
 ## Command watchdog
 
 `run_check.py` records a command's output, exit status, timeout, observed process
