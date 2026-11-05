@@ -4,10 +4,57 @@ import argparse
 import json
 import math
 import os
+import re
 import signal
 import sys
 from pathlib import Path
 import subprocess
+
+
+THROWING_TEST_SUPPORT_DELAY_ENTRIES = frozenset({
+    "test-support-async-command", "test-support-async-handler", "test-support-middleware-delay",
+    "test-support-factory-delay", "test-support-factory-timeout", "test-support-command-processor",
+})
+TEST_SUPPORT_DELAY_ENTRIES = THROWING_TEST_SUPPORT_DELAY_ENTRIES | {"test-support-event-subscriber"}
+
+
+def evaluate_probe(entry, allowed, status, output, timed_out=False, configuration="debug"):
+    """Distinguish accepted values, typed rejection, explicit preconditions, and crashes."""
+    reached = "NUMERIC_BOUNDARY_REACHED" in output
+    accepted = "NUMERIC_BOUNDARY_ACCEPTED" in output
+    rejected = "NUMERIC_BOUNDARY_REJECTED" in output
+    if entry in {"health-runtime", "timeout-resolver"}:
+        reached = reached and "NUMERIC_RUNTIME_CONFIGURED" in output
+    diagnostic = "Precondition failed:" in output
+    if entry == "test-support-event-subscriber":
+        diagnostic = diagnostic or (
+            "Fatal error: MockEventSubscriber processingDelay must be finite, "
+            "nonnegative, and representable in nanoseconds" in output
+        )
+    if configuration == "release":
+        diagnostic = status != 0 and status != -999
+    if entry in THROWING_TEST_SUPPORT_DELAY_ENTRIES:
+        diagnostic = rejected
+        passed = (not timed_out and reached and status == 0 and
+                  ((allowed and accepted and not rejected) or (not allowed and rejected and not accepted)))
+    else:
+        passed = (not timed_out and reached and
+                  ((allowed and status == 0 and accepted and not rejected) or
+                   (not allowed and status != 0 and diagnostic and not accepted)))
+    return dict(reached=reached, accepted=accepted, rejected=rejected,
+                explicit_validation=diagnostic, passed=passed)
+
+
+def unchecked_test_support_conversions(root):
+    """Require direct UInt64 conversions in TestSupport to use its checked helper."""
+    violations = []
+    for path in sorted((root / "Sources" / "PipelineKitTestSupport").rglob("*.swift")):
+        if path.name == "TestSupportDuration.swift":
+            continue
+        source = path.read_text()
+        for match in re.finditer(r"\bUInt64\s*\(\s*(?!(?:exactly|clamping)\s*:)", source):
+            violations.append(dict(path=str(path.relative_to(root)), line=source.count("\n", 0, match.start()) + 1))
+    return violations
 
 
 def resolve_probe_command(root, configuration, probe, xctest):
@@ -107,6 +154,9 @@ def main():
         cases.extend((entry, value, True) for value in ["0", "1e-20", "0.125"])
         cases.append((entry, repr(upper), entry != "test-support-after"))
     cases.append(("test-support-after", repr(upper - 1), True))
+    for entry in sorted(TEST_SUPPORT_DELAY_ENTRIES):
+        cases.extend((entry, value, False) for value in invalid + ["1e30", repr(sys.float_info.max), repr(2**64 / 1e9)])
+        cases.extend((entry, value, True) for value in ["0", "1e-20", "0.000001", "0.125", repr(upper)])
     if args.entries:
         selected = set(args.entries.split(","))
         available = {entry for entry, _, _ in cases}
@@ -124,6 +174,8 @@ def main():
             probe = f"{suite}/testNumericConfigurationProbe"
         if entry.startswith("test-support-"):
             probe = "PipelineKitTestSupportTests.TimeoutTesterNumericBoundaryTests/testNumericConfigurationProbe"
+        if entry in TEST_SUPPORT_DELAY_ENTRIES:
+            probe = "PipelineKitTestSupportTests.TestSupportDelayNumericBoundaryTests/testNumericConfigurationProbe"
         if entry == "compression-size":
             probe = "PipelineKitCacheTests.CompressionMiddlewareTests/testCompressionSizeNumericConfigurationProbe"
         command = resolve_probe_command(root, args.configuration, probe, xctest)
@@ -154,21 +206,16 @@ def main():
         status = -999 if timed_out else process.returncode
         path = args.logs / f"{index:03d}-{entry}.log"
         path.write_text(output)
-        reached = "NUMERIC_BOUNDARY_REACHED" in output
-        accepted = "NUMERIC_BOUNDARY_ACCEPTED" in output
-        if entry in {"health-runtime", "timeout-resolver"}:
-            reached = reached and "NUMERIC_RUNTIME_CONFIGURED" in output
-        diagnostic = "Precondition failed:" in output
-        if args.configuration == "release":
-            diagnostic = status != 0 and status != -999
-        passed = not timed_out and reached and ((allowed and status == 0 and accepted)
-                              or (not allowed and status != 0 and diagnostic and not accepted))
+        result = evaluate_probe(entry, allowed, status, output, timed_out, args.configuration)
         rows.append(dict(entry=entry, value=value, allowed=allowed, exit_status=status,
-                         reached=reached, accepted=accepted, explicit_validation=diagnostic,
-                         passed=passed, log=str(path)))
+                         **result, log=str(path)))
         print(json.dumps(rows[-1]), flush=True)
     (args.logs / "report.json").write_text(json.dumps(rows, indent=2) + "\n")
-    return 0 if all(row["passed"] for row in rows) else 1
+    unchecked = unchecked_test_support_conversions(root)
+    (args.logs / "test-support-conversion-audit.json").write_text(json.dumps(unchecked, indent=2) + "\n")
+    if unchecked:
+        print(json.dumps({"unchecked_test_support_conversions": unchecked}), flush=True)
+    return 0 if all(row["passed"] for row in rows) and not unchecked else 1
 
 
 if __name__ == "__main__":

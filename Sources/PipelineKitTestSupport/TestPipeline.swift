@@ -8,45 +8,77 @@
 import Foundation
 import XCTest
 import PipelineKit
+import PipelineKitCore
 
-/// Test pipeline for unit testing with recording and mocking capabilities
+/// Records executions, with middleware interception when created by
+/// `PipelineTestUtils.createTestPipeline(handler:middleware:)`.
 public actor TestPipeline: Pipeline {
-    private var middlewareMocks: [String: Any] = [:]
-    private var middlewareDelays: [String: TimeInterval] = [:]
-    private var middlewareFailures: [String: (count: Int, after: Int)] = [:]
+    private var middlewareSettings: [ObjectIdentifier: TestMiddlewareSettings] = [:]
     private var executionRecorder: TestExecutionRecorder
     private let basePipeline: (any Pipeline)?
-    
+    private let interception: TestInterceptionSupport?
+
+    /// Wraps an arbitrary pipeline for recording. Its middleware is opaque, so
+    /// configuring middleware interception throws `interceptionUnavailable`.
     public init(basePipeline: (any Pipeline)? = nil) {
         self.basePipeline = basePipeline
         self.executionRecorder = TestExecutionRecorder()
+        self.interception = nil
     }
-    
-    /// Mock a middleware to return a specific value
-    public func mockMiddleware<T>(
-        _ middlewareType: T.Type,
-        handler: @escaping @Sendable (Any) async throws -> Any
-    ) where T: Middleware {
-        let key = String(describing: middlewareType)
-        middlewareMocks[key] = handler
+
+    fileprivate init(basePipeline: any Pipeline, interception: TestInterceptionSupport) {
+        self.basePipeline = basePipeline
+        self.executionRecorder = TestExecutionRecorder()
+        self.interception = interception
     }
-    
-    /// Add delay to a middleware for testing timeouts
+
+    /// Replaces the selected middleware and the remainder of its chain with a
+    /// typed result. The command type must match the factory's handler.
+    public func mockMiddleware<M: Middleware, C: Command>(
+        _ middlewareType: M.Type,
+        for commandType: C.Type,
+        handler: @escaping @Sendable (C) async throws -> C.Result
+    ) throws {
+        let key = try middlewareKey(middlewareType)
+        guard interception?.commandType == ObjectIdentifier(commandType) else {
+            throw TestPipelineError.commandTypeMismatch(String(reflecting: commandType))
+        }
+        middlewareSettings[key, default: TestMiddlewareSettings()].mock = { command in
+            guard let command = command as? C else {
+                throw TestPipelineError.commandTypeMismatch(String(reflecting: type(of: command)))
+            }
+            return try await handler(command)
+        }
+    }
+
+    /// Adds a cancellable delay before failure injection, mocking, or the original
+    /// middleware. The delay must be finite, nonnegative, and fit in nanoseconds.
     public func delayMiddleware<T>(
         _ middlewareType: T.Type,
         delay: TimeInterval
-    ) where T: Middleware {
-        let key = String(describing: middlewareType)
-        middlewareDelays[key] = delay
+    ) throws where T: Middleware {
+        let key = try middlewareKey(middlewareType)
+        middlewareSettings[key, default: TestMiddlewareSettings()].delay = try testDelayNanoseconds(delay)
     }
-    
-    /// Make a middleware fail after N calls
+
+    /// Allows the first `calls` matching middleware entries, then fails every
+    /// later entry until reconfiguration or reset. Zero fails the first entry.
     public func failMiddleware<T>(
         _ middlewareType: T.Type,
         after calls: Int
-    ) where T: Middleware {
-        let key = String(describing: middlewareType)
-        middlewareFailures[key] = (count: 0, after: calls)
+    ) throws where T: Middleware {
+        let key = try middlewareKey(middlewareType)
+        guard calls >= 0 else { throw TestPipelineError.invalidFailureCount(calls) }
+        middlewareSettings[key, default: TestMiddlewareSettings()].failure = TestFailureCountdown(remaining: calls)
+    }
+
+    private func middlewareKey<M: Middleware>(_ type: M.Type) throws -> ObjectIdentifier {
+        guard let interception else { throw TestPipelineError.interceptionUnavailable }
+        let key = ObjectIdentifier(type)
+        guard interception.middlewareTypes.contains(key) else {
+            throw TestPipelineError.middlewareNotFound(String(reflecting: type))
+        }
+        return key
     }
     
     /// Execute with recording
@@ -54,20 +86,29 @@ public actor TestPipeline: Pipeline {
         _ command: T,
         context: CommandContext
     ) async throws -> T.Result {
-        let startTime = Date()
+        let startTime = ContinuousClock.now
         let executionId = UUID()
-        
-        await executionRecorder.recordStart(
+        let recorder = executionRecorder
+        let session = TestInterceptionSession(
+            owner: interception?.owner,
+            settings: middlewareSettings,
+            recorder: recorder
+        )
+
+        await recorder.recordStart(
             executionId: executionId,
             command: command,
             metadata: context.commandMetadata
         )
         
         do {
+            try PipelineCancellation.check(context: context, message: "Test pipeline cancelled before execution")
             let result: T.Result
-            
+
             if let base = basePipeline {
-                result = try await base.execute(command, context: context)
+                result = try await TestInterceptionSession.$current.withValue(session) {
+                    try await base.execute(command, context: context)
+                }
             } else {
                 // Simple mock execution
                 if let stringResult = "Mocked result" as? T.Result {
@@ -79,18 +120,19 @@ public actor TestPipeline: Pipeline {
                 }
             }
             
-            await executionRecorder.recordSuccess(
+            try PipelineCancellation.check(context: context, message: "Test pipeline cancelled after execution")
+            await recorder.recordSuccess(
                 executionId: executionId,
                 result: result,
-                duration: Date().timeIntervalSince(startTime)
+                duration: elapsedSeconds(since: startTime)
             )
             
             return result
         } catch {
-            await executionRecorder.recordFailure(
+            await recorder.recordFailure(
                 executionId: executionId,
                 error: error,
-                duration: Date().timeIntervalSince(startTime)
+                duration: elapsedSeconds(since: startTime)
             )
             throw error
         }
@@ -101,13 +143,127 @@ public actor TestPipeline: Pipeline {
         executionRecorder
     }
     
-    /// Reset all mocks and recordings
+    /// Clears controls and creates a recorder for new executions. Already admitted
+    /// executions retain their settings and settle in their original recorder
+    /// (`testResetSettlesEachInFlightRecordInItsOriginalRecorder`).
     public func reset() {
-        middlewareMocks.removeAll()
-        middlewareDelays.removeAll()
-        middlewareFailures.removeAll()
+        middlewareSettings.removeAll()
         executionRecorder = TestExecutionRecorder()
     }
+}
+
+private final class TestInterceptionOwner: Sendable {}
+
+private struct TestInterceptionSupport: Sendable {
+    let owner: TestInterceptionOwner
+    let commandType: ObjectIdentifier
+    let middlewareTypes: Set<ObjectIdentifier>
+}
+
+private struct TestMiddlewareSettings: Sendable {
+    var mock: (@Sendable (any Command) async throws -> any Sendable)?
+    var delay: UInt64 = 0
+    var failure: TestFailureCountdown?
+}
+
+private actor TestFailureCountdown {
+    private var remaining: Int
+    init(remaining: Int) { self.remaining = remaining }
+
+    func shouldFail() -> Bool {
+        guard remaining > 0 else { return true }
+        remaining -= 1
+        return false
+    }
+}
+
+private struct TestInterceptionSession: Sendable {
+    @TaskLocal static var current: TestInterceptionSession?
+    let owner: TestInterceptionOwner?
+    let settings: [ObjectIdentifier: TestMiddlewareSettings]
+    let recorder: TestExecutionRecorder
+}
+
+/// Interception itself may short-circuit. The original middleware receives its own
+/// guard only when its body runs (`TestPipelineWarningContractTests`).
+private struct TestInterceptingMiddleware: ConditionalMiddleware, UnsafeMiddleware {
+    let original: any Middleware
+    let owner: TestInterceptionOwner
+    var priority: ExecutionPriority { original.priority }
+
+    func shouldActivate<T: Command>(for command: T, context: CommandContext) -> Bool {
+        (original as? any ConditionalMiddleware)?.shouldActivate(for: command, context: context) ?? true
+    }
+
+    func execute<T: Command>(
+        _ command: T, context: CommandContext, next: @escaping MiddlewareNext<T>
+    ) async throws -> T.Result {
+        guard let session = TestInterceptionSession.current, session.owner === owner else {
+            throw TestPipelineError.interceptionUnavailable
+        }
+        let settings = session.settings[ObjectIdentifier(type(of: original))] ?? TestMiddlewareSettings()
+        let name = String(reflecting: type(of: original))
+        let started = ContinuousClock.now
+        do {
+            try PipelineCancellation.check(context: context, message: "Test middleware cancelled before execution")
+            if settings.delay > 0 {
+                do {
+                    try await Task.sleep(nanoseconds: settings.delay)
+                } catch {
+                    throw PipelineCancellation.normalize(error, context: context, message: "Test middleware delay cancelled")
+                }
+            }
+            if let failure = settings.failure {
+                let shouldFail = await failure.shouldFail()
+                try PipelineCancellation.check(context: context, message: "Test middleware cancelled after failure reservation")
+                if shouldFail { throw TestPipelineError.injectedFailure(name) }
+            }
+            try PipelineCancellation.check(context: context, message: "Test middleware cancelled before invoking its body")
+            let result: T.Result
+            if let mock = settings.mock {
+                let value = try await mock(command)
+                guard let typedValue = value as? T.Result else {
+                    throw TestPipelineError.unsupportedResultType
+                }
+                result = typedValue
+            } else {
+                // Detached callers do not inherit task locals, and nested pipelines
+                // replace them. The continuation owns its admitted session in both
+                // cases (the detached/nested continuation tests exercise this).
+                let boundNext: MiddlewareNext<T> = { command, context in
+                    try await TestInterceptionSession.$current.withValue(session) {
+                        try await next(command, context)
+                    }
+                }
+                if original is any UnsafeMiddleware {
+                    result = try await original.execute(command, context: context, next: boundNext)
+                } else {
+                    let nextGuard = NextGuard<T>(
+                        boundNext,
+                        identifier: name,
+                        suppressDeinitWarning: original is any NextGuardWarningSuppressing
+                    )
+                    do {
+                        result = try await original.execute(command, context: context, next: nextGuard.callAsFunction)
+                    } catch {
+                        nextGuard.markErrorExit()
+                        throw error
+                    }
+                }
+            }
+            try PipelineCancellation.check(context: context, message: "Test middleware cancelled after execution")
+            await session.recorder.recordMiddleware(name: name, duration: elapsedSeconds(since: started), succeeded: true)
+            return result
+        } catch {
+            await session.recorder.recordMiddleware(name: name, duration: elapsedSeconds(since: started), succeeded: false)
+            throw error
+        }
+    }
+}
+
+private func elapsedSeconds(since start: ContinuousClock.Instant) -> TimeInterval {
+    let components = start.duration(to: .now).components
+    return Double(components.seconds) + Double(components.attoseconds) / 1_000_000_000_000_000_000
 }
 
 /// Records pipeline executions for testing (internal test support version)
@@ -218,9 +374,15 @@ public actor TestExecutionRecorder {
 }
 
 /// Test pipeline error
-public enum TestPipelineError: LocalizedError {
+public enum TestPipelineError: LocalizedError, Sendable {
     case unsupportedResultType
     case mockNotConfigured(String)
+    case interceptionUnavailable
+    case middlewareNotFound(String)
+    case commandTypeMismatch(String)
+    case invalidDelay(TimeInterval)
+    case invalidFailureCount(Int)
+    case injectedFailure(String)
     
     public var errorDescription: String? {
         switch self {
@@ -228,6 +390,18 @@ public enum TestPipelineError: LocalizedError {
             return "Unsupported result type for mock"
         case .mockNotConfigured(let middleware):
             return "Mock not configured for middleware: \(middleware)"
+        case .interceptionUnavailable:
+            return "Middleware interception requires PipelineTestUtils.createTestPipeline(handler:middleware:)"
+        case .middlewareNotFound(let middleware):
+            return "Middleware is not present in the test pipeline: \(middleware)"
+        case .commandTypeMismatch(let command):
+            return "Mock command type does not match the test pipeline: \(command)"
+        case .invalidDelay(let delay):
+            return "Delay must be finite, nonnegative, and representable in nanoseconds: \(delay)"
+        case .invalidFailureCount(let count):
+            return "Allowed middleware call count must be nonnegative: \(count)"
+        case .injectedFailure(let middleware):
+            return "Injected failure in middleware: \(middleware)"
         }
     }
 }
@@ -240,17 +414,22 @@ public enum PipelineTestUtils {
         middleware: [any Middleware] = []
     ) async throws -> TestPipeline where H.CommandType == T {
         let basePipeline = StandardPipeline(handler: handler)
-        
+        let owner = TestInterceptionOwner()
         for mw in middleware {
-            try await basePipeline.addMiddleware(mw)
+            let wrapped = TestInterceptingMiddleware(original: mw, owner: owner)
+            try await basePipeline.addMiddleware(wrapped)
         }
-        
-        return TestPipeline(basePipeline: basePipeline)
+
+        return TestPipeline(basePipeline: basePipeline, interception: TestInterceptionSupport(
+            owner: owner,
+            commandType: ObjectIdentifier(T.self),
+            middlewareTypes: Set(middleware.map { ObjectIdentifier(type(of: $0)) })
+        ))
     }
     
     /// Simulate time-based events
     public static func timeTravel(seconds: TimeInterval) async throws {
-        try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+        try await Task.sleep(nanoseconds: testDelayNanoseconds(seconds))
     }
 }
 
@@ -347,11 +526,17 @@ public actor ChaosMonkey {
     
     public func maybeInjectChaos() async throws {
         guard chaosEnabled else { return }
-        
+        guard failureRate.isFinite, (0...1).contains(failureRate) else {
+            throw ChaosError.invalidFailureRate
+        }
+        _ = try testDelayNanoseconds(delayRange.lowerBound)
+        _ = try testDelayNanoseconds(delayRange.upperBound)
+        try Task.checkCancellation()
+
         // Random delay
         let delay = TimeInterval.random(in: delayRange)
         if delay > 0 {
-            try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+            try await Task.sleep(nanoseconds: testDelayNanoseconds(delay))
         }
         
         // Random failure
@@ -363,8 +548,12 @@ public actor ChaosMonkey {
 
 public enum ChaosError: LocalizedError {
     case randomFailure
-    
+    case invalidFailureRate
+
     public var errorDescription: String? {
-        "Chaos monkey induced failure"
+        switch self {
+        case .randomFailure: "Chaos monkey induced failure"
+        case .invalidFailureRate: "Chaos failure rate must be finite and between zero and one"
+        }
     }
 }

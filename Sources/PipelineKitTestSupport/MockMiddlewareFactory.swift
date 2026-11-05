@@ -182,7 +182,7 @@ public struct DelayMiddleware: Middleware, Sendable {
         context: CommandContext,
         next: @escaping MiddlewareNext<T>
     ) async throws -> T.Result {
-        try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+        try await Task.sleep(nanoseconds: testDelayNanoseconds(delay))
         return try await next(command, context)
     }
 }
