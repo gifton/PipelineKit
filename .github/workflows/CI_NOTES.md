@@ -46,6 +46,9 @@ All CI workflows have been updated to use:
 ### 3. Coverage Generation
 - **Issue**: Version mismatch between Swift compiler and system llvm-cov
 - **Solution**: Use llvm-cov from Xcode toolchain via `xcrun --find llvm-cov`
+- **Reports**: Open a GitHub Actions run and download `coverage-ci-macos` from
+  the main CI workflow or `coverage-macos` from the multiplatform workflow.
+  Each artifact contains `coverage.lcov`; no external coverage account is required.
 
 ### 4. NextGuard Warning Configuration
 - **Default**: Timeout warnings are automatically suppressed
@@ -135,12 +138,11 @@ Linux builds use Docker container `swift:6.2`:
 3. Consider CI hardware differences
 
 ### Coverage Upload Failures
-1. For Codecov authentication, verify the coverage job has `id-token: write`
-   permission and the action has `use_oidc: true`; no stored upload token is used.
-2. Check the coverage artifact and the collection/export step logs. All eight
-   correctness-suite profiles must be present before export.
-3. For fork pull requests, inspect Codecov's tokenless-upload response; the action
-   does not request OIDC tokens for forks.
+1. Check the collection/export step logs. All eight correctness-suite profiles
+   must be present before export.
+2. Verify that export produced a nonempty `coverage.lcov`. Missing or malformed
+   coverage fails validation before artifact upload.
+3. Inspect the GitHub artifact-upload step; a missing report fails the job.
 
 ### Xcode Setup Issues
 1. Verify `macos-26` runner is available

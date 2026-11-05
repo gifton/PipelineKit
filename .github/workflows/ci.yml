@@ -192,7 +192,6 @@ jobs:
     timeout-minutes: 45  # Increased for individual target coverage collection
     permissions:
       contents: read
-      id-token: write
 
     steps:
     - uses: actions/checkout@v7
@@ -236,15 +235,6 @@ jobs:
         path: coverage.lcov
         if-no-files-found: error
 
-    - name: Upload Coverage to Codecov
-      uses: codecov/codecov-action@v7
-      with:
-        use_oidc: true
-        files: ./coverage.lcov
-        disable_search: true
-        fail_ci_if_error: true
-        verbose: true
-    
     - name: Check Coverage Threshold
       id: coverage_check
       run: |

@@ -250,6 +250,28 @@ else: sys.exit('unexpected program ' + program)
                 self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual(self.log.read_text(), '')
 
+    def test_coverage_threshold_preserves_optional_enforcement(self):
+        for hits in (69, 70):
+            for enforcement in ('false', 'true'):
+                with self.subTest(hits=hits, enforcement=enforcement):
+                    records = ''.join(f'DA:{line},{int(line <= hits)}\n' for line in range(1, 101))
+                    (self.directory / 'coverage.lcov').write_text(
+                        f'TN:\nSF:/source.swift\n{records}LF:100\nLH:{hits}\nend_of_record\n'
+                    )
+                    output = self.directory / 'github-output'
+                    output.write_text('')
+                    script = shell_step('ci.yml', 'Check Coverage Threshold', 4)
+                    script = script.replace('${{ env.MINIMUM_COVERAGE }}', '70')
+                    script = script.replace('${{ env.ENFORCE_COVERAGE }}', enforcement)
+                    result = subprocess.run(
+                        ['bash', '-e', '-o', 'pipefail', '-c', script], cwd=self.directory,
+                        env=dict(self.env, GITHUB_OUTPUT=str(output)),
+                        capture_output=True, text=True, timeout=10,
+                    )
+                    expected_status = 1 if hits < 70 and enforcement == 'true' else 0
+                    self.assertEqual(result.returncode, expected_status, result.stdout + result.stderr)
+                    self.assertEqual(output.read_text(), f'coverage={hits}\n')
+
 
 def event_selected(workflow, event, branch, changed_paths):
     """Evaluate the branch/path filter subset used at our GitHub event boundary."""
@@ -272,38 +294,25 @@ def event_selected(workflow, event, branch, changed_paths):
     return True
 
 
-class CoverageUploadAuthenticationTests(unittest.TestCase):
-    def test_required_upload_can_authenticate_without_repository_secrets(self):
-        uploads = []
-        for workflow in sorted((ROOT / '.github/workflows').glob('*.yml')):
-            source = workflow.read_text().partition('\njobs:\n')[2]
-            for match in re.finditer(r'^  ([\w-]+):\n(.*?)(?=^  [\w-]+:\n|\Z)', source, re.M | re.S):
-                job_name, job = match.groups()
-                header, _, steps = job.partition('\n    steps:\n')
-                for step in re.split(r'^    - ', steps, flags=re.M):
-                    if re.search(r'^      uses: codecov/codecov-action@', step, re.M):
-                        uploads.append((workflow.name, job_name, header, step))
-        self.assertTrue(uploads, 'Coverage must retain a required upload route')
-        for workflow, job_name, header, step in uploads:
-            with self.subTest(workflow=workflow, job=job_name):
-                inputs = dict(re.findall(r'^        ([\w-]+):\s*(.+)$', step, re.M))
-                permissions = re.search(r'^    permissions:\n((?:      [^\n]*\n)+)', header + '\n', re.M)
-                grants = dict(re.findall(r'^      ([\w-]+):\s*(.+)$', permissions[1], re.M)) if permissions else {}
-                job_options = dict(re.findall(r'^    ([\w-]+): *(.+)$', header, re.M))
-                step_options = dict(re.findall(r'^      ([\w-]+): *(.+)$', step, re.M))
-                missing = []
-                if inputs.get('use_oidc') != 'true':
-                    missing.append('upload must request OIDC authentication')
-                if grants.get('id-token') != 'write':
-                    missing.append('upload job must be able to mint an ID token')
-                if permissions and grants.get('contents') != 'read':
-                    missing.append('job permission override must preserve checkout access')
-                self.assertEqual(missing, [], 'A same-repository upload cannot rely on an absent secret')
-                self.assertNotIn('token', inputs, 'OIDC uploads must not depend on a repository upload secret')
-                self.assertEqual(inputs.get('fail_ci_if_error'), 'true')
-                for options in (job_options, step_options):
-                    self.assertNotIn('if', options, 'The required uploader must not be conditional on secret availability')
-                    self.assertEqual(options.get('continue-on-error', 'false'), 'false', 'Upload failures must fail CI')
+class CoverageArtifactContractTests(unittest.TestCase):
+    def test_each_workflow_requires_its_coverage_artifact(self):
+        for workflow, (_, _, indent) in STEPS.items():
+            with self.subTest(workflow=workflow):
+                source = (ROOT / '.github/workflows' / workflow).read_text()
+                prefix = ' ' * indent
+                match = re.search(
+                    '^' + prefix + r'- name: Upload coverage artifact\n.*?(?=^' + prefix + r'- |\Z)',
+                    source, re.M | re.S | re.I,
+                )
+                self.assertIsNotNone(match, 'Every coverage export must have an artifact upload')
+                step = match[0]
+                self.assertIn('uses: actions/upload-artifact@', step)
+                options = dict(re.findall('^' + prefix + r'  ([\w-]+): *(.+)$', step, re.M))
+                inputs = dict(re.findall('^' + prefix + r'    ([\w-]+): *(.+)$', step, re.M))
+                self.assertEqual(inputs.get('path'), 'coverage.lcov')
+                self.assertEqual(inputs.get('if-no-files-found'), 'error')
+                self.assertNotIn('if', options)
+                self.assertEqual(options.get('continue-on-error', 'false'), 'false')
 
 
 class ReleaseCoverageRoutingTests(unittest.TestCase):

@@ -21,7 +21,7 @@ These gates MUST pass for any PR to be merged:
 ### 🟡 Important (Warning)
 These gates SHOULD pass but can be overridden with justification:
 
-- **Coverage**: Minimum 70% code coverage (tracked via `llvm-cov`/Codecov in
+- **Coverage**: Minimum 70% code coverage (tracked via `llvm-cov` in
   `ci.yml`; not yet enforced — `ENFORCE_COVERAGE: false`)
 - **Performance**: No performance regressions >10%
 - **Documentation**: Public APIs must be documented
@@ -89,8 +89,10 @@ have enforced thresholds today.
 
 ### Test Coverage
 
-Coverage is generated with `llvm-cov`/`llvm-profdata` and uploaded to Codecov
-in the `test` job of [`ci.yml`](workflows/ci.yml). The threshold is
+Coverage is generated with `llvm-cov`/`llvm-profdata` and retained as the
+`coverage-ci-macos` GitHub Actions artifact in the `test` job of
+[`ci.yml`](workflows/ci.yml). Collection, export, and artifact availability are
+required; no external coverage service is used. The percentage threshold is
 controlled by the `MINIMUM_COVERAGE` (currently `70`) and `ENFORCE_COVERAGE`
 (currently `false`) environment variables in that workflow.
 
