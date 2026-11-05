@@ -196,10 +196,13 @@ public struct HealthCheckMiddleware: Middleware {
 
     private let configuration: Configuration
     private let healthMonitor: HealthMonitor
+    private let monitoringLifetime: HealthMonitoringLifetime
 
-    /// Creates the middleware and immediately starts its background health-check
-    /// loop, which periodically runs every check in `configuration.healthChecks`
-    /// until the middleware (and its underlying monitor) is deallocated.
+    /// Creates the middleware and schedules its configured background health checks.
+    /// Empty configurations do not create a periodic task
+    /// (`testEmptyConfigurationDoesNotCreateAScheduledTask`). Middleware copies share
+    /// monitoring until `stopMonitoring()` or the final copy's release
+    /// (`testMiddlewareCopiesRetainSharedResourcesUntilLastCopyIsReleased`).
     ///
     /// - Parameter configuration: The thresholds, custom health checks, and callbacks
     ///   to use.
@@ -210,18 +213,27 @@ public struct HealthCheckMiddleware: Middleware {
     init(
         configuration: Configuration,
         now: @escaping @Sendable () -> Date,
-        startPeriodicHealthChecks: Bool = true
+        startPeriodicHealthChecks: Bool = true,
+        sleep: @escaping @Sendable (TimeInterval) async throws -> Void = {
+            try await Task.sleep(nanoseconds: NumericDuration.nanoseconds($0, positive: true))
+        },
+        // The task factory allows the initial scheduled task to be held before its
+        // first check in testStopBeforeInitialTaskRunsJoinsItWithoutStartingACheck.
+        makeMonitoringTask: @Sendable (@escaping @Sendable () async -> Void) -> Task<Void, Never> = { operation in
+            Task { await operation() }
+        }
     ) {
         self.configuration = configuration
         let monitor = HealthMonitor(configuration: configuration, now: now)
         self.healthMonitor = monitor
 
-        // Start background health checks
-        if startPeriodicHealthChecks {
-            Task {
-                await monitor.startPeriodicHealthChecks()
-            }
-        }
+        self.monitoringLifetime = HealthMonitoringLifetime(
+            monitor: monitor,
+            healthChecks: startPeriodicHealthChecks ? configuration.healthChecks : [:],
+            interval: configuration.checkInterval,
+            sleep: sleep,
+            makeTask: makeMonitoringTask
+        )
     }
 
     /// Convenience initializer that builds a `Configuration` from just a set of
@@ -372,6 +384,29 @@ public struct HealthCheckMiddleware: Middleware {
 
     // MARK: - Public Methods
 
+    /// Permanently stops periodic health checks for every copy of this middleware.
+    ///
+    /// Cancels and waits for the scheduled task, its active health check, and any
+    /// state-change callback produced by that check. A check or callback that ignores
+    /// cancellation can delay return. Repeated and concurrent calls join the same
+    /// task (`testConcurrentStopCallsJoinCheckSettlementAndStopEveryMiddlewareCopy`).
+    /// A periodic check cancelled before its result is recorded does not update
+    /// health state or create a notification
+    /// (`testCancelledPeriodicCheckDoesNotRecordAResultOrStartANotification`).
+    ///
+    /// A call from this monitor's own check or periodic state-change callback cancels
+    /// future work and returns without waiting for itself. An external call still
+    /// waits for settlement (`testHealthCheckCanStopItselfWhileExternalStopStillJoinsSettlement`
+    /// and `testPeriodicStateChangeCallbackCanStopItselfWhileExternalStopJoinsSettlement`).
+    ///
+    /// Manual `checkHealth(for:)`, command scoring, and status reads remain usable.
+    /// Their state-change callbacks retain their independent asynchronous lifetime;
+    /// this method does not cancel or join those callbacks
+    /// (`testManualCheckNotificationsRemainIndependentOfPeriodicStop`).
+    public func stopMonitoring() async {
+        await monitoringLifetime.stop()
+    }
+
     /// Returns the current computed `HealthStatus` for every service that has
     /// recorded at least one request or health-check result so far.
     ///
@@ -394,6 +429,8 @@ public struct HealthCheckMiddleware: Middleware {
     /// Immediately runs the `HealthCheck` configured for `service`, independent of
     /// the periodic background schedule, and records its result the same way the
     /// background loop does (including a possible `stateChangeHandler` invocation).
+    /// Manual checks remain available after `stopMonitoring()`; their state-change
+    /// callbacks are independent of periodic monitoring shutdown.
     ///
     /// - Parameter service: The service name as used as a key in
     ///   `Configuration.healthChecks`.
@@ -568,38 +605,90 @@ public struct HealthCheckResult: Sendable {
 
 // MARK: - Health Monitor
 
+private final class HealthMonitoringLifetime: Sendable {
+    private struct Token: Equatable, Sendable {
+        let owner = UUID()
+        let generation = UUID()
+    }
+
+    private enum ExecutionContext {
+        @TaskLocal static var token: Token?
+    }
+
+    private let token: Token
+    private let task: Task<Void, Never>?
+
+    init(
+        monitor: HealthMonitor,
+        healthChecks: [String: any HealthCheck],
+        interval: TimeInterval,
+        sleep: @escaping @Sendable (TimeInterval) async throws -> Void,
+        makeTask: @Sendable (@escaping @Sendable () async -> Void) -> Task<Void, Never>
+    ) {
+        let token = Token()
+        self.token = token
+        guard !healthChecks.isEmpty else {
+            task = nil
+            return
+        }
+
+        // The task captures the token, not this lifetime owner. Final middleware
+        // release therefore cancels even an active check; coverage:
+        // testReleasingLastCopyCancelsInFlightCooperativeHealthCheck.
+        task = makeTask { [weak monitor] in
+            await ExecutionContext.$token.withValue(token) {
+                await withDiscardingTaskGroup { callbacks in
+                    defer { callbacks.cancelAll() }
+                    while !Task.isCancelled {
+                        for (serviceName, healthCheck) in healthChecks {
+                            guard !Task.isCancelled else { return }
+                            if let monitor {
+                                let notification = await monitor.performPeriodicHealthCheck(
+                                    serviceName: serviceName, healthCheck: healthCheck
+                                )
+                                if let notification {
+                                    callbacks.addTask {
+                                        await withTaskCancellationHandler {
+                                            await notification.value
+                                        } onCancel: {
+                                            notification.cancel()
+                                        }
+                                    }
+                                }
+                            } else {
+                                return
+                            }
+                        }
+
+                        do {
+                            try Task.checkCancellation()
+                            try await sleep(interval)
+                        } catch {
+                            return
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    deinit { task?.cancel() }
+
+    func stop() async {
+        task?.cancel()
+        guard ExecutionContext.token != token else { return }
+        await task?.value
+    }
+}
+
 private actor HealthMonitor {
     private let configuration: HealthCheckMiddleware.Configuration
     private let now: @Sendable () -> Date
     private var serviceStats: [String: ServiceHealthStats] = [:]
-    private var healthCheckTask: Task<Void, Never>?
 
     init(configuration: HealthCheckMiddleware.Configuration, now: @escaping @Sendable () -> Date) {
         self.configuration = configuration
         self.now = now
-    }
-
-    deinit {
-        healthCheckTask?.cancel()
-    }
-
-    func startPeriodicHealthChecks() {
-        healthCheckTask?.cancel()
-
-        healthCheckTask = Task {
-            while !Task.isCancelled {
-                // Perform health checks for all configured services
-                for (serviceName, healthCheck) in configuration.healthChecks {
-                    await performAndRecordHealthCheck(
-                        serviceName: serviceName,
-                        healthCheck: healthCheck
-                    )
-                }
-
-                // Wait for next check interval
-                try? await Task.sleep(nanoseconds: NumericDuration.nanoseconds(configuration.checkInterval, positive: true))
-            }
-        }
     }
 
     func getHealthState(for service: String) -> HealthCheckMiddleware.HealthState {
@@ -663,17 +752,29 @@ private actor HealthMonitor {
             )
         }
 
-        return await performAndRecordHealthCheck(
+        let completed = await performAndRecordHealthCheck(
             serviceName: service,
             healthCheck: healthCheck
         )
+        return completed.result
     }
 
-    @discardableResult
-    private func performAndRecordHealthCheck(
+    func performPeriodicHealthCheck(
         serviceName: String,
         healthCheck: any HealthCheck
-    ) async -> HealthCheckResult {
+    ) async -> Task<Void, Never>? {
+        guard !Task.isCancelled else { return nil }
+        let completed = await performAndRecordHealthCheck(
+            serviceName: serviceName, healthCheck: healthCheck, discardCancelledResult: true
+        )
+        return completed.notification
+    }
+
+    private func performAndRecordHealthCheck(
+        serviceName: String,
+        healthCheck: any HealthCheck,
+        discardCancelledResult: Bool = false
+    ) async -> (result: HealthCheckResult, notification: Task<Void, Never>?) {
         let result: HealthCheckResult
 
         // Perform health check with timeout if specified
@@ -704,15 +805,17 @@ private actor HealthMonitor {
             result = await healthCheck.check()
         }
 
+        if discardCancelledResult && Task.isCancelled { return (result, nil) }
+
         // Update stats based on health check result
         let evaluationTime = now()
         ensureServiceStats(for: serviceName)
         serviceStats[serviceName]?.lastHealthCheck = result
 
         // Update state if changed
-        updateHealthState(for: serviceName, at: evaluationTime)
+        let notification = updateHealthState(for: serviceName, at: evaluationTime)
 
-        return result
+        return (result, notification)
     }
 
     private func ensureServiceStats(for service: String) {
@@ -724,8 +827,9 @@ private actor HealthMonitor {
         }
     }
 
-    private func updateHealthState(for service: String, at evaluationTime: Date) {
-        guard let stats = serviceStats[service] else { return }
+    @discardableResult
+    private func updateHealthState(for service: String, at evaluationTime: Date) -> Task<Void, Never>? {
+        guard let stats = serviceStats[service] else { return nil }
 
         let oldState = stats.currentState
         let newState = stats.calculateHealthState(at: evaluationTime)
@@ -735,11 +839,12 @@ private actor HealthMonitor {
 
             // Notify state change handler
             if let handler = configuration.stateChangeHandler {
-                Task {
+                return Task {
                     await handler(service, oldState, newState)
                 }
             }
         }
+        return nil
     }
 }
 
