@@ -8,6 +8,8 @@ share one function so registration can resolve the documented middleware types.
 Each fence retains its own manifest entry; import lines move to the common header.
 README cache fence 19 receives an otherwise empty DynamicPipeline for its
 pre-existing `pipeline` placeholder.
+The basic-usage retry definitions stay at file scope so the public consumer can
+execute the documented retry policy through a real middleware chain.
 Nothing in the extracted examples is executed by importing the compiled file.
 """
 import hashlib
@@ -25,7 +27,8 @@ FILES = ['docs/migrations/first-stabilization-batch.md', 'README.md',
          'docs/migrations/telemetry-hardening.md',
          'docs/migrations/error-cancellation-and-validation.md',
          'docs/migrations/monitoring-and-connection-lifecycle.md',
-         'docs/migrations/resilience-policy-contracts.md']
+         'docs/migrations/resilience-policy-contracts.md',
+         'docs/tutorials/basic-usage.md']
 SECURITY_COMPOSITION_DEFINITIONS = [
     r'\bstruct SecurityMetricsMiddleware\s*:',
     r'\bstruct MaskingAuditLogger\s*:',
@@ -71,6 +74,10 @@ for file in FILES:
                 parts.append('@MainActor func compiled_security_composition() async throws {\n'
                              + grouped + '\n}\n\n')
             harness = 'imports hoisted; exact remaining body inside shared security composition @MainActor async throws function'
+        elif file == 'docs/tutorials/basic-usage.md' and re.search(
+                r'\bfunc makeFetchDataRetryMiddleware\s*\(', snippet):
+            generated = re.sub(r'^import [^\n]+\n', '', snippet, flags=re.M)
+            harness = 'imports hoisted; exact remaining definitions at file scope for executable retry checks'
         elif file != FILES[0]:
             generated = re.sub(r'^import [^\n]+\n', '', snippet, flags=re.M)
             support = ''

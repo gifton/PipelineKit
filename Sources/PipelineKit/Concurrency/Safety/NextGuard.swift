@@ -123,7 +123,7 @@ public final class NextGuard<T: Command>: Sendable {
     /// Called by `MiddlewareChainBuilder` before rethrowing. A throw is always
     /// observed by the caller, so it can never be the silently-dropped-chain
     /// bug the warning exists to catch. No-op in release builds.
-    func markErrorExit() {
+    package func markErrorExit() {
         #if DEBUG
         errorExit.store(true, ordering: .relaxed)
         #endif

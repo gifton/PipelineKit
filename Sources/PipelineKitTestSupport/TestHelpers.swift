@@ -177,7 +177,7 @@ public struct AsyncTestCommand: Command {
     }
     
     public func execute() async throws -> Int {
-        try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+        try await Task.sleep(nanoseconds: testDelayNanoseconds(delay))
         return value
     }
 }
@@ -470,7 +470,7 @@ public final class AsyncTestCommandHandler: CommandHandler {
     public init() {}
 
     public func handle(_ command: AsyncTestCommand, context: CommandContext) async throws -> Int {
-        try await Task.sleep(nanoseconds: UInt64(command.delay * 1_000_000_000))
+        try await Task.sleep(nanoseconds: testDelayNanoseconds(command.delay))
         return command.value
     }
 }

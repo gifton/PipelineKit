@@ -16,12 +16,13 @@ public actor MockCommandProcessor {
     }
     
     public func process<T: Command>(_ command: T) async throws -> T {
+        let delayNanoseconds = try testDelayNanoseconds(processingDelay)
         // Record processing
         processedCommands.append(String(describing: type(of: command)))
         
         // Simulate processing delay
-        if processingDelay > 0 {
-            try await Task.sleep(nanoseconds: UInt64(processingDelay * 1_000_000_000))
+        if delayNanoseconds > 0 {
+            try await Task.sleep(nanoseconds: delayNanoseconds)
         }
         
         // Simulate failure if configured

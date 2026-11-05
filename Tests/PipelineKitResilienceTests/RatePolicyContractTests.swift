@@ -68,8 +68,8 @@ final class RatePolicyContractTests: XCTestCase {
             _ = try await limiter.allowRequest(identifier: "A")
             _ = try await limiter.allowRequest(identifier: "B")
             try await limiter.reset(identifier: "A")
-            let statusA = await limiter.getStatus(identifier: "A")
-            let statusB = await limiter.getStatus(identifier: "B")
+            let statusA = try await limiter.getStatus(identifier: "A")
+            let statusB = try await limiter.getStatus(identifier: "B")
             XCTAssertEqual(statusA.remaining, 1, "\(scope)")
             XCTAssertEqual(statusB.remaining, scope == .global ? 1 : 0, "\(scope)")
             let restored = try await limiter.allowRequest(identifier: "A")
@@ -86,8 +86,8 @@ final class RatePolicyContractTests: XCTestCase {
             _ = try await first.allowRequest(identifier: "A")
             _ = try await first.allowRequest(identifier: "B")
             try await second.reset(identifier: "A")
-            let statusA = await first.getStatus(identifier: "A")
-            let statusB = await first.getStatus(identifier: "B")
+            let statusA = try await first.getStatus(identifier: "A")
+            let statusB = try await first.getStatus(identifier: "B")
             XCTAssertEqual(statusA.remaining, 1, "\(scope)")
             XCTAssertEqual(statusB.remaining, scope == .global ? 1 : 0, "\(scope)")
             let restored = try await first.allowRequest(identifier: "A")
@@ -129,11 +129,11 @@ final class RatePolicyContractTests: XCTestCase {
             for priority in Priority.allCases {
                 try await limiter.reset(identifier: "A", priority: priority)
                 for checkedPriority in Priority.allCases {
-                    let status = await limiter.getStatus(identifier: "A", priority: checkedPriority)
+                    let status = try await limiter.getStatus(identifier: "A", priority: checkedPriority)
                     XCTAssertEqual(status.remaining, checkedPriority == priority ? 1 : 0, "\(scope), \(priority), \(checkedPriority)")
                     XCTAssertEqual(status.limit, 1)
                 }
-                let statusB = await limiter.getStatus(identifier: "B", priority: priority)
+                let statusB = try await limiter.getStatus(identifier: "B", priority: priority)
                 XCTAssertEqual(statusB.remaining, scope == .global ? 1 : 0)
                 let restored = try await limiter.allowRequest(identifier: "A", priority: priority)
                 let preserved = try await limiter.allowRequest(identifier: "B", priority: priority)
@@ -141,7 +141,7 @@ final class RatePolicyContractTests: XCTestCase {
             }
             try await limiter.reset(priority: .high)
             for priority in Priority.allCases {
-                let status = await limiter.getStatus(identifier: "A", priority: priority)
+                let status = try await limiter.getStatus(identifier: "A", priority: priority)
                 let restored = try await limiter.allowRequest(identifier: "A", priority: priority)
                 XCTAssertEqual(status.remaining, 1)
                 XCTAssertTrue(restored, "Nil identifier resets every priority, \(scope), \(priority)")
@@ -153,7 +153,7 @@ final class RatePolicyContractTests: XCTestCase {
         for scope in Self.scopes {
             let limiter = makePriorityLimiter(scope: scope, limits: [.medium: 1])
             let unknown = try await limiter.allowRequest(identifier: "A", priority: .high)
-            let status = await limiter.getStatus(identifier: "A", priority: .high)
+            let status = try await limiter.getStatus(identifier: "A", priority: .high)
             try await limiter.reset(identifier: "A", priority: .high)
             let implicitMedium = try await limiter.allowRequest(identifier: "A")
             let explicitMedium = try await limiter.allowRequest(identifier: "A", priority: .medium)
@@ -182,7 +182,7 @@ final class RatePolicyContractTests: XCTestCase {
                 let second = try await limiter.allowRequest(identifier: "A", cost: 0.5, priority: .low)
                 let third = try await limiter.allowRequest(identifier: "A", cost: 0.5, priority: .critical)
                 XCTAssertEqual([first, second, third], honorsCost ? [true, true, false] : [true, false, false])
-                let status = await limiter.getStatus(identifier: "A", priority: .high)
+                let status = try await limiter.getStatus(identifier: "A", priority: .high)
                 XCTAssertEqual(status.remaining, 0)
                 try await limiter.reset(identifier: "A", priority: .critical)
                 let restored = try await limiter.allowRequest(identifier: "A", priority: .low)
@@ -210,7 +210,7 @@ final class RatePolicyContractTests: XCTestCase {
             try await administrator.reset()
 
             for identifier in identifiers {
-                let status = await remote.getStatus(identifier: identifier)
+                let status = try await remote.getStatus(identifier: identifier)
                 let restored = try await remote.allowRequest(identifier: identifier)
                 XCTAssertEqual(status.remaining, 1, "\(scope), \(identifier)")
                 XCTAssertTrue(restored)

@@ -6,37 +6,9 @@ name: CI
 
 on:
   push:
-    branches: [ main, develop, test-ci ]
-    paths-ignore:
-      - '**.md'
-      - 'docs/**'
-      - '.gitignore'
-      - 'LICENSE'
-      - '.github/workflows/.archived/**'
-      - '.github/ISSUE_TEMPLATE/**'
-      - '.github/PULL_REQUEST_TEMPLATE/**'
-      - 'Examples/**/*.md'
-      - 'Scripts/*.md'
-      - '.swiftlint.yml'
-      - '.swift-version'
-      - 'codecov.yml'
-      - '.editorconfig'
+    branches: [ main, develop, test-ci, 'release/**' ]
   pull_request:
-    branches: [ main, develop ]
-    paths-ignore:
-      - '**.md'
-      - 'docs/**'
-      - '.gitignore'
-      - 'LICENSE'
-      - '.github/workflows/.archived/**'
-      - '.github/ISSUE_TEMPLATE/**'
-      - '.github/PULL_REQUEST_TEMPLATE/**'
-      - 'Examples/**/*.md'
-      - 'Scripts/*.md'
-      - '.swiftlint.yml'
-      - '.swift-version'
-      - 'codecov.yml'
-      - '.editorconfig'
+    branches: [ main, develop, 'release/**' ]
   workflow_dispatch:
 
 # Environment variables
@@ -63,11 +35,10 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  # Quick validation for PRs
+  # Quick validation for every selected event, including release pushes
   quick-check:
     name: Quick Validation
     runs-on: ubuntu-latest  # Much faster queue times
-    if: github.event_name == 'pull_request'
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7
@@ -77,11 +48,14 @@ jobs:
       - name: Validate Swift CI Gates
         run: |
           python3 Scripts/ci/tests/test_validation_gates.py PerformanceWorkflowTests ReleaseWorkflowTests TelemetryWorkflowTests
-          python3 Scripts/ci/tests/test_numeric_probe_resolution.py
+          python3 -m unittest Scripts.ci.tests.test_numeric_probe_resolution Scripts.ci.tests.test_numeric_boundary_oracle
           python3 Scripts/ci/tests/test_compression_watchdog.py
           python3 Scripts/ci/tests/test_stress_workflow.py
+          python3 Scripts/ci/tests/test_coverage_workflow.py
+          python3 Scripts/ci/tests/test_example_extraction.py
       
       - name: Check PR Size
+        if: github.event_name == 'pull_request'
         run: |
           # Simple PR size check without complex processing
           git diff --stat origin/${{ github.base_ref }}...HEAD
@@ -216,6 +190,8 @@ jobs:
     runs-on: macos-26
     needs: [build, build-linux]
     timeout-minutes: 45  # Increased for individual target coverage collection
+    permissions:
+      contents: read
 
     steps:
     - uses: actions/checkout@v7
@@ -242,170 +218,26 @@ jobs:
 
     - name: Run Tests
       run: |
-        echo "Starting test execution at $(date)"
-        echo "Running tests with individual target coverage collection to prevent timeout..."
+        python3 Scripts/ci/coverage.py collect \
+          --directory "${RUNNER_TEMP}/coverage-ci-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
 
-        # First, build the tests to separate build time from test time
-        echo "Building tests..."
-        swift build --build-tests
-
-        # Create directory for profdata files
-        mkdir -p .build/debug/codecov
-
-        # Run each test target individually with coverage
-        # This prevents timeout issues and allows better isolation
-        set +e  # Don't exit on test failure
-
-        TEST_TARGETS=(
-          "PipelineKitTests"
-          "PipelineKitCoreTests"
-          "PipelineKitResilienceTests"
-          "PipelineKitSecurityTests"
-          "PipelineKitCacheTests"
-          "PipelineKitPoolingTests"
-          "PipelineKitObservabilityTests"
-          "PipelineKitTestSupportTests"
-          # Performance tests skipped - run locally or in dedicated perf suite
-          # "PipelineKitPerformanceTests"
-        )
-
-        FAILED_TARGETS=""
-        PASSED_TARGETS=""
-        OVERALL_EXIT_CODE=0
-
-        for target in "${TEST_TARGETS[@]}"; do
-          echo ""
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "Running $target with coverage..."
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "Start time: $(date)"
-
-          # Run tests (job-level timeout handles hung tests)
-          # --parallel re-enabled after the semaphore lost-wakeup fixes
-          # (#73/#74/#76) — see CI_NOTES.md "Parallel Test Execution".
-          TARGET_EXIT_CODE=0
-          swift test --filter "$target" --enable-code-coverage --parallel || TARGET_EXIT_CODE=$?
-          echo "End time: $(date) (exit code: $TARGET_EXIT_CODE)"
-
-          if [ $TARGET_EXIT_CODE -eq 0 ]; then
-            echo "✅ $target passed"
-            PASSED_TARGETS="$PASSED_TARGETS $target"
-
-            # Preserve the profdata file with a unique name
-            if [ -f .build/debug/codecov/default.profdata ]; then
-              cp .build/debug/codecov/default.profdata .build/debug/codecov/${target}.profdata
-              echo "   Saved coverage data to ${target}.profdata"
-            else
-              echo "::warning::No profdata generated for $target"
-            fi
-          else
-            echo "::warning::❌ $target failed with exit code $TARGET_EXIT_CODE"
-            FAILED_TARGETS="$FAILED_TARGETS $target"
-            OVERALL_EXIT_CODE=1
-          fi
-        done
-
-        set -e
-
-        # Summary
-        echo ""
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-        echo "Test Execution Summary"
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-
-        if [ -n "$PASSED_TARGETS" ]; then
-          echo "✅ Passed targets:$PASSED_TARGETS"
-        fi
-
-        if [ -n "$FAILED_TARGETS" ]; then
-          echo "::error::❌ Failed targets:$FAILED_TARGETS"
-        fi
-
-        # List generated profdata files
-        echo ""
-        echo "Generated profdata files:"
-        ls -lh .build/debug/codecov/*.profdata 2>/dev/null || echo "No profdata files found"
-
-        if [ $OVERALL_EXIT_CODE -eq 0 ]; then
-          echo "::notice::✅ All test targets passed successfully"
-        else
-          echo "::error::❌ Some test targets failed"
-          echo "::warning::Check the test output above for specific failures"
-        fi
-
-        # Store exit code for later
-        echo "TEST_EXIT_CODE=$OVERALL_EXIT_CODE" >> $GITHUB_ENV
-    
     - name: Generate Coverage Report
       id: coverage_report
       run: |
-        # Find the correct llvm-cov and llvm-profdata using xcrun on macOS
-        LLVM_COV="$(xcrun --find llvm-cov)"
-        LLVM_PROFDATA="$(xcrun --find llvm-profdata)"
+        python3 Scripts/ci/coverage.py export \
+          --directory "${RUNNER_TEMP}/coverage-ci-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" \
+          --output coverage.lcov
 
-        # Check if llvm tools were found
-        if [ ! -x "$LLVM_COV" ] || [ ! -x "$LLVM_PROFDATA" ]; then
-          echo "::warning::llvm-cov or llvm-profdata not found, skipping coverage report"
-          echo "COVERAGE_SKIPPED=true" >> $GITHUB_ENV
-          exit 0
-        fi
-
-        echo "Using llvm-cov at: $LLVM_COV"
-        echo "Using llvm-profdata at: $LLVM_PROFDATA"
-
-        # Check if we have any profdata files to merge
-        PROFDATA_COUNT=$(ls -1 .build/debug/codecov/*.profdata 2>/dev/null | wc -l)
-
-        if [ "$PROFDATA_COUNT" -eq 0 ]; then
-          echo "::warning::No profdata files found, skipping coverage report"
-          echo "COVERAGE_SKIPPED=true" >> $GITHUB_ENV
-          exit 0
-        fi
-
-        echo "Found $PROFDATA_COUNT profdata files to merge"
-
-        # Merge all profdata files from individual test targets
-        echo "Merging coverage data from all test targets..."
-        $LLVM_PROFDATA merge -sparse \
-          .build/debug/codecov/*.profdata \
-          -o .build/debug/codecov/merged.profdata
-
-        echo "✅ Successfully merged coverage data"
-        ls -lh .build/debug/codecov/merged.profdata
-
-        # Generate coverage report using merged profdata
-        echo "Generating coverage report..."
-        $LLVM_COV export \
-          .build/debug/PipelineKitPackageTests.xctest/Contents/MacOS/PipelineKitPackageTests \
-          -instr-profile=.build/debug/codecov/merged.profdata \
-          -format=lcov > coverage.lcov
-
-        echo "✅ Generated coverage.lcov"
-
-        # Generate human-readable coverage summary
-        echo ""
-        echo "Coverage Summary:"
-        $LLVM_COV report \
-          .build/debug/PipelineKitPackageTests.xctest/Contents/MacOS/PipelineKitPackageTests \
-          -instr-profile=.build/debug/codecov/merged.profdata
-    
-    - name: Upload Coverage to Codecov
-      uses: codecov/codecov-action@v7
+    - name: Upload Coverage Artifact
+      uses: actions/upload-artifact@v7
       with:
-        token: ${{ secrets.CODECOV_TOKEN }}
-        file: ./coverage.lcov
-        fail_ci_if_error: false
-        verbose: true
-    
+        name: coverage-ci-macos
+        path: coverage.lcov
+        if-no-files-found: error
+
     - name: Check Coverage Threshold
       id: coverage_check
       run: |
-        # Skip if coverage was already skipped
-        if [ "$COVERAGE_SKIPPED" = "true" ]; then
-          echo "::notice::Coverage report generation was skipped"
-          exit 0
-        fi
-        
         # Extract coverage percentage from lcov report
         if [ -f coverage.lcov ]; then
           TOTAL_LINES=$(grep -o 'LF:[0-9]*' coverage.lcov | awk -F: '{sum+=$2} END {print sum}')
@@ -433,15 +265,6 @@ jobs:
           echo "⚠️ Coverage report not found"
         fi
     
-    - name: Check Test Results
-      if: always()
-      run: |
-        # Fail the job if tests failed earlier
-        if [ "${TEST_EXIT_CODE:-0}" -ne 0 ]; then
-          echo "::error::Tests failed earlier. Please fix the failing tests."
-          exit ${TEST_EXIT_CODE}
-        fi
-
   # Linux secondary build job (build-only)
   test-linux:
     name: Build (Linux - extra)

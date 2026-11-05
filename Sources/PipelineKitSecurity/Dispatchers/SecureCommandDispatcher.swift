@@ -85,7 +85,7 @@ public actor SecureCommandDispatcher {
             )
             
             guard allowed else {
-                let status = await limiter.getStatus(identifier: "\(identifier):\(commandType)")
+                let status = try await limiter.getStatus(identifier: "\(identifier):\(commandType)")
                 #if canImport(os)
                 logger.warning("Rate limit exceeded for: \(identifier, privacy: .private) - \(commandType, privacy: .public)")
 #endif
@@ -164,11 +164,12 @@ public actor SecureCommandDispatcher {
     ///   - userID: The user identifier
     ///   - commandType: The command type
     /// - Returns: The current rate limit status, if a rate limiter is configured
+    /// - Throws: The configured limiter's store, validation, or cancellation error.
     public func getRateLimitStatus(
         userID: String,
         commandType: String
-    ) async -> RateLimitStatus? {
+    ) async throws -> RateLimitStatus? {
         guard let limiter = rateLimiter else { return nil }
-        return await limiter.getStatus(identifier: "\(userID):\(commandType)")
+        return try await limiter.getStatus(identifier: "\(userID):\(commandType)")
     }
 }

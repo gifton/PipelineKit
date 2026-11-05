@@ -25,9 +25,11 @@ public struct ProgressUpdate: Sendable, Equatable {
 /// finish the stream when execution completes or throws — including failures
 /// before the middleware chain starts (type mismatch, pre-start cancellation,
 /// back-pressure rejection), and for `DynamicPipeline` only after its final
-/// retry attempt. `ConcurrentPipeline` never binds an execution context, but
-/// it does finish an attached reporter when its execution exits (a delegated
-/// binder pipeline finishes first; the repeat is a no-op). Other `Pipeline`
+/// retry attempt. `ConcurrentPipeline` and `TestPipeline` do not bind execution
+/// contexts themselves, but finish their explicitly attached reporter on every
+/// exit (a delegated binder pipeline may finish first; the repeat is a no-op).
+/// `TestPipelineProgressContractTests` covers TestPipeline's exit paths and
+/// inherited-reporter ownership. Other `Pipeline`
 /// conformers, such as `AnyStandardPipeline`, do not bind or finish it.
 /// Reporting never blocks;
 /// `report` after `finish` is a no-op (`AsyncStream.Continuation` semantics).

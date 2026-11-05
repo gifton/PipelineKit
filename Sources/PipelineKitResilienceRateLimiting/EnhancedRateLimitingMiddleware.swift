@@ -67,7 +67,7 @@ public struct EnhancedRateLimitingMiddleware: Middleware {
         context.setMetadata("rateLimitPriority", value: priority.rawValue)
 
         guard try await limiter.allowRequest(identifier: identifier, cost: cost, priority: priority) else {
-            let status = await limiter.getStatus(identifier: identifier, priority: priority)
+            let status = try await limiter.getStatus(identifier: identifier, priority: priority)
 
             // Store rate limit info in context
             context.setMetadata("rateLimitExceeded", value: true)

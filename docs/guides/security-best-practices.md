@@ -414,24 +414,24 @@ struct GetUserCommand: Command { typealias Result = Void }
 struct SubmitPaymentCommand: Command { typealias Result = Void }
 struct DeleteUserCommand: Command { typealias Result = Void }
 
-// High-frequency operations (search, read)
-let readLimiter = RateLimiter(
-    strategy: .tokenBucket(capacity: 1000, refillRate: 100)
-)
-
-// Medium-frequency operations (updates)
-let writeLimiter = RateLimiter(
-    strategy: .slidingWindow(windowSize: 60, maxRequests: 50)
-)
-
-// Low-frequency sensitive operations (payments, admin actions)
-let sensitiveLimiter = RateLimiter(
-    strategy: .tokenBucket(capacity: 5, refillRate: 1)
-)
-
 // Custom rate limiting middleware
 struct CommandSpecificRateLimitingMiddleware: Middleware {
     let priority: ExecutionPriority = .resilience
+
+    // High-frequency operations (search, read)
+    let readLimiter = RateLimiter(
+        strategy: .tokenBucket(capacity: 1000, refillRate: 100)
+    )
+
+    // Medium-frequency operations (updates)
+    let writeLimiter = RateLimiter(
+        strategy: .slidingWindow(windowSize: 60, maxRequests: 50)
+    )
+
+    // Low-frequency sensitive operations (payments, admin actions)
+    let sensitiveLimiter = RateLimiter(
+        strategy: .tokenBucket(capacity: 5, refillRate: 1)
+    )
 
     func execute<T: Command>(
         _ command: T,
@@ -439,14 +439,13 @@ struct CommandSpecificRateLimitingMiddleware: Middleware {
         next: @escaping MiddlewareNext<T>
     ) async throws -> T.Result {
         let limiter = selectLimiter(for: command)
-        // `context.userID` is the unauthenticated, caller-supplied identity — fine here since
-        // a rate-limit key isn't an authorization decision (worst case a spoofed value just gets
-        // its own bucket); this mirrors RateLimitingMiddleware's own default identifier
-        // extractor, `context.commandMetadata.userID ?? "anonymous"`. Never use it to authorize.
+        // Contract: upstream authentication must establish this user ID before
+        // applying per-user limits. Caller-chosen IDs can bypass those limits by
+        // selecting a new bucket. Use a server-derived key for anonymous traffic.
         let identifier = context.userID ?? "anonymous"
 
         guard try await limiter.allowRequest(identifier: identifier) else {
-            let status = await limiter.getStatus(identifier: identifier)
+            let status = try await limiter.getStatus(identifier: identifier)
             throw PipelineError.rateLimitExceeded(
                 limit: status.limit,
                 resetTime: status.resetAt,

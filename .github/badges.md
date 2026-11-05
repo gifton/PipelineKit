@@ -10,10 +10,10 @@ Add these badges to your README to show project status:
 ```
 
 ## Coverage
-```markdown
-![Coverage](https://codecov.io/gh/gifton/PipelineKit/branch/main/graph/badge.svg)
-![Coverage](https://img.shields.io/badge/coverage-80%25-green)
-```
+
+Download the `coverage-ci-macos` or `coverage-macos` artifact from the relevant
+[GitHub Actions run](https://github.com/gifton/PipelineKit/actions). Coverage is
+reported by CI; there is no configured external coverage badge.
 
 ## Code Quality
 ```markdown
@@ -44,7 +44,6 @@ Add these badges to your README to show project status:
 
 ```markdown
 ![Build](https://github.com/gifton/PipelineKit/workflows/CI/badge.svg)
-![Coverage](https://codecov.io/gh/gifton/PipelineKit/branch/main/graph/badge.svg)
 ![Swift Version](https://img.shields.io/badge/Swift-6.1-orange.svg)
 ![Platform](https://img.shields.io/badge/platform-iOS%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
@@ -55,7 +54,7 @@ Add these badges to your README to show project status:
 
 For dynamic badges that update automatically:
 
-1. **Coverage Badge**: Updated by CI on each push
+1. **Coverage Reports**: Available as artifacts in GitHub Actions runs
 2. **Build Status**: Shows current build state
 3. **Security Status**: Updates with security scans
 4. **Performance Metrics**: Updates with benchmark runs

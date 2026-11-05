@@ -52,25 +52,32 @@ public actor PoolRegistry {
     
     private var pools: [ObjectIdentifier: WeakPoolBox] = [:]
     private var cleanupTask: Task<Void, Never>?
+    private var isShutdown = false
+    private let sleep: @Sendable (UInt64) async throws -> Void
+    private let uptime: @Sendable () -> TimeInterval
     private static let poolCounters = ManagedAtomic<Int>(0)
     private var throttledRequestsCount = 0
     
     // MARK: - Initialization
     
-    private init() {
-        let safeInterval = Self.cleanupInterval
-        
-        Task { [weak self] in
-            await self?.startCleanupTaskWithInterval(safeInterval)
-        }
+    init(
+        sleep: @escaping @Sendable (UInt64) async throws -> Void = { try await Task.sleep(nanoseconds: $0) },
+        uptime: @escaping @Sendable () -> TimeInterval = { ProcessInfo.processInfo.systemUptime }
+    ) {
+        self.sleep = sleep
+        self.uptime = uptime
     }
     
     // MARK: - Registration
     
     /// Register a pool for metrics collection
     public func register<T: Sendable>(_ pool: ObjectPool<T>) {
-        let box = WeakPoolBox(pool: pool)
+        guard !isShutdown else { return }
+        let box = WeakPoolBox(pool: pool, registry: self, uptime: uptime)
         pools[box.id] = box
+        if cleanupTask == nil {
+            startCleanupTaskWithInterval(Self.cleanupInterval)
+        }
         
         // Opportunistic cleanup
         cleanupDeadEntries()
@@ -307,9 +314,14 @@ public actor PoolRegistry {
     }
     
     private func startCleanupTaskWithInterval(_ interval: TimeInterval) {
-        cleanupTask = Task { [weak self] in
+        cleanupTask = Task { [weak self, sleep] in
             while !Task.isCancelled {
-                try? await Task.sleep(nanoseconds: NumericDuration.nanoseconds(interval, positive: true))
+                do {
+                    try await sleep(NumericDuration.nanoseconds(interval, positive: true))
+                } catch {
+                    return
+                }
+                guard !Task.isCancelled else { return }
                 await self?.cleanupDeadEntries()
             }
         }
@@ -321,28 +333,33 @@ public actor PoolRegistry {
 
     // MARK: - Shutdown
 
-    /// Static shutdown method for test cleanup.
-    /// This is called from test teardown observers to cancel background tasks so
-    /// the process can exit cleanly after tests complete.
-    /// - Important: This method blocks briefly to ensure cleanup completes.
+    /// Requests terminal shutdown of the shared registry.
+    /// - Important: This compatibility method blocks for at most 100 ms and may
+    ///   return before maintenance has finished. It does not promise settlement.
     public static func shutdown() {
-        // Create a semaphore to wait for cleanup
         let semaphore = DispatchSemaphore(value: 0)
 
         // Use a detached task to avoid isolation issues
         Task.detached {
-            await PoolRegistry.shared._shutdown()
+            await PoolRegistry.shared.shutdownAndWait()
             semaphore.signal()
         }
 
-        // Wait briefly for cleanup to complete (max 100ms)
         _ = semaphore.wait(timeout: .now() + .milliseconds(100))
     }
 
-    private func _shutdown() {
-        cleanupTask?.cancel()
-        cleanupTask = nil
+    /// Cancels and joins this registry's maintenance task.
+    /// Exercised by PoolRegistryLifecycleTests, including concurrent callers and
+    /// registration after shutdown. Scoped test owners await this in tearDown.
+    func shutdownAndWait() async {
+        isShutdown = true
         pools.removeAll()
+        // Retain the handle until the join finishes so every concurrent caller
+        // waits for the same task (testConcurrentShutdownCallersWaitForMaintenanceExit).
+        let task = cleanupTask
+        task?.cancel()
+        await task?.value
+        cleanupTask = nil
     }
 
     // MARK: - Name Generation
@@ -367,9 +384,13 @@ private final class WeakPoolBox: @unchecked Sendable {
     private let getStatsFunc: @Sendable () async -> ObjectPoolStatistics?
     private let shrinkFunc: @Sendable (Int) async -> Void
     private let shrinkPercentageFunc: @Sendable (Double) async -> Void
+    private let uptime: @Sendable () -> TimeInterval
+    private weak var registry: PoolRegistry?
     
-    init<T: Sendable>(pool: ObjectPool<T>) {
+    init<T: Sendable>(pool: ObjectPool<T>, registry: PoolRegistry, uptime: @escaping @Sendable () -> TimeInterval) {
         self.pool = pool
+        self.registry = registry
+        self.uptime = uptime
         self.name = pool.name
         self.id = ObjectIdentifier(pool)
         self.createdAt = Date()
@@ -410,7 +431,7 @@ private final class WeakPoolBox: @unchecked Sendable {
     func shrinkPool(to targetSize: Int, force: Bool = false) async {
         guard force || shouldAllowShrink() else {
             // Increment throttled count in registry
-            await PoolRegistry.shared.incrementThrottledCount()
+            await registry?.incrementThrottledCount()
             return
         }
         updateLastShrinkTime()
@@ -420,7 +441,7 @@ private final class WeakPoolBox: @unchecked Sendable {
     func shrinkPool(toPercentage percentage: Double, force: Bool = false) async {
         guard force || shouldAllowShrink() else {
             // Increment throttled count in registry
-            await PoolRegistry.shared.incrementThrottledCount()
+            await registry?.incrementThrottledCount()
             return
         }
         updateLastShrinkTime()
@@ -429,8 +450,7 @@ private final class WeakPoolBox: @unchecked Sendable {
     
     private func shouldAllowShrink() -> Bool {
         // Skip throttling during first 30 seconds after startup
-        let uptime = ProcessInfo.processInfo.systemUptime
-        if uptime < 30.0 {
+        if uptime() < 30.0 {
             return true
         }
         

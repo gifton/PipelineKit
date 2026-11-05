@@ -4,6 +4,8 @@ name: CI (Multiplatform)
 # Updated for macOS 26 / iOS 26 / Xcode 26.
 
 on:
+  push:
+    branches: [ 'release/**' ]
   workflow_dispatch:
   pull_request:
     types: [opened, synchronize, reopened]
@@ -50,59 +52,21 @@ jobs:
 
       - name: Test (Debug + Coverage)
         run: |
-          echo "Starting test execution at $(date)"
-          echo "Building tests..."
-          swift build --build-tests
+          python3 Scripts/ci/coverage.py collect \
+            --directory "${RUNNER_TEMP}/coverage-multiplatform-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
 
-          # Create directory for profdata files
-          mkdir -p .build/debug/codecov
+      - name: Export coverage
+        run: |
+          python3 Scripts/ci/coverage.py export \
+            --directory "${RUNNER_TEMP}/coverage-multiplatform-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" \
+            --output coverage.lcov
 
-          # Run each test target individually to prevent one hung test from blocking all tests
-          set +e  # Don't exit on test failure
-
-          TEST_TARGETS=(
-            "PipelineKitTests"
-            "PipelineKitCoreTests"
-            "PipelineKitResilienceTests"
-            "PipelineKitSecurityTests"
-            "PipelineKitCacheTests"
-            "PipelineKitPoolingTests"
-            "PipelineKitObservabilityTests"
-            "PipelineKitTestSupportTests"
-          )
-
-          OVERALL_EXIT_CODE=0
-
-          for target in "${TEST_TARGETS[@]}"; do
-            echo ""
-            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            echo "Running $target with coverage..."
-            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            echo "Start time: $(date)"
-
-            TARGET_EXIT_CODE=0
-            # --parallel re-enabled after the semaphore lost-wakeup fixes
-            # (#73/#74/#76) — see CI_NOTES.md "Parallel Test Execution".
-            swift test --filter "$target" --enable-code-coverage --parallel || TARGET_EXIT_CODE=$?
-
-            echo "End time: $(date) (exit code: $TARGET_EXIT_CODE)"
-
-            if [ $TARGET_EXIT_CODE -eq 0 ]; then
-              echo "✅ $target passed"
-              # Preserve profdata
-              if [ -f .build/debug/codecov/default.profdata ]; then
-                cp .build/debug/codecov/default.profdata .build/debug/codecov/${target}.profdata
-                echo "   Saved coverage data to ${target}.profdata"
-              fi
-            else
-              echo "::warning::❌ $target failed with exit code $TARGET_EXIT_CODE"
-              OVERALL_EXIT_CODE=1
-            fi
-          done
-
-          set -e
-          echo "Tests completed at $(date)"
-          exit $OVERALL_EXIT_CODE
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-macos
+          path: coverage.lcov
+          if-no-files-found: error
 
       - name: Numeric and compression validation (Debug)
         run: |
@@ -112,40 +76,6 @@ jobs:
             --logs "${validation_root}/numeric-debug"
           python3 Scripts/validation/check_compression_formats.py --configuration debug \
             --log "${validation_root}/compression-debug.log"
-
-      - name: Export coverage
-        run: |
-          set -euo pipefail
-
-          # Coverage belongs to Debug; cached Release test binaries are separate.
-          BIN=.build/debug/PipelineKitPackageTests.xctest/Contents/MacOS/PipelineKitPackageTests
-          PROF=.build/debug/codecov/default.profdata
-
-          if [[ -f "$BIN" && -f "$PROF" ]]; then
-            echo "Found test binary: $BIN"
-            echo "Found profdata: $PROF"
-
-            LLVM_COV=$(xcrun --find llvm-cov)
-
-            echo "Using llvm-cov: $LLVM_COV"
-            $LLVM_COV --version || true
-
-            $LLVM_COV export "$BIN" -instr-profile="$PROF" -format=lcov > coverage.lcov || {
-              echo "::warning::Failed to export coverage - format mismatch or corrupt profdata"
-              exit 0
-            }
-
-            echo "✅ Coverage exported successfully"
-          else
-            echo "::warning::Missing test binary or profdata file"
-          fi
-
-      - name: Upload coverage artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: coverage-macos
-          path: coverage.lcov
-          if-no-files-found: ignore
 
       - name: Build (Release)
         run: swift build --configuration release --build-tests -Xswiftc -enable-testing
@@ -183,6 +113,12 @@ jobs:
             python3 Scripts/validation/run_check.py \
               --id "consumer-policy-contract-${configuration}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" --timeout 60 -- \
               swift run --package-path Tests/Integration/Consumer --configuration "$configuration" --skip-build Consumer policy-contract
+            python3 Scripts/validation/run_check.py \
+              --id "consumer-qualification-${configuration}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" --timeout 60 -- \
+              swift run --package-path Tests/Integration/Consumer --configuration "$configuration" --skip-build Consumer qualification
+            python3 Scripts/validation/run_check.py \
+              --id "consumer-test-support-${configuration}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" --timeout 120 -- \
+              swift test --package-path Tests/Integration/Consumer --configuration "$configuration" --filter PublicTestPipelineTests
             "$telemetry_python" Scripts/validation/check_telemetry_formats.py \
               --configuration "$configuration" --log "${validation_root}/telemetry-${configuration}.log"
           done

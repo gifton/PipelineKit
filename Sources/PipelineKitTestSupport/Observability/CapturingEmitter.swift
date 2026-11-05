@@ -148,6 +148,7 @@ private actor EventStorage {
 /// to verify event delivery through an EventHub.
 public final class MockEventSubscriber: EventSubscriber {
     private let storage = EventStorage()
+    private let processingNanoseconds: UInt64?
 
     /// Optional delay to simulate processing time
     public let processingDelay: TimeInterval?
@@ -155,15 +156,23 @@ public final class MockEventSubscriber: EventSubscriber {
     /// Optional error to throw during processing
     public let shouldFail: Bool
 
+    /// - Precondition: A non-nil delay is finite, nonnegative, and representable
+    ///   in nanoseconds. TestSupportDelayNumericBoundaryTests' isolated numeric
+    ///   probe exercises rejection; nil disables the simulated delay.
     public init(processingDelay: TimeInterval? = nil, shouldFail: Bool = false) {
         self.processingDelay = processingDelay
         self.shouldFail = shouldFail
+        do {
+            self.processingNanoseconds = try processingDelay.map(testDelayNanoseconds)
+        } catch {
+            preconditionFailure("MockEventSubscriber processingDelay must be finite, nonnegative, and representable in nanoseconds")
+        }
     }
 
     public func process(_ event: PipelineEvent) async {
         // Simulate processing delay if configured
-        if let delay = processingDelay {
-            try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+        if let delay = processingNanoseconds {
+            try? await Task.sleep(nanoseconds: delay)
         }
 
         // Capture the event

@@ -2,7 +2,7 @@ import Foundation
 import XCTest
 @testable import PipelineKitPooling
 
-final class PoolingNumericBoundaryTests: XCTestCase {
+final class PoolingNumericBoundaryTests: PoolRegistryTestCase {
     func testRegistryPreservesFractionalIntervals() {
         let cleanup = PoolRegistry.cleanupInterval
         let shrink = PoolRegistry.minimumShrinkInterval
@@ -31,11 +31,11 @@ final class PoolingNumericBoundaryTests: XCTestCase {
                 factory: { 1 }, registerMetrics: false
             )
             await pool.preallocate(count: 2)
-            await PoolRegistry.shared.register(pool)
-            await PoolRegistry.shared.shrinkPool(name: pool.name, to: 1)
+            await ownedRegistry.register(pool)
+            await ownedRegistry.shrinkPool(name: pool.name, to: 1)
             let first = await pool.statistics
             XCTAssertEqual(first.currentlyAvailable, 1)
-            await PoolRegistry.shared.shrinkPool(name: pool.name, to: 0)
+            await ownedRegistry.shrinkPool(name: pool.name, to: 0)
             let second = await pool.statistics
             if value >= 86_400 {
                 XCTAssertGreaterThanOrEqual(ProcessInfo.processInfo.systemUptime, 30,
@@ -44,7 +44,7 @@ final class PoolingNumericBoundaryTests: XCTestCase {
             } else if value == 0 {
                 XCTAssertEqual(second.currentlyAvailable, 0, "Zero interval permits the second shrink")
             }
-            PoolRegistry.shared.unregister(id: ObjectIdentifier(pool))
+            ownedRegistry.unregister(id: ObjectIdentifier(pool))
         case "pool-collector": _ = PoolMetricsCollector(collectionInterval: value)
         case "pool-export":
             await PoolObservability.shared.startExporting(interval: value)

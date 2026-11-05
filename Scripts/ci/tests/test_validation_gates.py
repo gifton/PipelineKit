@@ -450,16 +450,20 @@ if stage == os.environ['TELEMETRY_FAILURE']:
     def test_runs_built_consumer_contract_and_oracle_in_both_configurations(self):
         result, calls = self.run_telemetry_gate()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        tail = calls[-10:]
-        for offset, configuration in [(0, 'debug'), (5, 'release')]:
+        tail = calls[-14:]
+        for offset, configuration in [(0, 'debug'), (7, 'release')]:
             self.assertEqual(tail[offset], ['swift', ['build', '--package-path', 'Tests/Integration/Consumer',
                                                      '--configuration', configuration]])
-            for index, mode in enumerate(('error-contract', 'lifecycle', 'policy-contract'), 1):
+            for index, mode in enumerate(('error-contract', 'lifecycle', 'policy-contract', 'qualification'), 1):
                 self.assertEqual(tail[offset + index], ['python', ['Scripts/validation/run_check.py',
                     '--id', f'consumer-{mode}-{configuration}-456-2', '--timeout', '60', '--',
                     'swift', 'run', '--package-path', 'Tests/Integration/Consumer', '--configuration',
                     configuration, '--skip-build', 'Consumer', mode]])
-            self.assertEqual(tail[offset + 4], ['python', ['Scripts/validation/check_telemetry_formats.py',
+            self.assertEqual(tail[offset + 5], ['python', ['Scripts/validation/run_check.py',
+                '--id', f'consumer-test-support-{configuration}-456-2', '--timeout', '120', '--',
+                'swift', 'test', '--package-path', 'Tests/Integration/Consumer', '--configuration',
+                configuration, '--filter', 'PublicTestPipelineTests']])
+            self.assertEqual(tail[offset + 6], ['python', ['Scripts/validation/check_telemetry_formats.py',
                 '--configuration', configuration, '--log',
                 str(self.dir / 'runner space' / '456-2' / f'telemetry-{configuration}.log')]])
 
@@ -476,13 +480,22 @@ if stage == os.environ['TELEMETRY_FAILURE']:
 
     def test_consumer_contract_failures_are_fatal_in_both_configurations(self):
         for configuration in ('debug', 'release'):
-            for mode in ('error-contract', 'lifecycle', 'policy-contract'):
+            for mode in ('error-contract', 'lifecycle', 'policy-contract', 'qualification'):
                 with self.subTest(configuration=configuration, mode=mode):
                     shutil.rmtree(self.dir / 'runner space', ignore_errors=True)
                     result, calls = self.run_telemetry_gate(
                         f'Scripts/validation/run_check.py:{configuration}:{mode}')
                     self.assertEqual(result.returncode, 73, result.stdout + result.stderr)
                     self.assertEqual(calls[-1][1][-2:], ['Consumer', mode])
+
+    def test_public_test_support_failure_is_fatal_in_both_configurations(self):
+        for configuration in ('debug', 'release'):
+            with self.subTest(configuration=configuration):
+                shutil.rmtree(self.dir / 'runner space', ignore_errors=True)
+                result, calls = self.run_telemetry_gate(
+                    f'Scripts/validation/run_check.py:{configuration}:PublicTestPipelineTests')
+                self.assertEqual(result.returncode, 73, result.stdout + result.stderr)
+                self.assertEqual(calls[-1][1][-2:], ['--filter', 'PublicTestPipelineTests'])
 
 
 class StatusTests(unittest.TestCase):

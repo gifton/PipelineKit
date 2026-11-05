@@ -28,12 +28,12 @@ final class RateLimitScopeContractTests: XCTestCase {
     func testGlobalStatusUsesSameEffectiveKey() async throws {
         for strategy in StrategyCase.allCases {
             let limiter = makeLimiter(strategy, scope: .global)
-            let initial = await limiter.getStatus(identifier: "B")
+            let initial = try await limiter.getStatus(identifier: "B")
             XCTAssertEqual(initial.remaining, 1, "\(strategy)")
             let admitted = try await limiter.allowRequest(identifier: "A")
             XCTAssertTrue(admitted, "\(strategy)")
-            let statusA = await limiter.getStatus(identifier: "A")
-            let statusB = await limiter.getStatus(identifier: "B")
+            let statusA = try await limiter.getStatus(identifier: "A")
+            let statusB = try await limiter.getStatus(identifier: "B")
             XCTAssertEqual(statusA.remaining, 0, "\(strategy)")
             XCTAssertEqual(statusB.remaining, 0, "\(strategy)")
             XCTAssertEqual(statusB.limit, 1, "\(strategy)")
@@ -46,8 +46,8 @@ final class RateLimitScopeContractTests: XCTestCase {
                 let limiter = makeLimiter(strategy, scope: scope.scope)
                 let admitted = try await limiter.allowRequest(identifier: "A")
                 XCTAssertTrue(admitted, "\(strategy), \(scope)")
-                let statusA = await limiter.getStatus(identifier: "A")
-                let statusB = await limiter.getStatus(identifier: "B")
+                let statusA = try await limiter.getStatus(identifier: "A")
+                let statusB = try await limiter.getStatus(identifier: "B")
                 XCTAssertEqual(statusA.remaining, 0, "\(strategy), \(scope)")
                 XCTAssertEqual(statusB.remaining, 1, "\(strategy), \(scope)")
             }
@@ -60,7 +60,7 @@ final class RateLimitScopeContractTests: XCTestCase {
             let first = try await limiter.allowRequest(identifier: "A")
             XCTAssertTrue(first, "\(strategy)")
             try await limiter.reset(identifier: "B")
-            let status = await limiter.getStatus(identifier: "A")
+            let status = try await limiter.getStatus(identifier: "A")
             XCTAssertEqual(status.remaining, 1, "\(strategy)")
             let next = try await limiter.allowRequest(identifier: "C")
             let repeated = try await limiter.allowRequest(identifier: "A")
@@ -106,7 +106,7 @@ final class RateLimitScopeContractTests: XCTestCase {
         let second = makeLimiter(.distributed, scope: .global, store: store)
         let firstAdmission = try await first.allowRequest(identifier: "A")
         let secondAdmission = try await second.allowRequest(identifier: "B")
-        let secondStatus = await second.getStatus(identifier: "unseen")
+        let secondStatus = try await second.getStatus(identifier: "unseen")
         let keys = await store.recordedKeys()
         XCTAssertTrue(firstAdmission)
         XCTAssertFalse(secondAdmission)
@@ -125,7 +125,7 @@ final class RateLimitScopeContractTests: XCTestCase {
             for supplied in ["", "A", Self.globalKey, "pipelinekit:rate-limit:v1:user:A", "A:medium"] {
                 let first = try await limiter.allowRequest(identifier: supplied)
                 let repeated = try await limiter.allowRequest(identifier: supplied)
-                let status = await limiter.getStatus(identifier: supplied)
+                let status = try await limiter.getStatus(identifier: supplied)
                 XCTAssertTrue(first, "\(scope), \(supplied)")
                 XCTAssertFalse(repeated, "\(scope), \(supplied)")
                 XCTAssertEqual(status.remaining, 0, "\(scope), \(supplied)")
@@ -176,8 +176,8 @@ final class RateLimitScopeContractTests: XCTestCase {
                     let first = try await limiter.allowRequest(identifier: "A")
                     XCTAssertTrue(first, "\(strategy), \(scope), \(offset)")
                     clock.set(1_000 + offset)
-                    let statusA = await limiter.getStatus(identifier: "A")
-                    let statusB = await limiter.getStatus(identifier: "B")
+                    let statusA = try await limiter.getStatus(identifier: "A")
+                    let statusB = try await limiter.getStatus(identifier: "B")
                     // SlidingWindow includes a request exactly at its cutoff; other strategies renew at 10.
                     let renewed = strategy == .slidingWindow ? offset > 10 : offset >= 10
                     // Token/adaptive status reads tokens without refilling; admission performs refill.
@@ -214,7 +214,7 @@ final class RateLimitScopeContractTests: XCTestCase {
             let touched = try await limiter.allowRequest(identifier: "A", cost: strategy == .adaptive ? 1 : 0)
             XCTAssertEqual(touched, strategy != .slidingWindow, "\(strategy)")
             clock.set(1_300)
-            let status = await limiter.getStatus(identifier: "B")
+            let status = try await limiter.getStatus(identifier: "B")
             let afterCleanup = try await limiter.allowRequest(identifier: "B")
             XCTAssertEqual(status.remaining, 0, "\(strategy)")
             XCTAssertFalse(afterCleanup, "\(strategy)")
@@ -289,7 +289,7 @@ final class RateLimitScopeContractTests: XCTestCase {
         }
         let noMedium = RateLimiter(strategy: .priorityBased(limits: [.high: .init(maxRequests: 100, windowSize: 10)]), scope: .global)
         let admitted = try await noMedium.allowRequest(identifier: "A")
-        let status = await noMedium.getStatus(identifier: "B")
+        let status = try await noMedium.getStatus(identifier: "B")
         XCTAssertFalse(admitted)
         XCTAssertEqual(status.remaining, 0)
         XCTAssertEqual(status.limit, 0)
