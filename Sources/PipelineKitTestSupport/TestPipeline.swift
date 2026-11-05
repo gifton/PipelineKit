@@ -86,6 +86,9 @@ public actor TestPipeline: Pipeline {
         _ command: T,
         context: CommandContext
     ) async throws -> T.Result {
+        let attached = context[ContextKeys.progressReporter]
+        defer { attached?.finish() }
+
         let startTime = ContinuousClock.now
         let executionId = UUID()
         let recorder = executionRecorder

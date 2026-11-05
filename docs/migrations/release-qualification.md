@@ -28,6 +28,10 @@ and its downstream chain. Inactive conditional middleware does not enter interce
 `reset()` clears settings and creates a recorder for new executions; already admitted
 executions retain their settings and finish recording in their original recorder.
 
+`TestPipeline` finishes the progress reporter explicitly attached to its invocation's
+`CommandContext` on success, failure, or cancellation before admission. A reporter
+inherited from a parent execution remains open for that parent.
+
 When NextGuard warnings are enabled, `TestPipeline` preserves missing-`next`
 diagnostics from original middleware executed without a mock. Actual mocks and
 injected failures do not produce those warnings. Original explicit warning
