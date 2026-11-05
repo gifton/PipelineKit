@@ -124,14 +124,16 @@ Build the root tests in each configuration before running these host checks. The
 numeric driver executes each input in an isolated test process with a 30-second
 per-case timeout. On macOS it invokes the built XCTest bundle directly when
 available. Accepted inputs must reach both probe sentinels and exit successfully;
-rejected inputs must reach the probe, omit the accepted sentinel, and fail. Debug
-also requires the precondition diagnostic; optimized Release builds may omit it.
+rejected inputs must reach the probe and omit the accepted sentinel. Precondition
+rejections must fail; Debug also requires the intended diagnostic, while optimized
+Release builds may omit it. Throwing APIs must exit successfully with the explicit
+`NUMERIC_BOUNDARY_REJECTED` sentinel; a crash does not satisfy that contract.
 Timeouts and unrelated startup failures do not count as successful rejection.
 The numeric log directory must not already exist; it contains per-case logs and
 `report.json`.
 
-The matrix contains 434 cases, including all six `TimeoutTester` duration entry
-routes and their derived arithmetic. Accepted large-duration test-helper probes
+The matrix contains 518 cases, including all six `TimeoutTester` duration entry
+routes, their derived arithmetic, and the test-support delay APIs. Accepted large-duration test-helper probes
 cancel their task before sleeping, after input validation. This avoids waiting
 for the duration while still checking the conversion boundary.
 
