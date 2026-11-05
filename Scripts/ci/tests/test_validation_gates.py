@@ -445,14 +445,18 @@ if stage == os.environ['TELEMETRY_FAILURE']:
                                 env=env, text=True, capture_output=True, timeout=10)
         return result, [json.loads(line) for line in calls.read_text().splitlines()]
 
-    def test_runs_built_consumer_oracle_in_both_configurations(self):
+    def test_runs_built_consumer_contract_and_oracle_in_both_configurations(self):
         result, calls = self.run_telemetry_gate()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        tail = calls[-4:]
-        for offset, configuration in [(0, 'debug'), (2, 'release')]:
+        tail = calls[-6:]
+        for offset, configuration in [(0, 'debug'), (3, 'release')]:
             self.assertEqual(tail[offset], ['swift', ['build', '--package-path', 'Tests/Integration/Consumer',
                                                      '--configuration', configuration]])
-            self.assertEqual(tail[offset + 1], ['python', ['Scripts/validation/check_telemetry_formats.py',
+            self.assertEqual(tail[offset + 1], ['python', ['Scripts/validation/run_check.py',
+                '--id', f'consumer-error-contract-{configuration}-456-2', '--timeout', '60', '--',
+                'swift', 'run', '--package-path', 'Tests/Integration/Consumer', '--configuration',
+                configuration, '--skip-build', 'Consumer', 'error-contract']])
+            self.assertEqual(tail[offset + 2], ['python', ['Scripts/validation/check_telemetry_formats.py',
                 '--configuration', configuration, '--log',
                 str(self.dir / 'runner space' / '456-2' / f'telemetry-{configuration}.log')]])
 
@@ -466,6 +470,15 @@ if stage == os.environ['TELEMETRY_FAILURE']:
                 shutil.rmtree(self.dir / 'runner space', ignore_errors=True)
                 result, _ = self.run_telemetry_gate(stage)
                 self.assertEqual(result.returncode, 73, result.stdout + result.stderr)
+
+    def test_error_contract_failure_is_fatal_in_both_configurations(self):
+        for configuration in ('debug', 'release'):
+            with self.subTest(configuration=configuration):
+                shutil.rmtree(self.dir / 'runner space', ignore_errors=True)
+                result, calls = self.run_telemetry_gate(
+                    f'Scripts/validation/run_check.py:{configuration}')
+                self.assertEqual(result.returncode, 73, result.stdout + result.stderr)
+                self.assertEqual(calls[-1][1][-2:], ['Consumer', 'error-contract'])
 
 
 class StatusTests(unittest.TestCase):

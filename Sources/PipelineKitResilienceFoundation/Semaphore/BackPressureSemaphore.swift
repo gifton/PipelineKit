@@ -1,5 +1,6 @@
 import Foundation
 import PipelineKit
+import PipelineKitCore
 
 /// A high-performance async semaphore with back-pressure control and automatic resource management.
 /// 
@@ -209,7 +210,7 @@ public actor BackPressureSemaphore {
         waitTimeout: Duration?, timeoutValue: TimeInterval?,
         priority: QueuePriority, estimatedSize: Int
     ) async throws -> SemaphoreToken {
-        try Task.checkCancellation()
+        try PipelineCancellation.check(message: "Semaphore acquisition cancelled")
         startCleanupTask()
 
         if availablePermits > 0 && waiters.isEmpty && activeTokens < maxOutstanding {
@@ -232,7 +233,7 @@ public actor BackPressureSemaphore {
                 // Handles cancellation before this continuation registers, including
                 // cancellation whose handler already attempted removal.
                 guard !Task.isCancelled else {
-                    continuation.resume(throwing: CancellationError())
+                    continuation.resume(throwing: PipelineError.cancelled(context: "Semaphore acquisition cancelled"))
                     return
                 }
                 do {
@@ -270,7 +271,7 @@ public actor BackPressureSemaphore {
         // that token here conserves its permit; the token release is idempotent.
         if Task.isCancelled {
             token.release()
-            throw CancellationError()
+            throw PipelineError.cancelled(context: "Semaphore acquisition cancelled")
         }
         return token
     }
@@ -332,7 +333,7 @@ public actor BackPressureSemaphore {
         // already handed off by release(), it returns nil and no action is needed.
         if let waiter = waiters.remove(id: waiterID) {
             waiter.timeoutTask?.cancel()
-            waiter.continuation.resume(throwing: CancellationError())
+            waiter.continuation.resume(throwing: PipelineError.cancelled(context: "Semaphore acquisition cancelled"))
         }
     }
     

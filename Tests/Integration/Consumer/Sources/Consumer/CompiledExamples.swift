@@ -672,3 +672,28 @@ print(poolScrape.rejectedSeriesCount)
 
 }
 
+// docs/migrations/error-cancellation-and-validation.md, Swift fence 1
+@MainActor func compiled_docs_migrations_error_cancellation_and_validation_md_1() async throws {
+
+func isCancelledExecution(_ error: any Error) -> Bool {
+    if error is CancellationError { return true }
+    if case .cancelled = error as? PipelineError { return true }
+    return false
+}
+
+}
+
+// docs/migrations/error-cancellation-and-validation.md, Swift fence 2
+@MainActor func compiled_docs_migrations_error_cancellation_and_validation_md_2() async throws {
+
+let healthPolicy = HealthCheckMiddleware.Configuration(
+    errorEvaluator: { error in
+        // This application's explicit policy ignores its own validation errors.
+        if case .validation = error as? PipelineError { return false }
+        return true
+    }
+)
+_ = healthPolicy
+
+}
+

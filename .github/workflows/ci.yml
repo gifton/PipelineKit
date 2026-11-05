@@ -79,6 +79,7 @@ jobs:
           python3 Scripts/ci/tests/test_validation_gates.py PerformanceWorkflowTests ReleaseWorkflowTests TelemetryWorkflowTests
           python3 Scripts/ci/tests/test_numeric_probe_resolution.py
           python3 Scripts/ci/tests/test_compression_watchdog.py
+          python3 Scripts/ci/tests/test_stress_workflow.py
       
       - name: Check PR Size
         run: |
@@ -495,19 +496,9 @@ jobs:
 
     - name: Run Stress Tests
       run: |
-        # Run resilience tests which include stress scenarios
         swift build --build-tests
-
-        # Run with explicit filter pattern matching test class names
-        swift test --filter "PipelineKitResilienceTests" || {
-          echo "Warning: Some tests may have failed or timed out"
-          echo "Attempting to run individual test classes..."
-
-          # Try running specific test classes if the full suite fails
-          swift test --filter "CircuitBreakerMiddlewareTests" || true
-          swift test --filter "BackPressureTests" || true
-          swift test --filter "TimeoutMiddlewareTests" || true
-        }
+        # The shared runner rejects empty discovery and preserves Swift's verdict.
+        bash Scripts/run-tests.sh --target PipelineKitResilience --verbose
 
   # Performance tests
   performance:

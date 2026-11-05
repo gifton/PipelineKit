@@ -12,6 +12,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 See the [compiled migration guide](docs/migrations/first-stabilization-batch.md) before upgrading.
 No release version or tag is selected by this batch.
 
+- The [error and cancellation migration](docs/migrations/error-cancellation-and-validation.md)
+  documents typed cancellation at pipeline/semaphore boundaries, cancellation-proof
+  retry and failure scoring, default exclusion of non-service errors, and typed
+  breaker, bulkhead, and encryption failures. Health configuration gains a custom
+  error predicate. Test timeout helpers now distinguish their own deadline from
+  operation errors, and checkpoint waits have a cancellation-aware throwing API.
+
 - The [telemetry migration](docs/migrations/telemetry-hardening.md) documents cumulative
   Prometheus scrape state, configurable series limits, recent-window pool percentiles,
   and corrected StatsD delivery/sampling. Raw history drains no longer reset scrape
@@ -75,6 +82,8 @@ No release version or tag is selected by this batch.
   path (e.g. cache hits). Debug-only; release builds are unchanged. ([#97])
 
 ### Fixed
+- Test mock readers take locked snapshots, and stress CI propagates test and
+  discovery failures instead of reporting a successful empty or failed run.
 - Encrypted result decoding preserves authenticated serialized bytes for custom objects,
   arrays, and hintless envelopes; authentication failures throw before plaintext is returned.
   Type and encoding hints remain unauthenticated metadata.

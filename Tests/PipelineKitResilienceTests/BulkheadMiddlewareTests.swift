@@ -166,8 +166,8 @@ final class BulkheadMiddlewareTests: XCTestCase {
             XCTFail("Expected bulkhead rejection")
         } catch {
             // Then - should be rejected
-            if case PipelineError.middlewareError(let middleware, _, _) = error {
-                XCTAssertEqual(middleware, "BulkheadMiddleware")
+            if case PipelineError.bulkheadRejected(let reason) = error {
+                XCTAssertTrue(reason.contains("Maximum concurrency"))
             } else {
                 XCTFail("Unexpected error type: \(error)")
             }

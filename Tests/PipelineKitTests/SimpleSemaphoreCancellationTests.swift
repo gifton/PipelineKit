@@ -5,7 +5,7 @@ import PipelineKitCore
 /// Tests for SimpleSemaphore cancellation behavior.
 /// 
 /// These tests verify that SimpleSemaphore properly handles task cancellation
-/// by resuming continuations with CancellationError rather than leaving them
+/// by resuming continuations with PipelineError.cancelled rather than leaving them
 /// suspended indefinitely.
 final class SimpleSemaphoreCancellationTests: XCTestCase {
     // MARK: - Basic Cancellation Tests
@@ -31,7 +31,7 @@ final class SimpleSemaphoreCancellationTests: XCTestCase {
         do {
             _ = try await task.value
             XCTFail("Expected CancellationError but task succeeded")
-        } catch is CancellationError {
+        } catch let error as PipelineError where error.isCancellation {
             // Expected
         } catch {
             XCTFail("Expected CancellationError but got \(error)")
@@ -66,7 +66,7 @@ final class SimpleSemaphoreCancellationTests: XCTestCase {
         do {
             _ = try await cancelledTask.value
             XCTFail("Cancelled task should have thrown")
-        } catch is CancellationError {
+        } catch let error as PipelineError where error.isCancellation {
             // Expected
         }
         
@@ -105,7 +105,7 @@ final class SimpleSemaphoreCancellationTests: XCTestCase {
             do {
                 _ = try await task.value
                 XCTFail("Cancelled task should have thrown")
-            } catch is CancellationError {
+            } catch let error as PipelineError where error.isCancellation {
                 // Expected
             }
         }
@@ -143,7 +143,7 @@ final class SimpleSemaphoreCancellationTests: XCTestCase {
         do {
             _ = try await task.value
             XCTFail("Expected CancellationError")
-        } catch is CancellationError {
+        } catch let error as PipelineError where error.isCancellation {
             // Expected
         }
         
@@ -190,7 +190,7 @@ final class SimpleSemaphoreCancellationTests: XCTestCase {
                 stray.release()
                 XCTFail("Cancelled waiter received a token (iteration \(iteration))")
                 return
-            } catch is CancellationError {
+            } catch let error as PipelineError where error.isCancellation {
                 // Expected: a cancelled acquire() must throw.
             }
 
@@ -218,7 +218,7 @@ final class SimpleSemaphoreCancellationTests: XCTestCase {
         do {
             _ = try await task.value
             XCTFail("Expected CancellationError")
-        } catch is CancellationError {
+        } catch let error as PipelineError where error.isCancellation {
             // Expected
         }
         
@@ -276,7 +276,7 @@ final class SimpleSemaphoreCancellationTests: XCTestCase {
             do {
                 _ = try await waitingTasks[i].value
                 XCTFail("Task \(i) should have thrown CancellationError")
-            } catch is CancellationError {
+            } catch let error as PipelineError where error.isCancellation {
                 // Expected
             }
         }
@@ -388,7 +388,7 @@ final class SimpleSemaphoreCancellationTests: XCTestCase {
                     // Simulate work
                     try await Task.sleep(nanoseconds: 50_000_000) // 50ms
                     return id * 2
-                } catch is CancellationError {
+                } catch where error is CancellationError || (error as? PipelineError)?.isCancellation == true {
                     return nil
                 }
             }

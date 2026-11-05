@@ -101,10 +101,10 @@ final class CircuitBreakerMiddlewareTests: XCTestCase {
             XCTFail("Circuit breaker should reject requests after reaching failure threshold")
         } catch {
             // Expected - circuit breaker should reject all requests when open
-            if case PipelineError.middlewareError(let middleware, _, _) = error {
-                XCTAssertEqual(middleware, "CircuitBreakerMiddleware", "Error should come from CircuitBreakerMiddleware")
+            if case PipelineError.circuitBreakerOpen(let resetTime) = error {
+                XCTAssertNotNil(resetTime)
             } else {
-                XCTFail("Expected PipelineError.middlewareError, got: \(error)")
+                XCTFail("Expected PipelineError.circuitBreakerOpen, got: \(error)")
             }
         }
     }
@@ -220,8 +220,10 @@ final class CircuitBreakerMiddlewareTests: XCTestCase {
             XCTFail("Circuit should be open again after failure in half-open")
         } catch {
             // Expected - circuit breaker blocks request
-            if case PipelineError.middlewareError(let name, _, _) = error {
-                XCTAssertEqual(name, "CircuitBreakerMiddleware")
+            if case PipelineError.circuitBreakerOpen(let resetTime) = error {
+                XCTAssertNotNil(resetTime)
+            } else {
+                XCTFail("Expected PipelineError.circuitBreakerOpen, got: \(error)")
             }
         }
     }

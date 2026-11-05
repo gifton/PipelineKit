@@ -122,7 +122,7 @@ final class PartitionedBulkheadConfigurationTests: XCTestCase {
                 return "unexpected"
             }
             XCTFail("Expected unknown-partition rejection")
-        } catch PipelineError.middlewareError(_, let message, _) {
+        } catch PipelineError.bulkheadRejected(let message) {
             XCTAssertTrue(message.contains("Unknown partition"))
         }
         XCTAssertEqual(context.getMetadata()["bulkheadPartition"] as? String, "default")

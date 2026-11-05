@@ -340,6 +340,14 @@ public final class CommandContext: @unchecked Sendable {
         self[ContextKeys.cancellationReason] = reason
     }
 
+    /// Installs a diagnostic fallback in the same locked read/write operation,
+    /// preserving a reason supplied by the owner before this mutation.
+    package func recordCancellationIfAbsent(reason: CancellationReason) {
+        mutateValue(forKey: ContextKeys.cancellationReason.name) { previous in
+            previous?.get(CancellationReason.self) != nil ? previous : AnySendable(reason)
+        }
+    }
+
     /// Gets the cancellation reason if the context has been cancelled.
     /// - Returns: The cancellation reason, or nil if not cancelled
     public func getCancellationReason() -> CancellationReason? {

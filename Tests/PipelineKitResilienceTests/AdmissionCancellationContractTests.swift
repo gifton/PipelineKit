@@ -91,7 +91,7 @@ final class AdmissionCancellationContractTests: XCTestCase {
                 let token = try await semaphore.acquire()
                 token.release()
                 return true
-            } catch is CancellationError { return false }
+            } catch let error as PipelineError where error.isCancellation { return false }
             catch { XCTFail("Unexpected cancellation error: \(error)"); return false }
         }
         let acquired = await task.value
@@ -251,7 +251,7 @@ final class AdmissionCancellationContractTests: XCTestCase {
                 let token = try await waiter.value
                 token.release()
                 XCTFail("Cancelled acquisition returned a permit")
-            } catch is CancellationError {} catch { XCTFail("Unexpected error: \(error)") }
+            } catch let error as PipelineError where error.isCancellation {} catch { XCTFail("Unexpected error: \(error)") }
             let recovered = await eventually {
                 let stats = await semaphore.getStats()
                 return stats.availableResources == 1 && stats.queuedOperations == 0 && stats.activeOperations == 0
@@ -366,7 +366,7 @@ final class AdmissionCancellationContractTests: XCTestCase {
             XCTAssertEqual(stats.queuedOperations, 1, "Legacy cleanup shortened \(strategy)")
             waiter.cancel()
             do { _ = try await waiter.value; XCTFail("Expected cancellation") }
-            catch is CancellationError {} catch { XCTFail("Legacy cleanup replaced cancellation: \(error)") }
+            catch let error as PipelineError where error.isCancellation {} catch { XCTFail("Legacy cleanup replaced cancellation: \(error)") }
             held.release()
             await semaphore.shutdown()
         }

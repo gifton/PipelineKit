@@ -511,14 +511,18 @@ behavior. The consolidated next-minor **Breaking** changelog entry includes this
 ## Breaking: structural pipeline timeout classification (R-F21)
 
 Retry and circuit-breaker policies now classify the four typed `PipelineError` timeout
-cases by their enum cases. Other `PipelineError` values, including `.wrapped` and
-`.retryExhausted`, are treated as ordinary unknown errors even if their descriptions or
-payloads contain the word `timeout`. They are not recursively unwrapped. Applications
+cases by their enum cases. Other `PipelineError` values do not become timeouts because
+their descriptions or payloads contain the word `timeout`. The subsequent
+[error and cancellation migration](error-cancellation-and-validation.md) excludes
+typed validation, security-policy, rate-limit, and admission rejections by default.
+Remaining cases, including `.wrapped` and `.retryExhausted`, follow each policy's
+unknown-error behavior and are not recursively unwrapped. Applications
 that intentionally classify wrapped errors should supply an `errorEvaluator` to the
 relevant middleware configuration and inspect the wrapper explicitly. Foreign errors
-continue through the existing policy and description fallback. `PipelineError.cancelled`
-is never retried and follows the circuit breaker’s configured unknown-error policy; native
-`CancellationError` and custom evaluators retain each middleware’s existing precedence.
+continue through the existing policy and description fallback. The subsequent
+[error and cancellation migration](error-cancellation-and-validation.md) excludes both
+`PipelineError.cancelled` and native `CancellationError` before custom predicates;
+neither can be retried or scored as a service failure.
 Retry `maxAttempts` semantics are unchanged.
 
 

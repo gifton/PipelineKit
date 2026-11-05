@@ -4,6 +4,7 @@ import FoundationNetworking
 #endif
 import PipelineKit
 import PipelineKitCore
+import _ResilienceFoundation
 
 /// Middleware that provides health check monitoring for services.
 ///
@@ -79,6 +80,11 @@ public struct HealthCheckMiddleware: Middleware {
         /// Whether to block requests to unhealthy services
         public let blockUnhealthyServices: Bool
 
+        /// Overrides failure scoring for noncancellation command errors. Returning
+        /// false leaves the health window and consecutive outcome counts unchanged.
+        /// Cancellation is always excluded before this evaluator is called.
+        public let errorEvaluator: (@Sendable (any Error) -> Bool)?
+
         /// Creates a health-check configuration.
         ///
         /// - Parameters:
@@ -122,6 +128,10 @@ public struct HealthCheckMiddleware: Middleware {
         ///     `PipelineError.serviceUnavailable(service:reason:)` instead of running
         ///     the command when its service is currently `.unhealthy`. Defaults to
         ///     `false`.
+        ///   - errorEvaluator: Optional failure-scoring predicate for noncancellation
+        ///     command errors. Cancellation is always excluded. Defaults to `nil`,
+        ///     which excludes typed domain/policy/admission rejections and counts
+        ///     timeouts and unknown errors.
         public init(
             checkInterval: TimeInterval = 30.0,
             failureThreshold: Int = 5,
@@ -133,7 +143,8 @@ public struct HealthCheckMiddleware: Middleware {
             healthChecks: [String: any HealthCheck] = [:],
             stateChangeHandler: (@Sendable (String, HealthState, HealthState) async -> Void)? = nil,
             emitMetrics: Bool = true,
-            blockUnhealthyServices: Bool = false
+            blockUnhealthyServices: Bool = false,
+            errorEvaluator: (@Sendable (any Error) -> Bool)? = nil
         ) {
             _ = NumericDuration.nanoseconds(checkInterval, positive: true)
             precondition(windowSize.isFinite && windowSize > 0, "Health window must be finite and positive")
@@ -156,6 +167,7 @@ public struct HealthCheckMiddleware: Middleware {
             self.stateChangeHandler = stateChangeHandler
             self.emitMetrics = emitMetrics
             self.blockUnhealthyServices = blockUnhealthyServices
+            self.errorEvaluator = errorEvaluator
         }
     }
 
@@ -254,11 +266,14 @@ public struct HealthCheckMiddleware: Middleware {
     /// are not recorded into the service's health window.
     ///
     /// Otherwise the command is executed via `next`. A success records a success entry
-    /// for the service (resetting its consecutive-failure count); any error thrown by
-    /// `next` records a failure (resetting its consecutive-success count) and is then
-    /// rethrown unchanged — the thrown error's type is not inspected, so any
-    /// downstream error, not only ones caused by the service itself, counts against
-    /// the service's health. Either way, a `middleware.health_check_execution` event
+    /// for the service (resetting its consecutive-failure count). Cancellation and
+    /// typed validation, authentication, authorization, security-policy, rate-limit,
+    /// and admission rejections are excluded from failure scoring by default.
+    /// `Configuration.errorEvaluator` can override scoring for noncancellation errors.
+    /// Excluded errors record neither success nor failure, as exercised by
+    /// `ResilienceErrorPolicyTests.testIgnoredHealthFailuresDoNotBecomeSuccessesOrResetFailureRun`.
+    /// Native cancellation is normalized to `PipelineError.cancelled`; other errors
+    /// are rethrown unchanged. Either way, a `middleware.health_check_execution` event
     /// is emitted (when `Configuration.emitMetrics` is `true`) with the
     /// pre-execution health state, the success flag, and the duration. Recording a
     /// result can change the service's computed `HealthState`; when it does,
@@ -267,20 +282,23 @@ public struct HealthCheckMiddleware: Middleware {
     ///
     /// - Parameters:
     ///   - command: The command to execute.
-    ///   - context: The command context. Always receives a `"serviceHealth"` metadata
-    ///     entry; when `Configuration.emitMetrics` is `true`, also receives
-    ///     `"health.service"`, `"health.state"`, `"health.success"`, and
-    ///     `"health.duration"` entries.
+    ///   - context: The command context. Receives a `"serviceHealth"` metadata entry
+    ///     after the initial cancellation check and health lookup. When an execution
+    ///     outcome reaches metrics recording and `Configuration.emitMetrics` is
+    ///     `true`, also receives `"health.service"`, `"health.state"`,
+    ///     `"health.success"`, and `"health.duration"` entries.
     ///   - next: The next step in the middleware chain.
     /// - Returns: The result produced by `next`.
     /// - Throws: `PipelineError.serviceUnavailable(service:reason:)` if
     ///   `Configuration.blockUnhealthyServices` is `true` and the service is
-    ///   `.unhealthy`; otherwise, whatever error `next` throws.
+    ///   `.unhealthy`; `PipelineError.cancelled` for recognized cancellation;
+    ///   otherwise, whatever error `next` throws.
     public func execute<T: Command>(
         _ command: T,
         context: CommandContext,
         next: @escaping MiddlewareNext<T>
     ) async throws -> T.Result {
+        try PipelineCancellation.check(context: context)
         let startTime = Date()
         let serviceName = await extractServiceName(from: command, context: context)
 
@@ -289,6 +307,8 @@ public struct HealthCheckMiddleware: Middleware {
 
         // Store health state in context
         context.setMetadata("serviceHealth", value: healthState.rawValue)
+
+        try PipelineCancellation.check(context: context)
 
         // Block if configured and service is unhealthy
         if configuration.blockUnhealthyServices && healthState == .unhealthy {
@@ -306,6 +326,7 @@ public struct HealthCheckMiddleware: Middleware {
 
         // Execute command and track result
         do {
+            try PipelineCancellation.check(context: context)
             let result = try await next(command, context)
             let duration = Date().timeIntervalSince(startTime)
 
@@ -328,12 +349,13 @@ public struct HealthCheckMiddleware: Middleware {
         } catch {
             let duration = Date().timeIntervalSince(startTime)
 
-            // Record failure
-            await healthMonitor.recordFailure(
-                service: serviceName,
-                error: error,
-                duration: duration
-            )
+            if shouldRecordFailure(error) {
+                await healthMonitor.recordFailure(
+                    service: serviceName,
+                    error: error,
+                    duration: duration
+                )
+            }
 
             // Emit metrics
             await emitExecutionMetrics(
@@ -344,7 +366,7 @@ public struct HealthCheckMiddleware: Middleware {
                 context: context
             )
 
-            throw error
+            throw PipelineCancellation.normalize(error, context: context)
         }
     }
 
@@ -383,6 +405,15 @@ public struct HealthCheckMiddleware: Middleware {
     }
 
     // MARK: - Private Methods
+
+    private func shouldRecordFailure(_ error: any Error) -> Bool {
+        if PipelineCancellation.isCancellation(error) { return false }
+        if let evaluator = configuration.errorEvaluator { return evaluator(error) }
+        switch ResilienceErrorClassifier.classifyPipelineError(error) {
+        case .cancelled, .excluded: return false
+        case .timeout, .other, nil: return true
+        }
+    }
 
     private func extractServiceName(from command: any Command, context: CommandContext) async -> String {
         // Check if command implements ServiceIdentifiable

@@ -183,7 +183,7 @@ public actor DynamicPipeline {
     /// - Throws:
     ///   - `PipelineError.handlerNotFound` if no handler is registered for the command type
     ///   - Any circuit breaker errors if circuit breaker middleware is configured
-    ///   - `CancellationError` if the task is cancelled
+    ///   - `PipelineError.cancelled` if execution is cancelled
     ///   - Any error thrown by middleware or the command handler
     ///
     /// - Note: The method supports automatic retry with exponential backoff and
@@ -215,10 +215,14 @@ public actor DynamicPipeline {
         // inherited reporter belongs to the execution that attached it.
         defer { attached?.finish() }
 
-        return try await ExecutionContext.$current.withValue(executionContext) {
-            try await withRetry(retryPolicy: retryPolicy, command: command) {
-                try await self.executePipeline(command: command, context: commandContext)
+        do {
+            return try await ExecutionContext.$current.withValue(executionContext) {
+                try await withRetry(retryPolicy: retryPolicy, command: command) {
+                    try await self.executePipeline(command: command, context: commandContext)
+                }
             }
+        } catch {
+            throw PipelineCancellation.normalize(error, context: commandContext, message: "DynamicPipeline execution cancelled")
         }
     }
 
@@ -263,7 +267,7 @@ public actor DynamicPipeline {
 
     private func executePipeline<T: Command>(command: T, context: CommandContext) async throws -> T.Result {
         // Check for cancellation before starting pipeline execution
-        try Task.checkCancellation(context: "DynamicPipeline execution cancelled before pipeline")
+        try PipelineCancellation.check(context: context, message: "DynamicPipeline execution cancelled before pipeline")
 
         let chain = try resolveChain(for: T.self)
         return try await chain(command, context)
@@ -279,7 +283,7 @@ public actor DynamicPipeline {
 
         let finalHandler: @Sendable (T, CommandContext) async throws -> T.Result = { cmd, ctx in
             // Check for cancellation before handler execution
-            try Task.checkCancellation(context: "DynamicPipeline execution cancelled before handler")
+            try PipelineCancellation.check(context: ctx, message: "DynamicPipeline execution cancelled before handler")
             return try await handler.handle(cmd, context: ctx)
         }
 
@@ -318,7 +322,7 @@ public actor DynamicPipeline {
 
         for attempt in 1...retryPolicy.maxAttempts {
             // Check for cancellation before each retry attempt
-            try Task.checkCancellation(context: "DynamicPipeline retry cancelled at attempt \(attempt)")
+            try PipelineCancellation.check(message: "DynamicPipeline retry cancelled at attempt \(attempt)")
             
             do {
                 // Circuit breaker checks are now handled by middleware
@@ -328,7 +332,7 @@ public actor DynamicPipeline {
                 return result
             } catch {
                 // If the error is a cancellation, propagate it immediately without retry
-                if error is CancellationError || (error as? PipelineError)?.isCancellation == true {
+                if PipelineCancellation.isCancellation(error) {
                     throw error
                 }
                 
@@ -356,11 +360,7 @@ public actor DynamicPipeline {
                     do {
                         try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
                     } catch {
-                        // If sleep was cancelled, propagate the cancellation
-                        if Task.isCancelled {
-                            throw PipelineError.cancelled(context: "DynamicPipeline retry delay cancelled")
-                        }
-                        throw error
+                        throw PipelineCancellation.normalize(error, message: "DynamicPipeline retry delay cancelled")
                     }
                 }
 

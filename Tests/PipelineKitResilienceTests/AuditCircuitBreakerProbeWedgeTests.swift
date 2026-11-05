@@ -91,7 +91,7 @@ final class AuditCircuitBreakerProbeWedgeTests: XCTestCase {
                 throw CancellationError()
             }
             XCTFail("probe should rethrow its own error")
-        } catch is CancellationError {
+        } catch PipelineError.cancelled {
             // expected: admitted, then abandoned
         } catch {
             XCTFail("probe was rejected instead of admitted: \(error)")

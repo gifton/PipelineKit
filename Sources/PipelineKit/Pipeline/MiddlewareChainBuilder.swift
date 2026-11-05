@@ -34,7 +34,7 @@ enum MiddlewareChainBuilder {
 
                 chain = { (cmd: T, ctx: CommandContext) in
                     if insertCancellationChecks {
-                        try Task.checkCancellation(context: "Pipeline execution cancelled at middleware: \(middlewareName)")
+                        try PipelineCancellation.check(context: ctx, message: "Pipeline execution cancelled at middleware: \(middlewareName)")
                     }
 
                     // If conditional, check shouldActivate before executing
@@ -89,7 +89,7 @@ enum MiddlewareChainBuilder {
 
             chain = { (cmd: T, ctx: CommandContext) in
                 if insertCancellationChecks {
-                    try Task.checkCancellation(context: "Pipeline execution cancelled at middleware: \(middlewareName)")
+                    try PipelineCancellation.check(context: ctx, message: "Pipeline execution cancelled at middleware: \(middlewareName)")
                 }
 
                 // If conditional, check shouldActivate before executing

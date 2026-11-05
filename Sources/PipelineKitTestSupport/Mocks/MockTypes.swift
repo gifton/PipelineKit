@@ -70,28 +70,15 @@ public final class MockValidationMiddleware: Middleware, Sendable {
     }
 }
 
-/// ## Design Decision: @unchecked Sendable for Test Mock with Mutable State
-///
-/// This test mock uses `@unchecked Sendable` for the following reasons:
-///
-/// 1. **Test Observation Pattern**: Test mocks need mutable arrays to record
-///    interactions for test assertions. This is a fundamental testing pattern.
-///
-/// 2. **Alternative Considered**: Using an actor would require async access to
-///    check logged commands, complicating test assertions unnecessarily.
-///
-/// 3. **Thread Safety:** All access to the mutable array is protected
-///    by NSLock, ensuring thread-safe access from concurrent test executions.
-///
-/// 4. **Thread Safety Invariant:** All mutations to the loggedCommands array
-///    MUST be performed within lock.withLock { } blocks. Direct access outside
-///    of lock protection will cause data races.
-///
-/// This is a permanent solution for test infrastructure where synchronous
-/// access to test data is required for assertions.
+/// Records command names using the same lock for writes and snapshot reads.
+/// `MockSnapshotContractTests.testConcurrentMockWritersAndSnapshotReaders` exercises
+/// concurrent readers and writers for both recording middleware types.
 public final class MockLoggingMiddleware: Middleware, @unchecked Sendable {
     public let priority = ExecutionPriority.postProcessing
-    public private(set) var loggedCommands: [String] = []
+    private var loggedCommandsStorage: [String] = []
+    public var loggedCommands: [String] {
+        lock.withLock { loggedCommandsStorage }
+    }
     private let lock = NSLock()
     
     public init() {}
@@ -103,34 +90,21 @@ public final class MockLoggingMiddleware: Middleware, @unchecked Sendable {
     ) async throws -> T.Result {
         let commandName = String(describing: type(of: command))
         lock.withLock {
-            loggedCommands.append(commandName)
+            loggedCommandsStorage.append(commandName)
         }
         return try await next(command, context)
     }
 }
 
-/// ## Design Decision: @unchecked Sendable for Test Mock with Metrics Collection
-///
-/// This test mock uses `@unchecked Sendable` for the following reasons:
-///
-/// 1. **Metrics Recording Pattern**: Test mocks need to collect timing metrics
-///    in a mutable array for performance assertions in tests.
-///
-/// 2. **Alternative Considered**: Actor-based design would require async access
-///    patterns that complicate test assertions and metric analysis.
-///
-/// 3. **Thread Safety:** NSLock protects all access to the metrics
-///    array, preventing data races during concurrent middleware execution.
-///
-/// 4. **Thread Safety Invariant:** All access to the recordedMetrics array
-///    MUST occur within lock.withLock { } blocks. The array must never be
-///    accessed or modified outside of lock protection.
-///
-/// This is a permanent solution for test infrastructure requiring synchronous
-/// access to collected metrics for validation.
+/// Records timing metrics using the same lock for writes and snapshot reads.
+/// Concurrent access is exercised by
+/// `MockSnapshotContractTests.testConcurrentMockWritersAndSnapshotReaders`.
 public final class MockMetricsMiddleware: Middleware, @unchecked Sendable {
     public let priority = ExecutionPriority.postProcessing
-    public private(set) var recordedMetrics: [(command: String, duration: TimeInterval)] = []
+    private var recordedMetricsStorage: [(command: String, duration: TimeInterval)] = []
+    public var recordedMetrics: [(command: String, duration: TimeInterval)] {
+        lock.withLock { recordedMetricsStorage }
+    }
     private let lock = NSLock()
     
     public init() {}
@@ -146,7 +120,7 @@ public final class MockMetricsMiddleware: Middleware, @unchecked Sendable {
         
         let commandName = String(describing: type(of: command))
         lock.withLock {
-            recordedMetrics.append((command: commandName, duration: duration))
+            recordedMetricsStorage.append((command: commandName, duration: duration))
         }
         
         return result

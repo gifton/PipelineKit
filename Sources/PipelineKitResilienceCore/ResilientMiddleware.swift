@@ -57,6 +57,7 @@ public final class ResilientMiddleware: Middleware, UnsafeMiddleware, @unchecked
         _ = (metadata as? DefaultCommandMetadata)?.userID ?? "unknown"
         
         for attempt in 1...retryPolicy.maxAttempts {
+            try PipelineCancellation.check(context: context)
             do {
                 // Emit retry attempt event for attempts > 1
                 if attempt > 1 {
@@ -71,8 +72,12 @@ public final class ResilientMiddleware: Middleware, UnsafeMiddleware, @unchecked
                     )
                 }
                 
+                try PipelineCancellation.check(context: context)
                 return try await next(command, context)
             } catch {
+                if PipelineCancellation.isCancellation(error) {
+                    throw PipelineCancellation.normalize(error, context: context)
+                }
                 lastError = error
 
                 await context.emitMiddlewareEvent(
@@ -112,10 +117,16 @@ public final class ResilientMiddleware: Middleware, UnsafeMiddleware, @unchecked
                     throw error
                 }
                 
+                try PipelineCancellation.check(context: context)
+
                 // Wait before next attempt
                 let delay = retryPolicy.delayStrategy.delay(for: attempt)
                 if delay > 0 {
-                    try await Task.sleep(nanoseconds: NumericDuration.nanoseconds(delay))
+                    do {
+                        try await Task.sleep(nanoseconds: NumericDuration.nanoseconds(delay))
+                    } catch {
+                        throw PipelineCancellation.normalize(error, context: context)
+                    }
                 }
             }
         }

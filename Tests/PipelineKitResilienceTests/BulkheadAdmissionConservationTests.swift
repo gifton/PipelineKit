@@ -112,8 +112,10 @@ func launchBulkhead(
             outcome = "cancelled"
         } catch BulkheadFixtureError.expected {
             outcome = "handlerError"
-        } catch PipelineError.middlewareError(_, _, let context) {
-            outcome = context?.additionalInfo["type"] == "BulkheadTimeout" ? "timedOut" : "rejected"
+        } catch PipelineError.bulkheadTimeout {
+            outcome = "timedOut"
+        } catch PipelineError.bulkheadRejected {
+            outcome = "rejected"
         } catch PipelineError.resilience(reason: .bulkheadFull) {
             outcome = "rejected"
         } catch {
