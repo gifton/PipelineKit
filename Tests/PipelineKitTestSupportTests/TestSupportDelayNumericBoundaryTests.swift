@@ -68,12 +68,12 @@ final class TestSupportDelayNumericBoundaryTests: XCTestCase {
             FileHandle.standardError.write(Data("NUMERIC_BOUNDARY_ACCEPTED\n".utf8))
             return
         }
-        let task = Task {
+        let task = Task { [entry, value] in
             // Validate before the cancelled sleep so accepted large values do not
             // turn the boundary probe into a long-running timer.
             withUnsafeCurrentTask { $0?.cancel() }
             do {
-                _ = try await Self.run(entry: entry, delay: value)
+                _ = try await TestSupportDelayNumericBoundaryTests.run(entry: entry, delay: value)
             } catch TestPipelineError.invalidDelay {
                 FileHandle.standardError.write(Data("NUMERIC_BOUNDARY_REJECTED\n".utf8))
                 return
