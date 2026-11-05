@@ -697,3 +697,34 @@ _ = healthPolicy
 
 }
 
+// docs/migrations/monitoring-and-connection-lifecycle.md, Swift fence 1
+@MainActor func compiled_docs_migrations_monitoring_and_connection_lifecycle_md_1() async throws {
+
+func shutDownHealthMonitoring(_ middleware: HealthCheckMiddleware) async {
+    await middleware.stopMonitoring()
+}
+
+}
+
+// docs/migrations/monitoring-and-connection-lifecycle.md, Swift fence 2
+@MainActor func compiled_docs_migrations_monitoring_and_connection_lifecycle_md_2() async throws {
+
+let memoryResponder = MemoryPressureResponder()
+await memoryResponder.startMonitoring()
+await memoryResponder.stopMonitoring()
+await memoryResponder.startMonitoring()
+await memoryResponder.stopMonitoring()
+
+}
+
+// docs/migrations/monitoring-and-connection-lifecycle.md, Swift fence 3
+@MainActor func compiled_docs_migrations_monitoring_and_connection_lifecycle_md_3() async throws {
+
+let metricsHub = EventHub()
+let metricsStorage = MetricsStorage()
+let metricsConnection = await metricsHub.connectMetrics(metricsStorage)
+// Use the hub while the connection is needed.
+await metricsHub.disconnectMetrics(metricsConnection)
+
+}
+

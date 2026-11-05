@@ -29,7 +29,7 @@ public protocol EventSubscriber: AnyObject, Sendable {
 /// ## Design Decisions
 ///
 /// 1. **Actor isolation**: Ensures thread-safe subscriber management
-/// 2. **Weak references**: Prevents retain cycles with automatic cleanup
+/// 2. **Subscription ownership**: Ordinary subscriptions are weak; metrics connections are owned
 /// 3. **Fire-and-forget**: Non-blocking event delivery via Task{}
 /// 4. **Delivery task**: Schedules subscriber delivery on the hub actor
 /// 5. **Periodic cleanup**: Removes nil weak references to prevent memory leak
@@ -44,9 +44,9 @@ public actor EventHub: EventEmitter {
         weak var subscriber: (any EventSubscriber)?
         let id: ObjectIdentifier
 
-        init(_ subscriber: any EventSubscriber) {
+        init(_ subscriber: any EventSubscriber, id: ObjectIdentifier) {
             self.subscriber = subscriber
-            self.id = ObjectIdentifier(subscriber)
+            self.id = id
         }
     }
 
@@ -55,6 +55,11 @@ public actor EventHub: EventEmitter {
     /// Weak references to subscribers
     private var subscribers: [WeakBox] = []
     private var replaceableSubscriptions: [UUID: ObjectIdentifier] = [:]
+    private let subscriberIdentity: @Sendable (any EventSubscriber) -> ObjectIdentifier
+
+    // testConnectionRecordsMetricAfterConnectReturns and
+    // testConnectedRecorderLivesUntilHubDeallocates exercise this ownership.
+    private var metricsConnections: [UUID: MetricsEventBridge] = [:]
     
     /// Weak reference to the parent ObservabilitySystem if this hub is part of one
     internal weak var parentSystem: ObservabilitySystem?
@@ -76,8 +81,16 @@ public actor EventHub: EventEmitter {
     /// - Precondition: A finite positive interval representable as at least one
     ///   nanosecond and fewer than 2^64 nanoseconds.
     public init(cleanupInterval: TimeInterval = 60.0) {
+        self.init(cleanupInterval: cleanupInterval, subscriberIdentity: { ObjectIdentifier($0) })
+    }
+
+    init(
+        cleanupInterval: TimeInterval,
+        subscriberIdentity: @escaping @Sendable (any EventSubscriber) -> ObjectIdentifier
+    ) {
         _ = NumericDuration.nanoseconds(cleanupInterval, positive: true)
         self.cleanupInterval = cleanupInterval
+        self.subscriberIdentity = subscriberIdentity
         Task {
             await startCleanupTask()
         }
@@ -122,12 +135,13 @@ public actor EventHub: EventEmitter {
     ///
     /// - Parameter subscriber: The subscriber to add
     public func subscribe(_ subscriber: any EventSubscriber) {
+        performCleanup()
         // Check if already subscribed
-        let id = ObjectIdentifier(subscriber)
+        let id = subscriberIdentity(subscriber)
         let isSubscribed = subscribers.contains { $0.id == id }
 
         if !isSubscribed {
-            subscribers.append(WeakBox(subscriber))
+            subscribers.append(WeakBox(subscriber, id: id))
             stats.totalSubscriptions += 1
         }
     }
@@ -136,8 +150,50 @@ public actor EventHub: EventEmitter {
     ///
     /// - Parameter subscriber: The subscriber to remove
     public func unsubscribe(_ subscriber: any EventSubscriber) {
-        let id = ObjectIdentifier(subscriber)
+        let id = subscriberIdentity(subscriber)
         subscribers.removeAll { $0.id == id }
+        replaceableSubscriptions = replaceableSubscriptions.filter { $0.value != id }
+    }
+
+    /// Connects a metric recorder with automatic event-to-metric conversion.
+    ///
+    /// The hub retains each connection independently until
+    /// `disconnectMetrics(_:)` is called or the hub is released. The returned
+    /// identifier may be ignored; it does not own the connection or the hub.
+    /// Ordinary `subscribe(_:)` registrations remain weak.
+    ///
+    /// - Parameters:
+    ///   - recorder: The metric recorder to receive converted events.
+    ///   - config: Configuration for metric generation.
+    /// - Returns: An identifier for disconnecting this connection.
+    @discardableResult
+    public func connectMetrics(
+        _ recorder: any MetricRecorder,
+        config: MetricsGenerationConfig = .default
+    ) -> UUID {
+        let connectionID = UUID()
+        let bridge = MetricsEventBridge(recorder: recorder, config: config)
+        metricsConnections[connectionID] = bridge
+        subscribe(bridge)
+        return connectionID
+    }
+
+    /// Removes a metrics connection from future event delivery.
+    ///
+    /// Delivery is admitted when the hub snapshots its subscribers. Events
+    /// admitted before this call may finish after it returns and retain the
+    /// recorder until they finish. This method does not wait for those events,
+    /// so a recorder may disconnect its own connection from `record(_:)`.
+    ///
+    /// Repeated calls and identifiers from another hub have no effect. This
+    /// method does not flush or close the recorder.
+    ///
+    /// - Parameter connectionID: The identifier returned by `connectMetrics(_:config:)`.
+    public func disconnectMetrics(_ connectionID: UUID) {
+        // Covered by testDisconnectReturnsBeforeAdmittedDeliverySettles and
+        // testRecorderCanDisconnectItsOwnConnection; no delivery is joined here.
+        guard let bridge = metricsConnections.removeValue(forKey: connectionID) else { return }
+        unsubscribe(bridge)
     }
 
     /// One actor turn switches the owner slot and returns its actual displaced
@@ -148,6 +204,7 @@ public actor EventHub: EventEmitter {
         with subscriber: (any EventSubscriber)?
     ) -> (installed: Bool, retired: (any EventSubscriber)?) {
         guard generation.isActive else { return (false, nil) }
+        performCleanup()
         var retired: (any EventSubscriber)?
         if let identifier = replaceableSubscriptions.removeValue(forKey: owner) {
             retired = subscribers.first { $0.id == identifier }?.subscriber
@@ -155,7 +212,7 @@ public actor EventHub: EventEmitter {
         }
         if let subscriber {
             subscribe(subscriber)
-            replaceableSubscriptions[owner] = ObjectIdentifier(subscriber)
+            replaceableSubscriptions[owner] = subscriberIdentity(subscriber)
         }
         return (true, retired)
     }
@@ -176,7 +233,9 @@ public actor EventHub: EventEmitter {
     private func deliverEvent(_ event: PipelineEvent) async {
         stats.eventsEmitted += 1
 
-        // Get live subscribers
+        // This snapshot is the admission boundary for disconnectMetrics.
+        // Admitted deliveries retain their subscribers through the task group
+        // (testDisconnectReturnsBeforeAdmittedDeliverySettles).
         let liveSubscribers = subscribers.compactMap { $0.subscriber }
 
         // Fan out to all subscribers concurrently
@@ -204,16 +263,18 @@ public actor EventHub: EventEmitter {
         let interval = NumericDuration.nanoseconds(cleanupInterval, positive: true)
         cleanupTask = Task { [weak self] in
             while !Task.isCancelled {
-                do { try await Task.sleep(nanoseconds: interval) }
-                catch { return }
+                do { try await Task.sleep(nanoseconds: interval) } catch { return }
                 guard let self else { break }
                 await self.performCleanup()
             }
         }
     }
 
-    /// Removes nil weak references.
+    /// Removes nil weak references and owner mappings without a registered route.
     private func performCleanup() {
+        // Registration also runs cleanup before a cached identity can be reused:
+        // testReleasedSubscriptionIdentitiesDoNotBlockNewRegistrations and
+        // testUnsubscribedReplacementOwnerCannotRemoveReadmittedSubscriber.
         let beforeCount = subscribers.count
         subscribers.removeAll { $0.subscriber == nil }
         let liveIDs = Set(subscribers.map(\.id))
