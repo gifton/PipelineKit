@@ -6,71 +6,88 @@
 //
 
 import Foundation
-import PipelineKit
 
-/// Test utility for synchronizing async operations in tests
-/// Provides utilities for controlled timing and sequencing of concurrent operations
+/// Checkpoint synchronization for concurrent tests.
 public actor TestSynchronizer {
-    private var checkpoints: [String: Bool] = [:]
-    private var continuations: [String: [CheckedContinuation<Void, Never>]] = [:]
-    
+    private var checkpoints: Set<String> = []
+    private var continuations: [String: [UUID: CheckedContinuation<Void, any Error>]] = [:]
+
     public init() {}
-    
-    /// Signal that a checkpoint has been reached
+
+    /// Signal a checkpoint and resume its current waiters successfully.
     public func signal(_ checkpoint: String) {
-        checkpoints[checkpoint] = true
-        
-        // Resume any waiting continuations
-        if let waiting = continuations[checkpoint] {
-            for continuation in waiting {
+        checkpoints.insert(checkpoint)
+        if let waiting = continuations.removeValue(forKey: checkpoint) {
+            for continuation in waiting.values {
                 continuation.resume()
             }
-            continuations[checkpoint] = nil
         }
     }
-    
-    /// Wait for a checkpoint to be signaled
+
+    /// Wait for a signal, throwing `CancellationError` on cancellation or reset.
+    public func waitForSignal(_ checkpoint: String) async throws {
+        let id = UUID()
+        try await withTaskCancellationHandler {
+            try Task.checkCancellation()
+            if checkpoints.contains(checkpoint) { return }
+            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, any Error>) in
+                // Cancellation can arrive between the first check and registration.
+                if Task.isCancelled {
+                    continuation.resume(throwing: CancellationError())
+                } else {
+                    continuations[checkpoint, default: [:]][id] = continuation
+                }
+            }
+        } onCancel: {
+            Task { await self.cancelWaiter(id, for: checkpoint) }
+        }
+    }
+
+    /// Wait for a signal, cancellation, or reset.
+    /// Returning does not imply a signal; use `waitForSignal` to distinguish it.
     public func wait(for checkpoint: String) async {
-        // If already signaled, return immediately
-        if checkpoints[checkpoint] == true {
-            return
-        }
-        
-        // Otherwise wait
-        await withCheckedContinuation { continuation in
-            continuations[checkpoint, default: []].append(continuation)
-        }
+        try? await waitForSignal(checkpoint)
     }
-    
-    /// Reset all checkpoints
+
+    private func cancelWaiter(_ id: UUID, for checkpoint: String) {
+        let continuation = continuations[checkpoint]?.removeValue(forKey: id)
+        if continuations[checkpoint]?.isEmpty == true {
+            continuations.removeValue(forKey: checkpoint)
+        }
+        continuation?.resume(throwing: CancellationError())
+    }
+
+    /// Clear signals and cancel all registered waiters with `CancellationError`.
     public func reset() {
         checkpoints.removeAll()
-        // Cancel any waiting continuations
-        for (_, continuations) in continuations {
-            for continuation in continuations {
-                continuation.resume()
+        let waiting = continuations
+        continuations.removeAll()
+        for checkpoint in waiting.values {
+            for continuation in checkpoint.values {
+                continuation.resume(throwing: CancellationError())
             }
         }
-        continuations.removeAll()
     }
-    
-    /// Check if a checkpoint has been reached
+
+    /// Check whether a checkpoint has been signaled since the last reset.
     public func isSignaled(_ checkpoint: String) -> Bool {
-        checkpoints[checkpoint] ?? false
+        checkpoints.contains(checkpoint)
     }
-    
-    /// Short delay for testing
+
+    /// Registration acknowledgement for deterministic test coordination.
+    internal func waiterCount(for checkpoint: String) -> Int {
+        continuations[checkpoint]?.count ?? 0
+    }
+
     public func shortDelay() async {
-        try? await Task.sleep(nanoseconds: 10_000_000) // 10ms
+        try? await Task.sleep(nanoseconds: 10_000_000)
     }
-    
-    /// Medium delay for testing
+
     public func mediumDelay() async {
-        try? await Task.sleep(nanoseconds: 50_000_000) // 50ms
+        try? await Task.sleep(nanoseconds: 50_000_000)
     }
-    
-    /// Long delay for testing
+
     public func longDelay() async {
-        try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
+        try? await Task.sleep(nanoseconds: 100_000_000)
     }
 }

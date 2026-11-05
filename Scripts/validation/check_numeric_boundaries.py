@@ -101,6 +101,12 @@ def main():
     cases.extend(("telemetry-trace-retention", value, True) for value in ["0", "0.125", "1e30"])
     cases.extend(("telemetry-event-cleanup", value, False) for value in invalid + ["0", "1e-20", "1e30"])
     cases.extend(("telemetry-event-cleanup", value, True) for value in ["0.125", "86401", repr(upper)])
+    for entry in ["test-support-timeout", "test-support-expect", "test-support-delay",
+                  "test-support-after", "test-support-before", "test-support-run"]:
+        cases.extend((entry, value, False) for value in invalid + ["-0.5", "1e30"])
+        cases.extend((entry, value, True) for value in ["0", "1e-20", "0.125"])
+        cases.append((entry, repr(upper), entry != "test-support-after"))
+    cases.append(("test-support-after", repr(upper - 1), True))
     if args.entries:
         selected = set(args.entries.split(","))
         available = {entry for entry, _, _ in cases}
@@ -116,6 +122,8 @@ def main():
             suite = ("PipelineKitPoolingTests.PoolTelemetryNumericBoundaryTests" if entry.startswith("telemetry-pool-")
                      else "PipelineKitObservabilityTests.TelemetryNumericBoundaryTests")
             probe = f"{suite}/testNumericConfigurationProbe"
+        if entry.startswith("test-support-"):
+            probe = "PipelineKitTestSupportTests.TimeoutTesterNumericBoundaryTests/testNumericConfigurationProbe"
         if entry == "compression-size":
             probe = "PipelineKitCacheTests.CompressionMiddlewareTests/testCompressionSizeNumericConfigurationProbe"
         command = resolve_probe_command(root, args.configuration, probe, xctest)
