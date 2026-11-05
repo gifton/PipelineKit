@@ -42,25 +42,38 @@ public struct RetryMiddleware: Middleware, UnsafeMiddleware {
         /// Custom backoff function
         case custom(@Sendable (Int) -> TimeInterval)
 
+        func validate() {
+            switch self {
+            case .fixed(let delay): _ = NumericDuration.nanoseconds(delay)
+            case let .linear(base, maximum), let .exponential(base, maximum), let .exponentialJitter(base, maximum):
+                _ = NumericDuration.nanoseconds(base)
+                _ = NumericDuration.nanoseconds(maximum)
+            case .custom: break
+            }
+        }
+
         func delay(for attempt: Int) -> TimeInterval {
+            precondition(attempt >= 1, "Retry attempt must be positive")
+            validate()
             switch self {
             case .fixed(let delay):
                 return delay
 
             case let .linear(baseDelay, maxDelay):
-                return min(Double(attempt) * baseDelay, maxDelay)
+                return NumericDuration.cappedProduct(baseDelay, Double(attempt), maximum: maxDelay)
 
             case let .exponential(baseDelay, maxDelay):
-                let exponentialDelay = baseDelay * pow(2.0, Double(attempt - 1))
+                let exponentialDelay = NumericDuration.cappedProduct(baseDelay, pow(2.0, Double(attempt - 1)), maximum: maxDelay)
                 return min(exponentialDelay, maxDelay)
 
             case let .exponentialJitter(baseDelay, maxDelay):
-                let exponentialDelay = baseDelay * pow(2.0, Double(attempt - 1))
-                let jitteredDelay = exponentialDelay * (0.5 + Double.random(in: 0...0.5))
-                return min(jitteredDelay, maxDelay)
+                let factor = pow(2.0, Double(attempt - 1)) * (0.5 + Double.random(in: 0...0.5))
+                return NumericDuration.cappedProduct(baseDelay, factor, maximum: maxDelay)
 
             case .custom(let function):
-                return function(attempt)
+                let delay = function(attempt)
+                _ = NumericDuration.nanoseconds(delay)
+                return delay
             }
         }
     }
@@ -94,6 +107,11 @@ public struct RetryMiddleware: Middleware, UnsafeMiddleware {
             emitEvents: Bool = true,
             maxRetryTime: TimeInterval? = nil
         ) {
+            precondition(maxAttempts >= 0, "Retry attempts must be nonnegative")
+            strategy.validate()
+            if let maxRetryTime {
+                precondition(maxRetryTime.isFinite && maxRetryTime >= 0, "Maximum retry time must be finite and nonnegative")
+            }
             self.maxAttempts = maxAttempts
             self.strategy = strategy
             self.retryableErrors = retryableErrors
@@ -202,7 +220,7 @@ public struct RetryMiddleware: Middleware, UnsafeMiddleware {
                     context: context
                 )
 
-                try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+                try await Task.sleep(nanoseconds: NumericDuration.nanoseconds(delay))
             }
         }
 

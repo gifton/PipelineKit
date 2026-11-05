@@ -18,16 +18,18 @@ public actor BackPressureMiddleware: Middleware {
         strategy: BackPressureStrategy = .suspend,
         rateLimit: RateLimit? = nil
     ) {
+        precondition(maxConcurrency > 0, "Back-pressure concurrency must be positive")
+        let defaultOutstanding = maxConcurrency > Int.max / 5 ? Int.max : maxConcurrency * 5
         self.options = PipelineOptions(
             maxConcurrency: maxConcurrency,
-            maxOutstanding: maxOutstanding ?? (maxConcurrency * 5),
+            maxOutstanding: maxOutstanding ?? defaultOutstanding,
             maxQueueMemory: maxQueueMemory,
             backPressureStrategy: strategy
         )
         
         self.semaphore = BackPressureSemaphore(
             maxConcurrency: maxConcurrency,
-            maxOutstanding: maxOutstanding ?? (maxConcurrency * 5),
+            maxOutstanding: maxOutstanding ?? defaultOutstanding,
             maxQueueMemory: maxQueueMemory,
             strategy: strategy
         )

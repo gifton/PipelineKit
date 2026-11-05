@@ -75,7 +75,10 @@ jobs:
           fetch-depth: 0
 
       - name: Validate Swift CI Gates
-        run: python3 Scripts/ci/tests/test_validation_gates.py PerformanceWorkflowTests ReleaseWorkflowTests
+        run: |
+          python3 Scripts/ci/tests/test_validation_gates.py PerformanceWorkflowTests ReleaseWorkflowTests
+          python3 Scripts/ci/tests/test_numeric_probe_resolution.py
+          python3 Scripts/ci/tests/test_compression_watchdog.py
       
       - name: Check PR Size
         run: |

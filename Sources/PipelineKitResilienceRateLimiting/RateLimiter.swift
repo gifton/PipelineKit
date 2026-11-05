@@ -1,4 +1,5 @@
 import Foundation
+import PipelineKitCore
 
 /// A sophisticated rate limiter with multiple strategies for DoS protection.
 ///
@@ -75,6 +76,7 @@ public actor RateLimiter {
         tokenLastAccess: (@Sendable (TokenBucket) async -> Date)? = nil,
         windowHasRecentRequests: (@Sendable (SlidingWindow, TimeInterval) async -> Bool)? = nil
     ) {
+        strategy.validate()
         self.strategy = strategy
         self.scope = scope
         self.now = now
@@ -90,6 +92,7 @@ public actor RateLimiter {
     ///   - cost: The cost of the request (default: 1)
     /// - Returns: True if the request is allowed, false if rate limited
     public func allowRequest(identifier: String, cost: Double = 1.0) async throws -> Bool {
+        guard cost.isFinite && cost >= 0 else { return false }
         let identifier = effectiveIdentifier(identifier)
         await cleanupIfNeeded()
         
@@ -125,7 +128,9 @@ public actor RateLimiter {
             
         case let .adaptive(baseRate, loadFactor):
             let factor = await loadFactor()
+            guard factor.isFinite else { return false }
             let adjustedCapacity = Double(baseRate) * (2.0 - factor)
+            guard adjustedCapacity.isFinite && adjustedCapacity >= 0 else { return false }
             return await checkTokenBucket(
                 identifier: identifier,
                 capacity: adjustedCapacity,
@@ -169,27 +174,27 @@ public actor RateLimiter {
             let tokens = await bucket.getTokens()
             let timeToNext = await bucket.timeToNextToken()
             return RateLimitStatus(
-                remaining: Int(tokens),
-                limit: Int(capacity),
+                remaining: NumericDuration.saturatedNonnegativeInt(tokens),
+                limit: NumericDuration.saturatedNonnegativeInt(capacity),
                 resetAt: now().addingTimeInterval(timeToNext)
             )
             
         case let .slidingWindow(windowSize, maxRequests):
             let window = slidingWindows[identifier]?.state ?? SlidingWindow(now: now)
             await window.setWindowSize(windowSize)
-            let count = await window.requestCount(since: now().addingTimeInterval(-windowSize))
+            let requestCount = await window.requestCount(since: now().addingTimeInterval(-windowSize))
             return RateLimitStatus(
-                remaining: max(0, maxRequests - count),
+                remaining: requestCount < 0 ? 0 : max(0, maxRequests - requestCount),
                 limit: maxRequests,
                 resetAt: now().addingTimeInterval(windowSize)
             )
             
         case let .fixedWindow(windowSize, maxRequests):
             let window = fixedWindows[identifier] ?? FixedWindow(windowSize: windowSize, now: now)
-            let count = await window.getCurrentCount()
+            let requestCount = await window.getCurrentCount()
             let timeUntilReset = await window.timeUntilReset()
             return RateLimitStatus(
-                remaining: max(0, maxRequests - count),
+                remaining: requestCount < 0 ? 0 : max(0, maxRequests - requestCount),
                 limit: maxRequests,
                 resetAt: now().addingTimeInterval(timeUntilReset)
             )
@@ -209,16 +214,16 @@ public actor RateLimiter {
             let tokens = await bucket.getTokens()
             let timeToNext = await bucket.timeToNextToken()
             return RateLimitStatus(
-                remaining: Int(tokens),
+                remaining: NumericDuration.saturatedNonnegativeInt(tokens),
                 limit: baseRate,
                 resetAt: now().addingTimeInterval(timeToNext)
             )
             
         case let .distributed(store, windowSize, maxRequests):
             do {
-                let count = try await store.getCount(key: identifier, windowSize: windowSize)
+                let requestCount = try await store.getCount(key: identifier, windowSize: windowSize)
                 return RateLimitStatus(
-                    remaining: max(0, maxRequests - count),
+                    remaining: requestCount < 0 ? 0 : max(0, maxRequests - requestCount),
                     limit: maxRequests,
                     resetAt: now().addingTimeInterval(windowSize)
                 )
@@ -238,10 +243,10 @@ public actor RateLimiter {
                 return RateLimitStatus(remaining: 0, limit: 0, resetAt: now())
             }
             let window = fixedWindows["\(identifier):\(priority.rawValue)"] ?? FixedWindow(windowSize: config.windowSize, now: now)
-            let count = await window.getCurrentCount()
+            let requestCount = await window.getCurrentCount()
             let timeUntilReset = await window.timeUntilReset()
             return RateLimitStatus(
-                remaining: max(0, config.maxRequests - count),
+                remaining: max(0, config.maxRequests - requestCount),
                 limit: config.maxRequests,
                 resetAt: now().addingTimeInterval(timeUntilReset)
             )
@@ -305,8 +310,8 @@ public actor RateLimiter {
         await entry.state.setWindowSize(windowSize)
         await entry.state.recordRequest()
 
-        let count = await entry.state.requestCount(since: now().addingTimeInterval(-windowSize))
-        return count <= maxRequests
+        let requestCount = await entry.state.requestCount(since: now().addingTimeInterval(-windowSize))
+        return requestCount <= maxRequests
     }
     
     private func checkFixedWindow(
@@ -317,8 +322,9 @@ public actor RateLimiter {
         let window = fixedWindows[identifier] ?? FixedWindow(windowSize: windowSize, now: now)
         fixedWindows[identifier] = window
         
-        let (count, _) = await window.recordRequest()
-        return count <= maxRequests
+        let (requestCount, _) = await window.recordRequest()
+        guard let requestCount else { return false }
+        return requestCount <= maxRequests
     }
     
     private func checkLeakyBucket(
@@ -338,8 +344,11 @@ public actor RateLimiter {
         windowSize: TimeInterval,
         maxRequests: Int
     ) async throws -> Bool {
-        let count = try await store.incrementAndGet(key: identifier, windowSize: windowSize)
-        return count <= maxRequests
+        let requestCount = try await store.incrementAndGet(key: identifier, windowSize: windowSize)
+        guard requestCount >= 0 else {
+            throw PipelineError.validation(field: "count", reason: .custom("Rate limit count must be nonnegative"))
+        }
+        return requestCount <= maxRequests
     }
     
     private func cleanupIfNeeded() async {

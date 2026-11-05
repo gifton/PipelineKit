@@ -54,11 +54,41 @@ struct ProcessingResult: Sendable, CompressibleResult {
 }
 
 final class CompressionMiddlewareTests: XCTestCase {
+    func testCompressionSizeNumericConfigurationProbe() throws {
+        let environment = ProcessInfo.processInfo.environment
+        guard environment["PIPELINEKIT_NUMERIC_ENTRY"] == "compression-size",
+              let value = environment["PIPELINEKIT_NUMERIC_VALUE"], let size = Int(value) else {
+            throw XCTSkip("Run through the isolated numeric boundary driver")
+        }
+        FileHandle.standardOutput.write(Data("NUMERIC_BOUNDARY_REACHED\n".utf8))
+        let estimate = CompressionUtility.maxCompressedSize(for: size)
+        XCTAssertGreaterThanOrEqual(estimate, size)
+        FileHandle.standardOutput.write(Data("NUMERIC_BOUNDARY_ACCEPTED\n".utf8))
+    }
+
+    func testPublishedAlgorithmsNameTheirActualWireFormats() {
+        XCTAssertEqual(Set(CompressionAlgorithm.allCases.map(\.rawValue)),
+                       Set(["deflate-raw", "lzfse", "apple-lz4"]))
+    }
+
+    func testDefaultMiddlewareEmitsRawDeflateMetadataWithoutIgnoredLevel() async throws {
+        let original = Data(repeating: 65, count: 1000)
+        let context = CommandContext()
+        let middleware = CompressionMiddleware(minimumSize: 1, trackStatistics: false)
+        _ = try await middleware.execute(
+            DataProcessingCommand(data: original, operation: "default"), context: context
+        ) { command, handlerContext in
+            XCTAssertEqual(handlerContext.getMetadata("compression.applied") as? Bool, true)
+            XCTAssertEqual(handlerContext.getMetadata("compression.algorithm") as? String, "deflate-raw")
+            XCTAssertNil(handlerContext.getMetadata("compression.level"))
+            return ProcessingResult(processedData: command.data, success: true)
+        }
+    }
+
     func testCompressionMiddleware() async throws {
         // Create middleware
         let middleware = CompressionMiddleware(
-            algorithm: .zlib,
-            compressionLevel: .balanced,
+            algorithm: .rawDeflate,
             minimumSize: 100 // Only compress data > 100 bytes
         )
         
@@ -79,7 +109,7 @@ final class CompressionMiddlewareTests: XCTestCase {
             // Verify compression was applied
             let metadata = await ctx.getMetadata()
             if let applied = metadata["compression.applied"] as? Bool, applied {
-                XCTAssertEqual(metadata["compression.algorithm"] as? String, "zlib")
+                XCTAssertEqual(metadata["compression.algorithm"] as? String, "deflate-raw")
                 XCTAssertNotNil(metadata["compression.originalSize"])
                 XCTAssertNotNil(metadata["compression.compressedSize"])
                 
@@ -101,8 +131,7 @@ final class CompressionMiddlewareTests: XCTestCase {
     func testCompressionBelowThreshold() async throws {
         // Create middleware with high threshold
         let middleware = CompressionMiddleware(
-            algorithm: .zlib,
-            compressionLevel: .fast,
+            algorithm: .rawDeflate,
             minimumSize: 10000 // Only compress data > 10KB
         )
         
@@ -142,8 +171,7 @@ final class CompressionMiddlewareTests: XCTestCase {
         // Calculate compression ratio
         let ratioResult = CompressionUtility.compressionRatio(
             for: testData,
-            using: .zlib,
-            level: .best
+            using: .rawDeflate
         )
         
         switch ratioResult {
@@ -159,7 +187,7 @@ final class CompressionMiddlewareTests: XCTestCase {
         // S05-P02 measures a benefit for these codecs at 100 bytes. Framed LZ4's
         // 112-byte representation is covered below; its larger control must compress.
         let cases: [(CompressionAlgorithm, Int)] = [
-            (.zlib, 100), (.lzfse, 100), (.gzip, 100), (.brotli, 100), (.lz4, 1024)
+            (.rawDeflate, 100), (.lzfse, 100), (.appleLZ4, 1024)
         ]
         for (algorithm, size) in cases {
             let original = Data(repeating: 65, count: size)
@@ -184,7 +212,7 @@ final class CompressionMiddlewareTests: XCTestCase {
 
     func testSmallPayloadWithoutCompressionBenefitRemainsUncompressed() async throws {
         for algorithm in CompressionAlgorithm.allCases {
-            for size in algorithm == .lz4 ? [1, 100] : [1] {
+            for size in algorithm == .appleLZ4 ? [1, 100] : [1] {
                 let original = Data(repeating: 65, count: size)
                 let middleware = CompressionMiddleware(algorithm: algorithm, minimumSize: 1, trackStatistics: false)
                 let context = CommandContext()
@@ -215,8 +243,7 @@ final class CompressionMiddlewareTests: XCTestCase {
         // Compress
         let compressed = try CompressionUtility.compress(
             originalData,
-            using: .lzfse,
-            level: .balanced
+            using: .lzfse
         )
         
         // Verify compressed is different and smaller

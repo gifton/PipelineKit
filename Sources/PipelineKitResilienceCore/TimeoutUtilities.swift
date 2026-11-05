@@ -1,4 +1,5 @@
 import Foundation
+import PipelineKitCore
 
 // MARK: - Timeout Utilities
 
@@ -8,7 +9,8 @@ import Foundation
 /// and cleanup. It's designed to work with Swift's structured concurrency model.
 ///
 /// - Parameters:
-///   - seconds: The timeout duration in seconds
+///   - seconds: Finite, nanosecond-representable seconds. Nonpositive values
+///     throw immediately without starting the operation.
 ///   - operation: The async operation to execute with timeout enforcement
 /// - Returns: The result of the operation if it completes before timeout
 /// - Throws: `TimeoutError` if the operation times out, or any error from the operation
@@ -16,7 +18,9 @@ public func withTimeout<T: Sendable>(
     _ seconds: TimeInterval,
     operation: @escaping @Sendable () async throws -> T
 ) async throws -> T {
-    try await withThrowingTaskGroup(of: TimeoutRaceResult<T>.self) { group in
+    NumericDuration.validateTimeout(seconds)
+    guard seconds > 0 else { throw TimeoutError.exceeded(duration: seconds) }
+    return try await withThrowingTaskGroup(of: TimeoutRaceResult<T>.self) { group in
         // Add the main operation task
         group.addTask {
             do {
@@ -30,7 +34,7 @@ public func withTimeout<T: Sendable>(
         // Add the timeout task
         group.addTask {
             do {
-                try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+                try await Task.sleep(nanoseconds: NumericDuration.nanoseconds(max(0, seconds)))
                 return .timeout
             } catch {
                 // Task was cancelled (operation completed first)
@@ -86,7 +90,10 @@ internal func withTimeoutAndGrace<T: Sendable>(
     operation: @escaping @Sendable () async throws -> T,
     onGracePeriodStart: (@Sendable () async -> Void)? = nil
 ) async throws -> T {
-    try await withThrowingTaskGroup(of: TimeoutRaceResult<T>.self) { group in
+    NumericDuration.validateTimeout(timeout)
+    _ = NumericDuration.nanoseconds(gracePeriod)
+    guard timeout > 0 else { throw TimeoutError.exceeded(duration: timeout) }
+    return try await withThrowingTaskGroup(of: TimeoutRaceResult<T>.self) { group in
         // Track timing
         let startTime = Date()
 
@@ -103,7 +110,7 @@ internal func withTimeoutAndGrace<T: Sendable>(
         // Add the initial timeout task
         group.addTask {
             do {
-                try await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
+                try await Task.sleep(nanoseconds: NumericDuration.nanoseconds(max(0, timeout)))
                 return .timeout
             } catch {
                 return .cancelled
@@ -130,7 +137,7 @@ internal func withTimeoutAndGrace<T: Sendable>(
             // Add grace period task
             group.addTask {
                 do {
-                    try await Task.sleep(nanoseconds: UInt64(gracePeriod * 1_000_000_000))
+                    try await Task.sleep(nanoseconds: NumericDuration.nanoseconds(max(0, gracePeriod)))
                     return .timeout
                 } catch {
                     return .cancelled

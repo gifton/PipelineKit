@@ -70,6 +70,9 @@ public struct TimeoutMiddleware: Middleware {
             cancelOnTimeout: Bool = true,
             metricsCollector: (any MetricsCollector)? = nil
         ) {
+            NumericDuration.validateTimeout(defaultTimeout)
+            for timeout in commandTimeouts.values { NumericDuration.validateTimeout(timeout) }
+            _ = NumericDuration.nanoseconds(gracePeriod)
             self.defaultTimeout = defaultTimeout
             self.commandTimeouts = commandTimeouts
             self.gracePeriod = gracePeriod
@@ -109,6 +112,7 @@ public struct TimeoutMiddleware: Middleware {
     ) async throws -> T.Result {
         let commandType = String(describing: type(of: command))
         let timeout = resolveTimeout(for: command, commandType: commandType)
+        NumericDuration.validateTimeout(timeout)
         let startTime = Date()
 
         // Update state
@@ -368,7 +372,7 @@ public struct TimeoutMiddleware: Middleware {
                 value: 1,
                 tags: [
                     "command": commandType,
-                    "percentage_bucket": String(Int(percentage / 10) * 10)
+                    "percentage_bucket": String(min(NumericDuration.saturatedNonnegativeInt(percentage / 10), Int.max / 10) * 10)
                 ]
             )
         }

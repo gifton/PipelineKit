@@ -102,6 +102,15 @@ jobs:
           echo "Tests completed at $(date)"
           exit $OVERALL_EXIT_CODE
 
+      - name: Numeric and compression validation (Debug)
+        run: |
+          set -euo pipefail
+          validation_root="${RUNNER_TEMP}/${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          python3 Scripts/validation/check_numeric_boundaries.py --configuration debug \
+            --logs "${validation_root}/numeric-debug"
+          python3 Scripts/validation/check_compression_formats.py --configuration debug \
+            --log "${validation_root}/compression-debug.log"
+
       - name: Export coverage
         run: |
           set -euo pipefail
@@ -142,6 +151,15 @@ jobs:
       - name: Test (Release)
         # Benchmarks retain their separate advisory lane; correctness failures are fatal.
         run: swift test --configuration release --skip-build --skip PipelineKitPerformanceTests
+
+      - name: Numeric and compression validation (Release)
+        run: |
+          set -euo pipefail
+          validation_root="${RUNNER_TEMP}/${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          python3 Scripts/validation/check_numeric_boundaries.py --configuration release \
+            --logs "${validation_root}/numeric-release"
+          python3 Scripts/validation/check_compression_formats.py --configuration release \
+            --log "${validation_root}/compression-release.log"
 
   ios-sim:
     name: iOS 26 • Simulator Tests

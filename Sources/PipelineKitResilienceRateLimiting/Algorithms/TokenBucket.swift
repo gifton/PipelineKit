@@ -14,6 +14,8 @@ internal actor TokenBucket {
         refillRate: Double = 1.0,
         now: @escaping @Sendable () -> Date = { Date() }
     ) {
+        precondition(capacity.isFinite && capacity >= 0, "Token capacity must be finite and nonnegative")
+        precondition(refillRate.isFinite && refillRate >= 0, "Refill rate must be finite and nonnegative")
         self.now = now
         self.capacity = capacity
         self.tokens = capacity
@@ -23,8 +25,9 @@ internal actor TokenBucket {
     }
     
     func refill(rate: Double) {
+        precondition(rate.isFinite && rate >= 0, "Refill rate must be finite and nonnegative")
         let now = self.now()
-        let elapsed = now.timeIntervalSince(lastRefill)
+        let elapsed = max(0, now.timeIntervalSince(lastRefill))
         let tokensToAdd = elapsed * rate
         
         tokens = min(capacity, tokens + tokensToAdd)
@@ -35,7 +38,7 @@ internal actor TokenBucket {
     }
     
     func consume(tokens: Double) -> Bool {
-        guard self.tokens >= tokens else { return false }
+        guard tokens.isFinite && tokens >= 0, self.tokens >= tokens else { return false }
         self.tokens -= tokens
         lastAccess = now()
         return true
@@ -46,7 +49,7 @@ internal actor TokenBucket {
         // Calculate time based on actual refill rate (tokens per second)
         // If refill rate is 10 tokens/second, time per token is 1/10 = 0.1 seconds
         guard refillRate > 0 else { return 1.0 } // Fallback to 1 second if rate is invalid
-        return 1.0 / refillRate
+        return min(Double.greatestFiniteMagnitude, 1.0 / refillRate)
     }
     
     func getTokens() -> Double {

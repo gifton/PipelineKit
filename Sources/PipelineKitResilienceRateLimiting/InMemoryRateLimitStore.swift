@@ -1,4 +1,5 @@
 import Foundation
+import PipelineKitCore
 
 /// In-memory implementation of distributed rate limit store.
 /// 
@@ -16,7 +17,7 @@ public actor InMemoryRateLimitStore: DistributedRateLimitStore {
         var count: Int
 
         var isExpired: Bool {
-            Date().timeIntervalSince(windowStart) > windowSize * 2
+            Date().timeIntervalSince(windowStart) / 2 > windowSize
         }
     }
 
@@ -26,6 +27,9 @@ public actor InMemoryRateLimitStore: DistributedRateLimitStore {
         key: String,
         windowSize: TimeInterval
     ) async throws -> Int {
+        guard windowSize.isFinite && windowSize > 0 else {
+            throw PipelineError.validation(field: "windowSize", reason: .custom("Rate limit window must be finite and positive"))
+        }
         await cleanupIfNeeded()
 
         let now = Date()
@@ -34,8 +38,11 @@ public actor InMemoryRateLimitStore: DistributedRateLimitStore {
         if let existing = counters[key],
            existing.windowStart == windowStart {
             // Same window, increment
-            counters[key]?.count += 1
-            return existing.count + 1
+            guard let count = RateLimitNumeric.increment(existing.count) else {
+                throw PipelineError.validation(field: "count", reason: .custom("Rate limit count exceeds Int.max"))
+            }
+            counters[key]?.count = count
+            return count
         } else {
             // New window
             counters[key] = WindowCounter(
@@ -51,6 +58,9 @@ public actor InMemoryRateLimitStore: DistributedRateLimitStore {
         key: String,
         windowSize: TimeInterval
     ) async throws -> Int {
+        guard windowSize.isFinite && windowSize > 0 else {
+            throw PipelineError.validation(field: "windowSize", reason: .custom("Rate limit window must be finite and positive"))
+        }
         let now = Date()
         let windowStart = alignToWindow(now, windowSize: windowSize)
 
@@ -68,7 +78,8 @@ public actor InMemoryRateLimitStore: DistributedRateLimitStore {
 
     private func alignToWindow(_ date: Date, windowSize: TimeInterval) -> Date {
         let timestamp = date.timeIntervalSince1970
-        let alignedTimestamp = floor(timestamp / windowSize) * windowSize
+        let remainder = timestamp.truncatingRemainder(dividingBy: windowSize)
+        let alignedTimestamp = timestamp - remainder - (remainder < 0 ? windowSize : 0)
         return Date(timeIntervalSince1970: alignedTimestamp)
     }
 

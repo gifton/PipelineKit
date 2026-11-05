@@ -1,4 +1,5 @@
 import Foundation
+import CryptoKit
 import Synchronization
 import PipelineKitObservability
 import PipelineKit
@@ -409,7 +410,75 @@ func encryption() async throws {
     var rejected = false
     do { _ = try await encryptor.decrypt(tampered) } catch { rejected = true }
     try require(rejected, "tampered ciphertext must fail")
+    try await encryptedResults()
     try emit(["mode": "encryption", "completeRoundTrips": 2, "retainedPlaintextFields": 0, "tamperRejected": true])
+}
+
+// An external conformer exercises the public capability without @testable imports.
+struct ConsumerFieldEncryption: SerializedPlaintextDecrypting {
+    let key = SymmetricKey(size: .bits256)
+
+    func encrypt<T: Encodable>(_ value: T) async throws -> EncryptedData {
+        let sealed = try AES.GCM.seal(JSONEncoder().encode(value), using: key)
+        return EncryptedData(ciphertext: sealed.ciphertext,
+                             nonce: sealed.nonce.withUnsafeBytes { Data($0) },
+                             tag: sealed.tag, typeHint: String(describing: T.self))
+    }
+
+    func decryptSerializedPlaintext(_ data: EncryptedData) async throws -> Data {
+        guard data.algorithm == "AES-GCM-256", let tag = data.tag else {
+            throw ConsumerFailure.assertion("unsupported encrypted envelope")
+        }
+        let sealed = try AES.GCM.SealedBox(nonce: AES.GCM.Nonce(data: data.nonce),
+                                         ciphertext: data.ciphertext, tag: tag)
+        return try AES.GCM.open(sealed, using: key)
+    }
+
+    func decrypt<T: Decodable>(_ data: EncryptedData, as type: T.Type) async throws -> T {
+        try JSONDecoder().decode(type, from: await decryptSerializedPlaintext(data))
+    }
+
+    func validate() async throws {
+        let decoded = try await decrypt(encrypt("validation"), as: String.self)
+        try require(decoded == "validation", "field encryption configuration")
+    }
+}
+
+struct ConsumerEncryptedResult: DecryptableResult, Sendable {
+    let encryptedData: [String: EncryptedData]?
+    var values: [String: DecryptedValue] = [:]
+    func withDecryptedData(_ decryptedData: [String: DecryptedValue]) -> Self {
+        Self(encryptedData: nil, values: decryptedData)
+    }
+}
+struct ConsumerReadEncrypted: Command { typealias Result = ConsumerEncryptedResult }
+
+func encryptedResults() async throws {
+    let service = ConsumerFieldEncryption()
+    try await service.validate()
+    let expected = CompleteCommand(principal: "synthetic", payload: Data([0, 255]), revision: 2, labels: [])
+    let encrypted = try await service.encrypt(expected)
+    let stage = EncryptionMiddleware(encryptionService: service)
+    let result = try await stage.execute(ConsumerReadEncrypted(), context: CommandContext()) { _, _ in
+        ConsumerEncryptedResult(encryptedData: ["record": encrypted])
+    }
+    guard let serialized = result.values["record"]?.get(as: TypedData.self) else {
+        throw ConsumerFailure.assertion("missing serialized result")
+    }
+    try require(try serialized.decode(as: CompleteCommand.self) == expected, "external result reconstruction")
+    try require(try await service.decryptSerializedPlaintext(encrypted) == serialized.data, "exact serialized bytes")
+    var corrupted = encrypted.ciphertext
+    corrupted[corrupted.startIndex] ^= 1
+    let tampered = EncryptedData(ciphertext: corrupted, nonce: encrypted.nonce,
+                                tag: encrypted.tag, typeHint: encrypted.typeHint)
+    var rejected = false
+    do {
+        _ = try await stage.execute(ConsumerReadEncrypted(), context: CommandContext()) { _, _ in
+            ConsumerEncryptedResult(encryptedData: ["record": tampered])
+        }
+    } catch EncryptionError.decryptionFailed { rejected = true }
+    try require(rejected, "external result tampering must fail")
+    try emit(["mode": "encryption", "serializedResult": "decoded", "resultTamperRejected": rejected])
 }
 
 actor WorkTracker {

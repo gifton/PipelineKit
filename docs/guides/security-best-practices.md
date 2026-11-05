@@ -562,15 +562,33 @@ for the incompatible legacy format and recovery limits.
 
 ### Field-Level Encryption
 
-`EncryptionMiddleware` automatically encrypts and decrypts only the fields you name, using any
-type conforming to the `EncryptionService` protocol. `PipelineKitSecurity`'s own AES-GCM
-implementation is internal, so production code supplies its own conformer — this one follows the
-same shape:
+`EncryptionMiddleware` encrypts configured sensitive command fields and decrypts fields exposed by
+`DecryptableResult`. Existing `EncryptionService` conformers support the built-in typed hints
+(`String`, `Int`, `Double`, `Bool`, `Date`, and `Data`). Custom or missing hints require the
+opt-in `SerializedPlaintextDecrypting` capability, which returns authenticated serialized bytes.
+The service must verify authentication before returning any plaintext.
+
+`typeHint` and `encodingFormat` are advisory, untrusted metadata. The current AES-GCM
+service authenticates only the serialized plaintext; it does not authenticate these fields.
+Callers must select and validate the expected type and format independently of the hints.
+
+For an unknown JSON type hint, the result receives `TypedData` and explicitly chooses its
+`Decodable` type with `decode(as:)`; the hint never resolves a runtime type. Missing hints and
+unknown non-JSON hints yield raw serialized `Data`. In particular, a legacy nil-hint envelope
+containing an encoded `Data` value yields the JSON base64 string bytes, including its quotes,
+not the decoded binary value. Emit explicit hints for new primitive and `Data` envelopes.
+Services without the capability fail these serialized paths with `EncryptionError.decryptionFailed`;
+partial decryption records and omits only the failed fields.
+
+`PipelineKitSecurity`'s AES-GCM implementation is internal, so production code supplies its own
+conformer. This example shares authenticated byte extraction between typed and serialized decoding:
 
 ```swift
+import Foundation
 import CryptoKit
+import PipelineKitSecurity
 
-struct AESGCMEncryptionService: EncryptionService {
+struct AESGCMEncryptionService: SerializedPlaintextDecrypting {
     private let key = SymmetricKey(size: .bits256)
 
     func encrypt<T: Encodable>(_ value: T) async throws -> EncryptedData {
@@ -580,21 +598,38 @@ struct AESGCMEncryptionService: EncryptionService {
             ciphertext: sealed.ciphertext,
             nonce: sealed.nonce.withUnsafeBytes { Data($0) },
             tag: sealed.tag,
-            algorithm: "AES-GCM-256"
+            algorithm: "AES-GCM-256",
+            typeHint: String(describing: T.self)
         )
     }
 
-    func decrypt<T: Decodable>(_ data: EncryptedData, as type: T.Type) async throws -> T {
+    func decryptSerializedPlaintext(_ data: EncryptedData) async throws -> Data {
+        guard data.algorithm == "AES-GCM-256" else {
+            throw EncryptionError.unsupportedAlgorithm(data.algorithm)
+        }
+        guard let tag = data.tag else {
+            throw EncryptionError.decryptionFailed("Missing authentication tag")
+        }
         let box = try AES.GCM.SealedBox(
             nonce: try AES.GCM.Nonce(data: data.nonce),
             ciphertext: data.ciphertext,
-            tag: data.tag ?? Data()
+            tag: tag
         )
-        let decrypted = try AES.GCM.open(box, using: key)
-        return try JSONDecoder().decode(type, from: decrypted)
+        return try AES.GCM.open(box, using: key)
     }
 
-    func validate() async throws {}
+    func decrypt<T: Decodable>(_ data: EncryptedData, as type: T.Type) async throws -> T {
+        let plaintext = try await decryptSerializedPlaintext(data)
+        return try JSONDecoder().decode(type, from: plaintext)
+    }
+
+    func validate() async throws {
+        let encrypted = try await encrypt("validation")
+        let decrypted = try await decrypt(encrypted, as: String.self)
+        guard decrypted == "validation" else {
+            throw EncryptionError.decryptionFailed("Encryption service validation failed")
+        }
+    }
 }
 
 let encryptionMiddleware = EncryptionMiddleware(
@@ -640,7 +675,10 @@ conformers PipelineKitSecurity ships); it cannot be constructed directly, and
 
 ### Security Event Monitoring
 
-Monitor for suspicious patterns:
+Monitor for suspicious patterns. Authentication failures can only be counted by a wrapper that
+runs outside authentication. Use `.authentication` priority here and register the wrappers in
+the explicit order shown under [Secure Error Messages](#secure-error-messages); lower priorities
+run first, and equal priorities preserve insertion order:
 
 ```swift
 // Failure counts must live in a reference type with its own synchronization: `execute(_:context:next:)`
@@ -655,7 +693,8 @@ actor FailureCounter {
 }
 
 struct SecurityMetricsMiddleware: Middleware {
-    let priority: ExecutionPriority = .monitoring
+    // Register before AuthenticationMiddleware at the same priority.
+    let priority: ExecutionPriority = .authentication
     private let threshold = 5
     private let failureCounts = FailureCounter()
 
@@ -689,11 +728,15 @@ struct SecurityMetricsMiddleware: Middleware {
 
 ### Privacy-Compliant Logging
 
-Ensure audit logs comply with privacy regulations by wrapping a logger to mask or omit sensitive
-fields before they're persisted:
+Apply an application-specific allowlist after trace-context enrichment. Filtering only
+`eventMetadata` is insufficient: a sink reading `event.metadata` adds the current task's user and
+session again. Forward the filtered snapshot with audit context temporarily cleared so the sink
+cannot reintroduce those identities; the caller's context is restored when forwarding returns.
+This example retains command and trace correlation. Review those identifiers, event-type names,
+and the allowlisted values against your own privacy and retention requirements:
 
 ```swift
-// GDPR-compliant audit logging: mask or omit sensitive fields before they reach the logger.
+// Application-owned event types and allowlisted fields must contain no sensitive payloads.
 struct MaskingAuditLogger: AuditLogger {
     private let wrapped: any AuditLogger
 
@@ -705,25 +748,37 @@ struct MaskingAuditLogger: AuditLogger {
         struct MaskedEvent: AuditEvent {
             let eventType: String
             let timestamp: Date
-            let eventMetadata: [String: any Sendable] = ["masked": true]
+            let eventMetadata: [String: any Sendable]
         }
-        await wrapped.log(MaskedEvent(eventType: event.eventType, timestamp: event.timestamp))
+
+        let allowedKeys: Set<String> = ["commandType", "commandId", "traceId", "spanId", "duration"]
+        var metadata = event.metadata.filter { allowedKeys.contains($0.key) }
+        metadata["masked"] = true
+        let filtered = MaskedEvent(
+            eventType: event.eventType, timestamp: event.timestamp, eventMetadata: metadata
+        )
+        await AuditContext.$current.withValue(nil) {
+            await wrapped.log(filtered)
+        }
     }
 }
 
-let gdprCompliantLogger = MaskingAuditLogger(wrapping: ConsoleAuditLogger.production)
-let auditMiddleware = AuditLoggingMiddleware(logger: gdprCompliantLogger)
+let maskedLogger = MaskingAuditLogger(wrapping: ConsoleAuditLogger.production)
+let auditMiddleware = AuditLoggingMiddleware(logger: maskedLogger)
 ```
 
 ## ⚠️ Error Handling
 
 ### Secure Error Messages
 
-Never expose sensitive information in error messages:
+Never expose sensitive information in client error messages. Place the sanitizer outside the
+metrics wrapper so metrics sees the original failure before it is translated. `.errorHandling`
+(600) runs inside authentication (100) and cannot catch an authentication rejection:
 
 ```swift
 struct SecureErrorMiddleware: Middleware {
-    let priority: ExecutionPriority = .errorHandling
+    // Register before metrics and authentication at the same priority.
+    let priority: ExecutionPriority = .authentication
 
     func execute<T: Command>(
         _ command: T,
@@ -747,8 +802,15 @@ struct SecureErrorMiddleware: Middleware {
         switch error {
         case let pipelineError as PipelineError:
             switch pipelineError {
-            case .validation, .authorization, .rateLimitExceeded:
-                return pipelineError // These are safe to expose
+            case .authentication, .rateLimitExceeded:
+                return pipelineError // These cases carry only fixed text and scalar retry details.
+
+            case .validation:
+                // Application-defined reasons and field names can contain sensitive values.
+                return PipelineError.validation(field: nil, reason: .custom("Invalid request"))
+
+            case .authorization:
+                return PipelineError.authorization(reason: .invalidCredentials)
 
             default:
                 // Hide implementation details
@@ -761,6 +823,28 @@ struct SecureErrorMiddleware: Middleware {
     }
 }
 ```
+
+Register the outer wrappers before authentication. The sorted chain is sanitizer → metrics →
+authentication → remaining middleware → handler. On failure it unwinds in reverse: metrics
+counts the original rejection, then the sanitizer translates it. Adding these wrappers after
+authentication at equal priority would prevent them from observing its rejection.
+
+```swift
+func addSecurityWrappers<C: Command, H: CommandHandler>(
+    to pipeline: StandardPipeline<C, H>,
+    authentication: AuthenticationMiddleware
+) async throws where H.CommandType == C {
+    try await pipeline.addMiddlewares([
+        SecureErrorMiddleware(),
+        SecurityMetricsMiddleware(),
+        authentication
+    ])
+}
+```
+
+`AuditLoggingMiddleware` has `.monitoring` priority (350), so its default lifecycle logging starts
+after authentication and authorization succeed. Use the outer metrics wrapper above to count
+rejections from those earlier stages.
 
 There is no standalone `ValidationError`, `AuthorizationError`, `RateLimitError`, or
 `GenericError` type — every pipeline error is a case of the single `PipelineError` enum.

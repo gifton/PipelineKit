@@ -21,8 +21,7 @@ import Compression
 ///
 /// ```swift
 /// let compressionMiddleware = CompressionMiddleware(
-///     algorithm: .zlib,
-///     compressionLevel: .balanced,
+///     algorithm: .rawDeflate,
 ///     minimumSize: 1024 // Only compress data > 1KB
 /// )
 ///
@@ -35,23 +34,19 @@ import Compression
 /// ## Performance Considerations
 ///
 /// - Compression trades CPU for memory/bandwidth
-/// - Use `.fast` level for real-time systems
-/// - Use `.best` level for batch processing
+/// - Encoding uses the platform codec settings; compression levels are not configurable
 /// - Monitor compression ratios to ensure effectiveness
 ///
 /// - Note: This middleware has `.postProcessing` priority to compress
 ///   after business logic but before network transmission.
 ///
-/// - SeeAlso: `CompressionAlgorithm`, `CompressionLevel`, `Middleware`
+/// - SeeAlso: `CompressionAlgorithm`, `Middleware`
 public struct CompressionMiddleware: Middleware {
     /// Priority ensures compression happens at the right time.
     public let priority: ExecutionPriority = .postProcessing
     
     /// The compression algorithm to use.
     private let algorithm: CompressionAlgorithm
-    
-    /// Compression level (speed vs size tradeoff).
-    private let compressionLevel: CompressionLevel
     
     /// Minimum data size to trigger compression (bytes).
     private let minimumSize: Int
@@ -63,17 +58,14 @@ public struct CompressionMiddleware: Middleware {
     ///
     /// - Parameters:
     ///   - algorithm: The compression algorithm to use
-    ///   - compressionLevel: Balance between speed and compression ratio
     ///   - minimumSize: Minimum payload size to compress (default: 1KB)
     ///   - trackStatistics: Whether to track compression metrics
     public init(
-        algorithm: CompressionAlgorithm = .zlib,
-        compressionLevel: CompressionLevel = .balanced,
+        algorithm: CompressionAlgorithm = .rawDeflate,
         minimumSize: Int = 1024,
         trackStatistics: Bool = true
     ) {
         self.algorithm = algorithm
-        self.compressionLevel = compressionLevel
         self.minimumSize = minimumSize
         self.trackStatistics = trackStatistics
     }
@@ -107,8 +99,7 @@ public struct CompressionMiddleware: Middleware {
                 // Compress the data
                 let compressedData = try CompressionUtility.compress(
                     dataToCompress,
-                    using: algorithm,
-                    level: compressionLevel
+                    using: algorithm
                 )
                 
                 // Only use compressed version if it's actually smaller
@@ -122,7 +113,6 @@ public struct CompressionMiddleware: Middleware {
                     // Store compression metadata
                     context.setMetadata("compression.applied", value: true)
                     context.setMetadata("compression.algorithm", value: algorithm.rawValue)
-                    context.setMetadata("compression.level", value: compressionLevel.rawValue)
                     context.setMetadata("compression.originalSize", value: dataToCompress.count)
                     context.setMetadata("compression.compressedSize", value: compressedData.count)
                     context.setMetadata("compression.ratio", value: Double(dataToCompress.count) / Double(compressedData.count))
@@ -160,8 +150,7 @@ public struct CompressionMiddleware: Middleware {
                 // Compress the result data
                 let compressedData = try CompressionUtility.compress(
                     dataToCompress,
-                    using: algorithm,
-                    level: compressionLevel
+                    using: algorithm
                 )
                 
                 // Only use compressed version if it's actually smaller
@@ -204,22 +193,6 @@ public struct CompressionMiddleware: Middleware {
         return false
     }
     
-    private func estimateCompressedSize(_ originalSize: Int) -> Int {
-        // Estimate based on typical compression ratios
-        switch algorithm {
-        case .zlib:
-            return Int(Double(originalSize) * 0.3) // ~70% compression
-        case .lzfse:
-            return Int(Double(originalSize) * 0.35) // ~65% compression
-        case .lz4:
-            return Int(Double(originalSize) * 0.4) // ~60% compression
-        case .gzip:
-            return Int(Double(originalSize) * 0.28) // ~72% compression
-        case .brotli:
-            return Int(Double(originalSize) * 0.25) // ~75% compression
-        }
-    }
-    
     private func updateStatistics(originalSize: Int, compressedSize: Int, duration: TimeInterval) async {
         // In production, this would update metrics collectors
         let ratio = Double(originalSize) / Double(compressedSize)
@@ -241,65 +214,48 @@ public struct CompressionMiddleware: Middleware {
 
 // MARK: - Supporting Types
 
-/// Available compression algorithms.
+/// Wire formats emitted by the platform codecs, using their default encoder settings.
 public enum CompressionAlgorithm: String, Sendable, CaseIterable {
-    /// Zlib compression (good balance).
-    case zlib
-    
-    /// Apple's LZFSE (optimized for Apple platforms).
+    /// RFC 1951 raw DEFLATE without a zlib or gzip container.
+    case rawDeflate = "deflate-raw"
+
+    /// Apple's LZFSE format.
     case lzfse
-    
-    /// LZ4 (very fast, moderate compression).
-    case lz4
-    
-    /// Gzip compression (widely compatible).
-    case gzip
-    
-    /// Brotli (best compression, slower).
-    case brotli
-    
-    /// The Foundation Compression algorithm type.
+
+    /// LZ4 with Apple's framing, as documented in the platform compression.h header.
+    case appleLZ4 = "apple-lz4"
+
     var foundationAlgorithm: compression_algorithm {
         switch self {
-        case .zlib: return COMPRESSION_ZLIB
+        case .rawDeflate: return COMPRESSION_ZLIB
         case .lzfse: return COMPRESSION_LZFSE
-        case .lz4: return COMPRESSION_LZ4
-        case .gzip: return COMPRESSION_ZLIB // Use zlib with gzip wrapper
-        case .brotli: return COMPRESSION_LZFSE // Fallback, Brotli not in Foundation
+        case .appleLZ4: return COMPRESSION_LZ4
         }
     }
 }
 
-/// Compression level (speed vs ratio tradeoff).
-public enum CompressionLevel: Sendable {
-    /// Fastest compression, lower ratio.
-    case fast
-    
-    /// Balanced speed and compression.
-    case balanced
-    
-    /// Best compression, slower.
-    case best
-    
-    /// Custom level (0-9).
-    case custom(Int)
-    
-    public var rawValue: String {
+/// Labels persisted by older PipelineKit versions, available only for decoding.
+///
+/// Historical `zlib` and `gzip` payloads are raw DEFLATE; historical `brotli`
+/// payloads are LZFSE. These labels never select genuine gzip or Brotli streams.
+/// `CompressionFormatContractTests` verifies each mapping with fixed legacy fixtures.
+public enum LegacyCompressionAlgorithm: String, Sendable, CaseIterable {
+    /// Historical `zlib` label selecting raw DEFLATE decoding.
+    case zlib
+    /// Historical `gzip` label selecting raw DEFLATE decoding without a gzip container.
+    case gzip
+    /// Historical label selecting Apple's LZFSE decoding.
+    case lzfse
+    /// Historical `brotli` label selecting LZFSE decoding, not the Brotli format.
+    case brotli
+    /// Historical `lz4` label selecting Apple's framed LZ4 decoding.
+    case lz4
+
+    fileprivate var canonicalAlgorithm: CompressionAlgorithm {
         switch self {
-        case .fast: return "fast"
-        case .balanced: return "balanced"
-        case .best: return "best"
-        case .custom(let level): return "custom-\(level)"
-        }
-    }
-    
-    /// Compression level for zlib (-1 to 9).
-    var zlibLevel: Int32 {
-        switch self {
-        case .fast: return 1
-        case .balanced: return 5
-        case .best: return 9
-        case .custom(let level): return Int32(max(0, min(9, level)))
+        case .zlib, .gzip: return .rawDeflate
+        case .lzfse, .brotli: return .lzfse
+        case .lz4: return .appleLZ4
         }
     }
 }
@@ -336,11 +292,19 @@ public protocol CompressibleResult {
 
 /// Errors that can occur during compression operations.
 public enum CompressionError: Error, LocalizedError, Sendable {
+    /// Compression failed for the associated diagnostic reason.
     case compressionFailed(String)
+    /// Decompression failed for the associated validation or decoding reason.
     case decompressionFailed(String)
+    /// The associated algorithm identifier is unsupported.
     case unsupportedAlgorithm(String)
+    /// Encoding allocation overflowed, or decoding exceeded the associated output limit.
+    ///
+    /// The associated byte count is the input size for encoding allocation overflow,
+    /// or the caller's `maxOutputSize` for a decoding limit violation.
     case dataTooLarge(Int)
     
+    /// A human-readable description of the error and its associated value.
     public var errorDescription: String? {
         switch self {
         case .compressionFailed(let reason):
@@ -359,15 +323,19 @@ public enum CompressionError: Error, LocalizedError, Sendable {
 
 /// Utility class for performing actual compression/decompression.
 public final class CompressionUtility: Sendable {
-    /// Calculate the maximum possible compressed size for a given input size.
+    /// Return a saturating allocation estimate using a one-percent margin plus 16 bytes.
     ///
-    /// This uses the zlib formula for worst-case compression overhead.
-    /// - Parameter sourceSize: The size of the uncompressed data
-    /// - Returns: The maximum possible compressed size
+    /// This estimate is not a proven upper bound for every codec or input. The encoder
+    /// independently checks its allocation arithmetic and reports insufficient output space.
+    /// - Precondition: `sourceSize` is nonnegative.
+    /// - Returns: The estimate, or `Int.max` if the derived arithmetic overflows.
     public static func maxCompressedSize(for sourceSize: Int) -> Int {
-        return sourceSize + sourceSize / 100 + 16
+        precondition(sourceSize >= 0, "Source size must be nonnegative")
+        let (withMargin, marginOverflow) = sourceSize.addingReportingOverflow(sourceSize / 100)
+        let (estimate, overheadOverflow) = withMargin.addingReportingOverflow(16)
+        return marginOverflow || overheadOverflow ? Int.max : estimate
     }
-    
+
     /// Compress data using the specified algorithm, including nonempty small payloads.
     ///
     /// Empty input retains its empty representation. `testSmallPayloadRoundTrips` in
@@ -375,8 +343,7 @@ public final class CompressionUtility: Sendable {
     /// Middleware callers still decide whether compression is beneficial.
     public static func compress(
         _ data: Data,
-        using algorithm: CompressionAlgorithm,
-        level: CompressionLevel = .balanced
+        using algorithm: CompressionAlgorithm
     ) throws -> Data {
         guard !data.isEmpty else { return data }
         
@@ -414,6 +381,24 @@ public final class CompressionUtility: Sendable {
         }
     }
     
+    /// Decode bytes identified by a historical PipelineKit algorithm label.
+    ///
+    /// This preserves the original bytes-to-codec mapping, including the old `gzip`
+    /// and `brotli` aliases. `originalSize` and `maxOutputSize` follow `decompress`:
+    /// the hint is nonnegative, the limit is positive, and a complete stream with no
+    /// trailing input is required. `CompressionFormatContractTests` covers these routes.
+    public static func decompressLegacy(
+        _ data: Data,
+        using algorithm: LegacyCompressionAlgorithm,
+        originalSize: Int? = nil,
+        maxOutputSize: Int
+    ) throws -> Data {
+        try decompress(
+            data, using: algorithm.canonicalAlgorithm,
+            originalSize: originalSize, maxOutputSize: maxOutputSize
+        )
+    }
+
     /// Decode one complete compressed stream within a caller-selected output byte limit.
     ///
     /// - Parameters:
@@ -514,13 +499,12 @@ public final class CompressionUtility: Sendable {
     /// - Returns: The compression ratio, or nil if compression fails
     public static func compressionRatio(
         for data: Data,
-        using algorithm: CompressionAlgorithm,
-        level: CompressionLevel = .balanced
+        using algorithm: CompressionAlgorithm
     ) -> Result<Double, CompressionError> {
         guard !data.isEmpty else { return .success(1.0) }
         
         do {
-            let compressed = try compress(data, using: algorithm, level: level)
+            let compressed = try compress(data, using: algorithm)
             let ratio = Double(data.count) / Double(compressed.count)
             return .success(ratio)
         } catch let error as CompressionError {

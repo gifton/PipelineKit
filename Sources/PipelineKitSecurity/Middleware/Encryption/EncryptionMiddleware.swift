@@ -231,21 +231,17 @@ public struct EncryptionMiddleware: Middleware {
                         let value = try await encryptionService.decrypt(encrypted, as: Data.self)
                         decryptedValue = DecryptedValue(value)
                     default:
-                        // For custom types, try to decrypt as JSON-encoded Data
-                        // The result implementation should handle deserialization
+                        let data = try await decryptSerializedPlaintext(encrypted)
                         if encrypted.encodingFormat == "json" {
-                            let data = try await encryptionService.decrypt(encrypted, as: Data.self)
-                            // Store as Data but with type hint for later deserialization
+                            // The result chooses a concrete type; the hint is only a label.
                             decryptedValue = DecryptedValue(TypedData(data: data, originalType: typeHint))
                         } else {
-                            // Fallback to raw Data
-                            let data = try await encryptionService.decrypt(encrypted, as: Data.self)
                             decryptedValue = DecryptedValue(data)
                         }
                     }
                 } else {
-                    // No type hint - fallback to Data and let result handle it
-                    let data = try await encryptionService.decrypt(encrypted, as: Data.self)
+                    // No hint: preserve serialization for the result to interpret.
+                    let data = try await decryptSerializedPlaintext(encrypted)
                     decryptedValue = DecryptedValue(data)
                 }
                 
@@ -294,6 +290,15 @@ public struct EncryptionMiddleware: Middleware {
             throw EncryptionError.decryptionFailed("Failed to cast decrypted result to type \(T.self)")
         }
         return typedResult
+    }
+
+    private func decryptSerializedPlaintext(_ data: EncryptedData) async throws -> Data {
+        guard let service = encryptionService as? any SerializedPlaintextDecrypting else {
+            throw EncryptionError.decryptionFailed(
+                "Encryption service does not support authenticated serialized plaintext; conform to SerializedPlaintextDecrypting"
+            )
+        }
+        return try await service.decryptSerializedPlaintext(data)
     }
 }
 

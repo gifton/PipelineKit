@@ -12,6 +12,8 @@ internal actor LeakyBucket {
     private var lastLeakTime: Date
 
     init(capacity: Int, leakRate: TimeInterval, now: @escaping @Sendable () -> Date = { Date() }) {
+        precondition(capacity >= 0, "Leaky bucket capacity must be nonnegative")
+        precondition(leakRate.isFinite && leakRate > 0, "Leak interval must be finite and positive")
         self.now = now
         self.capacity = capacity
         self.leakRate = leakRate
@@ -53,7 +55,15 @@ internal actor LeakyBucket {
         let timeSinceLastLeak = now.timeIntervalSince(lastLeakTime)
 
         // Calculate how many items have leaked
-        let leakedItems = Int(timeSinceLastLeak / leakRate)
+        guard timeSinceLastLeak > 0 else { return }
+        let elapsedLeaks = timeSinceLastLeak / leakRate
+        if elapsedLeaks >= Double(currentLevel) {
+            currentLevel = 0
+            // Preserve the fractional leak phase without converting the unbounded quotient.
+            lastLeakTime = now.addingTimeInterval(-timeSinceLastLeak.truncatingRemainder(dividingBy: leakRate))
+            return
+        }
+        let leakedItems = Int(elapsedLeaks)
 
         if leakedItems > 0 {
             currentLevel = max(0, currentLevel - leakedItems)

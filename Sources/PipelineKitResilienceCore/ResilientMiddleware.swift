@@ -115,7 +115,7 @@ public final class ResilientMiddleware: Middleware, UnsafeMiddleware, @unchecked
                 // Wait before next attempt
                 let delay = retryPolicy.delayStrategy.delay(for: attempt)
                 if delay > 0 {
-                    try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+                    try await Task.sleep(nanoseconds: NumericDuration.nanoseconds(delay))
                 }
             }
         }

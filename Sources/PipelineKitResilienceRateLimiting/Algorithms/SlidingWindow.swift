@@ -15,6 +15,7 @@ internal actor SlidingWindow {
     }
 
     func setWindowSize(_ size: TimeInterval) {
+        precondition(size.isFinite && size > 0, "Rate limit window must be finite and positive")
         windowSize = size
     }
     
@@ -24,7 +25,7 @@ internal actor SlidingWindow {
             requests.append(now)
             
             // Clean up old requests outside the window
-            let cutoff = now.addingTimeInterval(-windowSize * 2)
+            let cutoff = now.addingTimeInterval(-min(windowSize, Double.greatestFiniteMagnitude / 2) * 2)
             requests.removeAll { $0 < cutoff }
         }
     }

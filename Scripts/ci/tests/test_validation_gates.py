@@ -3,6 +3,7 @@ import os
 import re
 from pathlib import Path
 import subprocess
+import sys
 import shutil
 import tempfile
 import textwrap
@@ -327,6 +328,82 @@ class ReleaseWorkflowTests(SwiftWorkflowTests):
         result, calls = self.run_workflow(test_exit='7')
         self.assertEqual(result.returncode, 7, result.stdout + result.stderr)
         self.assertEqual([call[0] for call in calls], ['build', 'test'], calls)
+
+
+    def run_validation_gate(self, configuration, failing_script='', run_attempt='1'):
+        calls_path = self.dir / 'validation-calls'
+        calls_path.write_text('')
+        fake_python = self.dir / 'python3'
+        fake_python.write_text(f'#!{sys.executable}\n' + r"""
+import json, os, pathlib, sys
+args = sys.argv[1:]
+with open(os.environ['VALIDATION_CALLS'], 'a') as log:
+    log.write(json.dumps(args) + "\n")
+if pathlib.Path(args[0]).name == os.environ['FAILING_SCRIPT']:
+    sys.exit(71 if 'numeric' in args[0] else 72)
+if '--logs' in args:
+    pathlib.Path(args[args.index('--logs') + 1]).mkdir(parents=True, exist_ok=False)
+if '--log' in args:
+    log = pathlib.Path(args[args.index('--log') + 1])
+    log.parent.mkdir(parents=True, exist_ok=True)
+    log.write_text('independent oracle passed')
+""")
+        fake_python.chmod(0o755)
+        env = dict(os.environ, PATH=str(self.dir) + os.pathsep + os.environ['PATH'],
+                   VALIDATION_CALLS=str(calls_path), FAILING_SCRIPT=failing_script,
+                   RUNNER_TEMP=str(self.dir / 'runner temp'), GITHUB_RUN_ID='12345',
+                   GITHUB_RUN_ATTEMPT=run_attempt)
+        name = f'Numeric and compression validation ({configuration.title()})'
+        script = self.run_step(name, 'ci-multiplatform.yml', indent=6)
+        result = subprocess.run(['bash', '-e', '-o', 'pipefail', '-c', script],
+                                env=env, cwd=self.dir, text=True, capture_output=True, timeout=10)
+        calls = [json.loads(line) for line in calls_path.read_text().splitlines()]
+        return result, calls
+
+    def test_validation_gates_forward_configuration_and_use_fresh_run_paths(self):
+        paths = []
+        for configuration in ('debug', 'release'):
+            for attempt in ('1', '2'):
+                with self.subTest(configuration=configuration, attempt=attempt):
+                    result, calls = self.run_validation_gate(configuration, run_attempt=attempt)
+                    self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                    prefix = self.dir / 'runner temp' / f'12345-{attempt}'
+                    numeric_logs = prefix / f'numeric-{configuration}'
+                    compression_log = prefix / f'compression-{configuration}.log'
+                    self.assertEqual(calls, [
+                        ['Scripts/validation/check_numeric_boundaries.py', '--configuration', configuration,
+                         '--logs', str(numeric_logs)],
+                        ['Scripts/validation/check_compression_formats.py', '--configuration', configuration,
+                         '--log', str(compression_log)]
+                    ])
+                    self.assertTrue(numeric_logs.is_dir())
+                    self.assertTrue(compression_log.is_file())
+                    paths.extend([numeric_logs, compression_log])
+        self.assertEqual(len(set(paths)), 8)
+
+    def test_each_validation_driver_failure_is_fatal_in_both_configurations(self):
+        for configuration in ('debug', 'release'):
+            for failing_script, exit_code, count in [
+                ('check_numeric_boundaries.py', 71, 1),
+                ('check_compression_formats.py', 72, 2)
+            ]:
+                with self.subTest(configuration=configuration, failing_script=failing_script):
+                    result, calls = self.run_validation_gate(configuration, failing_script)
+                    self.assertEqual(result.returncode, exit_code, result.stdout + result.stderr)
+                    self.assertEqual(len(calls), count)
+                    self.assertEqual(Path(calls[-1][0]).name, failing_script)
+
+    def test_validation_gates_follow_built_tests_without_advisory_policy(self):
+        workflow = (ROOT / '.github/workflows/ci-multiplatform.yml').read_text()
+        job = workflow.split('  macos-spm:', 1)[1].split('  ios-sim:', 1)[0]
+        self.assertNotIn('continue-on-error:', job)
+        self.assertIn('- name: Numeric and compression validation (Debug)', job)
+        self.assertIn('- name: Numeric and compression validation (Release)', job)
+        debug = job.index('- name: Numeric and compression validation (Debug)')
+        release = job.index('- name: Numeric and compression validation (Release)')
+        self.assertLess(job.index('- name: Test (Debug + Coverage)'), debug)
+        self.assertLess(debug, job.index('- name: Build (Release)'))
+        self.assertLess(job.index('- name: Test (Release)'), release)
 
 
 class StatusTests(unittest.TestCase):

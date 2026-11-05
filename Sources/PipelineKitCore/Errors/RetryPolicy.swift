@@ -22,6 +22,8 @@ public struct RetryPolicy: Sendable {
         delayStrategy: DelayStrategy = .exponentialBackoff(base: 0.1, multiplier: 2.0, maxDelay: 10.0),
         shouldRetry: @escaping @Sendable (any Error) -> Bool = { _ in true }
     ) {
+        precondition(maxAttempts >= 1, "Retry policy must allow at least one attempt")
+        delayStrategy.validate()
         self.maxAttempts = maxAttempts
         self.delayStrategy = delayStrategy
         self.shouldRetry = shouldRetry
@@ -69,11 +71,26 @@ public enum DelayStrategy: Sendable {
     /// No delay between attempts
     case immediate
     
+    package func validate() {
+        switch self {
+        case .immediate: break
+        case .fixed(let interval): _ = NumericDuration.nanoseconds(interval)
+        case .linear(let base): _ = NumericDuration.nanoseconds(base)
+        case let .exponentialBackoff(base, multiplier, maxDelay, jitter):
+            _ = NumericDuration.nanoseconds(base)
+            _ = NumericDuration.nanoseconds(maxDelay)
+            precondition(multiplier.isFinite && multiplier >= 0, "Retry multiplier must be finite and nonnegative")
+            precondition(jitter.isFinite && (0...1).contains(jitter), "Retry jitter must be between zero and one")
+        }
+    }
+
     /// Calculates the delay for a given attempt number.
     ///
     /// - Parameter attempt: The attempt number (1-based)
     /// - Returns: The delay in seconds before the next attempt
     public func delay(for attempt: Int) -> TimeInterval {
+        precondition(attempt >= 1, "Retry attempt must be positive")
+        validate()
         switch self {
         case .immediate:
             return 0
@@ -82,15 +99,15 @@ public enum DelayStrategy: Sendable {
             return interval
             
         case .linear(let base):
-            return base * Double(attempt)
+            return NumericDuration.cappedProduct(base, Double(attempt), maximum: NumericDuration.maximumSeconds)
             
         case let .exponentialBackoff(base, multiplier, maxDelay, jitter):
-            let exponentialDelay = base * pow(multiplier, Double(attempt - 1))
+            let exponentialDelay = NumericDuration.cappedProduct(base, pow(multiplier, Double(attempt - 1)), maximum: maxDelay)
             let cappedDelay = min(exponentialDelay, maxDelay)
             
             // Add jitter to avoid thundering herd
             let jitterAmount = cappedDelay * jitter * Double.random(in: -1...1)
-            return max(0, cappedDelay + jitterAmount)
+            return min(maxDelay, max(0, cappedDelay + jitterAmount))
         }
     }
 }

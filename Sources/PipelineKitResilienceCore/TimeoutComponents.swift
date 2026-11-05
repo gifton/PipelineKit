@@ -1,5 +1,6 @@
 import Foundation
 import PipelineKit
+import PipelineKitCore
 
 // MARK: - Grace Period Manager
 
@@ -12,6 +13,7 @@ actor GracePeriodManager {
         duration: TimeInterval,
         onExpiration: @escaping @Sendable () async -> Void
     ) -> UUID {
+        _ = NumericDuration.nanoseconds(duration)
         let id = UUID()
 
         let task = Task {
@@ -22,7 +24,7 @@ actor GracePeriodManager {
                 // `Task.sleep` already throws `CancellationError` immediately on
                 // cancellation, so a single sleep provides the same prompt
                 // cancellation responsiveness as the previous chunked loop.
-                try await Task.sleep(nanoseconds: UInt64(duration * 1_000_000_000))
+                try await Task.sleep(nanoseconds: NumericDuration.nanoseconds(duration))
             } catch {
                 // Cancelled during sleep — swallow the error and do not expire.
                 return
@@ -143,6 +145,10 @@ public struct GracePeriodBackoff: Sendable {
         multiplier: Double = 1.5,
         jitter: Double = 0.1
     ) {
+        _ = NumericDuration.nanoseconds(initialDuration)
+        _ = NumericDuration.nanoseconds(maxDuration)
+        precondition(multiplier.isFinite && multiplier >= 0, "Grace multiplier must be finite and nonnegative")
+        precondition(jitter.isFinite && (0...1).contains(jitter), "Grace jitter must be between zero and one")
         self.initialDuration = initialDuration
         self.maxDuration = maxDuration
         self.multiplier = multiplier
@@ -151,14 +157,15 @@ public struct GracePeriodBackoff: Sendable {
 
     /// Calculate next backoff duration
     public func nextDuration(attemptNumber: Int) -> TimeInterval {
-        let baseDelay = initialDuration * pow(multiplier, Double(attemptNumber - 1))
+        precondition(attemptNumber >= 1, "Grace attempt must be positive")
+        let baseDelay = NumericDuration.cappedProduct(initialDuration, pow(multiplier, Double(attemptNumber - 1)), maximum: maxDuration)
         let clampedDelay = min(baseDelay, maxDuration)
 
         // Add jitter
         let jitterRange = clampedDelay * jitter
         let randomJitter = Double.random(in: -jitterRange...jitterRange)
 
-        return max(0, clampedDelay + randomJitter)
+        return min(maxDuration, max(0, clampedDelay + randomJitter))
     }
 }
 
