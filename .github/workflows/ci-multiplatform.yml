@@ -177,6 +177,9 @@ jobs:
             python3 Scripts/validation/run_check.py \
               --id "consumer-error-contract-${configuration}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" --timeout 60 -- \
               swift run --package-path Tests/Integration/Consumer --configuration "$configuration" --skip-build Consumer error-contract
+            python3 Scripts/validation/run_check.py \
+              --id "consumer-lifecycle-${configuration}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" --timeout 60 -- \
+              swift run --package-path Tests/Integration/Consumer --configuration "$configuration" --skip-build Consumer lifecycle
             "$telemetry_python" Scripts/validation/check_telemetry_formats.py \
               --configuration "$configuration" --log "${validation_root}/telemetry-${configuration}.log"
           done

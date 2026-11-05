@@ -572,6 +572,7 @@ do {
     case "cache-identity": try await cacheIdentity()
     case "encryption": try await encryption()
     case "error-contract": try await errorContract()
+    case "lifecycle": try await lifecycle()
     case "bulkhead": try await bulkhead()
     case "metrics": try await metrics()
     case "telemetry-export": try await telemetryExport()

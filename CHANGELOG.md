@@ -12,6 +12,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 See the [compiled migration guide](docs/migrations/first-stabilization-batch.md) before upgrading.
 No release version or tag is selected by this batch.
 
+- The [monitoring lifecycle migration](docs/migrations/monitoring-and-connection-lifecycle.md)
+  documents joined health/memory shutdown, the callback self-stop exception,
+  generation-safe memory monitoring and observer cleanup, and hub-owned metrics
+  connections with explicit disconnect identifiers. Ordinary subscriptions remain weak.
+
 - The [error and cancellation migration](docs/migrations/error-cancellation-and-validation.md)
   documents typed cancellation at pipeline/semaphore boundaries, cancellation-proof
   retry and failure scoring, default exclusion of non-service errors, and typed
