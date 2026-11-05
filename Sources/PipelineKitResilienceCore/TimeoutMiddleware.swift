@@ -2,27 +2,27 @@ import Foundation
 import PipelineKit
 import PipelineKitCore
 
-/// A comprehensive timeout middleware that both tracks and enforces time limits on command execution.
+/// Applies cooperative execution deadlines and records timeout diagnostics.
 ///
 /// This middleware provides:
-/// - Actual timeout enforcement with task cancellation
+/// - Cancellation requests when the execution deadline and fixed grace period expire
 /// - Configurable per-command timeouts
 /// - Observability events for monitoring
 /// - Custom timeout handlers and grace periods
 ///
 /// ## Implementation Note
-/// This middleware uses `withoutActuallyEscaping` to safely race the command execution
-/// against a timeout within Swift's strict concurrency model. This allows us to use
-/// task groups while respecting the non-escaping nature of the `next` parameter.
+/// Execution and diagnostic callbacks remain owned until they settle. Cancellation
+/// does not preempt a handler that continues running; see
+/// `TimeoutPolicyContractTests.testTimeoutRetainsHandlerUntilSettlementForEveryFinalHandlerOutcome`.
 ///
 /// ## Example Usage
 /// ```swift
 /// let middleware = TimeoutMiddleware(
-///     defaultTimeout: 30.0,
 ///     commandTimeouts: [
 ///         "CreateUserCommand": 10.0,
 ///         "SendEmailCommand": 5.0
-///     ]
+///     ],
+///     defaultTimeout: 30.0
 /// )
 /// pipeline.use(middleware)
 /// ```
@@ -38,11 +38,8 @@ public struct TimeoutMiddleware: Middleware {
         /// Specific timeouts per command type
         public let commandTimeouts: [String: TimeInterval]
 
-        /// Grace period after timeout before forceful cancellation
+        /// Fixed additional time before requesting cooperative cancellation.
         public let gracePeriod: TimeInterval
-
-        /// Grace period backoff configuration
-        public let gracePeriodBackoff: GracePeriodBackoff?
 
         /// Custom timeout resolver function
         public let timeoutResolver: (@Sendable (any Command) -> TimeInterval?)?
@@ -53,9 +50,6 @@ public struct TimeoutMiddleware: Middleware {
         /// Whether to emit observability events
         public let emitEvents: Bool
 
-        /// Whether to cancel the task on timeout or just throw an error
-        public let cancelOnTimeout: Bool
-
         /// Metrics collector for detailed timeout tracking
         public let metricsCollector: (any MetricsCollector)?
 
@@ -63,11 +57,9 @@ public struct TimeoutMiddleware: Middleware {
             defaultTimeout: TimeInterval = 30.0,
             commandTimeouts: [String: TimeInterval] = [:],
             gracePeriod: TimeInterval = 2.0,
-            gracePeriodBackoff: GracePeriodBackoff? = nil,
             timeoutResolver: (@Sendable (any Command) -> TimeInterval?)? = nil,
             timeoutHandler: (@Sendable (any Command, TimeoutContext) async -> Void)? = nil,
             emitEvents: Bool = true,
-            cancelOnTimeout: Bool = true,
             metricsCollector: (any MetricsCollector)? = nil
         ) {
             NumericDuration.validateTimeout(defaultTimeout)
@@ -76,18 +68,18 @@ public struct TimeoutMiddleware: Middleware {
             self.defaultTimeout = defaultTimeout
             self.commandTimeouts = commandTimeouts
             self.gracePeriod = gracePeriod
-            self.gracePeriodBackoff = gracePeriodBackoff
             self.timeoutResolver = timeoutResolver
             self.timeoutHandler = timeoutHandler
             self.emitEvents = emitEvents
-            self.cancelOnTimeout = cancelOnTimeout
             self.metricsCollector = metricsCollector
         }
     }
 
     private let configuration: Configuration
-    private let gracePeriodManager = GracePeriodManager()
-    private let stateTracker = TimeoutStateTracker()
+
+    private struct OperationFailure: Error, Sendable {
+        let underlying: any Error
+    }
 
     public init(configuration: Configuration) {
         self.configuration = configuration
@@ -115,10 +107,6 @@ public struct TimeoutMiddleware: Middleware {
         NumericDuration.validateTimeout(timeout)
         let startTime = Date()
 
-        // Update state
-        _ = await stateTracker.transition(to: .executing)
-
-        // Now that next is @escaping, we can pass it directly to our timeout utility
         return try await executeWithTimeout(
             command: command,
             commandType: commandType,
@@ -139,20 +127,24 @@ public struct TimeoutMiddleware: Middleware {
         startTime: Date,
         next: @escaping MiddlewareNext<T>
     ) async throws -> T.Result {
+        let operation: @Sendable () async throws -> T.Result = {
+            do {
+                return try await next(command, context)
+            } catch {
+                throw OperationFailure(underlying: error)
+            }
+        }
+
         do {
-            let result: T.Result
+            let outcome: TimeoutExecutionOutcome<T.Result>
 
             if configuration.gracePeriod > 0 {
                 // Use timeout with grace period
-                result = try await withTimeoutAndGrace(
+                outcome = try await withTimeoutAndGrace(
                     timeout: timeout,
                     gracePeriod: configuration.gracePeriod,
-                    operation: {
-                        try await next(command, context)
-                    },
-                    onGracePeriodStart: { [stateTracker, configuration] in
-                        _ = await stateTracker.transition(to: .gracePeriod)
-
+                    operation: operation,
+                    onGracePeriodStart: { [configuration] in
                         // Emit grace period event
                         if configuration.emitEvents {
                             await context.emitMiddlewareEvent(
@@ -169,19 +161,14 @@ public struct TimeoutMiddleware: Middleware {
                 )
             } else {
                 // Simple timeout without grace period
-                result = try await withTimeout(timeout) {
-                    try await next(command, context)
-                }
+                let value = try await withTimeout(timeout, operation: operation)
+                outcome = TimeoutExecutionOutcome(value: value, gracePeriodUsed: false)
             }
-
-            // Command completed successfully
-            let currentState = await stateTracker.currentState()
-            _ = await stateTracker.transition(to: .completed)
 
             let duration = Date().timeIntervalSince(startTime)
 
             // Handle grace period recovery
-            if currentState == .gracePeriod && configuration.gracePeriod > 0 {
+            if outcome.gracePeriodUsed {
                 // Record recovery metrics - we were in grace period
                 if let collector = configuration.metricsCollector {
                     await collector.recordCounter(
@@ -205,11 +192,10 @@ public struct TimeoutMiddleware: Middleware {
                 )
             }
 
-            return result
+            return outcome.value
+        } catch let failure as OperationFailure {
+            throw failure.underlying
         } catch let timeoutError as TimeoutError {
-            // Handle timeout errors
-            _ = await stateTracker.transition(to: .timedOut)
-
             switch timeoutError {
             case .exceeded(let duration):
                 let actualDuration = Date().timeIntervalSince(startTime)
@@ -280,8 +266,6 @@ public struct TimeoutMiddleware: Middleware {
                 )
             }
         } catch {
-            // Command failed with other error
-            _ = await stateTracker.transition(to: .completed)
             throw error
         }
     }
@@ -428,19 +412,6 @@ public extension TimeoutMiddleware {
             configuration: Configuration(
                 defaultTimeout: defaultTimeout,
                 timeoutResolver: timeoutResolver
-            )
-        )
-    }
-
-    /// Creates a timeout middleware with progressive backoff grace period
-    init(
-        defaultTimeout: TimeInterval = 30.0,
-        gracePeriodBackoff: GracePeriodBackoff
-    ) {
-        self.init(
-            configuration: Configuration(
-                defaultTimeout: defaultTimeout,
-                gracePeriodBackoff: gracePeriodBackoff
             )
         )
     }
