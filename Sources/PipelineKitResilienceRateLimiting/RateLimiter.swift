@@ -165,7 +165,11 @@ public actor RateLimiter {
     ///   - identifier: The identifier to check.
     ///   - priority: Budget selected by a priority-based strategy; defaults to medium.
     /// - Returns: Current rate limit status
-    public func getStatus(identifier: String, priority: Priority = .medium) async -> RateLimitStatus {
+    /// - Throws: The original distributed-store error (including cancellation), or
+    ///   a validation error for a negative store count. An unavailable store does
+    ///   not imply an unused budget (`RateLimitStatusContractTests`).
+    public func getStatus(identifier: String, priority: Priority = .medium) async throws -> RateLimitStatus {
+        try Task.checkCancellation()
         let identifier = effectiveIdentifier(identifier, priority: priority)
         switch strategy {
         case let .tokenBucket(capacity, refillRate):
@@ -219,21 +223,16 @@ public actor RateLimiter {
             )
             
         case let .distributed(store, windowSize, maxRequests):
-            do {
-                let requestCount = try await store.getCount(key: identifier, windowSize: windowSize)
-                return RateLimitStatus(
-                    remaining: requestCount < 0 ? 0 : max(0, maxRequests - requestCount),
-                    limit: maxRequests,
-                    resetAt: now().addingTimeInterval(windowSize)
-                )
-            } catch {
-                // If we can't get the count, assume no requests
-                return RateLimitStatus(
-                    remaining: maxRequests,
-                    limit: maxRequests,
-                    resetAt: now().addingTimeInterval(windowSize)
-                )
+            let requestCount = try await store.getCount(key: identifier, windowSize: windowSize)
+            try Task.checkCancellation()
+            guard requestCount >= 0 else {
+                throw PipelineError.validation(field: "count", reason: .custom("Rate limit count must be nonnegative"))
             }
+            return RateLimitStatus(
+                remaining: max(0, maxRequests - requestCount),
+                limit: maxRequests,
+                resetAt: now().addingTimeInterval(windowSize)
+            )
             
         case let .priorityBased(limits):
             guard let config = limits[priority] else {

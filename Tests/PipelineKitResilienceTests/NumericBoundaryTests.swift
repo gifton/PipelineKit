@@ -197,7 +197,7 @@ final class NumericBoundaryTests: XCTestCase {
         case "health-interval": _ = HealthCheckMiddleware.Configuration(checkInterval: value)
         case "large-rate-status":
             let limiter = RateLimiter(strategy: .tokenBucket(capacity: value, refillRate: 0))
-            let status = await limiter.getStatus(identifier: "key")
+            let status = try await limiter.getStatus(identifier: "key")
             XCTAssertEqual(status.limit, Int.max)
         case "grace-zero-base":
             XCTAssertEqual(GracePeriodBackoff(initialDuration: 0).nextDuration(attemptNumber: Int.max), 0)

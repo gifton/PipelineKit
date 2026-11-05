@@ -42,7 +42,7 @@ public struct RateLimitingMiddleware: Middleware {
         let identifier = await identifierExtractor(command, context)
         let cost = costCalculator(command)
         guard try await limiter.allowRequest(identifier: identifier, cost: cost) else {
-            let status = await limiter.getStatus(identifier: identifier)
+            let status = try await limiter.getStatus(identifier: identifier)
             throw PipelineError.rateLimitExceeded(
                 limit: status.limit,
                 resetTime: status.resetAt,
