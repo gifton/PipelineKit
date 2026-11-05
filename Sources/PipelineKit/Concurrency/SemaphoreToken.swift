@@ -1,6 +1,7 @@
 import Foundation
 import PipelineKitCore
 import Atomics
+import Synchronization
 
 /// A token representing an acquired semaphore resource that automatically releases on cleanup.
 ///
@@ -27,6 +28,24 @@ import Atomics
 public final class SemaphoreToken: @unchecked Sendable {
     /// The closure to call when releasing the resource.
     private let releaseHandler: @Sendable () -> Void
+    private let asyncRelease: AsyncRelease?
+
+    private final class AsyncRelease: Sendable {
+        private let handler: @Sendable () async -> Void
+        private let pending = Mutex<Task<Void, Never>?>(nil)
+
+        init(handler: @escaping @Sendable () async -> Void) { self.handler = handler }
+
+        func task() -> Task<Void, Never> {
+            pending.withLock { pending in
+                if let pending { return pending }
+                let handler = self.handler
+                let task = Task { await handler() }
+                pending = task
+                return task
+            }
+        }
+    }
     
     /// Atomic flag tracking release state to prevent double-release.
     private let released = ManagedAtomic<Bool>(false)
@@ -41,6 +60,15 @@ public final class SemaphoreToken: @unchecked Sendable {
     ///                            to avoid retain cycles.
     public init(releaseHandler: @Sendable @escaping () -> Void) {
         self.releaseHandler = releaseHandler
+        self.asyncRelease = nil
+        self.acquiredAt = Date()
+    }
+
+    /// Supplies an asynchronous release that package wrappers can join before returning.
+    package init(asyncReleaseHandler: @Sendable @escaping () async -> Void) {
+        let asyncRelease = AsyncRelease(handler: asyncReleaseHandler)
+        self.asyncRelease = asyncRelease
+        self.releaseHandler = { _ = asyncRelease.task() }
         self.acquiredAt = Date()
     }
     
@@ -63,6 +91,16 @@ public final class SemaphoreToken: @unchecked Sendable {
         if released.exchange(true, ordering: .acquiring) == false {
             releaseHandler()
         }
+    }
+
+    /// Joins the async handler supplied by the package initializer, including a
+    /// release already started by `release()`. Cancellation does not skip the join.
+    /// testAcknowledgedTokenReleaseJoinsDuplicateAndCancelledCallers covers this path.
+    package func releaseAndWait() async {
+        release()
+        // A concurrent release can set the atomic flag before calling its handler.
+        // Both paths obtain the same task under the mutex, including that interval.
+        if let asyncRelease { await asyncRelease.task().value }
     }
     
     /// Ensures the resource is released when the token is deallocated.

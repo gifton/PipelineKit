@@ -89,11 +89,13 @@ final class DeadlockFixTest: XCTestCase {
             return total
         }
         
-        // Then - With rapid execution (0.001s), some commands complete quickly
-        // and free up slots. We should see at least 8 complete (the initial batch)
-        // but potentially more as slots are reused. The key is no deadlock.
-        XCTAssertGreaterThanOrEqual(results, 8, "At least 8 commands should complete")
+        // The strict outstanding limit admits four initial operations; settled
+        // work may free slots before later submissions reach admission.
+        XCTAssertGreaterThanOrEqual(results, 4, "The initial capacity should complete")
         XCTAssertLessThanOrEqual(results, 20, "At most 20 commands can complete")
+        let stats = await middleware.getStats()
+        XCTAssertEqual(stats.activeOperations, 0)
+        XCTAssertEqual(stats.queuedRequests, 0)
     }
     
     /// Test that drop strategies still work after deadlock fix

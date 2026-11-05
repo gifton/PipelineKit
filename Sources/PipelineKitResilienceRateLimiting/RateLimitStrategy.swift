@@ -83,3 +83,21 @@ public protocol DistributedRateLimitStore: Sendable {
     /// Reset the counter for a key
     func reset(key: String) async throws
 }
+
+/// Optional capability for resetting all counters in an opaque key namespace.
+///
+/// Implementations must reset every stored key beginning with `keyPrefix`, including
+/// keys written by other clients, and preserve keys outside that prefix. A store
+/// adapter that adds its own namespace must apply that namespace to the prefix too.
+/// These are implementation requirements; `RatePolicyContractTests` exercises the
+/// provided in-memory store. Concurrent admission/reset ordering is store-defined;
+/// this capability does not require a transaction that excludes later admissions.
+public protocol ResettableDistributedRateLimitStore: DistributedRateLimitStore {
+    func resetAll(keyPrefix: String) async throws
+}
+
+/// Failures specific to the limiter's reset contract.
+public enum RateLimitResetError: Error, Sendable, Equatable {
+    /// The store cannot reset every key in a non-global limiter scope.
+    case resetAllUnsupported
+}

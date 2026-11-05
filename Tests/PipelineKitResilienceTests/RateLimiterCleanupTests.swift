@@ -59,7 +59,7 @@ final class RateLimiterCleanupTests: XCTestCase {
 
             let sweep = Task { try await limiter.allowRequest(identifier: "sweep") }
             await gate.waitUntilRead()
-            await limiter.reset(identifier: "existing")
+            try await limiter.reset(identifier: "existing")
             let replacement = try await limiter.allowRequest(identifier: "existing")
             await gate.release()
             _ = try await sweep.value
@@ -82,7 +82,7 @@ final class RateLimiterCleanupTests: XCTestCase {
 
             let sweep = Task { try await limiter.allowRequest(identifier: "sweep") }
             await gate.waitUntilRead()
-            await limiter.reset()
+            try await limiter.reset()
             await gate.release()
             _ = try await sweep.value
 

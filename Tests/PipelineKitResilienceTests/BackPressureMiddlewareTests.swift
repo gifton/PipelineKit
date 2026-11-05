@@ -164,57 +164,69 @@ final class BackPressureMiddlewareTests: XCTestCase {
     }
     
     func testSuspendStrategyUnderPressure() async throws {
-        // Given
-        let middleware = BackPressureMiddleware(
-            maxConcurrency: 1,
-            maxOutstanding: 3,
-            strategy: .suspend
-        )
-        
-        let startTimes = ExecutionTracker()
-        let synchronizer = self.synchronizer // Capture before Task
-        
-        // When - All should eventually execute
-        let tasks = (0..<5).map { i in
-            Task {
-                await startTimes.append(i)
-                
-                let command = BPTestCommand(value: "test-\(i)")
-                let context = CommandContext()
-                
-                return try await middleware.execute(command, context: context) { cmd, _ in
-                    // Simulate varying work
-                    await synchronizer.shortDelay()
-                    return cmd.value
+        for customSize in [false, true] {
+            let middleware = BackPressureMiddleware(maxConcurrency: 1, maxOutstanding: 3, strategy: .suspend)
+            let gate = BackPressurePolicyGate()
+            let running = Task {
+                try await middleware.execute(BPTestCommand(value: "running"), context: CommandContext()) { command, _ in
+                    await gate.wait()
+                    return command.value
                 }
             }
-        }
-        
-        // Wait for all with timeout
-        let results = try await withTimeout(seconds: 2.0) {
-            try await withThrowingTaskGroup(of: String.self) { group in
-                for task in tasks {
-                    group.addTask {
-                        try await task.value
+            let entered = await bpPolicyEventually { await gate.entered }
+            XCTAssertTrue(entered)
+            var queued: [Task<String, any Error>] = []
+            for index in 1...2 {
+                queued.append(Task {
+                    try await middleware.execute(BPTestCommand(value: "queued-\(index)"), context: CommandContext()) { command, _ in
+                        command.value
                     }
-                }
-                
-                var collected: [String] = []
-                for try await result in group {
-                    collected.append(result)
-                }
-                return collected
+                })
+                let registered = await bpPolicyEventually { await middleware.getStats().queuedRequests == index }
+                XCTAssertTrue(registered)
             }
+            let overflow = Task {
+                let outcome: String
+                do {
+                    let command = BPTestCommand(value: "overflow")
+                    if customSize {
+                        _ = try await middleware.execute(command, context: CommandContext(), estimatedSize: 1) { command, _ in command.value }
+                    } else {
+                        _ = try await middleware.execute(command, context: CommandContext()) { command, _ in command.value }
+                    }
+                    outcome = "admitted"
+                } catch PipelineError.backPressure(.queueFull) {
+                    outcome = "full"
+                } catch {
+                    outcome = "unexpected: \(error)"
+                }
+                await gate.recordOverflow(outcome)
+                return outcome
+            }
+            let observed = await bpPolicyEventually {
+                let result = await gate.overflowOutcome
+                let count = await middleware.getStats().queuedRequests
+                return result != nil || count > 2
+            }
+            XCTAssertTrue(observed)
+            let stats = await middleware.getStats()
+            XCTAssertEqual(stats.currentConcurrency, 1)
+            XCTAssertEqual(stats.queuedRequests, 2)
+            await gate.release()
+            do {
+                let result = try await running.value
+                XCTAssertEqual(result, "running")
+            } catch { XCTFail("Admitted running work failed: \(error)") }
+            for task in queued {
+                do { _ = try await task.value } catch { XCTFail("Admitted queued work failed: \(error)") }
+            }
+            let outcome = await overflow.value
+            XCTAssertEqual(outcome, "full")
+            let settled = await bpPolicyEventually { await middleware.getStats().activeOperations == 0 }
+            XCTAssertTrue(settled)
         }
-        
-        // Then - All should complete
-        XCTAssertEqual(results.count, 5)
-        
-        // Verify suspension worked
-        let order = await startTimes.getOrder()
-        XCTAssertEqual(order.count, 5, "All tasks should have started")
     }
-    
+
     func testMemoryPressureStrategy() async throws {
         // Given
         let middleware = BackPressureMiddleware(
@@ -278,45 +290,36 @@ final class BackPressureMiddlewareTests: XCTestCase {
     }
     
     func testHealthCheck() async throws {
-        // Given
-        let middleware = BackPressureMiddleware(
-            maxConcurrency: 2,
-            maxOutstanding: 5
-        )
-        
-        let synchronizer = self.synchronizer // Capture before Task
-        
-        // When - Fill up queue
-        let blockingTasks = (0..<6).map { i in
-            Task {
-                let command = BPTestCommand(value: "blocking-\(i)")
-                let context = CommandContext()
-                
-                _ = try? await middleware.execute(command, context: context) { cmd, _ in
-                    // Block indefinitely (or very long)
-                    await synchronizer.longDelay()
-                    return cmd.value
-                }
+        let middleware = BackPressureMiddleware(maxConcurrency: 1, maxOutstanding: 5)
+        let gate = BackPressurePolicyGate()
+        let running = Task {
+            try await middleware.execute(BPTestCommand(value: "running"), context: CommandContext()) { command, _ in
+                await gate.wait()
+                return command.value
             }
         }
-        
-        // Wait for the queue to fill — poll rather than a single fixed delay so
-        // slow task startup on a loaded runner can't race the health check.
-        var health = await middleware.healthCheck()
-        let deadline = Date().addingTimeInterval(5.0)
-        while health.queueUtilization < 0.8 && Date() < deadline {
-            await synchronizer.shortDelay()
-            health = await middleware.healthCheck()
+        let entered = await bpPolicyEventually { await gate.entered }
+        XCTAssertTrue(entered)
+        var queued: [Task<String, any Error>] = []
+        for index in 1...4 {
+            queued.append(Task {
+                try await middleware.execute(BPTestCommand(value: "queued-\(index)"), context: CommandContext()) { command, _ in
+                    command.value
+                }
+            })
+            let registered = await bpPolicyEventually { await middleware.getStats().queuedRequests == index }
+            XCTAssertTrue(registered)
         }
-
-        // Then
-        XCTAssertFalse(health.isHealthy, "Should be unhealthy when queue is > 80% full")
-        XCTAssertGreaterThanOrEqual(health.queueUtilization, 0.8)
-        
-        // Cleanup
-        blockingTasks.forEach { $0.cancel() }
+        let health = await middleware.healthCheck()
+        XCTAssertFalse(health.isHealthy)
+        XCTAssertEqual(health.queueUtilization, 0.8, accuracy: 0.000_001)
+        await gate.release()
+        do { _ = try await running.value } catch { XCTFail("Running work failed: \(error)") }
+        for task in queued {
+            do { _ = try await task.value } catch { XCTFail("Admitted queued work failed: \(error)") }
+        }
     }
-    
+
     func testRateLimitIntegration() async throws {
         // Skip this test - rate limiting is not implemented yet
         throw XCTSkip("Rate limiting is not available in this version")
@@ -442,28 +445,33 @@ private actor ExecutionTracker {
     }
 }
 
-// Timeout helper
-private func withTimeout<T: Sendable>(
-    seconds: TimeInterval,
-    operation: @escaping @Sendable () async throws -> T
-) async throws -> T {
-    try await withThrowingTaskGroup(of: T.self) { group in
-        group.addTask {
-            try await operation()
-        }
-        
-        group.addTask {
-            let tester = TimeoutTester()
-            try await tester.runWithTimeout(seconds) {
-                // Timeout task
-            }
-            throw PipelineError.cancelled(context: "Timeout in test")
-        }
-        
-        let result = try await group.next()!
-        group.cancelAll()
-        return result
+private actor BackPressurePolicyGate {
+    private var open = false
+    private var continuation: CheckedContinuation<Void, Never>?
+    private(set) var entered = false
+    private(set) var overflowOutcome: String?
+
+    func wait() async {
+        entered = true
+        if open { return }
+        await withCheckedContinuation { continuation = $0 }
     }
+
+    func release() {
+        open = true
+        let pending = continuation
+        continuation = nil
+        pending?.resume()
+    }
+
+    func recordOverflow(_ outcome: String) { overflowOutcome = outcome }
 }
 
-// TimeoutError removed - using PipelineError.cancelled instead
+private func bpPolicyEventually(_ condition: @escaping @Sendable () async -> Bool) async -> Bool {
+    let deadline = ContinuousClock.now.advanced(by: .seconds(3))
+    while ContinuousClock.now < deadline {
+        if await condition() { return true }
+        await Task.yield()
+    }
+    return false
+}

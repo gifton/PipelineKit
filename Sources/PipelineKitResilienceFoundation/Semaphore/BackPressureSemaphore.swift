@@ -22,14 +22,8 @@ public actor BackPressureSemaphore {
     private var availablePermits: Int
     private var activeTokens: Int = 0
 
-    /// Pending waiters ordered by priority then FIFO.
-    ///
-    /// Backed by a `PriorityHeap` providing O(log n) insertion, extraction of the
-    /// highest-priority waiter, and arbitrary removal by id. The comparator
-    /// (see `makeWaiterHeap()`) makes `extractMin()` / `peek()` return the
-    /// highest-priority, earliest-enqueued waiter — the same serve order as the
-    /// previous sorted-array implementation.
-    private var waiters: PriorityHeap<Waiter>
+    /// Service uses priority then insertion order; eviction uses insertion order alone.
+    private var waiters = WaiterQueue()
     private var totalProcessed: Int = 0
     private var cleanupTask: Task<Void, Never>?
     
@@ -42,6 +36,65 @@ public actor BackPressureSemaphore {
         let priority: QueuePriority
         let estimatedSize: Int
         var timeoutTask: Task<Void, Never>?
+    }
+
+    // UUID links maintain FIFO independently of clock changes or ordinal wrap.
+    // testCancellationAtEveryQueuePositionPreservesBothOrders exercises removal
+    // from each position; timeout, shutdown and grant tests cover the other exits.
+    private struct WaiterQueue {
+        private struct Entry {
+            let waiter: Waiter
+            var previous: UUID?
+            var next: UUID?
+            var priorityPrevious: UUID?
+            var priorityNext: UUID?
+        }
+
+        private var entries: [UUID: Entry] = [:]
+        private var oldestID: UUID?
+        private var newestID: UUID?
+        private var priorityHeads: [QueuePriority: UUID] = [:]
+        private var priorityTails: [QueuePriority: UUID] = [:]
+
+        var count: Int { entries.count }
+        var isEmpty: Bool { entries.isEmpty }
+
+        mutating func insert(_ waiter: Waiter) {
+            let priorityTail = priorityTails[waiter.priority]
+            entries[waiter.id] = Entry(
+                waiter: waiter,
+                previous: newestID,
+                next: nil,
+                priorityPrevious: priorityTail,
+                priorityNext: nil
+            )
+            if let newestID { entries[newestID]?.next = waiter.id } else { oldestID = waiter.id }
+            if let priorityTail { entries[priorityTail]?.priorityNext = waiter.id } else { priorityHeads[waiter.priority] = waiter.id }
+            newestID = waiter.id
+            priorityTails[waiter.priority] = waiter.id
+        }
+
+        mutating func remove(id: UUID) -> Waiter? {
+            guard let entry = entries.removeValue(forKey: id) else { return nil }
+            if let previous = entry.previous { entries[previous]?.next = entry.next } else { oldestID = entry.next }
+            if let next = entry.next { entries[next]?.previous = entry.previous } else { newestID = entry.previous }
+            if let previous = entry.priorityPrevious { entries[previous]?.priorityNext = entry.priorityNext } else { priorityHeads[entry.waiter.priority] = entry.priorityNext }
+            if let next = entry.priorityNext { entries[next]?.priorityPrevious = entry.priorityPrevious } else { priorityTails[entry.waiter.priority] = entry.priorityPrevious }
+            return entry.waiter
+        }
+
+        mutating func extractNext() -> Waiter? {
+            // At most four priority heads are inspected; links preserve FIFO ties.
+            guard let priority = priorityHeads.keys.max(), let id = priorityHeads[priority] else { return nil }
+            return remove(id: id)
+        }
+
+        func oldest() -> Waiter? {
+            guard let oldestID else { return nil }
+            return entries[oldestID]?.waiter
+        }
+
+        func allElements() -> [Waiter] { entries.values.map(\.waiter) }
     }
     
     public enum QueuePriority: Int, Comparable, Sendable {
@@ -103,7 +156,6 @@ public actor BackPressureSemaphore {
             self.admissionTimeout = nil
         }
         self.availablePermits = resolvedConcurrency
-        self.waiters = Self.makeWaiterHeap()
     }
 
     /// Matches the bulkhead queue timeout contract. Nonpositive finite values
@@ -129,24 +181,6 @@ public actor BackPressureSemaphore {
         return overflow ? Int.max : result
     }
 
-    /// Builds an empty waiter heap with the canonical ordering.
-    ///
-    /// Serve order is highest priority first, ties broken FIFO (earliest
-    /// `enqueuedAt` first). The comparator returns `true` when `a` should be
-    /// extracted before `b`; the min-heap therefore keeps the highest-priority,
-    /// earliest waiter at the root for `extractMin()` / `peek()`.
-    ///
-    /// Centralized so `init` and `shutdown` (which resets the heap) cannot diverge.
-    private static func makeWaiterHeap() -> PriorityHeap<Waiter> {
-        PriorityHeap<Waiter>(
-            comparator: { a, b in
-                a.priority > b.priority ||
-                    (a.priority == b.priority && a.enqueuedAt < b.enqueuedAt)
-            },
-            idExtractor: { $0.id }
-        )
-    }
-    
     deinit {
         cleanupTask?.cancel()
     }
@@ -217,9 +251,7 @@ public actor BackPressureSemaphore {
             availablePermits -= 1
             activeTokens += 1
             totalProcessed = Self.saturatingAdd(totalProcessed, 1)
-            return SemaphoreToken { [weak self] in
-                Task { await self?.release() }
-            }
+            return SemaphoreToken(asyncReleaseHandler: { [weak self] in await self?.release() })
         }
 
         let estimatedSize = max(0, estimatedSize)
@@ -270,7 +302,7 @@ public actor BackPressureSemaphore {
         // A grant can win the actor turn before cancellation removal. Returning
         // that token here conserves its permit; the token release is idempotent.
         if Task.isCancelled {
-            token.release()
+            await token.releaseAndWait()
             throw PipelineError.cancelled(context: "Semaphore acquisition cancelled")
         }
         return token
@@ -291,9 +323,7 @@ public actor BackPressureSemaphore {
         activeTokens += 1
         totalProcessed = Self.saturatingAdd(totalProcessed, 1)
         
-        return SemaphoreToken { [weak self] in
-            Task { await self?.release() }
-        }
+        return SemaphoreToken(asyncReleaseHandler: { [weak self] in await self?.release() })
     }
     
     /// Releases a permit, potentially resuming a waiter.
@@ -304,9 +334,7 @@ public actor BackPressureSemaphore {
         if let waiter = extractNextWaiter() {
             waiter.timeoutTask?.cancel()
             activeTokens += 1
-            let token = SemaphoreToken { [weak self] in
-                Task { await self?.release() }
-            }
+            let token = SemaphoreToken(asyncReleaseHandler: { [weak self] in await self?.release() })
             waiter.continuation.resume(returning: token)
         } else {
             // No waiters, restore permit
@@ -317,13 +345,11 @@ public actor BackPressureSemaphore {
     // MARK: - Queue Management
     
     private func insertWaiter(_ waiter: Waiter) {
-        // Ordering is enforced by the heap comparator (priority, then FIFO).
         waiters.insert(waiter)
     }
 
     private func extractNextWaiter() -> Waiter? {
-        // Highest-priority, earliest-enqueued waiter (heap root).
-        waiters.extractMin()
+        waiters.extractNext()
     }
 
     /// Cancels a specific waiter by ID, removing it before resuming to prevent double-resume.
@@ -338,47 +364,32 @@ public actor BackPressureSemaphore {
     }
     
     // testNoWaitAcquisitionDoesNotEvictRegisteredWaiter and
-    // testDropOldestPlansMemoryBeforeEvictingHeapRoot cover rejected replacements.
+    // testDropOldestChecksReplacementMemoryBeforeEvicting cover rejected replacements.
     private func planQueueAdmission(estimatedSize: Int) throws -> UUID? {
         var evictedID: UUID?
         // Check if adding this new waiter would exceed the limit
         let totalOutstanding = Self.saturatingAdd(activeTokens, waiters.count)
         let proposedOutstanding = Self.saturatingAdd(totalOutstanding, 1)
         
-        if proposedOutstanding > maxOutstanding {
+        if totalOutstanding >= maxOutstanding {
             switch strategy {
-            case .suspend:
-                // Allow 2x for suspend strategy
-                if proposedOutstanding > Self.saturatingMultiply(maxOutstanding, by: 2) {
+            case .suspend, .error:
+                throw PipelineError.backPressure(reason: .queueFull(
+                    current: proposedOutstanding, limit: maxOutstanding
+                ))
+
+            case .dropOldest:
+                guard totalOutstanding == maxOutstanding, let oldest = waiters.oldest() else {
                     throw PipelineError.backPressure(reason: .queueFull(
-                        current: proposedOutstanding,
-                        limit: Self.saturatingMultiply(maxOutstanding, by: 2)
+                        current: proposedOutstanding, limit: maxOutstanding
                     ))
                 }
-                
-            case .dropOldest:
-                // NOTE: pre-existing quirk preserved intentionally. Despite the
-                // name, `.dropOldest` drops the heap root — the highest-priority,
-                // earliest-enqueued waiter — not the time-oldest waiter. The prior
-                // array implementation dropped `waiters.first`, which equals
-                // `extractMin()` under this ordering, so behavior is unchanged.
-                // Revisit the semantics in a follow-up milestone.
-                evictedID = waiters.peek()?.id
+                evictedID = oldest.id
                 
             case .dropNewest:
                 throw PipelineError.backPressure(reason: .commandDropped(
                     reason: "Queue at capacity"
                 ))
-                
-            case .error(let timeout):
-                if timeout == nil {
-                    // No timeout specified, throw immediately
-                    throw PipelineError.backPressure(reason: .queueFull(
-                        current: proposedOutstanding,
-                        limit: maxOutstanding
-                    ))
-                }
-                // If timeout specified, let it queue and let the timeout handle the error
             }
         }
         
@@ -403,16 +414,15 @@ public actor BackPressureSemaphore {
         // by each waiter (testPipelineOptionsDoNotInheritLegacyFiveMinuteCleanup).
         guard let waiterTimeout else { return }
         let now = now()
-        // Snapshot the heap (a value-typed array copy) so we can mutate the heap
-        // while iterating. `now.timeIntervalSince(enqueuedAt)` is positive for
+        // Snapshot the queue so removals do not mutate the collection being read.
+        // `now.timeIntervalSince(enqueuedAt)` is positive for
         // waiters that enqueued in the past, so this fires once the wait exceeds
         // `waiterTimeout`.
         let expired = waiters.allElements().filter {
             now.timeIntervalSince($0.enqueuedAt) > waiterTimeout
         }
         for waiter in expired {
-            // `remove(id:)` returns nil if the waiter was already handed off by
-            // release() between snapshot and removal, which prevents double-resume.
+            // Remove ownership before resuming the continuation.
             if let removed = waiters.remove(id: waiter.id) {
                 removed.timeoutTask?.cancel()
                 removed.continuation.resume(throwing:
@@ -433,10 +443,7 @@ public actor BackPressureSemaphore {
             queuedOperations: waiters.count,
             totalOutstanding: Self.saturatingAdd(activeTokens, waiters.count),
             queueMemoryUsage: waiters.allElements().reduce(0) { Self.saturatingAdd($0, $1.estimatedSize) },
-            // `peek()` is the heap root (highest-priority, earliest-enqueued),
-            // matching the previous `waiters.first`. Preserves prior behavior even
-            // though it is not strictly the time-oldest waiter.
-            oldestWaiterAge: waiters.peek().map { max(0, now().timeIntervalSince($0.enqueuedAt)) }
+            oldestWaiterAge: waiters.oldest().map { max(0, now().timeIntervalSince($0.enqueuedAt)) }
         )
     }
 
@@ -469,14 +476,12 @@ public actor BackPressureSemaphore {
         cleanupTask?.cancel()
 
         let shutdownError = error ?? PipelineError.semaphoreShutdown
-        // Drain a snapshot of all pending waiters, then reset to a fresh empty heap
-        // with identical ordering. Resuming from the snapshot (rather than from the
-        // live heap) avoids mutating the heap mid-iteration.
+        // Resuming a snapshot keeps both ordering indexes intact until reset.
         for waiter in waiters.allElements() {
             waiter.timeoutTask?.cancel()
             waiter.continuation.resume(throwing: shutdownError)
         }
-        waiters = Self.makeWaiterHeap()
+        waiters = WaiterQueue()
 
         // Note: Active tokens will release naturally
     }

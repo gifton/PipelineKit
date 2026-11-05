@@ -59,18 +59,15 @@ public actor BackPressureMiddleware: Middleware {
             )
         }
         
-        defer {
-            // Token auto-releases when it goes out of scope
-            _ = token
+        do {
+            let result = try await next(command, context)
+            totalProcessedCount.wrappingIncrement(ordering: .relaxed)
+            await token.releaseAndWait()
+            return result
+        } catch {
+            await token.releaseAndWait()
+            throw error
         }
-        
-        // Execute command with back-pressure protection
-        let result = try await next(command, context)
-        
-        // Increment counter after successful execution
-        totalProcessedCount.wrappingIncrement(ordering: .relaxed)
-        
-        return result
     }
     
     /// Execute with custom estimated size for memory-based back-pressure
@@ -99,18 +96,15 @@ public actor BackPressureMiddleware: Middleware {
             )
         }
         
-        defer {
-            // Token auto-releases when it goes out of scope
-            _ = token
+        do {
+            let result = try await next(command, context)
+            totalProcessedCount.wrappingIncrement(ordering: .relaxed)
+            await token.releaseAndWait()
+            return result
+        } catch {
+            await token.releaseAndWait()
+            throw error
         }
-        
-        // Execute command with back-pressure protection
-        let result = try await next(command, context)
-        
-        // Increment counter after successful execution
-        totalProcessedCount.wrappingIncrement(ordering: .relaxed)
-        
-        return result
     }
     
     // MARK: - Statistics
