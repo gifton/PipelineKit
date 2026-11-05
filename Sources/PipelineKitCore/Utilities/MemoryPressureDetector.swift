@@ -50,9 +50,6 @@ public actor MemoryPressureDetector {
     /// Underlying memory pressure responder
     private let handler: MemoryPressureResponder
     
-    /// Whether monitoring is active
-    private var isMonitoring = false
-    
     private init() {
         // Using adaptive thresholds ensures proper behavior across different devices
         let totalMemory = ProcessInfo.processInfo.physicalMemory
@@ -64,18 +61,22 @@ public actor MemoryPressureDetector {
             lowWaterMark: lowWaterMark
         )
     }
+
+    init(responder: MemoryPressureResponder) {
+        self.handler = responder
+    }
     
     /// Starts global memory pressure monitoring.
     public func startMonitoring() async {
-        guard !isMonitoring else { return }
-        isMonitoring = true
         await handler.startMonitoring()
     }
     
-    /// Stops global memory pressure monitoring.
+    /// Cancels global monitoring and waits for its owned cooperative work.
+    /// A call from a monitoring handler requests cancellation without joining
+    /// itself; a later external call still waits for that retiring generation.
+    /// See `testDetectorConcurrentStopsJoinCooperativeHandlerSettlement` and
+    /// `testCallbackStopReturnsWhileExternalStopJoinsRetiringGeneration`.
     public func stopMonitoring() async {
-        guard isMonitoring else { return }
-        isMonitoring = false
         await handler.stopMonitoring()
     }
     
