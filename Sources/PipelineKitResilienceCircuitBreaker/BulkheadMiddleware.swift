@@ -461,37 +461,3 @@ public struct BulkheadMetrics: Sendable {
     public let queuedCommands: Int
     public let averageQueueTime: TimeInterval
 }
-
-// MARK: - Pipeline Error Extensions
-
-public extension PipelineError {
-    /// Error when a command is rejected by the bulkhead
-    static func bulkheadRejected(reason: String) -> PipelineError {
-        .middlewareError(
-            middleware: "BulkheadMiddleware",
-            message: reason,
-            context: ErrorContext(
-                commandType: "Unknown",
-                middlewareType: "BulkheadMiddleware",
-                additionalInfo: ["type": "BulkheadRejection"]
-            )
-        )
-    }
-
-    /// Error when a command times out in the bulkhead queue
-    static func bulkheadTimeout(timeout: TimeInterval, queueTime: TimeInterval) -> PipelineError {
-        .middlewareError(
-            middleware: "BulkheadMiddleware",
-            message: "Command timed out after \(queueTime)s in queue (timeout: \(timeout)s)",
-            context: ErrorContext(
-                commandType: "Unknown",
-                middlewareType: "BulkheadMiddleware",
-                additionalInfo: [
-                    "type": "BulkheadTimeout",
-                    "timeout": String(timeout),
-                    "queueTime": String(queueTime)
-                ]
-            )
-        )
-    }
-}

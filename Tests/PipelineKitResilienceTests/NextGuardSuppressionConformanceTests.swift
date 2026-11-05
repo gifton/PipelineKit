@@ -42,10 +42,9 @@ final class NextGuardSuppressionConformanceTests: XCTestCase {
                     XCTAssertEqual(result, "fallback")
                 } catch BulkheadFixtureError.expected {
                     XCTAssertEqual(scenario, .customError)
-                } catch PipelineError.middlewareError(let middleware, let message, _) {
-                    XCTAssertFalse(scenario.succeeds)
-                    XCTAssertEqual(middleware, "BulkheadMiddleware")
-                    XCTAssertTrue(message.contains("failed to provide valid result"))
+                } catch PipelineError.bulkheadRejected(let reason) {
+                    XCTAssertTrue(scenario == .fallbackWrongType || scenario == .customWrongType)
+                    XCTAssertTrue(reason.contains("failed to provide valid result"))
                 } catch {
                     XCTFail("Unexpected \(route), \(scenario): \(error)")
                 }

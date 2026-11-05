@@ -52,7 +52,7 @@ public struct CircuitBreakerMiddleware: Middleware {
 
         /// How `admitRequest()` classified a request.
         enum Admission: Equatable {
-            case rejected
+            case rejected(resetTime: Date?)
             case normal
             /// This request is the single half-open probe; its outcome — and only
             /// its outcome — drives half-open state transitions, and `execute`
@@ -98,11 +98,11 @@ public struct CircuitBreakerMiddleware: Middleware {
                     probeInProgress = true
                     return .probe
                 }
-                return .rejected
+                return .rejected(resetTime: until)
 
             case .halfOpen:
                 // Only allow one probe request at a time
-                guard !probeInProgress else { return .rejected }
+                guard !probeInProgress else { return .rejected(resetTime: nil) }
                 probeInProgress = true
                 return .probe
             }
@@ -210,7 +210,7 @@ public struct CircuitBreakerMiddleware: Middleware {
         /// Whether to emit observability events
         public let emitEvents: Bool
         
-        /// Custom error evaluator
+        /// Custom evaluator for noncancellation errors. Cancellation never counts as a failure.
         public let errorEvaluator: (@Sendable (any Error) -> Bool)?
         
         public init(
@@ -268,20 +268,10 @@ public struct CircuitBreakerMiddleware: Middleware {
         context: CommandContext,
         next: @escaping MiddlewareNext<T>
     ) async throws -> T.Result {
-        let commandType = String(describing: type(of: command))
-
+        try PipelineCancellation.check(context: context)
         let admission = state.admitRequest()
-        guard admission != .rejected else {
-            // Circuit is open - fail fast
-            throw PipelineError.middlewareError(
-                middleware: "CircuitBreakerMiddleware",
-                message: "Circuit breaker is open - request rejected",
-                context: PipelineError.ErrorContext(
-                    commandType: commandType,
-                    middlewareType: "CircuitBreakerMiddleware",
-                    additionalInfo: ["state": "open"]
-                )
-            )
+        if case .rejected(let resetTime) = admission {
+            throw PipelineError.circuitBreakerOpen(resetTime: resetTime)
         }
 
         var outcomeRecorded = false
@@ -295,6 +285,7 @@ public struct CircuitBreakerMiddleware: Middleware {
         }
 
         do {
+            try PipelineCancellation.check(context: context)
             let result = try await next(command, context)
             outcomeRecorded = true
             state.recordSuccess(asProbe: admission == .probe)
@@ -304,14 +295,16 @@ public struct CircuitBreakerMiddleware: Middleware {
                 outcomeRecorded = true
                 state.recordFailure(asProbe: admission == .probe)
             }
-            throw error
+            throw PipelineCancellation.normalize(error, context: context)
         }
     }
     
     // MARK: - Private Methods
     
     private func shouldTriggerCircuit(for error: (any Error)) -> Bool {
-        // Check custom evaluator first
+        if PipelineCancellation.isCancellation(error) { return false }
+
+        // Custom predicates override the default classification for other errors.
         if let evaluator = configuration.errorEvaluator {
             return evaluator(error)
         }
@@ -319,7 +312,8 @@ public struct CircuitBreakerMiddleware: Middleware {
         if let category = ResilienceErrorClassifier.classifyPipelineError(error) {
             switch category {
             case .timeout: return configuration.triggeredByErrors.contains(.timeout)
-            case .cancelled, .other: return configuration.triggeredByErrors.contains(.unknown)
+            case .cancelled, .excluded: return false
+            case .other: return configuration.triggeredByErrors.contains(.unknown)
             }
         }
 

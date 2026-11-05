@@ -1,5 +1,6 @@
 import Foundation
 import PipelineKit
+import PipelineKitCore
 #if canImport(CryptoKit)
 @preconcurrency import CryptoKit
 #else
@@ -89,21 +90,21 @@ public struct EncryptionMiddleware: Middleware {
     ///
     /// - Returns: The result from the command execution chain
     ///
-    /// - Throws: `EncryptionError` if encryption/decryption fails, or any error
-    ///   from the downstream chain
+    /// - Throws: `PipelineError.encryption` for encryption/decryption failures;
+    ///   recognized cancellation becomes `PipelineError.cancelled`. Other
+    ///   downstream errors retain their identity.
     public func execute<T: Command>(
         _ command: T,
         context: CommandContext,
         next: @escaping MiddlewareNext<T>
     ) async throws -> T.Result {
-        // Encrypt sensitive data in command if needed
-        let processedCommand = try await encryptCommand(command, context: context)
-        
-        // Execute with encrypted command
-        let result = try await next(processedCommand, context)
-        
-        // Decrypt sensitive data in result if needed
-        return try await decryptResult(result, context: context)
+        do {
+            let processedCommand = try await encryptCommand(command, context: context)
+            let result = try await next(processedCommand, context)
+            return try await decryptResult(result, context: context)
+        } catch {
+            throw PipelineCancellation.normalize(error, context: context)
+        }
     }
     
     // MARK: - Private Methods
@@ -159,10 +160,13 @@ public struct EncryptionMiddleware: Middleware {
                 
                 encryptedFields[fieldPath] = encrypted
             } catch {
+                if PipelineCancellation.isCancellation(error) {
+                    throw PipelineCancellation.normalize(error, context: context)
+                }
                 // Log encryption failure and re-throw
                 context.setMetadata("encryption.failed", value: true)
                 context.setMetadata("encryption.error", value: error.localizedDescription)
-                throw EncryptionError.encryptionFailed("Failed to encrypt field \(fieldPath): \(error)")
+                throw PipelineError.encryption(reason: .encryptionFailed("Failed to encrypt field \(fieldPath): \(error)"))
             }
         }
         
@@ -187,7 +191,7 @@ public struct EncryptionMiddleware: Middleware {
         }
         
         guard let typedCommand = encryptedCommand as? T else {
-            throw EncryptionError.encryptionFailed("Failed to cast encrypted command to type \(T.self)")
+            throw PipelineError.encryption(reason: .encryptionFailed("Failed to cast encrypted command to type \(T.self)"))
         }
         return typedCommand
     }
@@ -247,6 +251,9 @@ public struct EncryptionMiddleware: Middleware {
                 
                 decryptedFields[fieldPath] = decryptedValue
             } catch {
+                if PipelineCancellation.isCancellation(error) {
+                    throw PipelineCancellation.normalize(error, context: context)
+                }
                 // Log decryption failure
                 failedFields.append(fieldPath)
                 context.setMetadata("decryption.failed.\(fieldPath)", value: true)
@@ -254,7 +261,7 @@ public struct EncryptionMiddleware: Middleware {
                 
                 // Depending on configuration, we might want to fail or continue
                 if !allowPartialDecryption {
-                    throw EncryptionError.decryptionFailed("Failed to decrypt field \(fieldPath): \(error)")
+                    throw PipelineError.encryption(reason: .decryptionFailed("Failed to decrypt field \(fieldPath): \(error)"))
                 }
             }
         }
@@ -287,16 +294,16 @@ public struct EncryptionMiddleware: Middleware {
         }
         
         guard let typedResult = decryptedResult as? T else {
-            throw EncryptionError.decryptionFailed("Failed to cast decrypted result to type \(T.self)")
+            throw PipelineError.encryption(reason: .decryptionFailed("Failed to cast decrypted result to type \(T.self)"))
         }
         return typedResult
     }
 
     private func decryptSerializedPlaintext(_ data: EncryptedData) async throws -> Data {
         guard let service = encryptionService as? any SerializedPlaintextDecrypting else {
-            throw EncryptionError.decryptionFailed(
+            throw PipelineError.encryption(reason: .decryptionFailed(
                 "Encryption service does not support authenticated serialized plaintext; conform to SerializedPlaintextDecrypting"
-            )
+            ))
         }
         return try await service.decryptSerializedPlaintext(data)
     }

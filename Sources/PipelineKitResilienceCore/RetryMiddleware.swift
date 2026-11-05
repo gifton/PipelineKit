@@ -90,7 +90,7 @@ public struct RetryMiddleware: Middleware, UnsafeMiddleware {
         /// Types of errors that should trigger a retry
         public let retryableErrors: Set<RetryableError.ErrorType>
 
-        /// Custom error evaluator
+        /// Custom evaluator for noncancellation errors. Cancellation is never retried.
         public let errorEvaluator: (@Sendable (any Error) -> Bool)?
 
         /// Whether to emit observability events
@@ -154,6 +154,7 @@ public struct RetryMiddleware: Middleware, UnsafeMiddleware {
         var lastError: (any Error)?
 
         for attempt in 0...configuration.maxAttempts {
+            try PipelineCancellation.check(context: context)
             // Check max retry time
             if let maxTime = configuration.maxRetryTime {
                 let elapsed = Date().timeIntervalSince(startTime)
@@ -177,6 +178,8 @@ public struct RetryMiddleware: Middleware, UnsafeMiddleware {
                     )
                 }
 
+                try PipelineCancellation.check(context: context)
+
                 // Execute the command
                 let result = try await next(command, context)
 
@@ -191,6 +194,9 @@ public struct RetryMiddleware: Middleware, UnsafeMiddleware {
 
                 return result
             } catch {
+                if PipelineCancellation.isCancellation(error) {
+                    throw PipelineCancellation.normalize(error, context: context)
+                }
                 lastError = error
 
                 // Check if we should retry
@@ -208,6 +214,8 @@ public struct RetryMiddleware: Middleware, UnsafeMiddleware {
                     throw error
                 }
 
+                try PipelineCancellation.check(context: context)
+
                 // Calculate delay
                 let delay = configuration.strategy.delay(for: attempt + 1)
 
@@ -220,7 +228,12 @@ public struct RetryMiddleware: Middleware, UnsafeMiddleware {
                     context: context
                 )
 
-                try await Task.sleep(nanoseconds: NumericDuration.nanoseconds(delay))
+                do {
+                    try PipelineCancellation.check(context: context)
+                    try await Task.sleep(nanoseconds: NumericDuration.nanoseconds(delay))
+                } catch {
+                    throw PipelineCancellation.normalize(error, context: context)
+                }
             }
         }
 
@@ -232,7 +245,7 @@ public struct RetryMiddleware: Middleware, UnsafeMiddleware {
 
     private func shouldRetry(error: any Error) -> Bool {
         // Check cancellation first
-        if error is CancellationError {
+        if PipelineCancellation.isCancellation(error) {
             return false
         }
 
@@ -244,7 +257,7 @@ public struct RetryMiddleware: Middleware, UnsafeMiddleware {
         if let category = ResilienceErrorClassifier.classifyPipelineError(error) {
             switch category {
             case .timeout: return configuration.retryableErrors.contains(.timeout)
-            case .cancelled, .other: return false
+            case .cancelled, .excluded, .other: return false
             }
         }
 

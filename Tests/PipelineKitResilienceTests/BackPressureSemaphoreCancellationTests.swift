@@ -46,7 +46,7 @@ final class BackPressureSemaphoreCancellationTests: XCTestCase {
                 stray.release()
                 XCTFail("Cancelled waiter received a token (iteration \(iteration))")
                 return
-            } catch is CancellationError {
+            } catch let error as PipelineError where error.isCancellation {
                 // Expected: a cancelled acquire() must throw.
             }
 

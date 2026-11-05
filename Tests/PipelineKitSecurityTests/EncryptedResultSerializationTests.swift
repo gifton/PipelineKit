@@ -153,7 +153,7 @@ final class EncryptedResultSerializationTests: XCTestCase {
         do {
             _ = try await execute(["unsupported": encrypted], service: service)
             XCTFail("Legacy services must opt in before being asked for serialized plaintext")
-        } catch EncryptionError.decryptionFailed(let reason) {
+        } catch PipelineError.encryption(reason: .decryptionFailed(let reason)) {
             XCTAssertTrue(reason.contains("serialized plaintext"), reason)
         }
     }
@@ -199,7 +199,7 @@ final class EncryptedResultSerializationTests: XCTestCase {
         do {
             _ = try await execute(["bad": bad], service: service, context: context)
             XCTFail("Authentication failure must reject the result")
-        } catch EncryptionError.decryptionFailed {
+        } catch PipelineError.encryption(reason: .decryptionFailed) {
             XCTAssertEqual(context.getMetadata()["decryption.failed.bad"] as? Bool, true)
             XCTAssertNil(context.getMetadata()["encryption.decrypted"])
         }

@@ -347,7 +347,7 @@ final class BackPressureTests: XCTestCase {
             do {
                 _ = try await semaphore.acquire()
                 return "task1-acquired"
-            } catch is CancellationError {
+            } catch let error as PipelineError where error.isCancellation {
                 return "task1-cancelled"
             } catch {
                 return "task1-error"
@@ -358,7 +358,7 @@ final class BackPressureTests: XCTestCase {
             do {
                 _ = try await semaphore.acquire()
                 return "task2-acquired"
-            } catch is CancellationError {
+            } catch let error as PipelineError where error.isCancellation {
                 return "task2-cancelled"
             } catch {
                 return "task2-error"
@@ -369,7 +369,7 @@ final class BackPressureTests: XCTestCase {
             do {
                 _ = try await semaphore.acquire()
                 return "task3-acquired"
-            } catch is CancellationError {
+            } catch let error as PipelineError where error.isCancellation {
                 return "task3-cancelled"
             } catch {
                 return "task3-error"
@@ -464,7 +464,7 @@ final class BackPressureTests: XCTestCase {
                     let token = try await semaphore.acquire()
                     token.release()
                     return "acquired"
-                } catch is CancellationError {
+                } catch let error as PipelineError where error.isCancellation {
                     return "cancelled"
                 } catch {
                     return "error: \(error)"

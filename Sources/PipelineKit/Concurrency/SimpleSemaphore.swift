@@ -40,8 +40,10 @@ public actor SimpleSemaphore {
     ///         BackPressureAsyncSemaphore from PipelineKitResilience.
     ///
     /// - Returns: A token representing the acquired permit.
-    /// - Throws: `CancellationError` if the task is cancelled while waiting.
+    /// - Throws: `PipelineError.cancelled` if the task is cancelled before or while acquiring.
     public func acquire() async throws -> SemaphoreToken {
+        try PipelineCancellation.check(message: "Semaphore acquisition cancelled")
+
         // Fast path: permit immediately available
         if permits > 0 {
             permits -= 1
@@ -68,7 +70,7 @@ public actor SimpleSemaphore {
         // it pops this (already-cancelled) waiter and resumes it with a fresh
         // token, and the later `cancelWaiter` finds nothing to do — so a
         // cancelled `acquire()` would return a token, violating the documented
-        // contract ("Throws CancellationError if the task is cancelled while
+        // contract ("Throws PipelineError.cancelled if the task is cancelled while
         // waiting"). Callers that rely on that contract may then strand the
         // token (e.g. inside a completed `Task`'s result that is never
         // consumed), trapping the permit forever and deadlocking every future
@@ -85,7 +87,7 @@ public actor SimpleSemaphore {
         // continuation above threw and this code is never reached.
         if Task.isCancelled {
             token.release()
-            throw CancellationError()
+            throw PipelineError.cancelled(context: "Semaphore acquisition cancelled")
         }
         return token
     }
@@ -123,7 +125,7 @@ public actor SimpleSemaphore {
         // Find and remove the waiter, then resume with cancellation error
         if let index = waiters.firstIndex(where: { $0.id == waiterID }) {
             let waiter = waiters.remove(at: index)
-            waiter.continuation.resume(throwing: CancellationError())
+            waiter.continuation.resume(throwing: PipelineError.cancelled(context: "Semaphore acquisition cancelled"))
         }
     }
     

@@ -139,7 +139,7 @@ public actor ConcurrentPipeline: Pipeline {
     /// - Throws: `PipelineError.handlerNotFound` if no pipeline is registered for the
     ///   command type, `PipelineError.backPressure(reason: .timeout(duration:))` if the
     ///   semaphore cannot be acquired within `timeout`, other `PipelineError.backPressure`
-    ///   cases (e.g. queue-full rejection) or `CancellationError` if acquisition fails or
+    ///   cases (e.g. queue-full rejection) or `PipelineError.cancelled` if acquisition fails or
     ///   is cancelled, or any error thrown by the routed pipeline.
     public func execute<T: Command>(
         _ command: T,

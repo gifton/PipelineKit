@@ -140,7 +140,7 @@ public actor AsyncSemaphore {
     ///   cancelled `wait()` still throws.
     public func wait() async throws {
         // Check for cancellation before proceeding
-        try Task.checkCancellation()
+        try PipelineCancellation.check(message: "Semaphore wait cancelled")
         
         // Fast path: resource available
         if availableResources > 0 {

@@ -40,9 +40,8 @@ final class SimpleCancellationTests: XCTestCase {
             XCTFail("Expected CancellationError")
         } catch {
             // Check if it's any kind of cancellation error
-            let errorString = String(describing: error)
-            XCTAssertTrue(errorString.contains("CancellationError") || error is CancellationError,
-                         "Expected CancellationError, got \(error)")
+            XCTAssertTrue((error as? PipelineError)?.isCancellation == true,
+                          "Expected PipelineError.cancelled, got \(error)")
         }
     }
     
@@ -102,9 +101,8 @@ final class SimpleCancellationTests: XCTestCase {
             XCTFail("Expected CancellationError")
         } catch {
             // Check if it's any kind of cancellation error
-            let errorString = String(describing: error)
-            XCTAssertTrue(errorString.contains("CancellationError") || error is CancellationError,
-                         "Expected CancellationError, got \(error)")
+            XCTAssertTrue((error as? PipelineError)?.isCancellation == true,
+                          "Expected PipelineError.cancelled, got \(error)")
         }
     }
     
@@ -254,9 +252,8 @@ final class SimpleCancellationTests: XCTestCase {
             XCTFail("Expected CancellationError")
         } catch {
             // Check if it's any kind of cancellation error
-            let errorString = String(describing: error)
-            XCTAssertTrue(errorString.contains("CancellationError") || error is CancellationError,
-                         "Expected CancellationError, got \(error)")
+            XCTAssertTrue((error as? PipelineError)?.isCancellation == true,
+                          "Expected PipelineError.cancelled, got \(error)")
         }
     }
 }
