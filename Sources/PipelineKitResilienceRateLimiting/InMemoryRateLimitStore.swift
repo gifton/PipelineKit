@@ -6,7 +6,7 @@ import PipelineKitCore
 /// This is suitable for single-instance deployments or testing.
 /// For production multi-instance deployments, use Redis or another
 /// distributed store implementation.
-public actor InMemoryRateLimitStore: DistributedRateLimitStore {
+public actor InMemoryRateLimitStore: ResettableDistributedRateLimitStore {
     private var counters: [String: WindowCounter] = [:]
     private let cleanupInterval: TimeInterval = 300 // 5 minutes
     private var lastCleanup = Date()
@@ -74,6 +74,10 @@ public actor InMemoryRateLimitStore: DistributedRateLimitStore {
 
     public func reset(key: String) async throws {
         counters.removeValue(forKey: key)
+    }
+
+    public func resetAll(keyPrefix: String) async throws {
+        counters = counters.filter { !$0.key.hasPrefix(keyPrefix) }
     }
 
     private func alignToWindow(_ date: Date, windowSize: TimeInterval) -> Date {

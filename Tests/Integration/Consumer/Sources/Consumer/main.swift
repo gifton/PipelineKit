@@ -573,6 +573,7 @@ do {
     case "encryption": try await encryption()
     case "error-contract": try await errorContract()
     case "lifecycle": try await lifecycle()
+    case "policy-contract": try await policyContract()
     case "bulkhead": try await bulkhead()
     case "metrics": try await metrics()
     case "telemetry-export": try await telemetryExport()

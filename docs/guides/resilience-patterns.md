@@ -321,15 +321,13 @@ try await pipeline.addMiddleware(BulkheadMiddleware(
 ### 1. Retry Without Timeout
 
 ```swift
-// BAD: Retries can run forever
-try await pipeline.addMiddleware(RetryMiddleware(maxAttempts: 10))
-
-// GOOD: Bound total retry time
+let pipeline = DynamicPipeline()
+// Limit retry admission and request cooperative cancellation for slow attempts.
 try await pipeline.addMiddleware(TimeoutMiddleware(defaultTimeout: 30.0))
 try await pipeline.addMiddleware(RetryMiddleware(
     configuration: .init(
         maxAttempts: 5,
-        maxRetryTime: 25.0  // Also limit total retry time
+        maxRetryTime: 25.0  // Budget for attempt admission and backoff; admitted work settles
     )
 ))
 ```

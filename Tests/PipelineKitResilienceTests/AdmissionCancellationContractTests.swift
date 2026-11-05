@@ -37,12 +37,13 @@ private struct SemaphoreAdmissionHandler: CommandHandler {
     }
 }
 
-private func signalThenCancel<Value: Sendable, Failure: Error>(
+private func cancelThenSignal<Value: Sendable, Failure: Error>(
     _ semaphore: isolated AsyncSemaphore, task: Task<Value, Failure>
 ) {
-    // One actor turn forces signal to remove/resume before cancellation can remove.
-    semaphore.signal()
+    // Set the cancellation flag before resuming the continuation. This synchronous
+    // actor turn lets signal remove the waiter before the queued cancellation job.
     task.cancel()
+    semaphore.signal()
 }
 
 final class AdmissionCancellationContractTests: XCTestCase {
@@ -70,8 +71,7 @@ final class AdmissionCancellationContractTests: XCTestCase {
                 if schedule != 0 {
                     let registered = await eventually { await semaphore.waiterCount() == 1 }
                     XCTAssertTrue(registered)
-                    if schedule == 1 { task.cancel() }
-                    else { await signalThenCancel(semaphore, task: task) }
+                    if schedule == 1 { task.cancel() } else { await cancelThenSignal(semaphore, task: task) }
                 }
                 let acquired = await task.value
                 XCTAssertFalse(acquired, "timed=\(timed), schedule=\(schedule)")
@@ -414,23 +414,23 @@ final class AdmissionCancellationContractTests: XCTestCase {
         }
     }
 
-    func testDropOldestPlansMemoryBeforeEvictingHeapRoot() async throws {
+    func testDropOldestPlansMemoryBeforeEvictingOldestWaiter() async throws {
         for incomingSize in [9, 8] {
             let semaphore = BackPressureSemaphore(
                 maxConcurrency: 1, maxOutstanding: 3, maxQueueMemory: 10, strategy: .dropOldest
             )
             let held = try await semaphore.acquire()
-            // The time-oldest waiter is deliberately not the heap root.
-            let olderLow = Task { try await semaphore.acquire(priority: .low, estimatedSize: 2) }
+            // The oldest waiter deliberately has lower service priority.
+            let olderLow = Task { try await semaphore.acquire(priority: .low, estimatedSize: 8) }
             let firstRegistered = await eventually { await semaphore.getStats().queuedOperations == 1 }
             XCTAssertTrue(firstRegistered)
-            let newerHigh = Task { try await semaphore.acquire(priority: .high, estimatedSize: 8) }
+            let newerHigh = Task { try await semaphore.acquire(priority: .high, estimatedSize: 2) }
             let secondRegistered = await eventually { await semaphore.getStats().queuedOperations == 2 }
             XCTAssertTrue(secondRegistered)
 
             let incoming = Task { try await semaphore.acquire(estimatedSize: incomingSize) }
             if incomingSize == 9 {
-                // Replacing the root would leave 2 + 9 bytes, over the limit.
+                // Replacing the oldest would leave 2 + 9 bytes, over the limit.
                 do { _ = try await incoming.value; XCTFail("Expected memory rejection") }
                 catch let error as PipelineError {
                     guard case .backPressure(.memoryPressure) = error else {
@@ -447,17 +447,18 @@ final class AdmissionCancellationContractTests: XCTestCase {
                 XCTAssertEqual(stats.queueMemoryUsage, 10)
                 held.release()
                 do { let token = try await newerHigh.value; token.release() }
-                catch { XCTFail("Rejected replacement evicted existing heap root: \(error)") }
+                catch { XCTFail("Rejected replacement evicted an existing waiter: \(error)") }
+                let preserved = try await olderLow.value
+                preserved.release()
             } else {
-                // Replacing the root leaves 2 + 8 bytes, exactly at the limit.
-                do { _ = try await newerHigh.value; XCTFail("Eligible replacement must evict the heap root") }
-                catch let error as PipelineError {
+                // Replacing the oldest leaves 2 + 8 bytes, exactly at the limit.
+                do { _ = try await olderLow.value; XCTFail("Eligible replacement must evict the oldest waiter") } catch let error as PipelineError {
                     guard case .backPressure(.commandDropped) = error else {
-                        XCTFail("Expected heap-root eviction, got \(error)")
+                        XCTFail("Expected oldest-waiter eviction, got \(error)")
                         held.release()
                         await semaphore.shutdown()
                         _ = try? await incoming.value
-                        _ = try? await olderLow.value
+                        _ = try? await newerHigh.value
                         continue
                     }
                 }
@@ -465,11 +466,11 @@ final class AdmissionCancellationContractTests: XCTestCase {
                 XCTAssertEqual(stats.queuedOperations, 2)
                 XCTAssertEqual(stats.queueMemoryUsage, 10)
                 held.release()
+                let preserved = try await newerHigh.value
+                preserved.release()
                 let replacement = try await incoming.value
                 replacement.release()
             }
-            let preserved = try await olderLow.value
-            preserved.release()
             let recovered = await eventually { await semaphore.getStats().availableResources == 1 }
             XCTAssertTrue(recovered)
             await semaphore.shutdown()

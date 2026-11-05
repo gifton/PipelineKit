@@ -111,9 +111,14 @@ public actor ConcurrentPipeline: Pipeline {
         }
 
         let token = try await semaphore.acquire()
-        defer { token.release() } // Release only after the routed handler settles.
-
-        return try await pipeline.execute(command, context: context)
+        do {
+            let result = try await pipeline.execute(command, context: context)
+            await token.releaseAndWait()
+            return result
+        } catch {
+            await token.releaseAndWait()
+            throw error
+        }
     }
     
     /// Convenience method to execute with default context
@@ -166,9 +171,14 @@ public actor ConcurrentPipeline: Pipeline {
             throw PipelineError.backPressure(reason: .timeout(duration: timeout))
         }
 
-        defer { token.release() } // Release only after the routed handler settles.
-
-        return try await pipeline.execute(command, context: commandContext)
+        do {
+            let result = try await pipeline.execute(command, context: commandContext)
+            await token.releaseAndWait()
+            return result
+        } catch {
+            await token.releaseAndWait()
+            throw error
+        }
     }
     
     /// Executes multiple commands concurrently with individual error handling.

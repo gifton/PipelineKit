@@ -90,10 +90,11 @@ public actor RateLimiter {
     /// - Parameters:
     ///   - identifier: The identifier for the rate limit (user ID, IP, etc.)
     ///   - cost: The cost of the request (default: 1)
+    ///   - priority: Budget selected by a priority-based strategy; ignored by other strategies.
     /// - Returns: True if the request is allowed, false if rate limited
-    public func allowRequest(identifier: String, cost: Double = 1.0) async throws -> Bool {
+    public func allowRequest(identifier: String, cost: Double = 1.0, priority: Priority = .medium) async throws -> Bool {
         guard cost.isFinite && cost >= 0 else { return false }
-        let identifier = effectiveIdentifier(identifier)
+        let identifier = effectiveIdentifier(identifier, priority: priority)
         await cleanupIfNeeded()
         
         switch strategy {
@@ -147,15 +148,11 @@ public actor RateLimiter {
             )
             
         case let .priorityBased(limits):
-            // For priority-based, we need a way to determine priority
-            // This would typically come from the command or context
-            // For now, use medium as default
-            let priority = Priority.medium
             guard let config = limits[priority] else {
                 return false
             }
             return await checkFixedWindow(
-                identifier: "\(identifier):\(priority.rawValue)",
+                identifier: identifier,
                 windowSize: config.windowSize,
                 maxRequests: config.maxRequests
             )
@@ -164,10 +161,12 @@ public actor RateLimiter {
     
     /// Gets the current rate limit status for an identifier.
     ///
-    /// - Parameter identifier: The identifier to check
+    /// - Parameters:
+    ///   - identifier: The identifier to check.
+    ///   - priority: Budget selected by a priority-based strategy; defaults to medium.
     /// - Returns: Current rate limit status
-    public func getStatus(identifier: String) async -> RateLimitStatus {
-        let identifier = effectiveIdentifier(identifier)
+    public func getStatus(identifier: String, priority: Priority = .medium) async -> RateLimitStatus {
+        let identifier = effectiveIdentifier(identifier, priority: priority)
         switch strategy {
         case let .tokenBucket(capacity, refillRate):
             let bucket = buckets[identifier]?.state ?? TokenBucket(capacity: capacity, refillRate: refillRate, now: now)
@@ -237,12 +236,10 @@ public actor RateLimiter {
             }
             
         case let .priorityBased(limits):
-            // Default to medium priority for status check
-            let priority = Priority.medium
             guard let config = limits[priority] else {
                 return RateLimitStatus(remaining: 0, limit: 0, resetAt: now())
             }
-            let window = fixedWindows["\(identifier):\(priority.rawValue)"] ?? FixedWindow(windowSize: config.windowSize, now: now)
+            let window = fixedWindows[identifier] ?? FixedWindow(windowSize: config.windowSize, now: now)
             let requestCount = await window.getCurrentCount()
             let timeUntilReset = await window.timeUntilReset()
             return RateLimitStatus(
@@ -255,10 +252,30 @@ public actor RateLimiter {
     
     /// Resets rate limits for a specific identifier.
     ///
-    /// - Parameter identifier: The identifier to reset, or nil to reset all
-    public func reset(identifier: String? = nil) {
+    /// - Parameters:
+    ///   - identifier: The identifier to reset, or nil to reset every budget in this scope.
+    ///   - priority: Priority to reset for a specific identifier; nil identifier resets all priorities.
+    /// - Throws: The original distributed-store error, or `RateLimitResetError.resetAllUnsupported`
+    ///   when a non-global distributed scope lacks `ResettableDistributedRateLimitStore`.
+    ///
+    /// Distributed reset awaits the backing operation. It does not serialize other
+    /// limiter instances or admissions that overlap the store operation.
+    public func reset(identifier: String? = nil, priority: Priority = .medium) async throws {
+        if case let .distributed(store, _, _) = strategy {
+            if let identifier {
+                try await store.reset(key: effectiveIdentifier(identifier, priority: priority))
+            } else if scope == .global {
+                try await store.reset(key: scopeKeyPrefix)
+            } else {
+                guard let resettable = store as? any ResettableDistributedRateLimitStore else {
+                    throw RateLimitResetError.resetAllUnsupported
+                }
+                try await resettable.resetAll(keyPrefix: scopeKeyPrefix)
+            }
+            return
+        }
         if let identifier {
-            let identifier = effectiveIdentifier(identifier)
+            let identifier = effectiveIdentifier(identifier, priority: priority)
             buckets.removeValue(forKey: identifier)
             slidingWindows.removeValue(forKey: identifier)
             fixedWindows.removeValue(forKey: identifier)
@@ -273,13 +290,21 @@ public actor RateLimiter {
     
     // MARK: - Private Methods
 
-    private func effectiveIdentifier(_ supplied: String) -> String {
+    private var scopeKeyPrefix: String {
         switch scope {
         case .global: "pipelinekit:rate-limit:v1:global"
-        case .perUser: "pipelinekit:rate-limit:v1:user:\(supplied)"
-        case .perIP: "pipelinekit:rate-limit:v1:ip:\(supplied)"
-        case .perCommand: "pipelinekit:rate-limit:v1:command:\(supplied)"
+        case .perUser: "pipelinekit:rate-limit:v1:user:"
+        case .perIP: "pipelinekit:rate-limit:v1:ip:"
+        case .perCommand: "pipelinekit:rate-limit:v1:command:"
         }
+    }
+
+    private func effectiveIdentifier(_ supplied: String, priority: Priority) -> String {
+        let identifier = scope == .global ? scopeKeyPrefix : scopeKeyPrefix + supplied
+        if case .priorityBased = strategy {
+            return "\(identifier):\(priority.rawValue)"
+        }
+        return identifier
     }
     
     private func checkTokenBucket(

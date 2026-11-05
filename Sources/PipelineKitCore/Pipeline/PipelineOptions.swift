@@ -10,7 +10,7 @@ import Foundation
 /// When the pipeline reaches its capacity limits, back-pressure determines how
 /// new incoming commands are handled:
 ///
-/// - **suspend**: Suspends the producer until capacity becomes available
+/// - **suspend**: Queues within the outstanding bound until execution capacity becomes available
 /// - **dropOldest**: Removes the oldest queued command to make room
 /// - **dropNewest**: Rejects the new command if queue is full
 /// - **error**: Rejects excess outstanding work or applies an admission timeout
@@ -31,9 +31,9 @@ public struct PipelineOptions: Sendable {
     /// If nil, no concurrency limit is applied.
     public let maxConcurrency: Int?
     
-    /// Maximum number of commands that can be queued awaiting execution.
-    /// This includes both actively executing and queued commands.
-    /// If nil, no queue limit is applied.
+    /// Hard limit on the total of actively executing and queued commands.
+    /// Every strategy rejects overflow unless dropping a queued command creates room.
+    /// If nil, no outstanding limit is applied.
     public let maxOutstanding: Int?
     
     /// Maximum memory (in bytes) that can be used by queued operations.
@@ -102,12 +102,12 @@ public struct PipelineOptions: Sendable {
 /// Strategies for handling back-pressure when pipeline capacity is exceeded.
 @frozen
 public enum BackPressureStrategy: Sendable, Equatable {
-    /// Suspend the producer until capacity becomes available.
-    /// This provides flow control by naturally slowing down producers.
+    /// Suspend admitted queued work until execution capacity becomes available.
+    /// Reject new work when the outstanding bound is full.
     case suspend
     
-    /// Drop the oldest queued command to make room for the new one.
-    /// Useful for scenarios where recent data is more valuable.
+    /// Drop the earliest-enqueued command, regardless of its service priority,
+    /// to make room for the new one. Reject if every outstanding command is active.
     case dropOldest
     
     /// Drop the newest command if the queue is full.
@@ -116,8 +116,9 @@ public enum BackPressureStrategy: Sendable, Equatable {
     
     /// Controls admission waiting when execution capacity is occupied.
     ///
+    /// Every timeout setting rejects excess outstanding work immediately.
     /// A nil timeout allows waiting without an admission deadline while the
-    /// outstanding limit permits queueing; exceeding that limit throws immediately.
+    /// outstanding limit permits queueing.
     /// A finite nonpositive timeout permits immediate acquisition only. A positive
     /// timeout bounds waiting and must be at most 86400 seconds. Nonfinite values
     /// and values above that bound fail a precondition when constructing the

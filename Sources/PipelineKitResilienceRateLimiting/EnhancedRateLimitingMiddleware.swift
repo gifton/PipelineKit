@@ -63,11 +63,11 @@ public struct EnhancedRateLimitingMiddleware: Middleware {
         let cost = costCalculator(command)
         let priority = await priorityExtractor(command, context)
 
-        // Store priority in context for the rate limiter to use
+        // Keep the selected budget available to downstream diagnostics.
         context.setMetadata("rateLimitPriority", value: priority.rawValue)
 
-        guard try await limiter.allowRequest(identifier: identifier, cost: cost) else {
-            let status = await limiter.getStatus(identifier: identifier)
+        guard try await limiter.allowRequest(identifier: identifier, cost: cost, priority: priority) else {
+            let status = await limiter.getStatus(identifier: identifier, priority: priority)
 
             // Store rate limit info in context
             context.setMetadata("rateLimitExceeded", value: true)

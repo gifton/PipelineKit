@@ -11,7 +11,7 @@ manifest and generated Swift source are regenerated in place.
 The [Consumer package](../../Tests/Integration/Consumer/Package.swift) uses ordinary
 imports rather than `@testable`. It exercises public composition, security,
 routing, cache identity, encryption, bulkhead, error/cancellation policy, monitoring
-and connection lifetime, and metrics behavior, plus macOS
+and connection lifetime, resilience policy contracts, and metrics behavior, plus macOS
 StatsD/UDP lifecycle cases. Its compiled documentation fixtures are generated
 from the migration guide and examples changed since the stabilization baseline
 pinned in the extractor. This is a batch-specific check, not a check of all docs.
@@ -28,10 +28,16 @@ python3 Scripts/validation/run_check.py --id consumer-debug-001 --timeout 60 -- 
 ```
 
 Run each mode in both configurations: `composition-security`, `routing`,
-`cache-identity`, `encryption`, `bulkhead`, `error-contract`, `lifecycle`, `metrics`, `statsd-startup`, `udp-close`,
+`cache-identity`, `encryption`, `bulkhead`, `error-contract`, `lifecycle`, `policy-contract`,
+`metrics`, `statsd-startup`, `udp-close`,
 and `udp-failure-close`. Use the watchdog for these lifecycle checks so a stalled
 continuation cannot leave validation waiting indefinitely. These probes do not
 replace the package's full Debug/Release test suites or platform CI.
+
+The `policy-contract` mode checks public retry budgets and HTTP extraction, timeout
+grace outcomes, rate priority/reset, and finite overload admission. CI builds and runs
+it under the watchdog in both configurations. The policy tests include deterministic
+clock and callback interleavings for boundaries that a public elapsed-time probe cannot force.
 
 The `lifecycle` mode applies one owner-release assertion across health monitoring,
 memory monitoring, hub-owned metrics, and the existing pool collector. It also acknowledges cancellation before

@@ -74,22 +74,27 @@ public func withTimeout<T: Sendable>(
 
 /// Executes an async operation with a timeout and grace period.
 ///
-/// This extends the basic timeout with a grace period, allowing operations
-/// to complete even after the initial timeout if they're making progress.
+/// This extends the basic timeout with a fixed grace period, allowing operations
+/// to complete after the initial deadline. Expiry requests cancellation and waits
+/// for the operation and grace notification to settle.
 ///
 /// - Parameters:
 ///   - timeout: The initial timeout duration
 ///   - gracePeriod: Additional time allowed after timeout
 ///   - operation: The async operation to execute
 ///   - onGracePeriodStart: Optional callback when grace period begins
-/// - Returns: The result of the operation
+///   - sleep: Internal sleeper seam; production uses cancellation-aware task sleep.
+/// - Returns: The operation value and whether its invocation entered grace.
 /// - Throws: `TimeoutError` with grace period info, or any error from the operation
 internal func withTimeoutAndGrace<T: Sendable>(
     timeout: TimeInterval,
     gracePeriod: TimeInterval,
     operation: @escaping @Sendable () async throws -> T,
-    onGracePeriodStart: (@Sendable () async -> Void)? = nil
-) async throws -> T {
+    onGracePeriodStart: (@Sendable () async -> Void)? = nil,
+    sleep: @escaping @Sendable (TimeInterval) async throws -> Void = {
+        try await Task.sleep(nanoseconds: NumericDuration.nanoseconds(max(0, $0)))
+    }
+) async throws -> TimeoutExecutionOutcome<T> {
     NumericDuration.validateTimeout(timeout)
     _ = NumericDuration.nanoseconds(gracePeriod)
     guard timeout > 0 else { throw TimeoutError.exceeded(duration: timeout) }
@@ -110,7 +115,7 @@ internal func withTimeoutAndGrace<T: Sendable>(
         // Add the initial timeout task
         group.addTask {
             do {
-                try await Task.sleep(nanoseconds: NumericDuration.nanoseconds(max(0, timeout)))
+                try await sleep(timeout)
                 return .timeout
             } catch {
                 return .cancelled
@@ -126,23 +131,22 @@ internal func withTimeoutAndGrace<T: Sendable>(
         case .success(let value):
             // Operation completed within timeout
             group.cancelAll()
-            return value
+            return TimeoutExecutionOutcome(value: value, gracePeriodUsed: false)
 
         case .timeout:
-            // Initial timeout reached, start grace period
-            if let onGracePeriodStart = onGracePeriodStart {
-                await onGracePeriodStart()
-            }
-
-            // Add grace period task
+            // Register the deadline independently of the diagnostic callback.
             group.addTask {
                 do {
-                    try await Task.sleep(nanoseconds: NumericDuration.nanoseconds(max(0, gracePeriod)))
+                    try await sleep(gracePeriod)
                     return .timeout
                 } catch {
                     return .cancelled
                 }
             }
+
+            // Scope exit cancels and joins this child. Ownership is exercised by
+            // testSuspendedGraceEventDoesNotDelayCancellationAndRemainsOwned.
+            async let _: Void? = onGracePeriodStart?()
 
             // Wait for either operation completion or grace period expiry
             guard let gracePeriodResult = try await group.next() else {
@@ -153,9 +157,7 @@ internal func withTimeoutAndGrace<T: Sendable>(
 
             switch gracePeriodResult {
             case .success(let value):
-                // Operation completed during grace period
-                // Return the value - caller can check timing if needed
-                return value
+                return TimeoutExecutionOutcome(value: value, gracePeriodUsed: true)
 
             case .timeout:
                 // Grace period also expired
@@ -170,7 +172,11 @@ internal func withTimeoutAndGrace<T: Sendable>(
                 throw error
 
             case .cancelled:
-                // Shouldn't happen in grace period
+                // Timer cancellation is not an operation result. The remaining
+                // group child owns the handler's success or original error.
+                if let operationResult = try await group.next() {
+                    return TimeoutExecutionOutcome(value: try operationResult.get(), gracePeriodUsed: true)
+                }
                 throw CancellationError()
             }
 
@@ -182,7 +188,7 @@ internal func withTimeoutAndGrace<T: Sendable>(
             // Timeout task was cancelled, get the operation result
             if let secondResult = try await group.next() {
                 group.cancelAll()
-                return try secondResult.get()
+                return TimeoutExecutionOutcome(value: try secondResult.get(), gracePeriodUsed: false)
             }
             throw CancellationError()
         }
@@ -190,6 +196,12 @@ internal func withTimeoutAndGrace<T: Sendable>(
 }
 
 // MARK: - Supporting Types
+
+/// The outcome selected by one timeout invocation's task-group control flow.
+internal struct TimeoutExecutionOutcome<T: Sendable>: Sendable {
+    let value: T
+    let gracePeriodUsed: Bool
+}
 
 /// Internal result type for timeout racing
 internal enum TimeoutRaceResult<T: Sendable>: Sendable {
@@ -238,19 +250,13 @@ public struct GracePeriodCompletion<T: Sendable>: Sendable {
 
 // MARK: - Testing Support
 
-/// Asserts that a closure is non-escaping at compile time.
+/// Legacy no-op compatibility helper.
 ///
-/// This is used in tests to ensure that middleware `next` parameters
-/// remain non-escaping even if the protocol changes.
+/// Its generic value parameter does not enforce closure escaping semantics.
 public func assertNonEscaping<T>(
     _ closure: T,
     file: StaticString = #filePath,
     line: UInt = #line
 ) {
-    // If the closure were escaping, the compiler would require @escaping
-    // annotation here and this would fail to compile
-    _mustBeNonEscaping(closure)
+    _ = closure
 }
-
-// Helper that pretends to need a non-escaping closure
-private func _mustBeNonEscaping<T>(_ closure: T) {}

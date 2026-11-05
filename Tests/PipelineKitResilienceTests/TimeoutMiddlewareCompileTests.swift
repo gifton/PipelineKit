@@ -1,82 +1,57 @@
 import XCTest
-@testable import PipelineKitCore
-@testable import PipelineKitResilience
+import PipelineKitCore
+import PipelineKitResilience
 
-/// Compile-time tests to ensure TimeoutMiddleware maintains proper constraints
 final class TimeoutMiddlewareCompileTests: XCTestCase {
-    /// Test that the middleware protocol's `next` parameter is non-escaping.
-    /// This test will fail to compile if the protocol changes to use @escaping.
-    func testNextParameterIsNonEscaping() {
-        // This test exists primarily for compile-time verification
-        let middleware = TimeoutMiddleware(defaultTimeout: 1.0)
+    func testExecuteAcceptsStoredSendableNextClosure() async throws {
+        let capturedValue = "stored"
+        let next: MiddlewareNext<DummyCommand> = { _, _ in capturedValue }
+        assertNonEscaping(next)
 
-        // Create a dummy execute call to verify non-escaping constraint
-        Task {
-            let command = DummyCommand()
-            let context = CommandContext()
-
-            try await middleware.execute(command, context: context) { cmd, ctx in
-                // If this compiles, then next is non-escaping
-                assertNonEscaping {
-                    // Attempting to capture next in an escaping context
-                    // would fail compilation if next is non-escaping
-                    _ = cmd
-                    _ = ctx
-                }
-                return "test"
-            }
-        }
-
-        // The test passes if it compiles
-        XCTAssertTrue(true, "Non-escaping constraint is maintained")
+        let result = try await TimeoutMiddleware(defaultTimeout: 60).execute(
+            DummyCommand(), context: CommandContext(), next: next
+        )
+        XCTAssertEqual(result, "stored")
     }
 
-    /// Test that attempting to store the next closure fails compilation
-    func testCannotStoreNextClosure() {
-        // This should fail to compile if uncommented:
-        /*
-        var storedClosure: (@Sendable (DummyCommand, CommandContext) async throws -> String)?
-
-        let middleware = TimeoutMiddleware(defaultTimeout: 1.0)
-        Task {
-            try await middleware.execute(DummyCommand(), context: CommandContext()) { cmd, ctx in
-                storedClosure = { cmd, ctx in "stored" } // ERROR: Cannot assign non-escaping parameter
-                return "test"
-            }
-        }
-        */
-
-        XCTAssertTrue(true, "Cannot store non-escaping closure")
+    func testSupportedFixedGraceConfiguration() async throws {
+        let configuration = TimeoutMiddleware.Configuration(
+            defaultTimeout: 60,
+            commandTimeouts: ["DummyCommand": 30],
+            gracePeriod: 2,
+            timeoutResolver: { _ in 60 },
+            timeoutHandler: { _, _ in },
+            emitEvents: false,
+            metricsCollector: nil
+        )
+        XCTAssertEqual(configuration.defaultTimeout, 60, accuracy: 0.000001)
+        XCTAssertEqual(configuration.gracePeriod, 2, accuracy: 0.000001)
+        XCTAssertFalse(configuration.emitEvents)
+        let result = try await TimeoutMiddleware(configuration: configuration).execute(
+            DummyCommand(), context: CommandContext()
+        ) { _, _ in "fixed grace" }
+        XCTAssertEqual(result, "fixed grace")
     }
 
-    /// Test memory layout to ensure closure has expected size
-    func testClosureMemoryLayout() async throws {
-        let middleware = TimeoutMiddleware(defaultTimeout: 1.0)
-
-        try await middleware.execute(DummyCommand(), context: CommandContext()) { cmd, _ in
-            // Closures in Swift have a fixed memory layout size
-            // Even non-escaping closures have a size (typically 16 bytes on 64-bit)
-            let size = MemoryLayout.size(ofValue: { try await cmd.execute() })
-            XCTAssertEqual(size, 16, "Closures have fixed memory layout size")
-            return "test"
+    func testCommandTimeoutAndResolverConvenienceInitializers() async throws {
+        let middleware = [
+            TimeoutMiddleware(commandTimeouts: ["DummyCommand": 60], defaultTimeout: 30),
+            TimeoutMiddleware(defaultTimeout: 30, timeoutResolver: { _ in 60 })
+        ]
+        for instance in middleware {
+            let result = try await instance.execute(DummyCommand(), context: CommandContext()) { _, _ in "supported" }
+            XCTAssertEqual(result, "supported")
         }
+    }
+
+    func testGracePeriodBackoffRemainsAnIndependentCalculator() {
+        let backoff = GracePeriodBackoff(initialDuration: 0.5, maxDuration: 2, multiplier: 2, jitter: 0)
+        XCTAssertEqual(backoff.nextDuration(attemptNumber: 1), 0.5, accuracy: 0.000001)
+        XCTAssertEqual(backoff.nextDuration(attemptNumber: 2), 1, accuracy: 0.000001)
+        XCTAssertEqual(backoff.nextDuration(attemptNumber: 3), 2, accuracy: 0.000001)
     }
 }
-
-// MARK: - Test Helpers
 
 private struct DummyCommand: Command {
     typealias Result = String
-
-    func execute() async throws -> String {
-        return "dummy"
-    }
-}
-
-private struct DummyHandler: CommandHandler {
-    typealias CommandType = DummyCommand
-
-    func handle(_ command: DummyCommand, context: CommandContext) async throws -> String {
-        return try await command.execute()
-    }
 }

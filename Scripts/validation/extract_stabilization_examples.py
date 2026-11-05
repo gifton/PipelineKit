@@ -24,7 +24,8 @@ FILES = ['docs/migrations/first-stabilization-batch.md', 'README.md',
          'docs/migrations/security-serialization-and-numeric-safety.md',
          'docs/migrations/telemetry-hardening.md',
          'docs/migrations/error-cancellation-and-validation.md',
-         'docs/migrations/monitoring-and-connection-lifecycle.md']
+         'docs/migrations/monitoring-and-connection-lifecycle.md',
+         'docs/migrations/resilience-policy-contracts.md']
 SECURITY_COMPOSITION_DEFINITIONS = [
     r'\bstruct SecurityMetricsMiddleware\s*:',
     r'\bstruct MaskingAuditLogger\s*:',

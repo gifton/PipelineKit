@@ -100,7 +100,6 @@ public struct TimeoutContext: Sendable {
         self.metadata = metadata
     }
 }
-
 /// Reasons for timeout
 public enum TimeoutReason: String, Sendable {
     case executionTimeout = "execution_timeout"
@@ -132,7 +131,10 @@ public extension PipelineError {
 
 // MARK: - Progressive Backoff
 
-/// Configuration for progressive grace period backoff
+/// A standalone calculator for progressive durations.
+///
+/// `TimeoutMiddleware` uses its configured fixed `gracePeriod`; it does not use
+/// this calculator to select or extend its deadline.
 public struct GracePeriodBackoff: Sendable {
     public let initialDuration: TimeInterval
     public let maxDuration: TimeInterval
@@ -166,58 +168,5 @@ public struct GracePeriodBackoff: Sendable {
         let randomJitter = Double.random(in: -jitterRange...jitterRange)
 
         return min(maxDuration, max(0, clampedDelay + randomJitter))
-    }
-}
-
-// MARK: - Timeout State Tracker
-
-/// Tracks timeout state for better edge case handling
-actor TimeoutStateTracker {
-    enum State: Sendable {
-        case idle
-        case executing
-        case timedOut
-        case gracePeriod
-        case completed
-        case cancelled
-    }
-
-    private var state: State = .idle
-    private var stateTimestamps: [State: Date] = [:]
-
-    func transition(to newState: State) -> Bool {
-        // Validate state transition
-        let isValid = isValidTransition(from: state, to: newState)
-        if isValid {
-            state = newState
-            stateTimestamps[newState] = Date()
-        }
-        return isValid
-    }
-
-    func currentState() -> State {
-        return state
-    }
-
-    func stateHistory() -> [(State, Date)] {
-        return stateTimestamps
-            .sorted { $0.value < $1.value }
-            .map { ($0.key, $0.value) }
-    }
-
-    private func isValidTransition(from: State, to: State) -> Bool {
-        switch (from, to) {
-        case (.idle, .executing),
-             (.executing, .timedOut),
-             (.executing, .completed),
-             (.executing, .cancelled),
-             (.timedOut, .gracePeriod),
-             (.timedOut, .cancelled),
-             (.gracePeriod, .completed),
-             (.gracePeriod, .cancelled):
-            return true
-        default:
-            return false
-        }
     }
 }
