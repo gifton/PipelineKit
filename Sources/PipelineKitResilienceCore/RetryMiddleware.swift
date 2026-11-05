@@ -96,7 +96,15 @@ public struct RetryMiddleware: Middleware, UnsafeMiddleware {
         /// Whether to emit observability events
         public let emitEvents: Bool
 
-        /// Maximum total time allowed for all retry attempts
+        /// Monotonic time budget for backoff and admitting attempts, starting at
+        /// `execute` entry. Zero prevents the initial attempt; nil is unlimited
+        /// (`testZeroBudgetDoesNotAdmitInitialAttempt`,
+        /// `testNilBudgetPreservesMaximumRetryCountAndLastError`).
+        /// Admitted handlers and event emitters settle before returning, even if
+        /// the budget expires (`testBudgetExpirationWaitsForAdmittedWorkToSettle`).
+        /// Late successes return normally; exhaustion after a failure preserves
+        /// that error (`testAdmittedSuccessAfterBudgetIsReturned`,
+        /// `testBudgetExhaustionPreservesMostRecentFailure`).
         public let maxRetryTime: TimeInterval?
 
         public init(
@@ -122,11 +130,33 @@ public struct RetryMiddleware: Middleware, UnsafeMiddleware {
     }
 
     private let configuration: Configuration
+    private let retryBudget: Duration?
+    private let now: @Sendable () -> Duration
+    private let sleep: @Sendable (Duration) async throws -> Void
 
     // MARK: - Initialization
 
     public init(configuration: Configuration = Configuration()) {
+        let clock = ContinuousClock()
+        let origin = clock.now
+        self.init(
+            configuration: configuration,
+            now: { origin.duration(to: clock.now) },
+            sleep: { try await clock.sleep(for: $0) }
+        )
+    }
+
+    /// Requires a monotonic `now` and a cancellation-aware `sleep` that waits
+    /// for at least the requested duration unless it throws.
+    package init(
+        configuration: Configuration,
+        now: @escaping @Sendable () -> Duration,
+        sleep: @escaping @Sendable (Duration) async throws -> Void
+    ) {
         self.configuration = configuration
+        self.retryBudget = configuration.maxRetryTime.flatMap(Self.durationForRetryBudget)
+        self.now = now
+        self.sleep = sleep
     }
 
     public init(
@@ -149,37 +179,27 @@ public struct RetryMiddleware: Middleware, UnsafeMiddleware {
         context: CommandContext,
         next: @escaping MiddlewareNext<T>
     ) async throws -> T.Result {
+        let startTime = now()
         let commandType = String(describing: type(of: command))
-        let startTime = Date()
         var lastError: (any Error)?
+        var attempt = 0
 
-        for attempt in 0...configuration.maxAttempts {
+        while true {
             try PipelineCancellation.check(context: context)
-            // Check max retry time
-            if let maxTime = configuration.maxRetryTime {
-                let elapsed = Date().timeIntervalSince(startTime)
-                if elapsed > maxTime {
-                    await emitMaxTimeExceeded(
-                        commandType: commandType,
-                        attempts: attempt,
-                        context: context
-                    )
-                    throw lastError ?? RetryError.maxRetryTimeExceeded
-                }
+            if retryTimeExpired(since: startTime) { break }
+
+            if attempt > 0 {
+                await emitRetryAttempt(
+                    commandType: commandType,
+                    attempt: attempt,
+                    context: context
+                )
             }
 
+            try PipelineCancellation.check(context: context)
+            if retryTimeExpired(since: startTime) { break }
+
             do {
-                // Log retry attempt if not the first
-                if attempt > 0 {
-                    await emitRetryAttempt(
-                        commandType: commandType,
-                        attempt: attempt,
-                        context: context
-                    )
-                }
-
-                try PipelineCancellation.check(context: context)
-
                 // Execute the command
                 let result = try await next(command, context)
 
@@ -198,6 +218,7 @@ public struct RetryMiddleware: Middleware, UnsafeMiddleware {
                     throw PipelineCancellation.normalize(error, context: context)
                 }
                 lastError = error
+                if retryTimeExpired(since: startTime) { break }
 
                 // Check if we should retry
                 guard attempt < configuration.maxAttempts,
@@ -215,9 +236,11 @@ public struct RetryMiddleware: Middleware, UnsafeMiddleware {
                 }
 
                 try PipelineCancellation.check(context: context)
+                if retryTimeExpired(since: startTime) { break }
 
                 // Calculate delay
                 let delay = configuration.strategy.delay(for: attempt + 1)
+                if retryTimeExpired(since: startTime) { break }
 
                 // Wait before retry
                 await emitRetryDelay(
@@ -230,18 +253,77 @@ public struct RetryMiddleware: Middleware, UnsafeMiddleware {
 
                 do {
                     try PipelineCancellation.check(context: context)
-                    try await Task.sleep(nanoseconds: NumericDuration.nanoseconds(delay))
+                    // Backoff validation bounds this conversion independently
+                    // of the overall budget (testUpperRangeBudgetsAndBackoffsRemainRepresentable).
+                    let requestedDelay = Duration.seconds(delay)
+                    let sleepDuration: Duration
+                    if let remaining = remainingRetryTime(since: startTime) {
+                        if remaining <= .zero { break }
+                        sleepDuration = min(requestedDelay, remaining)
+                    } else {
+                        sleepDuration = requestedDelay
+                    }
+                    try await sleep(sleepDuration)
                 } catch {
                     throw PipelineCancellation.normalize(error, context: context)
                 }
             }
+            // The retry guard above requires attempt < maxAttempts.
+            attempt += 1
         }
 
-        // Should never reach here, but throw last error if we do
-        throw lastError ?? RetryError.unexpectedState
+        await emitMaxTimeExceeded(
+            commandType: commandType,
+            attempts: attempt,
+            context: context
+        )
+        throw lastError ?? RetryError.maxRetryTimeExceeded
     }
 
     // MARK: - Private Methods
+
+    private static func durationForRetryBudget(_ budget: TimeInterval) -> Duration? {
+        guard budget > 0 else { return .zero }
+
+        // For budget = m * 2^e, the first expired clock tick is
+        // ceil(m * 10^18 * 2^e) attoseconds. Integer arithmetic avoids rounding
+        // the threshold down (testFractionalAttosecondBudgetsExpireAtCeilingThreshold).
+        let bits = budget.bitPattern
+        let encodedExponent = Int((bits >> 52) & 0x7ff)
+        let fraction = UInt128(bits & 0x000f_ffff_ffff_ffff)
+        let significand = encodedExponent == 0 ? fraction : fraction | (UInt128(1) << 52)
+        let exponent = encodedExponent == 0 ? -1074 : encodedExponent - 1075
+        // At most 53 significand bits times 10^18 (< 2^60) fits in UInt128.
+        let scaled = significand * 1_000_000_000_000_000_000
+        let attoseconds: UInt128
+
+        if exponent >= 0 {
+            let maximum = UInt128(Int128.max)
+            guard exponent < 128, scaled <= maximum >> exponent else { return nil }
+            attoseconds = scaled << exponent
+        } else {
+            let shift = -exponent
+            if shift >= 128 {
+                attoseconds = 1
+            } else {
+                let quotient = scaled >> shift
+                let remainder = scaled & ((UInt128(1) << shift) - 1)
+                attoseconds = quotient + (remainder > 0 ? 1 : 0)
+            }
+        }
+
+        guard let representable = Int128(exactly: attoseconds) else { return nil }
+        return Duration(attoseconds: representable)
+    }
+
+    private func remainingRetryTime(since startTime: Duration) -> Duration? {
+        guard let retryBudget else { return nil }
+        return retryBudget - max(.zero, now() - startTime)
+    }
+
+    private func retryTimeExpired(since startTime: Duration) -> Bool {
+        remainingRetryTime(since: startTime).map { $0 <= .zero } ?? false
+    }
 
     private func shouldRetry(error: any Error) -> Bool {
         // Check cancellation first
@@ -463,25 +545,23 @@ public extension RetryMiddleware {
         )
     }
 
-    /// Creates retry middleware that only retries on specific HTTP status codes
-    static func forHTTPStatusCodes(_ statusCodes: Set<Int>) -> RetryMiddleware {
+    /// Creates retry middleware for the included HTTP status codes.
+    /// Return nil from `statusCode` for errors without an HTTP status. Recognized
+    /// cancellation errors bypass this extractor
+    /// (RetryPolicyContractTests.testHTTPStatusExtractionExcludesCancellation).
+    static func forHTTPStatusCodes(
+        _ statusCodes: Set<Int>,
+        statusCode: @escaping @Sendable (any Error) -> Int?
+    ) -> RetryMiddleware {
         RetryMiddleware(
             configuration: Configuration(
                 maxAttempts: 3,
                 strategy: .exponentialJitter(baseDelay: 1.0, maxDelay: 10.0),
                 errorEvaluator: { error in
-                    // Check if error contains HTTP status code
-                    if let httpError = error as? HTTPError {
-                        return statusCodes.contains(httpError.statusCode)
-                    }
-                    return false
+                    guard let code = statusCode(error) else { return false }
+                    return statusCodes.contains(code)
                 }
             )
         )
     }
-}
-
-// Example HTTP error for demonstration
-private struct HTTPError: Error {
-    let statusCode: Int
 }
