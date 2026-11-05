@@ -190,6 +190,9 @@ jobs:
     runs-on: macos-26
     needs: [build, build-linux]
     timeout-minutes: 45  # Increased for individual target coverage collection
+    permissions:
+      contents: read
+      id-token: write
 
     steps:
     - uses: actions/checkout@v7
@@ -236,7 +239,7 @@ jobs:
     - name: Upload Coverage to Codecov
       uses: codecov/codecov-action@v7
       with:
-        token: ${{ secrets.CODECOV_TOKEN }}
+        use_oidc: true
         files: ./coverage.lcov
         disable_search: true
         fail_ci_if_error: true

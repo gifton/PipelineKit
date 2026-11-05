@@ -135,9 +135,12 @@ Linux builds use Docker container `swift:6.2`:
 3. Consider CI hardware differences
 
 ### Coverage Upload Failures
-1. Verify `CODECOV_TOKEN` secret is set
-2. Check that test binary exists at expected path
-3. Ensure profdata was generated with `--enable-code-coverage`
+1. For Codecov authentication, verify the coverage job has `id-token: write`
+   permission and the action has `use_oidc: true`; no stored upload token is used.
+2. Check the coverage artifact and the collection/export step logs. All eight
+   correctness-suite profiles must be present before export.
+3. For fork pull requests, inspect Codecov's tokenless-upload response; the action
+   does not request OIDC tokens for forks.
 
 ### Xcode Setup Issues
 1. Verify `macos-26` runner is available

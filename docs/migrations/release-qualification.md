@@ -93,6 +93,9 @@ requests, including changes limited to documentation. Coverage collection preser
 profiles from all eight correctness suites outside SwiftPM's managed coverage
 directory. Missing profiles, merge/export failures, and missing coverage upload
 artifacts fail the coverage run.
+The main coverage job authenticates Codecov uploads with GitHub OIDC instead of
+a stored `CODECOV_TOKEN`; upload failures remain fatal. OIDC permission is limited
+to that job. Fork pull requests use the action's tokenless-upload path.
 
 `PoolRegistry` starts maintenance when a pool is registered. Tests now explicitly
 own their registries and await the internal `shutdownAndWait()` in async teardown.

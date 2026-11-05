@@ -272,6 +272,40 @@ def event_selected(workflow, event, branch, changed_paths):
     return True
 
 
+class CoverageUploadAuthenticationTests(unittest.TestCase):
+    def test_required_upload_can_authenticate_without_repository_secrets(self):
+        uploads = []
+        for workflow in sorted((ROOT / '.github/workflows').glob('*.yml')):
+            source = workflow.read_text().partition('\njobs:\n')[2]
+            for match in re.finditer(r'^  ([\w-]+):\n(.*?)(?=^  [\w-]+:\n|\Z)', source, re.M | re.S):
+                job_name, job = match.groups()
+                header, _, steps = job.partition('\n    steps:\n')
+                for step in re.split(r'^    - ', steps, flags=re.M):
+                    if re.search(r'^      uses: codecov/codecov-action@', step, re.M):
+                        uploads.append((workflow.name, job_name, header, step))
+        self.assertTrue(uploads, 'Coverage must retain a required upload route')
+        for workflow, job_name, header, step in uploads:
+            with self.subTest(workflow=workflow, job=job_name):
+                inputs = dict(re.findall(r'^        ([\w-]+):\s*(.+)$', step, re.M))
+                permissions = re.search(r'^    permissions:\n((?:      [^\n]*\n)+)', header + '\n', re.M)
+                grants = dict(re.findall(r'^      ([\w-]+):\s*(.+)$', permissions[1], re.M)) if permissions else {}
+                job_options = dict(re.findall(r'^    ([\w-]+): *(.+)$', header, re.M))
+                step_options = dict(re.findall(r'^      ([\w-]+): *(.+)$', step, re.M))
+                missing = []
+                if inputs.get('use_oidc') != 'true':
+                    missing.append('upload must request OIDC authentication')
+                if grants.get('id-token') != 'write':
+                    missing.append('upload job must be able to mint an ID token')
+                if permissions and grants.get('contents') != 'read':
+                    missing.append('job permission override must preserve checkout access')
+                self.assertEqual(missing, [], 'A same-repository upload cannot rely on an absent secret')
+                self.assertNotIn('token', inputs, 'OIDC uploads must not depend on a repository upload secret')
+                self.assertEqual(inputs.get('fail_ci_if_error'), 'true')
+                for options in (job_options, step_options):
+                    self.assertNotIn('if', options, 'The required uploader must not be conditional on secret availability')
+                    self.assertEqual(options.get('continue-on-error', 'false'), 'false', 'Upload failures must fail CI')
+
+
 class ReleaseCoverageRoutingTests(unittest.TestCase):
     def test_release_push_and_pull_request_include_docs_only_and_nested_branches(self):
         for workflow in STEPS:
