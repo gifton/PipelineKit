@@ -388,25 +388,6 @@ public final class MetricsEventBridge: EventSubscriber, Sendable {
     }
 }
 
-// MARK: - EventHub Extension for Natural Integration
-
-public extension EventHub {
-    /// Subscribes a metric recorder with automatic event-to-metric conversion.
-    ///
-    /// This provides natural integration between events and metrics.
-    ///
-    /// - Parameters:
-    ///   - recorder: The metric recorder to use
-    ///   - config: Configuration for metric generation
-    func connectMetrics(
-        _ recorder: any MetricRecorder,
-        config: MetricsGenerationConfig = .default
-    ) {
-        let bridge = MetricsEventBridge(recorder: recorder, config: config)
-        subscribe(bridge)
-    }
-}
-
 // MARK: - Convenience Factory
 
 public extension MetricsEventBridge {
