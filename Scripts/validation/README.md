@@ -14,7 +14,8 @@ routing, cache identity, encryption, bulkhead, error/cancellation policy, monito
 and connection lifetime, resilience policy contracts, and metrics behavior, plus macOS
 StatsD/UDP lifecycle cases. Its compiled documentation fixtures are generated
 from the migration guide and examples changed since the stabilization baseline
-pinned in the extractor. This is a batch-specific check, not a check of all docs.
+pinned in the extractor, including the corrected basic-usage retry tutorial. This
+is a batch-specific check, not a check of all docs.
 The extractor requires Git history containing baseline commit
 `a93a713d937e25f68855f22b0720f33c93329b09`; use a full checkout. Without that history,
 the legacy extractor selects historical examples as well as this batch's changes.
@@ -28,16 +29,42 @@ python3 Scripts/validation/run_check.py --id consumer-debug-001 --timeout 60 -- 
 ```
 
 Run each mode in both configurations: `composition-security`, `routing`,
-`cache-identity`, `encryption`, `bulkhead`, `error-contract`, `lifecycle`, `policy-contract`,
+`cache-identity`, `encryption`, `bulkhead`, `error-contract`, `lifecycle`, `policy-contract`, `qualification`,
 `metrics`, `statsd-startup`, `udp-close`,
 and `udp-failure-close`. Use the watchdog for these lifecycle checks so a stalled
 continuation cannot leave validation waiting indefinitely. These probes do not
 replace the package's full Debug/Release test suites or platform CI.
 
+The `qualification` mode verifies distributed status error and cancellation
+propagation. Test-support interception is checked in an external XCTest target,
+because `PipelineKitTestSupport` requires the test runtime. Run it in both
+configurations:
+
+```sh
+for configuration in debug release; do
+  python3 Scripts/validation/run_check.py --id "consumer-tests-${configuration}-001" --timeout 120 -- \
+    swift test --package-path Tests/Integration/Consumer --configuration "$configuration" --filter PublicTestPipelineTests
+done
+```
+
 The `policy-contract` mode checks public retry budgets and HTTP extraction, timeout
-grace outcomes, rate priority/reset, and finite overload admission. CI builds and runs
+grace outcomes, rate priority/reset, and finite overload admission. It also calls
+the retry factory extracted from `docs/tutorials/basic-usage.md` through guarded
+middleware in `StandardPipeline`, `PipelineBuilder`, and `DynamicPipeline`. Each
+route covers second-attempt success, retry exhaustion, a nonretryable error, and
+cancellation, with exact handler and guarded-middleware traversal counts. The
+dynamic route calls `send(..., retryPolicy: .none)` so only the documented
+middleware retries the operation. This
+consumer uses an in-process handler; the tutorial's network usage fence is compiled
+without execution. CI builds and runs
 it under the watchdog in both configurations. The policy tests include deterministic
 clock and callback interleavings for boundaries that a public elapsed-time probe cannot force.
+
+`python3 Scripts/ci/tests/test_example_extraction.py` exercises the extractor against
+independent temporary documentation fixtures. It checks the tutorial's file-scope
+definitions, separate usage wrapper, source hashes, repeatability, and fence reordering.
+The [release qualification migration](../../docs/migrations/release-qualification.md)
+records API updates and explicit test-skip dispositions.
 
 The `lifecycle` mode applies one owner-release assertion across health monitoring,
 memory monitoring, hub-owned metrics, and the existing pool collector. It also acknowledges cancellation before

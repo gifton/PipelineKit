@@ -11,6 +11,12 @@ let package = Package(
             dependencies: ["PipelineKit", "PipelineKitSecurity", "PipelineKitCache", "PipelineKitResilience", "PipelineKitObservability", "PipelineKitPooling"].map {
                 .product(name: $0, package: "PipelineKit")
             }
+        ),
+        .testTarget(
+            name: "ConsumerTests",
+            dependencies: ["PipelineKit", "PipelineKitTestSupport"].map {
+                .product(name: $0, package: "PipelineKit")
+            }
         )
     ]
 )

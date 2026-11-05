@@ -16,6 +16,44 @@ private final class PolicyCounter: Sendable {
     var value: Int { count.withLock { $0 } }
 }
 
+private enum PolicyFetchOutcome: Sendable, Equatable {
+    case recovers, exhausts, permanentFailure, cancellation
+}
+
+private struct PolicyFetchHandler: CommandHandler {
+    let outcome: PolicyFetchOutcome
+    let attempts: PolicyCounter
+
+    func handle(_ command: FetchDataCommand, context: CommandContext) async throws -> Data {
+        let attempt = attempts.increment()
+        switch outcome {
+        case .recovers:
+            if attempt == 1 { throw URLError(.timedOut) }
+            return Data("tutorial-result".utf8)
+        case .exhausts:
+            throw URLError(.timedOut)
+        case .permanentFailure:
+            throw URLError(.badURL)
+        case .cancellation:
+            throw CancellationError()
+        }
+    }
+}
+
+private struct PolicyGuardedAttempts: Middleware {
+    let priority: ExecutionPriority = .postProcessing
+    let traversals: PolicyCounter
+
+    func execute<C: Command>(
+        _ command: C,
+        context: CommandContext,
+        next: @Sendable (C, CommandContext) async throws -> C.Result
+    ) async throws -> C.Result {
+        _ = traversals.increment()
+        return try await next(command, context)
+    }
+}
+
 private final class PolicyGate: Sendable {
     private struct State {
         var released = false
@@ -130,6 +168,67 @@ private func policyRetry() async throws {
     try require(extracted.value == 1, "cancellation reached HTTP extractor")
 }
 
+private func policyTutorialRetry() async throws {
+    guard let fixtureURL = URL(string: "https://example.invalid/qualification") else {
+        throw ConsumerFailure.assertion("tutorial retry fixture URL could not be constructed")
+    }
+    let scenarios: [(PolicyFetchOutcome, Int)] = [
+        (.recovers, 2), (.exhausts, 3), (.permanentFailure, 1), (.cancellation, 1)
+    ]
+    for route in ["standard", "builder", "dynamic"] {
+        for (outcome, expectedAttempts) in scenarios {
+            let attempts = PolicyCounter()
+            let traversals = PolicyCounter()
+            let handler = PolicyFetchHandler(outcome: outcome, attempts: attempts)
+            // This factory is extracted verbatim from basic-usage.md.
+            let retry = makeFetchDataRetryMiddleware()
+            let guarded = PolicyGuardedAttempts(traversals: traversals)
+            let execute: @Sendable (FetchDataCommand, CommandContext) async throws -> Data
+            switch route {
+            case "standard":
+                let pipeline = StandardPipeline(handler: handler)
+                try await pipeline.addMiddleware(retry)
+                try await pipeline.addMiddleware(guarded)
+                execute = { try await pipeline.execute($0, context: $1) }
+            case "builder":
+                let builder = PipelineBuilder(handler: handler)
+                await builder.addMiddleware(retry)
+                await builder.addMiddleware(guarded)
+                let pipeline = try await builder.build()
+                execute = { try await pipeline.execute($0, context: $1) }
+            default:
+                let pipeline = DynamicPipeline()
+                await pipeline.register(FetchDataCommand.self, handler: handler)
+                try await pipeline.addMiddleware(retry)
+                try await pipeline.addMiddleware(guarded)
+                // The middleware owns retries; disable the pipeline's outer retry policy.
+                execute = { try await pipeline.send($0, context: $1, retryPolicy: .none) }
+            }
+
+            do {
+                let result = try await execute(
+                    FetchDataCommand(url: fixtureURL),
+                    CommandContext()
+                )
+                try require(outcome == .recovers, "\(route): failing tutorial operation succeeded")
+                try require(result == Data("tutorial-result".utf8), "\(route): retry changed handler output")
+            } catch let error as URLError {
+                let expectedCode: URLError.Code
+                switch outcome {
+                case .exhausts: expectedCode = .timedOut
+                case .permanentFailure: expectedCode = .badURL
+                default: throw ConsumerFailure.assertion("\(route): unexpected transport failure: \(error)")
+                }
+                try require(error.code == expectedCode, "\(route): retry replaced transport failure")
+            } catch PipelineError.cancelled {
+                try require(outcome == .cancellation, "\(route): unexpected tutorial cancellation")
+            }
+            try require(attempts.value == expectedAttempts, "\(route): tutorial retry attempt count differs")
+            try require(traversals.value == expectedAttempts, "\(route): retry did not traverse guarded middleware per attempt")
+        }
+    }
+}
+
 private func policyTimeout() async throws {
     let metrics = PolicyMetrics()
     let timeout = TimeoutMiddleware(configuration: .init(
@@ -175,11 +274,11 @@ private func policyRateLimits() async throws {
     )
     let result = try await middleware.execute(PolicyCommand(), context: CommandContext()) { _, _ in 7 }
     try require(result == 7, "extracted priority was not applied")
-    try require(await limiter.getStatus(identifier: "customer", priority: .high).remaining == 0, "priority status differs")
+    try require(try await limiter.getStatus(identifier: "customer", priority: .high).remaining == 0, "priority status differs")
     try await limiter.reset(identifier: "customer", priority: .high)
     try require(try await limiter.allowRequest(identifier: "customer", priority: .high), "keyed priority reset failed")
     try await limiter.reset()
-    try require(await limiter.getStatus(identifier: "customer", priority: .high).remaining == 1, "reset-all missed priority")
+    try require(try await limiter.getStatus(identifier: "customer", priority: .high).remaining == 1, "reset-all missed priority")
 
     let store = InMemoryRateLimitStore()
     let first = RateLimiter(strategy: .distributed(store: store, windowSize: 60, maxRequests: 1), scope: .perUser)
@@ -240,6 +339,7 @@ private func policyOutstandingLimits() async throws {
 
 func policyContract() async throws {
     try await policyRetry()
+    try await policyTutorialRetry()
     try await policyTimeout()
     try await policyRateLimits()
     try await policyOutstandingLimits()
@@ -247,6 +347,7 @@ func policyContract() async throws {
     try emit([
         "mode": "policy-contract",
         "retry": "bounded",
+        "tutorialRetry": "guarded-chain-matrix",
         "grace": "per-invocation",
         "priorityAndReset": "effective",
         "outstanding": "strict"

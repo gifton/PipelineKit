@@ -1,6 +1,8 @@
 # Installation Guide
 
-PipelineKit supports multiple installation methods to fit your workflow.
+Install PipelineKit with Swift Package Manager, either through Xcode or a
+`Package.swift` manifest. The package manifest defines the module graph and external
+dependencies required to build the library.
 
 ## Requirements
 
@@ -36,7 +38,8 @@ let package = Package(
         .macOS(.v26),
         .iOS(.v26),
         .tvOS(.v26),
-        .watchOS(.v26)
+        .watchOS(.v26),
+        .visionOS(.v26)
     ],
     dependencies: [
         .package(url: "https://github.com/gifton/PipelineKit.git", from: "0.5.2")
@@ -44,15 +47,24 @@ let package = Package(
     targets: [
         .target(
             name: "YourTarget",
-            dependencies: ["PipelineKit"]
+            dependencies: [
+                .product(name: "PipelineKit", package: "PipelineKit"),
+                .product(name: "PipelineKitResilience", package: "PipelineKit")
+            ]
         ),
         .testTarget(
             name: "YourTargetTests",
-            dependencies: ["YourTarget", "PipelineKit"]
+            dependencies: ["YourTarget"]
         )
     ]
 )
 ```
+
+`PipelineKit` provides the pipeline APIs. Add the `PipelineKitResilience` product
+for the retry example in the [basic usage tutorial](../tutorials/basic-usage.md),
+and import `PipelineKitResilience` in files that use it. Add other products only as
+needed, such as `PipelineKitSecurity`, `PipelineKitCache`, or
+`PipelineKitObservability`.
 
 ### Version Requirements
 
@@ -115,15 +127,18 @@ swift package resolve
 swift build
 ```
 
-## Manual Installation
+## Local Package Checkout
 
-While not recommended, you can manually add PipelineKit to your project:
+For local development, clone the repository and add the checkout as a local Swift
+package. A manifest can reference the checkout by path:
 
-1. Download the source code
-2. Drag the `Sources/PipelineKit` folder into your Xcode project
-3. Ensure the files are added to your target
+```swift
+.package(path: "../PipelineKit")
+```
 
-**Note**: Manual installation requires you to manage updates yourself and may cause issues with dependencies.
+Keep the product dependencies shown above. Copying `Sources/PipelineKit` into an
+application target is unsupported: that directory depends on sibling targets such
+as `PipelineKitCore` and external packages declared in the root manifest.
 
 ## Verification
 

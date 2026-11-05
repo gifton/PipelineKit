@@ -281,9 +281,16 @@ struct SearchHandler: CommandHandler {
 
 ## Async Command Processing
 
-Handle async operations naturally:
+Use `RetryMiddleware` from the `PipelineKitResilience` package product for retrying
+an asynchronous operation. Ordinary `Middleware` may call `next` only once per
+invocation; a handwritten retry loop in that protocol will fail on its second call.
+The shipped retry middleware supports repeated attempts through downstream middleware.
 
 ```swift
+import Foundation
+import PipelineKit
+import PipelineKitResilience
+
 // Command for fetching data
 struct FetchDataCommand: Command {
     typealias Result = Data
@@ -300,44 +307,37 @@ struct FetchDataHandler: CommandHandler {
     }
 }
 
-// Retry middleware for network requests
-struct RetryMiddleware: Middleware {
-    let priority = ExecutionPriority.preProcessing
-    let maxAttempts: Int
-    
-    init(maxAttempts: Int = 3) {
-        self.maxAttempts = maxAttempts
-    }
-    
-    func execute<T: Command>(
-        _ command: T,
-        context: CommandContext,
-        next: @Sendable (T, CommandContext) async throws -> T.Result
-    ) async throws -> T.Result {
-        var lastError: Error?
-        
-        for attempt in 1...maxAttempts {
-            do {
-                return try await next(command, context)
-            } catch {
-                lastError = error
-                print("[RETRY] Attempt \(attempt) failed: \(error)")
-                
-                if attempt < maxAttempts {
-                    // Exponential backoff
-                    try await Task.sleep(nanoseconds: UInt64(pow(2.0, Double(attempt)) * 1_000_000_000))
-                }
-            }
+// Reuse this policy when constructing a fetch pipeline.
+func makeFetchDataRetryMiddleware() -> RetryMiddleware {
+    RetryMiddleware(configuration: .init(
+        maxAttempts: 2, // Two retries after the initial attempt: at most three calls.
+        strategy: .exponential(baseDelay: 0.1, maxDelay: 1),
+        errorEvaluator: { error in
+            guard let urlError = error as? URLError else { return false }
+            return [.timedOut, .networkConnectionLost, .notConnectedToInternet]
+                .contains(urlError.code)
         }
-        
-        throw lastError ?? PipelineError.retryExhausted(attempts: maxAttempts, lastError: RetryError.exhausted)
-    }
-}
-
-enum RetryError: Error {
-    case exhausted
+    ))
 }
 ```
+
+Build and execute the pipeline from an async function:
+
+```swift
+let builder = PipelineBuilder(handler: FetchDataHandler())
+await builder.addMiddleware(makeFetchDataRetryMiddleware())
+let pipeline = try await builder.build()
+
+let data = try await pipeline.execute(
+    FetchDataCommand(url: URL(string: "https://example.com")!),
+    context: CommandContext()
+)
+print("Received \(data.count) bytes")
+```
+
+Only the listed transport failures are retried. Cancellation stops retries. HTTP
+error responses require explicit status validation in the handler; `URLSession`
+does not throw merely because the response has a 4xx or 5xx status.
 
 ## Complete Example
 

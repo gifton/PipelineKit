@@ -362,6 +362,69 @@ struct ProcessContentCommand: SanitizableCommand {
 
 }
 
+// docs/guides/security-best-practices.md, Swift fence 10
+@MainActor func compiled_docs_guides_security_best_practices_md_10() async throws {
+struct SearchCommand: Command { typealias Result = Void }
+struct GetUserCommand: Command { typealias Result = Void }
+struct SubmitPaymentCommand: Command { typealias Result = Void }
+struct DeleteUserCommand: Command { typealias Result = Void }
+
+// Custom rate limiting middleware
+struct CommandSpecificRateLimitingMiddleware: Middleware {
+    let priority: ExecutionPriority = .resilience
+
+    // High-frequency operations (search, read)
+    let readLimiter = RateLimiter(
+        strategy: .tokenBucket(capacity: 1000, refillRate: 100)
+    )
+
+    // Medium-frequency operations (updates)
+    let writeLimiter = RateLimiter(
+        strategy: .slidingWindow(windowSize: 60, maxRequests: 50)
+    )
+
+    // Low-frequency sensitive operations (payments, admin actions)
+    let sensitiveLimiter = RateLimiter(
+        strategy: .tokenBucket(capacity: 5, refillRate: 1)
+    )
+
+    func execute<T: Command>(
+        _ command: T,
+        context: CommandContext,
+        next: @escaping MiddlewareNext<T>
+    ) async throws -> T.Result {
+        let limiter = selectLimiter(for: command)
+        // Contract: upstream authentication must establish this user ID before
+        // applying per-user limits. Caller-chosen IDs can bypass those limits by
+        // selecting a new bucket. Use a server-derived key for anonymous traffic.
+        let identifier = context.userID ?? "anonymous"
+
+        guard try await limiter.allowRequest(identifier: identifier) else {
+            let status = try await limiter.getStatus(identifier: identifier)
+            throw PipelineError.rateLimitExceeded(
+                limit: status.limit,
+                resetTime: status.resetAt,
+                retryAfter: status.resetAt.timeIntervalSinceNow
+            )
+        }
+
+        return try await next(command, context)
+    }
+
+    private func selectLimiter<T: Command>(for command: T) -> RateLimiter {
+        switch command {
+        case is SearchCommand, is GetUserCommand:
+            return readLimiter
+        case is SubmitPaymentCommand, is DeleteUserCommand:
+            return sensitiveLimiter
+        default:
+            return writeLimiter
+        }
+    }
+}
+
+}
+
 // docs/guides/security-best-practices.md, Swift fence 12
 @MainActor func compiled_docs_guides_security_best_practices_md_12() async throws {
 struct PaymentCommand: Command, Codable {
@@ -787,10 +850,55 @@ let priorityLimiter = RateLimiter(strategy: .priorityBased(limits: [
     .high: .init(maxRequests: 20, windowSize: 60)
 ]))
 _ = try await priorityLimiter.allowRequest(identifier: "customer", priority: .high)
-let highStatus = await priorityLimiter.getStatus(identifier: "customer", priority: .high)
+let highStatus = try await priorityLimiter.getStatus(identifier: "customer", priority: .high)
 try await priorityLimiter.reset(identifier: "customer", priority: .high)
 try await priorityLimiter.reset()
 _ = highStatus
+
+}
+
+// docs/tutorials/basic-usage.md, Swift fence 8
+
+// Command for fetching data
+struct FetchDataCommand: Command {
+    typealias Result = Data
+    let url: URL
+}
+
+// Async handler
+struct FetchDataHandler: CommandHandler {
+    typealias CommandType = FetchDataCommand
+
+    func handle(_ command: FetchDataCommand, context: CommandContext) async throws -> Data {
+        let (data, _) = try await URLSession.shared.data(from: command.url)
+        return data
+    }
+}
+
+// Reuse this policy when constructing a fetch pipeline.
+func makeFetchDataRetryMiddleware() -> RetryMiddleware {
+    RetryMiddleware(configuration: .init(
+        maxAttempts: 2, // Two retries after the initial attempt: at most three calls.
+        strategy: .exponential(baseDelay: 0.1, maxDelay: 1),
+        errorEvaluator: { error in
+            guard let urlError = error as? URLError else { return false }
+            return [.timedOut, .networkConnectionLost, .notConnectedToInternet]
+                .contains(urlError.code)
+        }
+    ))
+}
+
+// docs/tutorials/basic-usage.md, Swift fence 9
+@MainActor func compiled_docs_tutorials_basic_usage_md_9() async throws {
+let builder = PipelineBuilder(handler: FetchDataHandler())
+await builder.addMiddleware(makeFetchDataRetryMiddleware())
+let pipeline = try await builder.build()
+
+let data = try await pipeline.execute(
+    FetchDataCommand(url: URL(string: "https://example.com")!),
+    context: CommandContext()
+)
+print("Received \(data.count) bytes")
 
 }
 

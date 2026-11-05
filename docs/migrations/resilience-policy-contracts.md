@@ -101,7 +101,7 @@ let priorityLimiter = RateLimiter(strategy: .priorityBased(limits: [
     .high: .init(maxRequests: 20, windowSize: 60)
 ]))
 _ = try await priorityLimiter.allowRequest(identifier: "customer", priority: .high)
-let highStatus = await priorityLimiter.getStatus(identifier: "customer", priority: .high)
+let highStatus = try await priorityLimiter.getStatus(identifier: "customer", priority: .high)
 try await priorityLimiter.reset(identifier: "customer", priority: .high)
 try await priorityLimiter.reset()
 _ = highStatus
