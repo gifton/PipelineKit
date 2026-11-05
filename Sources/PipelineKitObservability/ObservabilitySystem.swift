@@ -49,6 +49,11 @@ public actor ObservabilitySystem {
     
     /// Optional StatsD exporter
     private var statsdExporter: StatsDExporter?
+    private let statsdSubscriptionOwner = UUID()
+    private var statsdGeneration = EventSubscriptionGeneration()
+    // The hub holds weak subscribers. Pending and installed routes stay alive
+    // until the hub reports which route it actually displaced.
+    private var statsdRoutes: [ObjectIdentifier: StatsDEventRoute] = [:]
     
     /// Strong references to event subscribers to prevent premature deallocation
     /// EventHub stores subscribers weakly to avoid retain cycles, so the system
@@ -217,19 +222,41 @@ public actor ObservabilitySystem {
             globalTags: globalTags
         )
         
-        // Transport startup is lazy until the first nonempty batch.
-        statsdExporter = StatsDExporter(configuration: config)
-        
-        if let exporter = statsdExporter {
-            // Bridge metrics to StatsD
-            let bridge = MetricsEventBridge(
-                recorder: exporter,
-                config: self.config.metricsGeneration
-            )
-            await eventHub.subscribe(bridge)
-            // Retain the bridge to keep it alive
-            retainedSubscribers.append(bridge)
+        await setStatsDExporter(StatsDExporter(configuration: config))
+    }
+
+    /// Unsubscribes, attempts to flush, and closes this system's StatsD exporter.
+    /// Already-running event deliveries may finish. Local metrics and logging
+    /// remain configured; UDP delivery is not acknowledged.
+    public func disableStatsD() async { await setStatsDExporter(nil) }
+
+    // Used by host configuration and disable; transport injection exercises the
+    // same replacement lifecycle in ObservabilitySystemLifecycleTests.
+    func setStatsDExporter(_ exporter: StatsDExporter?) async {
+        let generation = EventSubscriptionGeneration()
+        statsdGeneration.invalidate()
+        statsdGeneration = generation
+        statsdExporter = exporter
+        let route = exporter.map { StatsDEventRoute(exporter: $0, configuration: config.metricsGeneration) }
+        if let route { statsdRoutes[ObjectIdentifier(route)] = route }
+        let result = await eventHub.replaceSubscription(
+            owner: statsdSubscriptionOwner, generation: generation, with: route
+        )
+        if result.installed {
+            if let retired = result.retired as? StatsDEventRoute { await retireStatsDRoute(retired) }
+        } else if let route {
+            // This pending route never entered the hub; the installed route is
+            // still owned until a successful later swap returns it.
+            await retireStatsDRoute(route)
         }
+    }
+
+    private func retireStatsDRoute(_ route: StatsDEventRoute) async {
+        statsdRoutes.removeValue(forKey: ObjectIdentifier(route))
+        guard statsdExporter !== route.exporter,
+              !statsdRoutes.values.contains(where: { $0.exporter === route.exporter }) else { return }
+        await route.exporter.forceFlush()
+        await route.exporter.close()
     }
     
     /// Records a counter metric directly into `metricsStorage`, and forwards it
@@ -248,12 +275,13 @@ public actor ObservabilitySystem {
         guard config.enableMetrics else { return }
 
         let snapshot = MetricSnapshot.counter(name, value: value, tags: tags)
+        let exporter = statsdExporter
 
         // Record locally
         await metricsStorage.record(snapshot)
 
         // Forward to StatsD if configured
-        if let exporter = statsdExporter {
+        if let exporter {
             await exporter.record(snapshot)
         }
     }
@@ -276,12 +304,13 @@ public actor ObservabilitySystem {
         guard config.enableMetrics else { return }
 
         let snapshot = MetricSnapshot.gauge(name, value: value, tags: tags, unit: unit)
+        let exporter = statsdExporter
 
         // Record locally
         await metricsStorage.record(snapshot)
 
         // Forward to StatsD if configured
-        if let exporter = statsdExporter {
+        if let exporter {
             await exporter.record(snapshot)
         }
     }
@@ -302,12 +331,13 @@ public actor ObservabilitySystem {
         guard config.enableMetrics else { return }
 
         let snapshot = MetricSnapshot.timer(name, duration: duration, tags: tags)
+        let exporter = statsdExporter
 
         // Record locally
         await metricsStorage.record(snapshot)
 
         // Forward to StatsD if configured
-        if let exporter = statsdExporter {
+        if let exporter {
             await exporter.record(snapshot)
         }
     }
@@ -391,6 +421,18 @@ public actor ObservabilitySystem {
             retainedSubscribers.append(loggingBridge)
         }
     }
+}
+
+private final class StatsDEventRoute: EventSubscriber {
+    let exporter: StatsDExporter
+    private let bridge: MetricsEventBridge
+
+    init(exporter: StatsDExporter, configuration: MetricsGenerationConfig) {
+        self.exporter = exporter
+        self.bridge = MetricsEventBridge(recorder: exporter, config: configuration)
+    }
+
+    func process(_ event: PipelineEvent) async { await bridge.process(event) }
 }
 
 // MARK: - CommandContext Extension for Natural Usage

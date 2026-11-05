@@ -119,6 +119,35 @@ configuration selection. `test_compression_watchdog.py` uses real controlled
 processes to check timeout diagnostics and child termination, including refusal
 of TERM. Both run in quick CI.
 
+## Telemetry protocol output
+
+The ordinary-import Consumer produces eight telemetry fixtures: repeated and
+drained Prometheus scrapes, explicit reset, pool summaries, and sampled StatsD
+counters with aggregation on/off, plus repeated pool StatsD snapshots. A pinned host-side `prometheus-client` parser
+checks the real output; additional assertions enforce unique series, histogram
+`+Inf`/count agreement, preserved labels, and cumulative totals. StatsD accounting
+is applied independently to the emitted values and sample rates. This Python
+package is a validation-only dependency.
+
+```sh
+python3 -m venv .build/validation/telemetry-venv
+.build/validation/telemetry-venv/bin/python -m pip install -r Scripts/validation/telemetry-requirements.txt
+python3 Scripts/validation/extract_stabilization_examples.py
+for configuration in debug release; do
+  swift build --package-path Tests/Integration/Consumer --configuration "$configuration" || exit "$?"
+  .build/validation/telemetry-venv/bin/python Scripts/validation/check_telemetry_formats.py \
+    --configuration "$configuration" --log ".build/validation/telemetry-${configuration}.log" || exit "$?"
+done
+.build/validation/telemetry-venv/bin/python Scripts/ci/tests/test_telemetry_oracle.py
+```
+
+The driver launches the prebuilt consumer with a 30-second deadline and retains
+its output. Missing fixtures, an unacknowledged exit, protocol defects, or timeout
+fail the check. CI runs both configurations as a fatal macOS gate. The numeric
+driver also includes telemetry configuration boundaries in its isolated process
+matrix. `TelemetryWorkflowTests` executes the real workflow shell with controlled
+failures at each installation/build/validation stage.
+
 ## Command watchdog
 
 `run_check.py` records a command's output, exit status, timeout, observed process

@@ -30,6 +30,11 @@ public actor PoolMetricsCollector {
 
     /// Collection task
     private var collectionTask: Task<Void, Never>?
+    private var collectionGeneration: UUID?
+    private var previousSnapshot: PoolMetricsSnapshot?
+    private let snapshotProvider: @Sendable () async -> PoolMetricsSnapshot
+    private let sleep: @Sendable (UInt64) async throws -> Void
+    private let memoryPressure: PoolMetricsMemoryPressureClient
 
     /// Metrics export handler
     public typealias MetricsExporter = @Sendable (PoolMetricsSnapshot) async -> Void
@@ -50,51 +55,81 @@ public actor PoolMetricsCollector {
         collectionInterval: TimeInterval = 30,
         maxHistorySize: Int = 1000
     ) {
+        self.init(
+            collectionInterval: collectionInterval,
+            maxHistorySize: maxHistorySize,
+            snapshotProvider: Self.liveSnapshot,
+            sleep: { try await Task.sleep(nanoseconds: $0) },
+            memoryPressure: .live
+        )
+    }
+
+    init(
+        collectionInterval: TimeInterval = 30,
+        maxHistorySize: Int = 1000,
+        snapshotProvider: @escaping @Sendable () async -> PoolMetricsSnapshot,
+        sleep: @escaping @Sendable (UInt64) async throws -> Void,
+        memoryPressure: PoolMetricsMemoryPressureClient = .live
+    ) {
         _ = NumericDuration.nanoseconds(collectionInterval, positive: true)
         precondition(maxHistorySize >= 0, "Pool metrics history size must be nonnegative")
         self.collectionInterval = collectionInterval
         self.maxHistorySize = maxHistorySize
-    }
-    
-    deinit {
-        // Ensure task is cancelled on deinit
-        collectionTask?.cancel()
+        self.snapshotProvider = snapshotProvider
+        self.sleep = sleep
+        self.memoryPressure = memoryPressure
     }
 
-    /// Starts collecting metrics.
+    deinit {
+        collectionTask?.cancel()
+        if let handlerID = memoryPressureHandlerID {
+            let unregister = memoryPressure.unregister
+            Task { await unregister(handlerID) }
+        }
+    }
+
+    /// Starts one collection run. A repeated start while active is ignored.
     public func startCollecting() async {
         guard collectionTask == nil else { return }
+        let generation = UUID()
+        collectionGeneration = generation
+        let snapshotProvider = self.snapshotProvider
+        let sleep = self.sleep
+        let nanoseconds = NumericDuration.nanoseconds(collectionInterval, positive: true)
+        collectionTask = Task { [weak self] in
+            while !Task.isCancelled {
+                let snapshot = await snapshotProvider()
+                guard !Task.isCancelled,
+                      await self?.processSnapshot(snapshot, generation: generation) == true else { return }
+                // The actor is not retained during the interval between collections.
+                do { try await sleep(nanoseconds) } catch { return }
+            }
+        }
 
-        collectionTask = Task {
-            await collectMetricsPeriodically()
+        let handlerID = await memoryPressure.register { [weak self] in
+            await self?.handleMemoryPressure(generation: generation)
         }
-        
-        // Register for memory pressure events
-        memoryPressureHandlerID = await MemoryPressureDetector.shared.register { [weak self] in
-            await self?.handleMemoryPressure()
+        guard collectionGeneration == generation else {
+            await memoryPressure.unregister(handlerID)
+            return
         }
-        
-        // Start memory pressure monitoring if not already started
-        await MemoryPressureDetector.shared.startMonitoring()
+        memoryPressureHandlerID = handlerID
+        await memoryPressure.start()
     }
 
-    /// Stops collecting metrics.
+    /// Stops future collection and clears history, the previous sample, and exporters.
+    /// Already invoked exporters may finish; this does not wait for them, so an
+    /// exporter may call stopCollecting without waiting on its own task.
     public func stopCollecting() async {
-        // Cancel the collection task
+        collectionGeneration = nil
         collectionTask?.cancel()
         collectionTask = nil
-        
-        // Unregister memory pressure handler
-        if let handlerID = memoryPressureHandlerID {
-            await MemoryPressureDetector.shared.unregister(id: handlerID)
-            memoryPressureHandlerID = nil
-        }
-        
-        // Clear exporters to release any retained closures
+        let handlerID = memoryPressureHandlerID
+        memoryPressureHandlerID = nil
         exporters.removeAll()
-        
-        // Clear history to free memory
         metricsHistory.removeAll()
+        previousSnapshot = nil
+        if let handlerID { await memoryPressure.unregister(handlerID) }
     }
 
     /// Registers a metrics exporter.
@@ -120,7 +155,7 @@ public actor PoolMetricsCollector {
 
     /// Gets current metrics snapshot.
     public func currentSnapshot() async -> PoolMetricsSnapshot {
-        await collectSnapshot()
+        await snapshotProvider()
     }
 
     /// Gets metrics history.
@@ -168,28 +203,29 @@ public actor PoolMetricsCollector {
 
     // MARK: - Private Methods
 
-    private func collectMetricsPeriodically() async {
-        while !Task.isCancelled {
-            let snapshot = await collectSnapshot()
-
-            // Store in history
+    private func processSnapshot(_ snapshot: PoolMetricsSnapshot, generation: UUID) async -> Bool {
+        guard isCurrent(generation) else { return false }
+        let previous = previousSnapshot
+        previousSnapshot = snapshot
+        if maxHistorySize > 0 {
             metricsHistory.append(snapshot)
-            if metricsHistory.count > maxHistorySize {
-                metricsHistory.removeFirst()
-            }
-
-            // Check alerts
-            await checkAlerts(snapshot)
-
-            // Export to registered handlers
-            await exportSnapshot(snapshot)
-
-            // Wait for next collection
-            try? await Task.sleep(nanoseconds: NumericDuration.nanoseconds(collectionInterval, positive: true))
+            if metricsHistory.count > maxHistorySize { metricsHistory.removeFirst() }
         }
+
+        for alert in alerts(for: snapshot, previous: previous) {
+            guard isCurrent(generation) else { return false }
+            await sendAlert(alert, generation: generation)
+        }
+        guard isCurrent(generation) else { return false }
+        await exportSnapshot(snapshot, generation: generation)
+        return isCurrent(generation)
     }
 
-    private func collectSnapshot() async -> PoolMetricsSnapshot {
+    private func isCurrent(_ generation: UUID) -> Bool {
+        collectionGeneration == generation && !Task.isCancelled
+    }
+
+    private nonisolated static func liveSnapshot() async -> PoolMetricsSnapshot {
         // Collect stats from all registered pools
         let poolStats = await PoolRegistry.shared.getAllStatistics()
         
@@ -211,49 +247,60 @@ public actor PoolMetricsCollector {
         )
     }
 
-    private func checkAlerts(_ snapshot: PoolMetricsSnapshot) async {
-        // Check hit rate threshold
+    private func alerts(for snapshot: PoolMetricsSnapshot, previous: PoolMetricsSnapshot?) -> [PoolAlert] {
+        var alerts: [PoolAlert] = []
         if snapshot.overallHitRate < alertThresholds.minHitRate {
             #if canImport(os)
             logger.warning("Pool hit rate below threshold: \(String(format: "%.1f", snapshot.overallHitRate))%")
             #endif
-            await sendAlert(.lowHitRate(snapshot.overallHitRate))
+            alerts.append(.lowHitRate(snapshot.overallHitRate))
         }
-
-        // Check efficiency threshold
         if snapshot.overallEfficiency < alertThresholds.minEfficiency {
             #if canImport(os)
             logger.warning("Pool efficiency below threshold: \(String(format: "%.2f", snapshot.overallEfficiency))")
             #endif
-            await sendAlert(.lowEfficiency(snapshot.overallEfficiency))
+            alerts.append(.lowEfficiency(snapshot.overallEfficiency))
         }
-
-        // Check allocation rate
-        if let lastSnapshot = metricsHistory.last {
-            let timeDelta = snapshot.timestamp.timeIntervalSince(lastSnapshot.timestamp)
-            let allocationDelta = snapshot.totalAllocations - lastSnapshot.totalAllocations
-            let allocationRate = Double(allocationDelta) / timeDelta
-
-            if allocationRate > alertThresholds.maxAllocationRate {
-                #if canImport(os)
-                logger.warning("High allocation rate: \(String(format: "%.1f", allocationRate)) allocations/second")
-                #endif
-                await sendAlert(.highAllocationRate(allocationRate))
-            }
+        if let previous,
+           let rate = Self.allocationRate(from: previous, to: snapshot),
+           rate > alertThresholds.maxAllocationRate {
+            #if canImport(os)
+            logger.warning("High allocation rate: \(String(format: "%.1f", rate)) allocations/second")
+            #endif
+            alerts.append(.highAllocationRate(rate))
         }
+        return alerts
     }
 
-    private func exportSnapshot(_ snapshot: PoolMetricsSnapshot) async {
+    /// A missing interval or reset aggregate establishes a new baseline, not a rate.
+    static func allocationRate(from previous: PoolMetricsSnapshot, to current: PoolMetricsSnapshot) -> Double? {
+        let elapsed = current.timestamp.timeIntervalSince(previous.timestamp)
+        guard elapsed.isFinite, elapsed > 0,
+              previous.totalAllocations >= 0,
+              current.totalAllocations >= previous.totalAllocations else { return nil }
+        let delta = current.totalAllocations - previous.totalAllocations
+        let rate = Double(delta) / elapsed
+        return rate.isFinite ? rate : nil
+    }
+
+    private func exportSnapshot(_ snapshot: PoolMetricsSnapshot, generation: UUID) async {
+        guard isCurrent(generation) else { return }
+        let handlers = Array(exporters.values)
         await withTaskGroup(of: Void.self) { group in
-            for exporter in exporters.values {
-                group.addTask {
-                    await exporter(snapshot)
+            for exporter in handlers {
+                group.addTask { [weak self] in
+                    await self?.deliver(snapshot, to: exporter, generation: generation)
                 }
             }
         }
     }
 
-    private func sendAlert(_ alert: PoolAlert) async {
+    private func deliver(_ snapshot: PoolMetricsSnapshot, to exporter: MetricsExporter, generation: UUID) async {
+        guard isCurrent(generation) else { return }
+        await exporter(snapshot)
+    }
+
+    private func sendAlert(_ alert: PoolAlert, generation: UUID) async {
         // Export alert through registered handlers
         let alertSnapshot = PoolMetricsSnapshot(
             timestamp: Date(),
@@ -266,26 +313,21 @@ public actor PoolMetricsCollector {
             alert: alert
         )
 
-        await exportSnapshot(alertSnapshot)
+        await exportSnapshot(alertSnapshot, generation: generation)
     }
 
-    private func handleMemoryPressure() async {
+    private func handleMemoryPressure(generation: UUID) async {
+        guard isCurrent(generation) else { return }
         let pressureLevel = await MemoryPressureDetector.shared.pressureLevel
-        
+        guard isCurrent(generation) else { return }
         #if canImport(os)
         logger.warning("Memory pressure detected: \(String(describing: pressureLevel))")
         #endif
-        
-        // Collect current snapshot to understand pool state
-        _ = await collectSnapshot()
-        
-        // Send memory pressure alert
-        await sendAlert(.memoryPressure(pressureLevel))
-        
-        // Request all pools to shrink based on pressure level
+        await sendAlert(.memoryPressure(pressureLevel), generation: generation)
+        guard isCurrent(generation) else { return }
         await shrinkPoolsForPressureLevel(pressureLevel)
     }
-    
+
     private func shrinkPoolsForPressureLevel(_ level: MemoryPressureLevel) async {
         switch level {
         case .normal:
@@ -316,7 +358,7 @@ public actor PoolMetricsCollector {
         }
     }
     
-    private func getMemoryUsage() -> Int {
+    private nonisolated static func getMemoryUsage() -> Int {
         #if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
         var info = mach_task_basic_info()
         var count = mach_msg_type_number_t(MemoryLayout<mach_task_basic_info>.size / MemoryLayout<natural_t>.size)
@@ -339,6 +381,19 @@ public actor PoolMetricsCollector {
         return 0
         #endif
     }
+}
+
+/// Async operations at the shared memory-pressure detector boundary.
+struct PoolMetricsMemoryPressureClient: Sendable {
+    var register: @Sendable (@escaping @Sendable () async -> Void) async -> UUID
+    var unregister: @Sendable (UUID) async -> Void
+    var start: @Sendable () async -> Void
+
+    static let live = Self(
+        register: { await MemoryPressureDetector.shared.register(handler: $0) },
+        unregister: { await MemoryPressureDetector.shared.unregister(id: $0) },
+        start: { await MemoryPressureDetector.shared.startMonitoring() }
+    )
 }
 
 // MARK: - Supporting Types

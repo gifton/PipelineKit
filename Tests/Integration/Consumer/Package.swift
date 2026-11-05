@@ -8,7 +8,7 @@ let package = Package(
     targets: [
         .executableTarget(
             name: "Consumer",
-            dependencies: ["PipelineKit", "PipelineKitSecurity", "PipelineKitCache", "PipelineKitResilience", "PipelineKitObservability"].map {
+            dependencies: ["PipelineKit", "PipelineKitSecurity", "PipelineKitCache", "PipelineKitResilience", "PipelineKitObservability", "PipelineKitPooling"].map {
                 .product(name: $0, package: "PipelineKit")
             }
         )

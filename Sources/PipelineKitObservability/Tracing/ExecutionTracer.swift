@@ -138,12 +138,19 @@ public actor ExecutionTracer {
     /// Trace retention time (old traces are purged)
     private let retentionTime: TimeInterval
 
+    /// Attempts to create an identity while the trace store is full.
+    /// Saturates at UInt64.max; clearing all traces resets the count.
+    public private(set) var droppedTraceCount: UInt64 = 0
+
     /// Configuration for ExecutionTracer
     public struct Configuration: Sendable {
         public let maxTraces: Int
         public let retentionTime: TimeInterval
 
         public init(maxTraces: Int = 1000, retentionTime: TimeInterval = 300) {
+            precondition(maxTraces >= 0, "Maximum trace count must be nonnegative")
+            precondition(retentionTime.isFinite && retentionTime >= 0,
+                         "Trace retention time must be finite and nonnegative")
             self.maxTraces = maxTraces
             self.retentionTime = retentionTime
         }
@@ -171,6 +178,11 @@ public actor ExecutionTracer {
         parentID: SpanID? = nil
     ) -> SpanID {
         let spanID = SpanID()
+        purgeOldTracesIfNeeded()
+        if traces[correlationID] == nil && traces.count >= maxTraces {
+            if droppedTraceCount < .max { droppedTraceCount += 1 }
+            return spanID
+        }
         let span = Span(
             id: spanID,
             name: name,
@@ -191,9 +203,7 @@ public actor ExecutionTracer {
         }
 
         traces[correlationID]?.spans.append(span)
-
-        // Purge old traces if needed
-        purgeOldTracesIfNeeded()
+        traces[correlationID]?.endTime = nil
 
         return spanID
     }
@@ -246,6 +256,7 @@ public actor ExecutionTracer {
     /// Clear all traces
     public func clearAllTraces() {
         traces.removeAll()
+        droppedTraceCount = 0
     }
 
     // MARK: - Formatting
@@ -321,12 +332,10 @@ public actor ExecutionTracer {
     // MARK: - Maintenance
 
     private func purgeOldTracesIfNeeded() {
-        // Remove old traces if we exceed max
-        if traces.count > maxTraces {
-            let cutoff = Date().addingTimeInterval(-retentionTime)
-            traces = traces.filter { _, trace in
-                trace.startTime > cutoff
-            }
+        // Expiry is independent of capacity; testZeroRetentionReleasesAdmission.
+        let now = Date()
+        traces = traces.filter { _, trace in
+            now.timeIntervalSince(trace.startTime) < retentionTime
         }
     }
 }

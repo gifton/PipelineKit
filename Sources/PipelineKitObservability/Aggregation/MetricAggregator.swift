@@ -1,4 +1,5 @@
 import Foundation
+import PipelineKitCore
 
 /// Pre-aggregation support for reducing network traffic.
 /// Combines multiple metric updates locally before sending.
@@ -12,7 +13,7 @@ public struct AggregationConfiguration: Sendable {
     /// Maximum unique metric keys to store
     public let maxUniqueMetrics: Int
     
-    /// Maximum total values across all timers/histograms
+    /// Maximum retained values; each counter/gauge series occupies one slot.
     public let maxTotalValues: Int
     
     /// Jitter percentage for flush timing (0.0-0.2)
@@ -25,258 +26,104 @@ public struct AggregationConfiguration: Sendable {
         maxTotalValues: Int = 10000,
         flushJitter: Double = 0.1
     ) {
+        _ = NumericDuration.nanoseconds(flushInterval)
+        precondition(maxUniqueMetrics > 0 && maxTotalValues > 0, "Aggregation capacities must be positive")
+        precondition(flushJitter.isFinite, "Aggregation jitter must be finite")
         self.enabled = enabled
         self.flushInterval = flushInterval
         self.maxUniqueMetrics = maxUniqueMetrics
         self.maxTotalValues = maxTotalValues
         self.flushJitter = min(0.2, max(0.0, flushJitter))
     }
-}
 
-/// Key for metric deduplication with canonical tag ordering.
-struct MetricKey: Hashable, Sendable {
-    let name: String
-    let canonicalTags: String  // Pre-sorted "k1:v1,k2:v2" format
-    
-    init(name: String, tags: [String: String]) {
-        self.name = name
-        // Canonicalize tags to ensure consistent hashing
-        if tags.isEmpty {
-            self.canonicalTags = ""
-        } else {
-            self.canonicalTags = tags
-                .sorted { $0.key < $1.key }
-                .map { "\($0.key):\($0.value)" }
-                .joined(separator: ",")
-        }
+    func flushDelay(jitter: Double) -> TimeInterval {
+        min(flushInterval * (1 + jitter), NumericDuration.maximumSeconds)
     }
 }
 
-/// Aggregated metric data.
-enum AggregatedMetric: Sendable {
-    case counter(sum: Double)  // Already scaled by sample rate
-    case gauge(latest: Double)
-    case timer(values: [Double])
-    case histogram(values: [Double])
-    
-    /// Count of values stored (for memory tracking).
-    var valueCount: Int {
-        switch self {
-        case .counter, .gauge:
-            return 1
-        case .timer(let values), .histogram(let values):
-            return values.count
-        }
+/// Passive accumulator owned by the exporter's actor isolation.
+struct MetricAggregator {
+    private struct Sample: Sendable {
+        let value: Double
+        let rate: Double
     }
-}
 
-/// Thread-safe metric aggregator.
-actor MetricAggregator {
+    private enum Aggregate: Sendable {
+        case counter(Double)
+        case gauge(Sample)
+        case observations([Sample])
+    }
+
     private let configuration: AggregationConfiguration
-    private var buffer: [MetricKey: AggregatedMetric] = [:]
+    private var buffer: [MetricSeriesIdentity: Aggregate] = [:]
     private var totalValueCount = 0
-    private var flushTask: Task<Void, Never>?
-    private var warningsEmitted = Set<String>()
-    
+
+    var isEmpty: Bool { buffer.isEmpty }
+
     init(configuration: AggregationConfiguration) {
         self.configuration = configuration
     }
-    
-    // Note: No deinit needed. Accessing actor-isolated flushTask from deinit is a data race.
-    // The Task captured with weak self will exit when the actor is deallocated.
-    
-    /// Aggregates a metric snapshot.
-    /// - Parameters:
-    ///   - snapshot: The metric to aggregate
-    ///   - sampleRate: The sample rate (metrics are pre-scaled)
-    /// - Returns: Whether aggregation succeeded (false = buffer full)
-    func aggregate(_ snapshot: MetricSnapshot, sampleRate: Double) async -> Bool {
-        // Check limits
-        guard buffer.count < configuration.maxUniqueMetrics ||
-              buffer.keys.contains(MetricKey(name: snapshot.name, tags: snapshot.tags)) else {
-            await emitWarningOnce("aggregation_keys_limit",
-                                  "Aggregation buffer reached \(configuration.maxUniqueMetrics) unique keys")
-            return false
+
+    /// Returns false when adding the sample would exceed either configured limit.
+    /// Counter/gauge replacement uses no additional slots; observations each use one.
+    mutating func aggregate(_ snapshot: MetricSnapshot, sampleRate: Double) throws -> Bool {
+        let value = snapshot.value ?? 1
+        guard value.isFinite, sampleRate.isFinite, sampleRate > 0, sampleRate <= 1 else {
+            throw MetricsError.invalidData("Aggregation requires finite values and a sample rate in (0, 1]")
         }
-        
-        guard totalValueCount < configuration.maxTotalValues else {
-            await emitWarningOnce("aggregation_values_limit",
-                                  "Aggregation buffer reached \(configuration.maxTotalValues) total values")
-            return false
-        }
-        
-        let key = MetricKey(name: snapshot.name, tags: snapshot.tags)
-        
-        // Pre-scale counters by sample rate for accuracy
-        let value: Double
-        if snapshot.type == "counter" && sampleRate < 1.0 {
-            value = (snapshot.value ?? 1.0) / sampleRate
-        } else {
-            value = snapshot.value ?? 1.0
-        }
-        
-        // Update value count
-        if let existing = buffer[key] {
-            totalValueCount -= existing.valueCount
-        }
-        
-        // Type-specific aggregation
+        let key = MetricSeriesIdentity(name: snapshot.name, type: snapshot.type,
+                                       unit: snapshot.unit, tags: snapshot.tags)
+        let existing = buffer[key]
+        guard existing != nil || buffer.count < configuration.maxUniqueMetrics else { return false }
+        let isObservation = snapshot.type == "timer" || snapshot.type == "histogram"
+        let addedValues = existing == nil || isObservation ? 1 : 0
+        guard addedValues == 0 || totalValueCount < configuration.maxTotalValues else { return false }
+
         switch snapshot.type {
         case "counter":
-            if case .counter(let sum) = buffer[key] {
-                buffer[key] = .counter(sum: sum + value)
+            let scaled = value / sampleRate
+            guard scaled.isFinite else { throw MetricsError.invalidData("Counter sampling compensation overflowed") }
+            if case .counter(let sum) = existing {
+                let updated = sum + scaled
+                guard updated.isFinite else { throw MetricsError.invalidData("Counter aggregation overflowed") }
+                buffer[key] = .counter(updated)
             } else {
-                buffer[key] = .counter(sum: value)
+                buffer[key] = .counter(scaled)
             }
-            totalValueCount += 1
-            
-        case "gauge":
-            buffer[key] = .gauge(latest: value)
-            totalValueCount += 1
-            
-        case "timer":
-            if case .timer(var values) = buffer[key] {
-                values.append(value)
-                buffer[key] = .timer(values: values)
-                totalValueCount += values.count
+        case "timer", "histogram":
+            let sample = Sample(value: value, rate: sampleRate)
+            if case .observations(var values) = existing {
+                values.append(sample)
+                buffer[key] = .observations(values)
             } else {
-                buffer[key] = .timer(values: [value])
-                totalValueCount += 1
+                buffer[key] = .observations([sample])
             }
-            
-        case "histogram":
-            if case .histogram(var values) = buffer[key] {
-                values.append(value)
-                buffer[key] = .histogram(values: values)
-                totalValueCount += values.count
-            } else {
-                buffer[key] = .histogram(values: [value])
-                totalValueCount += 1
-            }
-            
         default:
-            // Unknown type, treat as gauge
-            buffer[key] = .gauge(latest: value)
-            totalValueCount += 1
+            buffer[key] = .gauge(Sample(value: value, rate: sampleRate))
         }
-        
-        // Start flush timer if needed
-        if flushTask == nil {
-            flushTask = Task { [weak self] in
-                guard let self = self else { return }
-                
-                // Add jitter to prevent thundering herd
-                let jitter = Double.random(in: -configuration.flushJitter...configuration.flushJitter)
-                let sleepTime = configuration.flushInterval * (1.0 + jitter)
-                
-                try? await Task.sleep(for: .seconds(sleepTime))
-                _ = await self.flush()
-            }
-        }
-        
+        totalValueCount += addedValues
         return true
     }
-    
-    /// Flushes all aggregated metrics.
-    /// - Returns: Array of formatted metric lines ready to send
-    func flush() async -> [(snapshot: MetricSnapshot, sampleRate: Double)] {
-        guard !buffer.isEmpty else { return [] }
-        
-        var results: [(MetricSnapshot, Double)] = []
-        
-        for (key, metric) in buffer {
-            // Reconstruct tags from canonical string
-            let tags = parseCanonicalTags(key.canonicalTags)
-            
-            switch metric {
-            case .counter(let sum):
-                // Counters already scaled, send with @1
-                let snapshot = MetricSnapshot(
-                    name: key.name,
-                    type: "counter",
-                    value: sum,
-                    timestamp: UInt64(Date().timeIntervalSince1970 * 1000),
-                    tags: tags,
-                    unit: nil
-                )
-                results.append((snapshot, 1.0))
-                
-            case .gauge(let latest):
-                let snapshot = MetricSnapshot(
-                    name: key.name,
-                    type: "gauge",
-                    value: latest,
-                    timestamp: UInt64(Date().timeIntervalSince1970 * 1000),
-                    tags: tags,
-                    unit: nil
-                )
-                results.append((snapshot, 1.0))
-                
-            case .timer(let values):
-                // Send each timer value individually (preserves fidelity)
-                for value in values {
-                    let snapshot = MetricSnapshot(
-                        name: key.name,
-                        type: "timer",
-                        value: value,
-                        timestamp: UInt64(Date().timeIntervalSince1970 * 1000),
-                        tags: tags,
-                        unit: nil
-                    )
-                    results.append((snapshot, 1.0))
-                }
-                
-            case .histogram(let values):
-                // Send each histogram value individually
-                for value in values {
-                    let snapshot = MetricSnapshot(
-                        name: key.name,
-                        type: "histogram",
-                        value: value,
-                        timestamp: UInt64(Date().timeIntervalSince1970 * 1000),
-                        tags: tags,
-                        unit: nil
-                    )
-                    results.append((snapshot, 1.0))
-                }
+
+    /// Drains exact series metadata and retained observations.
+    mutating func flush() -> [(snapshot: MetricSnapshot, sampleRate: Double)] {
+        var result: [(MetricSnapshot, Double)] = []
+        for (key, aggregate) in buffer {
+            let samples: [Sample]
+            switch aggregate {
+            case .counter(let sum): samples = [Sample(value: sum, rate: 1)]
+            case .gauge(let sample): samples = [sample]
+            case .observations(let values): samples = values
+            }
+            for sample in samples {
+                result.append((MetricSnapshot(name: key.name, type: key.type,
+                                              value: sample.value, tags: key.tags, unit: key.unit), sample.rate))
             }
         }
-        
-        // Clear buffer
         buffer.removeAll(keepingCapacity: true)
         totalValueCount = 0
-        flushTask = nil
-        
-        return results
+        return result
     }
-    
-    /// Forces an immediate flush if aggregation is in progress.
-    func forceFlush() async -> [(MetricSnapshot, Double)] {
-        flushTask?.cancel()
-        flushTask = nil
-        return await flush()
-    }
-    
-    // MARK: - Private Helpers
-    
-    private func parseCanonicalTags(_ canonical: String) -> [String: String] {
-        guard !canonical.isEmpty else { return [:] }
-        
-        var tags: [String: String] = [:]
-        for pair in canonical.split(separator: ",") {
-            let parts = pair.split(separator: ":", maxSplits: 1)
-            if parts.count == 2 {
-                tags[String(parts[0])] = String(parts[1])
-            }
-        }
-        return tags
-    }
-    
-    private func emitWarningOnce(_ key: String, _ message: String) async {
-        guard !warningsEmitted.contains(key) else { return }
-        warningsEmitted.insert(key)
-        #if DEBUG
-        print("[MetricAggregator] Warning: \(message)")
-        #endif
-    }
+
+    mutating func forceFlush() -> [(snapshot: MetricSnapshot, sampleRate: Double)] { flush() }
 }

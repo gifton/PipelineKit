@@ -20,6 +20,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
       - name: Setup Xcode
         uses: maxim-lobanov/setup-xcode@v1
@@ -160,6 +162,21 @@ jobs:
             --logs "${validation_root}/numeric-release"
           python3 Scripts/validation/check_compression_formats.py --configuration release \
             --log "${validation_root}/compression-release.log"
+
+      - name: Telemetry protocol validation (Debug + Release)
+        run: |
+          set -euo pipefail
+          validation_root="${RUNNER_TEMP}/${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          python3 -m venv "${validation_root}/telemetry-venv"
+          telemetry_python="${validation_root}/telemetry-venv/bin/python"
+          "$telemetry_python" -m pip install -r Scripts/validation/telemetry-requirements.txt
+          "$telemetry_python" Scripts/ci/tests/test_telemetry_oracle.py
+          python3 Scripts/validation/extract_stabilization_examples.py
+          for configuration in debug release; do
+            swift build --package-path Tests/Integration/Consumer --configuration "$configuration"
+            "$telemetry_python" Scripts/validation/check_telemetry_formats.py \
+              --configuration "$configuration" --log "${validation_root}/telemetry-${configuration}.log"
+          done
 
   ios-sim:
     name: iOS 26 • Simulator Tests
