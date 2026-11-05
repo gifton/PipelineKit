@@ -450,16 +450,16 @@ if stage == os.environ['TELEMETRY_FAILURE']:
     def test_runs_built_consumer_contract_and_oracle_in_both_configurations(self):
         result, calls = self.run_telemetry_gate()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        tail = calls[-8:]
-        for offset, configuration in [(0, 'debug'), (4, 'release')]:
+        tail = calls[-10:]
+        for offset, configuration in [(0, 'debug'), (5, 'release')]:
             self.assertEqual(tail[offset], ['swift', ['build', '--package-path', 'Tests/Integration/Consumer',
                                                      '--configuration', configuration]])
-            for index, mode in enumerate(('error-contract', 'lifecycle'), 1):
+            for index, mode in enumerate(('error-contract', 'lifecycle', 'policy-contract'), 1):
                 self.assertEqual(tail[offset + index], ['python', ['Scripts/validation/run_check.py',
                     '--id', f'consumer-{mode}-{configuration}-456-2', '--timeout', '60', '--',
                     'swift', 'run', '--package-path', 'Tests/Integration/Consumer', '--configuration',
                     configuration, '--skip-build', 'Consumer', mode]])
-            self.assertEqual(tail[offset + 3], ['python', ['Scripts/validation/check_telemetry_formats.py',
+            self.assertEqual(tail[offset + 4], ['python', ['Scripts/validation/check_telemetry_formats.py',
                 '--configuration', configuration, '--log',
                 str(self.dir / 'runner space' / '456-2' / f'telemetry-{configuration}.log')]])
 
@@ -476,7 +476,7 @@ if stage == os.environ['TELEMETRY_FAILURE']:
 
     def test_consumer_contract_failures_are_fatal_in_both_configurations(self):
         for configuration in ('debug', 'release'):
-            for mode in ('error-contract', 'lifecycle'):
+            for mode in ('error-contract', 'lifecycle', 'policy-contract'):
                 with self.subTest(configuration=configuration, mode=mode):
                     shutil.rmtree(self.dir / 'runner space', ignore_errors=True)
                     result, calls = self.run_telemetry_gate(

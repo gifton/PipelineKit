@@ -12,6 +12,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 See the [compiled migration guide](docs/migrations/first-stabilization-batch.md) before upgrading.
 No release version or tag is selected by this batch.
 
+- The [resilience policy migration](docs/migrations/resilience-policy-contracts.md)
+  documents monotonic retry budgets, required HTTP status extraction, removal of ignored
+  timeout options, per-execution grace outcomes, explicit rate priority and throwing reset,
+  strict outstanding limits, and chronological oldest-waiter eviction.
+
 - The [monitoring lifecycle migration](docs/migrations/monitoring-and-connection-lifecycle.md)
   documents joined health/memory shutdown, the callback self-stop exception,
   generation-safe memory monitoring and observer cleanup, and hub-owned metrics

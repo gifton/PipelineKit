@@ -461,8 +461,9 @@ Examples package has no decompression caller to migrate.
 
 `RateLimiter(scope: .global)` now applies one budget to all supplied identifiers in every
 strategy: token bucket, sliding window, fixed window, leaky bucket, adaptive, distributed,
-and priority based. The public admission, status, reset and initializer signatures are
-unchanged. Keep passing the original user/IP/command identifier; do not pre-encode a key.
+and priority based. That first batch preserved public signatures; the subsequent
+[policy contract migration](resilience-policy-contracts.md) adds priority arguments and
+throwing reset. Keep passing the original user/IP/command identifier; do not pre-encode a key.
 Admission and status normalize it once, and supported per-identifier local resets normalize
 it the same way. For example, after a one-request global budget admits `"A"`, `"B"` is denied
 and its status reports the same remaining budget. Applications that relied on the previous
@@ -496,13 +497,11 @@ empty namespace starts a fresh budget. Old per-caller counts cannot simply be re
 global key without deciding how to combine usage and windows; the library does not perform
 that migration. No live in-repository caller constructs the old distributed keys directly.
 
-The strategy cost, refill and admission policies are unchanged. Priority based admission and
-status still select `.medium`; propagation of a command's priority remains deferred as R-F09.
-`reset(identifier:)` supports token bucket, sliding window, fixed window, leaky bucket and
-adaptive state; in global scope any supplied identifier resets that shared local budget.
-Per-identifier priority reset remains unsupported, while `reset()` clears all local priority
-windows. Neither reset form resets distributed counters; R-F10 remains deferred. Use an
-explicit administrative store operation for those counters when needed.
+The subsequent [policy contract migration](resilience-policy-contracts.md) resolves priority
+propagation and priority/distributed reset. Admission and status default to `.medium` when
+no priority is supplied. Reset now throws, keyed reset targets the selected priority and
+scope, and distributed reset-all requires an explicit store capability where appropriate.
+Other strategy cost and refill policies remain unchanged.
 
 `RateLimitScopeContractTests` covers the seven strategies, four scopes, exact store keys and
 boundaries using an internal clock seam; the public initializer retains wall-clock `Date`

@@ -599,6 +599,20 @@ func addSecurityWrappers<C: Command, H: CommandHandler>(
 
 }
 
+// docs/guides/resilience-patterns.md, Swift fence 12
+@MainActor func compiled_docs_guides_resilience_patterns_md_12() async throws {
+let pipeline = DynamicPipeline()
+// Limit retry admission and request cooperative cancellation for slow attempts.
+try await pipeline.addMiddleware(TimeoutMiddleware(defaultTimeout: 30.0))
+try await pipeline.addMiddleware(RetryMiddleware(
+    configuration: .init(
+        maxAttempts: 5,
+        maxRetryTime: 25.0  // Budget for attempt admission and backoff; admitted work settles
+    )
+))
+
+}
+
 // docs/migrations/security-serialization-and-numeric-safety.md, Swift fence 1
 @MainActor func compiled_docs_migrations_security_serialization_and_numeric_safety_md_1() async throws {
 
@@ -725,6 +739,58 @@ let metricsStorage = MetricsStorage()
 let metricsConnection = await metricsHub.connectMetrics(metricsStorage)
 // Use the hub while the connection is needed.
 await metricsHub.disconnectMetrics(metricsConnection)
+
+}
+
+// docs/migrations/resilience-policy-contracts.md, Swift fence 1
+@MainActor func compiled_docs_migrations_resilience_policy_contracts_md_1() async throws {
+
+let budgetedRetry = RetryMiddleware(configuration: .init(
+    maxAttempts: 2,
+    strategy: .fixed(delay: 0.1),
+    maxRetryTime: 0.25
+))
+_ = budgetedRetry
+
+}
+
+// docs/migrations/resilience-policy-contracts.md, Swift fence 2
+@MainActor func compiled_docs_migrations_resilience_policy_contracts_md_2() async throws {
+
+struct ServiceHTTPFailure: Error {
+    let statusCode: Int
+}
+
+let httpRetry = RetryMiddleware.forHTTPStatusCodes([429, 502, 503]) { error in
+    (error as? ServiceHTTPFailure)?.statusCode
+}
+_ = httpRetry
+
+}
+
+// docs/migrations/resilience-policy-contracts.md, Swift fence 3
+@MainActor func compiled_docs_migrations_resilience_policy_contracts_md_3() async throws {
+
+let timeoutPolicy = TimeoutMiddleware(configuration: .init(
+    defaultTimeout: 2,
+    gracePeriod: 0.25
+))
+_ = timeoutPolicy
+
+}
+
+// docs/migrations/resilience-policy-contracts.md, Swift fence 4
+@MainActor func compiled_docs_migrations_resilience_policy_contracts_md_4() async throws {
+
+let priorityLimiter = RateLimiter(strategy: .priorityBased(limits: [
+    .medium: .init(maxRequests: 10, windowSize: 60),
+    .high: .init(maxRequests: 20, windowSize: 60)
+]))
+_ = try await priorityLimiter.allowRequest(identifier: "customer", priority: .high)
+let highStatus = await priorityLimiter.getStatus(identifier: "customer", priority: .high)
+try await priorityLimiter.reset(identifier: "customer", priority: .high)
+try await priorityLimiter.reset()
+_ = highStatus
 
 }
 
