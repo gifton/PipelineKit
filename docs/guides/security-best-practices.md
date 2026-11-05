@@ -577,8 +577,9 @@ For an unknown JSON type hint, the result receives `TypedData` and explicitly ch
 unknown non-JSON hints yield raw serialized `Data`. In particular, a legacy nil-hint envelope
 containing an encoded `Data` value yields the JSON base64 string bytes, including its quotes,
 not the decoded binary value. Emit explicit hints for new primitive and `Data` envelopes.
-Services without the capability fail these serialized paths with `EncryptionError.decryptionFailed`;
-partial decryption records and omits only the failed fields.
+Services without the capability fail these middleware paths with
+`PipelineError.encryption(reason: .decryptionFailed)`; partial decryption records
+and omits failed fields. Cancellation always propagates and cannot become partial success.
 
 `PipelineKitSecurity`'s AES-GCM implementation is internal, so production code supplies its own
 conformer. This example shares authenticated byte extraction between typed and serialized decoding:

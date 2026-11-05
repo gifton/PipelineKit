@@ -476,7 +476,7 @@ func encryptedResults() async throws {
         _ = try await stage.execute(ConsumerReadEncrypted(), context: CommandContext()) { _, _ in
             ConsumerEncryptedResult(encryptedData: ["record": tampered])
         }
-    } catch EncryptionError.decryptionFailed { rejected = true }
+    } catch PipelineError.encryption(reason: .decryptionFailed) { rejected = true }
     try require(rejected, "external result tampering must fail")
     try emit(["mode": "encryption", "serializedResult": "decoded", "resultTamperRejected": rejected])
 }
@@ -571,6 +571,7 @@ do {
     case "routing": try await routing()
     case "cache-identity": try await cacheIdentity()
     case "encryption": try await encryption()
+    case "error-contract": try await errorContract()
     case "bulkhead": try await bulkhead()
     case "metrics": try await metrics()
     case "telemetry-export": try await telemetryExport()

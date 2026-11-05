@@ -10,7 +10,7 @@ manifest and generated Swift source are regenerated in place.
 
 The [Consumer package](../../Tests/Integration/Consumer/Package.swift) uses ordinary
 imports rather than `@testable`. It exercises public composition, security,
-routing, cache identity, encryption, bulkhead, and metrics behavior, plus macOS
+routing, cache identity, encryption, bulkhead, error/cancellation policy, and metrics behavior, plus macOS
 StatsD/UDP lifecycle cases. Its compiled documentation fixtures are generated
 from the migration guide and examples changed since the stabilization baseline
 pinned in the extractor. This is a batch-specific check, not a check of all docs.
@@ -27,7 +27,7 @@ python3 Scripts/validation/run_check.py --id consumer-debug-001 --timeout 60 -- 
 ```
 
 Run each mode in both configurations: `composition-security`, `routing`,
-`cache-identity`, `encryption`, `bulkhead`, `metrics`, `statsd-startup`, `udp-close`,
+`cache-identity`, `encryption`, `bulkhead`, `error-contract`, `metrics`, `statsd-startup`, `udp-close`,
 and `udp-failure-close`. Use the watchdog for these lifecycle checks so a stalled
 continuation cannot leave validation waiting indefinitely. These probes do not
 replace the package's full Debug/Release test suites or platform CI.
@@ -84,6 +84,11 @@ also requires the precondition diagnostic; optimized Release builds may omit it.
 Timeouts and unrelated startup failures do not count as successful rejection.
 The numeric log directory must not already exist; it contains per-case logs and
 `report.json`.
+
+The matrix contains 434 cases, including all six `TimeoutTester` duration entry
+routes and their derived arithmetic. Accepted large-duration test-helper probes
+cancel their task before sleeping, after input validation. This avoids waiting
+for the duration while still checking the conversion boundary.
 
 The compression driver runs the built raw-DEFLATE output probe, then independently
 decodes its four emitted samples with Python zlib. It requires exact original
@@ -149,6 +154,20 @@ matrix. `TelemetryWorkflowTests` executes the real workflow shell with controlle
 failures at each installation/build/validation stage.
 
 ## Command watchdog
+
+For the cancellation and test-support changes, run the focused race checks under
+Thread Sanitizer with a separate scratch directory and an external watchdog:
+
+```sh
+python3 Scripts/validation/run_check.py --id error-contract-tsan-001 --timeout 600 -- \
+  swift test --scratch-path .build/error-tsan --sanitize=thread \
+  --filter 'MockSnapshotContractTests|TestSynchronizerContractTests|PipelineCancellationBoundaryTests|SimpleSemaphoreErrorContractTests|SemaphoreCancellationErrorContractTests'
+```
+
+The quick CI Python suite also executes the actual stress workflow shell with
+controlled failure, discovery, and empty-selection fixtures. The stress job uses
+`Scripts/run-tests.sh --target PipelineKitResilience --verbose`; no fallback may
+turn a failed or empty test selection into success.
 
 `run_check.py` records a command's output, exit status, timeout, observed process
 identities, and cleanup results. It returns nonzero for command failure, timeout,

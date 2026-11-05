@@ -22,7 +22,8 @@ FENCE = re.compile(r'```swift\n(.*?)```', re.S)
 FILES = ['docs/migrations/first-stabilization-batch.md', 'README.md',
          'docs/guides/security-best-practices.md', 'docs/guides/resilience-patterns.md',
          'docs/migrations/security-serialization-and-numeric-safety.md',
-         'docs/migrations/telemetry-hardening.md']
+         'docs/migrations/telemetry-hardening.md',
+         'docs/migrations/error-cancellation-and-validation.md']
 SECURITY_COMPOSITION_DEFINITIONS = [
     r'\bstruct SecurityMetricsMiddleware\s*:',
     r'\bstruct MaskingAuditLogger\s*:',
