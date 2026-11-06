@@ -35,6 +35,35 @@ and `udp-failure-close`. Use the watchdog for these lifecycle checks so a stalle
 continuation cannot leave validation waiting indefinitely. These probes do not
 replace the package's full Debug/Release test suites or platform CI.
 
+PRs and version tags use the same `ci-multiplatform.yml` qualification workflow,
+including all modes above in Debug and Release. The tag workflow also requires
+the exact, nonempty version section in `CHANGELOG.md` and a completed documentation
+artifact before creating a GitHub Release. Keep upcoming changes under Unreleased
+until preparing the dated version section. Check the notes without publishing:
+
+```sh
+python3 Scripts/ci/release_notes.py --tag v0.6.0 --output /tmp/release-notes.md
+bash Scripts/ci/check-qualification-tools.sh
+```
+
+The notes command fails while that version remains only under Unreleased. The
+tooling tests inject failures into the actual workflow shell steps in each build
+configuration; they do not replace execution of Swift and interoperability checks.
+
+After building all tests in a configuration, the Release gate checks discovery
+and runs each of the eight correctness targets with a required nonzero completed
+test summary. The same runner can verify Debug locally:
+
+```sh
+python3 Scripts/ci/check-correctness.py --configuration release
+python3 Scripts/validation/check_bulkhead_api.py --configuration release
+```
+
+The bulkhead probe requires supported replacement APIs to compile and the three
+removed spellings to fail with their specific missing-member/extra-argument
+diagnostics. Run it after both Debug and Release builds. Platform and compiler
+qualification routes are described in the [platform matrix](../../docs/platform-support.md).
+
 The `qualification` mode verifies distributed status error and cancellation
 propagation. Test-support interception is checked in an external XCTest target,
 because `PipelineKitTestSupport` requires the test runtime. Run it in both

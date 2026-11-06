@@ -4,6 +4,11 @@ Install PipelineKit with Swift Package Manager, either through Xcode or a
 `Package.swift` manifest. The package manifest defines the module graph and external
 dependencies required to build the library.
 
+The latest published tag is **0.5.4**. This branch prepares **0.6.0**, which is
+not yet tagged. The snippets below select the published minor range. To evaluate
+the current APIs, use a local checkout and follow the
+[0.6 migration guide](../migrations/release-readiness.md).
+
 ## Requirements
 
 - Swift 6.2 or later
@@ -20,7 +25,7 @@ dependencies required to build the library.
    ```
    https://github.com/gifton/PipelineKit.git
    ```
-4. Choose version requirements (e.g., "Up to Next Major" from 0.5.2)
+4. Choose a version range from 0.5.4 up to, but excluding, 0.6.0
 5. Click **Add Package**
 6. Select the products you want to add to your targets
 
@@ -42,7 +47,7 @@ let package = Package(
         .visionOS(.v26)
     ],
     dependencies: [
-        .package(url: "https://github.com/gifton/PipelineKit.git", from: "0.5.2")
+        .package(url: "https://github.com/gifton/PipelineKit.git", "0.5.4"..<"0.6.0")
     ],
     targets: [
         .target(
@@ -72,19 +77,19 @@ You can specify version requirements in several ways:
 
 ```swift
 // Exact version
-.package(url: "...", exact: "0.5.2")
+.package(url: "...", exact: "0.5.4")
 
 // Version range
-.package(url: "...", "0.5.2"..<"0.6.0")
+.package(url: "...", "0.5.4"..<"0.6.0")
 
 // From version
-.package(url: "...", from: "0.5.2")
+.package(url: "...", from: "0.5.4")
 
 // Up to next major
-.package(url: "...", .upToNextMajor(from: "0.5.2"))
+.package(url: "...", .upToNextMajor(from: "0.5.4"))
 
 // Up to next minor
-.package(url: "...", .upToNextMinor(from: "0.5.2"))
+.package(url: "...", .upToNextMinor(from: "0.5.4"))
 
 // Branch
 .package(url: "...", branch: "main")

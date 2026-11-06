@@ -500,11 +500,14 @@ status of Linux: see [Platform Support](docs/platform-support.md).
 
 ### Swift Package Manager
 
-Add to your `Package.swift`:
+The published release is 0.5.4. This branch prepares 0.6.0, including the
+[migration changes](docs/migrations/release-readiness.md); those APIs require a
+local checkout until that version is tagged. To use the published minor range,
+add to your `Package.swift`:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/gifton/PipelineKit.git", from: "0.5.2")
+    .package(url: "https://github.com/gifton/PipelineKit.git", "0.5.4"..<"0.6.0")
 ]
 ```
 

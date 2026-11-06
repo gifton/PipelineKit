@@ -25,20 +25,18 @@ compatibility promise — this document states the promises PipelineKit
 
 ## Pinning recommendation
 
-The install snippets use:
+The latest published version is **0.5.4**. The current branch prepares **0.6.0**;
+its breaking changes are recorded under Unreleased and in the
+[release readiness migration](docs/migrations/release-readiness.md). A 0.6.0 tag
+is not available yet. Install snippets stay on the published minor range:
 
 ```swift
-.package(url: "https://github.com/gifton/PipelineKit.git", from: "0.5.2")
+.package(url: "https://github.com/gifton/PipelineKit.git", "0.5.4"..<"0.6.0")
 ```
 
-Note that SwiftPM's `from:` accepts every version below the next *major* —
-including 0.6.0 and later minors, which this policy allows to break
-source. If your build must never pick up a source-breaking release
-automatically, pin the minor range instead:
-
-```swift
-.package(url: "https://github.com/gifton/PipelineKit.git", "0.5.2"..<"0.6.0")
-```
+SwiftPM's `from: "0.5.4"` accepts every version below the next *major*,
+including 0.6.0 and later minors, which this policy allows to break source.
+Keep the explicit upper bound above to avoid an automatic source-breaking upgrade.
 
 ## The 1.0.0 CHANGELOG entry
 

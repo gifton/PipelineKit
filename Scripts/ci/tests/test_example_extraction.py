@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -54,15 +55,35 @@ class TutorialExtractionTests(unittest.TestCase):
             path.write_text("# Fixture\n")
         self.output = self.root / "Tests/Integration/Consumer/Sources/Consumer/CompiledExamples.swift"
         self.output.parent.mkdir(parents=True)
+        self.environment = os.environ.copy()
+        binary = self.root / "bin/swift"
+        binary.parent.mkdir()
+        binary.write_text(
+            "#!/usr/bin/env python3\n"
+            "import json, os, pathlib, sys\n"
+            "assert sys.argv[1:3] == ['package', '--package-path'], sys.argv\n"
+            "assert sys.argv[4:] == ['dump-package'], sys.argv\n"
+            "package = pathlib.Path(sys.argv[3]) / 'Package.swift'\n"
+            "assert package.is_file()\n"
+            "if os.environ.get('FAIL_DOCUMENTATION_MANIFEST'):\n"
+            "    sys.stderr.write('invalid documentation manifest fixture\\n')\n"
+            "    sys.exit(23)\n"
+            "print(json.dumps({'name': 'DocumentationFixture'}))\n"
+        )
+        binary.chmod(0o755)
+        self.environment["PATH"] = str(binary.parent) + os.pathsep + self.environment["PATH"]
 
-    def extract(self, snippets):
-        (self.root / TUTORIAL).write_text(
+    def run_extractor(self, snippets, document=TUTORIAL):
+        (self.root / document).write_text(
             "# Tutorial\n\n" + "\n".join("```swift\n" + snippet + "```\n" for snippet in snippets)
         )
-        result = subprocess.run(
+        return subprocess.run(
             [sys.executable, str(self.extractor)], cwd=self.root,
-            capture_output=True, text=True, timeout=15,
+            capture_output=True, text=True, timeout=15, env=self.environment,
         )
+
+    def extract(self, snippets, document=TUTORIAL):
+        result = self.run_extractor(snippets, document)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         manifest = json.loads((self.root / ".build/validation/example-manifest.json").read_text())
         return self.output.read_text(), manifest
@@ -103,6 +124,43 @@ class TutorialExtractionTests(unittest.TestCase):
         first = self.extract([DEFINITIONS, USAGE])
         second = self.extract([DEFINITIONS, USAGE])
         self.assertEqual(first, second)
+
+    def test_manifest_fragments_preserve_context_and_validate_independent_of_fence_number(self):
+        fragments = [
+            'dependencies: [\n    .package(url: "https://example.com/Library.git", "1.0.0"..<"2.0.0")\n]\n',
+            '// The target remains a manifest argument.\n targets: [\n    .target(name: "Example")\n]\n',
+            '/* Package arguments */\ndependencies: [],\ntargets: []\n',
+        ]
+        for fragment in fragments:
+            for index in range(3):
+                with self.subTest(fragment=fragment, fence=index + 1):
+                    snippets = ["let unrelated = 1\n", "let another = 2\n"]
+                    snippets.insert(index, fragment)
+                    generated, manifest = self.extract(snippets, "README.md")
+                    entries = [entry for entry in manifest["snippets"] if entry["file"] == "README.md"]
+                    self.assertNotIn(fragment, generated)
+                    self.assertNotIn("import PackageDescription", generated)
+                    entry = entries[index]
+                    self.assertEqual(entry["snippet_sha256"], hashlib.sha256(fragment.encode()).hexdigest())
+                    self.assertIn("dump-package", entry["harness"])
+                    package = self.root / entry["manifest_file"]
+                    self.assertEqual(package.read_text(),
+                        '// swift-tools-version: 6.2\nimport PackageDescription\n\n'
+                        'let package = Package(\n    name: "DocumentationFixture",\n' + fragment + '\n)\n')
+                    dump = self.root / entry["dump_package_file"]
+                    self.assertEqual(json.loads(dump.read_text())["name"], "DocumentationFixture")
+                    ordinary = [item for item in entries if "manifest_file" not in item]
+                    self.assertEqual(len(ordinary), 2)
+                    self.assertIn("let unrelated = 1", generated)
+                    self.assertIn("let another = 2", generated)
+
+    def test_manifest_validation_failure_is_fatal_and_cannot_write_a_success_manifest(self):
+        self.extract(["dependencies: []\n"], "README.md")
+        self.environment["FAIL_DOCUMENTATION_MANIFEST"] = "1"
+        result = self.run_extractor(["dependencies: [invalid]\n"], "README.md")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("invalid documentation manifest fixture", result.stdout + result.stderr)
+        self.assertFalse((self.root / ".build/validation/example-manifest.json").exists())
 
 
 if __name__ == "__main__":

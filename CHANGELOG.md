@@ -7,10 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Breaking — next minor release
+### Breaking — planned 0.6.0
 
 See the [compiled migration guide](docs/migrations/first-stabilization-batch.md) before upgrading.
-No release version or tag is selected by this batch.
+The next release target is 0.6.0; these changes remain unreleased. The latest
+published tag is 0.5.4. See the [release readiness migration](docs/migrations/release-readiness.md)
+for the final caller updates and remaining qualification limits.
+
+- The [release qualification migration](docs/migrations/release-qualification.md)
+  covers throwing rate-limit status queries, typed middleware mocks and throwing
+  test controls, and removal of the unfinished `MemoryProfiler` API.
+- Remove deprecated `BulkheadMiddleware.IsolationMode.tagged`; use declared
+  partitions with `allowBorrowing: false` for independent capacity. Remove the
+  `maxBorrowPercentage` property and initializer parameter; use
+  `reservedCapacityPercentage` with the same reserved-share meaning.
+- Rate state cleanup now preserves configured quotas beyond five minutes. A
+  leaky bucket starts a new leak interval when an empty bucket admits work;
+  partially occupied buckets retain their fractional leak phase. Wall-clock
+  rollback freezes local policy time until the clock catches up. Depleted
+  zero-refill and adaptive token state may remain resident until explicit reset.
 
 - The [resilience policy migration](docs/migrations/resilience-policy-contracts.md)
   documents monotonic retry budgets, required HTTP status extraction, removal of ignored
@@ -82,6 +97,15 @@ No release version or tag is selected by this batch.
 
 
 ### Changed
+- Performance baseline/update/compare commands now produce and consume checked
+  Release JSON records with matching workload, hardware, toolchain, and dependency
+  identities. Comparisons report batch timing ratios with explicit advisory or
+  enforced limits; allocation evidence is labeled unavailable.
+- The shared qualification workflow adds a Swift 6.2 compiler build check and
+  Debug/Release tvOS and visionOS simulator builds. watchOS builds remain advisory.
+- Version tags run the shared Debug/Release, numeric, compression, public-consumer,
+  and telemetry qualification gates. Publication requires exact nonempty release
+  notes and a successfully generated documentation artifact.
 - CI now executes the Release correctness tests, with failures blocking the job;
   performance benchmarks retain their separate advisory lane.
 - `NextGuard` debug diagnostics are now error-exit aware: middleware that
@@ -92,6 +116,15 @@ No release version or tag is selected by this batch.
   path (e.g. cache hits). Debug-only; release builds are unchanged. ([#97])
 
 ### Fixed
+- HTTP health-check outcome tests now use local session fixtures, including real
+  request cancellation, instead of always skipping or contacting an external domain.
+- `CommandContext` evaluates metadata getters and value descriptions outside its
+  storage lock, permitting callbacks to read or mutate the same context. Retired
+  values remain alive through unlock; focused callback and retirement tests cover
+  description, snapshots, clear, and mutation.
+- Rate-limit cleanup uses policy-specific reclamation conditions and guards
+  state identity across admission, status, and reset interleavings. It no longer
+  grants a fresh budget merely because an identity was idle for 300 seconds.
 - Test mock readers take locked snapshots, and stress CI propagates test and
   discovery failures instead of reporting a successful empty or failed run.
 - Encrypted result decoding preserves authenticated serialized bytes for custom objects,
