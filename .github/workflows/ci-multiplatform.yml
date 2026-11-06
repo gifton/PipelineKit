@@ -1,9 +1,9 @@
 name: CI (Multiplatform)
 
-# This workflow adds macOS (SwiftPM), iOS Simulator, and watchOS Simulator coverage.
-# Updated for macOS 26 / iOS 26 / Xcode 26.
+# PR and tag qualification share the same compiler, correctness, and platform gates.
 
 on:
+  workflow_call:
   push:
     branches: [ 'release/**' ]
   workflow_dispatch:
@@ -11,7 +11,6 @@ on:
     types: [opened, synchronize, reopened]
 
 env:
-  DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
   CI: 'true'
 
 jobs:
@@ -50,6 +49,9 @@ jobs:
       - name: Build (Debug)
         run: swift build -c debug
 
+      - name: Validate qualification tooling
+        run: bash Scripts/ci/check-qualification-tools.sh
+
       - name: Test (Debug + Coverage)
         run: |
           python3 Scripts/ci/coverage.py collect \
@@ -82,7 +84,7 @@ jobs:
 
       - name: Test (Release)
         # Benchmarks retain their separate advisory lane; correctness failures are fatal.
-        run: swift test --configuration release --skip-build --skip PipelineKitPerformanceTests
+        run: python3 Scripts/ci/check-correctness.py --configuration release
 
       - name: Numeric and compression validation (Release)
         run: |
@@ -104,24 +106,24 @@ jobs:
           python3 Scripts/validation/extract_stabilization_examples.py
           for configuration in debug release; do
             swift build --package-path Tests/Integration/Consumer --configuration "$configuration"
-            python3 Scripts/validation/run_check.py \
-              --id "consumer-error-contract-${configuration}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" --timeout 60 -- \
-              swift run --package-path Tests/Integration/Consumer --configuration "$configuration" --skip-build Consumer error-contract
-            python3 Scripts/validation/run_check.py \
-              --id "consumer-lifecycle-${configuration}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" --timeout 60 -- \
-              swift run --package-path Tests/Integration/Consumer --configuration "$configuration" --skip-build Consumer lifecycle
-            python3 Scripts/validation/run_check.py \
-              --id "consumer-policy-contract-${configuration}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" --timeout 60 -- \
-              swift run --package-path Tests/Integration/Consumer --configuration "$configuration" --skip-build Consumer policy-contract
-            python3 Scripts/validation/run_check.py \
-              --id "consumer-qualification-${configuration}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" --timeout 60 -- \
-              swift run --package-path Tests/Integration/Consumer --configuration "$configuration" --skip-build Consumer qualification
+            for mode in composition-security routing cache-identity encryption bulkhead \
+                        error-contract lifecycle policy-contract qualification metrics \
+                        statsd-startup udp-close udp-failure-close; do
+              python3 Scripts/validation/run_check.py \
+                --id "consumer-${mode}-${configuration}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" --timeout 60 -- \
+                swift run --package-path Tests/Integration/Consumer --configuration "$configuration" --skip-build Consumer "$mode"
+            done
             python3 Scripts/validation/run_check.py \
               --id "consumer-test-support-${configuration}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" --timeout 120 -- \
               swift test --package-path Tests/Integration/Consumer --configuration "$configuration" --filter PublicTestPipelineTests
             "$telemetry_python" Scripts/validation/check_telemetry_formats.py \
               --configuration "$configuration" --log "${validation_root}/telemetry-${configuration}.log"
           done
+
+      - name: Removed bulkhead API validation (Debug + Release)
+        run: |
+          python3 Scripts/validation/check_bulkhead_api.py --configuration debug
+          python3 Scripts/validation/check_bulkhead_api.py --configuration release
 
   ios-sim:
     name: iOS 26 • Simulator Tests
@@ -171,7 +173,7 @@ jobs:
             -configuration Debug \
             -skipPackagePluginValidation \
             -skipMacroValidation \
-            build-for-testing | xcpretty || exit ${PIPESTATUS[0]}
+            build-for-testing | xcpretty
 
       - name: Run tests (Debug)
         run: |
@@ -182,16 +184,31 @@ jobs:
             -configuration Debug \
             -skipPackagePluginValidation \
             -skipMacroValidation \
-            test | xcpretty || exit ${PIPESTATUS[0]}
+            test | xcpretty
 
-  watchos-sim:
-    name: watchOS 26 • Simulator Build
+  compiler-floor:
+    name: Swift 6.2 • Debug and Release Builds
+    runs-on: macos-26
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+      - name: Select Swift 6.2 SDK toolchain
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '26.0.1'
+      - name: Compile package and public consumer at the floor
+        run: bash Scripts/ci/check-swift-floor.sh
+
+  apple-platform-builds:
+    name: ${{ matrix.platform }} • ${{ matrix.configuration }} Simulator Build
     runs-on: macos-26
     timeout-minutes: 20
-    continue-on-error: true  # keep advisory while we stabilize
-    env:
-      SCHEME: PipelineKit-Package
-      DESTINATION: generic/platform=watchOS Simulator
+    continue-on-error: ${{ matrix.platform == 'watchOS' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [watchOS, tvOS, visionOS]
+        configuration: [Debug, Release]
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -204,13 +221,9 @@ jobs:
       - name: Xcode version
         run: xcodebuild -version
 
-      - name: Build (Debug)
+      - name: Build advertised Apple platform
+        env:
+          DESTINATION: generic/platform=${{ matrix.platform }} Simulator
+          CONFIGURATION: ${{ matrix.configuration }}
         run: |
-          set -euo pipefail
-          xcodebuild \
-            -scheme "$SCHEME" \
-            -destination "$DESTINATION" \
-            -configuration Debug \
-            -skipPackagePluginValidation \
-            -skipMacroValidation \
-            build | xcpretty || exit ${PIPESTATUS[0]}
+          bash Scripts/ci/build-apple-platform.sh "$DESTINATION" "$CONFIGURATION"

@@ -2,7 +2,7 @@
 
 ## Requirements
 
-PipelineKit 0.5.x requires **Swift 6.2** and these minimum deployment
+The published 0.5.x series and planned 0.6.0 release require **Swift 6.2** and these minimum deployment
 targets, exactly as declared in
 [`Package.swift`](../Package.swift):
 
@@ -10,16 +10,30 @@ targets, exactly as declared in
 |----------|-----------------|------------------|
 | macOS | 26.0 | Built and tested on every PR (SwiftPM, debug + release) |
 | iOS | 26.0 | Tested on a 26.x simulator on every PR |
-| watchOS | 26.0 | Built for a 26.x simulator on every PR (build only, no test run; advisory — the job is non-blocking) |
-| tvOS | 26.0 | Declared floor only — no CI lane exercises tvOS |
-| visionOS | 26.0 | Declared floor only — no CI lane exercises visionOS |
+| watchOS | 26.0 | Debug/Release simulator builds; advisory, no test run |
+| tvOS | 26.0 | Required Debug/Release simulator builds; no test run |
+| visionOS | 26.0 | Required Debug/Release simulator builds; no test run |
+
+PRs and version tags invoke the same qualification workflow. Its `compiler-floor`
+job selects Xcode 26.0.1, verifies that `swift --version` is 6.2.x, and compiles the
+package tests and ordinary public consumer tests in Debug and Release. This is
+compiler compatibility evidence, not a floor-toolchain runtime test sweep. The
+main macOS lane runs the correctness and interoperability tests with the selected
+latest stable Xcode. Every expected correctness target must be discovered and
+report nonzero completed Release tests.
+
+Xcode 26.0.1 is listed in the [GitHub runner image inventory](https://github.com/actions/runner-images/blob/main/images/macos/macos-26-arm64-Readme.md).
+If the hosted image removes it, the floor job must fail and be repaired; it must
+not silently use a newer compiler. Simulator build lanes do not establish device
+execution or operation at every supported OS release. Read the actual CI run for
+SDK/compiler versions and results; adding a lane is not evidence that it passed.
 
 ## Why the floors are this high
 
-PipelineKit is written in Swift 6.2 language mode with strict concurrency,
-and is developed and CI-verified exclusively against the OS 26 SDK
-generation. The floors state what is actually exercised — not the oldest
-OS the code might happen to run on. Lowering them is a real engineering
+PipelineKit uses Swift 6 language mode with a Swift 6.2 tools floor and strict
+concurrency. Deployment floors remain at OS 26 while newer SDKs may build the
+package. The table separates declared floors from test and build evidence.
+Lowering these floors is a real engineering
 decision (audit, test matrix, and ongoing CI cost) that has not been made;
 if it is ever made, it ships in a minor release and is called out in the
 CHANGELOG.

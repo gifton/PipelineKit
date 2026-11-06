@@ -14,4 +14,3 @@ disabled_rules:
   - file_length            # Test files can be longer
   - type_body_length       # Test classes can be longer
   - function_body_length   # Test functions can be longer
-  - unchecked_sendable_documentation  # Test helpers often need mutable state for tracking
