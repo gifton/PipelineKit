@@ -55,6 +55,10 @@ internal actor FixedWindow {
         currentWindow = Self.alignToWindow(now(), windowSize: windowSize)
     }
 
+    func isNeutralForEviction() -> Bool {
+        Self.alignToWindow(now(), windowSize: windowSize) != currentWindow
+    }
+
     /// Aligns a date to the start of its window
     private static func alignToWindow(_ date: Date, windowSize: TimeInterval) -> Date {
         let timestamp = date.timeIntervalSince1970

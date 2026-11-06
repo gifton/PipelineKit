@@ -29,6 +29,9 @@ internal actor LeakyBucket {
             return false
         }
 
+        // Idle time does not prepay the next request's leak interval.
+        // testLeakyIdleCycleStartsAtNewAdmissionWithOrWithoutReclamation.
+        if currentLevel == 0 { lastLeakTime = now() }
         currentLevel += 1
         return true
     }
@@ -48,6 +51,11 @@ internal actor LeakyBucket {
     func reset() {
         currentLevel = 0
         lastLeakTime = now()
+    }
+
+    func isNeutralForEviction() -> Bool {
+        leak()
+        return currentLevel == 0
     }
 
     private func leak() {
