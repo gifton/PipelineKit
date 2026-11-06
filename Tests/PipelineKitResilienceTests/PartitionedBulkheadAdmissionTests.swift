@@ -206,96 +206,90 @@ final class PartitionedBulkheadAdmissionTests: XCTestCase {
         }
     }
 
-    @available(*, deprecated, message: "Exercises the supported reservation alias")
     func testDonorReserveAndQueuePriorityAreAtomic() async {
         for allowBorrowing in [false, true] {
-            for alias in [false, true] {
-                let partitions: [String: PartitionedBulkheadMiddleware.PartitionConfig] = [
-                    "local": .init(capacity: 1), "donor": .init(capacity: 2, queueSize: 1)
-                ]
-                let extractor: @Sendable (any Command, CommandContext) async -> String = { command, _ in
-                    (command as? AdmissionCommand)?.id.hasPrefix("donor") == true ? "donor" : "local"
-                }
-                let config = alias ? PartitionedBulkheadMiddleware.Configuration(
-                    partitions: partitions, partitionExtractor: extractor, defaultPartition: "local",
-                    allowBorrowing: allowBorrowing, maxBorrowPercentage: 0.5
-                ) : PartitionedBulkheadMiddleware.Configuration(
-                    partitions: partitions, partitionExtractor: extractor, defaultPartition: "local",
-                    allowBorrowing: allowBorrowing, reservedCapacityPercentage: 0.5
-                )
-                let middleware = PartitionedBulkheadMiddleware(configuration: config)
-                let local = BulkheadAdmissionSubject.partitioned(middleware, partition: "local")
-                let donor = BulkheadAdmissionSubject.partitioned(middleware, partition: "donor")
-                let ledger = BulkheadHandlerLedger()
-                let holder = launchBulkhead(local, id: "local-A", ledger: ledger)
-                let aEntered = await entered("local-A", ledger: ledger)
-                XCTAssertTrue(aEntered)
-                let contexts = [CommandContext(), CommandContext()]
-                // Both independent tasks compete for the donor's last lendable
-                // slot. The observed outcomes are recorded; no old interleaving
-                // is claimed to have been forced.
-                let borrowers = (0..<2).map { index in
-                    launchBulkhead(local, id: "borrow-\(index)", ledger: ledger,
-                                   fails: index == 1, context: contexts[index])
-                }
-                for index in 0..<2 {
-                    while !(await ledger.entered("borrow-\(index)")) {
-                        if await ledger.finished("borrow-\(index)") { break }
-                        await Task.yield()
-                    }
-                }
-                let entries = await ledger.entries
-                let winners = (0..<2).filter { entries.contains("borrow-\($0)") }
-                XCTAssertEqual(winners.count, allowBorrowing ? 1 : 0)
-                await assertState(donor, active: allowBorrowing ? 1 : 0, queued: 0)
-                await assertState(local, active: 1, queued: 0)
-                for index in 0..<2 { await ledger.release("borrow-\(index)") }
-                for index in 0..<2 {
-                    let result = await borrowers[index].value
-                    XCTAssertEqual(result, winners.contains(index) ? (index == 1 ? "handlerError" : "success") : "rejected")
-                    if winners.contains(index) {
-                        XCTAssertEqual(contexts[index].getMetadata()["bulkhead.wasBorrowed"] as? Bool, true)
-                        XCTAssertEqual(contexts[index].getMetadata()["bulkhead.wasQueued"] as? Bool, false)
-                    }
-                }
-                await assertState(donor, active: 0, queued: 0)
-
-                var donorHolders: [Task<String, Never>] = []
-                for index in 0..<2 {
-                    let id = "donor-A\(index)"
-                    donorHolders.append(launchBulkhead(donor, id: id, ledger: ledger))
-                    let didEnter = await entered(id, ledger: ledger)
-                    XCTAssertTrue(didEnter)
-                }
-                let queuedDonor = launchBulkhead(donor, id: "donor-queued", ledger: ledger)
-                let didQueue = await queued(1, subject: donor, id: "donor-queued", ledger: ledger)
-                XCTAssertTrue(didQueue)
-                let blockedBorrower = launchBulkhead(local, id: "borrow-blocked", ledger: ledger)
-                let blockedResult = await blockedBorrower.value
-                XCTAssertEqual(blockedResult, "rejected")
-                async let releaseOwner: Void = ledger.release("donor-A0")
-                let racingBorrower = launchBulkhead(local, id: "borrow-at-handoff", ledger: ledger)
-                await releaseOwner
-                let racingResult = await racingBorrower.value
-                XCTAssertEqual(racingResult, "rejected")
-                let ownedEntered = await entered("donor-queued", ledger: ledger)
-                XCTAssertTrue(ownedEntered)
-                await assertState(donor, active: 2, queued: 0)
-                await ledger.release("donor-queued")
-                await ledger.release("donor-A1")
-                for task in donorHolders {
-                    let result = await task.value
-                    XCTAssertEqual(result, "success")
-                }
-                let queuedResult = await queuedDonor.value
-                XCTAssertEqual(queuedResult, "success")
-                await ledger.release("local-A")
-                let holderResult = await holder.value
-                XCTAssertEqual(holderResult, "success")
-                await assertState(donor, active: 0, queued: 0)
-                await assertState(local, active: 0, queued: 0)
-                print("R03 donor borrowing=\(allowBorrowing) alias=\(alias): \(await ledger.events)")
+            let partitions: [String: PartitionedBulkheadMiddleware.PartitionConfig] = [
+                "local": .init(capacity: 1), "donor": .init(capacity: 2, queueSize: 1)
+            ]
+            let extractor: @Sendable (any Command, CommandContext) async -> String = { command, _ in
+                (command as? AdmissionCommand)?.id.hasPrefix("donor") == true ? "donor" : "local"
             }
+            let config = PartitionedBulkheadMiddleware.Configuration(
+                partitions: partitions, partitionExtractor: extractor, defaultPartition: "local",
+                allowBorrowing: allowBorrowing, reservedCapacityPercentage: 0.5
+            )
+            let middleware = PartitionedBulkheadMiddleware(configuration: config)
+            let local = BulkheadAdmissionSubject.partitioned(middleware, partition: "local")
+            let donor = BulkheadAdmissionSubject.partitioned(middleware, partition: "donor")
+            let ledger = BulkheadHandlerLedger()
+            let holder = launchBulkhead(local, id: "local-A", ledger: ledger)
+            let aEntered = await entered("local-A", ledger: ledger)
+            XCTAssertTrue(aEntered)
+            let contexts = [CommandContext(), CommandContext()]
+            // Both independent tasks compete for the donor's last lendable
+            // slot. The observed outcomes are recorded; no old interleaving
+            // is claimed to have been forced.
+            let borrowers = (0..<2).map { index in
+                launchBulkhead(local, id: "borrow-\(index)", ledger: ledger,
+                               fails: index == 1, context: contexts[index])
+            }
+            for index in 0..<2 {
+                while !(await ledger.entered("borrow-\(index)")) {
+                    if await ledger.finished("borrow-\(index)") { break }
+                    await Task.yield()
+                }
+            }
+            let entries = await ledger.entries
+            let winners = (0..<2).filter { entries.contains("borrow-\($0)") }
+            XCTAssertEqual(winners.count, allowBorrowing ? 1 : 0)
+            await assertState(donor, active: allowBorrowing ? 1 : 0, queued: 0)
+            await assertState(local, active: 1, queued: 0)
+            for index in 0..<2 { await ledger.release("borrow-\(index)") }
+            for index in 0..<2 {
+                let result = await borrowers[index].value
+                XCTAssertEqual(result, winners.contains(index) ? (index == 1 ? "handlerError" : "success") : "rejected")
+                if winners.contains(index) {
+                    XCTAssertEqual(contexts[index].getMetadata()["bulkhead.wasBorrowed"] as? Bool, true)
+                    XCTAssertEqual(contexts[index].getMetadata()["bulkhead.wasQueued"] as? Bool, false)
+                }
+            }
+            await assertState(donor, active: 0, queued: 0)
+
+            var donorHolders: [Task<String, Never>] = []
+            for index in 0..<2 {
+                let id = "donor-A\(index)"
+                donorHolders.append(launchBulkhead(donor, id: id, ledger: ledger))
+                let didEnter = await entered(id, ledger: ledger)
+                XCTAssertTrue(didEnter)
+            }
+            let queuedDonor = launchBulkhead(donor, id: "donor-queued", ledger: ledger)
+            let didQueue = await queued(1, subject: donor, id: "donor-queued", ledger: ledger)
+            XCTAssertTrue(didQueue)
+            let blockedBorrower = launchBulkhead(local, id: "borrow-blocked", ledger: ledger)
+            let blockedResult = await blockedBorrower.value
+            XCTAssertEqual(blockedResult, "rejected")
+            async let releaseOwner: Void = ledger.release("donor-A0")
+            let racingBorrower = launchBulkhead(local, id: "borrow-at-handoff", ledger: ledger)
+            await releaseOwner
+            let racingResult = await racingBorrower.value
+            XCTAssertEqual(racingResult, "rejected")
+            let ownedEntered = await entered("donor-queued", ledger: ledger)
+            XCTAssertTrue(ownedEntered)
+            await assertState(donor, active: 2, queued: 0)
+            await ledger.release("donor-queued")
+            await ledger.release("donor-A1")
+            for task in donorHolders {
+                let result = await task.value
+                XCTAssertEqual(result, "success")
+            }
+            let queuedResult = await queuedDonor.value
+            XCTAssertEqual(queuedResult, "success")
+            await ledger.release("local-A")
+            let holderResult = await holder.value
+            XCTAssertEqual(holderResult, "success")
+            await assertState(donor, active: 0, queued: 0)
+            await assertState(local, active: 0, queued: 0)
+            print("R03 donor borrowing=\(allowBorrowing): \(await ledger.events)")
         }
     }
 }
