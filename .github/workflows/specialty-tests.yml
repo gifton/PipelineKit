@@ -95,60 +95,49 @@ jobs:
       uses: actions/cache@v6
       with:
         path: |
-          .build
-          ~/Library/Developer/Xcode/DerivedData
-        key: ${{ runner.os }}-spm-perf-${{ hashFiles('Package.resolved') }}
+          ${{ runner.temp }}/benchmark-base-build
+          ${{ runner.temp }}/benchmark-candidate-build
+        key: ${{ runner.os }}-spm-perf-json-v1-${{ hashFiles('Package.resolved') }}
         restore-keys: |
-          ${{ runner.os }}-spm-
+          ${{ runner.os }}-spm-perf-json-v1-
 
-    - name: Checkout Base Branch
-      run: |
-        git checkout ${{ github.base_ref || 'main' }}
+    - name: Checkout Baseline Source
+      uses: actions/checkout@v7
+      with:
+        ref: ${{ github.event.pull_request.base.sha || 'main' }}
+        path: benchmark-base
+        persist-credentials: false
 
     - name: Run Baseline Performance Tests
       run: |
-        echo "Establishing performance baseline from ${{ github.base_ref || 'main' }}"
-        swift build --configuration release --target PipelineKitPerformanceTests
-
-        for i in {1..5}; do
-          echo "Baseline iteration $i/5"
-          swift test --configuration release --filter "PipelineKitPerformanceTests" > baseline_$i.txt 2>&1
-        done
-
-        mkdir -p performance-baseline
-        mv baseline_*.txt performance-baseline/
-
-    - name: Checkout PR Branch
-      run: |
-        git checkout ${{ github.head_ref || github.ref }}
+        set -euo pipefail
+        bash Scripts/run-performance-tests.sh \
+          --source-root "$GITHUB_WORKSPACE/benchmark-base" \
+          --scratch-path "$RUNNER_TEMP/benchmark-base-build" \
+          --samples 15 --operations 1000 --warmup 3 \
+          --output performance-baseline/record.json
 
     - name: Run PR Performance Tests
       run: |
-        echo "Running performance tests on PR branch"
-        swift build --configuration release --target PipelineKitPerformanceTests
-
-        for i in {1..5}; do
-          echo "PR iteration $i/5"
-          swift test --configuration release --filter "PipelineKitPerformanceTests" > pr_$i.txt 2>&1
-        done
-
-        mkdir -p performance-pr
-        mv pr_*.txt performance-pr/
+        set -euo pipefail
+        bash Scripts/run-performance-tests.sh \
+          --scratch-path "$RUNNER_TEMP/benchmark-candidate-build" \
+          --samples 15 --operations 1000 --warmup 3 \
+          --output performance-pr/record.json
 
     - name: Compare Performance
       run: |
-        echo "## Performance Comparison Report" > performance-report.md
-        echo "" >> performance-report.md
-        echo "Baseline: ${{ github.base_ref || 'main' }}" >> performance-report.md
-        echo "PR: ${{ github.head_ref || github.ref }}" >> performance-report.md
-        echo "" >> performance-report.md
-        echo "### Test Results" >> performance-report.md
-        echo "See uploaded artifacts for detailed results" >> performance-report.md
+        set -euo pipefail
+        python3 Scripts/benchmarks/compare.py \
+          performance-baseline/record.json performance-pr/record.json \
+          --max-regression 1.10 | tee performance-report.md
 
     - name: Upload Performance Results
+      if: always()
       uses: actions/upload-artifact@v7
       with:
         name: performance-comparison
+        if-no-files-found: error
         path: |
           performance-baseline/
           performance-pr/
