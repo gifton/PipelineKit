@@ -1049,6 +1049,8 @@ public struct HTTPHealthCheck: HealthCheck {
     /// The HTTP status code that counts as healthy.
     public let expectedStatusCode: Int
 
+    private let session: URLSession
+
     /// Creates an HTTP health check.
     ///
     /// - Parameters:
@@ -1064,10 +1066,27 @@ public struct HTTPHealthCheck: HealthCheck {
         timeout: TimeInterval? = 5.0,
         expectedStatusCode: Int = 200
     ) {
+        self.init(
+            name: name,
+            url: url,
+            timeout: timeout,
+            expectedStatusCode: expectedStatusCode,
+            session: .shared
+        )
+    }
+
+    init(
+        name: String,
+        url: URL,
+        timeout: TimeInterval? = 5.0,
+        expectedStatusCode: Int = 200,
+        session: URLSession
+    ) {
         self.name = name
         self.url = url
         self.timeout = timeout
         self.expectedStatusCode = expectedStatusCode
+        self.session = session
     }
 
     /// Requests `url` and classifies the response.
@@ -1084,7 +1103,7 @@ public struct HTTPHealthCheck: HealthCheck {
                 request.timeoutInterval = timeout
             }
             
-            let (_, response) = try await URLSession.shared.data(for: request)
+            let (_, response) = try await session.data(for: request)
             
             guard let httpResponse = response as? HTTPURLResponse else {
                 return .unhealthy(message: "Invalid HTTP response")
