@@ -20,10 +20,14 @@ struct TransientOutage: Error {}
 // something visible to recover from.
 actor FlakyOrderService {
     private var failuresRemaining = 2
+    private(set) var attempts = 0
+    private(set) var transientFailures = 0
 
     func submit(_ command: SubmitOrderCommand) throws -> String {
+        attempts += 1
         if failuresRemaining > 0 {
             failuresRemaining -= 1
+            transientFailures += 1
             throw TransientOutage()
         }
         return "order-\(command.productID)-x\(command.quantity)"
@@ -72,14 +76,15 @@ struct TimingMiddleware: Middleware {
 
 // MARK: - Wire the stack
 
-let pipeline = StandardPipeline(handler: SubmitOrderHandler(service: FlakyOrderService()))
+let service = FlakyOrderService()
+let pipeline = StandardPipeline(handler: SubmitOrderHandler(service: service))
 try await pipeline.addMiddleware(OrderValidationMiddleware())
 try await pipeline.addMiddleware(TimingMiddleware())
 try await pipeline.addMiddleware(
     RetryMiddleware(
         configuration: .init(
-            maxAttempts: 3,
-            strategy: .exponentialJitter(baseDelay: 0.05, maxDelay: 0.5),
+            maxAttempts: 2,
+            strategy: .fixed(delay: 0.001),
             errorEvaluator: { $0 is TransientOutage }
         )
     )
@@ -87,12 +92,22 @@ try await pipeline.addMiddleware(
 
 // Happy path: fails twice inside the handler, retried to success.
 let confirmation = try await pipeline.execute(SubmitOrderCommand(productID: "sku-42", quantity: 3))
+guard confirmation == "order-sku-42-x3" else { throw ExampleFailure.unexpectedConfirmation }
+guard await service.attempts == 3, await service.transientFailures == 2 else {
+    throw ExampleFailure.unexpectedRetryCounts
+}
 print("confirmed: \(confirmation)")
 
 // Failure path: validation rejects the command before the handler runs.
 do {
     _ = try await pipeline.execute(SubmitOrderCommand(productID: "sku-42", quantity: 0))
-    print("ERROR: validation should have rejected quantity 0")
+    throw ExampleFailure.validationNotRejected
 } catch is InvalidQuantity {
     print("rejected as expected: quantity must be positive")
+}
+guard await service.attempts == 3 else { throw ExampleFailure.invalidOrderReachedHandler }
+print("PASS: AdvancedExample")
+
+enum ExampleFailure: Error {
+    case unexpectedConfirmation, unexpectedRetryCounts, validationNotRejected, invalidOrderReachedHandler
 }
