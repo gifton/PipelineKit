@@ -9,9 +9,12 @@ command, one handler, one pipeline, one execution.
 
 ### Add PipelineKit to your package
 
+The published minor range is 0.5.4. Current-branch API changes target the
+forthcoming 0.6.0 release and require a local checkout until it is tagged.
+
 ```swift
 dependencies: [
-    .package(url: "https://github.com/gifton/PipelineKit.git", from: "0.5.2")
+    .package(url: "https://github.com/gifton/PipelineKit.git", "0.5.4"..<"0.6.0")
 ]
 ```
 

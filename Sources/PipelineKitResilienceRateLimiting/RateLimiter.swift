@@ -1,5 +1,28 @@
 import Foundation
 import PipelineKitCore
+import Synchronization
+
+/// Serializes samples across the limiter and its child actors. Clock rollback
+/// cannot reopen a reclaimed budget:
+/// `testRollbackAfterReclamationCannotReopenPriorBudget`.
+private final class RateLimitLogicalClock: Sendable {
+    private let sample: @Sendable () -> Date
+    private let latest: Mutex<Date>
+
+    init(sample: @escaping @Sendable () -> Date) {
+        self.sample = sample
+        let initial = sample()
+        self.latest = Mutex(initial.timeIntervalSinceReferenceDate.isFinite ? initial : Date(timeIntervalSince1970: 0))
+    }
+
+    func now() -> Date {
+        latest.withLock { latest in
+            let next = sample()
+            if next.timeIntervalSinceReferenceDate.isFinite, next > latest { latest = next }
+            return latest
+        }
+    }
+}
 
 /// A sophisticated rate limiter with multiple strategies for DoS protection.
 ///
@@ -28,14 +51,15 @@ public actor RateLimiter {
     private let scope: RateLimitScope
     private var buckets: [String: CleanupEntry<TokenBucket>] = [:]
     private var slidingWindows: [String: CleanupEntry<SlidingWindow>] = [:]
-    private var fixedWindows: [String: FixedWindow] = [:]
-    private var leakyBuckets: [String: LeakyBucket] = [:]
+    private var fixedWindows: [String: CleanupEntry<FixedWindow>] = [:]
+    private var leakyBuckets: [String: CleanupEntry<LeakyBucket>] = [:]
     private let cleanupInterval: TimeInterval = 300 // 5 minutes
     private let now: @Sendable () -> Date
     private var lastCleanup: Date
     private var cleanupInProgress = false
     private let tokenLastAccess: (@Sendable (TokenBucket) async -> Date)?
     private let windowHasRecentRequests: (@Sendable (SlidingWindow, TimeInterval) async -> Bool)?
+    private let cleanupObservation: (@Sendable (Bool) async -> Void)?
 
     // These reference identities are retained across cleanup's suspension points.
     // Unlike a wrapping counter, a live identity cannot be reused by a newer admission.
@@ -74,15 +98,18 @@ public actor RateLimiter {
         scope: RateLimitScope,
         now: @escaping @Sendable () -> Date,
         tokenLastAccess: (@Sendable (TokenBucket) async -> Date)? = nil,
-        windowHasRecentRequests: (@Sendable (SlidingWindow, TimeInterval) async -> Bool)? = nil
+        windowHasRecentRequests: (@Sendable (SlidingWindow, TimeInterval) async -> Bool)? = nil,
+        cleanupObservation: (@Sendable (Bool) async -> Void)? = nil
     ) {
         strategy.validate()
         self.strategy = strategy
         self.scope = scope
-        self.now = now
-        self.lastCleanup = now()
+        let clock = RateLimitLogicalClock(sample: now)
+        self.now = { clock.now() }
+        self.lastCleanup = clock.now()
         self.tokenLastAccess = tokenLastAccess
         self.windowHasRecentRequests = windowHasRecentRequests
+        self.cleanupObservation = cleanupObservation
     }
     
     /// Checks if a request is allowed under the current rate limit.
@@ -173,7 +200,10 @@ public actor RateLimiter {
         let identifier = effectiveIdentifier(identifier, priority: priority)
         switch strategy {
         case let .tokenBucket(capacity, refillRate):
-            let bucket = buckets[identifier]?.state ?? TokenBucket(capacity: capacity, refillRate: refillRate, now: now)
+            let entry = buckets[identifier]
+            let admission = entry?.beginAdmission()
+            defer { if let entry, let admission { entry.endAdmission(admission) } }
+            let bucket = entry?.state ?? TokenBucket(capacity: capacity, refillRate: refillRate, now: now)
             let tokens = await bucket.getTokens()
             let timeToNext = await bucket.timeToNextToken()
             return RateLimitStatus(
@@ -183,7 +213,10 @@ public actor RateLimiter {
             )
             
         case let .slidingWindow(windowSize, maxRequests):
-            let window = slidingWindows[identifier]?.state ?? SlidingWindow(now: now)
+            let entry = slidingWindows[identifier]
+            let admission = entry?.beginAdmission()
+            defer { if let entry, let admission { entry.endAdmission(admission) } }
+            let window = entry?.state ?? SlidingWindow(now: now)
             await window.setWindowSize(windowSize)
             let requestCount = await window.requestCount(since: now().addingTimeInterval(-windowSize))
             return RateLimitStatus(
@@ -193,7 +226,10 @@ public actor RateLimiter {
             )
             
         case let .fixedWindow(windowSize, maxRequests):
-            let window = fixedWindows[identifier] ?? FixedWindow(windowSize: windowSize, now: now)
+            let entry = fixedWindows[identifier]
+            let admission = entry?.beginAdmission()
+            defer { if let entry, let admission { entry.endAdmission(admission) } }
+            let window = entry?.state ?? FixedWindow(windowSize: windowSize, now: now)
             let requestCount = await window.getCurrentCount()
             let timeUntilReset = await window.timeUntilReset()
             return RateLimitStatus(
@@ -202,8 +238,11 @@ public actor RateLimiter {
                 resetAt: now().addingTimeInterval(timeUntilReset)
             )
             
-        case let .leakyBucket(capacity, _):
-            let bucket = leakyBuckets[identifier] ?? LeakyBucket(capacity: capacity, leakRate: 1.0, now: now)
+        case let .leakyBucket(capacity, leakRate):
+            let entry = leakyBuckets[identifier]
+            let admission = entry?.beginAdmission()
+            defer { if let entry, let admission { entry.endAdmission(admission) } }
+            let bucket = entry?.state ?? LeakyBucket(capacity: capacity, leakRate: leakRate, now: now)
             let level = await bucket.getCurrentLevel()
             let timeUntilLeak = await bucket.timeUntilNextLeak()
             return RateLimitStatus(
@@ -213,7 +252,10 @@ public actor RateLimiter {
             )
             
         case let .adaptive(baseRate, _):
-            let bucket = buckets[identifier]?.state ?? TokenBucket(capacity: Double(baseRate), refillRate: Double(baseRate) / 10.0, now: now)
+            let entry = buckets[identifier]
+            let admission = entry?.beginAdmission()
+            defer { if let entry, let admission { entry.endAdmission(admission) } }
+            let bucket = entry?.state ?? TokenBucket(capacity: Double(baseRate), refillRate: Double(baseRate) / 10.0, now: now)
             let tokens = await bucket.getTokens()
             let timeToNext = await bucket.timeToNextToken()
             return RateLimitStatus(
@@ -238,7 +280,10 @@ public actor RateLimiter {
             guard let config = limits[priority] else {
                 return RateLimitStatus(remaining: 0, limit: 0, resetAt: now())
             }
-            let window = fixedWindows[identifier] ?? FixedWindow(windowSize: config.windowSize, now: now)
+            let entry = fixedWindows[identifier]
+            let admission = entry?.beginAdmission()
+            defer { if let entry, let admission { entry.endAdmission(admission) } }
+            let window = entry?.state ?? FixedWindow(windowSize: config.windowSize, now: now)
             let requestCount = await window.getCurrentCount()
             let timeUntilReset = await window.timeUntilReset()
             return RateLimitStatus(
@@ -343,10 +388,11 @@ public actor RateLimiter {
         windowSize: TimeInterval,
         maxRequests: Int
     ) async -> Bool {
-        let window = fixedWindows[identifier] ?? FixedWindow(windowSize: windowSize, now: now)
-        fixedWindows[identifier] = window
-        
-        let (requestCount, _) = await window.recordRequest()
+        let entry = fixedWindows[identifier] ?? CleanupEntry(FixedWindow(windowSize: windowSize, now: now))
+        fixedWindows[identifier] = entry
+        let admission = entry.beginAdmission()
+        defer { entry.endAdmission(admission) }
+        let (requestCount, _) = await entry.state.recordRequest()
         guard let requestCount else { return false }
         return requestCount <= maxRequests
     }
@@ -356,10 +402,11 @@ public actor RateLimiter {
         capacity: Int,
         leakRate: TimeInterval
     ) async -> Bool {
-        let bucket = leakyBuckets[identifier] ?? LeakyBucket(capacity: capacity, leakRate: leakRate, now: now)
-        leakyBuckets[identifier] = bucket
-        
-        return await bucket.tryAdd()
+        let entry = leakyBuckets[identifier] ?? CleanupEntry(LeakyBucket(capacity: capacity, leakRate: leakRate, now: now))
+        leakyBuckets[identifier] = entry
+        let admission = entry.beginAdmission()
+        defer { entry.endAdmission(admission) }
+        return await entry.state.tryAdd()
     }
     
     private func checkDistributed(
@@ -385,15 +432,24 @@ public actor RateLimiter {
         for (key, entry) in buckets {
             guard entry.activeAdmissions.isEmpty else { continue }
             let admission = entry.latestAdmission
+            // Adaptive capacity is fixed at first admission. Recreating under a
+            // different load can change that capacity, even when currently full.
+            let neutral: Bool
+            if case let .tokenBucket(_, refillRate) = strategy {
+                neutral = await entry.state.isNeutralForEviction(refillRate: refillRate)
+            } else {
+                neutral = false
+            }
             let lastAccess: Date
             if let tokenLastAccess {
                 lastAccess = await tokenLastAccess(entry.state)
             } else {
                 lastAccess = await entry.state.getLastAccess()
             }
-            // testActivityAfterExpiredReadKeepsTheExistingBudget exercises the revision check;
-            // reset/replacement tests exercise the dictionary ownership check.
-            if now.timeIntervalSince(lastAccess) >= cleanupInterval,
+            // testAdmissionAfterNeutralReadKeepsConsumedBudget exercises the
+            // revision check; reset/replacement tests exercise ownership.
+            await cleanupObservation?(neutral && now.timeIntervalSince(lastAccess) >= cleanupInterval)
+            if neutral, now.timeIntervalSince(lastAccess) >= cleanupInterval,
                buckets[key] === entry,
                entry.latestAdmission === admission,
                entry.activeAdmissions.isEmpty {
@@ -405,11 +461,13 @@ public actor RateLimiter {
             guard entry.activeAdmissions.isEmpty else { continue }
             let admission = entry.latestAdmission
             let hasRecentRequests: Bool
+            guard case let .slidingWindow(windowSize, _) = strategy else { continue }
             if let windowHasRecentRequests {
-                hasRecentRequests = await windowHasRecentRequests(entry.state, cleanupInterval)
+                hasRecentRequests = await windowHasRecentRequests(entry.state, windowSize)
             } else {
-                hasRecentRequests = await entry.state.hasRecentRequests(within: cleanupInterval)
+                hasRecentRequests = await entry.state.hasRecentRequests(within: windowSize)
             }
+            await cleanupObservation?(!hasRecentRequests)
             if !hasRecentRequests,
                slidingWindows[key] === entry,
                entry.latestAdmission === admission,
@@ -418,6 +476,26 @@ public actor RateLimiter {
             }
         }
 
-        // Fixed-window and leaky-bucket eviction policies are unchanged.
+        for (key, entry) in fixedWindows {
+            guard entry.activeAdmissions.isEmpty else { continue }
+            let admission = entry.latestAdmission
+            let neutral = await entry.state.isNeutralForEviction()
+            await cleanupObservation?(neutral)
+            if neutral, fixedWindows[key] === entry,
+               entry.latestAdmission === admission, entry.activeAdmissions.isEmpty {
+                fixedWindows.removeValue(forKey: key)
+            }
+        }
+
+        for (key, entry) in leakyBuckets {
+            guard entry.activeAdmissions.isEmpty else { continue }
+            let admission = entry.latestAdmission
+            let neutral = await entry.state.isNeutralForEviction()
+            await cleanupObservation?(neutral)
+            if neutral, leakyBuckets[key] === entry,
+               entry.latestAdmission === admission, entry.activeAdmissions.isEmpty {
+                leakyBuckets.removeValue(forKey: key)
+            }
+        }
     }
 }

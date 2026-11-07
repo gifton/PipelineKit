@@ -191,7 +191,8 @@ preemptive cancellation.
 
 Partitioned bulkheads also validate positive partition capacities, nonnegative queue sizes,
 and a finite reserved-capacity percentage in `0...1` before creating admission gates. The
-deprecated `maxBorrowPercentage` alias retains the same reserved-share semantics and validation.
+former `maxBorrowPercentage` alias had the same reserved-share semantics and validation;
+the alias is removed for 0.6.0. Use `reservedCapacityPercentage`.
 
 Finite nonpositive values normalize to zero without converting their magnitude, so even very
 large negative values permit immediate free capacity and return the existing queue-timeout

@@ -249,21 +249,23 @@ public final class CommandContext: @unchecked Sendable {
     /// `CommandContextRetirementTests` exercises reentrant reads at destruction.
     /// - Complexity: O(n) destruction; single-value mutations retain only one slot.
     public func clear() {
+        // Metadata getters are user code and may read this context. Capture all
+        // restoration values before locking (CommandContextCallbackTests).
+        var restored: [String: AnySendable] = [
+            ContextKeys.commandID.name: AnySendable(commandMetadata.id)
+        ]
+        if let userID = commandMetadata.userID {
+            restored[ContextKeys.userID.name] = AnySendable(userID)
+        }
+        if let correlationID = commandMetadata.correlationID {
+            restored[ContextKeys.correlationID.name] = AnySendable(correlationID)
+            restored[ContextKeys.requestID.name] = AnySendable(correlationID)
+        }
+
         let retired = withLock {
             let previous = _storage
-            _storage = [:]
-            // Restore command metadata
-            _storage[ContextKeys.commandID.name] = AnySendable(commandMetadata.id)
-            // Intentionally do not restore startTime; it must be explicitly set
-
-            if let userID = commandMetadata.userID {
-                _storage[ContextKeys.userID.name] = AnySendable(userID)
-            }
-
-            if let correlationID = commandMetadata.correlationID {
-                _storage[ContextKeys.correlationID.name] = AnySendable(correlationID)
-                _storage[ContextKeys.requestID.name] = AnySendable(correlationID)
-            }
+            // Intentionally do not restore startTime; it must be explicitly set.
+            _storage = restored
             return previous
         }
         withExtendedLifetime(retired) {}
@@ -272,45 +274,32 @@ public final class CommandContext: @unchecked Sendable {
     /// Creates a snapshot of all values in the context.
     /// - Returns: A dictionary containing all context values
     ///
-    /// Note: Values stored internally as `AnySendable` are unwrapped to their
-    /// underlying `Sendable` values for easier diagnostics and consumption.
+    /// Stored values retain their `AnySendable` wrappers; the `commandMetadata`
+    /// entry is a dictionary. Metadata getters run after the storage capture,
+    /// outside its lock, so their values need not describe the same instant.
     public func snapshot() -> [String: any Sendable] {
-        withLock {
-            var result: [String: any Sendable] = [:]
-
-            // Add all typed key values, using the wrapper directly since it's already Sendable
-            for (key, wrapper) in _storage {
-                // AnySendable is itself Sendable, so we can just use it directly
-                result[key] = wrapper
-            }
-
-            // Add command metadata
-            let metadataDict: [String: any Sendable] = [
-                "id": commandMetadata.id.uuidString,
-                "timestamp": commandMetadata.timestamp,
-                "userID": commandMetadata.userID ?? "",
-                "correlationID": commandMetadata.correlationID ?? ""
-            ]
-            result["commandMetadata"] = metadataDict
-
-            return result
-        }
+        let storage = withLock { _storage }
+        var result: [String: any Sendable] = storage.mapValues { $0 }
+        result["commandMetadata"] = metadataSnapshot()
+        return result
     }
 
     /// Creates a raw snapshot returning internal AnySendable wrappers.
     /// - Returns: A dictionary containing all context values without unwrapping
+    /// - Note: Metadata getters run outside the lock after the storage capture.
     public func snapshotRaw() -> [String: AnySendable] {
-        withLock {
-            var result: [String: AnySendable] = _storage
-            let metadataDict: [String: any Sendable] = [
-                "id": commandMetadata.id.uuidString,
-                "timestamp": commandMetadata.timestamp,
-                "userID": commandMetadata.userID ?? "",
-                "correlationID": commandMetadata.correlationID ?? ""
-            ]
-            result["commandMetadata"] = AnySendable(metadataDict)
-            return result
-        }
+        var result = withLock { _storage }
+        result["commandMetadata"] = AnySendable(metadataSnapshot())
+        return result
+    }
+
+    private func metadataSnapshot() -> [String: any Sendable] {
+        [
+            "id": commandMetadata.id.uuidString,
+            "timestamp": commandMetadata.timestamp,
+            "userID": commandMetadata.userID ?? "",
+            "correlationID": commandMetadata.correlationID ?? ""
+        ]
     }
 
     /// Checks if a key exists in the context.
@@ -384,12 +373,12 @@ public final class CommandContext: @unchecked Sendable {
 
 extension CommandContext: CustomDebugStringConvertible {
     public var debugDescription: String {
-        // Now we can access storage directly with locks!
-        let contents = withLock {
-            _storage.map { key, value in
-                "\(key): \(value)"
-            }.joined(separator: ", ")
-        }
+        // Retain the captured values through unlock before invoking their
+        // descriptions (CommandContextCallbackTests).
+        let storage = withLock { _storage }
+        let contents = storage.map { key, value in
+            "\(key): \(value)"
+        }.joined(separator: ", ")
         return "CommandContext(id: \(commandMetadata.id), \(contents))"
     }
 }

@@ -126,10 +126,6 @@ public struct BulkheadMiddleware: Middleware, NextGuardWarningSuppressing {
 
         /// Use task-based isolation with priority
         case taskGroup(priority: TaskPriority?)
-
-        /// Use tagged isolation for different command types
-        @available(*, deprecated, message: "Tagged mode never provided per-tag isolation — every tag contends on the same shared semaphore, and the tag is recorded only as context metadata (#86). For real per-tenant capacity use PartitionedBulkheadMiddleware with allowBorrowing: false. This mode will be removed in 0.6.")
-        case tagged(keyExtractor: @Sendable (any Command) -> String)
     }
 
     private let configuration: Configuration
@@ -195,20 +191,6 @@ public struct BulkheadMiddleware: Middleware, NextGuardWarningSuppressing {
                 context: context,
                 next: next,
                 priority: priority,
-                startTime: startTime
-            )
-
-        // This case is deprecated (#86) but the match must stay exhaustive so
-        // .tagged keeps working until its removal in 0.6. Swift's deprecation
-        // diagnostic fires at construction sites, not on this pattern match, so
-        // no warning appears here — that's expected.
-        case let .tagged(keyExtractor):
-            let tag = keyExtractor(command)
-            return try await executeTaggedIsolation(
-                command,
-                context: context,
-                next: next,
-                tag: tag,
                 startTime: startTime
             )
         }
@@ -317,24 +299,6 @@ public struct BulkheadMiddleware: Middleware, NextGuardWarningSuppressing {
         // This is a conceptual implementation using task groups
         // In practice, Swift doesn't provide true thread pool isolation
         // Just delegate to semaphore isolation
-
-        return try await executeSemaphoreIsolation(
-            command,
-            context: context,
-            next: next,
-            startTime: startTime
-        )
-    }
-
-    private func executeTaggedIsolation<T: Command>(
-        _ command: T,
-        context: CommandContext,
-        next: @escaping MiddlewareNext<T>,
-        tag: String,
-        startTime: Date
-    ) async throws -> T.Result {
-        // Deprecated tagged mode shares admission; the tag is metadata only.
-        context.setMetadata("bulkheadTag", value: tag)
 
         return try await executeSemaphoreIsolation(
             command,

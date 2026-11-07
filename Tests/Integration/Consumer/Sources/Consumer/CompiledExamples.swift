@@ -662,6 +662,19 @@ func addSecurityWrappers<C: Command, H: CommandHandler>(
 
 }
 
+// docs/guides/resilience-patterns.md, Swift fence 11
+@MainActor func compiled_docs_guides_resilience_patterns_md_11() async throws {
+let pipeline = DynamicPipeline()
+
+try await pipeline.addMiddleware(BulkheadMiddleware(
+    configuration: .init(
+        maxConcurrency: 5,
+        isolationMode: .semaphore
+    )
+))
+
+}
+
 // docs/guides/resilience-patterns.md, Swift fence 12
 @MainActor func compiled_docs_guides_resilience_patterns_md_12() async throws {
 let pipeline = DynamicPipeline()

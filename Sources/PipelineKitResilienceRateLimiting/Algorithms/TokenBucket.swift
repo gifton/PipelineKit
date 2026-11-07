@@ -27,10 +27,7 @@ internal actor TokenBucket {
     func refill(rate: Double) {
         precondition(rate.isFinite && rate >= 0, "Refill rate must be finite and nonnegative")
         let now = self.now()
-        let elapsed = max(0, now.timeIntervalSince(lastRefill))
-        let tokensToAdd = elapsed * rate
-        
-        tokens = min(capacity, tokens + tokensToAdd)
+        tokens = refilledTokens(rate: rate, at: now)
         lastRefill = now
         lastAccess = now
         // Update the refill rate for accurate time calculations
@@ -58,5 +55,24 @@ internal actor TokenBucket {
     
     func getLastAccess() -> Date {
         return lastAccess
+    }
+
+    func isNeutralForEviction(refillRate: Double) -> Bool {
+        refilledTokens(rate: refillRate, at: now()) >= capacity
+    }
+
+    private func refilledTokens(rate: Double, at date: Date) -> Double {
+        guard rate > 0, tokens < capacity else { return tokens }
+        let elapsed = max(0, date.timeIntervalSince(lastRefill))
+        let added: Double
+        if elapsed.isFinite {
+            added = elapsed * rate
+        } else {
+            // Finite instants can have an unrepresentable difference. Scaling
+            // opposite-sign endpoints first preserves subnormal refill rates.
+            // testExtremeClockSpanDoesNotRefillZeroRateOrPoisonFractionalBudget.
+            added = date.timeIntervalSinceReferenceDate * rate - lastRefill.timeIntervalSinceReferenceDate * rate
+        }
+        return min(capacity, tokens + added)
     }
 }

@@ -46,13 +46,7 @@ jobs:
           fetch-depth: 0
 
       - name: Validate Swift CI Gates
-        run: |
-          python3 Scripts/ci/tests/test_validation_gates.py PerformanceWorkflowTests ReleaseWorkflowTests TelemetryWorkflowTests
-          python3 -m unittest Scripts.ci.tests.test_numeric_probe_resolution Scripts.ci.tests.test_numeric_boundary_oracle
-          python3 Scripts/ci/tests/test_compression_watchdog.py
-          python3 Scripts/ci/tests/test_stress_workflow.py
-          python3 Scripts/ci/tests/test_coverage_workflow.py
-          python3 Scripts/ci/tests/test_example_extraction.py
+        run: bash Scripts/ci/check-qualification-tools.sh
       
       - name: Check PR Size
         if: github.event_name == 'pull_request'

@@ -114,11 +114,11 @@ final class RateLimiterCleanupTests: XCTestCase {
             _ = try await limiter.allowRequest(identifier: "later-sweep")
             let expired = try await limiter.allowRequest(identifier: "new")
             let exhausted = try await limiter.allowRequest(identifier: "new")
-            XCTAssertEqual([expired, exhausted], [true, false], "\(algorithm)")
+            XCTAssertEqual([expired, exhausted], [false, false], "\(algorithm)")
         }
     }
 
-    func testIdleExpiryBoundaryAndRepeatedSweepsPreserveRecentActivity() async throws {
+    func testIdleCleanupBoundaryAndRepeatedSweepsPreserveConfiguredBudgets() async throws {
         for algorithm in CleanupAlgorithm.allCases {
             for offset: TimeInterval in [300, 300.125] {
                 let clock = CleanupClock()
@@ -131,8 +131,9 @@ final class RateLimiterCleanupTests: XCTestCase {
                 _ = try await limiter.allowRequest(identifier: "sweep")
                 let idle = try await limiter.allowRequest(identifier: "idle")
                 let recent = try await limiter.allowRequest(identifier: "recent")
-                // Token cleanup expires at 300; sliding cleanup retains the exact cutoff.
-                XCTAssertEqual(idle, algorithm == .token || offset > 300, "\(algorithm), \(offset)")
+                // Neither a depleted zero-refill budget nor a live 10,000-second
+                // window expires because the five-minute sweep ran.
+                XCTAssertFalse(idle, "\(algorithm), \(offset)")
                 XCTAssertFalse(recent, "\(algorithm), \(offset)")
 
                 clock.set(1_599)
@@ -145,7 +146,7 @@ final class RateLimiterCleanupTests: XCTestCase {
                 _ = try await limiter.allowRequest(identifier: "final-sweep")
                 let expired = try await limiter.allowRequest(identifier: "recent")
                 let exhausted = try await limiter.allowRequest(identifier: "recent")
-                XCTAssertEqual([expired, exhausted], [true, false], "\(algorithm), \(offset)")
+                XCTAssertEqual([expired, exhausted], [false, false], "\(algorithm), \(offset)")
             }
         }
     }

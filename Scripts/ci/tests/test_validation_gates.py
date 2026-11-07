@@ -161,6 +161,7 @@ class SwiftWorkflowTests(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         self.dir = Path(self.tmp.name)
+        (self.dir / 'Scripts').symlink_to(ROOT / 'Scripts', target_is_directory=True)
         swift = self.dir / 'swift'
         swift.write_text('''#!/usr/bin/env python3
 import json, os, pathlib, sys
@@ -186,6 +187,18 @@ elif args[0] == 'test':
         artifact.touch()
     if not artifact.exists():
         sys.exit('test executable missing')
+    if args[1:2] == ['list']:
+        mode = os.environ.get('RELEASE_DISCOVERY', '')
+        if mode == 'failure': sys.exit(45)
+        for target in json.loads(os.environ.get('RELEASE_TARGETS', '[]')):
+            if mode not in ('empty', 'missing:' + target):
+                print(target + '.ContractTests/testContract')
+        sys.exit(0)
+    mode = os.environ.get('RELEASE_OUTPUT', '')
+    target = args[args.index('--filter') + 1] if '--filter' in args else ''
+    if mode != 'empty' and mode != 'empty:' + target:
+        skipped = '1 test skipped and ' if mode == 'skipped:' + target else ''
+        print('Executed ' + ('0' if mode == 'zero:' + target else '1') + ' tests, with ' + skipped + '0 failures')
     sys.exit(int(os.environ['TEST_EXIT']))
 else:
     sys.exit('unexpected Swift command')
@@ -296,11 +309,17 @@ func measure() {}
 
 
 class ReleaseWorkflowTests(SwiftWorkflowTests):
-    def run_workflow(self, compile_failure='false', test_exit='0'):
+    TARGETS = ('PipelineKitTests', 'PipelineKitCoreTests', 'PipelineKitResilienceTests',
+               'PipelineKitSecurityTests', 'PipelineKitCacheTests', 'PipelineKitPoolingTests',
+               'PipelineKitObservabilityTests', 'PipelineKitTestSupportTests')
+
+    def run_workflow(self, compile_failure='false', test_exit='0', discovery='', output=''):
         calls_path = self.dir / 'calls'
         env = dict(os.environ, PATH=str(self.dir) + os.pathsep + os.environ['PATH'],
                    CALLS=str(calls_path), ALL_TESTS_BUILT=str(self.dir / 'all-tests-built'),
-                   COMPILE_FAILURE=compile_failure, TEST_EXIT=test_exit)
+                   COMPILE_FAILURE=compile_failure, TEST_EXIT=test_exit,
+                   RELEASE_TARGETS=json.dumps(self.TARGETS), RELEASE_DISCOVERY=discovery,
+                   RELEASE_OUTPUT=output)
         for name in ('Build (Release)', 'Test (Release)'):
             script = self.run_step(name, 'ci-multiplatform.yml', indent=6)
             result = subprocess.run(['bash', '-e', '-o', 'pipefail', '-c', script],
@@ -313,11 +332,11 @@ class ReleaseWorkflowTests(SwiftWorkflowTests):
     def test_release_executes_correctness_suite(self):
         result, calls = self.run_workflow()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertEqual([call[0] for call in calls], ['build', 'test'], calls)
-        execution = calls[-1]
-        self.assertIn('--skip-build', execution)
-        self.assertNotIn('--filter', execution)
-        self.assertEqual(execution[execution.index('--skip') + 1], 'PipelineKitPerformanceTests')
+        self.assertEqual([call[0] for call in calls], ['build'] + ['test'] * 9, calls)
+        self.assertEqual(calls[1][1], 'list')
+        for target, execution in zip(self.TARGETS, calls[2:]):
+            self.assertIn('--skip-build', execution)
+            self.assertEqual(execution[execution.index('--filter') + 1], '^' + target + '[./]')
 
     def test_release_compile_failure_prevents_execution(self):
         result, calls = self.run_workflow(compile_failure='true')
@@ -327,7 +346,23 @@ class ReleaseWorkflowTests(SwiftWorkflowTests):
     def test_release_test_failure_is_fatal(self):
         result, calls = self.run_workflow(test_exit='7')
         self.assertEqual(result.returncode, 7, result.stdout + result.stderr)
-        self.assertEqual([call[0] for call in calls], ['build', 'test'], calls)
+        self.assertEqual([call[0] for call in calls], ['build', 'test', 'test'], calls)
+
+    def test_empty_failed_or_partial_discovery_is_fatal_before_execution(self):
+        for discovery in ['empty', 'failure'] + ['missing:' + target for target in self.TARGETS]:
+            with self.subTest(discovery=discovery):
+                (self.dir / 'calls').unlink(missing_ok=True)
+                result, calls = self.run_workflow(discovery=discovery)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertEqual([call[:2] for call in calls], [['build', '--configuration'], ['test', 'list']])
+
+    def test_empty_output_or_zero_completed_tests_in_any_suite_is_fatal(self):
+        for target in self.TARGETS:
+            for mode in ('empty:', 'zero:', 'skipped:'):
+                with self.subTest(target=target, mode=mode):
+                    (self.dir / 'calls').unlink(missing_ok=True)
+                    result, calls = self.run_workflow(output=mode + '^' + target + '[./]')
+                    self.assertNotEqual(result.returncode, 0)
 
 
     def run_validation_gate(self, configuration, failing_script='', run_attempt='1'):
@@ -407,6 +442,10 @@ if '--log' in args:
 
 
 class TelemetryWorkflowTests(SwiftWorkflowTests):
+    MODES = ('composition-security', 'routing', 'cache-identity', 'encryption', 'bulkhead',
+             'error-contract', 'lifecycle', 'policy-contract', 'qualification', 'metrics',
+             'statsd-startup', 'udp-close', 'udp-failure-close')
+
     def run_telemetry_gate(self, failure=''):
         calls = self.dir / 'telemetry-calls'
         calls.write_text('')
@@ -450,20 +489,21 @@ if stage == os.environ['TELEMETRY_FAILURE']:
     def test_runs_built_consumer_contract_and_oracle_in_both_configurations(self):
         result, calls = self.run_telemetry_gate()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        tail = calls[-14:]
-        for offset, configuration in [(0, 'debug'), (7, 'release')]:
+        count = len(self.MODES) + 3
+        tail = calls[-2 * count:]
+        for offset, configuration in [(0, 'debug'), (count, 'release')]:
             self.assertEqual(tail[offset], ['swift', ['build', '--package-path', 'Tests/Integration/Consumer',
                                                      '--configuration', configuration]])
-            for index, mode in enumerate(('error-contract', 'lifecycle', 'policy-contract', 'qualification'), 1):
+            for index, mode in enumerate(self.MODES, 1):
                 self.assertEqual(tail[offset + index], ['python', ['Scripts/validation/run_check.py',
                     '--id', f'consumer-{mode}-{configuration}-456-2', '--timeout', '60', '--',
                     'swift', 'run', '--package-path', 'Tests/Integration/Consumer', '--configuration',
                     configuration, '--skip-build', 'Consumer', mode]])
-            self.assertEqual(tail[offset + 5], ['python', ['Scripts/validation/run_check.py',
+            self.assertEqual(tail[offset + count - 2], ['python', ['Scripts/validation/run_check.py',
                 '--id', f'consumer-test-support-{configuration}-456-2', '--timeout', '120', '--',
                 'swift', 'test', '--package-path', 'Tests/Integration/Consumer', '--configuration',
                 configuration, '--filter', 'PublicTestPipelineTests']])
-            self.assertEqual(tail[offset + 6], ['python', ['Scripts/validation/check_telemetry_formats.py',
+            self.assertEqual(tail[offset + count - 1], ['python', ['Scripts/validation/check_telemetry_formats.py',
                 '--configuration', configuration, '--log',
                 str(self.dir / 'runner space' / '456-2' / f'telemetry-{configuration}.log')]])
 
@@ -480,7 +520,7 @@ if stage == os.environ['TELEMETRY_FAILURE']:
 
     def test_consumer_contract_failures_are_fatal_in_both_configurations(self):
         for configuration in ('debug', 'release'):
-            for mode in ('error-contract', 'lifecycle', 'policy-contract', 'qualification'):
+            for mode in self.MODES:
                 with self.subTest(configuration=configuration, mode=mode):
                     shutil.rmtree(self.dir / 'runner space', ignore_errors=True)
                     result, calls = self.run_telemetry_gate(

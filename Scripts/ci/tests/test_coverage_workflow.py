@@ -92,6 +92,10 @@ if program == 'swift':
         if failure == 'test:' + target: sys.exit(32)
         if failure != 'profile:' + target:
             (codecov / 'default.profdata').write_text(target + '\n')
+        if failure != 'empty-run:' + target:
+            count = 0 if failure == 'zero-run:' + target else 2
+            skipped = 2 if failure == 'skipped-run:' + target else 1
+            print(f'Executed {count} tests, with {skipped} tests skipped and 0 failures')
     else: sys.exit('unexpected Swift arguments')
 elif program == 'xcrun':
     if failure == 'tool:' + args[-1]: sys.exit(33)
@@ -197,6 +201,15 @@ else: sys.exit('unexpected program ' + program)
                     result, calls = self.run_workflow(workflow, failure)
                     self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
                     self.assertFalse(any(program == 'swift' and '--filter' in args for program, args in calls))
+
+    def test_profiles_do_not_mask_empty_zero_or_all_skipped_execution(self):
+        for workflow in STEPS:
+            for target in TARGETS:
+                for mode in ('empty-run:', 'zero-run:', 'skipped-run:'):
+                    with self.subTest(workflow=workflow, target=target, mode=mode):
+                        result, calls = self.run_workflow(workflow, mode + target)
+                        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+                        self.assertFalse(any(program == 'llvm-profdata' for program, _ in calls))
 
     def test_missing_inputs_and_tool_errors_are_fatal(self):
         for workflow in STEPS:

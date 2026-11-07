@@ -365,13 +365,12 @@ final class BulkheadMiddlewareTests: XCTestCase {
         }
     }
 
-    @available(*, deprecated, message: "Exercises the supported deprecated tagged compatibility path")
-    func testTaggedAndTaskGroupModesRetainSharedCapacity() async {
+    func testSemaphoreAndTaskGroupModesRetainSharedCapacity() async {
         let modes: [BulkheadMiddleware.IsolationMode] = [
             .taskGroup(priority: .low),
-            .tagged(keyExtractor: { ($0 as? AdmissionCommand)?.id ?? "unknown" })
+            .semaphore
         ]
-        for (index, mode) in modes.enumerated() {
+        for mode in modes {
             let middleware = BulkheadMiddleware(configuration: .init(
                 maxConcurrency: 1, maxQueueSize: 1, rejectionPolicy: .queue, isolationMode: mode
             ))
@@ -396,10 +395,6 @@ final class BulkheadMiddlewareTests: XCTestCase {
             XCTAssertEqual(firstResult, "success")
             XCTAssertEqual(secondResult, "success")
             XCTAssertEqual(secondContext.getMetadata()["bulkhead.wasQueued"] as? Bool, true)
-            if index == 1 {
-                XCTAssertEqual(firstContext.getMetadata()["bulkheadTag"] as? String, "alpha")
-                XCTAssertEqual(secondContext.getMetadata()["bulkheadTag"] as? String, "beta")
-            }
             let state = await middleware.admissionSnapshot()
             XCTAssertEqual(state.active, 0)
             XCTAssertEqual(state.queued, 0)

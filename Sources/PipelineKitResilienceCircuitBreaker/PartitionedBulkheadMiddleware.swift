@@ -120,14 +120,6 @@ public struct PartitionedBulkheadMiddleware: Middleware {
         /// capacity can be lent to other partitions.
         public let reservedCapacityPercentage: Double
 
-        /// Deprecated alias for ``reservedCapacityPercentage``.
-        ///
-        /// Despite the historical name, this value has always been the lender's
-        /// *reserved* (non-lendable) share, not a borrowing cap — renamed to say
-        /// what it does. The semantics are unchanged.
-        @available(*, deprecated, renamed: "reservedCapacityPercentage")
-        public var maxBorrowPercentage: Double { reservedCapacityPercentage }
-
         /// Whether `execute(_:context:next:)` records per-partition context
         /// metadata and emits `middleware.partitioned_bulkhead_execution` /
         /// `middleware.partitioned_bulkhead_rejected` events.
@@ -162,26 +154,6 @@ public struct PartitionedBulkheadMiddleware: Middleware {
             self.allowBorrowing = allowBorrowing
             self.reservedCapacityPercentage = reservedCapacityPercentage
             self.emitMetrics = emitMetrics
-        }
-
-        /// Deprecated: use `init(partitions:partitionExtractor:defaultPartition:allowBorrowing:reservedCapacityPercentage:emitMetrics:)`.
-        @available(*, deprecated, message: "maxBorrowPercentage has always been the reserved (non-lendable) share — use reservedCapacityPercentage, which has identical semantics.")
-        public init(
-            partitions: [String: PartitionConfig],
-            partitionExtractor: @escaping @Sendable (any Command, CommandContext) async -> String,
-            defaultPartition: String = "default",
-            allowBorrowing: Bool = true,
-            maxBorrowPercentage: Double,
-            emitMetrics: Bool = true
-        ) {
-            self.init(
-                partitions: partitions,
-                partitionExtractor: partitionExtractor,
-                defaultPartition: defaultPartition,
-                allowBorrowing: allowBorrowing,
-                reservedCapacityPercentage: maxBorrowPercentage,
-                emitMetrics: emitMetrics
-            )
         }
     }
 
@@ -326,11 +298,17 @@ public struct PartitionedBulkheadMiddleware: Middleware {
         case let .admitted(lease, borrowedFrom):
             let queueTime = lease.wasQueued ? Self.seconds(lease.queueDuration) : nil
             return try await executeWithLease(
-                command, context: context, next: next, lease: lease,
+                command,
+                context: context,
+                next: next,
+                lease: lease,
                 metrics: ExecutionMetrics(
-                    startTime: startTime, partitionKey: effectiveKey,
-                    wasBorrowed: borrowedFrom != nil, borrowedFrom: borrowedFrom,
-                    wasQueued: lease.wasQueued, queueTime: queueTime
+                    startTime: startTime,
+                    partitionKey: effectiveKey,
+                    wasBorrowed: borrowedFrom != nil,
+                    borrowedFrom: borrowedFrom,
+                    wasQueued: lease.wasQueued,
+                    queueTime: queueTime
                 )
             )
 
@@ -425,7 +403,8 @@ private actor PartitionManager {
         self.configuration = configuration
         for (key, config) in configuration.partitions {
             partitions[key] = Partition(
-                name: key, config: config,
+                name: key,
+                config: config,
                 reservedPercentage: configuration.reservedCapacityPercentage,
                 admission: admissions?[key]
             )

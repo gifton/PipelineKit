@@ -14,6 +14,8 @@ import subprocess
 import sys
 import tempfile
 
+from test_execution import run_tests
+
 TARGETS = (
     'PipelineKitTests',
     'PipelineKitCoreTests',
@@ -82,8 +84,10 @@ def collect(directory):
     current = bin_path / 'codecov/default.profdata'
     for target in TARGETS:
         current.unlink(missing_ok=True)
-        run(['swift', 'test', '--configuration', 'debug', '--filter', target,
-             '--enable-code-coverage', '--parallel'])
+        # Serial XCTest emits completed/skipped summaries. A profile alone can
+        # exist even when no selected test runs (CoverageWorkflowTests).
+        run_tests(['swift', 'test', '--configuration', 'debug', '--filter', target,
+                   '--enable-code-coverage'])
         require_nonempty(current)
         shutil.copyfile(current, profiles / (target + '.profdata'))
     expected_profiles(directory)
