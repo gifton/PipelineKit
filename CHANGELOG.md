@@ -97,6 +97,11 @@ for the final caller updates and remaining qualification limits.
 
 
 ### Changed
+- All five standalone examples now verify their outcomes in Debug and Release,
+  including captured metrics and a real authenticated encryption round trip.
+  Shared PR/tag qualification requires successful execution and verified markers.
+  The [example migration rehearsal](docs/migrations/examples-rehearsal.md) records
+  unchanged v0.5.4 caller builds and executions against both library revisions.
 - Performance baseline/update/compare commands now produce and consume checked
   Release JSON records with matching workload, hardware, toolchain, and dependency
   identities. Comparisons report batch timing ratios with explicit advisory or
