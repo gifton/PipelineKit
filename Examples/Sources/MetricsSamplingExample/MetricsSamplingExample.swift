@@ -34,7 +34,7 @@ enum MetricsSamplingExample {
             let emitted = grouped[Substring(name)] ?? []
             guard emitted.isEmpty || emitted.count == 3 else { throw ExampleFailure.partialName }
             for line in emitted {
-                let fields = line.split(separator: "|")
+                let fields = line.split(separator: "|", omittingEmptySubsequences: false)
                 guard fields.count == 3, fields[0] == "\(name):1.0",
                       fields[1] == "c", fields[2] == "@0.25" else {
                     throw ExampleFailure.invalidSampleAnnotation
