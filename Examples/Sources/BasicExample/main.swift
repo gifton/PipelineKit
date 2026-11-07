@@ -23,4 +23,8 @@ let pipeline = StandardPipeline(handler: GreetHandler())
 
 // 4. Execute. The result is strongly typed: String, not Any.
 let greeting = try await pipeline.execute(GreetCommand(name: "PipelineKit"))
+guard greeting == "Hello, PipelineKit!" else { throw ExampleFailure.unexpectedGreeting }
 print(greeting)
+print("PASS: BasicExample")
+
+enum ExampleFailure: Error { case unexpectedGreeting }
