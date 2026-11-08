@@ -83,30 +83,6 @@ private final class ConsumerHTTPFailure: Error, Sendable {
     init(status: Int?) { self.status = status }
 }
 
-private final class BudgetConsumingRetryEmitter: EventEmitter, Sendable {
-    let target: String
-    let budget: Duration
-    private let emitted = Mutex<[String]>([])
-
-    init(target: String, budget: Duration) {
-        self.target = target
-        self.budget = budget
-    }
-
-    func emit(_ event: PipelineEvent) async {
-        emitted.withLock { $0.append(event.name) }
-        if event.name == target {
-            // Consume the tested budget during this public callback. The sleep
-            // models elapsed callback work; it does not order concurrent tasks.
-            try? await ContinuousClock().sleep(for: budget)
-        }
-    }
-
-    func count(_ event: String) -> Int {
-        emitted.withLock { $0.filter { $0 == event }.count }
-    }
-}
-
 final class RetryPolicyContractTests: XCTestCase {
     private var smallBudgetCases: [(budget: TimeInterval, threshold: Int128)] {
         [
@@ -182,15 +158,22 @@ final class RetryPolicyContractTests: XCTestCase {
     func testBudgetExpirationDuringDelayEventPreventsBackoff() async {
         let failure = RetryPolicyFailure()
         let calls = RetryPolicyCounter()
-        let emitter = BudgetConsumingRetryEmitter(target: PipelineEvent.Name.middlewareRetryDelay, budget: .milliseconds(100))
+        let clock = RetryPolicyClock()
+        let emitter = ControlledRetryEmitter { name in
+            if name == PipelineEvent.Name.middlewareRetryDelay { clock.advance(by: .seconds(5)) }
+        }
         let context = CommandContext()
         context.eventEmitter = emitter
-        let middleware = RetryMiddleware(configuration: .init(
-            maxAttempts: 2,
-            strategy: .fixed(delay: 30),
-            errorEvaluator: { _ in true },
-            maxRetryTime: 0.05
-        ))
+        let middleware = RetryMiddleware(
+            configuration: .init(
+                maxAttempts: 2,
+                strategy: .fixed(delay: 30),
+                errorEvaluator: { _ in true },
+                maxRetryTime: 5
+            ),
+            now: { clock.now() },
+            sleep: { clock.recordSleep($0) }
+        )
 
         let result = await observeSettlement(middleware, context: context) { _, _ in
             calls.increment()
@@ -201,20 +184,28 @@ final class RetryPolicyContractTests: XCTestCase {
         XCTAssertEqual(calls.count, 1)
         XCTAssertEqual(emitter.count(PipelineEvent.Name.middlewareRetryDelay), 1)
         XCTAssertEqual(emitter.count(PipelineEvent.Name.middlewareRetry), 0)
+        XCTAssertTrue(clock.sleeps.isEmpty)
     }
 
     func testBudgetExpirationDuringAttemptEventPreventsRetryAdmission() async {
         let failure = RetryPolicyFailure()
         let calls = RetryPolicyCounter()
-        let emitter = BudgetConsumingRetryEmitter(target: PipelineEvent.Name.middlewareRetry, budget: .milliseconds(100))
+        let clock = RetryPolicyClock()
+        let emitter = ControlledRetryEmitter { name in
+            if name == PipelineEvent.Name.middlewareRetry { clock.advance(by: .seconds(5)) }
+        }
         let context = CommandContext()
         context.eventEmitter = emitter
-        let middleware = RetryMiddleware(configuration: .init(
-            maxAttempts: 2,
-            strategy: .fixed(delay: 0),
-            errorEvaluator: { _ in true },
-            maxRetryTime: 0.05
-        ))
+        let middleware = RetryMiddleware(
+            configuration: .init(
+                maxAttempts: 2,
+                strategy: .fixed(delay: 0),
+                errorEvaluator: { _ in true },
+                maxRetryTime: 5
+            ),
+            now: { clock.now() },
+            sleep: { clock.recordSleep($0) }
+        )
 
         let result = await observeSettlement(middleware, context: context) { _, _ in
             let attempt = calls.increment()
@@ -225,6 +216,8 @@ final class RetryPolicyContractTests: XCTestCase {
         assertOriginalFailure(result, failure)
         XCTAssertEqual(calls.count, 1)
         XCTAssertEqual(emitter.count(PipelineEvent.Name.middlewareRetry), 1)
+        XCTAssertEqual(emitter.count(PipelineEvent.Name.middlewareRetryDelay), 1)
+        XCTAssertEqual(clock.sleeps, [.zero])
     }
 
     func testAdmittedFailureAfterBudgetDoesNotStartBackoff() async {
