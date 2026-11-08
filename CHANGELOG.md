@@ -97,6 +97,11 @@ for the final caller updates and remaining qualification limits.
 
 
 ### Changed
+- All five standalone examples now verify their outcomes in Debug and Release,
+  including captured metrics and a real authenticated encryption round trip.
+  Shared PR/tag qualification requires successful execution and verified markers.
+  The [example migration rehearsal](docs/migrations/examples-rehearsal.md) records
+  unchanged v0.5.4 caller builds and executions against both library revisions.
 - Performance baseline/update/compare commands now produce and consume checked
   Release JSON records with matching workload, hardware, toolchain, and dependency
   identities. Comparisons report batch timing ratios with explicit advisory or
@@ -116,6 +121,9 @@ for the final caller updates and remaining qualification limits.
   path (e.g. cache hits). Debug-only; release builds are unchanged. ([#97])
 
 ### Fixed
+- Retry callback-budget tests now control expiry at the intended callback.
+  Timeout middleware-order tests use cancellable suspended work and run in CI
+  and simulators without their previous timing exclusion or retry loop.
 - HTTP health-check outcome tests now use local session fixtures, including real
   request cancellation, instead of always skipping or contacting an external domain.
 - `CommandContext` evaluates metadata getters and value descriptions outside its

@@ -125,6 +125,13 @@ jobs:
           python3 Scripts/validation/check_bulkhead_api.py --configuration debug
           python3 Scripts/validation/check_bulkhead_api.py --configuration release
 
+      - name: Example application qualification (Debug + Release)
+        run: |
+          set -euo pipefail
+          for configuration in debug release; do
+            python3 Scripts/validation/check_examples.py --configuration "$configuration"
+          done
+
   ios-sim:
     name: iOS 26 • Simulator Tests
     runs-on: macos-26

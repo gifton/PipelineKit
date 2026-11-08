@@ -1,170 +1,91 @@
+import Synchronization
 import XCTest
-@testable import PipelineKitCore
-@testable import PipelineKitResilience
 import PipelineKit
+import PipelineKitCore
+import PipelineKitResilience
 
-/// Proof tests showing TimeoutMiddleware works correctly when configured properly
 final class TimeoutProofTests: XCTestCase {
     private struct TestCommand: Command {
         typealias Result = String
-        let value: String
-        func execute() async throws -> String { value }
     }
-    
+
+    private final class HandlerCalls: Sendable {
+        private let storage = Mutex(0)
+        func record() { storage.withLock { $0 += 1 } }
+        var count: Int { storage.withLock { $0 } }
+    }
+
     private struct TestHandler: CommandHandler {
         typealias CommandType = TestCommand
+        let calls: HandlerCalls
+
         func handle(_ command: TestCommand, context: CommandContext) async throws -> String {
-            command.value
+            calls.record()
+            return "unexpected handler execution"
         }
     }
-    
-    /// Middleware that delays WITHIN the timeout's protection
-    /// Conforms to NextGuardWarningSuppressing because it may be cancelled by timeout
-    private struct SlowHandlerWrapper: Middleware, NextGuardWarningSuppressing {
-        let delay: TimeInterval
-        let priority: ExecutionPriority = .postProcessing // Higher priority (400) than timeout (250)
-        
+
+    private struct SuspendedMiddleware: Middleware {
+        let priority: ExecutionPriority
+        let sleeper: ManualAdmissionClock
+
         func execute<T: Command>(
             _ command: T,
             context: CommandContext,
             next: @Sendable (T, CommandContext) async throws -> T.Result
         ) async throws -> T.Result {
-            // This delay happens AFTER timeout middleware wraps us
-            try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+            // The clock stays unadvanced: cancellation releases this suspension.
+            try await sleeper.sleep(for: .seconds(1))
             return try await next(command, context)
         }
     }
-    
-    func testTimeoutCorrectlyEnforcesWhenSlowOperationIsAfter() async throws {
-        // Skip on CI to avoid scheduler-induced flakiness
-        // Check both CI env var and iOS Simulator (where env vars don't propagate through xcodebuild)
-        #if targetEnvironment(simulator)
-        throw XCTSkip("Skipping flaky timeout proof test on simulator")
-        #endif
-        if ProcessInfo.processInfo.environment["CI"] == "true" {
-            throw XCTSkip("Skipping flaky timeout proof test on CI")
-        }
-        // Given
-        let handler = TestHandler()
-        let pipeline = StandardPipeline(handler: handler)
-        
-        // Add timeout first (priority 250)
-        let timeoutMiddleware = TimeoutMiddleware(defaultTimeout: 0.05) // 50ms
-        try await pipeline.addMiddleware(timeoutMiddleware)
-        
-        // Add slow operation with HIGHER priority value (executes AFTER timeout in chain)
-        let slowMiddleware = SlowHandlerWrapper(delay: 0.1) // 100ms
-        try await pipeline.addMiddleware(slowMiddleware)
-        
-        print("Middleware order: \(await pipeline.middlewareTypes)")
-        // Should be: ["TimeoutMiddleware", "SlowHandlerWrapper"]
-        // Execution: TimeoutMiddleware wraps SlowHandlerWrapper
-        
-        // When/Then (allow a couple attempts to avoid CI scheduler flake)
-        var didTimeout = false
-        for _ in 0..<3 {
-            do {
-                _ = try await pipeline.execute(TestCommand(value: "test"), context: CommandContext())
-                // Small pause before retry to let scheduling settle
-                try? await Task.sleep(nanoseconds: 5_000_000)
-            } catch let error as PipelineError {
-                if case .timeout = error {
-                    didTimeout = true
-                    break
-                } else {
-                    XCTFail("Wrong error type: \(error)")
-                }
-            }
-        }
-        XCTAssertTrue(didTimeout, "Should have timed out")
+
+    func testTimeoutWrapsPostProcessingMiddleware() async throws {
+        try await assertTimeoutWraps(priority: .postProcessing, suspendedFirst: false)
     }
-    
-    func testOriginalTestSetupCannotWork() async throws {
-        // This recreates the original test setup to show why it can't work
-        
-        struct SlowMiddlewareBeforeTimeout: Middleware, NextGuardWarningSuppressing {
-            let delay: TimeInterval
-            // Using .custom priority (1000) like original test - will run AFTER timeout
-            let priority: ExecutionPriority = .custom
-            
-            func execute<T: Command>(
-                _ command: T,
-                context: CommandContext,
-                next: @Sendable (T, CommandContext) async throws -> T.Result
-            ) async throws -> T.Result {
-                try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
-                return try await next(command, context)
-            }
-        }
-        
-        let handler = TestHandler()
-        let pipeline = StandardPipeline(handler: handler)
-        
-        // Original test order
-        let slowMiddleware = SlowMiddlewareBeforeTimeout(delay: 0.2)
-        let timeoutMiddleware = TimeoutMiddleware(defaultTimeout: 0.1)
-        
-        try await pipeline.addMiddleware(slowMiddleware)
-        try await pipeline.addMiddleware(timeoutMiddleware)
-        
-        print("Original test middleware order: \(await pipeline.middlewareTypes)")
-        // Will be: ["TimeoutMiddleware", "SlowMiddlewareBeforeTimeout"]
-        // Because timeout priority (250) < slow priority (1000)
-        
-        // The slow middleware runs AFTER timeout wraps it, so it SHOULD timeout
-        do {
-            _ = try await pipeline.execute(TestCommand(value: "test"), context: CommandContext())
-            XCTFail("Should have timed out with this setup")
-        } catch let error as PipelineError {
-            if case .timeout = error {
-                // ✅ This is actually the expected behavior!
-            } else {
-                XCTFail("Wrong error: \(error)")
-            }
-        }
+
+    func testTimeoutWrapsCustomMiddlewareRegardlessOfInsertionOrder() async throws {
+        try await assertTimeoutWraps(priority: .custom, suspendedFirst: true)
     }
-    
-    func testSlowOperationBeforeTimeoutCannotBeInterrupted() async throws {
-        // This shows that operations BEFORE timeout in the chain cannot be timed out
-        
-        struct EarlySlowMiddleware: Middleware, NextGuardWarningSuppressing {
-            let delay: TimeInterval
-            let priority: ExecutionPriority = .preProcessing // Priority 100 < timeout's 250
-            
-            func execute<T: Command>(
-                _ command: T,
-                context: CommandContext,
-                next: @Sendable (T, CommandContext) async throws -> T.Result
-            ) async throws -> T.Result {
-                // This runs BEFORE timeout middleware gets control
-                try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
-                // Only now does timeout middleware get to run
-                return try await next(command, context)
-            }
+
+    func testTimeoutWrapsPreProcessingMiddleware() async throws {
+        try await assertTimeoutWraps(priority: .preProcessing, suspendedFirst: true)
+    }
+
+    private func assertTimeoutWraps(
+        priority: ExecutionPriority,
+        suspendedFirst: Bool,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) async throws {
+        let sleeper = ManualAdmissionClock()
+        let calls = HandlerCalls()
+        let pipeline = StandardPipeline(handler: TestHandler(calls: calls))
+        let suspended = SuspendedMiddleware(priority: priority, sleeper: sleeper)
+        let timeout = TimeoutMiddleware(defaultTimeout: 0.01)
+        if suspendedFirst {
+            try await pipeline.addMiddleware(suspended)
+            try await pipeline.addMiddleware(timeout)
+        } else {
+            try await pipeline.addMiddleware(timeout)
+            try await pipeline.addMiddleware(suspended)
         }
-        
-        let handler = TestHandler()
-        let pipeline = StandardPipeline(handler: handler)
-        
-        let earlySlowMiddleware = EarlySlowMiddleware(delay: 0.2) // 200ms
-        let timeoutMiddleware = TimeoutMiddleware(defaultTimeout: 0.05) // 50ms
-        
-        try await pipeline.addMiddleware(earlySlowMiddleware)
-        try await pipeline.addMiddleware(timeoutMiddleware)
-        
-        print("Early slow middleware order: \(await pipeline.middlewareTypes)")
-        // Will be: ["EarlySlowMiddleware", "TimeoutMiddleware"]
-        
-        // TimeoutMiddleware will enforce its timeout on the wrapped slow operation
+
+        let order = await pipeline.middlewareTypes
+        XCTAssertEqual(order, ["TimeoutMiddleware", "SuspendedMiddleware"], file: file, line: line)
         do {
-            _ = try await pipeline.execute(TestCommand(value: "test"), context: CommandContext())
-            XCTFail("Should have timed out")
+            _ = try await pipeline.execute(TestCommand())
+            XCTFail("Expected timeout while downstream middleware is suspended", file: file, line: line)
         } catch let error as PipelineError {
-            if case .timeout = error {
-                // ✅ Success - timeout correctly enforced!
+            if case .timeout(let duration, _) = error {
+                XCTAssertEqual(duration, 0.01, accuracy: 0.000_001, file: file, line: line)
             } else {
-                XCTFail("Wrong error: \(error)")
+                XCTFail("Expected timeout, got \(error)", file: file, line: line)
             }
         }
+
+        XCTAssertEqual(calls.count, 0, file: file, line: line)
+        XCTAssertEqual(sleeper.sleepingCount, 0, file: file, line: line)
+        XCTAssertEqual(sleeper.completedCount, sleeper.callCount, file: file, line: line)
     }
 }

@@ -8,6 +8,23 @@ manifest and generated Swift source are regenerated in place.
 
 ## Public API and documentation examples
 
+The five standalone [example applications](../../Examples/README.md) also run as
+fatal Debug and Release gates in the shared PR and version-tag workflow:
+
+```sh
+python3 Scripts/validation/check_examples.py --configuration debug
+python3 Scripts/validation/check_examples.py --configuration release
+```
+
+This runner seeds the standalone lockfile from the library's dependency pins,
+builds the package, and uses the command watchdog for each executable. Each must
+exit successfully and print exactly one verified outcome marker. Logs and process
+metadata use fresh IDs under `.build/validation/logs/`. The gate fixtures in
+`Scripts/ci/tests/test_example_execution.py` cover failures, timeouts, missing or
+duplicate markers, dependency drift, and both actual workflow configurations.
+The [historical rehearsal](../../docs/migrations/examples-rehearsal.md) records
+the unchanged v0.5.4 sources against both library revisions and its limits.
+
 The [Consumer package](../../Tests/Integration/Consumer/Package.swift) uses ordinary
 imports rather than `@testable`. It exercises public composition, security,
 routing, cache identity, encryption, bulkhead, error/cancellation policy, monitoring
