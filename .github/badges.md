@@ -17,7 +17,7 @@ reported by CI; there is no configured external coverage badge.
 
 ## Code Quality
 ```markdown
-![Swift Version](https://img.shields.io/badge/Swift-6.1-orange.svg)
+![Swift Version](https://img.shields.io/badge/Swift-6.2-orange.svg)
 ![Platform](https://img.shields.io/badge/platform-iOS%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ```
@@ -44,7 +44,7 @@ reported by CI; there is no configured external coverage badge.
 
 ```markdown
 ![Build](https://github.com/gifton/PipelineKit/workflows/CI/badge.svg)
-![Swift Version](https://img.shields.io/badge/Swift-6.1-orange.svg)
+![Swift Version](https://img.shields.io/badge/Swift-6.2-orange.svg)
 ![Platform](https://img.shields.io/badge/platform-iOS%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Performance](https://img.shields.io/badge/performance-50k%2B%20ops%2Fsec-brightgreen)

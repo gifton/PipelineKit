@@ -1,7 +1,7 @@
 # Core stabilization behavior changes
 
 These follow-up fixes extend the [first stabilization batch](first-stabilization-batch.md).
-They are intended for the next minor release; no version or tag is selected here.
+They are included in 0.6.0; see the [release-readiness guide](release-readiness.md).
 Public method signatures and the Swift 6.2 / platform 26 minimums are unchanged.
 
 ## Admission deadlines and capacity

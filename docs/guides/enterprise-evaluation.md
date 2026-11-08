@@ -27,9 +27,13 @@ swift run BasicExample
 
 ### 2. Add PipelineKit to a scratch package (5 minutes)
 
+This guide targets 0.6.0. Use this range after `v0.6.0` is published;
+before then, use a local package checkout. Review the
+[migration guide](../migrations/release-readiness.md) before upgrading from 0.5.4.
+
 ```swift
 dependencies: [
-    .package(url: "https://github.com/gifton/PipelineKit.git", "0.5.4"..<"0.6.0")
+    .package(url: "https://github.com/gifton/PipelineKit.git", "0.6.0"..<"0.7.0")
 ],
 targets: [
     .executableTarget(
@@ -159,12 +163,12 @@ longest-exercised, not guaranteed-frozen.
 
 - **Core execution surface** — `Command`, `CommandHandler`,
   `CommandContext`, `StandardPipeline`, `Middleware` +
-  `ExecutionPriority`: the oldest, most-exercised API. Last
-  source-breaking change to note: the 1.0.0-era initialism renames
-  (`userId` → `userID`).
+  `ExecutionPriority`: the oldest API surface. The 0.6.0
+  [Breaking notes](../../CHANGELOG.md#060---2026-11-07) also cover changes to
+  execution behavior, middleware composition, and cancellation contracts.
 - **Newest surface** — `ExecutionContext` task-local propagation and
-  progress reporting ship in 0.5.2. Treat as the least-settled API.
-- **Release status** — 0.5.4 is the published tag; this branch prepares 0.6.0.
+  progress reporting shipped in 0.5.2. Treat as the least-settled API.
+- **Release target** — 0.6.0; check the [releases page](https://github.com/gifton/PipelineKit/releases) for publication.
   Review the [migration and qualification limits](../migrations/release-readiness.md)
   when evaluating the current branch. Deprecated tagged bulkheads from
   [#86](https://github.com/gifton/PipelineKit/issues/86) are removed; declared

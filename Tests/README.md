@@ -117,9 +117,10 @@ Tests run automatically on:
 - Nightly stress tests
 
 Platforms:
-- macOS 14 (primary)
-- Ubuntu 22.04 (Linux compatibility)
-- Swift 6.0
+- macOS 26 (primary) and iOS 26.x simulator tests
+- tvOS and visionOS Debug/Release simulator builds; watchOS builds are advisory
+- Linux via the `swift:6.2` container (best-effort, non-blocking)
+- Swift 6.2 compiler-floor builds; see the [platform matrix](../docs/platform-support.md) for qualification limits
 
 ## Coverage
 
@@ -141,7 +142,7 @@ When adding tests:
 ## Troubleshooting
 
 ### Tests Not Running
-- Check Swift version: `swift --version` (requires 6.0)
+- Check Swift version: `swift --version` (requires 6.2 or later)
 - Clean build: `swift package clean`
 - Verify imports are correct
 

@@ -1,7 +1,8 @@
 # Resilience policy contracts
 
-This batch changes retry admission, timeout configuration, rate-limit routing/reset,
-and overload policy. It selects no release version or tag. The existing cooperative
+0.6.0 changes retry admission, timeout configuration, rate-limit routing/reset,
+and overload policy. See the [release-readiness guide](release-readiness.md).
+The existing cooperative
 settlement contract remains: deadlines do not preempt arbitrary handlers, and admitted
 work keeps its resources until it settles.
 

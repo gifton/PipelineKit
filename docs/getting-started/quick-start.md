@@ -6,13 +6,13 @@ Welcome to PipelineKit! This guide will help you get up and running quickly.
 
 ### Swift Package Manager
 
-To use the published 0.5.4 minor range, add PipelineKit to your `Package.swift` file.
-Current-branch changes target the forthcoming 0.6.0 release; see the
-[migration guide](../migrations/release-readiness.md) before using a local checkout.
+This guide targets 0.6.0. Add the dependency below after `v0.6.0` is published;
+use a local package checkout before then. Review the
+[migration guide](../migrations/release-readiness.md) when upgrading from 0.5.4.
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/gifton/PipelineKit.git", "0.5.4"..<"0.6.0")
+    .package(url: "https://github.com/gifton/PipelineKit.git", "0.6.0"..<"0.7.0")
 ]
 ```
 

@@ -7,14 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Breaking — planned 0.6.0
+## [0.6.0] - 2026-11-07
 
-See the [compiled migration guide](docs/migrations/first-stabilization-batch.md) before upgrading.
-The next release target is 0.6.0; these changes remain unreleased. The latest
-published tag is 0.5.4. See the [release readiness migration](docs/migrations/release-readiness.md)
-for the final caller updates and remaining qualification limits.
+### Breaking
 
-- The [release qualification migration](docs/migrations/release-qualification.md)
+See the [compiled migration guide](https://github.com/gifton/PipelineKit/blob/v0.6.0/docs/migrations/first-stabilization-batch.md) before upgrading.
+0.6.0 contains source and behavior changes from 0.5.4. See the
+[release readiness migration](https://github.com/gifton/PipelineKit/blob/v0.6.0/docs/migrations/release-readiness.md)
+for caller updates, qualification evidence, and remaining limits.
+
+- The [release qualification migration](https://github.com/gifton/PipelineKit/blob/v0.6.0/docs/migrations/release-qualification.md)
   covers throwing rate-limit status queries, typed middleware mocks and throwing
   test controls, and removal of the unfinished `MemoryProfiler` API.
 - Remove deprecated `BulkheadMiddleware.IsolationMode.tagged`; use declared
@@ -27,37 +29,37 @@ for the final caller updates and remaining qualification limits.
   rollback freezes local policy time until the clock catches up. Depleted
   zero-refill and adaptive token state may remain resident until explicit reset.
 
-- The [resilience policy migration](docs/migrations/resilience-policy-contracts.md)
+- The [resilience policy migration](https://github.com/gifton/PipelineKit/blob/v0.6.0/docs/migrations/resilience-policy-contracts.md)
   documents monotonic retry budgets, required HTTP status extraction, removal of ignored
   timeout options, per-execution grace outcomes, explicit rate priority and throwing reset,
   strict outstanding limits, and chronological oldest-waiter eviction.
 
-- The [monitoring lifecycle migration](docs/migrations/monitoring-and-connection-lifecycle.md)
+- The [monitoring lifecycle migration](https://github.com/gifton/PipelineKit/blob/v0.6.0/docs/migrations/monitoring-and-connection-lifecycle.md)
   documents joined health/memory shutdown, the callback self-stop exception,
   generation-safe memory monitoring and observer cleanup, and hub-owned metrics
   connections with explicit disconnect identifiers. Ordinary subscriptions remain weak.
 
-- The [error and cancellation migration](docs/migrations/error-cancellation-and-validation.md)
+- The [error and cancellation migration](https://github.com/gifton/PipelineKit/blob/v0.6.0/docs/migrations/error-cancellation-and-validation.md)
   documents typed cancellation at pipeline/semaphore boundaries, cancellation-proof
   retry and failure scoring, default exclusion of non-service errors, and typed
   breaker, bulkhead, and encryption failures. Health configuration gains a custom
   error predicate. Test timeout helpers now distinguish their own deadline from
   operation errors, and checkpoint waits have a cancellation-aware throwing API.
 
-- The [telemetry migration](docs/migrations/telemetry-hardening.md) documents cumulative
+- The [telemetry migration](https://github.com/gifton/PipelineKit/blob/v0.6.0/docs/migrations/telemetry-hardening.md) documents cumulative
   Prometheus scrape state, configurable series limits, recent-window pool percentiles,
   and corrected StatsD delivery/sampling. Raw history drains no longer reset scrape
   totals; explicit storage clear/reset does. Invalid or colliding wire definitions
   are omitted with diagnostics. Pool snapshot label keys are now quoted and escaped.
 
-- See the [security, serialization, and numeric migration](docs/migrations/security-serialization-and-numeric-safety.md)
+- See the [security, serialization, and numeric migration](https://github.com/gifton/PipelineKit/blob/v0.6.0/docs/migrations/security-serialization-and-numeric-safety.md)
   for actual compression format names, removed ignored level options, and the explicit
   legacy-label decoder. Custom encrypted result fields use the opt-in
   `SerializedPlaintextDecrypting` capability; existing typed encryption services remain valid.
   Numeric configuration now rejects invalid inputs before conversion, preserves intentional
   zero/no-wait behavior, and bounds derived arithmetic. Only admission waits have a 24-hour cap.
 - Follow-up admission and security changes are described in the
-  [core stabilization notes](docs/migrations/core-admission-and-security.md).
+  [core stabilization notes](https://github.com/gifton/PipelineKit/blob/v0.6.0/docs/migrations/core-admission-and-security.md).
   Configured admission deadlines now take effect, nil pipeline capacity limits are
   honored, and automatic security validation counts supported leaves inside containers
   and inherited fields. Reflected reference cycles require custom validation.
@@ -97,10 +99,14 @@ for the final caller updates and remaining qualification limits.
 
 
 ### Changed
+- Release metadata and installation guidance target 0.6.0, with an explicit
+  `"0.6.0"..<"0.7.0"` dependency range to avoid automatic source-breaking minor upgrades.
+- The resolved swift-log dependency is 1.16.2, up from 1.15.0 in 0.5.4;
+  the declared package requirement is unchanged.
 - All five standalone examples now verify their outcomes in Debug and Release,
   including captured metrics and a real authenticated encryption round trip.
   Shared PR/tag qualification requires successful execution and verified markers.
-  The [example migration rehearsal](docs/migrations/examples-rehearsal.md) records
+  The [example migration rehearsal](https://github.com/gifton/PipelineKit/blob/v0.6.0/docs/migrations/examples-rehearsal.md) records
   unchanged v0.5.4 caller builds and executions against both library revisions.
 - Performance baseline/update/compare commands now produce and consume checked
   Release JSON records with matching workload, hardware, toolchain, and dependency
@@ -118,9 +124,14 @@ for the final caller updates and remaining qualification limits.
   without calling next()" warning — the middleware chain now marks the guard
   before rethrowing. `NextGuardWarningSuppressing` is only needed for
   middleware that *returns* a result without calling `next()` on a normal
-  path (e.g. cache hits). Debug-only; release builds are unchanged. ([#97])
+  path (e.g. cache hits). Debug-only; release builds are unchanged. ([#97](https://github.com/gifton/PipelineKit/issues/97))
 
 ### Fixed
+- `ExecutionTracer` enforces trace capacity and reports rejected traces;
+  `ExecutionTracerTests` covers zero capacity, retention, and reused traces.
+- `TestPipeline` settles explicitly attached progress reporters on success,
+  failure, and cancelled admission while preserving inherited parent ownership;
+  `TestPipelineProgressContractTests` exercises those routes.
 - Retry callback-budget tests now control expiry at the intended callback.
   Timeout middleware-order tests use cancellable suspended work and run in CI
   and simulators without their previous timing exclusion or retry loop.
@@ -158,7 +169,16 @@ for the final caller updates and remaining qualification limits.
   for those types. Observable only to code checking
   `is any NextGuardWarningSuppressing`; the cache middlewares keep the
   conformance. `BulkheadMiddleware` also retains the marker because successful
-  fallback/custom policies can legitimately return without calling `next()`. ([#97])
+  fallback/custom policies can legitimately return without calling `next()`. ([#97](https://github.com/gifton/PipelineKit/issues/97))
+
+### Performance advisory
+- Two hosted comparisons reported admission median ratios of 1.178 and 1.143
+  against the pre-runtime-correction baseline. A bounded local comparison did
+  not reproduce that increase (median ratio 0.990 across four balanced pairs),
+  but failed its quiet-host condition and used a different compiler and host.
+  The cause remains unresolved; this is an advisory under the benchmark policy,
+  not a claim that a regression was cleared or that battery state caused it.
+  See the [qualification evidence](https://github.com/gifton/PipelineKit/blob/v0.6.0/docs/migrations/release-readiness.md#qualification-snapshot).
 
 ## [0.5.4] - 2026-08-15
 
@@ -503,7 +523,8 @@ for the final caller updates and remaining qualification limits.
 - Ensured all semaphore continuations are properly resumed to prevent resource leaks
 - Added proper task cancellation handling throughout concurrency primitives
 
-[Unreleased]: https://github.com/gifton/PipelineKit/compare/v0.5.4...HEAD
+[Unreleased]: https://github.com/gifton/PipelineKit/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/gifton/PipelineKit/releases/tag/v0.6.0
 [0.5.4]: https://github.com/gifton/PipelineKit/releases/tag/v0.5.4
 [0.5.3]: https://github.com/gifton/PipelineKit/releases/tag/v0.5.3
 [0.5.2]: https://github.com/gifton/PipelineKit/releases/tag/v0.5.2

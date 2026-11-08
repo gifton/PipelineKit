@@ -2,12 +2,12 @@
 
 ## Overview
 
-PipelineKit is designed for safe concurrent execution using Swift's modern concurrency features. This document outlines our approach to thread safety, Sendable conformance, and future Swift 6 compatibility.
+PipelineKit is designed for safe concurrent execution using Swift's modern concurrency features. This document outlines our approach to thread safety, Sendable conformance, and Swift 6 language mode.
 
 ## Swift Version Strategy
 
 ### Production (Current)
-- **Swift Version**: 6.1
+- **Swift tools floor**: 6.2
 - **Concurrency Mode**: Swift 6 language mode with strict concurrency
 - **Status**: Full Swift 6 compliance with Sendable conformance
 
@@ -54,7 +54,7 @@ Note: `AnySendable` intentionally does not conform to `Equatable`/`Hashable`. Ex
 ## Swift 6 Compliance
 
 ### Current Status
-- Full Swift 6.0 support with strict concurrency
+- Swift 6 language mode with a Swift 6.2 tools floor and strict concurrency
 - All public APIs require Sendable conformance
 - Actor-based concurrency for thread safety
 - Type-safe context storage with ContextKey<T>
@@ -78,7 +78,7 @@ Our concurrency model prioritizes performance while maintaining safety:
 
 1. **Concurrent stress tests**: Validate thread safety under load
 2. **Performance benchmarks**: Ensure no regression from safety features
-3. **Swift 6 CI**: Track compatibility (allowed to fail)
+3. **Compiler and platform CI**: See the required and advisory lanes in the [platform matrix](platform-support.md)
 
 ## Design Notes
 

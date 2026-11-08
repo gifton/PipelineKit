@@ -1,6 +1,6 @@
 # PipelineKit Resilience Patterns
 
-For the next minor release, follow the [compiled stabilization migration guide](../migrations/first-stabilization-batch.md). Ordinary and partitioned queue timeouts accept nil (unbounded), finite nonpositive values (no wait), or finite positive values at most 86,400 seconds; nonfinite and larger positive values are invalid. Nil does not preserve a longer finite deadline. Capacity remains owned until downstream work settles. Distributed scope-key changes require coordinated counter migration; typed timeout classification ignores non-timeout PipelineError payload text.
+For 0.6.0, follow the [compiled stabilization migration guide](../migrations/first-stabilization-batch.md). Ordinary and partitioned queue timeouts accept nil (unbounded), finite nonpositive values (no wait), or finite positive values at most 86,400 seconds; nonfinite and larger positive values are invalid. Nil does not preserve a longer finite deadline. Capacity remains owned until downstream work settles. Distributed scope-key changes require coordinated counter migration; typed timeout classification ignores non-timeout PipelineError payload text.
 
 
 This document provides guidance on using PipelineKit's resilience middleware effectively. Understanding when and how to use each pattern is critical for building robust, production-ready command pipelines.
@@ -115,7 +115,7 @@ For workloads shared across tenants, use `PartitionedBulkheadMiddleware` with
 `allowBorrowing: false`. Each declared partition owns its capacity, and the
 `partitionExtractor` receives both the command and the `CommandContext`.
 The old `.tagged` mode shared one semaphore; it was deprecated in 0.5.4 and
-is removed in the forthcoming 0.6.0 release. Move any custom tag metadata into
+is removed in 0.6.0. Move any custom tag metadata into
 your own middleware and configure partitions for capacity isolation.
 
 `PartitionedBulkheadMiddleware` requires every partition to be declared up

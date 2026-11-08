@@ -1,7 +1,8 @@
 # Monitoring and metrics connection lifecycle
 
-This batch repairs ownership and shutdown in health monitoring, memory-pressure
-monitoring, and `EventHub.connectMetrics`. It selects no release version or tag.
+0.6.0 repairs ownership and shutdown in health monitoring, memory-pressure
+monitoring, and `EventHub.connectMetrics`. See the
+[release-readiness guide](release-readiness.md) for qualification limits.
 
 ## Health monitoring
 

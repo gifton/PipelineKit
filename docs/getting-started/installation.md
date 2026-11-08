@@ -4,10 +4,11 @@ Install PipelineKit with Swift Package Manager, either through Xcode or a
 `Package.swift` manifest. The package manifest defines the module graph and external
 dependencies required to build the library.
 
-The latest published tag is **0.5.4**. This branch prepares **0.6.0**, which is
-not yet tagged. The snippets below select the published minor range. To evaluate
-the current APIs, use a local checkout and follow the
-[0.6 migration guide](../migrations/release-readiness.md).
+These instructions target **0.6.0**. The versioned dependencies below become
+available when `v0.6.0` is published; use a [local checkout](#local-package-checkout)
+before then. Follow the [0.6.0 migration guide](../migrations/release-readiness.md)
+when upgrading from 0.5.4. Check the [releases page](https://github.com/gifton/PipelineKit/releases)
+for published tags.
 
 ## Requirements
 
@@ -25,7 +26,7 @@ the current APIs, use a local checkout and follow the
    ```
    https://github.com/gifton/PipelineKit.git
    ```
-4. Choose a version range from 0.5.4 up to, but excluding, 0.6.0
+4. Choose a version range from 0.6.0 up to, but excluding, 0.7.0
 5. Click **Add Package**
 6. Select the products you want to add to your targets
 
@@ -47,7 +48,7 @@ let package = Package(
         .visionOS(.v26)
     ],
     dependencies: [
-        .package(url: "https://github.com/gifton/PipelineKit.git", "0.5.4"..<"0.6.0")
+        .package(url: "https://github.com/gifton/PipelineKit.git", "0.6.0"..<"0.7.0")
     ],
     targets: [
         .target(
@@ -77,19 +78,19 @@ You can specify version requirements in several ways:
 
 ```swift
 // Exact version
-.package(url: "...", exact: "0.5.4")
+.package(url: "...", exact: "0.6.0")
 
 // Version range
-.package(url: "...", "0.5.4"..<"0.6.0")
+.package(url: "...", "0.6.0"..<"0.7.0")
 
-// From version
-.package(url: "...", from: "0.5.4")
+// From version (allows source-breaking 0.7.0 and later minors)
+.package(url: "...", from: "0.6.0")
 
-// Up to next major
-.package(url: "...", .upToNextMajor(from: "0.5.4"))
+// Up to next major (also allows source-breaking minors)
+.package(url: "...", .upToNextMajor(from: "0.6.0"))
 
 // Up to next minor
-.package(url: "...", .upToNextMinor(from: "0.5.4"))
+.package(url: "...", .upToNextMinor(from: "0.6.0"))
 
 // Branch
 .package(url: "...", branch: "main")

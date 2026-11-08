@@ -1,6 +1,6 @@
 # PipelineKit Security Best Practices
 
-For the next minor release, follow the [compiled stabilization migration guide](../migrations/first-stabilization-batch.md). It covers required validation/sanitization capabilities, complete Codable encryption, atomic key snapshots and legacy-data recovery limits.
+For 0.6.0, follow the [compiled stabilization migration guide](../migrations/first-stabilization-batch.md). It covers required validation/sanitization capabilities, complete Codable encryption, atomic key snapshots and legacy-data recovery limits.
 
 
 This guide covers security practices and patterns for applications built on PipelineKit —
