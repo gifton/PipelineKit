@@ -7,7 +7,7 @@ compatibility promise — this document states the promises PipelineKit
 
 ## What 0.x releases promise
 
-- **Patch releases (0.5.x → 0.5.y)** contain bug fixes, documentation, and
+- **Patch releases (0.6.x → 0.6.y)** contain bug fixes, documentation, and
   internal changes only. They do not break source compatibility.
 - **Minor releases (0.x → 0.y)** may break source compatibility. Every
   source-breaking change is listed in the CHANGELOG under a **Breaking**
@@ -25,17 +25,18 @@ compatibility promise — this document states the promises PipelineKit
 
 ## Pinning recommendation
 
-The latest published version is **0.5.4**. The current branch prepares **0.6.0**;
-its breaking changes are recorded under Unreleased and in the
-[release readiness migration](docs/migrations/release-readiness.md). A 0.6.0 tag
-is not available yet. Install snippets stay on the published minor range:
+This branch targets **0.6.0**. Its breaking changes are recorded in the dated
+0.6.0 CHANGELOG section and the [release readiness migration](docs/migrations/release-readiness.md).
+Use the following minor range after `v0.6.0` is published. Before publication,
+use a local checkout to evaluate these APIs; published tags are listed on the
+[releases page](https://github.com/gifton/PipelineKit/releases).
 
 ```swift
-.package(url: "https://github.com/gifton/PipelineKit.git", "0.5.4"..<"0.6.0")
+.package(url: "https://github.com/gifton/PipelineKit.git", "0.6.0"..<"0.7.0")
 ```
 
-SwiftPM's `from: "0.5.4"` accepts every version below the next *major*,
-including 0.6.0 and later minors, which this policy allows to break source.
+SwiftPM's `from: "0.6.0"` accepts every version below the next *major*,
+including 0.7.0 and later minors, which this policy allows to break source.
 Keep the explicit upper bound above to avoid an automatic source-breaking upgrade.
 
 ## The 1.0.0 CHANGELOG entry

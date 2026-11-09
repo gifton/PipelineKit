@@ -2,16 +2,16 @@
 
 PipelineKit's dependency inventory and management policy. Source of truth: `Package.swift`
 (declared ranges) and `Package.resolved` (currently resolved versions). This document is
-regenerated from both — if it disagrees with them, they win.
+checked against both — if it disagrees with them, they win.
 
-**Last audited:** 2026-07-27
+**Last inventory check:** 2026-11-07 (version reconciliation, not a vulnerability audit)
 
 ## Direct dependencies
 
 | Package | Declared | Resolved | License | Purpose |
 |---------|----------|----------|---------|---------|
 | [swift-atomics](https://github.com/apple/swift-atomics) | `from: 1.2.0` | 1.3.1 | Apache-2.0 | Lock-free atomic operations |
-| [swift-log](https://github.com/apple/swift-log) | `from: 1.5.4` | 1.14.0 | Apache-2.0 | Cross-platform logging facade |
+| [swift-log](https://github.com/apple/swift-log) | `from: 1.5.4` | 1.16.2 | Apache-2.0 | Cross-platform logging facade |
 | [swift-crypto](https://github.com/apple/swift-crypto) | `from: 4.5.1` | 4.5.1 | Apache-2.0 | CryptoKit-compatible cryptography on non-Apple platforms |
 | [swift-docc-plugin](https://github.com/apple/swift-docc-plugin) | `from: 1.3.0` | 1.5.0 | Apache-2.0 | Documentation generation (build-time only, not linked into products) |
 
@@ -48,6 +48,7 @@ Before proposing a new dependency, open an issue covering:
 
 ## Audit log
 
-| Date | Auditor | Notes |
+| Date | Reviewer | Notes |
 |------|---------|-------|
+| 2026-11-07 | release preparation | Reconciled all six resolved versions with Package.resolved; updated swift-log to the existing 1.16.2 pin. Declared ranges and root dependency pins are unchanged. |
 | 2026-07-27 | maintainer | Regenerated from Package.swift / Package.resolved; removed stale swift-syntax entry (no longer a dependency) and references to a nonexistent audit script. |

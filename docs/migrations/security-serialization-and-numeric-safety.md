@@ -1,8 +1,8 @@
 # Security serialization, compression formats, and numeric boundaries
 
-These changes belong to the next minor release. They follow the
-[core stabilization changes](core-admission-and-security.md); no release version
-or branch cut is selected here.
+These changes are included in 0.6.0. They follow the
+[core stabilization changes](core-admission-and-security.md); see the
+[release-readiness guide](release-readiness.md) for qualification limits.
 
 ## Encrypted result fields
 

@@ -28,6 +28,6 @@ Which documentation have you consulted?
 - [ ] Other: ___
 
 ## Environment
-- **PipelineKit version**: [e.g., 0.3.0]
-- **Swift version**: [e.g., 5.10]
-- **Platform**: [e.g., iOS 17.0, macOS 14.0]
+- **PipelineKit version**: [e.g., 0.6.0]
+- **Swift version**: [e.g., 6.2]
+- **Platform**: [e.g., iOS 26.0, macOS 26.0]

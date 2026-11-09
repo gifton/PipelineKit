@@ -2,7 +2,7 @@
 
 ## Requirements
 
-The published 0.5.x series and planned 0.6.0 release require **Swift 6.2** and these minimum deployment
+PipelineKit 0.6.0 requires **Swift 6.2** and these minimum deployment
 targets, exactly as declared in
 [`Package.swift`](../Package.swift):
 
@@ -53,6 +53,6 @@ that decision.
 
 ## Commitment
 
-- Floors will not rise within the 0.5.x patch series.
+- Floors will not rise within the 0.6.x patch series.
 - Any floor change ships in a minor release, under the CHANGELOG's
   **Breaking** heading, per [VERSIONING.md](../VERSIONING.md).

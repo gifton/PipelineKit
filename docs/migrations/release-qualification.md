@@ -1,7 +1,8 @@
 # Release qualification changes
 
-This change prepares the current branch for release qualification. It does not
-select a version or create a release. The API changes below require caller updates.
+These release-qualification changes are included in 0.6.0. The API changes below
+require caller updates; see the [release-readiness guide](release-readiness.md)
+for the qualification evidence and remaining limits.
 
 ## Middleware test controls
 

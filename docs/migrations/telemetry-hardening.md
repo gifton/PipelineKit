@@ -1,8 +1,8 @@
 # Telemetry hardening
 
-These changes belong to the next minor release. They correct metric identity,
-delivery, scrape accounting, and retention contracts; no release version is
-selected here.
+These changes are included in 0.6.0. They correct metric identity,
+delivery, scrape accounting, and retention contracts; see the
+[release-readiness guide](release-readiness.md) for qualification limits.
 
 ## Series identity and bounded storage
 

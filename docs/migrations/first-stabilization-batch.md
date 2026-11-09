@@ -1,7 +1,8 @@
 # First stabilization batch migration
 
-These source and behavior changes are intended for the next minor release under
-[VERSIONING.md](../../VERSIONING.md); no release version or tag is selected here.
+These source and behavior changes are included in 0.6.0 under
+[VERSIONING.md](../../VERSIONING.md). See the [release-readiness guide](release-readiness.md)
+for the release target, qualification evidence, and remaining limits.
 All Swift fences in this guide, plus the README/security/resilience-guide examples changed by
 this batch, are extracted into the ordinary-import Consumer by
 [`extract_stabilization_examples.py`](../../Scripts/validation/extract_stabilization_examples.py).
@@ -11,7 +12,7 @@ Unchanged historical examples elsewhere are outside that compilation claim.
 
 ## Breaking: explicit validation and sanitization capabilities
 
-For the next minor release under [VERSIONING.md](../../VERSIONING.md), commands used with
+In 0.6.0, commands used with
 `ValidationMiddleware()` must conform to `ValidatableCommand`, and commands used with
 `SanitizationMiddleware()` must conform to `SanitizableCommand`. The default policy is
 `.required`. Missing conformance throws `SecurityCapabilityError.missingValidation` or

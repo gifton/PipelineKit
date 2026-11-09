@@ -6,7 +6,7 @@ A high-performance, type-safe command-bus architecture for Swift 6 with built‑
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/Platform-iOS%20|%20macOS%20|%20tvOS%20|%20watchOS%20|%20visionOS-lightgrey.svg)](Package.swift)
 
-The next minor release includes source and behavior changes. Follow the
+PipelineKit 0.6.0 includes source and behavior changes from 0.5.4. Follow the
 [compiled stabilization migration guide](docs/migrations/first-stabilization-batch.md)
 before upgrading, including cache invalidation and old encrypted-data recovery limits.
 
@@ -500,14 +500,14 @@ status of Linux: see [Platform Support](docs/platform-support.md).
 
 ### Swift Package Manager
 
-The published release is 0.5.4. This branch prepares 0.6.0, including the
-[migration changes](docs/migrations/release-readiness.md); those APIs require a
-local checkout until that version is tagged. To use the published minor range,
-add to your `Package.swift`:
+These docs target 0.6.0. Review the [migration changes](docs/migrations/release-readiness.md)
+before upgrading from 0.5.4. The dependency below requires the `v0.6.0` tag;
+until it is published, evaluate this branch with a local package checkout.
+Add to your `Package.swift`:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/gifton/PipelineKit.git", "0.5.4"..<"0.6.0")
+    .package(url: "https://github.com/gifton/PipelineKit.git", "0.6.0"..<"0.7.0")
 ]
 ```
 

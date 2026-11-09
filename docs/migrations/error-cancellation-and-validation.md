@@ -1,7 +1,7 @@
 # Error, cancellation, and validation contracts
 
-These changes belong to the next minor release. Update error matching before
-upgrading; this batch does not select a release version.
+These changes are included in 0.6.0. Update error matching before upgrading;
+see the [release-readiness guide](release-readiness.md) for qualification limits.
 
 ## Cancellation at execution boundaries
 

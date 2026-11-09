@@ -63,8 +63,8 @@ python3 Scripts/ci/release_notes.py --tag v0.6.0 --output /tmp/release-notes.md
 bash Scripts/ci/check-qualification-tools.sh
 ```
 
-The notes command fails while that version remains only under Unreleased. The
-tooling tests inject failures into the actual workflow shell steps in each build
+The notes command requires exactly one nonempty section for the selected tag;
+Unreleased content is not included. The tooling tests inject failures into the actual workflow shell steps in each build
 configuration; they do not replace execution of Swift and interoperability checks.
 
 After building all tests in a configuration, the Release gate checks discovery
