@@ -32,8 +32,8 @@ private enum Benchmark {
     static func main() async throws {
         // `main` starts on the main thread, so each awaited actor call made from it would
         // resume on the main thread again. Run the workloads from a detached task on the
-        // cooperative pool instead. Unverified contract: no committed record yet shows the
-        // size of that difference; docs/benchmarks.md has no main-thread figures.
+        // cooperative pool instead. The measured difference is in docs/benchmarks.md,
+        // "Caller context".
         try await Task.detached { try await run() }.value
     }
 
