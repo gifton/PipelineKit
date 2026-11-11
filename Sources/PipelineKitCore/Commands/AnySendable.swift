@@ -11,7 +11,6 @@ import Foundation
 /// 1. **Compile-time Safety**: Only Sendable values can be wrapped
 /// 2. **Type Erasure**: Allows storing different Sendable types in the same collection
 /// 3. **Performance**: Minimal overhead with @frozen and inline annotations
-/// 4. **Debugging**: Runtime verification in debug builds
 ///
 /// ## Usage Example
 /// ```swift

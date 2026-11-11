@@ -1,8 +1,8 @@
 # Performance measurements
 
 `Scripts/run-performance-tests.sh` builds a standalone Swift 6 executable in
-Release mode and writes checked JSON measurements. It requires a macOS 26 host
-and the package's supported Swift toolchain. The executable uses the public
+Release mode and writes checked JSON measurements. It requires a host running macOS 26 or
+later and the package's supported Swift toolchain. The executable uses the public
 PipelineKit products without changing the production dependency graph.
 
 The four workloads run serially, with all async work awaited:
@@ -19,7 +19,12 @@ execution's context initialization. Context timing includes read verification
 and summation; dispatch and admission timing include result accumulation.
 Telemetry reads and checks retained observations after its timed recording loop.
 Setup, JSON encoding and destruction of batch state occur outside timing. Every
-warm-up batch also checks its results. No detached work is launched.
+warm-up batch also checks its results.
+
+The workloads run inside one detached task, so the calling code is on Swift's
+cooperative thread pool rather than the main thread. The harness detaches nothing else.
+Code that awaits a pipeline from the main actor is therefore not what these
+workloads measure.
 
 ## Collect and compare
 

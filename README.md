@@ -7,7 +7,8 @@ defined order.
 [![Swift 6.2](https://img.shields.io/badge/Swift-6.2-orange.svg)](https://swift.org)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/Platform-iOS%20|%20macOS%20|%20tvOS%20|%20watchOS%20|%20visionOS-lightgrey.svg)](Package.swift)
-<!-- PROOF-SLOT(badges): CI/status badges are added by the "proof" polish item. -->
+[![CI](https://github.com/gifton/PipelineKit/actions/workflows/ci.yml/badge.svg?branch=main&event=push)](https://github.com/gifton/PipelineKit/actions/workflows/ci.yml?query=branch%3Amain+event%3Apush)
+[![Release](https://img.shields.io/github/v/release/gifton/PipelineKit?label=release)](https://github.com/gifton/PipelineKit/releases/latest)
 
 ```
 Command → Pipeline → [Middleware…] → Handler → Result
@@ -96,8 +97,10 @@ Where next:
 - **Ordering is explicit.** Every middleware declares an `ExecutionPriority`. Lower values run
   first, and equal priorities keep the order they were added in.
 - **It is written for Swift 6 concurrency.** The package builds in Swift 6 language mode.
-  Pipelines are actors; commands, results, handlers and middleware are `Sendable`. See the
-  [concurrency model](docs/CONCURRENCY.md).
+  Pipelines are actors; commands, results, handlers and middleware are `Sendable`. The
+  [concurrency model](docs/CONCURRENCY.md) lists the guarantees that have tests (a
+  single-shot `next`, concurrent `CommandContext` access, permits conserved under
+  cancellation) and names the test for each.
 - **The chain is guarded.** A middleware that calls `next` a second time gets
   `PipelineError.nextAlreadyCalled` instead of running the handler twice. Middleware that
   needs to call it repeatedly, such as retry, opts out explicitly with `UnsafeMiddleware`.
@@ -192,6 +195,13 @@ func makeResilientPipeline<H: CommandHandler>(
   in Debug and Release; iOS is tested on a simulator; tvOS and visionOS builds are required;
   watchOS builds are advisory. The per-platform table is in
   [platform support](docs/platform-support.md).
+- The CI badge at the top reports the [`CI` workflow](.github/workflows/ci.yml) for the latest
+  push to `main`: macOS Debug and Release builds, the eight test targets, a second run of the
+  resilience test target (the job named `Stress Tests`), a Trivy scan for critical and high
+  findings, the documentation build with its coverage floors and site deployment, and the
+  tests of the CI scripts themselves. SwiftLint findings and performance-test results are
+  reported there but do not fail it, and neither do its Linux build jobs. The multi-platform
+  lanes above run on pull requests and release tags, so the badge does not cover them.
 - A compiler-floor job builds the package and its tests with Swift 6.2.x.
 - The programs in [Examples](Examples/README.md) are built and run in Debug and Release,
   and each must print its verified outcome.
@@ -199,6 +209,9 @@ func makeResilientPipeline<H: CommandHandler>(
   [consumer package](Tests/Integration/Consumer/Package.swift) that uses only public imports.
 - Runtime dependencies are swift-atomics, swift-log and, for the security module, swift-crypto
   ([DEPENDENCIES.md](DEPENDENCIES.md)).
+- Each concurrency guarantee in [docs/CONCURRENCY.md](docs/CONCURRENCY.md#guarantees-and-the-tests-that-exercise-them)
+  names the test that exercises it, and a CI check fails if a named test is removed or
+  renamed. Thread Sanitizer is not a gate: it runs only in the weekly and opt-in workflows.
 
 ## Performance
 

@@ -19,19 +19,65 @@ PipelineKit is designed for safe concurrent execution using Swift's modern concu
 2. **All Results are Sendable**: `Command.Result` must conform to `Sendable`
 3. **Thread-safe infrastructure**: Actors and synchronized types ensure safety
 
-### @unchecked Sendable Usage
+`@unchecked Sendable` conformances are listed in the [inventory](#unchecked-sendable-inventory) below.
 
-We use `@unchecked Sendable` in specific, well-documented cases where we can guarantee thread safety through other means:
+## Guarantees and the tests that exercise them
 
-#### 1. PooledObject<T: Sendable>
-**File**: `Sources/PipelineKitPooling/PooledObject.swift`
-**Reason**: Uses `NSLock` to protect mutable `isReturned` state
-**Safety**: Lock ensures thread-safe access, T is constrained to Sendable
+Each row names the XCTest that exercises the guarantee, and says no more than that test
+asserts. All of them are in test targets (`PipelineKitTests`, `PipelineKitCoreTests`,
+`PipelineKitResilienceTests`) that the `CI` workflow's `Test (macOS)` job runs on pull
+requests to `main` and on every push to `main`.
 
-#### 2. AnySendable
-**File**: `Sources/PipelineKitCore/Commands/AnySendable.swift`
-**Reason**: Type-erased wrapper for heterogeneous Sendable storage
-**Safety**: Only accepts Sendable values, runtime assertion in debug builds
+| Guarantee | Exercised by |
+| --- | --- |
+| A guarded `next` succeeds at most once. A second sequential call throws `PipelineError.nextAlreadyCalled`; of two concurrent calls exactly one succeeds and the other throws a `PipelineError`; a `StandardPipeline` whose middleware calls `next` twice fails that execution with `nextAlreadyCalled`. | `NextGuardTests.testMultipleCallsThrowError`, `NextGuardTests.testConcurrentCallsThrowError`, `NextGuardIntegrationTests.testStandardPipelineWithNextGuardPreventsDoubleCalls` |
+| One `CommandContext` can be written and read from many tasks at once: 256 tasks, each doing 200 set/get pairs on its own key and then a final write, always read a value back and leave every key at its final value. | `CommandContextLockTests.testConcurrentInterleavedGetSetIsConsistentAndCrashFree` |
+| Concurrent `CommandContext.updateMetrics` calls do not drop each other's keys: 2,000 concurrent merges of disjoint keys are all retained with their values. | `CommandContextMetricsMergeTests.testConcurrentDisjointMetricsUpdatesAreConserved` |
+| Cancelling a task that is waiting for a concurrency permit never hands it the permit, and the permit is not lost: after a cancel raced against a release (200 iterations, one permit), the cancelled `acquire()` throws a cancellation `PipelineError` and the next acquire succeeds. Covers `SimpleSemaphore` (used by `StandardPipeline`'s `maxConcurrency`) and `BackPressureSemaphore`. | `SimpleSemaphoreCancellationTests.testCancelledWaiterNeverReceivesToken`, `BackPressureSemaphoreCancellationTests.testCancelledWaiterNeverReceivesToken` |
+| A cancelled `AsyncSemaphore.wait()` throws instead of returning, and a signal that raced the cancellation is neither lost nor duplicated: exactly one resource is available afterwards (200 raced iterations). | `AsyncSemaphoreContractTests.testCancelledWaiterDoesNotSwallowSignal` |
+| With `BackPressureMiddleware(maxConcurrency: 2)`, five concurrent executions never have more than two inside `next` at once. | `BackPressureMiddlewareTests.testBackPressureWithConcurrentRequests` |
+
+### What is not checked
+
+- Thread Sanitizer is not a gate. The weekly workflows run the suite under it with the result
+  ignored (`continue-on-error`, or `|| echo`), so a report there does not fail a build. The
+  opt-in `Specialty Tests` workflow runs it only for a pull request labelled `test:memory` or
+  on manual dispatch.
+- No cited test counts how many times the handler ran after a rejected second `next`; the
+  rows above are about which call succeeds and which error is thrown.
+- These tests exercise specific interleavings and loads. They are evidence for the rows above,
+  not a proof of data-race freedom for every type in the package.
+- Linux runs none of these as a gate (see [platform support](platform-support.md)).
+- That a `maxConcurrency` set on `StandardPipeline` bounds how many handlers run at once is
+  not asserted by a test cited here; the rows cover the semaphores underneath it.
+
+## `@unchecked Sendable` inventory
+
+Swift cannot verify these conformances, so each is a contract the source has to keep. This is
+every `@unchecked Sendable` declaration in the library modules (`PipelineKitTestSupport`'s test
+doubles are excluded). The mechanism column repeats what the declaration's own comment or
+adjacent code states; it is the source's stated contract, not a tested result. Of these types
+only `CommandContext` has a test in the table above. `Scripts/ci/tests/test_doc_evidence.py`
+fails CI if the type names and files in this list and in the sources disagree; it does not
+check the mechanism column.
+
+<!-- unchecked-sendable:start -->
+| Type | File | Mechanism stated in source |
+| --- | --- | --- |
+| `CommandContext` | `Sources/PipelineKitCore/Context/CommandContext.swift` | Storage dictionary guarded by `OSAllocatedUnfairLock` (`NSLock` off Apple platforms) |
+| `AnySendable` | `Sources/PipelineKitCore/Commands/AnySendable.swift` | Immutable `let` value; the only initializer requires `T: Sendable` |
+| `InterceptorChain` | `Sources/PipelineKitCore/Commands/CommandInterceptor.swift` | Interceptor array guarded by `NSLock` |
+| `SemaphoreToken` | `Sources/PipelineKit/Concurrency/SemaphoreToken.swift` | Release flag is a `ManagedAtomic<Bool>`; other stored properties are `let` |
+| `PooledObject` | `Sources/PipelineKitPooling/PooledObject.swift` | `isReturned` flag guarded by `NSLock`; wrapped value is `Sendable` |
+| `WeakPoolBox` | `Sources/PipelineKitPooling/PoolRegistry.swift` | Private; `lastShrinkTime` guarded by `NSLock`; other stored properties are assigned only in `init` |
+| `ResilientMiddleware` | `Sources/PipelineKitResilienceCore/ResilientMiddleware.swift` | All stored properties are `let` |
+| `State` | `Sources/PipelineKitResilienceCircuitBreaker/CircuitBreakerMiddleware.swift` | Private circuit-breaker state guarded by `OSAllocatedUnfairLock` (`NSLock` off Apple platforms) |
+| `NetworkUDPConnectionDriver` | `Sources/PipelineKitObservability/Transport/UDPConnectionDriver.swift` | Internal, compiled only where `Network` is available; mutable state confined to one serial `DispatchQueue` |
+| `SendableSymmetricKey` | `Sources/PipelineKitSecurity/Encryption/CommandEncryptor.swift` | Immutable `let` wrapping CryptoKit's `SymmetricKey` |
+| `StandardEncryptionService` | `Sources/PipelineKitSecurity/Encryption/StandardEncryptionService.swift` | Internal; immutable `SymmetricKey` |
+| `SimpleCachingMiddleware` | `Sources/PipelineKitCache/SimpleCachingMiddleware.swift` | Mutable state guarded by `NSLock` |
+| `CachingMiddleware` | `Sources/PipelineKitCache/CachingMiddleware.swift` | Immutable stored configuration; backend and key generator are `Sendable` |
+<!-- unchecked-sendable:end -->
 
 ## Architecture Decisions
 
@@ -65,19 +111,10 @@ Note: `AnySendable` intentionally does not conform to `Equatable`/`Hashable`. Ex
 - Explicit Sendable constraints on all generic parameters
 - Minimal use of @unchecked Sendable with thorough documentation
 
-## Performance Considerations
-
-Our concurrency model prioritizes performance while maintaining safety:
-
-- **Lock-free where possible**: Using actors and atomics
-- **Minimal synchronization overhead**: Careful lock usage
-- **Object pooling**: Reduces allocation pressure in hot paths
-- **Type erasure**: Trades some type safety for 10-15% performance gain
-
 ## Testing Strategy
 
-1. **Concurrent stress tests**: Validate thread safety under load
-2. **Performance benchmarks**: Ensure no regression from safety features
+1. **Concurrency tests**: see [Guarantees and the tests that exercise them](#guarantees-and-the-tests-that-exercise-them)
+2. **Performance measurements**: see [benchmarks.md](benchmarks.md); comparison against a baseline is advisory
 3. **Compiler and platform CI**: See the required and advisory lanes in the [platform matrix](platform-support.md)
 
 ## Design Notes
