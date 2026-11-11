@@ -30,6 +30,14 @@ private enum BenchmarkError: Error {
 @main
 private enum Benchmark {
     static func main() async throws {
+        // `main` starts on the main thread, so each awaited actor call made from it would
+        // resume on the main thread again. Run the workloads from a detached task on the
+        // cooperative pool instead. Unverified contract: no committed record yet shows the
+        // size of that difference; docs/benchmarks.md has no main-thread figures.
+        try await Task.detached { try await run() }.value
+    }
+
+    static func run() async throws {
         let arguments = CommandLine.arguments.dropFirst().compactMap(Int.init)
         guard arguments.count == 3, arguments.allSatisfy({ $0 > 0 }), arguments[0] <= 1_000_000 else {
             throw BenchmarkError.invalidArguments
