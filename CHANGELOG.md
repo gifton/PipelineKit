@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Documentation
+
+- README restructured as an entry point: first example, reasons to choose or not choose the
+  package, module map, and links to the documentation site. Reference material moved to
+  `docs/guides/architecture.md`, `docs/guides/performance.md`, `docs/guides/resilience-patterns.md`,
+  `docs/guides/security-best-practices.md`, `docs/tutorials/custom-middleware.md` and
+  `docs/tutorials/advanced-patterns.md`. Statements the code did not back were removed.
+
 ## [0.6.0] - 2026-11-07
 
 ### Breaking

@@ -252,6 +252,20 @@ try await pipeline.addMiddleware(TimeoutMiddleware(defaultTimeout: 5.0))
 try await pipeline.addMiddleware(RetryMiddleware.forDatabaseOperations())
 ```
 
+### Per-Command Timeouts
+
+```swift
+let timeout = TimeoutMiddleware(defaultTimeout: 5.0)
+
+// Or with per-command timeouts
+let timeoutWithOverrides = TimeoutMiddleware(
+    configuration: TimeoutMiddleware.Configuration(
+        defaultTimeout: 5.0,
+        commandTimeouts: ["SlowCommand": 30.0]
+    )
+)
+```
+
 ## Understanding Concurrency Controls
 
 PipelineKit provides multiple overlapping concurrency controls. Here's how they differ:
@@ -280,6 +294,24 @@ try await pipeline.addMiddleware(BackPressureMiddleware(
     maxOutstanding: 50,
     strategy: .suspend
 ))
+```
+
+### `BackPressureSemaphore` (direct use)
+
+The semaphore behind `BackPressureMiddleware` can be used on its own.
+
+```swift
+let semaphore = BackPressureSemaphore(
+    maxConcurrency: 100,
+    maxOutstanding: 1000,
+    maxQueueMemory: 10_485_760 // 10MB
+)
+
+let token = try await semaphore.acquire(
+    priority: .high,
+    estimatedSize: 1024
+)
+// Token auto-releases when deallocated
 ```
 
 ### `BulkheadMiddleware`

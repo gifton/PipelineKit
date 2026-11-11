@@ -131,6 +131,50 @@ let breaker = CircuitBreakerMiddleware(
 try await pipeline.addMiddleware(breaker)
 ```
 
+## Event-Driven Command Processing
+
+`Event`, `ProcessEventCommand` and `ProcessEventHandler` stand in for your own types. The
+`emit...` helpers come from `PipelineKitObservability` and forward to the context's emitter
+when one is configured.
+
+```swift
+// Event-driven command processing
+actor EventProcessor {
+    let pipeline: StandardPipeline<ProcessEventCommand, ProcessEventHandler>
+
+    init(pipeline: StandardPipeline<ProcessEventCommand, ProcessEventHandler>) {
+        self.pipeline = pipeline
+    }
+
+    func processEvents(_ events: AsyncStream<Event>) async {
+        await withTaskGroup(of: Void.self) { group in
+            for await event in events {
+                group.addTask { [pipeline] in
+                    let context = CommandContext()
+                    context.correlationID = event.correlationId
+                    
+                    do {
+                        _ = try await pipeline.execute(
+                            ProcessEventCommand(event: event),
+                            context: context
+                        )
+                        await context.emitCommandCompleted(
+                            type: "ProcessEvent",
+                            duration: Date().timeIntervalSince(event.timestamp)
+                        )
+                    } catch {
+                        await context.emitCommandFailed(
+                            type: "ProcessEvent",
+                            error: error
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+```
+
 ## Notes
 - Builder calls are actor‑isolated; call `await` when building.
 - Compose resilience (timeout, retry, breaker, rate limit) by adding the corresponding middlewares in sensible order.

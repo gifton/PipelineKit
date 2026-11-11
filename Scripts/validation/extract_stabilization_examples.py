@@ -6,8 +6,6 @@ separate async-throwing functions to scope placeholder names and allow await,
 except the security metrics, masking, sanitizer and registration examples, which
 share one function so registration can resolve the documented middleware types.
 Each fence retains its own manifest entry; import lines move to the common header.
-README cache fence 19 receives an otherwise empty DynamicPipeline for its
-pre-existing `pipeline` placeholder.
 The basic-usage retry definitions stay at file scope so the public consumer can
 execute the documented retry policy through a real middleware chain.
 Nothing in the extracted examples is executed by importing the compiled file.
@@ -117,14 +115,9 @@ for file in FILES:
             harness = 'imports hoisted; exact remaining definitions at file scope for executable retry checks'
         elif file != FILES[0]:
             generated = re.sub(r'^import [^\n]+\n', '', snippet, flags=re.M)
-            support = ''
-            if file == 'README.md' and number == 19:
-                support = '    let pipeline = DynamicPipeline()\n'
             name = re.sub('[^a-zA-Z0-9]', '_', file)
-            generated = f'@MainActor func compiled_{name}_{number}() async throws {{\n' + support + generated + '\n}\n'
+            generated = f'@MainActor func compiled_{name}_{number}() async throws {{\n' + generated + '\n}\n'
             harness = 'imports hoisted; exact remaining body inside separate @MainActor async throws function'
-            if support:
-                harness += '; empty DynamicPipeline supplies pipeline placeholder'
         if number not in security_group:
             parts.append(prefix + generated + '\n')
         entry['harness'] = harness

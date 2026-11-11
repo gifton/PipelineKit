@@ -377,6 +377,84 @@ struct ResourceAuthorizationMiddleware: Middleware {
 }
 ```
 
+### Authorize Before Cached Reads
+
+A cache placed in front of a handler must not serve one caller's result to
+another. Check authorization before the cache on every execution, including cache hits, and bind
+the cache key to the authenticated principal.
+
+```swift
+import Foundation
+import PipelineKit
+import PipelineKitResilience
+import PipelineKitSecurity
+import PipelineKitCache
+
+struct GetOrderCommand: ValidatableCommand {
+    typealias Result = String
+    let orderID: String
+    func validate() async throws {
+        guard !orderID.isEmpty else {
+            throw PipelineError.validation(field: "orderID", reason: .custom("Required"))
+        }
+    }
+}
+
+struct GetOrderHandler: CommandHandler {
+    let loadOrder: @Sendable (String) async throws -> String
+    func handle(_ command: GetOrderCommand, context: CommandContext) async throws -> String {
+        try await loadOrder(command.orderID)
+    }
+}
+
+struct OrderAuthorization: Middleware {
+    let priority = ExecutionPriority.validation
+    let authorize: @Sendable (String, String) async throws -> Void
+    func execute<C: Command>(
+        _ command: C, context: CommandContext, next: @escaping MiddlewareNext<C>
+    ) async throws -> C.Result {
+        guard let order = command as? GetOrderCommand,
+              let principal = context.getMetadata("authUserId") as? String else {
+            throw PipelineError.authorization(reason: .invalidCredentials)
+        }
+        // Check current permission before the cache, including cache hits.
+        try await authorize(principal, order.orderID)
+        return try await next(command, context)
+    }
+}
+
+func makeOrderPipeline(
+    authenticateUser: @escaping @Sendable (String) async throws -> String,
+    authorizeOrder: @escaping @Sendable (String, String) async throws -> Void,
+    loadOrder: @escaping @Sendable (String) async throws -> String
+) async throws -> StandardPipeline<GetOrderCommand, GetOrderHandler> {
+    let builder = PipelineBuilder(handler: GetOrderHandler(loadOrder: loadOrder))
+    await builder.withAuthentication(AuthenticationMiddleware { userID in
+        guard let userID else {
+            throw PipelineError.authorization(reason: .invalidCredentials)
+        }
+        return try await authenticateUser(userID)
+    })
+    await builder.with(ValidationMiddleware())
+    await builder.withAuthorization(OrderAuthorization(authorize: authorizeOrder))
+    await builder.with(BulkheadMiddleware(configuration: .init(
+        maxConcurrency: 100, maxQueueSize: 100, queueTimeout: 5, rejectionPolicy: .queue
+    )))
+    let orderKeys = ClosureCacheKeyGenerator { command, context, _ in
+        guard let query = command as? GetOrderCommand,
+              let principal = context.getMetadata("authUserId") as? String else {
+            preconditionFailure("Expected an authenticated order query")
+        }
+        return [query.orderID, principal, "order-format-v1"]
+            .map { "\($0.utf8.count):\($0)" }.joined()
+    }
+    await builder.with(CachingMiddleware(
+        cache: InMemoryCache(), commandType: GetOrderCommand.self, keyGenerator: orderKeys
+    ))
+    return try await builder.build()
+}
+```
+
 ## 🚦 Rate Limiting & DoS Protection
 
 ### Multi-Layer Rate Limiting

@@ -148,6 +148,32 @@ let conditional = ConditionalCachedMiddleware(
 }
 ```
 
+## Observer Middleware (built-in)
+
+`ObserverMiddleware` (from `PipelineKitCore`) is for middleware that observe commands — logging, metrics, audit — without participating in the `next` chain. Implement `observe(_:context:)`; the default `execute` observes, then forwards to `next`. Throwing from `observe` rejects the command.
+
+`ParallelMiddlewareWrapper` runs a set of observers concurrently, then executes the command once. If any observer throws, the sibling observers are cancelled and the error propagates.
+
+```swift
+struct MetricsObserver: ObserverMiddleware {
+    func observe<T: Command>(_ command: T, context: CommandContext) async throws {
+        await metrics.incrementCounter(String(describing: T.self))
+    }
+}
+
+// Run observers concurrently, then execute the command once
+let parallel = ParallelMiddlewareWrapper(
+    observers: [LoggingObserver(), MetricsObserver(), AuditObserver()],
+    priority: .monitoring
+)
+try await pipeline.addMiddleware(parallel)
+```
+
+Observers used directly in a sequential chain default to `.observability` priority; the wrapper's own priority defaults to `.custom`.
+
+`ParallelMiddlewareWrapper` is in `PipelineKitResilience`; `metrics`, `LoggingObserver` and
+`AuditObserver` stand in for your own types.
+
 ## Notes
 - Use `ExecutionPriority` to place middleware correctly; equal priorities preserve insertion order.
 - For middleware that intentionally RETURNS a result without calling `next()` on a normal path (e.g., cache hits), conform to `NextGuardWarningSuppressing` to suppress debug‑only deinit warnings. Since 0.6, throw‑based short‑circuits (rejections, validation failures, timeouts/cancellation) are detected automatically by the middleware chain and don't need this.

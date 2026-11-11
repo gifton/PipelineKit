@@ -201,100 +201,59 @@ func decodeCachedPayload(_ compressed: Data, sizeHint: Int?) throws -> Data {
 }
 #endif
 
-// README.md, Swift fence 19
-@MainActor func compiled_README_md_19() async throws {
-    let pipeline = DynamicPipeline()
-struct ProfileQuery: Command {
+// README.md, Swift fence 1
+@MainActor func compiled_README_md_1() async throws {
+
+// A command is a value: the request, plus the type its execution returns.
+struct GreetCommand: Command {
     typealias Result = String
-    let accountID: String
-    let locale: String
+    let name: String
 }
 
-// AuthenticationMiddleware must establish authUserId before protected caching.
-let profileKeys = ClosureCacheKeyGenerator { command, context, _ in
-    guard let query = command as? ProfileQuery,
-          let principal = context.getMetadata("authUserId") as? String else {
-        preconditionFailure("Expected an authenticated profile query")
-    }
-    return [query.accountID, query.locale, principal, "profile-format-v2"]
-        .map { "\($0.utf8.count):\($0)" }.joined()
-}
-
-let cache = CachingMiddleware(
-    cache: InMemoryCache(maxSize: 1000),
-    commandType: ProfileQuery.self,
-    keyGenerator: profileKeys,
-    ttl: 300
-)
-
-// Only ProfileQuery results use the complete caller identity.
-try await pipeline.addMiddleware(cache)
-
-}
-
-// README.md, Swift fence 25
-@MainActor func compiled_README_md_25() async throws {
-
-struct GetOrderCommand: ValidatableCommand {
-    typealias Result = String
-    let orderID: String
-    func validate() async throws {
-        guard !orderID.isEmpty else {
-            throw PipelineError.validation(field: "orderID", reason: .custom("Required"))
-        }
+// A handler is the logic that fulfils one command type.
+struct GreetHandler: CommandHandler {
+    func handle(_ command: GreetCommand, context: CommandContext) async throws -> String {
+        "Hello, \(command.name)!"
     }
 }
 
-struct GetOrderHandler: CommandHandler {
-    let loadOrder: @Sendable (String) async throws -> String
-    func handle(_ command: GetOrderCommand, context: CommandContext) async throws -> String {
-        try await loadOrder(command.orderID)
+// Middleware wraps every execution. This one logs before and after.
+struct LoggingMiddleware: Middleware {
+    let priority: ExecutionPriority = .monitoring
+
+    func execute<T: Command>(
+        _ command: T,
+        context: CommandContext,
+        next: @escaping MiddlewareNext<T>
+    ) async throws -> T.Result {
+        print("-> \(T.self)")
+        let result = try await next(command, context)
+        print("<- \(T.self)")
+        return result
     }
 }
 
-struct OrderAuthorization: Middleware {
-    let priority = ExecutionPriority.validation
-    let authorize: @Sendable (String, String) async throws -> Void
-    func execute<C: Command>(
-        _ command: C, context: CommandContext, next: @escaping MiddlewareNext<C>
-    ) async throws -> C.Result {
-        guard let order = command as? GetOrderCommand,
-              let principal = context.getMetadata("authUserId") as? String else {
-            throw PipelineError.authorization(reason: .invalidCredentials)
-        }
-        // Check current permission before the cache, including cache hits.
-        try await authorize(principal, order.orderID)
-        return try await next(command, context)
-    }
+let pipeline = StandardPipeline(handler: GreetHandler())
+try await pipeline.addMiddleware(LoggingMiddleware())
+
+let greeting = try await pipeline.execute(GreetCommand(name: "world"))
+print(greeting)
+
 }
 
-func makeOrderPipeline(
-    authenticateUser: @escaping @Sendable (String) async throws -> String,
-    authorizeOrder: @escaping @Sendable (String, String) async throws -> Void,
-    loadOrder: @escaping @Sendable (String) async throws -> String
-) async throws -> StandardPipeline<GetOrderCommand, GetOrderHandler> {
-    let builder = PipelineBuilder(handler: GetOrderHandler(loadOrder: loadOrder))
-    await builder.withAuthentication(AuthenticationMiddleware { userID in
-        guard let userID else {
-            throw PipelineError.authorization(reason: .invalidCredentials)
-        }
-        return try await authenticateUser(userID)
-    })
-    await builder.with(ValidationMiddleware())
-    await builder.withAuthorization(OrderAuthorization(authorize: authorizeOrder))
-    await builder.with(BulkheadMiddleware(configuration: .init(
-        maxConcurrency: 100, maxQueueSize: 100, queueTimeout: 5, rejectionPolicy: .queue
-    )))
-    let orderKeys = ClosureCacheKeyGenerator { command, context, _ in
-        guard let query = command as? GetOrderCommand,
-              let principal = context.getMetadata("authUserId") as? String else {
-            preconditionFailure("Expected an authenticated order query")
-        }
-        return [query.orderID, principal, "order-format-v1"]
-            .map { "\($0.utf8.count):\($0)" }.joined()
-    }
-    await builder.with(CachingMiddleware(
-        cache: InMemoryCache(), commandType: GetOrderCommand.self, keyGenerator: orderKeys
+// README.md, Swift fence 4
+@MainActor func compiled_README_md_4() async throws {
+
+func makeResilientPipeline<H: CommandHandler>(
+    handler: H
+) async throws -> StandardPipeline<H.CommandType, H> {
+    let builder = PipelineBuilder(handler: handler)
+    // Both run at `.resilience` priority, so insertion order decides:
+    // the timeout wraps the whole retry loop.
+    await builder.with(TimeoutMiddleware(defaultTimeout: 10.0))
+    await builder.with(RetryMiddleware(
+        maxAttempts: 3,
+        strategy: .exponentialJitter(baseDelay: 1.0, maxDelay: 10.0)
     ))
     return try await builder.build()
 }
@@ -362,8 +321,77 @@ struct ProcessContentCommand: SanitizableCommand {
 
 }
 
-// docs/guides/security-best-practices.md, Swift fence 10
-@MainActor func compiled_docs_guides_security_best_practices_md_10() async throws {
+// docs/guides/security-best-practices.md, Swift fence 9
+@MainActor func compiled_docs_guides_security_best_practices_md_9() async throws {
+
+struct GetOrderCommand: ValidatableCommand {
+    typealias Result = String
+    let orderID: String
+    func validate() async throws {
+        guard !orderID.isEmpty else {
+            throw PipelineError.validation(field: "orderID", reason: .custom("Required"))
+        }
+    }
+}
+
+struct GetOrderHandler: CommandHandler {
+    let loadOrder: @Sendable (String) async throws -> String
+    func handle(_ command: GetOrderCommand, context: CommandContext) async throws -> String {
+        try await loadOrder(command.orderID)
+    }
+}
+
+struct OrderAuthorization: Middleware {
+    let priority = ExecutionPriority.validation
+    let authorize: @Sendable (String, String) async throws -> Void
+    func execute<C: Command>(
+        _ command: C, context: CommandContext, next: @escaping MiddlewareNext<C>
+    ) async throws -> C.Result {
+        guard let order = command as? GetOrderCommand,
+              let principal = context.getMetadata("authUserId") as? String else {
+            throw PipelineError.authorization(reason: .invalidCredentials)
+        }
+        // Check current permission before the cache, including cache hits.
+        try await authorize(principal, order.orderID)
+        return try await next(command, context)
+    }
+}
+
+func makeOrderPipeline(
+    authenticateUser: @escaping @Sendable (String) async throws -> String,
+    authorizeOrder: @escaping @Sendable (String, String) async throws -> Void,
+    loadOrder: @escaping @Sendable (String) async throws -> String
+) async throws -> StandardPipeline<GetOrderCommand, GetOrderHandler> {
+    let builder = PipelineBuilder(handler: GetOrderHandler(loadOrder: loadOrder))
+    await builder.withAuthentication(AuthenticationMiddleware { userID in
+        guard let userID else {
+            throw PipelineError.authorization(reason: .invalidCredentials)
+        }
+        return try await authenticateUser(userID)
+    })
+    await builder.with(ValidationMiddleware())
+    await builder.withAuthorization(OrderAuthorization(authorize: authorizeOrder))
+    await builder.with(BulkheadMiddleware(configuration: .init(
+        maxConcurrency: 100, maxQueueSize: 100, queueTimeout: 5, rejectionPolicy: .queue
+    )))
+    let orderKeys = ClosureCacheKeyGenerator { command, context, _ in
+        guard let query = command as? GetOrderCommand,
+              let principal = context.getMetadata("authUserId") as? String else {
+            preconditionFailure("Expected an authenticated order query")
+        }
+        return [query.orderID, principal, "order-format-v1"]
+            .map { "\($0.utf8.count):\($0)" }.joined()
+    }
+    await builder.with(CachingMiddleware(
+        cache: InMemoryCache(), commandType: GetOrderCommand.self, keyGenerator: orderKeys
+    ))
+    return try await builder.build()
+}
+
+}
+
+// docs/guides/security-best-practices.md, Swift fence 11
+@MainActor func compiled_docs_guides_security_best_practices_md_11() async throws {
 struct SearchCommand: Command { typealias Result = Void }
 struct GetUserCommand: Command { typealias Result = Void }
 struct SubmitPaymentCommand: Command { typealias Result = Void }
@@ -425,8 +453,8 @@ struct CommandSpecificRateLimitingMiddleware: Middleware {
 
 }
 
-// docs/guides/security-best-practices.md, Swift fence 12
-@MainActor func compiled_docs_guides_security_best_practices_md_12() async throws {
+// docs/guides/security-best-practices.md, Swift fence 13
+@MainActor func compiled_docs_guides_security_best_practices_md_13() async throws {
 struct PaymentCommand: Command, Codable {
     typealias Result = Void
 
@@ -441,8 +469,8 @@ struct PaymentCommand: Command, Codable {
 
 }
 
-// docs/guides/security-best-practices.md, Swift fence 13
-@MainActor func compiled_docs_guides_security_best_practices_md_13() async throws {
+// docs/guides/security-best-practices.md, Swift fence 14
+@MainActor func compiled_docs_guides_security_best_practices_md_14() async throws {
 // A minimal in-memory KeyStore; back this with Keychain/HSM/KMS in production.
 actor DemoKeyStore: KeyStore {
     private var keys: [String: SendableSymmetricKey] = [:]
@@ -468,8 +496,8 @@ _ = encryptor // Retain this actor in the application service that encrypts comm
 
 }
 
-// docs/guides/security-best-practices.md, Swift fence 14
-@MainActor func compiled_docs_guides_security_best_practices_md_14() async throws {
+// docs/guides/security-best-practices.md, Swift fence 15
+@MainActor func compiled_docs_guides_security_best_practices_md_15() async throws {
 
 struct AESGCMEncryptionService: SerializedPlaintextDecrypting {
     private let key = SymmetricKey(size: .bits256)
@@ -523,7 +551,7 @@ let encryptionMiddleware = EncryptionMiddleware(
 }
 
 @MainActor func compiled_security_composition() async throws {
-// docs/guides/security-best-practices.md, Swift fence 17
+// docs/guides/security-best-practices.md, Swift fence 18
 // Failure counts must live in a reference type with its own synchronization: `execute(_:context:next:)`
 // is a non-mutating protocol requirement, so a struct can't carry `var` state mutated there.
 actor FailureCounter {
@@ -568,7 +596,7 @@ struct SecurityMetricsMiddleware: Middleware {
     }
 }
 
-// docs/guides/security-best-practices.md, Swift fence 18
+// docs/guides/security-best-practices.md, Swift fence 19
 // Application-owned event types and allowlisted fields must contain no sensitive payloads.
 struct MaskingAuditLogger: AuditLogger {
     private let wrapped: any AuditLogger
@@ -599,7 +627,7 @@ struct MaskingAuditLogger: AuditLogger {
 let maskedLogger = MaskingAuditLogger(wrapping: ConsoleAuditLogger.production)
 let auditMiddleware = AuditLoggingMiddleware(logger: maskedLogger)
 
-// docs/guides/security-best-practices.md, Swift fence 19
+// docs/guides/security-best-practices.md, Swift fence 20
 struct SecureErrorMiddleware: Middleware {
     // Register before metrics and authentication at the same priority.
     let priority: ExecutionPriority = .authentication
@@ -647,7 +675,7 @@ struct SecureErrorMiddleware: Middleware {
     }
 }
 
-// docs/guides/security-best-practices.md, Swift fence 20
+// docs/guides/security-best-practices.md, Swift fence 21
 func addSecurityWrappers<C: Command, H: CommandHandler>(
     to pipeline: StandardPipeline<C, H>,
     authentication: AuthenticationMiddleware
@@ -662,8 +690,38 @@ func addSecurityWrappers<C: Command, H: CommandHandler>(
 
 }
 
-// docs/guides/resilience-patterns.md, Swift fence 11
-@MainActor func compiled_docs_guides_resilience_patterns_md_11() async throws {
+// docs/guides/resilience-patterns.md, Swift fence 9
+@MainActor func compiled_docs_guides_resilience_patterns_md_9() async throws {
+let timeout = TimeoutMiddleware(defaultTimeout: 5.0)
+
+// Or with per-command timeouts
+let timeoutWithOverrides = TimeoutMiddleware(
+    configuration: TimeoutMiddleware.Configuration(
+        defaultTimeout: 5.0,
+        commandTimeouts: ["SlowCommand": 30.0]
+    )
+)
+
+}
+
+// docs/guides/resilience-patterns.md, Swift fence 12
+@MainActor func compiled_docs_guides_resilience_patterns_md_12() async throws {
+let semaphore = BackPressureSemaphore(
+    maxConcurrency: 100,
+    maxOutstanding: 1000,
+    maxQueueMemory: 10_485_760 // 10MB
+)
+
+let token = try await semaphore.acquire(
+    priority: .high,
+    estimatedSize: 1024
+)
+// Token auto-releases when deallocated
+
+}
+
+// docs/guides/resilience-patterns.md, Swift fence 13
+@MainActor func compiled_docs_guides_resilience_patterns_md_13() async throws {
 let pipeline = DynamicPipeline()
 
 try await pipeline.addMiddleware(BulkheadMiddleware(
@@ -675,8 +733,8 @@ try await pipeline.addMiddleware(BulkheadMiddleware(
 
 }
 
-// docs/guides/resilience-patterns.md, Swift fence 12
-@MainActor func compiled_docs_guides_resilience_patterns_md_12() async throws {
+// docs/guides/resilience-patterns.md, Swift fence 14
+@MainActor func compiled_docs_guides_resilience_patterns_md_14() async throws {
 let pipeline = DynamicPipeline()
 // Limit retry admission and request cooperative cancellation for slow attempts.
 try await pipeline.addMiddleware(TimeoutMiddleware(defaultTimeout: 30.0))

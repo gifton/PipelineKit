@@ -155,9 +155,6 @@ struct ValidationMiddleware: Middleware {
 }
 ```
 
-// Parallel middleware wrappers are not part of the public API; compose
-// independent work within a single middleware when beneficial.
-
 ### Caching Results
 
 Cache expensive operations:

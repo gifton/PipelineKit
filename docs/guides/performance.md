@@ -43,6 +43,33 @@ Best practices:
 - Prefer `ContextKey<T>` over dynamic keys
 - Avoid large blobs; pass references to external caches instead
 
+### 4) Pool Expensive Resources
+
+`PipelineKitPooling` provides an actor-based object pool.
+
+```swift
+import PipelineKitPooling
+
+let configuration = try ObjectPoolConfiguration(
+    maxSize: 50,
+    highWaterMark: 40,
+    lowWaterMark: 10
+)
+
+let pool = ObjectPool<DatabaseConnection>(
+    configuration: configuration,
+    factory: { DatabaseConnection() },
+    reset: { conn in conn.prepareForReuse() } // synchronous reset
+)
+
+// Automatic resource management
+let connection = try await pool.acquire()
+// Use connection...
+await pool.release(connection)
+```
+
+`DatabaseConnection` stands in for your own `Sendable` type.
+
 ## Measuring Performance
 
 Use XCTest performance tests or simple timing:
