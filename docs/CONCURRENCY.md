@@ -48,8 +48,9 @@ requests to `main` and on every push to `main`.
 - These tests exercise specific interleavings and loads. They are evidence for the rows above,
   not a proof of data-race freedom for every type in the package.
 - Linux runs none of these as a gate (see [platform support](platform-support.md)).
-- The lanes that gate on these tests run on macOS 26 and an iOS 26 simulator. The macOS 15
-  and iOS 18 lanes that are set up to run the same tests are advisory.
+- The required lanes run these tests on macOS 26 and macOS 15 hosts and on iOS 26 and iOS 18
+  simulators. They are not run on a device, on tvOS, watchOS or visionOS, or on the first
+  releases of the macOS 15 and iOS 18 generation (see [platform support](platform-support.md)).
 - That a `maxConcurrency` set on `StandardPipeline` bounds how many handlers run at once is
   not asserted by a test cited here; the rows cover the semaphores underneath it.
 

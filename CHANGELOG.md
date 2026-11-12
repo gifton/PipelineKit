@@ -51,9 +51,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   policy is amended to match: a patch release may lower a deployment target and never
   raises one; a raise ships only in a minor release, under a **Breaking** heading. The
   0.6.0 policy said any change to a deployment target ships in a minor release. The package is
-  compiled for these targets on every pull request. Two advisory CI lanes run
-  the tests on a macOS 15 runner and on an iOS 18 simulator; both passed on their first run
-  (2026-11-11). tvOS, watchOS and visionOS are compiled and not run. The runners provide macOS 15.8 and
+  compiled for these targets on every pull request. Two required CI lanes run
+  the tests on a macOS 15 runner and on an iOS 18 simulator; a failure in either fails the
+  qualification run and stops a release. Both passed on their first run (2026-11-11) and
+  were made required the same day, before a longer record existed. tvOS, watchOS and visionOS are compiled and not run. The runners provide macOS 15.8 and
   iOS 18.5, so the first releases of that OS generation (macOS 15.0 to 15.3, iOS 18.0 to
   18.3, which ship an older Swift runtime) are not exercised.
 - Benchmark harness runs its workloads off the main thread; records made with the earlier

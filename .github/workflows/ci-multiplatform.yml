@@ -240,11 +240,12 @@ jobs:
   # Xcode is pinned: the image's default Xcode is older than the Swift 6.2 tools version.
   # There is no SwiftPM cache step: these lanes build from clean so that a .build
   # directory produced by another Xcode or host OS cannot be restored into them.
+  # Both lanes are required: a failure fails Multiplatform Status and, because release.yml
+  # calls this workflow, stops a release. docs/platform-support.md states the status.
   floor-macos:
     name: macOS 15 • SwiftPM Tests (Debug + Release)
     runs-on: macos-15
     timeout-minutes: 40
-    continue-on-error: true  # Advisory until promoted; docs/platform-support.md states the status
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -280,7 +281,6 @@ jobs:
     name: iOS 18 • Simulator Tests
     runs-on: macos-15
     timeout-minutes: 30
-    continue-on-error: true  # Advisory until promoted; docs/platform-support.md states the status
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -308,6 +308,7 @@ jobs:
       - name: Check Status
         env:
           NEEDS_JSON: ${{ toJSON(needs) }}
-          # Must list exactly the jobs above that set `continue-on-error: true`.
-          ADVISORY_JOBS: floor-macos floor-ios
+          # Must list exactly the jobs above that set a literal `continue-on-error: true`.
+          # None does, so every job in `needs` is required.
+          ADVISORY_JOBS: ''
         run: bash Scripts/ci/check-required-status.sh

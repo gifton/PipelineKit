@@ -26,11 +26,16 @@ floor OS. The last column lists where tests are executed.
 
 | Platform | Floor | Compiled for the floor | Tests executed on |
 |----------|-------|------------------------|-------------------|
-| macOS | 15.0 | Every PR, SwiftPM, Debug and Release | A macOS 26 runner on every PR, Debug and Release (required). A lane runs the same test targets and the example programs on a macOS 15 runner; it is advisory. Its first run, on 2026-11-11, passed on macOS 15.8.2 with Xcode 26.3 |
-| iOS | 18.0 | Every PR, simulator build | An iOS 26.x simulator on every PR, Debug (required). A lane runs the tests on an iOS 18.x simulator; it is advisory. Its first run, on 2026-11-11, passed on an iOS 18.5 simulator |
+| macOS | 15.0 | Every PR, SwiftPM, Debug and Release | A macOS 26 runner on every PR, Debug and Release (required). A second lane runs the same test targets and the example programs on a macOS 15 runner on every PR, Debug and Release (required). Its first run, on 2026-11-11, passed on macOS 15.8.2 with Xcode 26.3 |
+| iOS | 18.0 | Every PR, simulator build | An iOS 26.x simulator on every PR, Debug (required). A second lane runs the tests on an iOS 18.x simulator on every PR, Debug (required). Its first run, on 2026-11-11, passed on an iOS 18.5 simulator |
 | tvOS | 18.0 | Required Debug/Release simulator builds | Not executed on any OS version |
 | visionOS | 2.0 | Required Debug/Release simulator builds | Not executed on any OS version |
 | watchOS | 11.0 | Debug/Release simulator builds; advisory | Not executed on any OS version |
+
+"Required" means that a failure of the lane fails the qualification workflow run and its
+`Multiplatform Status` job. The release workflow calls the same workflow, so a failure
+there also stops a release. The macOS 15 and iOS 18 lanes were made required in the
+pull request that added them, after their first runs passed.
 
 What these lanes do not show:
 
@@ -70,6 +75,10 @@ older OS to run the result on, so it could not be exercised.
 
 The floor lanes depend on the `macos-15` runner image. When GitHub retires that
 image, the floors rise to the oldest OS generation CI can still execute tests on.
+If the image is retired during a patch series, a patch release can neither raise the
+floor nor declare one that no lane executes, so no further patch release of that series
+is published while the floor is unverified. The lanes move to the oldest image that can
+still run them, and the next minor release raises the floors to match, under **Breaking**.
 
 ## Linux
 
@@ -95,4 +104,6 @@ that decision.
 - A floor may be lowered in a patch release, listed under the CHANGELOG's
   **Changed** heading. Lowering a floor does not break source for existing users.
 - A release declares a floor for macOS or iOS only if a CI lane executes the tests
-  on that OS generation. If the lane can no longer run, the floor is raised.
+  on that OS generation. If the lane can no longer run, the floor is raised in the next
+  minor release, and no release that declares the unverified floor is published in the
+  meantime ([what happens when the runner image is retired](#why-the-floors-are-where-they-are)).

@@ -584,7 +584,8 @@ def status_job_problems(text, status_job):
     for job in sorted(needed - set(jobs)):
         problems.append(f'needs names {job}, which is not a job')
     advisory = re.search(r'(?m)^          ADVISORY_JOBS:(.*)$', status)
-    listed = set(advisory.group(1).split()) if advisory else set()
+    # A quoted value, such as the empty '' of a workflow with no advisory job, is unquoted first.
+    listed = set(advisory.group(1).strip().strip('\'"').split()) if advisory else set()
     if not advisory:
         problems.append('ADVISORY_JOBS is not set')
     literal = {job for job, block in jobs.items()
@@ -714,6 +715,8 @@ class StatusTests(unittest.TestCase):
             ('  status:\n', '  added:\n    runs-on: x\n  status:\n', 'added is not in needs'),
             ('ADVISORY_JOBS: linux', 'ADVISORY_JOBS: linux matrix', 'matrix is in ADVISORY_JOBS but is not continue-on-error: true'),
             ('ADVISORY_JOBS: linux', 'ADVISORY_JOBS:', 'linux is continue-on-error: true but is not in ADVISORY_JOBS'),
+            ('ADVISORY_JOBS: linux', "ADVISORY_JOBS: ''", 'linux is continue-on-error: true but is not in ADVISORY_JOBS'),
+            ('ADVISORY_JOBS: linux', "ADVISORY_JOBS: 'linux matrix'", 'matrix is in ADVISORY_JOBS but is not continue-on-error: true'),
             ('    continue-on-error: true  # advisory\n', '', 'linux is in ADVISORY_JOBS but is not continue-on-error: true'),
             ('    if: always()\n', '', 'the job is not if: always()'),
             ('    if: always()\n', '    if: ${{ !cancelled() }}\n', 'the job is not if: always()'),

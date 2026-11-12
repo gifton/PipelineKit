@@ -204,8 +204,9 @@ func makeResilientPipeline<H: CommandHandler>(
 - Pull requests and version tags run the same qualification workflow. macOS is built and tested
   in Debug and Release; iOS is tested on a simulator; tvOS and visionOS builds are required;
   watchOS builds are advisory. Those lanes run on macOS 26 and an iOS 26 simulator. Two
-  advisory lanes run the tests on a macOS 15 runner and an iOS 18 simulator, the oldest OS
-  generation the package declares; they do not yet block a merge. The
+  more required lanes run the tests on a macOS 15 runner and an iOS 18 simulator, the oldest
+  OS generation the package declares; a failure in either fails the workflow run and, on a
+  version tag, stops the release. The
   per-platform table is in [platform support](docs/platform-support.md).
 - The CI badge at the top reports the [`CI` workflow](.github/workflows/ci.yml) for the latest
   push to `main`: macOS Debug and Release builds, the eight test targets, a second run of the

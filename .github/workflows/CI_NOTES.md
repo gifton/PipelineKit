@@ -10,7 +10,8 @@ All CI workflows use the configuration below, except the two floor lanes in
 - **iOS Simulator**: an iOS 26.x iPhone simulator chosen at run time (`Find iOS Simulator` step in
   `ci-multiplatform.yml`; falls back to a generic simulator destination if none is listed)
 
-The floor lanes use:
+The floor lanes are required: a failure fails the workflow run and `Multiplatform Status`, and
+so stops a release, which calls the same workflow. They use:
 - **Runner**: `macos-15`. The `macos-26` image has no macOS 15 host and no iOS 18 simulator
   runtime.
 - **Xcode**: pinned to `26.3`. The image's default Xcode is 16.4, which cannot build a
@@ -80,7 +81,7 @@ The floor lanes use:
 | Workflow | Trigger | Runner | Purpose |
 |----------|---------|--------|---------|
 | `ci.yml` | Push to `main`, `develop`, `test-ci`, `release/**`; PRs targeting `main`, `develop`, `release/**`; manual | macos-26, ubuntu-latest | Main CI pipeline; `CI Status` fails unless every job except the two advisory Linux builds succeeded |
-| `ci-multiplatform.yml` | Every PR; push to `release/**`; manual; called by `release.yml` | macos-26, macos-15, ubuntu-latest | macOS Debug and Release tests and validation, iOS simulator tests, Swift 6.2 floor build, watchOS/tvOS/visionOS simulator builds; advisory macOS 15 host tests and iOS 18 simulator tests; `Multiplatform Status` fails unless every job except those two advisory lanes succeeded |
+| `ci-multiplatform.yml` | Every PR; push to `release/**`; manual; called by `release.yml` | macos-26, macos-15, ubuntu-latest | macOS Debug and Release tests and validation, iOS simulator tests, Swift 6.2 floor build, watchOS/tvOS/visionOS simulator builds; macOS 15 host tests and iOS 18 simulator tests (both required); `Multiplatform Status` fails unless every job succeeded |
 | `weekly.yml` | Monday 2AM UTC; manual | macos-26, ubuntu-latest | Weekly extended test suite, sanitizer runs, performance tests and all-severity Trivy scan |
 | `specialty-tests.yml` | PR `labeled`/`synchronize` events (each test job runs only when its `test:*` label is present); manual | macos-26, ubuntu-latest | Memory, performance-baseline, stress and all-severity security jobs |
 | `release.yml` | Push of a `v*` tag | macos-26 | Release notes validation, qualification, documentation, GitHub release |

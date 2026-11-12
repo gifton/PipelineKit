@@ -70,17 +70,18 @@ Runs on every pull request, on pushes to `release/**`, on manual dispatch, and w
   Swift 6.2.x and builds the package, its tests and the consumer package in Debug and Release.
 - **tvOS and visionOS simulator builds** (required), Debug and Release.
 - **watchOS simulator builds** (advisory: `continue-on-error`), Debug and Release.
-- **macOS 15 host** (advisory: `continue-on-error`): on the `macos-15` image with Xcode 26.3,
+- **macOS 15 host** (required): on the `macos-15` image with Xcode 26.3,
   `Scripts/ci/check-floor-host.sh` fails unless the host is macOS 15; then a clean build and
   the eight test targets in Debug and in Release (`Scripts/ci/check-correctness.py`), and the
   example programs in both configurations.
-- **iOS 18 simulator** (advisory: `continue-on-error`): on the same image and Xcode,
+- **iOS 18 simulator** (required): on the same image and Xcode,
   `Scripts/ci/run-simulator-tests.py` selects the lowest installed iOS 18 simulator runtime,
   fails if there is none, runs the package tests in Debug, and fails unless each of the eight
   test targets reports a passing bundle with at least one test that was not skipped.
 - **`Multiplatform Status`**: runs `Scripts/ci/check-required-status.sh` over the six jobs
-  above, under the same rules and the same `StatusTests` checks as `CI Status`. The macOS 15
-  and iOS 18 jobs are named in its `ADVISORY_JOBS`. The watchOS, tvOS and visionOS builds are
+  above, under the same rules and the same `StatusTests` checks as `CI Status`. Its
+  `ADVISORY_JOBS` is empty, so all six must succeed: a failed, cancelled or skipped macOS 15
+  or iOS 18 job fails it, like any of the others. The watchOS, tvOS and visionOS builds are
   legs of one matrix job, `apple-platform-builds`, which the script treats as required and
   sees as a single result. GitHub's documentation does not say how that result is formed from
   the legs, and neither case has been observed here: a failing watchOS leg is expected to leave
