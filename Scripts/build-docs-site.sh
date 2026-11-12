@@ -20,3 +20,13 @@ swift package --allow-writing-to-directory "$OUTPUT" \
   --disable-indexing \
   --transform-for-static-hosting \
   --hosting-base-path PipelineKit
+
+# DocC leaves the site root without a page. Send it to the module list.
+cat > "$OUTPUT/index.html" <<'HTML'
+<!doctype html>
+<meta charset="utf-8">
+<title>PipelineKit documentation</title>
+<meta http-equiv="refresh" content="0; url=documentation/">
+<link rel="canonical" href="documentation/">
+<a href="documentation/">PipelineKit documentation</a>
+HTML

@@ -295,3 +295,19 @@ jobs:
 
       - name: Floor simulator tests (iOS 18, Debug)
         run: python3 Scripts/ci/run-simulator-tests.py --platform iOS --os-major 18 --configuration Debug
+
+  # One check name for branch protection: fails unless every required lane succeeded.
+  multiplatform-status:
+    name: Multiplatform Status
+    runs-on: ubuntu-latest
+    needs: [macos-spm, ios-sim, compiler-floor, apple-platform-builds, floor-macos, floor-ios]
+    if: always()
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - name: Check Status
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+          # Must list exactly the jobs above that set `continue-on-error: true`.
+          ADVISORY_JOBS: floor-macos floor-ios
+        run: bash Scripts/ci/check-required-status.sh

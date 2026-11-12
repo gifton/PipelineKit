@@ -1,54 +1,45 @@
 ---
 name: Bug report
-about: Create a report to help us improve
-title: '[BUG] '
+about: PipelineKit crashes, hangs, or behaves differently from its documentation
 labels: 'bug'
-assignees: ''
 ---
 
-## Description
-A clear and concise description of what the bug is.
+## What happened
+What you observed, including the full error text or stack trace if there is one.
 
-## To Reproduce
-Steps to reproduce the behavior:
+## What you expected
+What you expected instead, and where that expectation comes from (a doc page, a doc comment, earlier behaviour).
 
-1. Create a pipeline with '...'
-2. Add middleware '...'
-3. Execute command '...'
-4. See error
+## Minimal reproduction
+The smallest program that shows the problem. Starting point:
 
-## Expected behavior
-A clear and concise description of what you expected to happen.
-
-## Actual behavior
-What actually happened instead.
-
-## Code example
 ```swift
-// Minimal code example that reproduces the issue
 import PipelineKit
 
-let pipeline = PipelineBuilder(handler: MyHandler())
-    .with(MyMiddleware())
-    .build()
+struct MyCommand: Command {
+    typealias Result = String
+}
 
-// ... code that triggers the bug
+struct MyHandler: CommandHandler {
+    func handle(_ command: MyCommand, context: CommandContext) async throws -> String {
+        "done"
+    }
+}
+
+let pipeline = StandardPipeline(handler: MyHandler())
+// try await pipeline.addMiddleware(...)
+let result = try await pipeline.execute(MyCommand())
 ```
 
-## Stack trace
-```
-// If applicable, add the full stack trace here
-```
+Does it happen every time? If not, roughly how often?
 
 ## Environment
-- **PipelineKit version**: [e.g., 0.6.0]
-- **Swift version**: [e.g., 6.2]
-- **Platform**: [e.g., iOS 26.0, macOS 26.0]
-- **Xcode version**: [e.g., 26.0.1]
-- **Package manager**: [SPM/CocoaPods/Carthage]
+- **PipelineKit version** (tag or commit):
+- **Modules imported** (for example `PipelineKit`, `PipelineKitResilience`):
+- **Swift version** (`swift --version`):
+- **Platform and OS version** (for example macOS 26.1, iOS 26.1 simulator, Ubuntu 24.04):
+- **Xcode version**, if you build with Xcode:
+- **Build configuration** (Debug or Release):
 
-## Additional context
-Add any other context about the problem here.
-
-## Possible solution
-If you have ideas about what might be causing this or how to fix it, please share.
+## Anything else
+Workarounds you found, or where you think the cause is.

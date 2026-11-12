@@ -1,35 +1,27 @@
 ---
 name: Feature request
-about: Suggest an idea for PipelineKit
-title: '[FEATURE] '
+about: Suggest an addition or a change to PipelineKit
 labels: 'enhancement'
-assignees: ''
 ---
 
-## Is your feature request related to a problem?
-A clear and concise description of what the problem is. Ex. I'm always frustrated when [...]
+## The problem
+What you are trying to do, and what makes it hard or impossible today.
 
-## Describe the solution you'd like
-A clear and concise description of what you want to happen.
-
-## Describe alternatives you've considered
-A clear and concise description of any alternative solutions or features you've considered.
-
-## Example usage
-Show how this feature would be used:
+## The change you would like
+What you want PipelineKit to do. If you have an API in mind, sketch how calling it would look:
 
 ```swift
-// Example of how the API might look
-let pipeline = PipelineBuilder(handler: handler)
-    .withNewFeature() // Your proposed feature
-    .build()
+// How the API might be used
 ```
 
-## Additional context
-Add any other context, mockups, or examples about the feature request here.
+## Alternatives you considered
+Including what you do today (for example, a custom middleware) and why it falls short.
+
+## Would it break existing code?
+PipelineKit is 0.x, so a minor release may break source, but every break is listed in the CHANGELOG. Say so if you think this needs one.
 
 ## Are you willing to contribute?
-- [ ] Yes, I'd like to implement this feature
-- [ ] Yes, but I need guidance
-- [ ] No, but I'm available for testing
+- [ ] Yes, I would like to implement this
+- [ ] Yes, with some guidance
+- [ ] No, but I can test it
 - [ ] No

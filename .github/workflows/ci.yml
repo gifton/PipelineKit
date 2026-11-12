@@ -455,17 +455,14 @@ jobs:
   ci-status:
     name: CI Status
     runs-on: ubuntu-latest
-    needs: [build, build-linux, test, test-linux, swiftlint, stress-test, performance, security, documentation]
+    needs: [quick-check, swiftlint, build, build-linux, test, test-linux, stress-test, performance, security, documentation]
     if: always()
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7
       - name: Check Status
         env:
-          BUILD_RESULT: ${{ needs.build.result }}
-          TEST_RESULT: ${{ needs.test.result }}
-          SWIFTLINT_RESULT: ${{ needs.swiftlint.result }}
-          SECURITY_RESULT: ${{ needs.security.result }}
-          BUILD_LINUX_RESULT: ${{ needs.build-linux.result }}
-          TEST_LINUX_RESULT: ${{ needs.test-linux.result }}
+          NEEDS_JSON: ${{ toJSON(needs) }}
+          # Must list exactly the jobs above that set `continue-on-error: true`.
+          ADVISORY_JOBS: build-linux test-linux
         run: bash Scripts/ci/check-required-status.sh

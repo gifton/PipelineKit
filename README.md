@@ -255,7 +255,7 @@ For tuning advice see the [performance guide](docs/guides/performance.md).
 | If you want to | Go to |
 |---|---|
 | Follow a reading path in order | [Documentation index](docs/README.md): one path for learning the pattern, one for building a high-volume pipeline |
-| Browse the API reference for the seven library modules | [gifton.github.io/PipelineKit](https://gifton.github.io/PipelineKit/) |
+| Browse the API reference for the seven library modules | [gifton.github.io/PipelineKit](https://gifton.github.io/PipelineKit/documentation/) |
 | Learn the command-bus pattern from first principles | [Command-bus book](docs/guides/command-bus/README.md) |
 | Work through tutorials | [Basic usage](docs/tutorials/basic-usage.md), [custom middleware](docs/tutorials/custom-middleware.md), [advanced patterns](docs/tutorials/advanced-patterns.md) |
 | Understand how the pieces fit | [Architecture guide](docs/guides/architecture.md) |

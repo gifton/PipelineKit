@@ -1,55 +1,26 @@
-## Description
-Brief description of the changes in this PR.
+## What this changes
+What the change does and why. Link the issue it closes, if there is one (`Closes #123`).
 
-## Type of Change
-- [ ] Bug fix (non-breaking change which fixes an issue)
-- [ ] New feature (non-breaking change which adds functionality)
-- [ ] Breaking change (fix or feature that would cause existing functionality to not work as expected)
-- [ ] Documentation update
-- [ ] Performance improvement
-- [ ] Code refactoring
+## Kind of change
+- [ ] Bug fix
+- [ ] New API or behaviour
+- [ ] Source-breaking change
+- [ ] Documentation only
+- [ ] Tests, CI or tooling only
 
-## Related Issues
-Closes #(issue number)
+## How it was tested
+The commands you ran and what they showed. For most changes that is:
 
-## Changes Made
-- List the main changes
-- Be specific about what was modified
-- Include any important implementation details
+```bash
+swift test --parallel --skip PipelineKitPerformanceTests
+```
 
-## Testing
-- [ ] Unit tests pass locally
-- [ ] Integration tests pass locally
-- [ ] Added new tests for changes
-- [ ] Manually tested the changes
-
-## Test Coverage
-- Current coverage: __%
-- New coverage: __%
-
-## Performance Impact
-Describe any performance implications:
-- [ ] No performance impact
-- [ ] Performance improvement (describe metrics)
-- [ ] Potential performance regression (explain why it's acceptable)
-
-## Breaking Changes
-List any breaking changes and migration steps:
-- None
+Name the tests you added or changed.
 
 ## Checklist
-- [ ] My code follows the project's style guidelines
-- [ ] I have performed a self-review of my own code
-- [ ] I have commented my code, particularly in hard-to-understand areas
-- [ ] I have made corresponding changes to the documentation
-- [ ] My changes generate no new warnings
-- [ ] I have added tests that prove my fix is effective or that my feature works
-- [ ] New and existing unit tests pass locally with my changes
-- [ ] Any dependent changes have been merged and published
-- [ ] I have updated the CHANGELOG.md if applicable
+- [ ] New behaviour and bug fixes have a test that fails without the change.
+- [ ] `CHANGELOG.md` has an entry under `[Unreleased]` for anything a user of the package can observe. A source-breaking change goes under a **Breaking** heading with what callers must change.
+- [ ] Documentation and doc comments that describe the changed behaviour are updated to match it.
+- [ ] If the change touches a hot path (pipeline execution, `CommandContext`, semaphores, rate limiting), the description says whether you measured it and how.
 
-## Screenshots (if applicable)
-Add screenshots to help explain your changes.
-
-## Additional Notes
-Add any additional notes for reviewers.
+CI reports coverage, lint and performance results on the pull request; you do not need to fill them in here.

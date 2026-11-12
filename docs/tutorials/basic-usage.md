@@ -430,4 +430,4 @@ struct OrderSystem {
 
 - Explore [Advanced Patterns](advanced-patterns.md) for complex scenarios
 - Learn about [Custom Middleware](custom-middleware.md) development
-- See the [API reference](https://gifton.github.io/PipelineKit/) for detailed documentation
+- See the [API reference](https://gifton.github.io/PipelineKit/documentation/) for detailed documentation

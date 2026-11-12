@@ -44,16 +44,16 @@ Runs on pushes to `main`, `develop`, `test-ci` and `release/**`, on pull request
 
 ### The `CI Status` job
 
-`CI Status` runs `Scripts/ci/check-required-status.sh` over the results of four jobs:
+`CI Status` runs `Scripts/ci/check-required-status.sh` over the results of every other job in
+this workflow. It fails unless each of them finished with `success`; `cancelled` and `skipped`
+fail it. The two Linux jobs are the exception: they are named in the job's `ADVISORY_JOBS`, so
+their results are printed and do not change the outcome. A run that is cancelled part-way
+therefore ends with `CI Status` failed.
 
-- `build`, `test` and `swiftlint`: any result other than `success`, `cancelled` or `skipped`
-  fails `CI Status`.
-- `security`: any result other than `success` fails `CI Status`.
-
-It prints the two Linux results as advisory. The `stress-test`, `performance` and
-`documentation` jobs are listed in its `needs:` but their results are not read, and
-`quick-check` is not in `needs:` at all. A failure in any of those four still fails the
-workflow run, but it does not change the result of the `CI Status` job.
+The script only sees the jobs listed in the `needs:` of `CI Status`. `StatusTests` in
+`Scripts/ci/tests/test_validation_gates.py` (run by `Quick Validation`) fails if a job in this
+workflow is missing from that list, if `ADVISORY_JOBS` is not exactly the set of jobs marked
+`continue-on-error: true`, or if the job is not `if: always()`.
 
 ## `CI (Multiplatform)` ([`ci-multiplatform.yml`](workflows/ci-multiplatform.yml))
 
@@ -78,13 +78,23 @@ Runs on every pull request, on pushes to `release/**`, on manual dispatch, and w
   `Scripts/ci/run-simulator-tests.py` selects the lowest installed iOS 18 simulator runtime,
   fails if there is none, runs the package tests in Debug, and fails unless each of the eight
   test targets reports a passing bundle with at least one test that was not skipped.
+- **`Multiplatform Status`**: runs `Scripts/ci/check-required-status.sh` over the six jobs
+  above, under the same rules and the same `StatusTests` checks as `CI Status`. The macOS 15
+  and iOS 18 jobs are named in its `ADVISORY_JOBS`. The watchOS, tvOS and visionOS builds are
+  legs of one matrix job, `apple-platform-builds`, which the script treats as required and
+  sees as a single result. GitHub's documentation does not say how that result is formed from
+  the legs, and neither case has been observed here: a failing watchOS leg is expected to leave
+  it `success`, and a failing tvOS or visionOS leg is expected to make it `failure`. If a
+  failing watchOS leg turns out to fail `Multiplatform Status`, the watchOS builds need a job
+  of their own that is listed in `ADVISORY_JOBS`.
 
 ## `Release` ([`release.yml`](workflows/release.yml))
 
 Runs when a `v*` tag is pushed. It validates the tag against its `CHANGELOG.md` section, runs
 `ci-multiplatform.yml` on the tagged commit, and builds the documentation site. The GitHub
 release is created only after all three succeed, and the documentation is published after the
-release is created. `ci.yml` is not part of this workflow.
+release is created. `ci.yml` is not part of this workflow. `Multiplatform Status` runs as one
+of the called workflow's jobs, so a failure of that job also stops the release.
 
 ## Scheduled and opt-in workflows
 

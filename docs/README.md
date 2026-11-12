@@ -15,7 +15,7 @@ This page says where everything else is, and in what order to read it.
    [custom middleware](tutorials/custom-middleware.md).
 4. The programs in [Examples](../Examples/README.md): run them, then change them.
 5. The [architecture guide](guides/architecture.md) and the
-   [API reference](https://gifton.github.io/PipelineKit/), to see how the shipped types fit.
+   [API reference](https://gifton.github.io/PipelineKit/documentation/), to see how the shipped types fit.
 
 **Building a pipeline for throughput.** For engineers structuring a high-volume workload.
 
@@ -36,7 +36,7 @@ This page says where everything else is, and in what order to read it.
 | Surface | What it holds |
 |---|---|
 | [README](../README.md) | The front door: what PipelineKit is, a first pipeline, installation, the module map, what CI checks. |
-| [Documentation site](https://gifton.github.io/PipelineKit/) | The API reference for the seven library modules, generated from source, and four articles about how the API fits together: Getting Started, Architecture, Middleware Guide, Execution Context and Progress Reporting. |
+| [Documentation site](https://gifton.github.io/PipelineKit/documentation/) | The API reference for the seven library modules, generated from source, and four articles about how the API fits together: Getting Started, Architecture, Middleware Guide, Execution Context and Progress Reporting. |
 | `docs/` (this tree) | Everything read at length: the book, tutorials, task guides, and the evidence and policy pages. |
 | [Examples](../Examples/README.md) | Programs that CI builds and runs, each checking its own output. |
 
