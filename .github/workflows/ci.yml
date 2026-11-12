@@ -400,7 +400,8 @@ jobs:
       with:
         sarif_file: 'trivy-results.sarif'
 
-  # Documentation generation and deployment
+  # Documentation build and coverage check. The site is published by release.yml on a tag,
+  # so the public documentation always describes a released version.
   documentation:
     name: Documentation
     runs-on: macos-26
@@ -408,8 +409,6 @@ jobs:
     timeout-minutes: 30
     permissions:
       contents: read
-      pages: write
-      id-token: write
 
     steps:
     - uses: actions/checkout@v7
@@ -435,21 +434,6 @@ jobs:
 
     - name: Check Documentation Coverage
       run: Scripts/check-doc-coverage.sh
-
-    - name: Setup Pages
-      if: success() && github.event_name == 'push' && github.ref == 'refs/heads/main'
-      uses: actions/configure-pages@v6
-
-    - name: Upload to GitHub Pages
-      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-      uses: actions/upload-pages-artifact@v5
-      with:
-        path: ./docs-site
-
-    - name: Deploy to GitHub Pages
-      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-      id: deployment
-      uses: actions/deploy-pages@v5
 
   # Final status check
   ci-status:

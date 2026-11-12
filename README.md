@@ -210,7 +210,7 @@ func makeResilientPipeline<H: CommandHandler>(
 - The CI badge at the top reports the [`CI` workflow](.github/workflows/ci.yml) for the latest
   push to `main`: macOS Debug and Release builds, the eight test targets, a second run of the
   resilience test target (the job named `Stress Tests`), a Trivy scan for critical and high
-  findings, the documentation build with its coverage floors and site deployment, and the
+  findings, the documentation build with its coverage floors, and the
   tests of the CI scripts themselves. SwiftLint findings and performance-test results are
   reported there but do not fail it, and neither do its Linux build jobs. The multi-platform
   lanes above run on pull requests and release tags, so the badge does not cover them.
