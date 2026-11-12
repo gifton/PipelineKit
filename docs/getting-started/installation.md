@@ -6,7 +6,7 @@ dependencies required to build the library.
 
 These instructions target **0.6.0**. Published tags are listed on the
 [releases page](https://github.com/gifton/PipelineKit/releases). Follow the
-[0.6.0 migration guide](../migrations/release-readiness.md) when upgrading from 0.5.4.
+[upgrade guide](../migrations/0.5-to-0.6.md) when upgrading from 0.5.4.
 
 ## Requirements
 

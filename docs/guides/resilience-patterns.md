@@ -1,6 +1,6 @@
 # PipelineKit Resilience Patterns
 
-For 0.6.0, follow the [compiled stabilization migration guide](../migrations/first-stabilization-batch.md). Ordinary and partitioned queue timeouts accept nil (unbounded), finite nonpositive values (no wait), or finite positive values at most 86,400 seconds; nonfinite and larger positive values are invalid. Nil does not preserve a longer finite deadline. Capacity remains owned until downstream work settles. Distributed scope-key changes require coordinated counter migration; typed timeout classification ignores non-timeout PipelineError payload text.
+For 0.6.0, follow the [upgrade guide](../migrations/0.5-to-0.6.md#resilience). Ordinary and partitioned queue timeouts accept nil (unbounded), finite nonpositive values (no wait), or finite positive values at most 86,400 seconds; nonfinite and larger positive values are invalid. Nil does not preserve a longer finite deadline. Capacity remains owned until downstream work settles. Distributed scope-key changes require coordinated counter migration; typed timeout classification ignores non-timeout PipelineError payload text.
 
 
 This document provides guidance on using PipelineKit's resilience middleware effectively. Understanding when and how to use each pattern is critical for building robust, production-ready command pipelines.

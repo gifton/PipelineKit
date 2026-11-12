@@ -62,6 +62,8 @@ swiftlint lint --strict
 - CI must be green (macOS build/test and lint jobs; Linux builds run as
   advisory checks and do not gate merges).
 - Add a `CHANGELOG.md` entry under `[Unreleased]` for any user-visible change.
+  A version's section becomes its release notes verbatim; [VERSIONING.md](VERSIONING.md)
+  describes how a section links its upgrade guide.
 - Documentation must mirror the shipped code: claims in docs are verified against
   source in review, and a capability the code doesn't have gets removed, not hedged.
 

@@ -28,7 +28,7 @@ swift run BasicExample
 ### 2. Add PipelineKit to a scratch package (5 minutes)
 
 This guide targets 0.6.0. Review the
-[migration guide](../migrations/release-readiness.md) before upgrading from 0.5.4.
+[upgrade guide](../migrations/0.5-to-0.6.md) before upgrading from 0.5.4.
 
 ```swift
 dependencies: [
@@ -168,7 +168,8 @@ longest-exercised, not guaranteed-frozen.
 - **Newest surface** — `ExecutionContext` task-local propagation and
   progress reporting shipped in 0.5.2. Treat as the least-settled API.
 - **Changed in 0.6.0** — review the
-  [migration and qualification limits](../migrations/release-readiness.md). Deprecated tagged bulkheads from
+  [upgrade guide](../migrations/0.5-to-0.6.md) and
+  [what 0.6.0 does not promise](../migrations/0.5-to-0.6.md#what-060-does-not-promise). Deprecated tagged bulkheads from
   [#86](https://github.com/gifton/PipelineKit/issues/86) are removed; declared
   partitions provide independent capacity. The health error classification and
   recovery concerns in [#87](https://github.com/gifton/PipelineKit/issues/87)

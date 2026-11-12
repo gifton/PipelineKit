@@ -43,8 +43,7 @@ release. Sampling checks this fixed set of names, not per-event randomness or
 statistical accuracy for one name.
 
 The shared PR and version-tag workflow runs the same Debug and Release commands.
-The [v0.5.4 migration rehearsal](../docs/migrations/examples-rehearsal.md) records
+The [v0.5.4 migration rehearsal](https://github.com/gifton/PipelineKit/blob/v0.6.0/docs/migrations/examples-rehearsal.md) records
 what the original examples established before these assertions were added.
 For APIs outside this inventory, consult the
-[compiled stabilization migration](../docs/migrations/first-stabilization-batch.md)
-and [release-readiness migration](../docs/migrations/release-readiness.md).
+[upgrade guide](../docs/migrations/0.5-to-0.6.md).

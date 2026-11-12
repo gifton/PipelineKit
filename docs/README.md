@@ -54,6 +54,7 @@ repeats a code sample only where that copy is also compiled in CI.
 | [tutorials/advanced-patterns.md](tutorials/advanced-patterns.md) | Conditional middleware, environment-specific pipelines, composition |
 | **Guides** | |
 | [getting-started/installation.md](getting-started/installation.md) | Swift Package Manager and Xcode setup, version ranges, local checkouts |
+| [migrations/0.5-to-0.6.md](migrations/0.5-to-0.6.md) | Upgrading from 0.5.4 to 0.6.0: source, behavior and stored-data changes by module |
 | [guides/architecture.md](guides/architecture.md) | The core types in more depth, and usage guidelines |
 | [guides/resilience-patterns.md](guides/resilience-patterns.md) | Rate limiting, circuit breakers, bulkheads, back-pressure, timeouts, retries, and how to order them |
 | [guides/performance.md](guides/performance.md) | Reusing pipelines, concurrency limits, pooling |
@@ -64,7 +65,6 @@ repeats a code sample only where that copy is also compiled in CI.
 | [benchmarks.md](benchmarks.md) | Published 0.6.0 results with their records, the measurement harness and its workloads, and how to collect and compare runs |
 | [platform-support.md](platform-support.md) | Platform floors, what CI verifies per platform, Linux status |
 | [guides/enterprise-evaluation.md](guides/enterprise-evaluation.md) | A 30-minute proof of concept, stable versus newer API, where to report issues |
-| [migrations/](migrations/) | Upgrade notes for 0.6.0 |
 
 Project-level documents live at the repository root: [CHANGELOG](../CHANGELOG.md),
 [CONTRIBUTING](../CONTRIBUTING.md), [CODE_OF_CONDUCT](../CODE_OF_CONDUCT.md),

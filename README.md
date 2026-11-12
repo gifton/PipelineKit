@@ -265,10 +265,10 @@ every source-breaking change is listed under a **Breaking** heading in the
 [CHANGELOG](CHANGELOG.md). There is no deprecation window in 0.x. The full policy, including the
 criteria for 1.0, is in [VERSIONING.md](VERSIONING.md).
 
-**Upgrading from 0.5.4:** 0.6.0 includes source and behavior changes. Follow the
-[compiled stabilization migration guide](docs/migrations/first-stabilization-batch.md) before
-upgrading, including cache invalidation and old encrypted-data recovery limits, and review the
-[release-readiness migration notes](docs/migrations/release-readiness.md).
+**Upgrading from 0.5.4:** 0.6.0 changes source and behavior. The
+[upgrade guide](docs/migrations/0.5-to-0.6.md) lists every change by module, with examples that
+are compiled in CI. Read its section on stored data first: cache entries, encrypted commands,
+compressed payloads and distributed rate-limit counters written by 0.5.x need more than a recompile.
 
 To report a security vulnerability, see [SECURITY.md](SECURITY.md).
 

@@ -1,6 +1,6 @@
 # PipelineKit Security Best Practices
 
-For 0.6.0, follow the [compiled stabilization migration guide](../migrations/first-stabilization-batch.md). It covers required validation/sanitization capabilities, complete Codable encryption, atomic key snapshots and legacy-data recovery limits.
+For 0.6.0, follow the [upgrade guide](../migrations/0.5-to-0.6.md#security). It covers required validation/sanitization capabilities, complete Codable encryption, atomic key snapshots and legacy-data recovery limits.
 
 
 This guide covers security practices and patterns for applications built on PipelineKit —
@@ -261,7 +261,7 @@ both `validate()` and `sanitize()`.
 
 Validation's intrinsic priority is 200 and sanitization's is 300, so validation normally
 runs first. When validation needs normalized input, use explicit builder ordering, as shown
-in the [stabilization migration draft](../migrations/first-stabilization-batch.md).
+in the [upgrade guide](../migrations/0.5-to-0.6.md#validation-and-sanitization-need-explicit-conformances).
 
 ## Authorization & Authentication
 
@@ -637,7 +637,7 @@ keys must be 256 bits. Rotation by another encryptor may leave this encryptor us
 still-stored pair; the envelope always names that captured pair.
 
 The old `sensitiveFields` / `updateSensitiveFields` hooks and `originalCommand` envelope
-property are removed. See the [migration draft](../migrations/first-stabilization-batch.md)
+property are removed. See the [upgrade guide](../migrations/0.5-to-0.6.md#commands-encrypted-by-05x)
 for the incompatible legacy format and recovery limits.
 
 ### Field-Level Encryption

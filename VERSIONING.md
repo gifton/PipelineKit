@@ -13,8 +13,15 @@ compatibility promise — this document states the promises PipelineKit
   source-breaking change is listed in the CHANGELOG under a **Breaking**
   heading for that release.
 - There is **no deprecation window** in 0.x: a breaking change may remove
-  or rename API in the minor release that ships it. The CHANGELOG entry is
-  the migration guide.
+  or rename API in the minor release that ships it. The CHANGELOG entry lists
+  every breaking change. A release that needs more explanation than that
+  links one upgrade guide from its **Breaking** heading, at
+  `docs/migrations/<from>-to-<to>.md`; that path does not change after the
+  release.
+- A version's CHANGELOG section is published verbatim as its release notes. It
+  may open with a short summary paragraph before its first `###` heading. Links
+  inside a version section are absolute and pinned to that version's tag,
+  because relative links do not resolve in a release body.
 
 ## What 0.x does not promise
 
@@ -25,9 +32,9 @@ compatibility promise — this document states the promises PipelineKit
 
 ## Pinning recommendation
 
-The current release line is **0.6.x**. The breaking changes in 0.6.0 are recorded in the
-dated 0.6.0 CHANGELOG section and the
-[release readiness migration](docs/migrations/release-readiness.md). Depend on a minor range;
+The current release line is **0.6.x**. The breaking changes in 0.6.0 are listed in the dated
+0.6.0 CHANGELOG section and explained in
+[Upgrading from 0.5.4 to 0.6.0](docs/migrations/0.5-to-0.6.md). Depend on a minor range;
 published tags are listed on the [releases page](https://github.com/gifton/PipelineKit/releases).
 
 ```swift
@@ -40,9 +47,8 @@ Keep the explicit upper bound above to avoid an automatic source-breaking upgrad
 
 ## The 1.0.0 CHANGELOG entry
 
-The CHANGELOG contains a `[1.0.0] - 2025-09-25` entry. That release was
-published without a `v1.0.0` tag, and versioning subsequently returned to
-the 0.x series. Treat that entry as the historical record of the changes
+The CHANGELOG contains a `[1.0.0] - 2025-09-25` entry. No `v1.0.0` tag or
+release exists; versioning continued in the 0.x series. Treat that entry as the historical record of the changes
 listed in it, not as an available version — there is no 1.0.0 tag to
 depend on.
 

@@ -8,10 +8,30 @@ import PipelineKitPooling
 import PipelineKitResilience
 import PipelineKitSecurity
 
-// docs/migrations/first-stabilization-batch.md, Swift fence 1
-import Foundation
-import PipelineKit
-import PipelineKitSecurity
+// docs/migrations/0.5-to-0.6.md, Swift fence 1
+@MainActor func compiled_docs_migrations_0_5_to_0_6_md_1() async throws {
+
+func isCancelledExecution(_ error: any Error) -> Bool {
+    if error is CancellationError { return true }
+    if case .cancelled = error as? PipelineError { return true }
+    return false
+}
+
+}
+
+// docs/migrations/0.5-to-0.6.md, Swift fence 2
+@MainActor func compiled_docs_migrations_0_5_to_0_6_md_2() async throws {
+
+let memoryResponder = MemoryPressureResponder()
+await memoryResponder.startMonitoring()
+await memoryResponder.stopMonitoring()
+await memoryResponder.startMonitoring()
+await memoryResponder.stopMonitoring()
+
+}
+
+// docs/migrations/0.5-to-0.6.md, Swift fence 3
+@MainActor func compiled_docs_migrations_0_5_to_0_6_md_3() async throws {
 
 enum PostInputError: Error { case emptyTitle }
 
@@ -42,10 +62,10 @@ func makePostPipeline() async throws -> StandardPipeline<CreatePostCommand, Crea
     return try await builder.build()
 }
 
-// docs/migrations/first-stabilization-batch.md, Swift fence 2
-import Foundation
-import PipelineKit
-import PipelineKitSecurity
+}
+
+// docs/migrations/0.5-to-0.6.md, Swift fence 4
+@MainActor func compiled_docs_migrations_0_5_to_0_6_md_4() async throws {
 
 struct StoredCommand: Command, Codable {
     typealias Result = Void
@@ -67,9 +87,9 @@ func storeAndRestore(
     return try await encryptor.decrypt(restoredEnvelope)
 }
 
-// docs/migrations/first-stabilization-batch.md, Swift fence 3
-import Foundation
-import PipelineKitSecurity
+}
+
+// docs/migrations/0.5-to-0.6.md, Swift fence 5
 
 actor ExampleVersionedKeyStore: KeyStore {
     private var keys: [String: SendableSymmetricKey] = [:]
@@ -92,53 +112,100 @@ actor ExampleVersionedKeyStore: KeyStore {
     }
 }
 
-// docs/migrations/first-stabilization-batch.md, Swift fence 4
-import PipelineKitObservability
+// docs/migrations/0.5-to-0.6.md, Swift fence 6
+@MainActor func compiled_docs_migrations_0_5_to_0_6_md_6() async throws {
 
-func makeStatsD() async throws -> StatsDExporter {
-    let exporter = StatsDExporter(configuration: .init(host: "127.0.0.1", port: 8125))
-    await exporter.setErrorHandler { error in
-        print("Metrics export failed: \(error)")
+struct AccountPayload: Codable, Sendable {
+    let accountID: String
+    let labels: [String]
+}
+
+func decodeAccountField(_ value: DecryptedValue) throws -> AccountPayload {
+    guard let serialized = value.get(as: TypedData.self) else {
+        throw EncryptionError.decryptionFailed("Expected serialized account field")
     }
-    do {
-        try await exporter.start()
-        return exporter
-    } catch {
-        await exporter.close()
-        throw error
+    return try serialized.decode(as: AccountPayload.self)
+}
+
+}
+
+// docs/migrations/0.5-to-0.6.md, Swift fence 7
+@MainActor func compiled_docs_migrations_0_5_to_0_6_md_7() async throws {
+
+let healthPolicy = HealthCheckMiddleware.Configuration(
+    errorEvaluator: { error in
+        // This application's explicit policy ignores its own validation errors.
+        if case .validation = error as? PipelineError { return false }
+        return true
     }
+)
+_ = healthPolicy
+
 }
 
-func useInjectedTransport(_ transport: any MetricsTransport) async {
-    let exporter = StatsDExporter(configuration: .default, transport: transport)
-    await exporter.setErrorHandler(nil) // Callbacks can be cleared before publication.
-    await exporter.counter("synthetic.example")
-    await exporter.forceFlush()
-    await exporter.close()
+// docs/migrations/0.5-to-0.6.md, Swift fence 8
+@MainActor func compiled_docs_migrations_0_5_to_0_6_md_8() async throws {
+
+let budgetedRetry = RetryMiddleware(configuration: .init(
+    maxAttempts: 2,
+    strategy: .fixed(delay: 0.1),
+    maxRetryTime: 0.25
+))
+_ = budgetedRetry
+
 }
 
-// docs/migrations/first-stabilization-batch.md, Swift fence 5
-import PipelineKitObservability
+// docs/migrations/0.5-to-0.6.md, Swift fence 9
+@MainActor func compiled_docs_migrations_0_5_to_0_6_md_9() async throws {
 
-func configureMetrics(_ exporter: any MetricRecorder) async {
-    let storage = MetricsStorage()
-    await Metrics.configure(.init(storage: storage, exporter: exporter, errorHandler: { error in
-        print("Metrics export failed: \(error)")
-    }))
-    await Metrics.counter("requests")
-    await Metrics.flush()
+struct ServiceHTTPFailure: Error {
+    let statusCode: Int
 }
 
-func replaceRecorder(_ replacement: any MetricRecorder) async {
-    await Metrics.configure(with: replacement)
-    let current = Metrics.configuration
-    _ = await current.storage.getAll()
+let httpRetry = RetryMiddleware.forHTTPStatusCodes([429, 502, 503]) { error in
+    (error as? ServiceHTTPFailure)?.statusCode
+}
+_ = httpRetry
+
 }
 
-// docs/migrations/first-stabilization-batch.md, Swift fence 6
-import Foundation
-import PipelineKit
-import PipelineKitCache
+// docs/migrations/0.5-to-0.6.md, Swift fence 10
+@MainActor func compiled_docs_migrations_0_5_to_0_6_md_10() async throws {
+
+let timeoutPolicy = TimeoutMiddleware(configuration: .init(
+    defaultTimeout: 2,
+    gracePeriod: 0.25
+))
+_ = timeoutPolicy
+
+}
+
+// docs/migrations/0.5-to-0.6.md, Swift fence 11
+@MainActor func compiled_docs_migrations_0_5_to_0_6_md_11() async throws {
+
+let priorityLimiter = RateLimiter(strategy: .priorityBased(limits: [
+    .medium: .init(maxRequests: 10, windowSize: 60),
+    .high: .init(maxRequests: 20, windowSize: 60)
+]))
+_ = try await priorityLimiter.allowRequest(identifier: "customer", priority: .high)
+let highStatus = try await priorityLimiter.getStatus(identifier: "customer", priority: .high)
+try await priorityLimiter.reset(identifier: "customer", priority: .high)
+try await priorityLimiter.reset()
+_ = highStatus
+
+}
+
+// docs/migrations/0.5-to-0.6.md, Swift fence 12
+@MainActor func compiled_docs_migrations_0_5_to_0_6_md_12() async throws {
+
+func shutDownHealthMonitoring(_ middleware: HealthCheckMiddleware) async {
+    await middleware.stopMonitoring()
+}
+
+}
+
+// docs/migrations/0.5-to-0.6.md, Swift fence 13
+@MainActor func compiled_docs_migrations_0_5_to_0_6_md_13() async throws {
 
 struct ProfileQuery: Command {
     typealias Result = String
@@ -186,10 +253,11 @@ let conditionalFactory = ProfileStage().cachedWhen(
     condition: { command, _ in command is ProfileQuery }
 )
 
-// docs/migrations/first-stabilization-batch.md, Swift fence 7
+}
+
+// docs/migrations/0.5-to-0.6.md, Swift fence 14
+@MainActor func compiled_docs_migrations_0_5_to_0_6_md_14() async throws {
 #if canImport(Compression)
-import Foundation
-import PipelineKitCache
 
 func decodeCachedPayload(_ compressed: Data, sizeHint: Int?) throws -> Data {
     try CompressionUtility.decompress(
@@ -200,6 +268,122 @@ func decodeCachedPayload(_ compressed: Data, sizeHint: Int?) throws -> Data {
     )
 }
 #endif
+
+}
+
+// docs/migrations/0.5-to-0.6.md, Swift fence 15
+@MainActor func compiled_docs_migrations_0_5_to_0_6_md_15() async throws {
+#if canImport(Compression)
+
+func readLegacyPayload(_ bytes: Data, storedLabel: String) throws -> Data {
+    guard let algorithm = LegacyCompressionAlgorithm(rawValue: storedLabel) else {
+        throw CompressionError.decompressionFailed("Unknown legacy compression format")
+    }
+    return try CompressionUtility.decompressLegacy(
+        bytes, using: algorithm, maxOutputSize: 1_048_576
+    )
+}
+
+func writePayload(_ bytes: Data) throws -> Data {
+    try CompressionUtility.compress(bytes, using: .rawDeflate)
+}
+#endif
+
+}
+
+// docs/migrations/0.5-to-0.6.md, Swift fence 16
+@MainActor func compiled_docs_migrations_0_5_to_0_6_md_16() async throws {
+
+func makeStatsD() async throws -> StatsDExporter {
+    let exporter = StatsDExporter(configuration: .init(host: "127.0.0.1", port: 8125))
+    await exporter.setErrorHandler { error in
+        print("Metrics export failed: \(error)")
+    }
+    do {
+        try await exporter.start()
+        return exporter
+    } catch {
+        await exporter.close()
+        throw error
+    }
+}
+
+func useInjectedTransport(_ transport: any MetricsTransport) async {
+    let exporter = StatsDExporter(configuration: .default, transport: transport)
+    await exporter.setErrorHandler(nil) // Callbacks can be cleared before publication.
+    await exporter.counter("synthetic.example")
+    await exporter.forceFlush()
+    await exporter.close()
+}
+
+}
+
+// docs/migrations/0.5-to-0.6.md, Swift fence 17
+@MainActor func compiled_docs_migrations_0_5_to_0_6_md_17() async throws {
+
+func configureMetrics(_ exporter: any MetricRecorder) async {
+    let storage = MetricsStorage()
+    await Metrics.configure(.init(storage: storage, exporter: exporter, errorHandler: { error in
+        print("Metrics export failed: \(error)")
+    }))
+    await Metrics.counter("requests")
+    await Metrics.flush()
+}
+
+func replaceRecorder(_ replacement: any MetricRecorder) async {
+    await Metrics.configure(with: replacement)
+    let current = Metrics.configuration
+    _ = await current.storage.getAll()
+}
+
+}
+
+// docs/migrations/0.5-to-0.6.md, Swift fence 18
+@MainActor func compiled_docs_migrations_0_5_to_0_6_md_18() async throws {
+
+let telemetryStorage = MetricsStorage(maxSnapshotsPerMetric: 100, maxSeries: 2_000)
+await telemetryStorage.record(.counter("requests", tags: ["route": "/users"]))
+let telemetryDiagnostics = await telemetryStorage.diagnostics
+print(telemetryDiagnostics.droppedSeries)
+
+}
+
+// docs/migrations/0.5-to-0.6.md, Swift fence 19
+@MainActor func compiled_docs_migrations_0_5_to_0_6_md_19() async throws {
+let scrapeStorage = MetricsStorage(maxSnapshotsPerMetric: 1)
+let prometheus = PrometheusExporter(metricsStorage: scrapeStorage)
+await scrapeStorage.record(.counter("requests", value: 2))
+await scrapeStorage.record(.counter("requests", value: 3))
+_ = await scrapeStorage.drain()
+let scrape = await prometheus.exportWithDiagnostics()
+print(scrape.text) // requests_total remains 5 after draining history.
+print(scrape.rejectedSeries.count)
+await scrapeStorage.clear()
+
+}
+
+// docs/migrations/0.5-to-0.6.md, Swift fence 20
+@MainActor func compiled_docs_migrations_0_5_to_0_6_md_20() async throws {
+
+let metricsHub = EventHub()
+let metricsStorage = MetricsStorage()
+let metricsConnection = await metricsHub.connectMetrics(metricsStorage)
+// Use the hub while the connection is needed.
+await metricsHub.disconnectMetrics(metricsConnection)
+
+}
+
+// docs/migrations/0.5-to-0.6.md, Swift fence 21
+@MainActor func compiled_docs_migrations_0_5_to_0_6_md_21() async throws {
+
+let poolTelemetry = PoolObservability(maximumSeries: 2_000, distributionWindowSize: 1_000)
+await poolTelemetry.recordHistogram("pool_latency_ms", value: 2, labels: ["pool": "requests"])
+let poolSnapshot = await poolTelemetry.captureSnapshot()
+let poolScrape = poolSnapshot.prometheusFormatWithDiagnostics()
+print(poolScrape.text)
+print(poolScrape.rejectedSeriesCount)
+
+}
 
 // README.md, Swift fence 1
 @MainActor func compiled_README_md_1() async throws {
@@ -744,187 +928,6 @@ try await pipeline.addMiddleware(RetryMiddleware(
         maxRetryTime: 25.0  // Budget for attempt admission and backoff; admitted work settles
     )
 ))
-
-}
-
-// docs/migrations/security-serialization-and-numeric-safety.md, Swift fence 1
-@MainActor func compiled_docs_migrations_security_serialization_and_numeric_safety_md_1() async throws {
-
-struct AccountPayload: Codable, Sendable {
-    let accountID: String
-    let labels: [String]
-}
-
-func decodeAccountField(_ value: DecryptedValue) throws -> AccountPayload {
-    guard let serialized = value.get(as: TypedData.self) else {
-        throw EncryptionError.decryptionFailed("Expected serialized account field")
-    }
-    return try serialized.decode(as: AccountPayload.self)
-}
-
-}
-
-// docs/migrations/security-serialization-and-numeric-safety.md, Swift fence 2
-@MainActor func compiled_docs_migrations_security_serialization_and_numeric_safety_md_2() async throws {
-#if canImport(Compression)
-
-func readLegacyPayload(_ bytes: Data, storedLabel: String) throws -> Data {
-    guard let algorithm = LegacyCompressionAlgorithm(rawValue: storedLabel) else {
-        throw CompressionError.decompressionFailed("Unknown legacy compression format")
-    }
-    return try CompressionUtility.decompressLegacy(
-        bytes, using: algorithm, maxOutputSize: 1_048_576
-    )
-}
-
-func writePayload(_ bytes: Data) throws -> Data {
-    try CompressionUtility.compress(bytes, using: .rawDeflate)
-}
-#endif
-
-}
-
-// docs/migrations/telemetry-hardening.md, Swift fence 1
-@MainActor func compiled_docs_migrations_telemetry_hardening_md_1() async throws {
-
-let telemetryStorage = MetricsStorage(maxSnapshotsPerMetric: 100, maxSeries: 2_000)
-await telemetryStorage.record(.counter("requests", tags: ["route": "/users"]))
-let telemetryDiagnostics = await telemetryStorage.diagnostics
-print(telemetryDiagnostics.droppedSeries)
-
-}
-
-// docs/migrations/telemetry-hardening.md, Swift fence 2
-@MainActor func compiled_docs_migrations_telemetry_hardening_md_2() async throws {
-let scrapeStorage = MetricsStorage(maxSnapshotsPerMetric: 1)
-let prometheus = PrometheusExporter(metricsStorage: scrapeStorage)
-await scrapeStorage.record(.counter("requests", value: 2))
-await scrapeStorage.record(.counter("requests", value: 3))
-_ = await scrapeStorage.drain()
-let scrape = await prometheus.exportWithDiagnostics()
-print(scrape.text) // requests_total remains 5 after draining history.
-print(scrape.rejectedSeries.count)
-await scrapeStorage.clear()
-
-}
-
-// docs/migrations/telemetry-hardening.md, Swift fence 3
-@MainActor func compiled_docs_migrations_telemetry_hardening_md_3() async throws {
-
-let poolTelemetry = PoolObservability(maximumSeries: 2_000, distributionWindowSize: 1_000)
-await poolTelemetry.recordHistogram("pool_latency_ms", value: 2, labels: ["pool": "requests"])
-let poolSnapshot = await poolTelemetry.captureSnapshot()
-let poolScrape = poolSnapshot.prometheusFormatWithDiagnostics()
-print(poolScrape.text)
-print(poolScrape.rejectedSeriesCount)
-
-}
-
-// docs/migrations/error-cancellation-and-validation.md, Swift fence 1
-@MainActor func compiled_docs_migrations_error_cancellation_and_validation_md_1() async throws {
-
-func isCancelledExecution(_ error: any Error) -> Bool {
-    if error is CancellationError { return true }
-    if case .cancelled = error as? PipelineError { return true }
-    return false
-}
-
-}
-
-// docs/migrations/error-cancellation-and-validation.md, Swift fence 2
-@MainActor func compiled_docs_migrations_error_cancellation_and_validation_md_2() async throws {
-
-let healthPolicy = HealthCheckMiddleware.Configuration(
-    errorEvaluator: { error in
-        // This application's explicit policy ignores its own validation errors.
-        if case .validation = error as? PipelineError { return false }
-        return true
-    }
-)
-_ = healthPolicy
-
-}
-
-// docs/migrations/monitoring-and-connection-lifecycle.md, Swift fence 1
-@MainActor func compiled_docs_migrations_monitoring_and_connection_lifecycle_md_1() async throws {
-
-func shutDownHealthMonitoring(_ middleware: HealthCheckMiddleware) async {
-    await middleware.stopMonitoring()
-}
-
-}
-
-// docs/migrations/monitoring-and-connection-lifecycle.md, Swift fence 2
-@MainActor func compiled_docs_migrations_monitoring_and_connection_lifecycle_md_2() async throws {
-
-let memoryResponder = MemoryPressureResponder()
-await memoryResponder.startMonitoring()
-await memoryResponder.stopMonitoring()
-await memoryResponder.startMonitoring()
-await memoryResponder.stopMonitoring()
-
-}
-
-// docs/migrations/monitoring-and-connection-lifecycle.md, Swift fence 3
-@MainActor func compiled_docs_migrations_monitoring_and_connection_lifecycle_md_3() async throws {
-
-let metricsHub = EventHub()
-let metricsStorage = MetricsStorage()
-let metricsConnection = await metricsHub.connectMetrics(metricsStorage)
-// Use the hub while the connection is needed.
-await metricsHub.disconnectMetrics(metricsConnection)
-
-}
-
-// docs/migrations/resilience-policy-contracts.md, Swift fence 1
-@MainActor func compiled_docs_migrations_resilience_policy_contracts_md_1() async throws {
-
-let budgetedRetry = RetryMiddleware(configuration: .init(
-    maxAttempts: 2,
-    strategy: .fixed(delay: 0.1),
-    maxRetryTime: 0.25
-))
-_ = budgetedRetry
-
-}
-
-// docs/migrations/resilience-policy-contracts.md, Swift fence 2
-@MainActor func compiled_docs_migrations_resilience_policy_contracts_md_2() async throws {
-
-struct ServiceHTTPFailure: Error {
-    let statusCode: Int
-}
-
-let httpRetry = RetryMiddleware.forHTTPStatusCodes([429, 502, 503]) { error in
-    (error as? ServiceHTTPFailure)?.statusCode
-}
-_ = httpRetry
-
-}
-
-// docs/migrations/resilience-policy-contracts.md, Swift fence 3
-@MainActor func compiled_docs_migrations_resilience_policy_contracts_md_3() async throws {
-
-let timeoutPolicy = TimeoutMiddleware(configuration: .init(
-    defaultTimeout: 2,
-    gracePeriod: 0.25
-))
-_ = timeoutPolicy
-
-}
-
-// docs/migrations/resilience-policy-contracts.md, Swift fence 4
-@MainActor func compiled_docs_migrations_resilience_policy_contracts_md_4() async throws {
-
-let priorityLimiter = RateLimiter(strategy: .priorityBased(limits: [
-    .medium: .init(maxRequests: 10, windowSize: 60),
-    .high: .init(maxRequests: 20, windowSize: 60)
-]))
-_ = try await priorityLimiter.allowRequest(identifier: "customer", priority: .high)
-let highStatus = try await priorityLimiter.getStatus(identifier: "customer", priority: .high)
-try await priorityLimiter.reset(identifier: "customer", priority: .high)
-try await priorityLimiter.reset()
-_ = highStatus
 
 }
 

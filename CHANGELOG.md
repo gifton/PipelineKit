@@ -27,6 +27,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `PipelineKitTestSupport`. The command-bus book ends with a table mapping its teaching bus
   onto PipelineKit's types. The documentation site's Getting Started article and
   `docs/guides/enterprise-evaluation.md` are now compiled in CI.
+- The ten 0.6.0 migration notes are consolidated into one upgrade guide,
+  `docs/migrations/0.5-to-0.6.md`, organised by module and opened by a section on data
+  written by 0.5.x. Every Swift example in it is compiled in CI. The qualification records
+  remain at the `v0.6.0` tag. Statements that later 0.6.0 work had superseded were removed,
+  and two instructions were corrected against the source: a distributed rate-limit status
+  lookup throws the store's error (the notes said its read-error behavior was unchanged), and
+  the task-scoped warning suppression is `NextGuard.withoutWarnings` (the notes named
+  `NextGuardConfiguration`). `docs/migrations/release-readiness.md` is a pointer to the new
+  guide until the next tagged release.
 
 ### Changed
 
@@ -36,6 +45,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.6.0] - 2026-11-07
 
 ### Breaking
+
+Consolidated after release: [Upgrading from 0.5.4 to 0.6.0](docs/migrations/0.5-to-0.6.md) replaces the per-topic notes linked below, which remain available at the `v0.6.0` tag.
 
 See the [compiled migration guide](https://github.com/gifton/PipelineKit/blob/v0.6.0/docs/migrations/first-stabilization-batch.md) before upgrading.
 0.6.0 contains source and behavior changes from 0.5.4. See the
@@ -463,11 +474,11 @@ for caller updates, qualification evidence, and remaining limits.
   - Updated installation version from 0.1.0 to 0.2.0
   - Added explicit platform version requirements section
 
-## [1.0.0] - 2025-09-25
+## [1.0.0] - 2025-09-25 (never tagged)
 
-> Note: this release was published without a `v1.0.0` tag and versioning subsequently
-> returned to the 0.x series.
-> See [VERSIONING.md](VERSIONING.md) for the current versioning policy.
+> Note: there is no `v1.0.0` tag and no 1.0.0 release to depend on. This entry records
+> changes made on that date; versioning continued in the 0.x series.
+> See [VERSIONING.md](VERSIONING.md).
 
 ### Breaking
 - Renamed metadata initialisms for clarity and Swift guidelines compliance:

@@ -10,7 +10,7 @@ command, one handler, one pipeline, one execution.
 ### Add PipelineKit to your package
 
 This walkthrough targets 0.6.0. When upgrading from 0.5.4, review the
-[migration guide](https://github.com/gifton/PipelineKit/blob/main/docs/migrations/release-readiness.md).
+[upgrade guide](https://github.com/gifton/PipelineKit/blob/main/docs/migrations/0.5-to-0.6.md).
 
 ```swift
 dependencies: [
