@@ -42,7 +42,11 @@ final class TimeoutMiddlewareTests: XCTestCase {
     
     func testTimeoutMiddlewareEnforcesTimeout() async throws {
         // Given
-        let slowMiddleware = SlowMiddleware(delay: 0.2) // 200ms
+        // The work must outlast the deadline by far more than any scheduling stall. With a
+        // 200ms sleep against a 100ms deadline, a stall past both let the work win the race
+        // in `withTimeout` and the call returned a value. The sleep is cancelled at the
+        // deadline, so the test still finishes in about 100ms.
+        let slowMiddleware = SlowMiddleware(delay: 30)
         let timeoutMiddleware = TimeoutMiddleware(
             defaultTimeout: 0.1 // 100ms timeout
         )
