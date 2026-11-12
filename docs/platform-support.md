@@ -26,15 +26,15 @@ floor OS. The last column lists where tests are executed.
 
 | Platform | Floor | Compiled for the floor | Tests executed on |
 |----------|-------|------------------------|-------------------|
-| macOS | 15.0 | Every PR, SwiftPM, Debug and Release | A macOS 26 runner on every PR, Debug and Release (required). A lane is set up to run the same test targets and the example programs on a macOS 15 runner; it is advisory and no run of it has completed yet |
-| iOS | 18.0 | Every PR, simulator build | An iOS 26.x simulator on every PR, Debug (required). A lane is set up to run the tests on an iOS 18.x simulator; it is advisory and no run of it has completed yet |
+| macOS | 15.0 | Every PR, SwiftPM, Debug and Release | A macOS 26 runner on every PR, Debug and Release (required). A lane runs the same test targets and the example programs on a macOS 15 runner; it is advisory. Its first run, on 2026-11-11, passed on macOS 15.8.2 with Xcode 26.3 |
+| iOS | 18.0 | Every PR, simulator build | An iOS 26.x simulator on every PR, Debug (required). A lane runs the tests on an iOS 18.x simulator; it is advisory. Its first run, on 2026-11-11, passed on an iOS 18.5 simulator |
 | tvOS | 18.0 | Required Debug/Release simulator builds | Not executed on any OS version |
 | visionOS | 2.0 | Required Debug/Release simulator builds | Not executed on any OS version |
 | watchOS | 11.0 | Debug/Release simulator builds; advisory | Not executed on any OS version |
 
 What these lanes do not show:
 
-- **The first releases of each floor generation.** The floor lanes are set up to run on
+- **The first releases of each floor generation.** The floor lanes run on
   what GitHub's `macos-15` image provides: a macOS 15.8 host and iOS 18.5 and 18.6
   simulator runtimes when this was written. macOS 15.0 to 15.3 and iOS 18.0 to 18.3 ship the Swift 6.0
   runtime; 15.4 and 18.4 onward ship the Swift 6.1 runtime. No lane executes on the
@@ -78,10 +78,11 @@ supported one:
 
 - Every PR builds the package on Linux (debug + release), but the jobs are
   non-blocking — a Linux failure does not fail CI.
-- A weekly job is set up to run the test targets (all except performance)
-  on Linux, also non-blocking. No run of it has completed the test step yet:
-  before this change the step stopped on a shell error before compiling
-  anything. Until a run completes, Linux test status is unknown.
+- A weekly job tries to run the test targets (all except performance) on
+  Linux, also non-blocking. It currently fails: the test targets do not
+  compile on Linux under Swift 6.2 (strict-concurrency errors in three test
+  files, seen in the run of 2026-11-11). No test has executed on Linux, so
+  whether the tests pass there is unknown.
 
 If you need supported Linux, say so in an issue — demand is an input to
 that decision.

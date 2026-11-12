@@ -142,7 +142,9 @@ Linux builds use Docker container `swift:6.2`:
 - **Tests in `weekly.yml`**: the `Linux Test` job is set up to run the eight test targets
   (performance excluded), also with `continue-on-error: true`. Its test step previously
   stopped on a shell error (bash arrays under `sh`) before compiling; it now runs under
-  `bash`, and no run has completed yet, so Linux test status is unknown
+  `bash` and fails at compilation: `AuditLoggerCapacityTests.swift` (`stdout` is not
+  concurrency-safe) and two `PipelineKitPoolingTests` telemetry test files (sending a
+  non-`Sendable` test case) do not compile on Linux, so no Linux test has executed
 - Uses Swift 6.2 only (no legacy version testing)
 
 ## Troubleshooting

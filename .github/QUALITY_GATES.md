@@ -104,7 +104,7 @@ of the called workflow's jobs, so a failure of that job also stops the release.
   Sanitizer and Thread Sanitizer builds and the Release build of the performance-test target
   must also succeed. The sanitizer test steps (step-level `continue-on-error`), the
   performance-test run (its exit status is discarded) and the `Linux Test` job (the eight test
-  targets on Linux, job-level `continue-on-error`; no run has completed its test step yet)
+  targets on Linux, job-level `continue-on-error`; the test targets do not compile on Linux today, so it fails)
   are advisory. The `Deep Security Audit` job
   runs Trivy with every severity selected and `exit-code: '1'`, so a finding fails the run; its
   SARIF upload step runs whether or not the scan step succeeded.
