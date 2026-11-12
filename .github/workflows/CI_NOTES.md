@@ -128,8 +128,10 @@ Linux builds use Docker container `swift:6.2`:
 - Set as `continue-on-error: true` (secondary platform)
 - Requires additional system dependencies
 - **Build-only in `ci.yml`**: both of its Linux jobs run `swift build`; neither runs tests
-- **Tests in `weekly.yml`**: the `Linux Test` job runs the eight test targets (performance
-  excluded), also with `continue-on-error: true`
+- **Tests in `weekly.yml`**: the `Linux Test` job is set up to run the eight test targets
+  (performance excluded), also with `continue-on-error: true`. Its test step previously
+  stopped on a shell error (bash arrays under `sh`) before compiling; it now runs under
+  `bash`, and no run has completed yet, so Linux test status is unknown
 - Uses Swift 6.2 only (no legacy version testing)
 
 ## Troubleshooting

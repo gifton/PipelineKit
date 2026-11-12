@@ -141,6 +141,8 @@ jobs:
         run: swift build
 
       - name: Test
+        # The script uses bash arrays; the container's default shell is sh.
+        shell: bash
         run: |
           # Run each test target individually, excluding performance tests
           TEST_TARGETS=(

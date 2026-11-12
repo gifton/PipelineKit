@@ -45,8 +45,10 @@ supported one:
 
 - Every PR builds the package on Linux (debug + release), but the jobs are
   non-blocking — a Linux failure does not fail CI.
-- A weekly job runs the full test sweep (all test targets except
-  performance) on Linux, also non-blocking.
+- A weekly job is set up to run the test targets (all except performance)
+  on Linux, also non-blocking. No run of it has completed the test step yet:
+  before this change the step stopped on a shell error before compiling
+  anything. Until a run completes, Linux test status is unknown.
 
 If you need supported Linux, say so in an issue — demand is an input to
 that decision.
