@@ -18,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Benchmark harness runs its workloads off the main thread; records made with the earlier
-  harness are not comparable with new ones.
+  harness are not comparable with new ones. First published results are in `docs/benchmarks.md`.
 
 ## [0.6.0] - 2026-11-07
 

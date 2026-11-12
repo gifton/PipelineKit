@@ -119,8 +119,10 @@ Where next:
 - **You need Linux as a supported platform.** Linux is built on every PR but is best-effort and
   does not block CI.
 - **A direct function call would do.** Every execution goes through an actor and a middleware
-  chain. If you have no cross-cutting behaviour to put in middleware, that indirection buys you
-  nothing. The command-bus book has a longer
+  chain. With no middleware at all that cost about 1.0 µs per command on the
+  [reference machine](#performance), so it is the wrong tool inside a per-element loop. If you
+  have no cross-cutting behaviour to put in middleware, that indirection buys you nothing. The
+  command-bus book has a longer
   [when to use it, and when not](docs/guides/command-bus/README.md#when-to-use-command-bus-architecture) section.
 
 ## Installation
@@ -215,13 +217,23 @@ func makeResilientPipeline<H: CommandHandler>(
 
 ## Performance
 
-<!-- PROOF-SLOT(benchmarks): published benchmark numbers and their hardware/toolchain context
-     are added here by the "proof" polish item. Do not add numbers in other changes. -->
+Measured on PipelineKit 0.6.0 (`74e7fc6`), Release build, Apple M3 Max, macOS 27.0.1, Swift
+6.4.2, calling from a task off the main thread:
 
-This README does not publish benchmark numbers yet. To measure on your own hardware,
-[docs/benchmarks.md](docs/benchmarks.md) describes the Release-mode harness, its four workloads
-and how to compare a candidate against a baseline. The XCTest `measure` suites are also
-available:
+| One operation | Median | p95 |
+|---|---:|---:|
+| Execute a command through a `StandardPipeline` with no middleware | 1,000 ns | 1,060 ns |
+| Set and read one `CommandContext` metadata value | 212 ns | 229 ns |
+| Admit one request through a token-bucket `RateLimiter` | 492 ns | 524 ns |
+
+Each figure is the duration of a batch of 1,000 operations divided by 1,000, over 1,000 timed
+batches from five launches. They are batch means on one machine, not per-call latency
+percentiles. Awaiting a pipeline from the main actor adds a thread hop per call: the first row
+measured 7,550 ns when driven from the main thread.
+[docs/benchmarks.md](docs/benchmarks.md#published-results) has the method, the raw records and
+the commands to reproduce them or to measure your own hardware.
+
+The XCTest `measure` suites are also available:
 
 ```bash
 swift test -c release --filter PipelineKitPerformanceTests
