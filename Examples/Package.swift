@@ -16,18 +16,22 @@ let package = Package(
             dependencies: [.product(name: "PipelineKit", package: "PipelineKit")]
         ),
         .executableTarget(
-            name: "AdvancedExample",
+            name: "MiddlewareStackExample",
             dependencies: [
                 .product(name: "PipelineKit", package: "PipelineKit"),
                 .product(name: "PipelineKitResilience", package: "PipelineKit")
             ]
         ),
         .executableTarget(
-            name: "MetricsSamplingExample",
-            dependencies: [.product(name: "PipelineKitObservability", package: "PipelineKit")]
+            name: "BatchIngestExample",
+            dependencies: [
+                .product(name: "PipelineKit", package: "PipelineKit"),
+                .product(name: "PipelineKitResilience", package: "PipelineKit"),
+                .product(name: "PipelineKitObservability", package: "PipelineKit")
+            ]
         ),
         .executableTarget(
-            name: "MetricsAggregationExample",
+            name: "StatsDExportExample",
             dependencies: [.product(name: "PipelineKitObservability", package: "PipelineKit")]
         ),
         .executableTarget(

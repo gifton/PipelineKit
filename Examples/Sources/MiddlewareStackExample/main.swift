@@ -106,7 +106,7 @@ do {
     print("rejected as expected: quantity must be positive")
 }
 guard await service.attempts == 3 else { throw ExampleFailure.invalidOrderReachedHandler }
-print("PASS: AdvancedExample")
+print("PASS: MiddlewareStackExample")
 
 enum ExampleFailure: Error {
     case unexpectedConfirmation, unexpectedRetryCounts, validationNotRejected, invalidOrderReachedHandler

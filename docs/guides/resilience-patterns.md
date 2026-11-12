@@ -299,6 +299,9 @@ let pipeline = StandardPipeline(handler: handler, maxConcurrency: 10)
 - Every command queues at the same priority; priorities are available by using
   `BackPressureSemaphore` directly
 
+[`BatchIngestExample`](../../Examples/Sources/BatchIngestExample/main.swift) runs both cases:
+a caller that stays within `maxOutstanding`, and one that exceeds it and is rejected.
+
 ```swift
 try await pipeline.addMiddleware(BackPressureMiddleware(
     maxConcurrency: 10,

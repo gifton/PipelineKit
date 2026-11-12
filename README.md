@@ -86,8 +86,9 @@ Where next:
 
 - New to the pattern: the [command-bus book](docs/guides/command-bus/README.md), six chapters
   that build a command bus from nothing, then the [tutorials](docs/tutorials/basic-usage.md).
-- Building a high-volume pipeline: [concurrency controls](docs/guides/resilience-patterns.md#understanding-concurrency-controls)
-  and the [performance guide](docs/guides/performance.md).
+- Building a high-volume pipeline: [concurrency controls](docs/guides/resilience-patterns.md#understanding-concurrency-controls),
+  the [performance guide](docs/guides/performance.md), and `BatchIngestExample` in
+  [Examples](Examples/README.md).
 - Want the API tour: [Getting Started](https://gifton.github.io/PipelineKit/documentation/pipelinekit/gettingstarted/)
   on the documentation site.
 - Want more runnable code: the programs in [Examples](Examples/README.md).

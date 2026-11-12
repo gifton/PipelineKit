@@ -9,8 +9,8 @@ import sys
 import uuid
 
 ROOT = Path(__file__).resolve().parents[2]
-PRODUCTS = ('BasicExample', 'AdvancedExample', 'MetricsSamplingExample',
-            'MetricsAggregationExample', 'TypeSafeEncryptionExample')
+PRODUCTS = ('BasicExample', 'MiddlewareStackExample', 'BatchIngestExample', 'StatsDExportExample',
+            'TypeSafeEncryptionExample')
 LOGS = ROOT / '.build/validation/logs'
 
 

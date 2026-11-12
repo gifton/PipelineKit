@@ -27,7 +27,8 @@ This page says where everything else is, and in what order to read it.
    which has the middleware ordering table.
 3. [Understanding concurrency controls](guides/resilience-patterns.md#understanding-concurrency-controls)
    and the [performance guide](guides/performance.md).
-4. The programs in [Examples](../Examples/README.md).
+4. `BatchIngestExample` in [Examples](../Examples/README.md): one command per batch, a
+   bounded driver, and what happens when the bound is exceeded.
 5. The evidence: [tested concurrency guarantees](CONCURRENCY.md#guarantees-and-the-tests-that-exercise-them)
    and the [published measurements](benchmarks.md), with how to repeat them on your own hardware.
 

@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `BatchIngestExample`: a batch ingest pipeline with one command per batch, bounded
+  concurrency and outstanding work through `BackPressureMiddleware`, and metrics the program
+  reads back and checks. CI builds and runs it with the other examples.
+
 ### Documentation
 
 - README restructured as an entry point: first example, reasons to choose or not choose the
@@ -49,6 +55,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   18.3, which ship an older Swift runtime) are not exercised.
 - Benchmark harness runs its workloads off the main thread; records made with the earlier
   harness are not comparable with new ones. First published results are in `docs/benchmarks.md`.
+- Examples: `AdvancedExample` is renamed `MiddlewareStackExample`; `MetricsSamplingExample`
+  and `MetricsAggregationExample` are merged into `StatsDExportExample`, which runs both
+  checks unchanged.
 
 ## [0.6.0] - 2026-11-07
 

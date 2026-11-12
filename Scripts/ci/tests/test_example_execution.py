@@ -10,8 +10,8 @@ import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[3]
-PRODUCTS = ('BasicExample', 'AdvancedExample', 'MetricsSamplingExample',
-            'MetricsAggregationExample', 'TypeSafeEncryptionExample')
+PRODUCTS = ('BasicExample', 'MiddlewareStackExample', 'BatchIngestExample', 'StatsDExportExample',
+            'TypeSafeEncryptionExample')
 
 
 class ExampleExecutionTests(unittest.TestCase):
@@ -58,7 +58,7 @@ binary = root / 'example binaries'
 binary.mkdir(exist_ok=True)
 if stage == 'build':
     assert json.loads((root / 'Examples/Package.resolved').read_text()) == json.loads((root / 'Package.resolved').read_text()), 'root pins not seeded'
-    for name in ('BasicExample', 'AdvancedExample', 'MetricsSamplingExample', 'MetricsAggregationExample', 'TypeSafeEncryptionExample'):
+    for name in PRODUCT_NAMES:
         (binary / name).touch()
     output = 'Build complete!\\n'
     if mode == 'drift':
@@ -77,7 +77,7 @@ elif mode == 'duplicate-marker': output += 'PASS: ' + stage + '\\n'
 if mode != 'missing-log': log.write_text(output)
 if mode == 'exit': sys.exit(37)
 if mode == 'timeout': sys.exit(124)
-''')
+'''.replace('PRODUCT_NAMES', repr(PRODUCTS)))
 
     def run_gate(self, configuration='debug', stage='', mode=''):
         self.calls.write_text('')
