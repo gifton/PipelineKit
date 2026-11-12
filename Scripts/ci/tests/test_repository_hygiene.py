@@ -113,6 +113,8 @@ class RepositoryHygieneTests(unittest.TestCase):
         documents = {path for path in documents if path.name not in HISTORICAL_DOCUMENTS}
         scripts = {ROOT / path for path in tracked("Scripts", "Makefile")
                    if Path(path).suffix in SCRIPT_SUFFIXES or path == "Makefile"}
+        # This file's own fixtures name a workflow that deliberately does not exist.
+        scripts.discard(Path(__file__).resolve())
         self.assertGreater(len(documents), 20)
         self.assertGreater(len(scripts), 20)
         for path in sorted(documents | scripts):
