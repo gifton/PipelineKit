@@ -9,9 +9,7 @@ command, one handler, one pipeline, one execution.
 
 ### Add PipelineKit to your package
 
-This walkthrough targets 0.6.0. The dependency below requires the `v0.6.0`
-tag; use a local package checkout to evaluate these APIs before publication.
-When upgrading from 0.5.4, review the
+This walkthrough targets 0.6.0. When upgrading from 0.5.4, review the
 [migration guide](https://github.com/gifton/PipelineKit/blob/main/docs/migrations/release-readiness.md).
 
 ```swift
@@ -86,5 +84,8 @@ try await pipeline.addMiddleware(LoggingMiddleware())
 ### Where to go next
 
 - <doc:Architecture> — how the pieces fit together.
-- The `Examples/` package in the repository contains runnable programs
-  (`swift run BasicExample`, `swift run AdvancedExample`).
+- <doc:MiddlewareGuide> — writing and ordering middleware.
+- The [documentation index](https://github.com/gifton/PipelineKit/blob/main/docs/README.md)
+  lists the tutorials and guides in reading order.
+- The `Examples/` package in the repository contains runnable programs. From the
+  repository root: `swift run --package-path Examples BasicExample`.

@@ -8,6 +8,9 @@ share one function so registration can resolve the documented middleware types.
 Each fence retains its own manifest entry; import lines move to the common header.
 The basic-usage retry definitions stay at file scope so the public consumer can
 execute the documented retry policy through a real middleware chain.
+Walkthrough documents are checked whole: every fence, in document order, inside one
+function, so a later fence can use what an earlier one declares. Their selection
+does not depend on the baseline.
 Nothing in the extracted examples is executed by importing the compiled file.
 Package initializer fragments beginning with dependencies: or targets: are kept
 in separate Package.swift fixtures and validated with swift package dump-package.
@@ -28,7 +31,12 @@ FILES = ['docs/migrations/first-stabilization-batch.md', 'README.md',
          'docs/migrations/error-cancellation-and-validation.md',
          'docs/migrations/monitoring-and-connection-lifecycle.md',
          'docs/migrations/resilience-policy-contracts.md',
-         'docs/tutorials/basic-usage.md']
+         'docs/tutorials/basic-usage.md',
+         'docs/guides/testing.md',
+         'Sources/PipelineKit/PipelineKit.docc/GettingStarted.md',
+         'docs/guides/enterprise-evaluation.md']
+WALKTHROUGHS = {'Sources/PipelineKit/PipelineKit.docc/GettingStarted.md',
+                'docs/guides/enterprise-evaluation.md'}
 SECURITY_COMPOSITION_DEFINITIONS = [
     r'\bstruct SecurityMetricsMiddleware\s*:',
     r'\bstruct MaskingAuditLogger\s*:',
@@ -69,6 +77,24 @@ manifest_path.unlink(missing_ok=True)
 for file in FILES:
     body = (ROOT / file).read_text()
     all_fences = FENCE.findall(body)
+    if file in WALKTHROUGHS:
+        bodies = []
+        for number, snippet in enumerate(all_fences, 1):
+            entry = dict(file=file, swift_fence=number,
+                snippet_sha256=hashlib.sha256(snippet.encode()).hexdigest(), conditional_platform=None)
+            if MANIFEST_FRAGMENT.match(snippet):
+                entry.update(validate_manifest_fragment(file, number, snippet))
+                entry['harness'] = 'exact body as Package initializer arguments; swift package dump-package'
+            else:
+                imports.update(re.findall(r'^import [^\n]+', snippet, flags=re.M))
+                bodies.append(f'// {file}, Swift fence {number}\n'
+                              + re.sub(r'^import [^\n]+\n', '', snippet, flags=re.M))
+                entry['harness'] = ('imports hoisted; exact remaining body, in document order, '
+                                    'inside one shared @MainActor async throws function')
+            manifest.append(entry)
+        name = re.sub('[^a-zA-Z0-9]', '_', file)
+        parts.append(f'@MainActor func compiled_{name}() async throws {{\n' + '\n'.join(bodies) + '\n}\n\n')
+        continue
     old = subprocess.run(['git', 'show', f'{BASELINE}:{file}'], cwd=ROOT,
                          text=True, capture_output=True)
     old_fences = FENCE.findall(old.stdout) if old.returncode == 0 else []

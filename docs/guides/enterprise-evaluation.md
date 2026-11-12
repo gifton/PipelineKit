@@ -27,8 +27,7 @@ swift run BasicExample
 
 ### 2. Add PipelineKit to a scratch package (5 minutes)
 
-This guide targets 0.6.0. Use this range after `v0.6.0` is published;
-before then, use a local package checkout. Review the
+This guide targets 0.6.0. Review the
 [migration guide](../migrations/release-readiness.md) before upgrading from 0.5.4.
 
 ```swift
@@ -168,16 +167,15 @@ longest-exercised, not guaranteed-frozen.
   execution behavior, middleware composition, and cancellation contracts.
 - **Newest surface** — `ExecutionContext` task-local propagation and
   progress reporting shipped in 0.5.2. Treat as the least-settled API.
-- **Release target** — 0.6.0; check the [releases page](https://github.com/gifton/PipelineKit/releases) for publication.
-  Review the [migration and qualification limits](../migrations/release-readiness.md)
-  when evaluating the current branch. Deprecated tagged bulkheads from
+- **Changed in 0.6.0** — review the
+  [migration and qualification limits](../migrations/release-readiness.md). Deprecated tagged bulkheads from
   [#86](https://github.com/gifton/PipelineKit/issues/86) are removed; declared
   partitions provide independent capacity. The health error classification and
-  recovery concerns in [#87](https://github.com/gifton/PipelineKit/issues/87) now
+  recovery concerns in [#87](https://github.com/gifton/PipelineKit/issues/87)
   have implementation and contract tests: `ResilienceErrorPolicyTests` excludes
   cancellation/domain errors by default and `HealthRecoveryContractTests` checks
-  recovery after the failure window expires. This describes current source and
-  tests, not a change to the remote issue's status or the published 0.5.4 behavior.
+  recovery after the failure window expires. This describes the 0.6.0 source and
+  tests, not the status of the linked issues.
 
 ## Where to report what
 

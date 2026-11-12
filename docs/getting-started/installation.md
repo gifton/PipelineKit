@@ -4,11 +4,9 @@ Install PipelineKit with Swift Package Manager, either through Xcode or a
 `Package.swift` manifest. The package manifest defines the module graph and external
 dependencies required to build the library.
 
-These instructions target **0.6.0**. The versioned dependencies below become
-available when `v0.6.0` is published; use a [local checkout](#local-package-checkout)
-before then. Follow the [0.6.0 migration guide](../migrations/release-readiness.md)
-when upgrading from 0.5.4. Check the [releases page](https://github.com/gifton/PipelineKit/releases)
-for published tags.
+These instructions target **0.6.0**. Published tags are listed on the
+[releases page](https://github.com/gifton/PipelineKit/releases). Follow the
+[0.6.0 migration guide](../migrations/release-readiness.md) when upgrading from 0.5.4.
 
 ## Requirements
 
@@ -208,6 +206,6 @@ Ensure you have internet connectivity and the repository URL is correct.
 
 ## Next Steps
 
-- Follow the [Quick Start](quick-start.md) guide
-- Read about [Architecture](../guides/architecture.md)
-- Check out [Examples](../tutorials/basic-usage.md)
+- Write a first pipeline: [README](../../README.md#a-first-pipeline)
+- Work through the [basic usage tutorial](../tutorials/basic-usage.md)
+- Run the programs in [Examples](../../Examples/README.md)

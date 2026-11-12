@@ -183,9 +183,14 @@ try await pipeline.addMiddleware(RetryMiddleware.forNetworkRequests())
 
 ## Common Configurations
 
+`StandardPipeline(handler:options:)` applies only `maxConcurrency` from `PipelineOptions`. It
+ignores `maxOutstanding`, `maxQueueMemory` and any strategy other than `.suspend`, logging a
+warning for each of those it was given, so in the first two configurations below the pipeline
+itself contributes a concurrency limit and nothing else.
+
 ### High-Throughput Pipeline
 
-Optimized for maximum throughput with back-pressure control:
+A concurrency limit on the pipeline, with queueing bounded by the bulkhead:
 
 ```swift
 let pipeline = StandardPipeline(
@@ -283,10 +288,16 @@ let pipeline = StandardPipeline(handler: handler, maxConcurrency: 10)
 
 ### `BackPressureMiddleware`
 
-- Uses `BackPressureSemaphore` with advanced features
-- Supports multiple back-pressure strategies (suspend, drop, error)
-- Queue limits and memory tracking
-- Priority-based queuing
+- Uses `BackPressureSemaphore`
+- Runs at most `maxConcurrency` executions and queues the rest, up to `maxOutstanding`
+  executing and queued in total (default: five times `maxConcurrency`)
+- At that bound, `.suspend` and `.error` reject the new command with
+  `PipelineError.backPressure(reason: .queueFull)`; `.dropOldest` evicts the oldest queued
+  command with `.commandDropped`, or rejects the new one with `.queueFull` when nothing is
+  queued; `.dropNewest` rejects the new command with `.commandDropped`
+- `maxQueueMemory` bounds the estimated size of queued commands
+- Every command queues at the same priority; priorities are available by using
+  `BackPressureSemaphore` directly
 
 ```swift
 try await pipeline.addMiddleware(BackPressureMiddleware(
@@ -447,10 +458,3 @@ Each middleware adds a small amount of latency. For ultra-low-latency paths:
    that only forwards to it when a predicate matches; see
    [Advanced Patterns](../tutorials/advanced-patterns.md#conditional-middleware-execution)
    for the full pattern.
-
-### Semaphore Choice
-
-- `SimpleSemaphore`: ~0.1μs overhead per acquire/release
-- `BackPressureSemaphore`: ~1-5μs overhead with queue management
-
-For most applications, this overhead is negligible. Only optimize if profiling shows it's a bottleneck.

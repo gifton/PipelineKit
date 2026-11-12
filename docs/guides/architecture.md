@@ -2,6 +2,10 @@
 
 This document describes PipelineKit’s core building blocks, execution flow, and design principles. It reflects the current APIs and implementation.
 
+The shorter overview, with the table of standard `ExecutionPriority` values, is the
+[Architecture article](https://gifton.github.io/PipelineKit/documentation/pipelinekit/architecture/)
+on the documentation site.
+
 ## Core Components
 
 ### Command
@@ -69,14 +73,14 @@ public protocol Middleware: Sendable {
     func execute<T: Command>(
         _ command: T,
         context: CommandContext,
-        next: @Sendable (T, CommandContext) async throws -> T.Result
+        next: @escaping @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result
 }
 ```
 
 - ExecutionPriority (lower executes earlier); ties preserve insertion order (stable)
 - Access to both command and context
-- NextGuard enforces exactly‑once/concurrency safety for `next` calls
+- `NextGuard` lets `next` succeed at most once per execution; a second call throws `PipelineError.nextAlreadyCalled`
 
 ### Pipeline
 
@@ -110,41 +114,15 @@ Command → Pipeline → [Middleware…] → Handler → Result
 ## Performance & Concurrency
 
 - Stable ordering: middleware sorted by ExecutionPriority; ties preserve insertion order
-- Concurrency limits: StandardPipeline can be constructed with maxConcurrency or PipelineOptions
+- Concurrency limits: StandardPipeline can be constructed with maxConcurrency or PipelineOptions (from PipelineOptions it applies only maxConcurrency)
 - Back‑pressure: for advanced scenarios, compose resilience middleware (e.g., bulkhead) from PipelineKitResilience
-- NextGuard: ensures `next` is called exactly once; use UnsafeMiddleware to opt‑out. NextGuardWarningSuppressing suppresses debug‑only deinit warnings only for middleware that returns a result without calling `next()` on a normal path (e.g., cache hits) — since 0.6, throw‑based short‑circuits are detected automatically and don't need it
+- NextGuard: `next` succeeds at most once; adopt `UnsafeMiddleware` to opt out. NextGuardWarningSuppressing suppresses debug‑only deinit warnings only for middleware that returns a result without calling `next()` on a normal path (e.g., cache hits) — since 0.6, throw‑based short‑circuits are detected automatically and don't need it
 
 ## Caching
 
-Use PipelineKitCache for production caching.
-
-```swift
-import PipelineKitCache
-
-struct ProfileQuery: Command {
-    typealias Result = String
-    let accountID: String
-    let locale: String
-}
-
-// AuthenticationMiddleware must establish authUserId before protected caching.
-let profileKeys = ClosureCacheKeyGenerator { command, context, _ in
-    guard let query = command as? ProfileQuery,
-          let principal = context.getMetadata("authUserId") as? String else {
-        preconditionFailure("Expected an authenticated profile query")
-    }
-    return [query.accountID, query.locale, principal, "profile-format-v2"]
-        .map { "\($0.utf8.count):\($0)" }.joined()
-}
-
-let cache = InMemoryCache(maxSize: 1000)
-let caching = CachingMiddleware(
-    cache: cache,
-    commandType: ProfileQuery.self,
-    keyGenerator: profileKeys,
-    ttl: 300
-)
-```
+`PipelineKitCache` provides result caching. The worked example, with a cache key that
+binds the authenticated principal, is in the
+[custom middleware tutorial](../tutorials/custom-middleware.md#caching-built-in).
 
 ## Observability
 

@@ -32,7 +32,7 @@ struct VerboseLoggingMiddleware: Middleware {
     func execute<T: Command>(
         _ command: T,
         context: CommandContext,
-        next: @Sendable (T, CommandContext) async throws -> T.Result
+        next: @escaping MiddlewareNext<T>
     ) async throws -> T.Result {
         let result = try await next(command, context)
         print("[DEBUG] \(T.self) executed")

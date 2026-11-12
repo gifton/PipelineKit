@@ -13,10 +13,12 @@ public protocol Middleware: Sendable {
     func execute<T: Command>(
         _ command: T,
         context: CommandContext,
-        next: @Sendable (T, CommandContext) async throws -> T.Result
+        next: @escaping @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result
 }
 ```
+
+`MiddlewareNext<T>` is a typealias for that `next` closure type; the examples below use it.
 
 ## Simple Middleware Examples
 
@@ -29,7 +31,7 @@ struct TimingMiddleware: Middleware {
     func execute<T: Command>(
         _ command: T,
         context: CommandContext,
-        next: @Sendable (T, CommandContext) async throws -> T.Result
+        next: @escaping MiddlewareNext<T>
     ) async throws -> T.Result {
         let start = Date()
         defer {
@@ -51,7 +53,7 @@ struct HeaderInjectionMiddleware: Middleware {
     func execute<T: Command>(
         _ command: T,
         context: CommandContext,
-        next: @Sendable (T, CommandContext) async throws -> T.Result
+        next: @escaping MiddlewareNext<T>
     ) async throws -> T.Result {
         for (key, value) in headers {
             let headerKey = ContextKey<String>("header:\(key)")
@@ -73,10 +75,10 @@ struct MapResult<Mapped, C: Command>: Middleware {
     func execute<T: Command>(
         _ command: T,
         context: CommandContext,
-        next: @Sendable (T, CommandContext) async throws -> T.Result
+        next: @escaping MiddlewareNext<T>
     ) async throws -> T.Result {
         let result = try await next(command, context)
-        if let same = command as? C,
+        if command is C,
            let mapped = try await transform(result as! C.Result) as? T.Result {
             return mapped
         }
@@ -85,7 +87,7 @@ struct MapResult<Mapped, C: Command>: Middleware {
 }
 ```
 
-## Rate Limiting (built‑in)
+## Rate Limiting (built-in)
 
 ```swift
 import PipelineKitResilience
@@ -105,7 +107,7 @@ let rateLimit = RateLimitingMiddleware(
 try await pipeline.addMiddleware(rateLimit)
 ```
 
-## Caching (built‑in)
+## Caching (built-in)
 
 ```swift
 import PipelineKitCache

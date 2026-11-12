@@ -110,30 +110,6 @@ This guide is broken down by the major components of the pattern. Here's a quick
 | **100 Commands** | DI Container | Feature folders | Consider lazy loading |
 | **1000 Commands** | Auto-discovery | Module boundaries | Profile hot paths, batch operations |
 
-### Performance Benchmarks (Indicative)
-
-Pseudo-code, not literal Swift: `bus`/`busWithMiddleware`/`NoOpCommand` are illustrative
-stand-ins, and every `dispatch` in this series is `async throws` — calling it from inside
-`Array.forEach`'s synchronous closure (as opposed to a `for` loop with `try await`) isn't
-valid regardless. The numbers are indicative, not measured output from this snippet.
-
-```text
-// Simple benchmark to understand overhead
-let commands = (0..<1000).map { NoOpCommand(id: $0) }
-
-// Without middleware
-let start = CFAbsoluteTimeGetCurrent()
-commands.forEach { bus.dispatch(command: $0) }
-print("Direct: \(CFAbsoluteTimeGetCurrent() - start)s")
-// Result: ~0.012s (12μs per command)
-
-// With 3 middleware
-let middlewareStart = CFAbsoluteTimeGetCurrent()
-commands.forEach { busWithMiddleware.dispatch(command: $0) }
-print("With middleware: \(CFAbsoluteTimeGetCurrent() - middlewareStart)s")
-// Result: ~0.045s (45μs per command)
-```
-
 ---
 
 ## How to Use This Guide
@@ -163,6 +139,23 @@ This guide is designed to be read sequentially, with each section building on th
 
 6. ### [Master testing strategies →](06-TestingTheBus.md)
    *Test your architecture effectively*
+
+---
+
+## From this bus to PipelineKit
+
+The bus in this guide is a teaching model. PipelineKit has the same parts under these names:
+
+| In this guide | In PipelineKit |
+|---|---|
+| `Command`, a marker protocol | `Command`, with an associated `Result` type that execution returns |
+| `CommandHandler.handle(command:)` in the bus from chapter 3 on (chapter 2 previews the PipelineKit shape) | `CommandHandler.handle(_:context:)`, which also receives a `CommandContext` and returns `CommandType.Result` |
+| `Middleware.process(command:next:)` | `Middleware.execute(_:context:next:)`, plus a `priority` |
+| Middleware runs in the order it was added | Middleware runs in `ExecutionPriority` order; insertion order breaks ties |
+| One bus: `register(handler:)`, then `dispatch(command:)` | One `StandardPipeline` per command type, or a `DynamicPipeline` with `register(_:handler:)` and `send(_:)` to route by type |
+
+Next: the [basic usage tutorial](../../tutorials/basic-usage.md) builds a pipeline with the
+real API.
 
 ---
 

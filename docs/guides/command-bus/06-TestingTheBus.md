@@ -667,4 +667,6 @@ Testing command-bus architecture is straightforward due to its modular design:
 
 With comprehensive tests, you can refactor and extend your command-bus system with confidence.
 
+### [Next: from this bus to PipelineKit →](README.md#from-this-bus-to-pipelinekit)
+
 ### [← Back to Home](README.md)

@@ -117,7 +117,11 @@ public actor StandardPipeline<C: Command, H: CommandHandler>: Pipeline where H.C
         self.semaphore = SimpleSemaphore(permits: maxConcurrency)
     }
     
-    /// Creates a new pipeline with full back-pressure control.
+    /// Creates a new pipeline from `PipelineOptions`.
+    ///
+    /// Only `options.maxConcurrency` is applied. When it is set, a warning is logged for
+    /// `maxOutstanding`, `maxQueueMemory` and any strategy other than `.suspend`, which this
+    /// initializer ignores; when it is `nil` the pipeline has no concurrency limit.
     ///
     /// - Parameters:
     ///   - handler: The command handler that will process commands after middleware

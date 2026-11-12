@@ -85,10 +85,14 @@ swift run --package-path Examples BasicExample
 Where next:
 
 - New to the pattern: the [command-bus book](docs/guides/command-bus/README.md), six chapters
-  that build a command bus from nothing.
+  that build a command bus from nothing, then the [tutorials](docs/tutorials/basic-usage.md).
+- Building a high-volume pipeline: [concurrency controls](docs/guides/resilience-patterns.md#understanding-concurrency-controls)
+  and the [performance guide](docs/guides/performance.md).
 - Want the API tour: [Getting Started](https://gifton.github.io/PipelineKit/documentation/pipelinekit/gettingstarted/)
   on the documentation site.
 - Want more runnable code: the programs in [Examples](Examples/README.md).
+
+Both reading paths are laid out in order in the [documentation index](docs/README.md).
 
 ## Why PipelineKit
 
@@ -168,7 +172,7 @@ setups see the [installation guide](docs/getting-started/installation.md).
 | `PipelineKitCache` | Result-caching middleware and cache protocols. | [API](https://gifton.github.io/PipelineKit/documentation/pipelinekitcache/) · [tutorial](docs/tutorials/custom-middleware.md) |
 | `PipelineKitPooling` | Object pooling with metrics. | [API](https://gifton.github.io/PipelineKit/documentation/pipelinekitpooling/) · [guide](docs/guides/performance.md) |
 | `PipelineKitObservability` | Events and metrics, with StatsD and Prometheus-format export. | [API](https://gifton.github.io/PipelineKit/documentation/pipelinekitobservability/) · [guide](docs/guides/architecture.md#observability) |
-| `PipelineKitTestSupport` | Mock middleware, test commands and handlers, assertions. Add it to test targets only. | [source](Sources/PipelineKitTestSupport) |
+| `PipelineKitTestSupport` | Mock middleware, test commands and handlers, assertions. Add it to test targets only. | [guide](docs/guides/testing.md) · [source](Sources/PipelineKitTestSupport) |
 
 Shipped middleware is added the same way as your own:
 
@@ -245,12 +249,14 @@ For tuning advice see the [performance guide](docs/guides/performance.md).
 
 | If you want to | Go to |
 |---|---|
+| Follow a reading path in order | [Documentation index](docs/README.md): one path for learning the pattern, one for building a high-volume pipeline |
 | Browse the API reference for the seven library modules | [gifton.github.io/PipelineKit](https://gifton.github.io/PipelineKit/) |
 | Learn the command-bus pattern from first principles | [Command-bus book](docs/guides/command-bus/README.md) |
 | Work through tutorials | [Basic usage](docs/tutorials/basic-usage.md), [custom middleware](docs/tutorials/custom-middleware.md), [advanced patterns](docs/tutorials/advanced-patterns.md) |
 | Understand how the pieces fit | [Architecture guide](docs/guides/architecture.md) |
+| Bound concurrency and queued work | [Concurrency controls](docs/guides/resilience-patterns.md#understanding-concurrency-controls), [performance guide](docs/guides/performance.md) |
+| Test code that uses a pipeline | [Testing guide](docs/guides/testing.md) |
 | Evaluate it for adoption | [Evaluating PipelineKit](docs/guides/enterprise-evaluation.md) |
-| See everything | [Documentation index](docs/README.md) |
 
 ## Stability and versioning
 

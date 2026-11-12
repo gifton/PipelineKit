@@ -25,11 +25,10 @@ compatibility promise — this document states the promises PipelineKit
 
 ## Pinning recommendation
 
-This branch targets **0.6.0**. Its breaking changes are recorded in the dated
-0.6.0 CHANGELOG section and the [release readiness migration](docs/migrations/release-readiness.md).
-Use the following minor range after `v0.6.0` is published. Before publication,
-use a local checkout to evaluate these APIs; published tags are listed on the
-[releases page](https://github.com/gifton/PipelineKit/releases).
+The current release line is **0.6.x**. The breaking changes in 0.6.0 are recorded in the
+dated 0.6.0 CHANGELOG section and the
+[release readiness migration](docs/migrations/release-readiness.md). Depend on a minor range;
+published tags are listed on the [releases page](https://github.com/gifton/PipelineKit/releases).
 
 ```swift
 .package(url: "https://github.com/gifton/PipelineKit.git", "0.6.0"..<"0.7.0")

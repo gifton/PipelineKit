@@ -8,7 +8,7 @@ validation, authorization, rate limiting, encryption, audit logging, and related
 guidance for hardening *your* application, not PipelineKit's security policy. To report a
 vulnerability in PipelineKit itself, see the root [`SECURITY.md`](../../SECURITY.md).
 
-## 🛡️ Table of Contents
+## Table of Contents
 
 - [Security Architecture](#security-architecture)
 - [Input Validation](#input-validation)
@@ -19,8 +19,11 @@ vulnerability in PipelineKit itself, see the root [`SECURITY.md`](../../SECURITY
 - [Error Handling](#error-handling)
 - [Production Deployment](#production-deployment)
 - [Security Checklist](#security-checklist)
+- [Security Observability](#security-observability)
+- [Dependency Security](#dependency-security)
+- [Additional Resources](#additional-resources)
 
-## 🏗️ Security Architecture
+## Security Architecture
 
 ### Principle of Defense in Depth
 
@@ -128,7 +131,7 @@ let securityPriorities: [ExecutionPriority] = [
 ]
 ```
 
-## ✅ Input Validation
+## Input Validation
 
 ### Validate Everything
 
@@ -260,7 +263,7 @@ Validation's intrinsic priority is 200 and sanitization's is 300, so validation 
 runs first. When validation needs normalized input, use explicit builder ordering, as shown
 in the [stabilization migration draft](../migrations/first-stabilization-batch.md).
 
-## 🔐 Authorization & Authentication
+## Authorization & Authentication
 
 ### Role-Based Access Control (RBAC)
 
@@ -455,7 +458,7 @@ func makeOrderPipeline(
 }
 ```
 
-## 🚦 Rate Limiting & DoS Protection
+## Rate Limiting & DoS Protection
 
 ### Multi-Layer Rate Limiting
 
@@ -575,7 +578,7 @@ let secureDispatcher = SecureCommandDispatcher(
 open it throws `PipelineError.middlewareError` from `execute(_:context:next:)` instead; handle
 that where you call `dispatch(_:metadata:)` if you need to react to an open circuit.
 
-## 🔒 Data Encryption
+## Data Encryption
 
 ### Encrypting Sensitive Commands
 
@@ -716,7 +719,7 @@ let encryptionMiddleware = EncryptionMiddleware(
 )
 ```
 
-## 📊 Audit Logging
+## Audit Logging
 
 ### Comprehensive Audit Trail
 
@@ -845,7 +848,7 @@ let maskedLogger = MaskingAuditLogger(wrapping: ConsoleAuditLogger.production)
 let auditMiddleware = AuditLoggingMiddleware(logger: maskedLogger)
 ```
 
-## ⚠️ Error Handling
+## Error Handling
 
 ### Secure Error Messages
 
@@ -951,7 +954,7 @@ final class ErrorRateMonitor {
 }
 ```
 
-## 🚀 Production Deployment
+## Production Deployment
 
 ### Environment Configuration
 
@@ -1030,7 +1033,7 @@ success/failure rates, and durations from command lifecycle events your own code
 calls these; only resilience middleware emits its own `middlewareStarted`/`middlewareCompleted`/
 `middlewareFailed` events automatically.
 
-## ✅ Security Checklist
+## Security Checklist
 
 ### Pre-Production Checklist
 
@@ -1103,7 +1106,7 @@ struct WeeklySecurityReview {
 }
 ```
 
-## 🔍 Security Observability
+## Security Observability
 
 Comprehensive security monitoring and alerting is critical for detecting and responding to
 threats. PipelineKit's observability primitives are `ObservabilitySystem`, `EventHub`, and the
@@ -1318,7 +1321,7 @@ class SecurityIncidentHandler {
 }
 ```
 
-## 📦 Dependency Security
+## Dependency Security
 
 ### Dependency Management
 
@@ -1374,7 +1377,7 @@ No monthly automation exists in the current workflow set.
 
 See [DEPENDENCIES.md](../../DEPENDENCIES.md) for the full dependency inventory and policy.
 
-## 🔗 Additional Resources
+## Additional Resources
 
 - [OWASP Top 10](https://owasp.org/www-project-top-ten/)
 - [Swift Security Best Practices](https://swift.org/security/)

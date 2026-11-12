@@ -14,6 +14,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `docs/guides/architecture.md`, `docs/guides/performance.md`, `docs/guides/resilience-patterns.md`,
   `docs/guides/security-best-practices.md`, `docs/tutorials/custom-middleware.md` and
   `docs/tutorials/advanced-patterns.md`. Statements the code did not back were removed.
+- Documentation defects fixed: the printed `Middleware` protocol and the middleware examples
+  now show `next` as `@escaping`; wording that told readers to wait for the `v0.6.0` tag is
+  gone; the security guide's table of contents links resolve; `Tests/README.md` lists the
+  test targets that exist. `docs/getting-started/quick-start.md` is removed: the README's
+  first pipeline and `docs/tutorials/basic-usage.md` cover the same ground. The performance
+  and resilience guides now state that `StandardPipeline` applies only `maxConcurrency` from
+  `PipelineOptions`. CI checks that relative documentation links and anchors resolve and that
+  protocol requirements printed in the documentation match the source.
+- The documentation index (`docs/README.md`) now gives two reading paths in order and states
+  which surface holds which kind of content. New `docs/guides/testing.md` covers
+  `PipelineKitTestSupport`. The command-bus book ends with a table mapping its teaching bus
+  onto PipelineKit's types. The documentation site's Getting Started article and
+  `docs/guides/enterprise-evaluation.md` are now compiled in CI.
 
 ### Changed
 

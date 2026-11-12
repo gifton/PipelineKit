@@ -973,3 +973,132 @@ print("Received \(data.count) bytes")
 
 }
 
+@MainActor func compiled_Sources_PipelineKit_PipelineKit_docc_GettingStarted_md() async throws {
+// Sources/PipelineKit/PipelineKit.docc/GettingStarted.md, Swift fence 2
+
+struct GreetCommand: Command {
+    typealias Result = String
+    let name: String
+}
+
+struct GreetHandler: CommandHandler {
+    typealias CommandType = GreetCommand
+
+    func handle(_ command: GreetCommand, context: CommandContext) async throws -> String {
+        "Hello, \(command.name)!"
+    }
+}
+
+// Sources/PipelineKit/PipelineKit.docc/GettingStarted.md, Swift fence 3
+let pipeline = StandardPipeline(handler: GreetHandler())
+
+let greeting = try await pipeline.execute(
+    GreetCommand(name: "world"),
+    context: CommandContext()
+)
+print(greeting)  // "Hello, world!"
+
+// Sources/PipelineKit/PipelineKit.docc/GettingStarted.md, Swift fence 4
+struct LoggingMiddleware: Middleware {
+    let priority: ExecutionPriority = .monitoring
+
+    func execute<T: Command>(
+        _ command: T,
+        context: CommandContext,
+        next: @escaping MiddlewareNext<T>
+    ) async throws -> T.Result {
+        print("→ \(type(of: command))")
+        let result = try await next(command, context)
+        print("← \(type(of: command))")
+        return result
+    }
+}
+
+try await pipeline.addMiddleware(LoggingMiddleware())
+
+}
+
+@MainActor func compiled_docs_guides_enterprise_evaluation_md() async throws {
+// docs/guides/enterprise-evaluation.md, Swift fence 2
+
+struct GreetCommand: Command {
+    typealias Result = String
+    let name: String
+}
+
+struct GreetHandler: CommandHandler {
+    typealias CommandType = GreetCommand
+
+    func handle(_ command: GreetCommand, context: CommandContext) async throws -> String {
+        "Hello, \(command.name)!"
+    }
+}
+
+let pipeline = StandardPipeline(handler: GreetHandler())
+
+let greeting = try await pipeline.execute(
+    GreetCommand(name: "world"),
+    context: CommandContext()
+)
+print(greeting)  // "Hello, world!"
+
+// docs/guides/enterprise-evaluation.md, Swift fence 3
+struct LoggingMiddleware: Middleware {
+    let priority: ExecutionPriority = .monitoring
+
+    func execute<T: Command>(
+        _ command: T,
+        context: CommandContext,
+        next: @escaping MiddlewareNext<T>
+    ) async throws -> T.Result {
+        print("→ \(type(of: command))")
+        let result = try await next(command, context)
+        print("← \(type(of: command))")
+        return result
+    }
+}
+
+try await pipeline.addMiddleware(LoggingMiddleware())
+
+// docs/guides/enterprise-evaluation.md, Swift fence 4
+
+let context = CommandContext()
+await context.setupObservability(.development)
+
+let start = Date()
+_ = try await pipeline.execute(GreetCommand(name: "world"), context: context)
+
+// PipelineKit doesn't emit command lifecycle events on its own — call the
+// emit helpers yourself (or use resilience middleware, which emits its own
+// events), and they're turned into metrics automatically.
+await context.emitCommandCompleted(
+    type: "GreetCommand",
+    duration: Date().timeIntervalSince(start)
+)
+
+let metrics = await context.observability?.getMetrics()
+print(metrics ?? [])
+// 2 entries: a "command.completed" counter and a "command.duration" timer.
+
+// docs/guides/enterprise-evaluation.md, Swift fence 5
+struct CreateOrderCommand: Command {
+    typealias Result = String
+    let items: [String]
+}
+
+// Your existing service, unchanged.
+final class OrderService: Sendable {
+    func createOrder(items: [String]) async throws -> String { "order-1" }
+}
+
+struct CreateOrderHandler: CommandHandler {
+    typealias CommandType = CreateOrderCommand
+    let service: OrderService
+
+    func handle(_ command: CreateOrderCommand, context: CommandContext) async throws -> String {
+        try await service.createOrder(items: command.items)
+    }
+}
+
+}
+

@@ -26,7 +26,11 @@ DOCUMENTS = [
     "docs/migrations/resilience-policy-contracts.md",
     "docs/migrations/release-qualification.md",
     TUTORIAL,
+    "docs/guides/testing.md",
+    "Sources/PipelineKit/PipelineKit.docc/GettingStarted.md",
+    "docs/guides/enterprise-evaluation.md",
 ]
+WALKTHROUGH = "docs/guides/enterprise-evaluation.md"
 DEFINITIONS = """import Foundation
 import PipelineKitResilience
 
@@ -153,6 +157,27 @@ class TutorialExtractionTests(unittest.TestCase):
                     self.assertEqual(len(ordinary), 2)
                     self.assertIn("let unrelated = 1", generated)
                     self.assertIn("let another = 2", generated)
+
+    def test_walkthrough_fences_share_one_function_in_document_order(self):
+        declaration = "import Foundation\nstruct Step { let value = 1 }\n"
+        fragment = 'dependencies: [\n    .package(url: "https://example.com/Library.git", "1.0.0"..<"2.0.0")\n]\n'
+        use = "let step = Step()\n_ = step.value\n"
+        generated, manifest = self.extract([declaration, fragment, use], WALKTHROUGH)
+        entries = [entry for entry in manifest["snippets"] if entry["file"] == WALKTHROUGH]
+        self.assertEqual([entry["swift_fence"] for entry in entries], [1, 2, 3])
+        self.assertIn("dump-package", entries[1]["harness"])
+        self.assertIn(
+            "@MainActor func compiled_docs_guides_enterprise_evaluation_md() async throws {\n"
+            "// docs/guides/enterprise-evaluation.md, Swift fence 1\n"
+            "struct Step { let value = 1 }\n\n"
+            "// docs/guides/enterprise-evaluation.md, Swift fence 3\n"
+            "let step = Step()\n_ = step.value\n\n}\n",
+            generated,
+        )
+        self.assertNotIn(fragment, generated)
+        self.assertEqual(generated.count("func compiled_docs_guides_enterprise_evaluation_md"), 1)
+        self.assertEqual([entry["snippet_sha256"] for entry in entries],
+                         [hashlib.sha256(text.encode()).hexdigest() for text in (declaration, fragment, use)])
 
     def test_manifest_validation_failure_is_fatal_and_cannot_write_a_success_manifest(self):
         self.extract(["dependencies: []\n"], "README.md")

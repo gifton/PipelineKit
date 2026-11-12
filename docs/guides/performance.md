@@ -16,25 +16,22 @@ let pipeline = try await builder.build()
 
 ### 2) Manage Concurrency Explicitly
 
-Use `StandardPipeline` initializers to control concurrency and back‑pressure:
+`StandardPipeline(handler:maxConcurrency:)` acquires a `SimpleSemaphore` permit before each
+execution:
 
 ```swift
-// Limit concurrent executions
 let limited = StandardPipeline(
     handler: handler,
     maxConcurrency: 64
 )
-
-// Or use options for future back‑pressure integration
-let withOptions = StandardPipeline(
-    handler: handler,
-    options: PipelineOptions(
-        maxConcurrency: 64,
-        maxOutstanding: 512,
-        backPressureStrategy: .suspend
-    )
-)
 ```
+
+`StandardPipeline(handler:options:)` applies only `maxConcurrency` from `PipelineOptions`. It
+ignores `maxOutstanding`, `maxQueueMemory` and any strategy other than `.suspend`; when
+`maxConcurrency` is set it logs a warning for each of those it was given, and when
+`maxConcurrency` is `nil` the pipeline has no limit at all. To bound queued work or shed load,
+add `BackPressureMiddleware`; see
+[Understanding Concurrency Controls](resilience-patterns.md#understanding-concurrency-controls).
 
 ### 3) Keep Context Lightweight
 

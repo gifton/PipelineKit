@@ -51,7 +51,7 @@ struct OrderValidationMiddleware: Middleware {
     func execute<T: Command>(
         _ command: T,
         context: CommandContext,
-        next: @Sendable (T, CommandContext) async throws -> T.Result
+        next: @escaping MiddlewareNext<T>
     ) async throws -> T.Result {
         if let order = command as? SubmitOrderCommand, order.quantity <= 0 {
             throw InvalidQuantity()
@@ -66,7 +66,7 @@ struct TimingMiddleware: Middleware {
     func execute<T: Command>(
         _ command: T,
         context: CommandContext,
-        next: @Sendable (T, CommandContext) async throws -> T.Result
+        next: @escaping MiddlewareNext<T>
     ) async throws -> T.Result {
         let start = ContinuousClock.now
         defer { print("[timing] \(type(of: command)) took \(ContinuousClock.now - start)") }
