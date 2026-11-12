@@ -86,7 +86,9 @@ release is created. `ci.yml` is not part of this workflow.
   Sanitizer and Thread Sanitizer builds and the Release build of the performance-test target
   must also succeed. The sanitizer test steps (step-level `continue-on-error`), the
   performance-test run (its exit status is discarded) and the `Linux Test` job (the eight test
-  targets on Linux, job-level `continue-on-error`) are advisory.
+  targets on Linux, job-level `continue-on-error`) are advisory. The `Deep Security Audit` job
+  runs Trivy with every severity selected and `exit-code: '1'`, so a finding fails the run; its
+  SARIF upload step runs whether or not the scan step succeeded.
 - **`Specialty Tests`** ([`specialty-tests.yml`](workflows/specialty-tests.yml)). Each job runs
   only for a pull request carrying its label (`test:memory`, `test:performance`, `test:stress`,
   `test:security`) or on manual dispatch with the matching `test_type`. The
@@ -124,7 +126,10 @@ controlled by the `MINIMUM_COVERAGE` (currently `70`) and `ENFORCE_COVERAGE`
 The `security` job in [`ci.yml`](workflows/ci.yml) runs
 [Trivy](https://github.com/aquasecurity/trivy-action) (filesystem scan,
 config in [`.trivy.yaml`](../.trivy.yaml)) against `CRITICAL` and `HIGH`
-severity findings and uploads results as a SARIF report. No other security
+severity findings and uploads results as a SARIF report. The
+`security-audit` job in [`weekly.yml`](workflows/weekly.yml) and the
+`security-deep-scan` job in [`specialty-tests.yml`](workflows/specialty-tests.yml)
+run the same scanner with every severity selected. No other security
 scanner (e.g. trufflehog) runs in an active workflow.
 
 ### Performance

@@ -24,6 +24,61 @@ MARKDOWN_LINK = re.compile(r"(?<!!)\[[^\]]*\]\(([^)\s]+)\)")
 HEADING = re.compile(r"^#{1,6}\s+(.*?)\s*#*\s*$", re.MULTILINE)
 PRINTED_PROTOCOL = re.compile(r"^public protocol (\w+)[^{]*\{(.*?)^\}", re.DOTALL | re.MULTILINE)
 REQUIREMENT = re.compile(r"\bfunc\b.*?(?=\n\s*\n|\n\s*func\b|\Z)", re.DOTALL)
+TEST_SUITE = re.compile(r"\bclass\s+(\w+Tests)\b")
+TEST_FUNCTION = re.compile(r"\bfunc\s+(test\w*)\s*\(")
+SWIFT_TOKEN = re.compile(r'"""|"|//|/\*|\*/')
+
+
+def strip_swift_comments(text):
+    """`text` without its `//` and `/* */` comments; block comments nest, as in Swift.
+
+    Comment markers inside string literals are kept. Raw strings (`#"..."#`) and string
+    literals nested inside an interpolation are not parsed; test_swift_comment_stripping
+    pins the forms that are."""
+    kept, position, depth = [], 0, 0
+    while True:
+        match = SWIFT_TOKEN.search(text, position)
+        if not match:
+            if depth == 0:
+                kept.append(text[position:])
+            return "".join(kept)
+        token, start, end = match.group(), match.start(), match.end()
+        if depth:
+            depth += {"/*": 1, "*/": -1}.get(token, 0)
+            position = end
+            continue
+        kept.append(text[position:start])
+        if token == "/*":
+            depth, position = 1, end
+        elif token == "//":
+            newline = text.find("\n", end)
+            position = len(text) if newline < 0 else newline
+        elif token == "*/":
+            kept.append(token)
+            position = end
+        else:  # a string literal: copy it whole, honouring backslash escapes
+            close = end
+            while close < len(text) and not text.startswith(token, close):
+                if token == '"' and text[close] == "\n":
+                    break  # unterminated single-line literal; resume scanning on the next line
+                close += 2 if text[close] == "\\" else 1
+            position = min(len(text), close + len(token)) if text.startswith(token, close) else close
+            kept.append(text[start:position])
+
+
+def swift_test_sources():
+    """(path, text without comments) for every Swift file under Tests/."""
+    return [(path, strip_swift_comments(path.read_text()))
+            for path in sorted((ROOT / "Tests").rglob("*.swift")) if ".build" not in path.parts]
+
+
+def declared_swift_tests():
+    """Test suite name -> names of the test functions declared, outside comments, in its files."""
+    suites = {}
+    for _, text in swift_test_sources():
+        for suite in TEST_SUITE.findall(text):
+            suites.setdefault(suite, set()).update(TEST_FUNCTION.findall(text))
+    return suites
 
 
 def user_documents():
@@ -46,19 +101,32 @@ def github_anchors(text):
 
 class DocumentationEvidenceTests(unittest.TestCase):
     def test_cited_swift_tests_exist(self):
-        suites = {}
-        for path in (ROOT / "Tests").rglob("*.swift"):
-            if ".build" in path.parts:
-                continue
-            text = path.read_text()
-            for suite in re.findall(r"\bclass\s+(\w+Tests)\b", text):
-                suites.setdefault(suite, set()).update(re.findall(r"\bfunc\s+(test\w+)\s*\(", text))
+        suites = declared_swift_tests()
         cited = 0
         for document in DOCUMENTS:
             for suite, test in CITATION.findall((ROOT / document).read_text()):
                 cited += 1
                 self.assertIn(test, suites.get(suite, set()), f"{document} cites missing test {suite}.{test}")
         self.assertGreater(cited, 0, "no test citations found; the citation format changed")
+
+    def test_swift_comment_stripping(self):
+        source = (
+            'let url = "https://example.com/*" // func testInLineComment() {}\n'
+            '/* class GoneTests: XCTestCase {\n'
+            '   /* nested */ func testInBlockComment() {}\n'
+            '*/\n'
+            'let text = """\n'
+            '// kept: inside a multi-line string\n'
+            '"""\n'
+            'let escaped = "quote \\" // still a string"\n'
+            'final class LiveTests: XCTestCase { func testLive() {} }\n')
+        stripped = strip_swift_comments(source)
+        self.assertEqual(TEST_SUITE.findall(stripped), ["LiveTests"])
+        self.assertEqual(TEST_FUNCTION.findall(stripped), ["testLive"])
+        self.assertIn('"https://example.com/*"', stripped)
+        self.assertIn("// kept: inside a multi-line string", stripped)
+        self.assertIn('"quote \\" // still a string"', stripped)
+        self.assertEqual(strip_swift_comments("a /* never closed\nfunc testX() {}"), "a ")
 
     def test_unchecked_sendable_inventory_matches_library_sources(self):
         declared = set()

@@ -179,3 +179,4 @@ Observers used directly in a sequential chain default to `.observability` priori
 ## Notes
 - Use `ExecutionPriority` to place middleware correctly; equal priorities preserve insertion order.
 - For middleware that intentionally RETURNS a result without calling `next()` on a normal path (e.g., cache hits), conform to `NextGuardWarningSuppressing` to suppress debug‑only deinit warnings. Since 0.6, throw‑based short‑circuits (rejections, validation failures, timeouts/cancellation) are detected automatically by the middleware chain and don't need this.
+- The dropped-`next` warning is debug-only and configurable through `NextGuardConfiguration`: `NextGuardConfiguration.setWarningHandler { message in ... }` routes it to your own logger, and `NextGuardConfiguration.disableWarnings()` (or setting `NextGuardConfiguration.shared.emitWarnings = false`) turns it off, for example in a test run.

@@ -70,13 +70,3 @@ Project-level documents live at the repository root: [CHANGELOG](../CHANGELOG.md
 [CONTRIBUTING](../CONTRIBUTING.md), [CODE_OF_CONDUCT](../CODE_OF_CONDUCT.md),
 [SECURITY](../SECURITY.md), [DEPENDENCIES](../DEPENDENCIES.md),
 [VERSIONING](../VERSIONING.md).
-
-## Maintainer / internal
-
-Not user documentation — these describe process, point-in-time audits, and ideas
-that may never ship. Nothing in here is a statement about current capabilities.
-
-| Path | What it is |
-|------|------------|
-| [internal/](internal/) | Historical audits, wishlists, and design notes |
-| [superpowers/](superpowers/) | Specs and plans used by the automated development workflow |

@@ -1,24 +1,22 @@
 """Repository hygiene: each test closes a class of defect that was found more than once.
 
 - files that are tracked although `.gitignore` ignores them,
-- documents, scripts and the Makefile naming workflow files that do not exist,
+- documents and scripts naming workflow files that do not exist,
 - `swift package <verb>` commands whose verb nothing provides,
 - coverage and scan output committed to the tree,
-- source comments citing tests that do not exist.
+- source comments citing tests that do not exist,
+- test files that declare a test case but no test outside comments.
 """
 from pathlib import Path
 import re
 import subprocess
 import unittest
 
-from test_doc_evidence import CITATION, USER_DOC_GLOBS
+from test_doc_evidence import (CITATION, TEST_FUNCTION, USER_DOC_GLOBS, declared_swift_tests,
+                               strip_swift_comments, swift_test_sources)
 
 ROOT = Path(__file__).resolve().parents[3]
 WORKFLOWS = ROOT / ".github/workflows"
-
-# docs/superpowers/ was ignored after these files were committed; whether they stay tracked
-# is an open maintainer decision. Remove this entry when that directory is untracked.
-TRACKED_BUT_IGNORED_ALLOWED = ("docs/superpowers/",)
 
 GENERATED_SUFFIXES = (".profdata", ".profraw", ".lcov", ".sarif")
 
@@ -43,7 +41,8 @@ DEPENDENCY_PACKAGE_VERBS = {"swift-docc-plugin": {"generate-documentation", "pre
 PACKAGE_OPTIONS_WITH_VALUE = {"--allow-writing-to-directory", "--package-path", "--scratch-path",
                               "--configuration", "-c"}
 PACKAGE_COMMAND = re.compile(r"\bswift package\b([^\n|;&]*)")
-COMMAND_SOURCES = ("Makefile", "CONTRIBUTING.md")
+COMMAND_SOURCES = ("CONTRIBUTING.md",)
+XCTEST_CASE = re.compile(r"\bclass\s+\w+\s*:[^{]*\bXCTestCase\b")
 
 
 def tracked(*arguments):
@@ -93,11 +92,15 @@ def available_package_verbs(manifest):
     return verbs
 
 
+def has_executable_test(uncommented):
+    """Whether Swift source, already stripped of comments, declares a `func test...`."""
+    return TEST_FUNCTION.search(uncommented) is not None
+
+
 class RepositoryHygieneTests(unittest.TestCase):
     def test_no_tracked_file_is_ignored(self):
-        ignored = [path for path in tracked("-ci", "--exclude-standard")
-                   if not path.startswith(TRACKED_BUT_IGNORED_ALLOWED)]
-        self.assertEqual(ignored, [], "tracked files that .gitignore ignores; untrack them or fix the rule")
+        self.assertEqual(tracked("-ci", "--exclude-standard"), [],
+                         "tracked files that .gitignore ignores; untrack them or fix the rule")
 
     def test_no_generated_coverage_or_scan_output_is_tracked(self):
         generated = [path for path in tracked() if path.endswith(GENERATED_SUFFIXES)]
@@ -111,8 +114,7 @@ class RepositoryHygieneTests(unittest.TestCase):
         documents = {path for pattern in USER_DOC_GLOBS for path in ROOT.glob(pattern)}
         documents |= set((ROOT / ".github").rglob("*.md"))
         documents = {path for path in documents if path.name not in HISTORICAL_DOCUMENTS}
-        scripts = {ROOT / path for path in tracked("Scripts", "Makefile")
-                   if Path(path).suffix in SCRIPT_SUFFIXES or path == "Makefile"}
+        scripts = {ROOT / path for path in tracked("Scripts") if Path(path).suffix in SCRIPT_SUFFIXES}
         # This file's own fixtures name a workflow that deliberately does not exist.
         scripts.discard(Path(__file__).resolve())
         self.assertGreater(len(documents), 20)
@@ -135,10 +137,7 @@ class RepositoryHygieneTests(unittest.TestCase):
         available = available_package_verbs((ROOT / "Package.swift").read_text())
         found = 0
         for name in COMMAND_SOURCES:
-            path = ROOT / name
-            if not path.exists():
-                continue
-            for verb in package_verbs(path.read_text()):
+            for verb in package_verbs((ROOT / name).read_text()):
                 found += 1
                 self.assertIn(verb, available, f"{name} runs `swift package {verb}`, which nothing provides")
         self.assertGreater(found, 0)
@@ -154,13 +153,7 @@ class RepositoryHygieneTests(unittest.TestCase):
             manifest + '.package(url: "https://github.com/apple/swift-docc-plugin", from: "1.3.0")'))
 
     def test_tests_cited_in_sources_exist(self):
-        suites = {}
-        for path in (ROOT / "Tests").rglob("*.swift"):
-            if ".build" in path.parts:
-                continue
-            text = path.read_text()
-            for suite in re.findall(r"\bclass\s+(\w+Tests)\b", text):
-                suites.setdefault(suite, set()).update(re.findall(r"\bfunc\s+(test\w+)\s*\(", text))
+        suites = declared_swift_tests()
         cited = 0
         for path in sorted((ROOT / "Sources").rglob("*.swift")):
             for suite, test in CITATION.findall(path.read_text()):
@@ -168,6 +161,29 @@ class RepositoryHygieneTests(unittest.TestCase):
                 self.assertIn(test, suites.get(suite, set()),
                               f"{path.relative_to(ROOT)} cites missing test {suite}.{test}")
         self.assertGreater(cited, 0)
+
+    def test_test_files_declare_an_executable_test(self):
+        checked, empty = 0, []
+        for path, text in swift_test_sources():
+            # The test case is looked for in the raw file, so a file whose class is itself
+            # commented out counts; helpers and fixtures name no XCTestCase at all.
+            if not path.name.endswith("Tests.swift") or not XCTEST_CASE.search(path.read_text()):
+                continue
+            checked += 1
+            if not has_executable_test(text):
+                empty.append(path.relative_to(ROOT).as_posix())
+        self.assertGreater(checked, 100, "few test files found; the file or test-case pattern changed")
+        self.assertEqual(empty, [], "test files that name an XCTestCase but declare no test outside comments")
+
+    def test_commented_out_tests_are_not_executable_tests(self):
+        wholly = "import XCTest\n/*\nfinal class DeadTests: XCTestCase {\n    func testNothing() {}\n}\n*/\n"
+        shell = ("final class ShellTests: XCTestCase {\n    /*\n    func testNothing() {}\n    */\n"
+                 "    // func testAlsoNothing() {}\n}\n")
+        live = "final class LiveTests: XCTestCase {\n    /* func testOld() {} */\n    func testSomething() {}\n}\n"
+        for source, executable in ((wholly, False), (shell, False), (live, True)):
+            with self.subTest(source=source):
+                self.assertIsNotNone(XCTEST_CASE.search(source))
+                self.assertEqual(has_executable_test(strip_swift_comments(source)), executable)
 
 
 if __name__ == "__main__":

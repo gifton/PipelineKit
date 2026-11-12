@@ -538,6 +538,26 @@ if stage == os.environ['TELEMETRY_FAILURE']:
                 self.assertEqual(calls[-1][1][-2:], ['--filter', 'PublicTestPipelineTests'])
 
 
+def workflow_steps(text):
+    """Each step of a workflow file as its own text, whatever the indentation of the step list.
+
+    A step starts at a `- name:` or `- uses:` line and ends before the next line that is
+    indented no deeper than its dash: the next step, the next job, or a comment between jobs."""
+    lines, steps, index = text.split('\n'), [], 0
+    while index < len(lines):
+        start = re.match(r'(\s*)- (?:name|uses):', lines[index])
+        if not start:
+            index += 1
+            continue
+        end = index + 1
+        while end < len(lines) and (not lines[end].strip()
+                                    or len(lines[end]) - len(lines[end].lstrip()) > len(start.group(1))):
+            end += 1
+        steps.append('\n'.join(lines[index:end]))
+        index = end
+    return steps
+
+
 class StatusTests(unittest.TestCase):
     def test_security_result_matrix_and_linux_advisory(self):
         for security in ('success', 'failure', 'cancelled', 'skipped'):
@@ -560,12 +580,49 @@ class StatusTests(unittest.TestCase):
         self.assertIn('bash Scripts/ci/check-required-status.sh', workflow)
         self.assertIn('uses: actions/checkout@', workflow)
     def test_trivy_finding_gates_and_upload(self):
-        text = (ROOT / '.github/workflows/ci.yml').read_text()
-        scan = text.split('uses: aquasecurity/trivy-action@', 1)[1].split('\n    - name:', 1)[0]
-        upload = text.split('- name: Upload Trivy Results', 1)[1]
-        self.assertIn("exit-code: '1'", scan)
-        self.assertIn('if: always()', upload.split('\n    - name:', 1)[0])
-        specialty = (ROOT / '.github/workflows/specialty-tests.yml').read_text()
-        self.assertIn("exit-code: '1'", specialty.split('uses: aquasecurity/trivy-action@', 1)[1].split('\n    - name:', 1)[0])
+        # Workflows that upload SARIF must gate on findings and upload even when the scan fails.
+        for name in ('ci.yml', 'weekly.yml'):
+            with self.subTest(workflow=name):
+                steps = workflow_steps((ROOT / '.github/workflows' / name).read_text())
+                scans = [step for step in steps if 'uses: aquasecurity/trivy-action@' in step]
+                uploads = [step for step in steps if step.lstrip().startswith('- name: Upload Trivy Results')]
+                self.assertEqual((len(scans), len(uploads)), (1, 1))
+                self.assertIn("exit-code: '1'", scans[0])
+                self.assertIn('uses: github/codeql-action/upload-sarif@', uploads[0])
+                self.assertIn('if: always()', uploads[0])
+        specialty = workflow_steps((ROOT / '.github/workflows/specialty-tests.yml').read_text())
+        scans = [step for step in specialty if 'uses: aquasecurity/trivy-action@' in step]
+        self.assertEqual(len(scans), 1)
+        self.assertIn("exit-code: '1'", scans[0])
+
+    def test_workflow_steps_end_at_the_next_step_or_job(self):
+        # Six-space steps, as in weekly.yml: a later step's or job's text must not leak into a step.
+        text = textwrap.dedent("""\
+            jobs:
+              scan:
+                steps:
+                  - uses: actions/checkout@v7
+
+                  - name: Scan
+                    uses: aquasecurity/trivy-action@v0
+                    with:
+                      format: 'sarif'
+
+                  - name: Upload Trivy Results
+                    uses: github/codeql-action/upload-sarif@v4
+
+              report:
+                if: always()
+                steps:
+                - name: Print
+                  run: |
+                    echo "exit-code: '1'"
+            """)
+        steps = workflow_steps(text)
+        self.assertEqual(len(steps), 4)
+        self.assertNotIn('Upload Trivy Results', steps[1])
+        self.assertNotIn('if: always()', steps[2])
+        self.assertNotIn('exit-code', steps[2])
+        self.assertIn("exit-code: '1'", steps[3])
 
 if __name__ == '__main__': unittest.main()

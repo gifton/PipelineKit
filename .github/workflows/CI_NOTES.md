@@ -51,11 +51,6 @@ All CI workflows have been updated to use:
   the main CI workflow or `coverage-macos` from the multiplatform workflow.
   Each artifact contains `coverage.lcov`; no external coverage account is required.
 
-### 4. NextGuard Warning Configuration
-- **Default**: Timeout warnings are automatically suppressed
-- **Optional**: Set `PIPELINEKIT_DISABLE_NEXTGUARD_WARNINGS=1` to disable all warnings
-- **Current**: Using defaults (warnings enabled but timeout false positives suppressed)
-
 ## Environment Variables
 
 | Variable | Purpose | Required | Default |
@@ -75,11 +70,9 @@ All CI workflows have been updated to use:
 |----------|---------|--------|---------|
 | `ci.yml` | Push to `main`, `develop`, `test-ci`, `release/**`; PRs targeting `main`, `develop`, `release/**`; manual | macos-26, ubuntu-latest | Main CI pipeline |
 | `ci-multiplatform.yml` | Every PR; push to `release/**`; manual; called by `release.yml` | macos-26 | macOS Debug and Release tests and validation, iOS simulator tests, Swift 6.2 floor build, watchOS/tvOS/visionOS simulator builds |
-| `weekly.yml` | Monday 2AM UTC; manual | macos-26, ubuntu-latest | Weekly extended test suite |
+| `weekly.yml` | Monday 2AM UTC; manual | macos-26, ubuntu-latest | Weekly extended test suite, sanitizer runs, performance tests and all-severity Trivy scan |
 | `specialty-tests.yml` | PR `labeled`/`synchronize` events (each test job runs only when its `test:*` label is present); manual | macos-26, ubuntu-latest | Memory, performance-baseline, stress and all-severity security jobs |
 | `release.yml` | Push of a `v*` tag | macos-26 | Release notes validation, qualification, documentation, GitHub release |
-| `ci-full-pr.yml` | PR `labeled` event with the `ci:full` label; manual | ubuntu-latest | Dispatches `ci.yml` with a `force_full_run` input, which `ci.yml` does not declare |
-| `runner-health.yml` | Daily 1AM UTC; manual | ubuntu-latest, macos-26 | Prints runner CPU and memory information; checks nothing about the package |
 
 ## Known Issues
 

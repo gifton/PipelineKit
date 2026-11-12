@@ -197,6 +197,12 @@ phase-*.md
 *-migration.md
 TODO.txt
 NOTES.md
+# The globs above match at any depth. Markdown under docs/ and Sources/ is product
+# documentation and must stay trackable whatever its name (a migration guide,
+# release notes); local agent plans stay ignored.
+!/docs/**/*.md
+!/Sources/**/*.md
+docs/superpowers/
 
 ## Personal/Development files
 devdocs/
