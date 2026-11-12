@@ -8,7 +8,11 @@ compatibility promise — this document states the promises PipelineKit
 ## What 0.x releases promise
 
 - **Patch releases (0.6.x → 0.6.y)** contain bug fixes, documentation, and
-  internal changes only. They do not break source compatibility.
+  internal changes, and may lower a minimum deployment target. They do not break
+  source compatibility: lowering a deployment target widens where the package can
+  be used without breaking existing users. A deployment target is never raised in
+  a patch release; a raise ships only in a minor release, under the **Breaking**
+  heading ([platform support](docs/platform-support.md#commitment)).
 - **Minor releases (0.x → 0.y)** may break source compatibility. Every
   source-breaking change is listed in the CHANGELOG under a **Breaking**
   heading for that release.

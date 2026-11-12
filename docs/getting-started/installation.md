@@ -12,9 +12,9 @@ These instructions target **0.6.0**. Published tags are listed on the
 
 - Swift 6.2 or later
 - Xcode 26.0 or later (for Xcode integration)
-- For 0.6.x: macOS 26.0+ / iOS 26.0+ / tvOS 26.0+ / watchOS 26.0+ / visionOS 26.0+
-- For the `main` branch, to be released as 0.7.0: macOS 15.0+ / iOS 18.0+ / tvOS 18.0+ /
-  watchOS 11.0+ / visionOS 2.0+ ([platform support](../platform-support.md)) <!-- floor-pending-0.7.0 -->
+- For 0.6.0: macOS 26.0+ / iOS 26.0+ / tvOS 26.0+ / watchOS 26.0+ / visionOS 26.0+
+- For the `main` branch, to be released as 0.6.1: macOS 15.0+ / iOS 18.0+ / tvOS 18.0+ /
+  watchOS 11.0+ / visionOS 2.0+ ([platform support](../platform-support.md)) <!-- floor-pending-0.6.1 -->
 
 ## Swift Package Manager (Recommended)
 

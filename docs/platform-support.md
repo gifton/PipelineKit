@@ -4,7 +4,7 @@
 
 PipelineKit requires **Swift 6.2**. The minimum deployment targets depend on the version:
 
-| Platform | 0.6.x (released) | `main`, to be released as 0.7.0 |
+| Platform | 0.6.0 (released) | `main`, to be released as 0.6.1 |
 |----------|------------------|---------------------------------|
 | macOS | 26.0 | 15.0 |
 | iOS | 26.0 | 18.0 |
@@ -12,7 +12,7 @@ PipelineKit requires **Swift 6.2**. The minimum deployment targets depend on the
 | watchOS | 26.0 | 11.0 |
 | visionOS | 26.0 | 2.0 |
 
-<!-- floor-pending-0.7.0: collapse this table to one column when 0.7.0 is dated in the CHANGELOG -->
+<!-- floor-pending-0.6.1: when 0.6.1 is dated in the CHANGELOG, collapse this table to one column and keep one line saying 0.6.0 required OS 26, since both versions sit in the recommended dependency range -->
 
 The right-hand column is what [`Package.swift`](../Package.swift) declares on this branch.
 The rest of this page describes that column.
@@ -89,11 +89,10 @@ that decision.
 
 ## Commitment
 
-- Floors do not change within a patch series: every 0.6.x release keeps the 0.6.0
-  floors.
-- A floor is lowered only in a minor release, listed under the CHANGELOG's
+- Floors are never raised in a patch release. A floor is raised only in a minor
+  release, listed under the CHANGELOG's **Breaking** heading, per
+  [VERSIONING.md](../VERSIONING.md).
+- A floor may be lowered in a patch release, listed under the CHANGELOG's
   **Changed** heading. Lowering a floor does not break source for existing users.
-- A floor is raised only in a minor release, listed under the CHANGELOG's
-  **Breaking** heading, per [VERSIONING.md](../VERSIONING.md).
 - A release declares a floor for macOS or iOS only if a CI lane executes the tests
   on that OS generation. If the lane can no longer run, the floor is raised.

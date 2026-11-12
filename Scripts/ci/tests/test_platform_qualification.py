@@ -18,8 +18,8 @@ PLATFORM_DOCUMENT = ROOT / 'docs/platform-support.md'
 QUALITY_GATES = ROOT / '.github/QUALITY_GATES.md'
 PLATFORMS = ('macOS', 'iOS', 'tvOS', 'watchOS', 'visionOS')
 DECLARED = re.compile(r'\.(' + '|'.join(PLATFORMS) + r')\(\.v(\d+)\)')
-# Marks a sentence that describes the floors of both the released 0.6.x and the unreleased 0.7.0.
-PENDING_FLOOR = 'floor-pending-0.7.0'
+# Marks a sentence that describes the floors of both the released 0.6.0 and the unreleased 0.6.1.
+PENDING_FLOOR = 'floor-pending-0.6.1'
 
 sys.path.insert(0, str(ROOT / 'Scripts/ci'))
 _spec = importlib.util.spec_from_file_location('run_simulator_tests', ROOT / 'Scripts/ci/run-simulator-tests.py')
@@ -64,21 +64,21 @@ def gate_entry(document, title):
 
 def pending_floor_documents(changelog, documents):
     """Names of `documents` (name -> text) that still carry two-version floor wording although
-    the CHANGELOG has a 0.7.0 section, which is when that wording must be collapsed."""
-    if not releases_0_7_0(changelog):
+    the CHANGELOG has a 0.6.1 section, which is when that wording must be collapsed."""
+    if not releases_0_6_1(changelog):
         return []
     return sorted(name for name, text in documents.items() if PENDING_FLOOR in text)
 
 
-def releases_0_7_0(changelog):
-    """True once the CHANGELOG has a 0.7.0 section, including a prerelease such as 0.7.0-rc.1."""
-    return re.search(r'^## \[0\.7\.0[\]-]', changelog, re.MULTILINE) is not None
+def releases_0_6_1(changelog):
+    """True once the CHANGELOG has a 0.6.1 section, including a prerelease such as 0.6.1-rc.1."""
+    return re.search(r'^## \[0\.6\.1[\]-]', changelog, re.MULTILINE) is not None
 
 
 def advisory_floor_lanes(changelog, blocks):
-    """Floor lanes still marked continue-on-error once 0.7.0 is in the CHANGELOG. 0.7.0 is the
+    """Floor lanes still marked continue-on-error once 0.6.1 is in the CHANGELOG. 0.6.1 is the
     release that declares the lowered floors, so it must not ship while their lanes cannot fail."""
-    if not releases_0_7_0(changelog):
+    if not releases_0_6_1(changelog):
         return []
     return sorted(name for name, block in blocks.items()
                   if re.search(r'(?m)^    continue-on-error: true\b', block))
@@ -329,13 +329,13 @@ class FloorConsistencyTests(unittest.TestCase):
                 self.assertEqual('advisory' in entry, advisory, entry)
                 self.assertEqual('required' in entry, not advisory, entry)
 
-    def test_two_version_floor_wording_is_collapsed_when_0_7_0_is_dated(self):
+    def test_two_version_floor_wording_is_collapsed_when_0_6_1_is_dated(self):
         tracked = subprocess.run(['git', 'ls-files', '-z', '*.md'], cwd=ROOT, check=True,
                                  capture_output=True, text=True).stdout.split('\0')
         documents = {name: (ROOT / name).read_text() for name in tracked if name and (ROOT / name).is_file()}
         self.assertEqual(pending_floor_documents((ROOT / 'CHANGELOG.md').read_text(), documents), [])
 
-    def test_floor_lanes_are_required_before_0_7_0_is_released(self):
+    def test_floor_lanes_are_required_before_0_6_1_is_released(self):
         lanes = {name: self.blocks[name] for name in ('floor-macos', 'floor-ios')}
         self.assertEqual(advisory_floor_lanes((ROOT / 'CHANGELOG.md').read_text(), lanes), [])
 
@@ -343,16 +343,16 @@ class FloorConsistencyTests(unittest.TestCase):
         advisory = {'floor-macos': '    runs-on: macos-15\n    continue-on-error: true  # note\n'}
         required = {'floor-macos': '    runs-on: macos-15\n'}
         self.assertEqual(advisory_floor_lanes('## [Unreleased]\n', advisory), [])
-        self.assertEqual(advisory_floor_lanes('## [0.7.0] - 2027-01-01\n', advisory), ['floor-macos'])
-        self.assertEqual(advisory_floor_lanes('## [0.7.0-rc.1] - 2027-01-01\n', advisory), ['floor-macos'])
-        self.assertEqual(advisory_floor_lanes('## [0.7.0] - 2027-01-01\n', required), [])
-        self.assertEqual(advisory_floor_lanes('## [0.7.10] - 2027-01-01\n', advisory), [])
+        self.assertEqual(advisory_floor_lanes('## [0.6.1] - 2027-01-01\n', advisory), ['floor-macos'])
+        self.assertEqual(advisory_floor_lanes('## [0.6.1-rc.1] - 2027-01-01\n', advisory), ['floor-macos'])
+        self.assertEqual(advisory_floor_lanes('## [0.6.1] - 2027-01-01\n', required), [])
+        self.assertEqual(advisory_floor_lanes('## [0.6.10] - 2027-01-01\n', advisory), [])
 
     def test_pending_floor_scan_and_table_parsing(self):
         documents = {'a.md': f'text <!-- {PENDING_FLOOR} -->', 'b.md': 'text'}
         self.assertEqual(pending_floor_documents('## [Unreleased]\n## [0.6.0] - 2026-11-07\n', documents), [])
-        self.assertEqual(pending_floor_documents('## [0.7.0] - 2027-01-01\n', documents), ['a.md'])
-        self.assertEqual(pending_floor_documents('## [0.7.0] - 2027-01-01\n', {'b.md': 'text'}), [])
+        self.assertEqual(pending_floor_documents('## [0.6.1] - 2027-01-01\n', documents), ['a.md'])
+        self.assertEqual(pending_floor_documents('## [0.6.1] - 2027-01-01\n', {'b.md': 'text'}), [])
         table = '## T\n| Platform | A | B |\n|-|-|-|\n| macOS | 26.0 | 15.0 |\n| iOS | 18.0 | Every PR |\n## Next\n| tvOS | 9.0 |\n'
         self.assertEqual(documented_floors(table, '## T'), {'macOS': 15, 'iOS': 18})
         self.assertEqual(declared_floors('platforms: [.macOS(.v15), .iOS(.v18)],\n targets: [.macOS(.v99)]'),

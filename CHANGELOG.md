@@ -47,7 +47,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Minimum deployment targets lowered** from OS 26 to macOS 15, iOS 18, tvOS 18, watchOS 11
   and visionOS 2. No source change was needed, and existing users need to do nothing: a
-  package or app that already builds against PipelineKit keeps building. The package is
+  package or app that already builds against PipelineKit keeps building. The versioning
+  policy is amended to match: a patch release may lower a deployment target and never
+  raises one; a raise ships only in a minor release, under a **Breaking** heading. The
+  0.6.0 policy said any change to a deployment target ships in a minor release. The package is
   compiled for these targets on every pull request. Two advisory CI lanes run
   the tests on a macOS 15 runner and on an iOS 18 simulator; both passed on their first run
   (2026-11-11). tvOS, watchOS and visionOS are compiled and not run. The runners provide macOS 15.8 and

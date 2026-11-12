@@ -6,10 +6,10 @@ report what.
 
 ## Before you start
 
-- **Requirements:** Swift 6.2. The released 0.6.x has deployment floors of
+- **Requirements:** Swift 6.2. The released 0.6.0 has deployment floors of
   iOS/macOS/tvOS/watchOS/visionOS 26.0; the `main` branch, to be released as
-  0.7.0, lowers them to macOS 15, iOS 18, tvOS 18, watchOS 11 and visionOS 2.
-  <!-- floor-pending-0.7.0 -->
+  0.6.1, lowers them to macOS 15, iOS 18, tvOS 18, watchOS 11 and visionOS 2.
+  <!-- floor-pending-0.6.1 -->
   What CI actually verifies per platform, and the status of
   Linux: [Platform Support](../platform-support.md).
 - **Versioning promises** (what 0.x does and does not guarantee, and how
