@@ -2,12 +2,23 @@
 
 ## Platform Configuration (Updated December 2025)
 
-All CI workflows have been updated to use:
+All CI workflows use the configuration below, except the two floor lanes in
+`ci-multiplatform.yml` (`floor-macos`, `floor-ios`), which are described after it:
 - **Runner**: `macos-26` (macOS 26 Tahoe)
 - **Xcode**: `latest-stable` via `maxim-lobanov/setup-xcode@v1`
 - **Swift**: Uses Xcode-bundled Swift toolchain (no separate `swift-actions/setup-swift`)
 - **iOS Simulator**: an iOS 26.x iPhone simulator chosen at run time (`Find iOS Simulator` step in
   `ci-multiplatform.yml`; falls back to a generic simulator destination if none is listed)
+
+The floor lanes use:
+- **Runner**: `macos-15`. The `macos-26` image has no macOS 15 host and no iOS 18 simulator
+  runtime.
+- **Xcode**: pinned to `26.3`. The image's default Xcode is 16.4, which cannot build a
+  tools-version 6.2 package, so `latest-stable` is not relied on.
+- **No SwiftPM cache**: both lanes build from clean, so a `.build` directory produced by
+  another Xcode or host OS is never restored into them.
+- **iOS Simulator**: `Scripts/ci/run-simulator-tests.py` picks the lowest installed iOS 18
+  runtime and fails if there is none; it does not fall back.
 
 ### Key Changes from Previous Configuration
 
@@ -69,7 +80,7 @@ All CI workflows have been updated to use:
 | Workflow | Trigger | Runner | Purpose |
 |----------|---------|--------|---------|
 | `ci.yml` | Push to `main`, `develop`, `test-ci`, `release/**`; PRs targeting `main`, `develop`, `release/**`; manual | macos-26, ubuntu-latest | Main CI pipeline |
-| `ci-multiplatform.yml` | Every PR; push to `release/**`; manual; called by `release.yml` | macos-26 | macOS Debug and Release tests and validation, iOS simulator tests, Swift 6.2 floor build, watchOS/tvOS/visionOS simulator builds |
+| `ci-multiplatform.yml` | Every PR; push to `release/**`; manual; called by `release.yml` | macos-26, macos-15 | macOS Debug and Release tests and validation, iOS simulator tests, Swift 6.2 floor build, watchOS/tvOS/visionOS simulator builds; advisory macOS 15 host tests and iOS 18 simulator tests |
 | `weekly.yml` | Monday 2AM UTC; manual | macos-26, ubuntu-latest | Weekly extended test suite, sanitizer runs, performance tests and all-severity Trivy scan |
 | `specialty-tests.yml` | PR `labeled`/`synchronize` events (each test job runs only when its `test:*` label is present); manual | macos-26, ubuntu-latest | Memory, performance-baseline, stress and all-severity security jobs |
 | `release.yml` | Push of a `v*` tag | macos-26 | Release notes validation, qualification, documentation, GitHub release |
@@ -149,8 +160,9 @@ Linux builds use Docker container `swift:6.2`:
 3. Inspect the GitHub artifact-upload step; a missing report fails the job.
 
 ### Xcode Setup Issues
-1. Verify `macos-26` runner is available
-2. Check that `latest-stable` Xcode version exists
+1. Verify the `macos-26` runner (and `macos-15` for the floor lanes) is available
+2. Check that `latest-stable` Xcode version exists, and that Xcode 26.3 is still on the
+   `macos-15` image
 3. Review `maxim-lobanov/setup-xcode` action logs
 
 ## Future Improvements

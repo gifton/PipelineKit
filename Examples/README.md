@@ -1,7 +1,7 @@
 # Runnable examples
 
 This standalone Swift package consumes PipelineKit through ordinary public imports
-and a local package dependency. Use macOS 26 or later and Swift 6.2 or later.
+and a local package dependency. Use macOS 15 or later and Swift 6.2 or later.
 
 From the repository root, run all five examples in both configurations:
 

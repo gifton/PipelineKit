@@ -69,7 +69,7 @@ Hello, world!
 
 `greeting` is a `String` because `GreetCommand.Result` is `String`; there is nothing to cast.
 
-To run something without setting up a package (macOS 26, Swift 6.2):
+To run something without setting up a package (macOS 15 or later, Swift 6.2):
 
 ```bash
 git clone https://github.com/gifton/PipelineKit.git
@@ -115,9 +115,10 @@ Both reading paths are laid out in order in the [documentation index](docs/READM
 
 ### When it is not a fit
 
-- **You deploy below OS 26 or build with a toolchain older than Swift 6.2.** Those are the
-  package's floors on every Apple platform. [Platform support](docs/platform-support.md)
-  explains why.
+- **You deploy below the package's floors or build with a toolchain older than Swift 6.2.**
+  The released 0.6.x requires OS 26 on every Apple platform. The `main` branch, to be
+  released as 0.7.0, requires macOS 15, iOS 18, tvOS 18, watchOS 11 or visionOS 2.
+  [Platform support](docs/platform-support.md) explains why. <!-- floor-pending-0.7.0 -->
 - **You need a frozen API.** PipelineKit is 0.x: a minor release may break source, and each
   break is listed in the CHANGELOG. See [VERSIONING.md](VERSIONING.md).
 - **You need Linux as a supported platform.** Linux is built on every PR but is best-effort and
@@ -131,8 +132,10 @@ Both reading paths are laid out in order in the [documentation index](docs/READM
 
 ## Installation
 
-Requires Swift 6.2 or later and iOS, macOS, tvOS, watchOS or visionOS 26.0 or later
-([platform support](docs/platform-support.md)).
+Requires Swift 6.2 or later. The released 0.6.x, which the snippet below installs, requires
+iOS, macOS, tvOS, watchOS or visionOS 26.0 or later. The `main` branch, to be released as
+0.7.0, lowers that to macOS 15, iOS 18, tvOS 18, watchOS 11 and visionOS 2
+([platform support](docs/platform-support.md)). <!-- floor-pending-0.7.0 -->
 
 Add the package to your `Package.swift`:
 
@@ -199,8 +202,10 @@ func makeResilientPipeline<H: CommandHandler>(
 
 - Pull requests and version tags run the same qualification workflow. macOS is built and tested
   in Debug and Release; iOS is tested on a simulator; tvOS and visionOS builds are required;
-  watchOS builds are advisory. The per-platform table is in
-  [platform support](docs/platform-support.md).
+  watchOS builds are advisory. Those lanes run on macOS 26 and an iOS 26 simulator. Two
+  advisory lanes are set up to run the tests on a macOS 15 runner and an iOS 18 simulator,
+  the oldest OS generation the package declares; no run of them has completed yet. The
+  per-platform table is in [platform support](docs/platform-support.md).
 - The CI badge at the top reports the [`CI` workflow](.github/workflows/ci.yml) for the latest
   push to `main`: macOS Debug and Release builds, the eight test targets, a second run of the
   resilience test target (the job named `Stress Tests`), a Trivy scan for critical and high

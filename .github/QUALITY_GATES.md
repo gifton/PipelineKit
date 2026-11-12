@@ -70,6 +70,14 @@ Runs on every pull request, on pushes to `release/**`, on manual dispatch, and w
   Swift 6.2.x and builds the package, its tests and the consumer package in Debug and Release.
 - **tvOS and visionOS simulator builds** (required), Debug and Release.
 - **watchOS simulator builds** (advisory: `continue-on-error`), Debug and Release.
+- **macOS 15 host** (advisory: `continue-on-error`): on the `macos-15` image with Xcode 26.3,
+  `Scripts/ci/check-floor-host.sh` fails unless the host is macOS 15; then a clean build and
+  the eight test targets in Debug and in Release (`Scripts/ci/check-correctness.py`), and the
+  example programs in both configurations.
+- **iOS 18 simulator** (advisory: `continue-on-error`): on the same image and Xcode,
+  `Scripts/ci/run-simulator-tests.py` selects the lowest installed iOS 18 simulator runtime,
+  fails if there is none, runs the package tests in Debug, and fails unless each of the eight
+  test targets reports a passing bundle with at least one test that was not skipped.
 
 ## `Release` ([`release.yml`](workflows/release.yml))
 

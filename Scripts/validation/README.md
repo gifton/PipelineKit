@@ -1,6 +1,6 @@
 # Stabilization validation tools
 
-Run these commands from the repository root on macOS 26 or later with Swift 6.2 or
+Run these commands from the repository root on macOS 15 or later with Swift 6.2 or
 later and Python 3. Generated logs and manifests go under `.build/validation/` and
 are ignored by Git. Choose a fresh run ID/prefix for each watchdog or precondition
 invocation; those run artifacts are never overwritten. The documentation example

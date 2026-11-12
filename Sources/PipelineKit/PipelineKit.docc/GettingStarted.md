@@ -18,8 +18,12 @@ dependencies: [
 ]
 ```
 
-PipelineKit requires Swift 6.2 and deployment targets of iOS/macOS/tvOS/
-watchOS/visionOS 26.0 or later.
+PipelineKit 0.6.x requires Swift 6.2 and deployment targets of iOS/macOS/tvOS/
+watchOS/visionOS 26.0 or later. The `main` branch, to be released as 0.7.0,
+declares deployment targets of macOS 15, iOS 18, tvOS 18, watchOS 11 and
+visionOS 2.
+
+<!-- floor-pending-0.7.0 -->
 
 ### Define a command and its handler
 
