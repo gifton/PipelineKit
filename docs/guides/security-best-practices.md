@@ -1333,8 +1333,10 @@ and relies on real, verifiable automation to track updates and vulnerabilities:
 - **Trivy filesystem scan** — the `Security Scan` job in `.github/workflows/ci.yml` — runs on every
   push to `main`/`develop`/`test-ci` and on every pull request against `main`/`develop`, uploading
   results as SARIF via `github/codeql-action/upload-sarif`.
-- **Trivy deep scan** — the `Deep Security Audit` job in `.github/workflows/weekly-full-ci.yml` —
-  runs weekly (`cron: '0 3 * * 0'`, Sundays 3 AM UTC), scanning all severities and uploading SARIF.
+- **Trivy all-severity scan** — the `Deep Security Audit` job in
+  `.github/workflows/specialty-tests.yml` — is not scheduled. It runs only on manual dispatch
+  (`test_type: security-audit`) or on a pull request labelled `test:security`, and prints its
+  findings as a table in the job log.
 
 There is no `dependency-audit.yml` workflow in the active workflow set (an earlier version was
 retired to `.github/workflows/.archived/`, which GitHub Actions does not execute) and no automated
@@ -1359,8 +1361,9 @@ and transitive) live in [`DEPENDENCIES.md`](../../DEPENDENCIES.md).
 
 ### Automated Auditing
 
-- **Weekly**: Dependabot version-update checks (`.github/dependabot.yml`) and a Trivy deep scan
-  across all severities (`Deep Security Audit` job in `weekly-full-ci.yml`).
+- **Weekly**: Dependabot version-update checks (`.github/dependabot.yml`).
+- **On demand**: Trivy scan across all severities (`Deep Security Audit` job in
+  `specialty-tests.yml`; manual dispatch or the `test:security` pull-request label).
 - **Per-PR / per-push**: Trivy filesystem scan, `CRITICAL`/`HIGH` severities (`Security Scan` job
   in `ci.yml`).
 

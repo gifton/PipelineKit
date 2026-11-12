@@ -1,8 +1,7 @@
 name: CI
 
-# Full CI pipeline running all tests for every PR and push
-# Expected runtime: 15-25 minutes for PRs (all tests run in parallel where possible)
-# To skip expensive tests, you can close and reopen the PR with [skip ci] in commit message
+# Runs on pushes to the branches listed below, on every pull request that targets
+# main, develop or release/**, and on manual dispatch.
 
 on:
   push:
@@ -15,11 +14,11 @@ on:
 env:
   DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
   CI: 'true'
-  MINIMUM_COVERAGE: 70  # Start with realistic threshold
-  # Gradual enforcement flags (set to 'true' to enforce)
-  ENFORCE_SWIFTLINT: 'false'  # Week 1: warn only
-  ENFORCE_COVERAGE: 'false'   # Week 2: after baseline
-  ENFORCE_PERFORMANCE: 'false' # Week 3: after optimization
+  MINIMUM_COVERAGE: 70  # Reported; enforced only when ENFORCE_COVERAGE is 'true'
+  # These three checks report but do not fail their job; set a flag to 'true' to make it fail.
+  ENFORCE_SWIFTLINT: 'false'
+  ENFORCE_COVERAGE: 'false'
+  ENFORCE_PERFORMANCE: 'false'
 
 # Permissions
 permissions:
@@ -85,7 +84,7 @@ jobs:
               echo "❌ SwiftLint violations found (enforcement enabled)"
               exit 1
             elif [ "${LINT_EXIT:-0}" -ne 0 ]; then
-              echo "⚠️ SwiftLint violations found (enforcement disabled - will be enforced soon)"
+              echo "⚠️ SwiftLint violations found (enforcement disabled)"
             else
               echo "✅ SwiftLint passed"
             fi
@@ -154,7 +153,7 @@ jobs:
     container: swift:6.2
     needs: swiftlint
     timeout-minutes: 15
-    continue-on-error: true  # Allow Linux to fail for now
+    continue-on-error: true  # Linux is advisory (see docs/platform-support.md)
 
     steps:
     - uses: actions/checkout@v7
@@ -247,7 +246,7 @@ jobs:
                 echo "❌ Coverage ${COVERAGE}% is below threshold of ${{ env.MINIMUM_COVERAGE }}% (enforcement enabled)"
                 exit 1
               else
-                echo "⚠️ Coverage ${COVERAGE}% is below threshold of ${{ env.MINIMUM_COVERAGE }}% (enforcement disabled - will be enforced soon)"
+                echo "⚠️ Coverage ${COVERAGE}% is below threshold of ${{ env.MINIMUM_COVERAGE }}% (enforcement disabled)"
               fi
             else
               echo "✅ Coverage ${COVERAGE}% meets threshold of ${{ env.MINIMUM_COVERAGE }}%"
@@ -266,7 +265,7 @@ jobs:
     container: swift:6.2
     needs: [build, build-linux]
     timeout-minutes: 20
-    continue-on-error: true  # Allow Linux to fail for now
+    continue-on-error: true  # Linux is advisory (see docs/platform-support.md)
 
     steps:
     - uses: actions/checkout@v7
@@ -357,7 +356,7 @@ jobs:
           echo "❌ Performance tests failed (enforcement enabled)"
           exit 1
         elif [ "${PERF_EXIT:-0}" -ne 0 ]; then
-          echo "⚠️ Performance tests failed (enforcement disabled - will be enforced soon)"
+          echo "⚠️ Performance tests failed (enforcement disabled)"
         else
           echo "✅ Performance tests passed"
         fi

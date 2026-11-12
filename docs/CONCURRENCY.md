@@ -39,8 +39,8 @@ requests to `main` and on every push to `main`.
 
 ### What is not checked
 
-- Thread Sanitizer is not a gate. The weekly workflows run the suite under it with the result
-  ignored (`continue-on-error`, or `|| echo`), so a report there does not fail a build. The
+- Thread Sanitizer is not a gate. The weekly workflow (`Weekly Build`) runs the suite under it
+  with the result ignored (`continue-on-error`), so a report there does not fail a build. The
   opt-in `Specialty Tests` workflow runs it only for a pull request labelled `test:memory` or
   on manual dispatch.
 - No cited test counts how many times the handler ran after a rejected second `next`; the

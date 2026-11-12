@@ -560,12 +560,11 @@ class StatusTests(unittest.TestCase):
         self.assertIn('bash Scripts/ci/check-required-status.sh', workflow)
         self.assertIn('uses: actions/checkout@', workflow)
     def test_trivy_finding_gates_and_upload(self):
-        for name in ('ci.yml', 'weekly-full-ci.yml'):
-            text = (ROOT / '.github/workflows' / name).read_text()
-            scan = text.split('uses: aquasecurity/trivy-action@', 1)[1].split('\n    - name:', 1)[0]
-            upload = text.split("- name: Upload", 1)[1] if name == 'weekly-full-ci.yml' else text.split('- name: Upload Trivy Results', 1)[1]
-            self.assertIn("exit-code: '1'", scan, name)
-            self.assertIn('if: always()', upload.split('\n    - name:', 1)[0], name)
+        text = (ROOT / '.github/workflows/ci.yml').read_text()
+        scan = text.split('uses: aquasecurity/trivy-action@', 1)[1].split('\n    - name:', 1)[0]
+        upload = text.split('- name: Upload Trivy Results', 1)[1]
+        self.assertIn("exit-code: '1'", scan)
+        self.assertIn('if: always()', upload.split('\n    - name:', 1)[0])
         specialty = (ROOT / '.github/workflows/specialty-tests.yml').read_text()
         self.assertIn("exit-code: '1'", specialty.split('uses: aquasecurity/trivy-action@', 1)[1].split('\n    - name:', 1)[0])
 

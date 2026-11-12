@@ -3,7 +3,9 @@ scanners:
   - secret
   - misconfig
 
-# Exclude build and non-source dirs to reduce noise
+# Not scanned: build output (.build, .swiftpm), .git, docs, Examples and Scripts.
+# Everything else in the checkout is scanned, including the package manifest and
+# lockfile, Sources, Tests and .github.
 skip-dirs:
   - .build
   - .swiftpm

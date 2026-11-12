@@ -49,7 +49,8 @@ green), clear stale artifacts before debugging: `rm -rf .build && swift build`.
 
 ## Code quality
 
-SwiftLint is enforced in CI (`.swiftlint.yml` at the repo root):
+SwiftLint runs in CI and reports violations; it does not fail the build today
+(`.swiftlint.yml` at the repo root):
 
 ```bash
 swiftlint lint --strict

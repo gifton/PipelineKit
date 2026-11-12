@@ -26,7 +26,6 @@ import os
 /// 
 /// - **State checks**: O(1) - minimal overhead for request filtering
 /// - **Memory usage**: O(1) - fixed memory regardless of request volume
-/// - **Latency impact**: < 1μs for state checks when circuit is closed
 /// - **Recommended limits**: 
 ///   - Network operations: 5-10 failures before opening
 ///   - Database operations: 2-5 failures before opening
@@ -40,9 +39,11 @@ public struct CircuitBreakerMiddleware: Middleware {
     ///
     /// Backed by an unfair lock rather than an actor: every operation is a trivial,
     /// synchronous state transition (integer/`Date`/enum logic, no I/O), so a lock
-    /// avoids the per-call executor hop an actor pays on each `await`. A release
-    /// microbenchmark measured ~45x lower wall time / ~5.7x fewer CPU cycles vs the
-    /// actor under contention. Internal (`private`), so this is not an API change.
+    /// avoids the per-call executor hop an actor pays on each `await`.
+    /// `ActorVsLockBenchmark` in `PipelineKitPerformanceTests` measures the two shapes
+    /// under contention; it records no baseline and asserts no ratio, so the size of
+    /// the difference is unverified here. Internal (`private`), so this is not an API
+    /// change.
     private final class State: @unchecked Sendable {
         enum CircuitState {
             case closed

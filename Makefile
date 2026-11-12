@@ -1,18 +1,15 @@
 # PipelineKit Makefile
 # Provides convenient shortcuts for common development tasks
 
-.PHONY: help test test-unit test-stress test-stress-tsan test-integration clean build docs format lint
+.PHONY: help test test-unit clean build docs docs-preview lint
 
 # Default target
 help:
 	@echo "PipelineKit Development Commands:"
 	@echo ""
 	@echo "Testing:"
-	@echo "  make test              - Run all tests"
+	@echo "  make test              - Run all tests except the performance suite, in parallel"
 	@echo "  make test-unit         - Run unit tests only"
-	@echo "  make test-stress       - Run stress tests"
-	@echo "  make test-stress-tsan  - Run stress tests with Thread Sanitizer"
-	@echo "  make test-integration  - Run integration tests only"
 	@echo ""
 	@echo "Building:"
 	@echo "  make build             - Build the package"
@@ -23,28 +20,15 @@ help:
 	@echo "  make docs-preview      - Preview documentation in browser"
 	@echo ""
 	@echo "Code Quality:"
-	@echo "  make format            - Format code with swift-format"
 	@echo "  make lint              - Lint code with SwiftLint (if installed)"
 
-# Run all tests
+# Run all tests except the performance suite (the loop CONTRIBUTING.md documents)
 test:
-	swift test
+	swift test --parallel --skip PipelineKitPerformanceTests
 
 # Run unit tests only
 test-unit:
 	swift package test-unit
-
-# Run stress tests
-test-stress:
-	swift package test-stress
-
-# Run stress tests with Thread Sanitizer
-test-stress-tsan:
-	swift package test-stress-tsan
-
-# Run integration tests only
-test-integration:
-	swift package test-integration
 
 # Build the package
 build:
@@ -62,14 +46,6 @@ docs:
 # Preview documentation
 docs-preview:
 	swift package preview-documentation
-
-# Format code (requires swift-format)
-format:
-	@if command -v swift-format >/dev/null 2>&1; then \
-		swift-format -i -r Sources/ Tests/; \
-	else \
-		echo "swift-format not installed. Install with: brew install swift-format"; \
-	fi
 
 # Lint code (requires SwiftLint)
 lint:
