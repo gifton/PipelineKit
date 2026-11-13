@@ -6,10 +6,9 @@ report what.
 
 ## Before you start
 
-- **Requirements:** Swift 6.2. The released 0.6.0 has deployment floors of
-  iOS/macOS/tvOS/watchOS/visionOS 26.0; the `main` branch, to be released as
-  0.6.1, lowers them to macOS 15, iOS 18, tvOS 18, watchOS 11 and visionOS 2.
-  <!-- floor-pending-0.6.1 -->
+- **Requirements:** Swift 6.2 and deployment floors of macOS 15, iOS 18,
+  tvOS 18, watchOS 11 and visionOS 2. Version 0.6.0 required OS 26 on every
+  Apple platform; pin 0.6.1 or later if you deploy below that.
   What CI actually verifies per platform, and the status of
   Linux: [Platform Support](../platform-support.md).
 - **Versioning promises** (what 0.x does and does not guarantee, and how
@@ -30,7 +29,7 @@ swift run BasicExample
 
 ### 2. Add PipelineKit to a scratch package (5 minutes)
 
-This guide targets 0.6.0. Review the
+This guide targets 0.6.1. Review the
 [upgrade guide](../migrations/0.5-to-0.6.md) before upgrading from 0.5.4.
 
 ```swift

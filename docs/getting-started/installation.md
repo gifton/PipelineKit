@@ -4,7 +4,7 @@ Install PipelineKit with Swift Package Manager, either through Xcode or a
 `Package.swift` manifest. The package manifest defines the module graph and external
 dependencies required to build the library.
 
-These instructions target **0.6.0**. Published tags are listed on the
+These instructions target **0.6.1**. Published tags are listed on the
 [releases page](https://github.com/gifton/PipelineKit/releases). Follow the
 [upgrade guide](../migrations/0.5-to-0.6.md) when upgrading from 0.5.4.
 
@@ -12,9 +12,9 @@ These instructions target **0.6.0**. Published tags are listed on the
 
 - Swift 6.2 or later
 - Xcode 26.0 or later (for Xcode integration)
-- For 0.6.0: macOS 26.0+ / iOS 26.0+ / tvOS 26.0+ / watchOS 26.0+ / visionOS 26.0+
-- For the `main` branch, to be released as 0.6.1: macOS 15.0+ / iOS 18.0+ / tvOS 18.0+ /
-  watchOS 11.0+ / visionOS 2.0+ ([platform support](../platform-support.md)) <!-- floor-pending-0.6.1 -->
+- macOS 15.0+ / iOS 18.0+ / tvOS 18.0+ / watchOS 11.0+ / visionOS 2.0+
+  ([platform support](../platform-support.md)). Version 0.6.0 required OS 26 on every Apple
+  platform, and a `Package.resolved` pinned to 0.6.0 still does until it is updated.
 
 ## Swift Package Manager (Recommended)
 
@@ -78,7 +78,7 @@ You can specify version requirements in several ways:
 
 ```swift
 // Exact version
-.package(url: "...", exact: "0.6.0")
+.package(url: "...", exact: "0.6.1")
 
 // Version range
 .package(url: "...", "0.6.0"..<"0.7.0")

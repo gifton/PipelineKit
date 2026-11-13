@@ -7,61 +7,84 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
+## [0.6.1] - 2026-11-12
 
-- `BatchIngestExample`: a batch ingest pipeline with one command per batch, bounded
-  concurrency and outstanding work through `BackPressureMiddleware`, and metrics the program
-  reads back and checks. CI builds and runs it with the other examples.
+0.6.1 lowers the minimum Apple deployment targets from OS 26 to macOS 15, iOS 18, tvOS 18,
+watchOS 11 and visionOS 2. There is no public API change: code that builds against 0.6.0
+builds against 0.6.1 as it is. The rest of the release is documentation, one new example and
+CI work, including two CI lanes that run the tests on macOS 15 and iOS 18.
 
-### Documentation
-
-- README restructured as an entry point: first example, reasons to choose or not choose the
-  package, module map, and links to the documentation site. Reference material moved to
-  `docs/guides/architecture.md`, `docs/guides/performance.md`, `docs/guides/resilience-patterns.md`,
-  `docs/guides/security-best-practices.md`, `docs/tutorials/custom-middleware.md` and
-  `docs/tutorials/advanced-patterns.md`. Statements the code did not back were removed.
-- Documentation defects fixed: the printed `Middleware` protocol and the middleware examples
-  now show `next` as `@escaping`; wording that told readers to wait for the `v0.6.0` tag is
-  gone; the security guide's table of contents links resolve; `Tests/README.md` lists the
-  test targets that exist. `docs/getting-started/quick-start.md` is removed: the README's
-  first pipeline and `docs/tutorials/basic-usage.md` cover the same ground. The performance
-  and resilience guides now state that `StandardPipeline` applies only `maxConcurrency` from
-  `PipelineOptions`. CI checks that relative documentation links and anchors resolve and that
-  protocol requirements printed in the documentation match the source.
-- The documentation index (`docs/README.md`) now gives two reading paths in order and states
-  which surface holds which kind of content. New `docs/guides/testing.md` covers
-  `PipelineKitTestSupport`. The command-bus book ends with a table mapping its teaching bus
-  onto PipelineKit's types. The documentation site's Getting Started article and
-  `docs/guides/enterprise-evaluation.md` are now compiled in CI.
-- The ten 0.6.0 migration notes are consolidated into one upgrade guide,
-  `docs/migrations/0.5-to-0.6.md`, organised by module and opened by a section on data
-  written by 0.5.x. Every Swift example in it is compiled in CI. The qualification records
-  remain at the `v0.6.0` tag. Statements that later 0.6.0 work had superseded were removed,
-  and two instructions were corrected against the source: a distributed rate-limit status
-  lookup throws the store's error (the notes said its read-error behavior was unchanged), and
-  the task-scoped warning suppression is `NextGuard.withoutWarnings` (the notes named
-  `NextGuardConfiguration`). `docs/migrations/release-readiness.md` is a pointer to the new
-  guide until the next tagged release.
+0.6.0 required OS 26 on every Apple platform. The recommended dependency range
+`"0.6.0"..<"0.7.0"` now resolves to 0.6.1.
 
 ### Changed
 
 - **Minimum deployment targets lowered** from OS 26 to macOS 15, iOS 18, tvOS 18, watchOS 11
   and visionOS 2. No source change was needed, and existing users need to do nothing: a
-  package or app that already builds against PipelineKit keeps building. The versioning
-  policy is amended to match: a patch release may lower a deployment target and never
-  raises one; a raise ships only in a minor release, under a **Breaking** heading. The
-  0.6.0 policy said any change to a deployment target ships in a minor release. The package is
-  compiled for these targets on every pull request. Two required CI lanes run
-  the tests on a macOS 15 runner and on an iOS 18 simulator; a failure in either fails the
-  qualification run and stops a release. Both passed on their first run (2026-11-11).
-  tvOS, watchOS and visionOS are compiled and not run. The runners provide macOS 15.8 and
-  iOS 18.5, so the first releases of that OS generation (macOS 15.0 to 15.3, iOS 18.0 to
-  18.3, which ship an older Swift runtime) are not exercised.
-- Benchmark harness runs its workloads off the main thread; records made with the earlier
-  harness are not comparable with new ones. First published results are in `docs/benchmarks.md`.
+  package or app that already builds against PipelineKit keeps building. The package is
+  compiled for these targets on every pull request. Two required CI lanes run the tests on a
+  macOS 15 runner and on an iOS 18 simulator; a failure in either fails the qualification
+  run and stops a release. tvOS, watchOS and visionOS are compiled and not run. The runners
+  provide macOS 15.8 and iOS 18.5 and 18.6 simulators, so the first releases of that OS
+  generation (macOS 15.0 to 15.3 and iOS 18.0 to 18.3, which ship an older Swift runtime) are
+  not exercised. [Platform support](https://github.com/gifton/PipelineKit/blob/v0.6.1/docs/platform-support.md)
+  has the per-platform table and the reason the floors are where they are.
+- **Versioning policy amended** to match: a patch release may lower a deployment target and
+  never raises one; a raise ships only in a minor release, under a **Breaking** heading. The
+  0.6.0 policy said any change to a deployment target ships in a minor release. See
+  [VERSIONING.md](https://github.com/gifton/PipelineKit/blob/v0.6.1/VERSIONING.md) and the
+  [platform commitment](https://github.com/gifton/PipelineKit/blob/v0.6.1/docs/platform-support.md#commitment).
+- The benchmark harness runs its workloads off the main thread; records made with the earlier
+  harness are not comparable with new ones. The first published results, measured on 0.6.0,
+  are in [docs/benchmarks.md](https://github.com/gifton/PipelineKit/blob/v0.6.1/docs/benchmarks.md#published-results).
 - Examples: `AdvancedExample` is renamed `MiddlewareStackExample`; `MetricsSamplingExample`
   and `MetricsAggregationExample` are merged into `StatsDExportExample`, which runs both
   checks unchanged.
+
+### Added
+
+- `BatchIngestExample`: a batch ingest pipeline with one command per batch, bounded
+  concurrency and outstanding work through `BackPressureMiddleware`, and metrics the program
+  reads back and checks. CI builds and runs it with the other
+  [examples](https://github.com/gifton/PipelineKit/blob/v0.6.1/Examples/README.md).
+
+### Fixed
+
+- The warnings `StandardPipeline` logs for `PipelineOptions` settings it ignores named a type
+  that does not exist; they now name `BackPressureSemaphore`.
+- Two tests whose results depended on task scheduling no longer do. Test-only; no library
+  change.
+
+### Documentation
+
+- The ten 0.6.0 migration notes are consolidated into one upgrade guide,
+  [Upgrading from 0.5.4 to 0.6.0](https://github.com/gifton/PipelineKit/blob/v0.6.1/docs/migrations/0.5-to-0.6.md),
+  organised by module and opened by a section on data written by 0.5.x. Every Swift example
+  in it is compiled in CI. Two instructions were corrected against the source: a distributed
+  rate-limit status lookup throws the store's error (the notes said its read-error behavior
+  was unchanged), and the task-scoped warning suppression is `NextGuard.withoutWarnings` (the
+  notes named `NextGuardConfiguration`). The original notes and the qualification records
+  remain at the `v0.6.0` tag.
+- The README is restructured as an entry point: a first example, reasons to choose or not
+  choose the package, the module map, and links to the documentation site. Its reference
+  material moved to the guides and tutorials under `docs/`, and statements the code did not
+  back were removed.
+- The [documentation index](https://github.com/gifton/PipelineKit/blob/v0.6.1/docs/README.md)
+  gives two reading paths in order and states which surface holds which kind of content. A
+  new [testing guide](https://github.com/gifton/PipelineKit/blob/v0.6.1/docs/guides/testing.md)
+  covers `PipelineKitTestSupport`. The command-bus book ends with a table mapping its
+  teaching bus onto PipelineKit's types.
+- Corrections: the printed `Middleware` protocol and the middleware examples show `next` as
+  `@escaping`; the performance and resilience guides state that `StandardPipeline` applies
+  only `maxConcurrency` from `PipelineOptions`; the security guide's table of contents links
+  resolve; `Tests/README.md` lists the test targets that exist.
+  `docs/getting-started/quick-start.md` is removed: the README's first pipeline and
+  `docs/tutorials/basic-usage.md` cover the same ground.
+- CI checks that relative documentation links and anchors resolve and that protocol
+  requirements printed in the documentation match the source, and compiles the documentation
+  site's Getting Started article and `docs/guides/enterprise-evaluation.md`.
+- The [documentation site](https://gifton.github.io/PipelineKit/documentation/) is published
+  when a release is tagged, so it describes the latest release.
 
 ## [0.6.0] - 2026-11-07
 
@@ -581,7 +604,8 @@ for caller updates, qualification evidence, and remaining limits.
 - Ensured all semaphore continuations are properly resumed to prevent resource leaks
 - Added proper task cancellation handling throughout concurrency primitives
 
-[Unreleased]: https://github.com/gifton/PipelineKit/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/gifton/PipelineKit/compare/v0.6.1...HEAD
+[0.6.1]: https://github.com/gifton/PipelineKit/releases/tag/v0.6.1
 [0.6.0]: https://github.com/gifton/PipelineKit/releases/tag/v0.6.0
 [0.5.4]: https://github.com/gifton/PipelineKit/releases/tag/v0.5.4
 [0.5.3]: https://github.com/gifton/PipelineKit/releases/tag/v0.5.3

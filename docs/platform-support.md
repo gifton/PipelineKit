@@ -2,20 +2,20 @@
 
 ## Requirements
 
-PipelineKit requires **Swift 6.2**. The minimum deployment targets depend on the version:
+PipelineKit requires **Swift 6.2** and these minimum deployment targets, which are what
+[`Package.swift`](../Package.swift) declares:
 
-| Platform | 0.6.0 (released) | `main`, to be released as 0.6.1 |
-|----------|------------------|---------------------------------|
-| macOS | 26.0 | 15.0 |
-| iOS | 26.0 | 18.0 |
-| tvOS | 26.0 | 18.0 |
-| watchOS | 26.0 | 11.0 |
-| visionOS | 26.0 | 2.0 |
+| Platform | Minimum deployment target |
+|----------|---------------------------|
+| macOS | 15.0 |
+| iOS | 18.0 |
+| tvOS | 18.0 |
+| watchOS | 11.0 |
+| visionOS | 2.0 |
 
-<!-- floor-pending-0.6.1: when 0.6.1 is dated in the CHANGELOG, collapse this table to one column and keep one line saying 0.6.0 required OS 26, since both versions sit in the recommended dependency range -->
-
-The right-hand column is what [`Package.swift`](../Package.swift) declares on this branch.
-The rest of this page describes that column.
+Version 0.6.0 required OS 26 on every Apple platform; 0.6.1 lowered the targets to the ones
+above. Both versions fall inside the recommended dependency range `"0.6.0"..<"0.7.0"`, so a
+`Package.resolved` pinned to 0.6.0 still needs OS 26 until it is updated.
 
 ## What CI verifies
 
