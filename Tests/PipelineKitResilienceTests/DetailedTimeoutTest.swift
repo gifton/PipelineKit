@@ -168,7 +168,9 @@ final class DetailedTimeoutTest: XCTestCase {
         let pipeline = StandardPipeline(handler: handler)
         
         let timeoutMiddleware = DebugTimeoutMiddleware(timeout: 0.1)
-        let slowMiddleware = SlowMiddleware(delay: 0.2)
+        // Far longer than any scheduling stall: with 0.2s of work a stall past both
+        // timers let the work win the race in `withTimeout`. Cancelled at the deadline.
+        let slowMiddleware = SlowMiddleware(delay: 30)
         
         try await pipeline.addMiddleware(timeoutMiddleware)
         try await pipeline.addMiddleware(slowMiddleware)

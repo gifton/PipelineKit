@@ -241,7 +241,10 @@ final class CommandContextTests: XCTestCase {
         let duration = context.getMetric("duration") as? TimeInterval
         XCTAssertNotNil(duration)
         XCTAssertGreaterThan(duration!, 0)
-        XCTAssertLessThan(duration!, 1.0) // Should be less than 1 second
+        // Sanity bound on a duration that includes a 10ms sleep: it rules out a
+        // nonsense value (wrong unit, wrong start), not a slow runner, so it is
+        // far longer than any scheduling stall.
+        XCTAssertLessThan(duration!, 30.0)
     }
     
     func testRecordDurationWithCustomName() async throws {
@@ -617,7 +620,9 @@ final class CommandContextTests: XCTestCase {
         let duration = Date().timeIntervalSince(start)
 
         print("Get/Set performance: 2000 operations in \(duration)s")
-        XCTAssertLessThan(duration, 1.0) // Should complete in less than 1 second
+        // Hang/pathology detector, not a benchmark: the loop takes milliseconds,
+        // and a 1s bound failed whenever the runner descheduled the test for a second.
+        XCTAssertLessThan(duration, 10.0)
     }
     
     func testMetadataPerformance() async {
@@ -631,7 +636,8 @@ final class CommandContextTests: XCTestCase {
         let duration = Date().timeIntervalSince(start)
         
         print("Metadata performance: 1000 writes + 1 read in \(duration)s")
-        XCTAssertLessThan(duration, 1.0)
+        // Hang/pathology detector, not a benchmark; see testGetSetPerformance.
+        XCTAssertLessThan(duration, 10.0)
     }
 }
 

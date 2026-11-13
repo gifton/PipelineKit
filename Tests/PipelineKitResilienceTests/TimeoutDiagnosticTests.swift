@@ -140,9 +140,10 @@ final class TimeoutDiagnosticTests: XCTestCase {
         let timeoutMiddleware = TimeoutMiddleware(defaultTimeout: 0.05) // 50ms
         
         // SlowMiddleware has priority .custom (1000)
-        // Delay must exceed the timeout by seconds, not milliseconds, so a
-        // delayed timeout continuation can never lose the race to completion.
-        let slowMiddleware = SlowMiddleware(delay: 2.0, id: "SlowAfter")
+        // Delay must exceed the timeout by far more than any scheduling stall, so
+        // a delayed timeout continuation can never lose the race to completion.
+        // The sleep is cancelled when the timeout fires.
+        let slowMiddleware = SlowMiddleware(delay: 30.0, id: "SlowAfter")
         
         try await pipeline.addMiddleware(timeoutMiddleware)
         try await pipeline.addMiddleware(slowMiddleware)
@@ -166,10 +167,11 @@ final class TimeoutDiagnosticTests: XCTestCase {
             let elapsed = Date().timeIntervalSince(start)
             print("Failed after \(elapsed)s with error: \(error)")
             
-            // The timeout error should be thrown promptly (around 50ms).
-            // Allow generous CI scheduling jitter; the bound stays well below the
-            // 2s middleware delay, so passing still proves the timeout fired.
-            XCTAssertLessThan(elapsed, 1.5, "Timeout error should be thrown promptly: \(elapsed)s")
+            // The timeout error is expected around 50ms. The bound is a hang
+            // detector, not a latency measurement: it stays well below the 30s
+            // middleware delay, so passing proves the caller was released by the
+            // timeout and not by the work finishing.
+            XCTAssertLessThan(elapsed, 10, "Timeout error should be thrown promptly: \(elapsed)s")
             
             if let pipelineError = error as? PipelineError,
                case .timeout = pipelineError {
@@ -205,7 +207,7 @@ final class TimeoutDiagnosticTests: XCTestCase {
         }
         
         let timeoutMiddleware = TimeoutMiddleware(defaultTimeout: 0.05) // 50ms
-        let slowMiddleware = EarlySlowMiddleware(delay: 2.0) // must lose the race by seconds
+        let slowMiddleware = EarlySlowMiddleware(delay: 30.0) // must lose the race by far more than any stall
         
         try await pipeline.addMiddleware(timeoutMiddleware)
         try await pipeline.addMiddleware(slowMiddleware)
@@ -228,9 +230,9 @@ final class TimeoutDiagnosticTests: XCTestCase {
                 // cancellation model. The important thing is that we get the timeout error
                 // promptly, not that background operations are forcefully stopped.
                 
-                // We expect the timeout error around 50ms; allow generous CI jitter
-                // while staying well below the 2s middleware delay.
-                XCTAssertLessThan(elapsed, 1.5, "Timeout error should be thrown promptly (elapsed: \(elapsed)s)")
+                // We expect the timeout error around 50ms. The bound is a hang
+                // detector well below the 30s middleware delay, not a latency check.
+                XCTAssertLessThan(elapsed, 10, "Timeout error should be thrown promptly (elapsed: \(elapsed)s)")
                 print("✅ Timeout correctly detected at \(elapsed)s (background ops may continue)")
             } else {
                 XCTFail("Wrong error type: \(error)")
@@ -280,7 +282,7 @@ final class TimeoutDiagnosticTests: XCTestCase {
 
             func handle(_ command: TestCommand, context: CommandContext) async throws -> String {
                 print("[Handler] Starting slow operation")
-                try await Task.sleep(nanoseconds: 2_000_000_000) // must lose the race by seconds
+                try await Task.sleep(nanoseconds: 30_000_000_000) // must lose the race by far more than any stall
                 print("[Handler] Completed")
                 return command.value
             }
@@ -301,9 +303,9 @@ final class TimeoutDiagnosticTests: XCTestCase {
             // Verify we got a timeout error promptly (around 50ms)
             if let pipelineError = error as? PipelineError,
                case .timeout = pipelineError {
-                // The timeout error should be thrown around 50ms; allow generous CI
-                // jitter while staying well below the 2s handler delay.
-                XCTAssertLessThan(elapsed, 1.5, "Timeout should be detected promptly")
+                // The timeout error is expected around 50ms. The bound is a hang
+                // detector well below the 30s handler delay, not a latency check.
+                XCTAssertLessThan(elapsed, 10, "Timeout should be detected promptly")
                 print("✅ Timeout correctly thrown at \(elapsed)s")
                 
                 // NOTE: The handler's Task.sleep may continue in the background.

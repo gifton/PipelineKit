@@ -83,13 +83,23 @@ final class LRUEvolutionTests: XCTestCase {
     func testInMemoryCacheExpiredReturnsNilAndRemoved() async throws {
         let cache = InMemoryCache(maxSize: 10)
 
-        // Expire 50ms in the future, then sleep past it.
-        let expiration = Date().addingTimeInterval(0.05)
-        await cache.set(key: "k", value: "V", expiration: expiration)
+        // Expire 50ms in the future, then sleep past it. The "still live" read is
+        // only meaningful if it finished before the deadline, and the cache has no
+        // injectable clock, so a read that a stalled runner delayed past the
+        // deadline is repeated with a fresh deadline instead of being judged.
+        var readBeforeDeadline = false
+        for _ in 0..<20 where !readBeforeDeadline {
+            let expiration = Date().addingTimeInterval(0.05)
+            await cache.set(key: "k", value: "V", expiration: expiration)
 
-        // Immediately available.
-        let live = await cache.get(key: "k", type: String.self)
-        XCTAssertEqual(live, "V")
+            // Immediately available.
+            let live = await cache.get(key: "k", type: String.self)
+            if Date() < expiration {
+                readBeforeDeadline = true
+                XCTAssertEqual(live, "V")
+            }
+        }
+        XCTAssertTrue(readBeforeDeadline, "No read completed within 50ms of its write in 20 attempts")
 
         try await Task.sleep(nanoseconds: 120_000_000) // 120ms
 

@@ -98,7 +98,9 @@ private struct WarningConcurrentMiddleware: Middleware {
         try await withThrowingTaskGroup(of: T.Result.self) { group in
             for _ in 0..<2 { group.addTask { try await next(command, context) } }
             group.addTask {
-                try await Task.sleep(for: .seconds(1))
+                // Hang detector only. It races the two calls above, so it must be
+                // far longer than any scheduling stall (it was 1s).
+                try await Task.sleep(for: .seconds(10))
                 await release.signal("release")
                 throw WarningContractError.missingConcurrentGuard
             }

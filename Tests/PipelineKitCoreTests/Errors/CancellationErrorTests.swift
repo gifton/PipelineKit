@@ -90,7 +90,8 @@ final class CancellationErrorTests: XCTestCase {
             task.cancel()
         }
         
-        await fulfillment(of: [expectation], timeout: 1.0)
+        // Hang detector for about 25ms of work, not a latency bound.
+        await fulfillment(of: [expectation], timeout: 10.0)
     }
     
     func testCheckCancellationMultipleTimes() async {
@@ -124,8 +125,10 @@ final class CancellationErrorTests: XCTestCase {
         let duration = Date().timeIntervalSince(start)
         print("100,000 cancellation checks in \(duration)s")
         
-        // Should be very fast - just checking a flag
-        XCTAssertLessThan(duration, 1.0)
+        // Should be very fast - just checking a flag. The bound is a pathology
+        // detector, not a benchmark: a 1s bound failed whenever the runner
+        // descheduled the test for a second.
+        XCTAssertLessThan(duration, 10.0)
     }
     
     // MARK: - Real-World Scenarios

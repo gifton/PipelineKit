@@ -108,6 +108,18 @@ final class DeadlockFixTest: XCTestCase {
         )
         
         let context = CommandContext()
+        // Admitted handlers wait at this gate, so nothing completes and frees capacity
+        // while the five commands arrive. With 10-100ms sleeps as the work, a runner
+        // that started the tasks far enough apart let each one finish before the next
+        // arrived, and nothing was dropped.
+        let gate = DropGate()
+        // If nothing is ever dropped, open the gate anyway so the assertion below
+        // fails instead of the test hanging.
+        let fallback = Task {
+            try? await Task.sleep(for: .seconds(10))
+            await gate.release()
+        }
+        defer { fallback.cancel() }
         
         // When - Send more than outstanding limit
         let dropped = await withTaskGroup(of: Int.self) { group in
@@ -118,8 +130,8 @@ final class DeadlockFixTest: XCTestCase {
                             id: i,
                             delay: i == 0 ? 0.1 : 0.01
                         )
-                        _ = try await middleware.execute(command, context: context) { cmd, _ in
-                            try await Task.sleep(nanoseconds: UInt64(cmd.delay * 1_000_000_000))
+                        _ = try await middleware.execute(command, context: context) { _, _ in
+                            await gate.wait()
                             return "done"
                         }
                         return 0
@@ -137,6 +149,8 @@ final class DeadlockFixTest: XCTestCase {
             var total = 0
             for await count in group {
                 total += count
+                // The first drop is the behaviour under test; let the admitted work finish.
+                if count > 0 { await gate.release() }
             }
             return total
         }
@@ -150,4 +164,22 @@ private struct TestCommand: Command, Sendable {
     typealias Result = String
     let id: Int
     let delay: TimeInterval
+}
+
+/// Holds any number of waiters until released.
+private actor DropGate {
+    private var open = false
+    private var waiters: [CheckedContinuation<Void, Never>] = []
+
+    func wait() async {
+        if open { return }
+        await withCheckedContinuation { waiters.append($0) }
+    }
+
+    func release() {
+        open = true
+        let pending = waiters
+        waiters.removeAll()
+        pending.forEach { $0.resume() }
+    }
 }
