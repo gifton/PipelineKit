@@ -144,40 +144,59 @@ final class BackPressureTests: XCTestCase {
         )
         
         let pipeline = ConcurrentPipeline(options: options)
-        let handler = TestSlowHandler()
-        let standardPipeline = StandardPipeline(handler: handler)
-        
-        await pipeline.register(TestSlowCommand.self, pipeline: standardPipeline)
-        
-        // Start two long-running commands to fill concurrency
+        await pipeline.register(
+            BackPressureGatedCommand.self,
+            pipeline: StandardPipeline(handler: BackPressureGatedHandler())
+        )
+
+        // Handlers hold their slot until the gate opens, and the test waits for the
+        // pipeline to report each admission. Fixed sleeps here ("wait a bit to ensure
+        // they're running", 10ms "to queue") let the fourth command be admitted when
+        // the first three had not been scheduled yet, and let the slots free up when
+        // a stall outlasted the handlers' own sleeps.
+        let gate = BackPressureTestGate()
+        // If the fourth command is ever admitted it waits at the gate; open it so the
+        // XCTFail below reports the regression instead of the test hanging.
+        let fallback = Task {
+            try? await Task.sleep(for: .seconds(10))
+            await gate.release()
+        }
+        defer { fallback.cancel() }
+
+        // Start two commands to fill concurrency
         let task1 = Task {
-            try await pipeline.execute(TestSlowCommand(duration: 1.0))
+            try await pipeline.execute(BackPressureGatedCommand(gate: gate))
         }
         
         let task2 = Task {
-            try await pipeline.execute(TestSlowCommand(duration: 1.0))
+            try await pipeline.execute(BackPressureGatedCommand(gate: gate))
         }
         
-        // Wait a bit to ensure they're running
-        await synchronizer.mediumDelay()
+        let bothRunning = await backPressureEventually {
+            await pipeline.getCapacityStats().activeOperations == 2
+        }
+        XCTAssertTrue(bothRunning, "Two commands should occupy both execution slots")
         
         // This should queue (within outstanding limit)
         let task3 = Task {
-            try await pipeline.execute(TestSlowCommand(duration: 0.1))
+            try await pipeline.execute(BackPressureGatedCommand(gate: gate))
         }
         
-        // Give task3 time to queue
-        await synchronizer.shortDelay()
+        let thirdQueued = await backPressureEventually {
+            await pipeline.getCapacityStats().queuedOperations == 1
+        }
+        XCTAssertTrue(thirdQueued, "The third command should be queued")
         
         // This should fail due to outstanding limit exceeded
         do {
-            _ = try await pipeline.execute(TestSlowCommand(duration: 0.1))
+            _ = try await pipeline.execute(BackPressureGatedCommand(gate: gate))
             XCTFail("Expected PipelineError.backPressure")
         } catch {
             // Success - should fail with back-pressure
         }
         
         // Wait for tasks to complete
+        await gate.release()
         _ = try await task1.value
         _ = try await task2.value
         _ = try await task3.value
@@ -191,10 +210,10 @@ final class BackPressureTests: XCTestCase {
         )
         
         let pipeline = ConcurrentPipeline(options: options)
-        let handler = TestSlowHandler()
-        let standardPipeline = StandardPipeline(handler: handler)
-        
-        await pipeline.register(TestSlowCommand.self, pipeline: standardPipeline)
+        await pipeline.register(
+            BackPressureGatedCommand.self,
+            pipeline: StandardPipeline(handler: BackPressureGatedHandler())
+        )
         
         // Initial stats
         let initialStats = await pipeline.getCapacityStats()
@@ -203,18 +222,22 @@ final class BackPressureTests: XCTestCase {
         XCTAssertEqual(initialStats.activeOperations, 0)
         XCTAssertEqual(initialStats.utilizationPercent, 0.0)
         
-        // Start a long-running command
+        // Start a command that holds its slot until the gate opens. A fixed 50ms
+        // sleep before reading the stats assumed the task had started by then and
+        // that 0.5s of handler sleep had not already elapsed.
+        let gate = BackPressureTestGate()
         let task = Task {
-            try await pipeline.execute(TestSlowCommand(duration: 0.5))
+            try await pipeline.execute(BackPressureGatedCommand(gate: gate))
         }
         
-        // Wait a bit and check stats
-        await synchronizer.mediumDelay()
+        let entered = await backPressureEventually { await gate.enteredCount == 1 }
+        XCTAssertTrue(entered, "The command should reach its handler")
         
         let activeStats = await pipeline.getCapacityStats()
         XCTAssertEqual(activeStats.activeOperations, 1)
         XCTAssertEqual(activeStats.utilizationPercent, 100.0 / 3.0, accuracy: 0.1)
         
+        await gate.release()
         _ = try await task.value
     }
     
@@ -255,21 +278,31 @@ final class BackPressureTests: XCTestCase {
             strategy: .error(timeout: 0.1)
         )
         
-        let handler = TestSlowHandler()
-        let pipeline = StandardPipeline(handler: handler)
+        let pipeline = StandardPipeline(handler: BackPressureGatedHandler())
         try await pipeline.addMiddleware(backPressureMiddleware)
         
-        // Start a slow command that will occupy the only available slot
+        // The first command occupies the only slot until the gate opens. A 10ms
+        // sleep "to give it time to start" let the second command take the slot
+        // when the first had not been scheduled yet, and 0.5s of handler sleep
+        // against a 0.1s admission timeout let a stall past both free the slot.
+        let gate = BackPressureTestGate()
+        // If the second command is ever admitted it waits at the gate; open it so
+        // the XCTFail below reports the regression instead of the test hanging.
+        let fallback = Task {
+            try? await Task.sleep(for: .seconds(10))
+            await gate.release()
+        }
+        defer { fallback.cancel() }
         let task1 = Task {
-            try await pipeline.execute(TestSlowCommand(duration: 0.5))
+            try await pipeline.execute(BackPressureGatedCommand(gate: gate))
         }
         
-        // Give it time to start
-        await synchronizer.shortDelay()
+        let entered = await backPressureEventually { await gate.enteredCount == 1 }
+        XCTAssertTrue(entered, "The first command should hold the only slot")
         
         // This should fail with timeout since concurrency is maxed out
         do {
-            let result = try await pipeline.execute(TestSlowCommand(duration: 0.1))
+            let result = try await pipeline.execute(BackPressureGatedCommand(gate: gate))
             XCTFail("Expected back pressure error, but got result: \(result)")
         } catch let error as PipelineError {
             if case .backPressure = error {
@@ -282,6 +315,7 @@ final class BackPressureTests: XCTestCase {
         }
         
         // Wait for first task to complete
+        await gate.release()
         _ = try await task1.value
     }
     
@@ -517,9 +551,49 @@ private struct BackPressureTestCommand: Command {
     let value: String
 }
 
-private struct TestSlowCommand: Command {
+/// Holds every handler that reaches it until released, and counts arrivals.
+private actor BackPressureTestGate {
+    private var open = false
+    private var waiters: [CheckedContinuation<Void, Never>] = []
+    private(set) var enteredCount = 0
+
+    func wait() async {
+        enteredCount += 1
+        if open { return }
+        await withCheckedContinuation { waiters.append($0) }
+    }
+
+    func release() {
+        open = true
+        let pending = waiters
+        waiters.removeAll()
+        pending.forEach { $0.resume() }
+    }
+}
+
+private struct BackPressureGatedCommand: Command {
     typealias Result = String
-    let duration: TimeInterval
+    let gate: BackPressureTestGate
+}
+
+private struct BackPressureGatedHandler: CommandHandler {
+    typealias CommandType = BackPressureGatedCommand
+
+    func handle(_ command: BackPressureGatedCommand, context: CommandContext) async throws -> String {
+        await command.gate.wait()
+        return "Processed gated command"
+    }
+}
+
+/// Polls until `condition` holds. The deadline only bounds a hang; it is not a
+/// latency expectation, so it is far longer than any scheduling stall.
+private func backPressureEventually(_ condition: @escaping @Sendable () async -> Bool) async -> Bool {
+    let deadline = ContinuousClock.now.advanced(by: .seconds(10))
+    while ContinuousClock.now < deadline {
+        if await condition() { return true }
+        try? await Task.sleep(for: .milliseconds(1))
+    }
+    return await condition()
 }
 
 private struct BackPressureTestHandler: CommandHandler {
@@ -527,15 +601,5 @@ private struct BackPressureTestHandler: CommandHandler {
     
     func handle(_ command: BackPressureTestCommand, context: CommandContext) async throws -> String {
         return "Handled: \(command.value)"
-    }
-}
-
-private struct TestSlowHandler: CommandHandler {
-    typealias CommandType = TestSlowCommand
-    
-    func handle(_ command: TestSlowCommand, context: CommandContext) async throws -> String {
-        // Actually sleep for the specified duration
-        try await Task.sleep(nanoseconds: UInt64(command.duration * 1_000_000_000))
-        return "Processed slow command"
     }
 }

@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Tests whose results depended on wall-clock promptness or task scheduling (sub-second
+  elapsed-time bounds, sleep-versus-deadline races, fixed settle sleeps) no longer do.
+  Test-only; no library change.
+
 ## [0.6.1] - 2026-11-12
 
 0.6.1 lowers the minimum Apple deployment targets from OS 26 to macOS 15, iOS 18, tvOS 18,

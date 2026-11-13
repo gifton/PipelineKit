@@ -315,10 +315,16 @@ final class ObjectPoolTests: XCTestCase {
             XCTAssertNotNil(pooled.object)
         }
         
-        // Allow time for async dealloc
-        try await Task.sleep(nanoseconds: 100_000_000)
-        
+        // The object is returned by a detached task started in `deinit`, so wait for
+        // the return itself instead of assuming 100ms is enough. The deadline only
+        // bounds a hang.
+        let deadline = ContinuousClock.now.advanced(by: .seconds(10))
         stats = await pool.statistics
+        while stats.currentlyAvailable != initial + 1 && ContinuousClock.now < deadline {
+            try await Task.sleep(nanoseconds: 1_000_000)
+            stats = await pool.statistics
+        }
+        
         XCTAssertEqual(stats.currentlyAvailable, initial + 1)
     }
     

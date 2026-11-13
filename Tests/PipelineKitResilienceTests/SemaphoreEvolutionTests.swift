@@ -27,8 +27,10 @@ final class SemaphoreEvolutionTests: XCTestCase {
 
     /// Polls `condition` until it returns true or `timeout` elapses.
     /// - Returns: true if the condition became satisfied within the timeout.
+    /// The default timeout only bounds a hang; it is not a latency expectation, so
+    /// it is far longer than any scheduling stall.
     private func waitUntil(
-        timeout: TimeInterval = 2.0,
+        timeout: TimeInterval = 10.0,
         pollInterval: TimeInterval = 0.01,
         _ condition: @Sendable () async -> Bool
     ) async -> Bool {
@@ -143,9 +145,11 @@ final class SemaphoreEvolutionTests: XCTestCase {
                 }
             }
             tasks.append(task)
-            // Gap between enqueues guarantees a deterministic sequence order, which
-            // is what the heap's `seq` key preserves.
-            try await Task.sleep(nanoseconds: 20_000_000) // 20ms
+            // Each waiter must be queued before the next is started; that is what
+            // gives the heap's `seq` key a known order. A fixed 20ms gap did not
+            // guarantee it on a stalled runner.
+            let queued = await waitUntil { await semaphore.waiterCount() == i + 1 }
+            XCTAssertTrue(queued, "Waiter w\(i) should be enqueued before the next starts")
         }
 
         // All five should be queued now.
@@ -154,10 +158,12 @@ final class SemaphoreEvolutionTests: XCTestCase {
 
         // Release one at a time so each recorded label corresponds to exactly one
         // FIFO wakeup before the next signal.
-        for _ in 0..<waiterCount {
+        for served in 1...waiterCount {
             await semaphore.signal()
-            // Let the woken waiter record before the next signal.
-            try await Task.sleep(nanoseconds: 20_000_000)
+            // The woken waiter must record before the next signal; wait for the
+            // record itself instead of a fixed 20ms.
+            let recorded = await waitUntil { await recorder.snapshot().count == served }
+            XCTAssertTrue(recorded, "Signal \(served) should wake exactly one waiter")
         }
 
         for task in tasks {
@@ -265,12 +271,15 @@ final class SemaphoreEvolutionTests: XCTestCase {
             }
         }
 
+        // Each waiter must be queued before the next starts, or FIFO order among
+        // them is not defined. Fixed 20ms gaps did not guarantee it.
         let a = makeWaiter("a")
-        try await Task.sleep(nanoseconds: 20_000_000)
+        let aQueued = await waitUntil { await semaphore.getStats().queuedOperations == 1 }
+        XCTAssertTrue(aQueued, "Waiter a should be queued first")
         let b = makeWaiter("b")
-        try await Task.sleep(nanoseconds: 20_000_000)
+        let bQueued = await waitUntil { await semaphore.getStats().queuedOperations == 2 }
+        XCTAssertTrue(bQueued, "Waiter b should be queued second")
         let c = makeWaiter("c")
-        try await Task.sleep(nanoseconds: 20_000_000)
 
         let allQueued = await waitUntil {
             await semaphore.getStats().queuedOperations == 3

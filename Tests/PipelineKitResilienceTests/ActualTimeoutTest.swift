@@ -4,14 +4,22 @@ import XCTest
 import PipelineKit
 
 final class ActualTimeoutTest: XCTestCase {
-    // Emulated simulator runners are ~10x slower (observed 0.303s vs the 0.3s
-    // bound); keep the functional timeout checks there but scale the
-    // promptness bound.
-    #if targetEnvironment(simulator)
-    private static let promptnessBound: TimeInterval = 3.0
-    #else
-    private static let promptnessBound: TimeInterval = 0.3
-    #endif
+    // Upper bound on how long the 100ms timeout may take to surface. It is a
+    // hang detector, not a latency measurement: the slow middleware below sleeps
+    // for `slowWork`, so an elapsed time under this bound proves the caller was
+    // released by the timeout (and the sleep was cancelled) rather than by the
+    // work finishing. It deliberately does not assert that the timeout fired
+    // within any small multiple of 100ms; a shared CI runner can stall a test
+    // process for hundreds of milliseconds (observed 0.3228s against a former
+    // 0.3s bound) without anything being wrong.
+    private static let promptnessBound: TimeInterval = 10.0
+
+    // The work must outlast the deadline by far more than any scheduling stall.
+    // `withTimeout` returns whichever of the work and the timer finishes first,
+    // so with 200ms of work against a 100ms deadline a stall past both lets the
+    // work win and the call returns a value. The sleep is cancelled at the
+    // deadline, so the tests still finish in about 100ms.
+    private static let slowWork: TimeInterval = 30.0
 
     // Test command
     private struct TestCommand: Command {
@@ -67,7 +75,7 @@ final class ActualTimeoutTest: XCTestCase {
         
         // Use instrumented version
         let timeoutMiddleware = InstrumentedTimeoutMiddleware(timeout: 0.1)
-        let slowMiddleware = InstrumentedSlowMiddleware(delay: 0.2)
+        let slowMiddleware = InstrumentedSlowMiddleware(delay: Self.slowWork)
         
         print("Adding middleware...")
         print("  TimeoutMiddleware priority: \(timeoutMiddleware.priority.rawValue)")
@@ -110,7 +118,7 @@ final class ActualTimeoutTest: XCTestCase {
         
         // Use the real TimeoutMiddleware
         let timeoutMiddleware = TimeoutMiddleware(defaultTimeout: 0.1)
-        let slowMiddleware = InstrumentedSlowMiddleware(delay: 0.2)
+        let slowMiddleware = InstrumentedSlowMiddleware(delay: Self.slowWork)
         
         print("Adding middleware...")
         print("  TimeoutMiddleware priority: \(timeoutMiddleware.priority.rawValue)")
