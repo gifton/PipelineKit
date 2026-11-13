@@ -36,8 +36,8 @@ compatibility promise — this document states the promises PipelineKit
 
 ## Pinning recommendation
 
-The current release line is **0.6.x**. The breaking changes in 0.6.0 are listed in the dated
-0.6.0 CHANGELOG section and explained in
+The current release line is **0.6.x**, and the latest release is **0.6.1**. The breaking
+changes in 0.6.0 are listed in the dated 0.6.0 CHANGELOG section and explained in
 [Upgrading from 0.5.4 to 0.6.0](docs/migrations/0.5-to-0.6.md). Depend on a minor range;
 published tags are listed on the [releases page](https://github.com/gifton/PipelineKit/releases).
 
@@ -48,6 +48,9 @@ published tags are listed on the [releases page](https://github.com/gifton/Pipel
 SwiftPM's `from: "0.6.0"` accepts every version below the next *major*,
 including 0.7.0 and later minors, which this policy allows to break source.
 Keep the explicit upper bound above to avoid an automatic source-breaking upgrade.
+
+The range above resolves to the newest 0.6.x. 0.6.1 lowered the minimum deployment targets;
+0.6.0, which the range also admits, required OS 26 on every Apple platform.
 
 ## The 1.0.0 CHANGELOG entry
 

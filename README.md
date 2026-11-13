@@ -117,9 +117,8 @@ Both reading paths are laid out in order in the [documentation index](docs/READM
 ### When it is not a fit
 
 - **You deploy below the package's floors or build with a toolchain older than Swift 6.2.**
-  The released 0.6.0 requires OS 26 on every Apple platform. The `main` branch, to be
-  released as 0.6.1, requires macOS 15, iOS 18, tvOS 18, watchOS 11 or visionOS 2.
-  [Platform support](docs/platform-support.md) explains why. <!-- floor-pending-0.6.1 -->
+  PipelineKit requires macOS 15, iOS 18, tvOS 18, watchOS 11 or visionOS 2.
+  [Platform support](docs/platform-support.md) explains why.
 - **You need a frozen API.** PipelineKit is 0.x: a minor release may break source, and each
   break is listed in the CHANGELOG. See [VERSIONING.md](VERSIONING.md).
 - **You need Linux as a supported platform.** Linux is built on every PR but is best-effort and
@@ -133,10 +132,10 @@ Both reading paths are laid out in order in the [documentation index](docs/READM
 
 ## Installation
 
-Requires Swift 6.2 or later. The released 0.6.0, which the snippet below installs until
-0.6.1 is released, requires iOS, macOS, tvOS, watchOS or visionOS 26.0 or later. The `main`
-branch, to be released as 0.6.1, lowers that to macOS 15, iOS 18, tvOS 18, watchOS 11 and
-visionOS 2 ([platform support](docs/platform-support.md)). <!-- floor-pending-0.6.1 -->
+Requires Swift 6.2 or later and macOS 15, iOS 18, tvOS 18, watchOS 11 or visionOS 2 or later
+([platform support](docs/platform-support.md)). Version 0.6.0 required OS 26 on every Apple
+platform; the range below resolves to 0.6.1 or later, but a `Package.resolved` pinned to 0.6.0
+still needs OS 26 until it is updated.
 
 Add the package to your `Package.swift`:
 

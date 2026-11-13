@@ -9,7 +9,7 @@ command, one handler, one pipeline, one execution.
 
 ### Add PipelineKit to your package
 
-This walkthrough targets 0.6.0. When upgrading from 0.5.4, review the
+This walkthrough targets 0.6.1. When upgrading from 0.5.4, review the
 [upgrade guide](https://github.com/gifton/PipelineKit/blob/main/docs/migrations/0.5-to-0.6.md).
 
 ```swift
@@ -18,12 +18,9 @@ dependencies: [
 ]
 ```
 
-PipelineKit 0.6.0 requires Swift 6.2 and deployment targets of iOS/macOS/tvOS/
-watchOS/visionOS 26.0 or later. The `main` branch, to be released as 0.6.1,
-declares deployment targets of macOS 15, iOS 18, tvOS 18, watchOS 11 and
-visionOS 2.
-
-<!-- floor-pending-0.6.1 -->
+PipelineKit requires Swift 6.2 and deployment targets of macOS 15, iOS 18,
+tvOS 18, watchOS 11 or visionOS 2 or later. Version 0.6.0 required OS 26 on
+every Apple platform.
 
 ### Define a command and its handler
 
