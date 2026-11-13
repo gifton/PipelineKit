@@ -1,5 +1,6 @@
 """Exercise the documentation extractor against independent source fixtures."""
 
+import ast
 import hashlib
 import json
 import os
@@ -14,19 +15,19 @@ import unittest
 ROOT = Path(__file__).resolve().parents[3]
 EXTRACTOR = ROOT / "Scripts/validation/extract_stabilization_examples.py"
 TUTORIAL = "docs/tutorials/basic-usage.md"
+GUIDE = "docs/migrations/0.5-to-0.6.md"
+GUIDE_FUNCTION = "compiled_docs_migrations_0_5_to_0_6_md"
 DOCUMENTS = [
-    "docs/migrations/first-stabilization-batch.md",
+    GUIDE,
     "README.md",
     "docs/guides/security-best-practices.md",
     "docs/guides/resilience-patterns.md",
-    "docs/migrations/security-serialization-and-numeric-safety.md",
-    "docs/migrations/telemetry-hardening.md",
-    "docs/migrations/error-cancellation-and-validation.md",
-    "docs/migrations/monitoring-and-connection-lifecycle.md",
-    "docs/migrations/resilience-policy-contracts.md",
-    "docs/migrations/release-qualification.md",
     TUTORIAL,
+    "docs/guides/testing.md",
+    "Sources/PipelineKit/PipelineKit.docc/GettingStarted.md",
+    "docs/guides/enterprise-evaluation.md",
 ]
+WALKTHROUGH = "docs/guides/enterprise-evaluation.md"
 DEFINITIONS = """import Foundation
 import PipelineKitResilience
 
@@ -39,6 +40,30 @@ func makeFetchDataRetryMiddleware() -> RetryMiddleware {
 USAGE = """let retry = makeFetchDataRetryMiddleware()
 _ = retry
 """
+KEY_STORE = """import Foundation
+import PipelineKitSecurity
+
+actor ExampleVersionedKeyStore: KeyStore {
+    private(set) var currentKeySnapshot: EncryptionKeySnapshot?
+}
+"""
+
+
+def every_fence_documents():
+    """Read the extractor's EVERY_FENCE set without importing it; the script runs on import."""
+    constants = {}
+    for node in ast.parse(EXTRACTOR.read_text()).body:
+        if not (isinstance(node, ast.Assign) and len(node.targets) == 1
+                and isinstance(node.targets[0], ast.Name)):
+            continue
+        name, value = node.targets[0].id, node.value
+        if isinstance(value, ast.Constant) and isinstance(value.value, str):
+            constants[name] = value.value
+        elif name == "EVERY_FENCE":
+            assert isinstance(value, ast.Set), ast.dump(value)
+            return {element.value if isinstance(element, ast.Constant) else constants[element.id]
+                    for element in value.elts}
+    raise AssertionError("extractor does not define EVERY_FENCE")
 
 
 class TutorialExtractionTests(unittest.TestCase):
@@ -154,6 +179,86 @@ class TutorialExtractionTests(unittest.TestCase):
                     self.assertIn("let unrelated = 1", generated)
                     self.assertIn("let another = 2", generated)
 
+    def test_walkthrough_fences_share_one_function_in_document_order(self):
+        declaration = "import Foundation\nstruct Step { let value = 1 }\n"
+        fragment = 'dependencies: [\n    .package(url: "https://example.com/Library.git", "1.0.0"..<"2.0.0")\n]\n'
+        use = "let step = Step()\n_ = step.value\n"
+        generated, manifest = self.extract([declaration, fragment, use], WALKTHROUGH)
+        entries = [entry for entry in manifest["snippets"] if entry["file"] == WALKTHROUGH]
+        self.assertEqual([entry["swift_fence"] for entry in entries], [1, 2, 3])
+        self.assertIn("dump-package", entries[1]["harness"])
+        self.assertIn(
+            "@MainActor func compiled_docs_guides_enterprise_evaluation_md() async throws {\n"
+            "// docs/guides/enterprise-evaluation.md, Swift fence 1\n"
+            "struct Step { let value = 1 }\n\n"
+            "// docs/guides/enterprise-evaluation.md, Swift fence 3\n"
+            "let step = Step()\n_ = step.value\n\n}\n",
+            generated,
+        )
+        self.assertNotIn(fragment, generated)
+        self.assertEqual(generated.count("func compiled_docs_guides_enterprise_evaluation_md"), 1)
+        self.assertEqual([entry["snippet_sha256"] for entry in entries],
+                         [hashlib.sha256(text.encode()).hexdigest() for text in (declaration, fragment, use)])
+
+    def test_upgrade_guide_fences_are_all_compiled_in_separate_functions(self):
+        snippets = ["import Foundation\nlet first = Date()\n_ = first\n",
+                    "struct Second { let value = 2 }\n",
+                    "let third = 3\n_ = third\n"]
+        generated, manifest = self.extract(snippets, GUIDE)
+        entries = [entry for entry in manifest["snippets"] if entry["file"] == GUIDE]
+        self.assertEqual([entry["swift_fence"] for entry in entries], [1, 2, 3])
+        self.assertEqual([entry["snippet_sha256"] for entry in entries],
+                         [hashlib.sha256(text.encode()).hexdigest() for text in snippets])
+        bodies = ["let first = Date()\n_ = first\n", snippets[1], snippets[2]]
+        for number, body in enumerate(bodies, 1):
+            self.assertIn(
+                f"// {GUIDE}, Swift fence {number}\n"
+                f"@MainActor func {GUIDE_FUNCTION}_{number}() async throws {{\n{body}\n}}\n",
+                generated,
+            )
+            self.assertIn("separate @MainActor async throws function", entries[number - 1]["harness"])
+
+    def test_upgrade_guide_selection_ignores_the_baseline(self):
+        # The fixture root is not a Git repository, so the other tests run with an
+        # empty baseline. This Git answers every `git show <rev>:<file>` with the
+        # file's current contents: no fence differs from the baseline.
+        git = self.root / "bin/git"
+        git.write_text(
+            "#!/usr/bin/env python3\n"
+            "import pathlib, sys\n"
+            "assert sys.argv[1] == 'show' and len(sys.argv) == 3, sys.argv\n"
+            "sys.stdout.write(pathlib.Path(sys.argv[2].split(':', 1)[1]).read_text())\n"
+        )
+        git.chmod(0o755)
+        unchanged = "```swift\nlet unchanged = 1\n```\n"
+        (self.root / "README.md").write_text("# Fixture\n\n" + unchanged)
+        (self.root / TUTORIAL).write_text("# Fixture\n\n" + unchanged)
+        generated, manifest = self.extract(["let first = 1\n", "let second = 2\n"], GUIDE)
+        files = [entry["file"] for entry in manifest["snippets"]]
+        self.assertEqual(files, [GUIDE, GUIDE])
+        self.assertNotIn("let unchanged = 1", generated)
+        self.assertIn(f"func {GUIDE_FUNCTION}_1()", generated)
+        self.assertIn(f"func {GUIDE_FUNCTION}_2()", generated)
+
+    def test_upgrade_guide_key_store_stays_at_file_scope_for_any_fence_number(self):
+        for index in range(3):
+            with self.subTest(key_store_fence=index + 1):
+                snippets = ["let unrelated = 1\n", "let another = 2\n"]
+                snippets.insert(index, KEY_STORE)
+                generated, manifest = self.extract(snippets, GUIDE)
+                entries = [entry for entry in manifest["snippets"] if entry["file"] == GUIDE]
+                self.assertEqual(len(entries), 3)
+                self.assertNotIn(f"{GUIDE_FUNCTION}_{index + 1}()", generated)
+                self.assertIn(
+                    f"// {GUIDE}, Swift fence {index + 1}\n\n"
+                    "actor ExampleVersionedKeyStore: KeyStore {\n",
+                    generated,
+                )
+                self.assertEqual(generated.count("actor ExampleVersionedKeyStore"), 1)
+                self.assertIn("file scope", entries[index]["harness"])
+                self.assertEqual(entries[index]["snippet_sha256"],
+                                 hashlib.sha256(KEY_STORE.encode()).hexdigest())
+
     def test_manifest_validation_failure_is_fatal_and_cannot_write_a_success_manifest(self):
         self.extract(["dependencies: []\n"], "README.md")
         self.environment["FAIL_DOCUMENTATION_MANIFEST"] = "1"
@@ -161,6 +266,20 @@ class TutorialExtractionTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("invalid documentation manifest fixture", result.stdout + result.stderr)
         self.assertFalse((self.root / ".build/validation/example-manifest.json").exists())
+
+
+class MigrationDocumentRegistrationTests(unittest.TestCase):
+    def test_every_migration_document_with_swift_fences_is_fully_compiled(self):
+        # A new upgrade guide whose examples are not registered would be compiled
+        # only where it differs from the baseline, or not read at all.
+        tracked = subprocess.run(
+            ["git", "ls-files", "--", "docs/migrations/*.md"], cwd=ROOT,
+            capture_output=True, text=True, check=True, timeout=15,
+        ).stdout.split()
+        self.assertIn(GUIDE, tracked)
+        with_fences = {name for name in tracked if "```swift\n" in (ROOT / name).read_text()}
+        self.assertIn(GUIDE, with_fences)
+        self.assertEqual(with_fences - every_fence_documents(), set())
 
 
 if __name__ == "__main__":

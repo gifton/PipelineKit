@@ -9,10 +9,8 @@ command, one handler, one pipeline, one execution.
 
 ### Add PipelineKit to your package
 
-This walkthrough targets 0.6.0. The dependency below requires the `v0.6.0`
-tag; use a local package checkout to evaluate these APIs before publication.
-When upgrading from 0.5.4, review the
-[migration guide](https://github.com/gifton/PipelineKit/blob/main/docs/migrations/release-readiness.md).
+This walkthrough targets 0.6.0. When upgrading from 0.5.4, review the
+[upgrade guide](https://github.com/gifton/PipelineKit/blob/main/docs/migrations/0.5-to-0.6.md).
 
 ```swift
 dependencies: [
@@ -20,8 +18,12 @@ dependencies: [
 ]
 ```
 
-PipelineKit requires Swift 6.2 and deployment targets of iOS/macOS/tvOS/
-watchOS/visionOS 26.0 or later.
+PipelineKit 0.6.0 requires Swift 6.2 and deployment targets of iOS/macOS/tvOS/
+watchOS/visionOS 26.0 or later. The `main` branch, to be released as 0.6.1,
+declares deployment targets of macOS 15, iOS 18, tvOS 18, watchOS 11 and
+visionOS 2.
+
+<!-- floor-pending-0.6.1 -->
 
 ### Define a command and its handler
 
@@ -86,5 +88,8 @@ try await pipeline.addMiddleware(LoggingMiddleware())
 ### Where to go next
 
 - <doc:Architecture> — how the pieces fit together.
-- The `Examples/` package in the repository contains runnable programs
-  (`swift run BasicExample`, `swift run AdvancedExample`).
+- <doc:MiddlewareGuide> — writing and ordering middleware.
+- The [documentation index](https://github.com/gifton/PipelineKit/blob/main/docs/README.md)
+  lists the tutorials and guides in reading order.
+- The `Examples/` package in the repository contains runnable programs. From the
+  repository root: `swift run --package-path Examples BasicExample`.

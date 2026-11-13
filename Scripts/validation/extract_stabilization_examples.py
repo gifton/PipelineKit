@@ -1,15 +1,19 @@
 #!/usr/bin/env python3
 """Extract changed documentation Swift fences into the public Consumer without rewriting bodies.
 
-Migration fences are concatenated at file scope. Other fences are wrapped in
-separate async-throwing functions to scope placeholder names and allow await,
-except the security metrics, masking, sanitizer and registration examples, which
-share one function so registration can resolve the documented middleware types.
+Every fence of the upgrade guide is compiled, each in its own function, whatever
+the baseline; a fence that declares a type the executable Consumer uses stays at
+file scope (FILE_SCOPE_DEFINITIONS). Fences of the other listed documents are
+compiled only when they differ from the baseline. Each is wrapped in a separate
+async-throwing function to scope placeholder names and allow await, except the
+security metrics, masking, sanitizer and registration examples, which share one
+function so registration can resolve the documented middleware types.
 Each fence retains its own manifest entry; import lines move to the common header.
-README cache fence 19 receives an otherwise empty DynamicPipeline for its
-pre-existing `pipeline` placeholder.
 The basic-usage retry definitions stay at file scope so the public consumer can
 execute the documented retry policy through a real middleware chain.
+Walkthrough documents are checked whole: every fence, in document order, inside one
+function, so a later fence can use what an earlier one declares. Their selection
+does not depend on the baseline.
 Nothing in the extracted examples is executed by importing the compiled file.
 Package initializer fragments beginning with dependencies: or targets: are kept
 in separate Package.swift fixtures and validated with swift package dump-package.
@@ -23,14 +27,25 @@ import subprocess
 ROOT = Path(__file__).resolve().parents[2]
 BASELINE = 'a93a713d937e25f68855f22b0720f33c93329b09'
 FENCE = re.compile(r'```swift\n(.*?)```', re.S)
-FILES = ['docs/migrations/first-stabilization-batch.md', 'README.md',
+GUIDE = 'docs/migrations/0.5-to-0.6.md'
+FILES = [GUIDE, 'README.md',
          'docs/guides/security-best-practices.md', 'docs/guides/resilience-patterns.md',
-         'docs/migrations/security-serialization-and-numeric-safety.md',
-         'docs/migrations/telemetry-hardening.md',
-         'docs/migrations/error-cancellation-and-validation.md',
-         'docs/migrations/monitoring-and-connection-lifecycle.md',
-         'docs/migrations/resilience-policy-contracts.md',
-         'docs/tutorials/basic-usage.md']
+         'docs/tutorials/basic-usage.md',
+         'docs/guides/testing.md',
+         'Sources/PipelineKit/PipelineKit.docc/GettingStarted.md',
+         'docs/guides/enterprise-evaluation.md']
+WALKTHROUGHS = {'Sources/PipelineKit/PipelineKit.docc/GettingStarted.md',
+                'docs/guides/enterprise-evaluation.md'}
+# Documents whose every fence is compiled, independent of the baseline
+# (test_upgrade_guide_selection_ignores_the_baseline).
+EVERY_FENCE = {GUIDE}
+# Fences matching one of these patterns keep their definitions at file scope,
+# because Tests/Integration/Consumer executes what they declare. A missing
+# entry fails the Consumer build instead of passing silently.
+FILE_SCOPE_DEFINITIONS = {
+    GUIDE: [r'\bactor ExampleVersionedKeyStore\s*:'],
+    'docs/tutorials/basic-usage.md': [r'\bfunc makeFetchDataRetryMiddleware\s*\('],
+}
 SECURITY_COMPOSITION_DEFINITIONS = [
     r'\bstruct SecurityMetricsMiddleware\s*:',
     r'\bstruct MaskingAuditLogger\s*:',
@@ -71,11 +86,29 @@ manifest_path.unlink(missing_ok=True)
 for file in FILES:
     body = (ROOT / file).read_text()
     all_fences = FENCE.findall(body)
+    if file in WALKTHROUGHS:
+        bodies = []
+        for number, snippet in enumerate(all_fences, 1):
+            entry = dict(file=file, swift_fence=number,
+                snippet_sha256=hashlib.sha256(snippet.encode()).hexdigest(), conditional_platform=None)
+            if MANIFEST_FRAGMENT.match(snippet):
+                entry.update(validate_manifest_fragment(file, number, snippet))
+                entry['harness'] = 'exact body as Package initializer arguments; swift package dump-package'
+            else:
+                imports.update(re.findall(r'^import [^\n]+', snippet, flags=re.M))
+                bodies.append(f'// {file}, Swift fence {number}\n'
+                              + re.sub(r'^import [^\n]+\n', '', snippet, flags=re.M))
+                entry['harness'] = ('imports hoisted; exact remaining body, in document order, '
+                                    'inside one shared @MainActor async throws function')
+            manifest.append(entry)
+        name = re.sub('[^a-zA-Z0-9]', '_', file)
+        parts.append(f'@MainActor func compiled_{name}() async throws {{\n' + '\n'.join(bodies) + '\n}\n\n')
+        continue
     old = subprocess.run(['git', 'show', f'{BASELINE}:{file}'], cwd=ROOT,
                          text=True, capture_output=True)
     old_fences = FENCE.findall(old.stdout) if old.returncode == 0 else []
     selected = {number for number, snippet in enumerate(all_fences, 1)
-                if file == FILES[0] or snippet not in old_fences}
+                if file in EVERY_FENCE or snippet not in old_fences}
     security_group = {}
     if file == 'docs/guides/security-best-practices.md':
         related = {number: snippet for number, snippet in enumerate(all_fences, 1)
@@ -98,9 +131,7 @@ for file in FILES:
             manifest.append(entry)
             continue
         imports.update(re.findall(r'^import [^\n]+', snippet, flags=re.M))
-        harness = 'exact fence at file scope'
         prefix = f'// {file}, Swift fence {number}\n'
-        generated = snippet
         if number in security_group:
             if number == min(security_group):
                 grouped = ''.join(
@@ -111,20 +142,14 @@ for file in FILES:
                 parts.append('@MainActor func compiled_security_composition() async throws {\n'
                              + grouped + '\n}\n\n')
             harness = 'imports hoisted; exact remaining body inside shared security composition @MainActor async throws function'
-        elif file == 'docs/tutorials/basic-usage.md' and re.search(
-                r'\bfunc makeFetchDataRetryMiddleware\s*\(', snippet):
+        elif any(re.search(pattern, snippet) for pattern in FILE_SCOPE_DEFINITIONS.get(file, ())):
             generated = re.sub(r'^import [^\n]+\n', '', snippet, flags=re.M)
-            harness = 'imports hoisted; exact remaining definitions at file scope for executable retry checks'
-        elif file != FILES[0]:
+            harness = 'imports hoisted; exact remaining definitions at file scope for the executable consumer'
+        else:
             generated = re.sub(r'^import [^\n]+\n', '', snippet, flags=re.M)
-            support = ''
-            if file == 'README.md' and number == 19:
-                support = '    let pipeline = DynamicPipeline()\n'
             name = re.sub('[^a-zA-Z0-9]', '_', file)
-            generated = f'@MainActor func compiled_{name}_{number}() async throws {{\n' + support + generated + '\n}\n'
+            generated = f'@MainActor func compiled_{name}_{number}() async throws {{\n' + generated + '\n}\n'
             harness = 'imports hoisted; exact remaining body inside separate @MainActor async throws function'
-            if support:
-                harness += '; empty DynamicPipeline supplies pipeline placeholder'
         if number not in security_group:
             parts.append(prefix + generated + '\n')
         entry['harness'] = harness

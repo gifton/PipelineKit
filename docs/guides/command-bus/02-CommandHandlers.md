@@ -29,8 +29,8 @@ import Foundation
 
 // A minimal, chapter-local stand-in for per-request context. This toy series doesn't
 // build out a real one - PipelineKit's actual CommandContext carries request metadata,
-// correlation IDs, and more (see the README), but nothing in this chapter reads from or
-// writes to it, so an empty placeholder is enough.
+// correlation IDs, and more (see docs/guides/architecture.md), but nothing in this chapter
+// reads from or writes to it, so an empty placeholder is enough.
 public final class CommandContext {
     public init() {}
 }

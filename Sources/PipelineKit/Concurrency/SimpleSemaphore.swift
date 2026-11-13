@@ -5,7 +5,7 @@ import PipelineKitCore
 ///
 /// SimpleSemaphore provides the essential semaphore functionality without
 /// the complexity of memory tracking, priorities, or advanced back-pressure
-/// strategies. For advanced features, use BackPressureAsyncSemaphore from
+/// strategies. For advanced features, use BackPressureSemaphore from
 /// the PipelineKitResilience module.
 ///
 /// ## Example
@@ -36,8 +36,12 @@ public actor SimpleSemaphore {
     /// automatically releases the permit when deallocated.
     ///
     /// - Note: FIFO ordering is not guaranteed. Tasks may be resumed in any order
-    ///         when permits become available. For strict FIFO ordering, use
-    ///         BackPressureAsyncSemaphore from PipelineKitResilience.
+    ///         when permits become available. For ordered service use
+    ///         `BackPressureSemaphore` from PipelineKitResilience, which serves
+    ///         waiters by priority
+    ///         (`SemaphoreEvolutionTests.testBackPressurePriorityOrdering`) and,
+    ///         within one priority, in insertion order
+    ///         (`BackPressurePolicyContractTests.testDropOldestAndPriorityFIFOIgnoreEqualOrReversedWallClock`).
     ///
     /// - Returns: A token representing the acquired permit.
     /// - Throws: `PipelineError.cancelled` if the task is cancelled before or while acquiring.

@@ -538,35 +538,241 @@ if stage == os.environ['TELEMETRY_FAILURE']:
                 self.assertEqual(calls[-1][1][-2:], ['--filter', 'PublicTestPipelineTests'])
 
 
+def workflow_steps(text):
+    """Each step of a workflow file as its own text, whatever the indentation of the step list.
+
+    A step starts at a `- name:` or `- uses:` line and ends before the next line that is
+    indented no deeper than its dash: the next step, the next job, or a comment between jobs."""
+    lines, steps, index = text.split('\n'), [], 0
+    while index < len(lines):
+        start = re.match(r'(\s*)- (?:name|uses):', lines[index])
+        if not start:
+            index += 1
+            continue
+        end = index + 1
+        while end < len(lines) and (not lines[end].strip()
+                                    or len(lines[end]) - len(lines[end].lstrip()) > len(start.group(1))):
+            end += 1
+        steps.append('\n'.join(lines[index:end]))
+        index = end
+    return steps
+
+
+def workflow_job_blocks(text):
+    """Job id -> job body. Requires `jobs:` to be the workflow's last top-level key."""
+    body = text.split('\njobs:\n', 1)[1]
+    trailing = re.search(r'(?m)^[^\s#].*$', body)
+    if trailing:
+        raise ValueError(f'top-level content after jobs: {trailing.group(0)!r}')
+    parts = re.split(r'(?m)^  ([A-Za-z0-9_-]+):[ \t]*(?:#.*)?$', body)
+    return dict(zip(parts[1::2], parts[2::2]))
+
+
+def status_job_problems(text, status_job):
+    """What is wrong with a workflow's aggregate status job; an empty list when nothing is."""
+    jobs = workflow_job_blocks(text)
+    status = jobs.pop(status_job, None)
+    if status is None:
+        return [f'no job {status_job}']
+    problems = []
+    needs = re.search(r'(?m)^    needs: \[([^\]]*)\][ \t]*$', status)
+    needed = {job.strip() for job in needs.group(1).split(',')} if needs else set()
+    if not needs:
+        problems.append('needs is not a one-line list')
+    for job in sorted(set(jobs) - needed):
+        problems.append(f'{job} is not in needs')
+    for job in sorted(needed - set(jobs)):
+        problems.append(f'needs names {job}, which is not a job')
+    advisory = re.search(r'(?m)^          ADVISORY_JOBS:(.*)$', status)
+    # A quoted value, such as the empty '' of a workflow with no advisory job, is unquoted first.
+    listed = set(advisory.group(1).strip().strip('\'"').split()) if advisory else set()
+    if not advisory:
+        problems.append('ADVISORY_JOBS is not set')
+    literal = {job for job, block in jobs.items()
+               if re.search(r'(?m)^    continue-on-error: true\b', block)}
+    for job in sorted(listed - literal):
+        problems.append(f'{job} is in ADVISORY_JOBS but is not continue-on-error: true')
+    for job in sorted(literal - listed):
+        problems.append(f'{job} is continue-on-error: true but is not in ADVISORY_JOBS')
+    if not re.search(r'(?m)^    if: always\(\)[ \t]*$', status):
+        problems.append('the job is not if: always()')
+    for required in ('NEEDS_JSON: ${{ toJSON(needs) }}', 'bash Scripts/ci/check-required-status.sh',
+                     'uses: actions/checkout@'):
+        if required not in status:
+            problems.append(f'missing {required!r}')
+    return problems
+
+
+STATUS_FIXTURE = """name: x
+on: push
+jobs:
+  build:  # required
+    runs-on: x
+  linux:
+    continue-on-error: true  # advisory
+    runs-on: x
+  matrix:
+    continue-on-error: ${{ matrix.platform == 'watchOS' }}
+    runs-on: x
+  # the gate
+  status:
+    needs: [build, linux, matrix]
+    if: always()
+    steps:
+      - uses: actions/checkout@v7
+      - name: Check Status
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+          ADVISORY_JOBS: linux
+        run: bash Scripts/ci/check-required-status.sh
+"""
+
+
 class StatusTests(unittest.TestCase):
-    def test_security_result_matrix_and_linux_advisory(self):
-        for security in ('success', 'failure', 'cancelled', 'skipped'):
-            with self.subTest(security=security):
-                env = dict(os.environ, BUILD_RESULT='success', TEST_RESULT='success', SWIFTLINT_RESULT='success', SECURITY_RESULT=security, BUILD_LINUX_RESULT='failure', TEST_LINUX_RESULT='failure')
-                result = subprocess.run(['bash', str(STATUS)], env=env, capture_output=True, text=True)
-                self.assertEqual(result.returncode == 0, security == 'success', result.stdout + result.stderr)
-    def test_required_jobs_preserve_existing_policy(self):
-        for job in ('BUILD_RESULT', 'TEST_RESULT', 'SWIFTLINT_RESULT'):
+    STATUS_JOBS = {'ci.yml': 'ci-status', 'ci-multiplatform.yml': 'multiplatform-status'}
+
+    def run_raw(self, needs_json, advisory=''):
+        env = dict(os.environ, ADVISORY_JOBS=advisory)
+        env.pop('NEEDS_JSON', None)
+        if needs_json is not None:
+            env['NEEDS_JSON'] = needs_json
+        return subprocess.run(['bash', str(STATUS)], env=env, capture_output=True, text=True)
+
+    def run_status(self, results, advisory=''):
+        needs = {job: {'result': result, 'outputs': {}} for job, result in results.items()}
+        return self.run_raw(json.dumps(needs), advisory)
+
+    def test_every_required_job_must_succeed(self):
+        for job in ('build', 'test', 'docs'):
             for result in ('success', 'failure', 'cancelled', 'skipped'):
                 with self.subTest(job=job, result=result):
-                    env = dict(os.environ, BUILD_RESULT='success', TEST_RESULT='success', SWIFTLINT_RESULT='success', SECURITY_RESULT='success', BUILD_LINUX_RESULT='success', TEST_LINUX_RESULT='success')
-                    env[job] = result
-                    proc = subprocess.run(['bash', str(STATUS)], env=env, capture_output=True, text=True)
-                    self.assertEqual(proc.returncode == 0, result != 'failure')
-    def test_workflow_wires_status_results(self):
-        workflow = (ROOT / '.github/workflows/ci.yml').read_text().split('  ci-status:', 1)[1]
-        for name, job in (('BUILD', 'build'), ('TEST', 'test'), ('SWIFTLINT', 'swiftlint'), ('SECURITY', 'security'), ('BUILD_LINUX', 'build-linux'), ('TEST_LINUX', 'test-linux')):
-            self.assertIn(f'{name}_RESULT: ${{{{ needs.{job}.result }}}}', workflow)
-        self.assertIn('bash Scripts/ci/check-required-status.sh', workflow)
-        self.assertIn('uses: actions/checkout@', workflow)
+                    results = dict(build='success', test='success', docs='success', linux='failure')
+                    results[job] = result
+                    proc = self.run_status(results, advisory='linux')
+                    self.assertEqual(proc.returncode == 0, result == 'success', proc.stdout + proc.stderr)
+                    if result != 'success':
+                        self.assertIn(f'Required jobs did not succeed: {job}', proc.stderr)
+
+    def test_all_success_passes_with_and_without_advisory_jobs(self):
+        for advisory in ('', 'linux'):
+            with self.subTest(advisory=advisory):
+                proc = self.run_status(dict(build='success', linux='success'), advisory=advisory)
+                self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+
+    def test_a_job_the_script_was_not_told_about_is_required(self):
+        # The script has no list of expected jobs: whatever is in needs and not advisory must succeed.
+        for result in ('failure', 'cancelled', 'skipped'):
+            with self.subTest(result=result):
+                proc = self.run_status(dict(build='success', linux='failure', added_later=result), advisory='linux')
+                self.assertNotEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+                self.assertIn('added_later', proc.stderr)
+
+    def test_advisory_jobs_never_fail_the_gate(self):
+        for result in ('success', 'failure', 'cancelled', 'skipped'):
+            with self.subTest(result=result):
+                proc = self.run_status(dict(build='success', linux=result, floor=result), advisory='linux floor')
+                self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+                self.assertIn(f'linux: {result} (advisory)', proc.stdout)
+
+    def test_advisory_jobs_do_not_excuse_a_required_failure(self):
+        proc = self.run_status(dict(build='failure', linux='failure'), advisory='linux')
+        self.assertNotEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+        proc = self.run_status(dict(linux='failure'), advisory='linux')
+        self.assertEqual(proc.returncode, 0, 'a needs map of advisory jobs only has nothing required in it')
+
+    def test_unreadable_input_fails(self):
+        one = json.dumps({'build': {'result': 'success'}})
+        for needs, advisory in ((None, ''), ('', ''), ('{}', ''), ('[]', ''), ('null', ''), ('5', ''),
+                                ('"success"', ''), ('not json', ''), ('{"build": {"result": "success"}', ''),
+                                (json.dumps({'build': {}}), ''), (json.dumps({'build': 'success'}), ''),
+                                (json.dumps({'build': None}), ''), (json.dumps({'build': ['success']}), ''),
+                                (json.dumps({'build': {'result': None}}), ''),
+                                (json.dumps({'build': {'result': True}}), ''),
+                                (json.dumps({'build': {'result': 'Success'}}), ''),
+                                (json.dumps({'build': {'result': 'success '}}), ''),
+                                (json.dumps({'build': {'result': ''}}), ''),
+                                (json.dumps({'build': {'outputs': {'result': 'success'}}}), ''),
+                                (one, 'typo'), (one, 'build typo')):
+            with self.subTest(needs=needs, advisory=advisory):
+                proc = self.run_raw(needs, advisory)
+                self.assertNotEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+                self.assertNotIn('Traceback', proc.stderr)
+
+    def test_status_jobs_read_every_other_job(self):
+        for name, status_job in self.STATUS_JOBS.items():
+            with self.subTest(workflow=name):
+                text = (ROOT / '.github/workflows' / name).read_text()
+                self.assertEqual(status_job_problems(text, status_job), [])
+
+    def test_status_job_scan_detects_each_way_of_drifting(self):
+        self.assertEqual(set(workflow_job_blocks(STATUS_FIXTURE)), {'build', 'linux', 'matrix', 'status'})
+        self.assertEqual(status_job_problems(STATUS_FIXTURE, 'status'), [])
+        for old, new, problem in (
+            ('needs: [build, linux, matrix]', 'needs: [build, linux]', 'matrix is not in needs'),
+            ('needs: [build, linux, matrix]', 'needs: [linux, matrix]', 'build is not in needs'),
+            ('needs: [build, linux, matrix]', 'needs: [build, linux, matrix, gone]', 'needs names gone, which is not a job'),
+            ('needs: [build, linux, matrix]', 'needs:\n      - build', 'needs is not a one-line list'),
+            ('  status:\n', '  added:\n    runs-on: x\n  status:\n', 'added is not in needs'),
+            ('ADVISORY_JOBS: linux', 'ADVISORY_JOBS: linux matrix', 'matrix is in ADVISORY_JOBS but is not continue-on-error: true'),
+            ('ADVISORY_JOBS: linux', 'ADVISORY_JOBS:', 'linux is continue-on-error: true but is not in ADVISORY_JOBS'),
+            ('ADVISORY_JOBS: linux', "ADVISORY_JOBS: ''", 'linux is continue-on-error: true but is not in ADVISORY_JOBS'),
+            ('ADVISORY_JOBS: linux', "ADVISORY_JOBS: 'linux matrix'", 'matrix is in ADVISORY_JOBS but is not continue-on-error: true'),
+            ('    continue-on-error: true  # advisory\n', '', 'linux is in ADVISORY_JOBS but is not continue-on-error: true'),
+            ('    if: always()\n', '', 'the job is not if: always()'),
+            ('    if: always()\n', '    if: ${{ !cancelled() }}\n', 'the job is not if: always()'),
+            ('NEEDS_JSON: ${{ toJSON(needs) }}', 'NEEDS_JSON: ${{ toJSON(needs.build) }}', "missing 'NEEDS_JSON: ${{ toJSON(needs) }}'"),
+        ):
+            with self.subTest(new=new):
+                self.assertIn(old, STATUS_FIXTURE)
+                self.assertIn(problem, status_job_problems(STATUS_FIXTURE.replace(old, new), 'status'))
+        self.assertEqual(status_job_problems(STATUS_FIXTURE, 'absent'), ['no job absent'])
+        with self.assertRaises(ValueError):
+            workflow_job_blocks(STATUS_FIXTURE + 'env:\n  A: b\n')
+
     def test_trivy_finding_gates_and_upload(self):
-        for name in ('ci.yml', 'weekly-full-ci.yml'):
-            text = (ROOT / '.github/workflows' / name).read_text()
-            scan = text.split('uses: aquasecurity/trivy-action@', 1)[1].split('\n    - name:', 1)[0]
-            upload = text.split("- name: Upload", 1)[1] if name == 'weekly-full-ci.yml' else text.split('- name: Upload Trivy Results', 1)[1]
-            self.assertIn("exit-code: '1'", scan, name)
-            self.assertIn('if: always()', upload.split('\n    - name:', 1)[0], name)
-        specialty = (ROOT / '.github/workflows/specialty-tests.yml').read_text()
-        self.assertIn("exit-code: '1'", specialty.split('uses: aquasecurity/trivy-action@', 1)[1].split('\n    - name:', 1)[0])
+        # Workflows that upload SARIF must gate on findings and upload even when the scan fails.
+        for name in ('ci.yml', 'weekly.yml'):
+            with self.subTest(workflow=name):
+                steps = workflow_steps((ROOT / '.github/workflows' / name).read_text())
+                scans = [step for step in steps if 'uses: aquasecurity/trivy-action@' in step]
+                uploads = [step for step in steps if step.lstrip().startswith('- name: Upload Trivy Results')]
+                self.assertEqual((len(scans), len(uploads)), (1, 1))
+                self.assertIn("exit-code: '1'", scans[0])
+                self.assertIn('uses: github/codeql-action/upload-sarif@', uploads[0])
+                self.assertIn('if: always()', uploads[0])
+        specialty = workflow_steps((ROOT / '.github/workflows/specialty-tests.yml').read_text())
+        scans = [step for step in specialty if 'uses: aquasecurity/trivy-action@' in step]
+        self.assertEqual(len(scans), 1)
+        self.assertIn("exit-code: '1'", scans[0])
+
+    def test_workflow_steps_end_at_the_next_step_or_job(self):
+        # Six-space steps, as in weekly.yml: a later step's or job's text must not leak into a step.
+        text = textwrap.dedent("""\
+            jobs:
+              scan:
+                steps:
+                  - uses: actions/checkout@v7
+
+                  - name: Scan
+                    uses: aquasecurity/trivy-action@v0
+                    with:
+                      format: 'sarif'
+
+                  - name: Upload Trivy Results
+                    uses: github/codeql-action/upload-sarif@v4
+
+              report:
+                if: always()
+                steps:
+                - name: Print
+                  run: |
+                    echo "exit-code: '1'"
+            """)
+        steps = workflow_steps(text)
+        self.assertEqual(len(steps), 4)
+        self.assertNotIn('Upload Trivy Results', steps[1])
+        self.assertNotIn('if: always()', steps[2])
+        self.assertNotIn('exit-code', steps[2])
+        self.assertIn("exit-code: '1'", steps[3])
 
 if __name__ == '__main__': unittest.main()

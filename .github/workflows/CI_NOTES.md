@@ -2,11 +2,24 @@
 
 ## Platform Configuration (Updated December 2025)
 
-All CI workflows have been updated to use:
+All CI workflows use the configuration below, except the two floor lanes in
+`ci-multiplatform.yml` (`floor-macos`, `floor-ios`), which are described after it:
 - **Runner**: `macos-26` (macOS 26 Tahoe)
 - **Xcode**: `latest-stable` via `maxim-lobanov/setup-xcode@v1`
 - **Swift**: Uses Xcode-bundled Swift toolchain (no separate `swift-actions/setup-swift`)
-- **iOS Simulator**: iPhone 17 with iOS 26.0
+- **iOS Simulator**: an iOS 26.x iPhone simulator chosen at run time (`Find iOS Simulator` step in
+  `ci-multiplatform.yml`; falls back to a generic simulator destination if none is listed)
+
+The floor lanes are required: a failure fails the workflow run and `Multiplatform Status`, and
+so stops a release, which calls the same workflow. They use:
+- **Runner**: `macos-15`. The `macos-26` image has no macOS 15 host and no iOS 18 simulator
+  runtime.
+- **Xcode**: pinned to `26.3`. The image's default Xcode is 16.4, which cannot build a
+  tools-version 6.2 package, so `latest-stable` is not relied on.
+- **No SwiftPM cache**: both lanes build from clean, so a `.build` directory produced by
+  another Xcode or host OS is never restored into them.
+- **iOS Simulator**: `Scripts/ci/run-simulator-tests.py` picks the lowest installed iOS 18
+  runtime and fails if there is none; it does not fall back.
 
 ### Key Changes from Previous Configuration
 
@@ -50,29 +63,28 @@ All CI workflows have been updated to use:
   the main CI workflow or `coverage-macos` from the multiplatform workflow.
   Each artifact contains `coverage.lcov`; no external coverage account is required.
 
-### 4. NextGuard Warning Configuration
-- **Default**: Timeout warnings are automatically suppressed
-- **Optional**: Set `PIPELINEKIT_DISABLE_NEXTGUARD_WARNINGS=1` to disable all warnings
-- **Current**: Using defaults (warnings enabled but timeout false positives suppressed)
-
 ## Environment Variables
 
 | Variable | Purpose | Required | Default |
 |----------|---------|----------|---------|
 | `DEVELOPER_DIR` | Xcode path | Yes | `/Applications/Xcode.app/Contents/Developer` |
 | `CI` | CI mode flag | Yes | `true` |
-| `MINIMUM_COVERAGE` | Coverage threshold | No | 70 |
+| `MINIMUM_COVERAGE` | Coverage threshold (reported, not enforced) | No | 70 |
+| `ENFORCE_SWIFTLINT` | `'true'` makes SwiftLint violations fail the `swiftlint` job | No | `false` |
+| `ENFORCE_COVERAGE` | `'true'` makes coverage below `MINIMUM_COVERAGE` fail the `test` job | No | `false` |
+| `ENFORCE_PERFORMANCE` | `'true'` makes a failing performance-test run fail the `performance` job | No | `false` |
+
+`MINIMUM_COVERAGE` and the three `ENFORCE_*` flags are set in `ci.yml` only.
 
 ## Workflows Overview
 
 | Workflow | Trigger | Runner | Purpose |
 |----------|---------|--------|---------|
-| `ci.yml` | Push/PR | macos-26 | Main CI pipeline |
-| `ci-multiplatform.yml` | PR/Manual | macos-26 | iOS/watchOS simulator tests |
-| `weekly.yml` | Monday 2AM UTC | macos-26 | Weekly extended test suite |
-| `weekly-full-ci.yml` | Sunday 3AM UTC | macos-26 | Comprehensive testing |
-| `specialty-tests.yml` | Label/Manual | macos-26 | Memory/perf/stress tests |
-| `release.yml` | Tag push | macos-26 | Release automation |
+| `ci.yml` | Push to `main`, `develop`, `test-ci`, `release/**`; PRs targeting `main`, `develop`, `release/**`; manual | macos-26, ubuntu-latest | Main CI pipeline; `CI Status` fails unless every job except the two advisory Linux builds succeeded |
+| `ci-multiplatform.yml` | Every PR; push to `release/**`; manual; called by `release.yml` | macos-26, macos-15, ubuntu-latest | macOS Debug and Release tests and validation, iOS simulator tests, Swift 6.2 floor build, watchOS/tvOS/visionOS simulator builds; macOS 15 host tests and iOS 18 simulator tests (both required); `Multiplatform Status` fails unless every job succeeded |
+| `weekly.yml` | Monday 2AM UTC; manual | macos-26, ubuntu-latest | Weekly extended test suite, sanitizer runs, performance tests and all-severity Trivy scan |
+| `specialty-tests.yml` | PR `labeled`/`synchronize` events (each test job runs only when its `test:*` label is present); manual | macos-26, ubuntu-latest | Memory, performance-baseline, stress and all-severity security jobs |
+| `release.yml` | Push of a `v*` tag | macos-26 | Release notes validation, qualification, documentation, GitHub release |
 
 ## Known Issues
 
@@ -127,7 +139,13 @@ Current CI timings (July 2026, `--parallel` per-target loop):
 Linux builds use Docker container `swift:6.2`:
 - Set as `continue-on-error: true` (secondary platform)
 - Requires additional system dependencies
-- **Build-only**: both Linux jobs run `swift build` — no tests execute on Linux
+- **Build-only in `ci.yml`**: both of its Linux jobs run `swift build`; neither runs tests
+- **Tests in `weekly.yml`**: the `Linux Test` job is set up to run the eight test targets
+  (performance excluded), also with `continue-on-error: true`. Its test step previously
+  stopped on a shell error (bash arrays under `sh`) before compiling; it now runs under
+  `bash` and fails at compilation: `AuditLoggerCapacityTests.swift` (`stdout` is not
+  concurrency-safe) and two `PipelineKitPoolingTests` telemetry test files (sending a
+  non-`Sendable` test case) do not compile on Linux, so no Linux test has executed
 - Uses Swift 6.2 only (no legacy version testing)
 
 ## Troubleshooting
@@ -145,13 +163,12 @@ Linux builds use Docker container `swift:6.2`:
 3. Inspect the GitHub artifact-upload step; a missing report fails the job.
 
 ### Xcode Setup Issues
-1. Verify `macos-26` runner is available
-2. Check that `latest-stable` Xcode version exists
+1. Verify the `macos-26` runner (and `macos-15` for the floor lanes) is available
+2. Check that `latest-stable` Xcode version exists, and that Xcode 26.3 is still on the
+   `macos-15` image
 3. Review `maxim-lobanov/setup-xcode` action logs
 
 ## Future Improvements
 
-1. **Fix parallel test execution** - Investigate and resolve hanging issue
-2. **Add benchmark regression detection** - Compare results against baseline
-3. **Caching improvements** - Cache Xcode DerivedData more effectively
-4. **Add performance gates** - Fail if performance degrades significantly
+1. **Caching improvements** - Cache Xcode DerivedData more effectively
+2. **Add performance gates** - Fail if performance degrades significantly

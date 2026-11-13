@@ -8,10 +8,30 @@ import PipelineKitPooling
 import PipelineKitResilience
 import PipelineKitSecurity
 
-// docs/migrations/first-stabilization-batch.md, Swift fence 1
-import Foundation
-import PipelineKit
-import PipelineKitSecurity
+// docs/migrations/0.5-to-0.6.md, Swift fence 1
+@MainActor func compiled_docs_migrations_0_5_to_0_6_md_1() async throws {
+
+func isCancelledExecution(_ error: any Error) -> Bool {
+    if error is CancellationError { return true }
+    if case .cancelled = error as? PipelineError { return true }
+    return false
+}
+
+}
+
+// docs/migrations/0.5-to-0.6.md, Swift fence 2
+@MainActor func compiled_docs_migrations_0_5_to_0_6_md_2() async throws {
+
+let memoryResponder = MemoryPressureResponder()
+await memoryResponder.startMonitoring()
+await memoryResponder.stopMonitoring()
+await memoryResponder.startMonitoring()
+await memoryResponder.stopMonitoring()
+
+}
+
+// docs/migrations/0.5-to-0.6.md, Swift fence 3
+@MainActor func compiled_docs_migrations_0_5_to_0_6_md_3() async throws {
 
 enum PostInputError: Error { case emptyTitle }
 
@@ -42,10 +62,10 @@ func makePostPipeline() async throws -> StandardPipeline<CreatePostCommand, Crea
     return try await builder.build()
 }
 
-// docs/migrations/first-stabilization-batch.md, Swift fence 2
-import Foundation
-import PipelineKit
-import PipelineKitSecurity
+}
+
+// docs/migrations/0.5-to-0.6.md, Swift fence 4
+@MainActor func compiled_docs_migrations_0_5_to_0_6_md_4() async throws {
 
 struct StoredCommand: Command, Codable {
     typealias Result = Void
@@ -67,9 +87,9 @@ func storeAndRestore(
     return try await encryptor.decrypt(restoredEnvelope)
 }
 
-// docs/migrations/first-stabilization-batch.md, Swift fence 3
-import Foundation
-import PipelineKitSecurity
+}
+
+// docs/migrations/0.5-to-0.6.md, Swift fence 5
 
 actor ExampleVersionedKeyStore: KeyStore {
     private var keys: [String: SendableSymmetricKey] = [:]
@@ -92,53 +112,100 @@ actor ExampleVersionedKeyStore: KeyStore {
     }
 }
 
-// docs/migrations/first-stabilization-batch.md, Swift fence 4
-import PipelineKitObservability
+// docs/migrations/0.5-to-0.6.md, Swift fence 6
+@MainActor func compiled_docs_migrations_0_5_to_0_6_md_6() async throws {
 
-func makeStatsD() async throws -> StatsDExporter {
-    let exporter = StatsDExporter(configuration: .init(host: "127.0.0.1", port: 8125))
-    await exporter.setErrorHandler { error in
-        print("Metrics export failed: \(error)")
+struct AccountPayload: Codable, Sendable {
+    let accountID: String
+    let labels: [String]
+}
+
+func decodeAccountField(_ value: DecryptedValue) throws -> AccountPayload {
+    guard let serialized = value.get(as: TypedData.self) else {
+        throw EncryptionError.decryptionFailed("Expected serialized account field")
     }
-    do {
-        try await exporter.start()
-        return exporter
-    } catch {
-        await exporter.close()
-        throw error
+    return try serialized.decode(as: AccountPayload.self)
+}
+
+}
+
+// docs/migrations/0.5-to-0.6.md, Swift fence 7
+@MainActor func compiled_docs_migrations_0_5_to_0_6_md_7() async throws {
+
+let healthPolicy = HealthCheckMiddleware.Configuration(
+    errorEvaluator: { error in
+        // This application's explicit policy ignores its own validation errors.
+        if case .validation = error as? PipelineError { return false }
+        return true
     }
+)
+_ = healthPolicy
+
 }
 
-func useInjectedTransport(_ transport: any MetricsTransport) async {
-    let exporter = StatsDExporter(configuration: .default, transport: transport)
-    await exporter.setErrorHandler(nil) // Callbacks can be cleared before publication.
-    await exporter.counter("synthetic.example")
-    await exporter.forceFlush()
-    await exporter.close()
+// docs/migrations/0.5-to-0.6.md, Swift fence 8
+@MainActor func compiled_docs_migrations_0_5_to_0_6_md_8() async throws {
+
+let budgetedRetry = RetryMiddleware(configuration: .init(
+    maxAttempts: 2,
+    strategy: .fixed(delay: 0.1),
+    maxRetryTime: 0.25
+))
+_ = budgetedRetry
+
 }
 
-// docs/migrations/first-stabilization-batch.md, Swift fence 5
-import PipelineKitObservability
+// docs/migrations/0.5-to-0.6.md, Swift fence 9
+@MainActor func compiled_docs_migrations_0_5_to_0_6_md_9() async throws {
 
-func configureMetrics(_ exporter: any MetricRecorder) async {
-    let storage = MetricsStorage()
-    await Metrics.configure(.init(storage: storage, exporter: exporter, errorHandler: { error in
-        print("Metrics export failed: \(error)")
-    }))
-    await Metrics.counter("requests")
-    await Metrics.flush()
+struct ServiceHTTPFailure: Error {
+    let statusCode: Int
 }
 
-func replaceRecorder(_ replacement: any MetricRecorder) async {
-    await Metrics.configure(with: replacement)
-    let current = Metrics.configuration
-    _ = await current.storage.getAll()
+let httpRetry = RetryMiddleware.forHTTPStatusCodes([429, 502, 503]) { error in
+    (error as? ServiceHTTPFailure)?.statusCode
+}
+_ = httpRetry
+
 }
 
-// docs/migrations/first-stabilization-batch.md, Swift fence 6
-import Foundation
-import PipelineKit
-import PipelineKitCache
+// docs/migrations/0.5-to-0.6.md, Swift fence 10
+@MainActor func compiled_docs_migrations_0_5_to_0_6_md_10() async throws {
+
+let timeoutPolicy = TimeoutMiddleware(configuration: .init(
+    defaultTimeout: 2,
+    gracePeriod: 0.25
+))
+_ = timeoutPolicy
+
+}
+
+// docs/migrations/0.5-to-0.6.md, Swift fence 11
+@MainActor func compiled_docs_migrations_0_5_to_0_6_md_11() async throws {
+
+let priorityLimiter = RateLimiter(strategy: .priorityBased(limits: [
+    .medium: .init(maxRequests: 10, windowSize: 60),
+    .high: .init(maxRequests: 20, windowSize: 60)
+]))
+_ = try await priorityLimiter.allowRequest(identifier: "customer", priority: .high)
+let highStatus = try await priorityLimiter.getStatus(identifier: "customer", priority: .high)
+try await priorityLimiter.reset(identifier: "customer", priority: .high)
+try await priorityLimiter.reset()
+_ = highStatus
+
+}
+
+// docs/migrations/0.5-to-0.6.md, Swift fence 12
+@MainActor func compiled_docs_migrations_0_5_to_0_6_md_12() async throws {
+
+func shutDownHealthMonitoring(_ middleware: HealthCheckMiddleware) async {
+    await middleware.stopMonitoring()
+}
+
+}
+
+// docs/migrations/0.5-to-0.6.md, Swift fence 13
+@MainActor func compiled_docs_migrations_0_5_to_0_6_md_13() async throws {
 
 struct ProfileQuery: Command {
     typealias Result = String
@@ -186,10 +253,11 @@ let conditionalFactory = ProfileStage().cachedWhen(
     condition: { command, _ in command is ProfileQuery }
 )
 
-// docs/migrations/first-stabilization-batch.md, Swift fence 7
+}
+
+// docs/migrations/0.5-to-0.6.md, Swift fence 14
+@MainActor func compiled_docs_migrations_0_5_to_0_6_md_14() async throws {
 #if canImport(Compression)
-import Foundation
-import PipelineKitCache
 
 func decodeCachedPayload(_ compressed: Data, sizeHint: Int?) throws -> Data {
     try CompressionUtility.decompress(
@@ -201,100 +269,175 @@ func decodeCachedPayload(_ compressed: Data, sizeHint: Int?) throws -> Data {
 }
 #endif
 
-// README.md, Swift fence 19
-@MainActor func compiled_README_md_19() async throws {
-    let pipeline = DynamicPipeline()
-struct ProfileQuery: Command {
+}
+
+// docs/migrations/0.5-to-0.6.md, Swift fence 15
+@MainActor func compiled_docs_migrations_0_5_to_0_6_md_15() async throws {
+#if canImport(Compression)
+
+func readLegacyPayload(_ bytes: Data, storedLabel: String) throws -> Data {
+    guard let algorithm = LegacyCompressionAlgorithm(rawValue: storedLabel) else {
+        throw CompressionError.decompressionFailed("Unknown legacy compression format")
+    }
+    return try CompressionUtility.decompressLegacy(
+        bytes, using: algorithm, maxOutputSize: 1_048_576
+    )
+}
+
+func writePayload(_ bytes: Data) throws -> Data {
+    try CompressionUtility.compress(bytes, using: .rawDeflate)
+}
+#endif
+
+}
+
+// docs/migrations/0.5-to-0.6.md, Swift fence 16
+@MainActor func compiled_docs_migrations_0_5_to_0_6_md_16() async throws {
+
+func makeStatsD() async throws -> StatsDExporter {
+    let exporter = StatsDExporter(configuration: .init(host: "127.0.0.1", port: 8125))
+    await exporter.setErrorHandler { error in
+        print("Metrics export failed: \(error)")
+    }
+    do {
+        try await exporter.start()
+        return exporter
+    } catch {
+        await exporter.close()
+        throw error
+    }
+}
+
+func useInjectedTransport(_ transport: any MetricsTransport) async {
+    let exporter = StatsDExporter(configuration: .default, transport: transport)
+    await exporter.setErrorHandler(nil) // Callbacks can be cleared before publication.
+    await exporter.counter("synthetic.example")
+    await exporter.forceFlush()
+    await exporter.close()
+}
+
+}
+
+// docs/migrations/0.5-to-0.6.md, Swift fence 17
+@MainActor func compiled_docs_migrations_0_5_to_0_6_md_17() async throws {
+
+func configureMetrics(_ exporter: any MetricRecorder) async {
+    let storage = MetricsStorage()
+    await Metrics.configure(.init(storage: storage, exporter: exporter, errorHandler: { error in
+        print("Metrics export failed: \(error)")
+    }))
+    await Metrics.counter("requests")
+    await Metrics.flush()
+}
+
+func replaceRecorder(_ replacement: any MetricRecorder) async {
+    await Metrics.configure(with: replacement)
+    let current = Metrics.configuration
+    _ = await current.storage.getAll()
+}
+
+}
+
+// docs/migrations/0.5-to-0.6.md, Swift fence 18
+@MainActor func compiled_docs_migrations_0_5_to_0_6_md_18() async throws {
+
+let telemetryStorage = MetricsStorage(maxSnapshotsPerMetric: 100, maxSeries: 2_000)
+await telemetryStorage.record(.counter("requests", tags: ["route": "/users"]))
+let telemetryDiagnostics = await telemetryStorage.diagnostics
+print(telemetryDiagnostics.droppedSeries)
+
+}
+
+// docs/migrations/0.5-to-0.6.md, Swift fence 19
+@MainActor func compiled_docs_migrations_0_5_to_0_6_md_19() async throws {
+let scrapeStorage = MetricsStorage(maxSnapshotsPerMetric: 1)
+let prometheus = PrometheusExporter(metricsStorage: scrapeStorage)
+await scrapeStorage.record(.counter("requests", value: 2))
+await scrapeStorage.record(.counter("requests", value: 3))
+_ = await scrapeStorage.drain()
+let scrape = await prometheus.exportWithDiagnostics()
+print(scrape.text) // requests_total remains 5 after draining history.
+print(scrape.rejectedSeries.count)
+await scrapeStorage.clear()
+
+}
+
+// docs/migrations/0.5-to-0.6.md, Swift fence 20
+@MainActor func compiled_docs_migrations_0_5_to_0_6_md_20() async throws {
+
+let metricsHub = EventHub()
+let metricsStorage = MetricsStorage()
+let metricsConnection = await metricsHub.connectMetrics(metricsStorage)
+// Use the hub while the connection is needed.
+await metricsHub.disconnectMetrics(metricsConnection)
+
+}
+
+// docs/migrations/0.5-to-0.6.md, Swift fence 21
+@MainActor func compiled_docs_migrations_0_5_to_0_6_md_21() async throws {
+
+let poolTelemetry = PoolObservability(maximumSeries: 2_000, distributionWindowSize: 1_000)
+await poolTelemetry.recordHistogram("pool_latency_ms", value: 2, labels: ["pool": "requests"])
+let poolSnapshot = await poolTelemetry.captureSnapshot()
+let poolScrape = poolSnapshot.prometheusFormatWithDiagnostics()
+print(poolScrape.text)
+print(poolScrape.rejectedSeriesCount)
+
+}
+
+// README.md, Swift fence 1
+@MainActor func compiled_README_md_1() async throws {
+
+// A command is a value: the request, plus the type its execution returns.
+struct GreetCommand: Command {
     typealias Result = String
-    let accountID: String
-    let locale: String
+    let name: String
 }
 
-// AuthenticationMiddleware must establish authUserId before protected caching.
-let profileKeys = ClosureCacheKeyGenerator { command, context, _ in
-    guard let query = command as? ProfileQuery,
-          let principal = context.getMetadata("authUserId") as? String else {
-        preconditionFailure("Expected an authenticated profile query")
-    }
-    return [query.accountID, query.locale, principal, "profile-format-v2"]
-        .map { "\($0.utf8.count):\($0)" }.joined()
-}
-
-let cache = CachingMiddleware(
-    cache: InMemoryCache(maxSize: 1000),
-    commandType: ProfileQuery.self,
-    keyGenerator: profileKeys,
-    ttl: 300
-)
-
-// Only ProfileQuery results use the complete caller identity.
-try await pipeline.addMiddleware(cache)
-
-}
-
-// README.md, Swift fence 25
-@MainActor func compiled_README_md_25() async throws {
-
-struct GetOrderCommand: ValidatableCommand {
-    typealias Result = String
-    let orderID: String
-    func validate() async throws {
-        guard !orderID.isEmpty else {
-            throw PipelineError.validation(field: "orderID", reason: .custom("Required"))
-        }
+// A handler is the logic that fulfils one command type.
+struct GreetHandler: CommandHandler {
+    func handle(_ command: GreetCommand, context: CommandContext) async throws -> String {
+        "Hello, \(command.name)!"
     }
 }
 
-struct GetOrderHandler: CommandHandler {
-    let loadOrder: @Sendable (String) async throws -> String
-    func handle(_ command: GetOrderCommand, context: CommandContext) async throws -> String {
-        try await loadOrder(command.orderID)
+// Middleware wraps every execution. This one logs before and after.
+struct LoggingMiddleware: Middleware {
+    let priority: ExecutionPriority = .monitoring
+
+    func execute<T: Command>(
+        _ command: T,
+        context: CommandContext,
+        next: @escaping MiddlewareNext<T>
+    ) async throws -> T.Result {
+        print("-> \(T.self)")
+        let result = try await next(command, context)
+        print("<- \(T.self)")
+        return result
     }
 }
 
-struct OrderAuthorization: Middleware {
-    let priority = ExecutionPriority.validation
-    let authorize: @Sendable (String, String) async throws -> Void
-    func execute<C: Command>(
-        _ command: C, context: CommandContext, next: @escaping MiddlewareNext<C>
-    ) async throws -> C.Result {
-        guard let order = command as? GetOrderCommand,
-              let principal = context.getMetadata("authUserId") as? String else {
-            throw PipelineError.authorization(reason: .invalidCredentials)
-        }
-        // Check current permission before the cache, including cache hits.
-        try await authorize(principal, order.orderID)
-        return try await next(command, context)
-    }
+let pipeline = StandardPipeline(handler: GreetHandler())
+try await pipeline.addMiddleware(LoggingMiddleware())
+
+let greeting = try await pipeline.execute(GreetCommand(name: "world"))
+print(greeting)
+
 }
 
-func makeOrderPipeline(
-    authenticateUser: @escaping @Sendable (String) async throws -> String,
-    authorizeOrder: @escaping @Sendable (String, String) async throws -> Void,
-    loadOrder: @escaping @Sendable (String) async throws -> String
-) async throws -> StandardPipeline<GetOrderCommand, GetOrderHandler> {
-    let builder = PipelineBuilder(handler: GetOrderHandler(loadOrder: loadOrder))
-    await builder.withAuthentication(AuthenticationMiddleware { userID in
-        guard let userID else {
-            throw PipelineError.authorization(reason: .invalidCredentials)
-        }
-        return try await authenticateUser(userID)
-    })
-    await builder.with(ValidationMiddleware())
-    await builder.withAuthorization(OrderAuthorization(authorize: authorizeOrder))
-    await builder.with(BulkheadMiddleware(configuration: .init(
-        maxConcurrency: 100, maxQueueSize: 100, queueTimeout: 5, rejectionPolicy: .queue
-    )))
-    let orderKeys = ClosureCacheKeyGenerator { command, context, _ in
-        guard let query = command as? GetOrderCommand,
-              let principal = context.getMetadata("authUserId") as? String else {
-            preconditionFailure("Expected an authenticated order query")
-        }
-        return [query.orderID, principal, "order-format-v1"]
-            .map { "\($0.utf8.count):\($0)" }.joined()
-    }
-    await builder.with(CachingMiddleware(
-        cache: InMemoryCache(), commandType: GetOrderCommand.self, keyGenerator: orderKeys
+// README.md, Swift fence 4
+@MainActor func compiled_README_md_4() async throws {
+
+func makeResilientPipeline<H: CommandHandler>(
+    handler: H
+) async throws -> StandardPipeline<H.CommandType, H> {
+    let builder = PipelineBuilder(handler: handler)
+    // Both run at `.resilience` priority, so insertion order decides:
+    // the timeout wraps the whole retry loop.
+    await builder.with(TimeoutMiddleware(defaultTimeout: 10.0))
+    await builder.with(RetryMiddleware(
+        maxAttempts: 3,
+        strategy: .exponentialJitter(baseDelay: 1.0, maxDelay: 10.0)
     ))
     return try await builder.build()
 }
@@ -362,8 +505,77 @@ struct ProcessContentCommand: SanitizableCommand {
 
 }
 
-// docs/guides/security-best-practices.md, Swift fence 10
-@MainActor func compiled_docs_guides_security_best_practices_md_10() async throws {
+// docs/guides/security-best-practices.md, Swift fence 9
+@MainActor func compiled_docs_guides_security_best_practices_md_9() async throws {
+
+struct GetOrderCommand: ValidatableCommand {
+    typealias Result = String
+    let orderID: String
+    func validate() async throws {
+        guard !orderID.isEmpty else {
+            throw PipelineError.validation(field: "orderID", reason: .custom("Required"))
+        }
+    }
+}
+
+struct GetOrderHandler: CommandHandler {
+    let loadOrder: @Sendable (String) async throws -> String
+    func handle(_ command: GetOrderCommand, context: CommandContext) async throws -> String {
+        try await loadOrder(command.orderID)
+    }
+}
+
+struct OrderAuthorization: Middleware {
+    let priority = ExecutionPriority.validation
+    let authorize: @Sendable (String, String) async throws -> Void
+    func execute<C: Command>(
+        _ command: C, context: CommandContext, next: @escaping MiddlewareNext<C>
+    ) async throws -> C.Result {
+        guard let order = command as? GetOrderCommand,
+              let principal = context.getMetadata("authUserId") as? String else {
+            throw PipelineError.authorization(reason: .invalidCredentials)
+        }
+        // Check current permission before the cache, including cache hits.
+        try await authorize(principal, order.orderID)
+        return try await next(command, context)
+    }
+}
+
+func makeOrderPipeline(
+    authenticateUser: @escaping @Sendable (String) async throws -> String,
+    authorizeOrder: @escaping @Sendable (String, String) async throws -> Void,
+    loadOrder: @escaping @Sendable (String) async throws -> String
+) async throws -> StandardPipeline<GetOrderCommand, GetOrderHandler> {
+    let builder = PipelineBuilder(handler: GetOrderHandler(loadOrder: loadOrder))
+    await builder.withAuthentication(AuthenticationMiddleware { userID in
+        guard let userID else {
+            throw PipelineError.authorization(reason: .invalidCredentials)
+        }
+        return try await authenticateUser(userID)
+    })
+    await builder.with(ValidationMiddleware())
+    await builder.withAuthorization(OrderAuthorization(authorize: authorizeOrder))
+    await builder.with(BulkheadMiddleware(configuration: .init(
+        maxConcurrency: 100, maxQueueSize: 100, queueTimeout: 5, rejectionPolicy: .queue
+    )))
+    let orderKeys = ClosureCacheKeyGenerator { command, context, _ in
+        guard let query = command as? GetOrderCommand,
+              let principal = context.getMetadata("authUserId") as? String else {
+            preconditionFailure("Expected an authenticated order query")
+        }
+        return [query.orderID, principal, "order-format-v1"]
+            .map { "\($0.utf8.count):\($0)" }.joined()
+    }
+    await builder.with(CachingMiddleware(
+        cache: InMemoryCache(), commandType: GetOrderCommand.self, keyGenerator: orderKeys
+    ))
+    return try await builder.build()
+}
+
+}
+
+// docs/guides/security-best-practices.md, Swift fence 11
+@MainActor func compiled_docs_guides_security_best_practices_md_11() async throws {
 struct SearchCommand: Command { typealias Result = Void }
 struct GetUserCommand: Command { typealias Result = Void }
 struct SubmitPaymentCommand: Command { typealias Result = Void }
@@ -425,8 +637,8 @@ struct CommandSpecificRateLimitingMiddleware: Middleware {
 
 }
 
-// docs/guides/security-best-practices.md, Swift fence 12
-@MainActor func compiled_docs_guides_security_best_practices_md_12() async throws {
+// docs/guides/security-best-practices.md, Swift fence 13
+@MainActor func compiled_docs_guides_security_best_practices_md_13() async throws {
 struct PaymentCommand: Command, Codable {
     typealias Result = Void
 
@@ -441,8 +653,8 @@ struct PaymentCommand: Command, Codable {
 
 }
 
-// docs/guides/security-best-practices.md, Swift fence 13
-@MainActor func compiled_docs_guides_security_best_practices_md_13() async throws {
+// docs/guides/security-best-practices.md, Swift fence 14
+@MainActor func compiled_docs_guides_security_best_practices_md_14() async throws {
 // A minimal in-memory KeyStore; back this with Keychain/HSM/KMS in production.
 actor DemoKeyStore: KeyStore {
     private var keys: [String: SendableSymmetricKey] = [:]
@@ -468,8 +680,8 @@ _ = encryptor // Retain this actor in the application service that encrypts comm
 
 }
 
-// docs/guides/security-best-practices.md, Swift fence 14
-@MainActor func compiled_docs_guides_security_best_practices_md_14() async throws {
+// docs/guides/security-best-practices.md, Swift fence 15
+@MainActor func compiled_docs_guides_security_best_practices_md_15() async throws {
 
 struct AESGCMEncryptionService: SerializedPlaintextDecrypting {
     private let key = SymmetricKey(size: .bits256)
@@ -523,7 +735,7 @@ let encryptionMiddleware = EncryptionMiddleware(
 }
 
 @MainActor func compiled_security_composition() async throws {
-// docs/guides/security-best-practices.md, Swift fence 17
+// docs/guides/security-best-practices.md, Swift fence 18
 // Failure counts must live in a reference type with its own synchronization: `execute(_:context:next:)`
 // is a non-mutating protocol requirement, so a struct can't carry `var` state mutated there.
 actor FailureCounter {
@@ -568,7 +780,7 @@ struct SecurityMetricsMiddleware: Middleware {
     }
 }
 
-// docs/guides/security-best-practices.md, Swift fence 18
+// docs/guides/security-best-practices.md, Swift fence 19
 // Application-owned event types and allowlisted fields must contain no sensitive payloads.
 struct MaskingAuditLogger: AuditLogger {
     private let wrapped: any AuditLogger
@@ -599,7 +811,7 @@ struct MaskingAuditLogger: AuditLogger {
 let maskedLogger = MaskingAuditLogger(wrapping: ConsoleAuditLogger.production)
 let auditMiddleware = AuditLoggingMiddleware(logger: maskedLogger)
 
-// docs/guides/security-best-practices.md, Swift fence 19
+// docs/guides/security-best-practices.md, Swift fence 20
 struct SecureErrorMiddleware: Middleware {
     // Register before metrics and authentication at the same priority.
     let priority: ExecutionPriority = .authentication
@@ -647,7 +859,7 @@ struct SecureErrorMiddleware: Middleware {
     }
 }
 
-// docs/guides/security-best-practices.md, Swift fence 20
+// docs/guides/security-best-practices.md, Swift fence 21
 func addSecurityWrappers<C: Command, H: CommandHandler>(
     to pipeline: StandardPipeline<C, H>,
     authentication: AuthenticationMiddleware
@@ -662,8 +874,38 @@ func addSecurityWrappers<C: Command, H: CommandHandler>(
 
 }
 
-// docs/guides/resilience-patterns.md, Swift fence 11
-@MainActor func compiled_docs_guides_resilience_patterns_md_11() async throws {
+// docs/guides/resilience-patterns.md, Swift fence 9
+@MainActor func compiled_docs_guides_resilience_patterns_md_9() async throws {
+let timeout = TimeoutMiddleware(defaultTimeout: 5.0)
+
+// Or with per-command timeouts
+let timeoutWithOverrides = TimeoutMiddleware(
+    configuration: TimeoutMiddleware.Configuration(
+        defaultTimeout: 5.0,
+        commandTimeouts: ["SlowCommand": 30.0]
+    )
+)
+
+}
+
+// docs/guides/resilience-patterns.md, Swift fence 12
+@MainActor func compiled_docs_guides_resilience_patterns_md_12() async throws {
+let semaphore = BackPressureSemaphore(
+    maxConcurrency: 100,
+    maxOutstanding: 1000,
+    maxQueueMemory: 10_485_760 // 10MB
+)
+
+let token = try await semaphore.acquire(
+    priority: .high,
+    estimatedSize: 1024
+)
+// Token auto-releases when deallocated
+
+}
+
+// docs/guides/resilience-patterns.md, Swift fence 13
+@MainActor func compiled_docs_guides_resilience_patterns_md_13() async throws {
 let pipeline = DynamicPipeline()
 
 try await pipeline.addMiddleware(BulkheadMiddleware(
@@ -675,8 +917,8 @@ try await pipeline.addMiddleware(BulkheadMiddleware(
 
 }
 
-// docs/guides/resilience-patterns.md, Swift fence 12
-@MainActor func compiled_docs_guides_resilience_patterns_md_12() async throws {
+// docs/guides/resilience-patterns.md, Swift fence 14
+@MainActor func compiled_docs_guides_resilience_patterns_md_14() async throws {
 let pipeline = DynamicPipeline()
 // Limit retry admission and request cooperative cancellation for slow attempts.
 try await pipeline.addMiddleware(TimeoutMiddleware(defaultTimeout: 30.0))
@@ -686,187 +928,6 @@ try await pipeline.addMiddleware(RetryMiddleware(
         maxRetryTime: 25.0  // Budget for attempt admission and backoff; admitted work settles
     )
 ))
-
-}
-
-// docs/migrations/security-serialization-and-numeric-safety.md, Swift fence 1
-@MainActor func compiled_docs_migrations_security_serialization_and_numeric_safety_md_1() async throws {
-
-struct AccountPayload: Codable, Sendable {
-    let accountID: String
-    let labels: [String]
-}
-
-func decodeAccountField(_ value: DecryptedValue) throws -> AccountPayload {
-    guard let serialized = value.get(as: TypedData.self) else {
-        throw EncryptionError.decryptionFailed("Expected serialized account field")
-    }
-    return try serialized.decode(as: AccountPayload.self)
-}
-
-}
-
-// docs/migrations/security-serialization-and-numeric-safety.md, Swift fence 2
-@MainActor func compiled_docs_migrations_security_serialization_and_numeric_safety_md_2() async throws {
-#if canImport(Compression)
-
-func readLegacyPayload(_ bytes: Data, storedLabel: String) throws -> Data {
-    guard let algorithm = LegacyCompressionAlgorithm(rawValue: storedLabel) else {
-        throw CompressionError.decompressionFailed("Unknown legacy compression format")
-    }
-    return try CompressionUtility.decompressLegacy(
-        bytes, using: algorithm, maxOutputSize: 1_048_576
-    )
-}
-
-func writePayload(_ bytes: Data) throws -> Data {
-    try CompressionUtility.compress(bytes, using: .rawDeflate)
-}
-#endif
-
-}
-
-// docs/migrations/telemetry-hardening.md, Swift fence 1
-@MainActor func compiled_docs_migrations_telemetry_hardening_md_1() async throws {
-
-let telemetryStorage = MetricsStorage(maxSnapshotsPerMetric: 100, maxSeries: 2_000)
-await telemetryStorage.record(.counter("requests", tags: ["route": "/users"]))
-let telemetryDiagnostics = await telemetryStorage.diagnostics
-print(telemetryDiagnostics.droppedSeries)
-
-}
-
-// docs/migrations/telemetry-hardening.md, Swift fence 2
-@MainActor func compiled_docs_migrations_telemetry_hardening_md_2() async throws {
-let scrapeStorage = MetricsStorage(maxSnapshotsPerMetric: 1)
-let prometheus = PrometheusExporter(metricsStorage: scrapeStorage)
-await scrapeStorage.record(.counter("requests", value: 2))
-await scrapeStorage.record(.counter("requests", value: 3))
-_ = await scrapeStorage.drain()
-let scrape = await prometheus.exportWithDiagnostics()
-print(scrape.text) // requests_total remains 5 after draining history.
-print(scrape.rejectedSeries.count)
-await scrapeStorage.clear()
-
-}
-
-// docs/migrations/telemetry-hardening.md, Swift fence 3
-@MainActor func compiled_docs_migrations_telemetry_hardening_md_3() async throws {
-
-let poolTelemetry = PoolObservability(maximumSeries: 2_000, distributionWindowSize: 1_000)
-await poolTelemetry.recordHistogram("pool_latency_ms", value: 2, labels: ["pool": "requests"])
-let poolSnapshot = await poolTelemetry.captureSnapshot()
-let poolScrape = poolSnapshot.prometheusFormatWithDiagnostics()
-print(poolScrape.text)
-print(poolScrape.rejectedSeriesCount)
-
-}
-
-// docs/migrations/error-cancellation-and-validation.md, Swift fence 1
-@MainActor func compiled_docs_migrations_error_cancellation_and_validation_md_1() async throws {
-
-func isCancelledExecution(_ error: any Error) -> Bool {
-    if error is CancellationError { return true }
-    if case .cancelled = error as? PipelineError { return true }
-    return false
-}
-
-}
-
-// docs/migrations/error-cancellation-and-validation.md, Swift fence 2
-@MainActor func compiled_docs_migrations_error_cancellation_and_validation_md_2() async throws {
-
-let healthPolicy = HealthCheckMiddleware.Configuration(
-    errorEvaluator: { error in
-        // This application's explicit policy ignores its own validation errors.
-        if case .validation = error as? PipelineError { return false }
-        return true
-    }
-)
-_ = healthPolicy
-
-}
-
-// docs/migrations/monitoring-and-connection-lifecycle.md, Swift fence 1
-@MainActor func compiled_docs_migrations_monitoring_and_connection_lifecycle_md_1() async throws {
-
-func shutDownHealthMonitoring(_ middleware: HealthCheckMiddleware) async {
-    await middleware.stopMonitoring()
-}
-
-}
-
-// docs/migrations/monitoring-and-connection-lifecycle.md, Swift fence 2
-@MainActor func compiled_docs_migrations_monitoring_and_connection_lifecycle_md_2() async throws {
-
-let memoryResponder = MemoryPressureResponder()
-await memoryResponder.startMonitoring()
-await memoryResponder.stopMonitoring()
-await memoryResponder.startMonitoring()
-await memoryResponder.stopMonitoring()
-
-}
-
-// docs/migrations/monitoring-and-connection-lifecycle.md, Swift fence 3
-@MainActor func compiled_docs_migrations_monitoring_and_connection_lifecycle_md_3() async throws {
-
-let metricsHub = EventHub()
-let metricsStorage = MetricsStorage()
-let metricsConnection = await metricsHub.connectMetrics(metricsStorage)
-// Use the hub while the connection is needed.
-await metricsHub.disconnectMetrics(metricsConnection)
-
-}
-
-// docs/migrations/resilience-policy-contracts.md, Swift fence 1
-@MainActor func compiled_docs_migrations_resilience_policy_contracts_md_1() async throws {
-
-let budgetedRetry = RetryMiddleware(configuration: .init(
-    maxAttempts: 2,
-    strategy: .fixed(delay: 0.1),
-    maxRetryTime: 0.25
-))
-_ = budgetedRetry
-
-}
-
-// docs/migrations/resilience-policy-contracts.md, Swift fence 2
-@MainActor func compiled_docs_migrations_resilience_policy_contracts_md_2() async throws {
-
-struct ServiceHTTPFailure: Error {
-    let statusCode: Int
-}
-
-let httpRetry = RetryMiddleware.forHTTPStatusCodes([429, 502, 503]) { error in
-    (error as? ServiceHTTPFailure)?.statusCode
-}
-_ = httpRetry
-
-}
-
-// docs/migrations/resilience-policy-contracts.md, Swift fence 3
-@MainActor func compiled_docs_migrations_resilience_policy_contracts_md_3() async throws {
-
-let timeoutPolicy = TimeoutMiddleware(configuration: .init(
-    defaultTimeout: 2,
-    gracePeriod: 0.25
-))
-_ = timeoutPolicy
-
-}
-
-// docs/migrations/resilience-policy-contracts.md, Swift fence 4
-@MainActor func compiled_docs_migrations_resilience_policy_contracts_md_4() async throws {
-
-let priorityLimiter = RateLimiter(strategy: .priorityBased(limits: [
-    .medium: .init(maxRequests: 10, windowSize: 60),
-    .high: .init(maxRequests: 20, windowSize: 60)
-]))
-_ = try await priorityLimiter.allowRequest(identifier: "customer", priority: .high)
-let highStatus = try await priorityLimiter.getStatus(identifier: "customer", priority: .high)
-try await priorityLimiter.reset(identifier: "customer", priority: .high)
-try await priorityLimiter.reset()
-_ = highStatus
 
 }
 
@@ -912,6 +973,135 @@ let data = try await pipeline.execute(
     context: CommandContext()
 )
 print("Received \(data.count) bytes")
+
+}
+
+@MainActor func compiled_Sources_PipelineKit_PipelineKit_docc_GettingStarted_md() async throws {
+// Sources/PipelineKit/PipelineKit.docc/GettingStarted.md, Swift fence 2
+
+struct GreetCommand: Command {
+    typealias Result = String
+    let name: String
+}
+
+struct GreetHandler: CommandHandler {
+    typealias CommandType = GreetCommand
+
+    func handle(_ command: GreetCommand, context: CommandContext) async throws -> String {
+        "Hello, \(command.name)!"
+    }
+}
+
+// Sources/PipelineKit/PipelineKit.docc/GettingStarted.md, Swift fence 3
+let pipeline = StandardPipeline(handler: GreetHandler())
+
+let greeting = try await pipeline.execute(
+    GreetCommand(name: "world"),
+    context: CommandContext()
+)
+print(greeting)  // "Hello, world!"
+
+// Sources/PipelineKit/PipelineKit.docc/GettingStarted.md, Swift fence 4
+struct LoggingMiddleware: Middleware {
+    let priority: ExecutionPriority = .monitoring
+
+    func execute<T: Command>(
+        _ command: T,
+        context: CommandContext,
+        next: @escaping MiddlewareNext<T>
+    ) async throws -> T.Result {
+        print("→ \(type(of: command))")
+        let result = try await next(command, context)
+        print("← \(type(of: command))")
+        return result
+    }
+}
+
+try await pipeline.addMiddleware(LoggingMiddleware())
+
+}
+
+@MainActor func compiled_docs_guides_enterprise_evaluation_md() async throws {
+// docs/guides/enterprise-evaluation.md, Swift fence 2
+
+struct GreetCommand: Command {
+    typealias Result = String
+    let name: String
+}
+
+struct GreetHandler: CommandHandler {
+    typealias CommandType = GreetCommand
+
+    func handle(_ command: GreetCommand, context: CommandContext) async throws -> String {
+        "Hello, \(command.name)!"
+    }
+}
+
+let pipeline = StandardPipeline(handler: GreetHandler())
+
+let greeting = try await pipeline.execute(
+    GreetCommand(name: "world"),
+    context: CommandContext()
+)
+print(greeting)  // "Hello, world!"
+
+// docs/guides/enterprise-evaluation.md, Swift fence 3
+struct LoggingMiddleware: Middleware {
+    let priority: ExecutionPriority = .monitoring
+
+    func execute<T: Command>(
+        _ command: T,
+        context: CommandContext,
+        next: @escaping MiddlewareNext<T>
+    ) async throws -> T.Result {
+        print("→ \(type(of: command))")
+        let result = try await next(command, context)
+        print("← \(type(of: command))")
+        return result
+    }
+}
+
+try await pipeline.addMiddleware(LoggingMiddleware())
+
+// docs/guides/enterprise-evaluation.md, Swift fence 4
+
+let context = CommandContext()
+await context.setupObservability(.development)
+
+let start = Date()
+_ = try await pipeline.execute(GreetCommand(name: "world"), context: context)
+
+// PipelineKit doesn't emit command lifecycle events on its own — call the
+// emit helpers yourself (or use resilience middleware, which emits its own
+// events), and they're turned into metrics automatically.
+await context.emitCommandCompleted(
+    type: "GreetCommand",
+    duration: Date().timeIntervalSince(start)
+)
+
+let metrics = await context.observability?.getMetrics()
+print(metrics ?? [])
+// 2 entries: a "command.completed" counter and a "command.duration" timer.
+
+// docs/guides/enterprise-evaluation.md, Swift fence 5
+struct CreateOrderCommand: Command {
+    typealias Result = String
+    let items: [String]
+}
+
+// Your existing service, unchanged.
+final class OrderService: Sendable {
+    func createOrder(items: [String]) async throws -> String { "order-1" }
+}
+
+struct CreateOrderHandler: CommandHandler {
+    typealias CommandType = CreateOrderCommand
+    let service: OrderService
+
+    func handle(_ command: CreateOrderCommand, context: CommandContext) async throws -> String {
+        try await service.createOrder(items: command.items)
+    }
+}
 
 }
 

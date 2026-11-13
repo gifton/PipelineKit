@@ -3,7 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "Consumer",
-    platforms: [.macOS(.v26)],
+    platforms: [.macOS(.v15)],
     dependencies: [.package(name: "PipelineKit", path: "../../..")],
     targets: [
         .executableTarget(

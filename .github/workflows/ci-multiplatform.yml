@@ -234,3 +234,81 @@ jobs:
           CONFIGURATION: ${{ matrix.configuration }}
         run: |
           bash Scripts/ci/build-apple-platform.sh "$DESTINATION" "$CONFIGURATION"
+
+  # Floor lanes run the tests on the oldest OS generation the package declares. They use
+  # the macos-15 image because macos-26 carries only 26.x hosts and simulator runtimes.
+  # Xcode is pinned: the image's default Xcode is older than the Swift 6.2 tools version.
+  # There is no SwiftPM cache step: these lanes build from clean so that a .build
+  # directory produced by another Xcode or host OS cannot be restored into them.
+  # Both lanes are required: a failure fails Multiplatform Status and, because release.yml
+  # calls this workflow, stops a release. docs/platform-support.md states the status.
+  floor-macos:
+    name: macOS 15 • SwiftPM Tests (Debug + Release)
+    runs-on: macos-15
+    timeout-minutes: 40
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Select Xcode for the floor lane
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '26.3'
+
+      - name: Floor host (macOS 15)
+        run: bash Scripts/ci/check-floor-host.sh 15
+
+      - name: Floor build (Debug)
+        run: swift build --configuration debug --build-tests
+
+      - name: Floor tests (Debug)
+        run: python3 Scripts/ci/check-correctness.py --configuration debug
+
+      - name: Floor build (Release)
+        run: swift build --configuration release --build-tests -Xswiftc -enable-testing
+
+      - name: Floor tests (Release)
+        run: python3 Scripts/ci/check-correctness.py --configuration release
+
+      - name: Floor examples (Debug + Release)
+        run: |
+          set -euo pipefail
+          for configuration in debug release; do
+            python3 Scripts/validation/check_examples.py --configuration "$configuration"
+          done
+
+  floor-ios:
+    name: iOS 18 • Simulator Tests
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Select Xcode for the floor lane
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '26.3'
+
+      - name: Floor host (macOS 15)
+        run: bash Scripts/ci/check-floor-host.sh 15
+
+      - name: Floor simulator tests (iOS 18, Debug)
+        run: python3 Scripts/ci/run-simulator-tests.py --platform iOS --os-major 18 --configuration Debug
+
+  # One check name for branch protection: fails unless every required lane succeeded.
+  multiplatform-status:
+    name: Multiplatform Status
+    runs-on: ubuntu-latest
+    needs: [macos-spm, ios-sim, compiler-floor, apple-platform-builds, floor-macos, floor-ios]
+    if: always()
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - name: Check Status
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+          # Must list exactly the jobs above that set a literal `continue-on-error: true`.
+          # None does, so every job in `needs` is required.
+          ADVISORY_JOBS: ''
+        run: bash Scripts/ci/check-required-status.sh

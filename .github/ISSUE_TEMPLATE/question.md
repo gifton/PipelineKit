@@ -1,33 +1,23 @@
 ---
 name: Question
-about: Ask a question about PipelineKit
-title: '[QUESTION] '
+about: Ask how to do something with PipelineKit
 labels: 'question'
-assignees: ''
 ---
 
 ## Question
 Ask your question here. Be as specific as possible.
 
-## What have you tried?
-Describe what you've already attempted or researched.
+## What you have tried
+What you attempted, and which documentation you looked at (README, the guides and tutorials under `docs/`, the API reference, the programs in `Examples/`).
 
-## Code context
-If applicable, provide code context:
+## Code
+If it helps, the code you are working with:
 
 ```swift
 // Your code here
 ```
 
-## Documentation
-Which documentation have you consulted?
-- [ ] README.md
-- [ ] Getting Started guide
-- [ ] API Reference
-- [ ] Examples
-- [ ] Other: ___
-
 ## Environment
-- **PipelineKit version**: [e.g., 0.6.0]
-- **Swift version**: [e.g., 6.2]
-- **Platform**: [e.g., iOS 26.0, macOS 26.0]
+- **PipelineKit version** (tag or commit):
+- **Swift version** (`swift --version`):
+- **Platform and OS version** (for example macOS 26.1, iOS 26.1 simulator, Ubuntu 24.04):

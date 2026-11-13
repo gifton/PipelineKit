@@ -4,17 +4,17 @@ Install PipelineKit with Swift Package Manager, either through Xcode or a
 `Package.swift` manifest. The package manifest defines the module graph and external
 dependencies required to build the library.
 
-These instructions target **0.6.0**. The versioned dependencies below become
-available when `v0.6.0` is published; use a [local checkout](#local-package-checkout)
-before then. Follow the [0.6.0 migration guide](../migrations/release-readiness.md)
-when upgrading from 0.5.4. Check the [releases page](https://github.com/gifton/PipelineKit/releases)
-for published tags.
+These instructions target **0.6.0**. Published tags are listed on the
+[releases page](https://github.com/gifton/PipelineKit/releases). Follow the
+[upgrade guide](../migrations/0.5-to-0.6.md) when upgrading from 0.5.4.
 
 ## Requirements
 
 - Swift 6.2 or later
 - Xcode 26.0 or later (for Xcode integration)
-- macOS 26.0+ / iOS 26.0+ / tvOS 26.0+ / watchOS 26.0+ / visionOS 26.0+
+- For 0.6.0: macOS 26.0+ / iOS 26.0+ / tvOS 26.0+ / watchOS 26.0+ / visionOS 26.0+
+- For the `main` branch, to be released as 0.6.1: macOS 15.0+ / iOS 18.0+ / tvOS 18.0+ /
+  watchOS 11.0+ / visionOS 2.0+ ([platform support](../platform-support.md)) <!-- floor-pending-0.6.1 -->
 
 ## Swift Package Manager (Recommended)
 
@@ -208,6 +208,6 @@ Ensure you have internet connectivity and the repository URL is correct.
 
 ## Next Steps
 
-- Follow the [Quick Start](quick-start.md) guide
-- Read about [Architecture](../guides/architecture.md)
-- Check out [Examples](../tutorials/basic-usage.md)
+- Write a first pipeline: [README](../../README.md#a-first-pipeline)
+- Work through the [basic usage tutorial](../tutorials/basic-usage.md)
+- Run the programs in [Examples](../../Examples/README.md)

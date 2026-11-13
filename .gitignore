@@ -40,14 +40,6 @@ DerivedData/
 timeline.xctimeline
 playground.xcworkspace
 
-## Obj-C/Swift specific
-*.hmap
-
-## App packaging
-*.ipa
-*.dSYM.zip
-*.dSYM
-
 # Swift Package Manager
 .build/
 .swiftpm/
@@ -109,7 +101,6 @@ CLAUDE.md
 venv/
 .venv/
 env/
-.env/
 __pycache__/
 *.py[cod]
 *$py.class
@@ -128,6 +119,8 @@ swiftlint_*.sh
 # Testing and Coverage
 .coverage
 *.lcov
+*.profdata
+*.profraw
 coverage/
 # Note: CI generates coverage.lcov but it's temporary and shouldn't be committed
 .tox/
@@ -143,6 +136,7 @@ docs/.doctrees/
 site/
 .mkdocs/
 test-docs/
+/docs-site/
 
 # Temporary files
 *.tmp
@@ -164,6 +158,8 @@ test_output.txt
 *.exe
 *.dll
 *.out
+swiftlint.json
+*.sarif
 
 # Benchmarking
 benchmark-results/
@@ -201,6 +197,12 @@ phase-*.md
 *-migration.md
 TODO.txt
 NOTES.md
+# The globs above match at any depth. Markdown under docs/ and Sources/ is product
+# documentation and must stay trackable whatever its name (a migration guide,
+# release notes); local agent plans stay ignored.
+!/docs/**/*.md
+!/Sources/**/*.md
+docs/superpowers/
 
 ## Personal/Development files
 devdocs/
@@ -227,7 +229,6 @@ $RECYCLE.BIN/
 
 # Logs
 logs/
-*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -241,8 +242,6 @@ bower_components/
 *.xcworkspace
 !default.xcworkspace
 xcshareddata/
-/jul-24-impl-plan.txt
-/.build2
 
 # Examples resolve against the local parent package; a lockfile here
 # guarantees nothing for consumers and drifts from the root lockfile.

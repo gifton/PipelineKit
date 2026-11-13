@@ -111,21 +111,28 @@ final class BackPressureMiddlewareTests: XCTestCase {
         )
         
         var results: [Result<String, Error>] = []
-        let synchronizer = self.synchronizer // Capture before TaskGroup
-        
-        // When - Try to execute 5 commands with outstanding limit of 2
+        // Every handler waits at this gate, so nothing completes and frees capacity while the
+        // five commands arrive. Without it the outcome depended on which task ran first: a fast
+        // command finishing before the pile-up left room for one more to succeed.
+        let gate = DropStrategyGate()
+        // If fewer than two commands are ever rejected, open the gate anyway so the
+        // assertions below fail instead of the test hanging.
+        let fallback = Task {
+            try? await Task.sleep(for: .seconds(5))
+            await gate.release()
+        }
+        defer { fallback.cancel() }
+
+        // When - five commands against one permit and an outstanding limit of two
         await withTaskGroup(of: Result<String, Error>.self) { group in
             for i in 0..<5 {
                 group.addTask {
                     let command = BPTestCommand(value: "test-\(i)")
                     let context = CommandContext()
-                    
+
                     do {
                         let result = try await middleware.execute(command, context: context) { cmd, _ in
-                            // First one will take time
-                            if i == 0 {
-                                await synchronizer.mediumDelay()
-                            }
+                            await gate.wait()
                             return cmd.value
                         }
                         return .success(result)
@@ -134,12 +141,18 @@ final class BackPressureMiddlewareTests: XCTestCase {
                     }
                 }
             }
-            
+
+            var rejected = 0
             for await result in group {
                 results.append(result)
+                if case .failure = result {
+                    rejected += 1
+                    // Two rejections out of five leave at most three that can succeed.
+                    if rejected == 2 { await gate.release() }
+                }
             }
         }
-        
+
         // Then
         let successes = results.compactMap { try? $0.get() }
         let failures = results.compactMap { result in
@@ -150,7 +163,7 @@ final class BackPressureMiddlewareTests: XCTestCase {
         }
         
         XCTAssertGreaterThan(failures.count, 0, "Some commands should be dropped")
-        XCTAssertLessThanOrEqual(successes.count, 3, "At most 3 should succeed (1 executing + 2 queued)")
+        XCTAssertLessThanOrEqual(successes.count, 3, "The gate opens only after two of five are rejected, so at most three succeed")
         
         // Verify drops are PipelineError.backPressure
         for error in failures {
@@ -442,6 +455,24 @@ private actor ExecutionTracker {
     
     func getOrder() -> [Int] {
         return order
+    }
+}
+
+/// Holds any number of waiters until released.
+private actor DropStrategyGate {
+    private var open = false
+    private var waiters: [CheckedContinuation<Void, Never>] = []
+
+    func wait() async {
+        if open { return }
+        await withCheckedContinuation { waiters.append($0) }
+    }
+
+    func release() {
+        open = true
+        let pending = waiters
+        waiters.removeAll()
+        pending.forEach { $0.resume() }
     }
 }
 

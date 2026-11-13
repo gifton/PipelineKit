@@ -6,8 +6,11 @@ report what.
 
 ## Before you start
 
-- **Requirements:** Swift 6.2; deployment floors iOS/macOS/tvOS/watchOS/
-  visionOS 26.0. What CI actually verifies per platform, and the status of
+- **Requirements:** Swift 6.2. The released 0.6.0 has deployment floors of
+  iOS/macOS/tvOS/watchOS/visionOS 26.0; the `main` branch, to be released as
+  0.6.1, lowers them to macOS 15, iOS 18, tvOS 18, watchOS 11 and visionOS 2.
+  <!-- floor-pending-0.6.1 -->
+  What CI actually verifies per platform, and the status of
   Linux: [Platform Support](../platform-support.md).
 - **Versioning promises** (what 0.x does and does not guarantee, and how
   to pin): [VERSIONING.md](../../VERSIONING.md).
@@ -27,9 +30,8 @@ swift run BasicExample
 
 ### 2. Add PipelineKit to a scratch package (5 minutes)
 
-This guide targets 0.6.0. Use this range after `v0.6.0` is published;
-before then, use a local package checkout. Review the
-[migration guide](../migrations/release-readiness.md) before upgrading from 0.5.4.
+This guide targets 0.6.0. Review the
+[upgrade guide](../migrations/0.5-to-0.6.md) before upgrading from 0.5.4.
 
 ```swift
 dependencies: [
@@ -168,16 +170,16 @@ longest-exercised, not guaranteed-frozen.
   execution behavior, middleware composition, and cancellation contracts.
 - **Newest surface** — `ExecutionContext` task-local propagation and
   progress reporting shipped in 0.5.2. Treat as the least-settled API.
-- **Release target** — 0.6.0; check the [releases page](https://github.com/gifton/PipelineKit/releases) for publication.
-  Review the [migration and qualification limits](../migrations/release-readiness.md)
-  when evaluating the current branch. Deprecated tagged bulkheads from
+- **Changed in 0.6.0** — review the
+  [upgrade guide](../migrations/0.5-to-0.6.md) and
+  [what 0.6.0 does not promise](../migrations/0.5-to-0.6.md#what-060-does-not-promise). Deprecated tagged bulkheads from
   [#86](https://github.com/gifton/PipelineKit/issues/86) are removed; declared
   partitions provide independent capacity. The health error classification and
-  recovery concerns in [#87](https://github.com/gifton/PipelineKit/issues/87) now
+  recovery concerns in [#87](https://github.com/gifton/PipelineKit/issues/87)
   have implementation and contract tests: `ResilienceErrorPolicyTests` excludes
   cancellation/domain errors by default and `HealthRecoveryContractTests` checks
-  recovery after the failure window expires. This describes current source and
-  tests, not a change to the remote issue's status or the published 0.5.4 behavior.
+  recovery after the failure window expires. This describes the 0.6.0 source and
+  tests, not the status of the linked issues.
 
 ## Where to report what
 

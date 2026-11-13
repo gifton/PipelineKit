@@ -1,6 +1,6 @@
 # PipelineKit Security Best Practices
 
-For 0.6.0, follow the [compiled stabilization migration guide](../migrations/first-stabilization-batch.md). It covers required validation/sanitization capabilities, complete Codable encryption, atomic key snapshots and legacy-data recovery limits.
+For 0.6.0, follow the [upgrade guide](../migrations/0.5-to-0.6.md#security). It covers required validation/sanitization capabilities, complete Codable encryption, atomic key snapshots and legacy-data recovery limits.
 
 
 This guide covers security practices and patterns for applications built on PipelineKit —
@@ -8,7 +8,7 @@ validation, authorization, rate limiting, encryption, audit logging, and related
 guidance for hardening *your* application, not PipelineKit's security policy. To report a
 vulnerability in PipelineKit itself, see the root [`SECURITY.md`](../../SECURITY.md).
 
-## 🛡️ Table of Contents
+## Table of Contents
 
 - [Security Architecture](#security-architecture)
 - [Input Validation](#input-validation)
@@ -19,8 +19,11 @@ vulnerability in PipelineKit itself, see the root [`SECURITY.md`](../../SECURITY
 - [Error Handling](#error-handling)
 - [Production Deployment](#production-deployment)
 - [Security Checklist](#security-checklist)
+- [Security Observability](#security-observability)
+- [Dependency Security](#dependency-security)
+- [Additional Resources](#additional-resources)
 
-## 🏗️ Security Architecture
+## Security Architecture
 
 ### Principle of Defense in Depth
 
@@ -128,7 +131,7 @@ let securityPriorities: [ExecutionPriority] = [
 ]
 ```
 
-## ✅ Input Validation
+## Input Validation
 
 ### Validate Everything
 
@@ -258,9 +261,9 @@ both `validate()` and `sanitize()`.
 
 Validation's intrinsic priority is 200 and sanitization's is 300, so validation normally
 runs first. When validation needs normalized input, use explicit builder ordering, as shown
-in the [stabilization migration draft](../migrations/first-stabilization-batch.md).
+in the [upgrade guide](../migrations/0.5-to-0.6.md#validation-and-sanitization-need-explicit-conformances).
 
-## 🔐 Authorization & Authentication
+## Authorization & Authentication
 
 ### Role-Based Access Control (RBAC)
 
@@ -377,7 +380,85 @@ struct ResourceAuthorizationMiddleware: Middleware {
 }
 ```
 
-## 🚦 Rate Limiting & DoS Protection
+### Authorize Before Cached Reads
+
+A cache placed in front of a handler must not serve one caller's result to
+another. Check authorization before the cache on every execution, including cache hits, and bind
+the cache key to the authenticated principal.
+
+```swift
+import Foundation
+import PipelineKit
+import PipelineKitResilience
+import PipelineKitSecurity
+import PipelineKitCache
+
+struct GetOrderCommand: ValidatableCommand {
+    typealias Result = String
+    let orderID: String
+    func validate() async throws {
+        guard !orderID.isEmpty else {
+            throw PipelineError.validation(field: "orderID", reason: .custom("Required"))
+        }
+    }
+}
+
+struct GetOrderHandler: CommandHandler {
+    let loadOrder: @Sendable (String) async throws -> String
+    func handle(_ command: GetOrderCommand, context: CommandContext) async throws -> String {
+        try await loadOrder(command.orderID)
+    }
+}
+
+struct OrderAuthorization: Middleware {
+    let priority = ExecutionPriority.validation
+    let authorize: @Sendable (String, String) async throws -> Void
+    func execute<C: Command>(
+        _ command: C, context: CommandContext, next: @escaping MiddlewareNext<C>
+    ) async throws -> C.Result {
+        guard let order = command as? GetOrderCommand,
+              let principal = context.getMetadata("authUserId") as? String else {
+            throw PipelineError.authorization(reason: .invalidCredentials)
+        }
+        // Check current permission before the cache, including cache hits.
+        try await authorize(principal, order.orderID)
+        return try await next(command, context)
+    }
+}
+
+func makeOrderPipeline(
+    authenticateUser: @escaping @Sendable (String) async throws -> String,
+    authorizeOrder: @escaping @Sendable (String, String) async throws -> Void,
+    loadOrder: @escaping @Sendable (String) async throws -> String
+) async throws -> StandardPipeline<GetOrderCommand, GetOrderHandler> {
+    let builder = PipelineBuilder(handler: GetOrderHandler(loadOrder: loadOrder))
+    await builder.withAuthentication(AuthenticationMiddleware { userID in
+        guard let userID else {
+            throw PipelineError.authorization(reason: .invalidCredentials)
+        }
+        return try await authenticateUser(userID)
+    })
+    await builder.with(ValidationMiddleware())
+    await builder.withAuthorization(OrderAuthorization(authorize: authorizeOrder))
+    await builder.with(BulkheadMiddleware(configuration: .init(
+        maxConcurrency: 100, maxQueueSize: 100, queueTimeout: 5, rejectionPolicy: .queue
+    )))
+    let orderKeys = ClosureCacheKeyGenerator { command, context, _ in
+        guard let query = command as? GetOrderCommand,
+              let principal = context.getMetadata("authUserId") as? String else {
+            preconditionFailure("Expected an authenticated order query")
+        }
+        return [query.orderID, principal, "order-format-v1"]
+            .map { "\($0.utf8.count):\($0)" }.joined()
+    }
+    await builder.with(CachingMiddleware(
+        cache: InMemoryCache(), commandType: GetOrderCommand.self, keyGenerator: orderKeys
+    ))
+    return try await builder.build()
+}
+```
+
+## Rate Limiting & DoS Protection
 
 ### Multi-Layer Rate Limiting
 
@@ -497,7 +578,7 @@ let secureDispatcher = SecureCommandDispatcher(
 open it throws `PipelineError.middlewareError` from `execute(_:context:next:)` instead; handle
 that where you call `dispatch(_:metadata:)` if you need to react to an open circuit.
 
-## 🔒 Data Encryption
+## Data Encryption
 
 ### Encrypting Sensitive Commands
 
@@ -556,7 +637,7 @@ keys must be 256 bits. Rotation by another encryptor may leave this encryptor us
 still-stored pair; the envelope always names that captured pair.
 
 The old `sensitiveFields` / `updateSensitiveFields` hooks and `originalCommand` envelope
-property are removed. See the [migration draft](../migrations/first-stabilization-batch.md)
+property are removed. See the [upgrade guide](../migrations/0.5-to-0.6.md#commands-encrypted-by-05x)
 for the incompatible legacy format and recovery limits.
 
 ### Field-Level Encryption
@@ -638,7 +719,7 @@ let encryptionMiddleware = EncryptionMiddleware(
 )
 ```
 
-## 📊 Audit Logging
+## Audit Logging
 
 ### Comprehensive Audit Trail
 
@@ -767,7 +848,7 @@ let maskedLogger = MaskingAuditLogger(wrapping: ConsoleAuditLogger.production)
 let auditMiddleware = AuditLoggingMiddleware(logger: maskedLogger)
 ```
 
-## ⚠️ Error Handling
+## Error Handling
 
 ### Secure Error Messages
 
@@ -873,7 +954,7 @@ final class ErrorRateMonitor {
 }
 ```
 
-## 🚀 Production Deployment
+## Production Deployment
 
 ### Environment Configuration
 
@@ -952,7 +1033,7 @@ success/failure rates, and durations from command lifecycle events your own code
 calls these; only resilience middleware emits its own `middlewareStarted`/`middlewareCompleted`/
 `middlewareFailed` events automatically.
 
-## ✅ Security Checklist
+## Security Checklist
 
 ### Pre-Production Checklist
 
@@ -1025,7 +1106,7 @@ struct WeeklySecurityReview {
 }
 ```
 
-## 🔍 Security Observability
+## Security Observability
 
 Comprehensive security monitoring and alerting is critical for detecting and responding to
 threats. PipelineKit's observability primitives are `ObservabilitySystem`, `EventHub`, and the
@@ -1240,7 +1321,7 @@ class SecurityIncidentHandler {
 }
 ```
 
-## 📦 Dependency Security
+## Dependency Security
 
 ### Dependency Management
 
@@ -1252,12 +1333,15 @@ and relies on real, verifiable automation to track updates and vulnerabilities:
 - **Trivy filesystem scan** — the `Security Scan` job in `.github/workflows/ci.yml` — runs on every
   push to `main`/`develop`/`test-ci` and on every pull request against `main`/`develop`, uploading
   results as SARIF via `github/codeql-action/upload-sarif`.
-- **Trivy deep scan** — the `Deep Security Audit` job in `.github/workflows/weekly-full-ci.yml` —
-  runs weekly (`cron: '0 3 * * 0'`, Sundays 3 AM UTC), scanning all severities and uploading SARIF.
+- **Trivy all-severity scan** — the `Deep Security Audit` job in `.github/workflows/weekly.yml` —
+  runs weekly (`cron: '0 2 * * 1'`, Mondays 02:00 UTC) and on manual dispatch of that workflow,
+  with every severity selected, and uploads its results as SARIF. A job of the same name in
+  `.github/workflows/specialty-tests.yml` runs the scan on manual dispatch
+  (`test_type: security-audit`) or on a pull request labelled `test:security`, and prints its
+  findings as a table in the job log.
 
 There is no `dependency-audit.yml` workflow in the active workflow set (an earlier version was
-retired to `.github/workflows/.archived/`, which GitHub Actions does not execute) and no automated
-SBOM generation currently runs.
+removed) and no automated SBOM generation currently runs.
 
 ### Version Pinning
 
@@ -1278,8 +1362,10 @@ and transitive) live in [`DEPENDENCIES.md`](../../DEPENDENCIES.md).
 
 ### Automated Auditing
 
-- **Weekly**: Dependabot version-update checks (`.github/dependabot.yml`) and a Trivy deep scan
-  across all severities (`Deep Security Audit` job in `weekly-full-ci.yml`).
+- **Weekly**: Dependabot version-update checks (`.github/dependabot.yml`) and a Trivy scan
+  across all severities (`Deep Security Audit` job in `weekly.yml`).
+- **On demand**: the same all-severity scan (`Deep Security Audit` job in `specialty-tests.yml`;
+  manual dispatch or the `test:security` pull-request label).
 - **Per-PR / per-push**: Trivy filesystem scan, `CRITICAL`/`HIGH` severities (`Security Scan` job
   in `ci.yml`).
 
@@ -1296,7 +1382,7 @@ No monthly automation exists in the current workflow set.
 
 See [DEPENDENCIES.md](../../DEPENDENCIES.md) for the full dependency inventory and policy.
 
-## 🔗 Additional Resources
+## Additional Resources
 
 - [OWASP Top 10](https://owasp.org/www-project-top-ten/)
 - [Swift Security Best Practices](https://swift.org/security/)

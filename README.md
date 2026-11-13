@@ -1,509 +1,144 @@
 # PipelineKit
 
-A high-performance, type-safe command-bus architecture for Swift 6 with built‑in observability, resilience, caching, and pooling. Designed for production pipelines with strong concurrency guarantees and modular, opt‑in features.
+A command bus for Swift 6. You describe a request as a typed `Command`, write one
+`CommandHandler` for it, and run it through a pipeline that applies your middleware in a
+defined order.
 
 [![Swift 6.2](https://img.shields.io/badge/Swift-6.2-orange.svg)](https://swift.org)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/Platform-iOS%20|%20macOS%20|%20tvOS%20|%20watchOS%20|%20visionOS-lightgrey.svg)](Package.swift)
-
-PipelineKit 0.6.0 includes source and behavior changes from 0.5.4. Follow the
-[compiled stabilization migration guide](docs/migrations/first-stabilization-batch.md)
-before upgrading, including cache invalidation and old encrypted-data recovery limits.
-
-## Table of Contents
-
-- [Command-Bus Architecture](#command-bus-architecture)
-- [Core Types](#core-types)
-- [Modules](#modules)
-  - [PipelineKit (Main)](#pipelinekit-main)
-  - [PipelineKitCore](#pipelinekitcore)
-  - [PipelineKitObservability](#pipelinekitobservability)
-  - [PipelineKitResilience](#pipelinekitresilience)
-  - [PipelineKitSecurity](#pipelinekitsecurity)
-  - [PipelineKitCache](#pipelinekitcache)
-  - [PipelineKitPooling](#pipelinekitpooling)
-  - [PipelineKitTestSupport](#pipelinekittestsupport)
-- [Installation](#installation)
-- [Example Usages](#example-usages)
-- [Do's and Don'ts](#dos-and-donts)
-- [Performance](#performance)
-- [Contributing](#contributing)
-
-## Command-Bus Architecture
-
-### What is Command-Bus?
-
-The Command-Bus pattern is a powerful architectural approach that decouples request handling from business logic execution. Instead of directly calling methods, you dispatch **Commands** (data objects representing intent) through a **Pipeline** that processes them through **Middleware** before reaching the final **Handler**.
+[![CI](https://github.com/gifton/PipelineKit/actions/workflows/ci.yml/badge.svg?branch=main&event=push)](https://github.com/gifton/PipelineKit/actions/workflows/ci.yml?query=branch%3Amain+event%3Apush)
+[![Release](https://img.shields.io/github/v/release/gifton/PipelineKit?label=release)](https://github.com/gifton/PipelineKit/releases/latest)
 
 ```
-Command → Pipeline → [Middleware Chain] → Handler → Result
+Command → Pipeline → [Middleware…] → Handler → Result
 ```
 
-### Why Command-Bus?
+Retry, timeouts, circuit breaking, authentication, caching, pooling and metrics ship as
+separate library products in the same package. `import PipelineKit` on its own gives you
+commands, handlers, middleware and pipelines.
 
-**Benefits:**
-- **Separation of Concerns**: Commands are pure data, handlers contain logic
-- **Cross-Cutting Concerns**: Middleware handles logging, validation, caching, etc.
-- **Type Safety**: Full compile-time type checking with Swift generics
-- **Testability**: Easy to test individual components in isolation
-- **Scalability**: Add features via middleware without touching core logic
-- **Observability**: Built-in hooks for metrics, tracing, and logging
-
-### How It Works
-
-```swift
-// 1. Define a Command (what you want to do)
-struct CreateUserCommand: Command {
-    typealias Result = User
-    let email: String
-    let name: String
-}
-
-// 2. Create a Handler (how to do it)
-final class CreateUserHandler: CommandHandler {
-    func handle(_ command: CreateUserCommand, context: CommandContext) async throws -> User {
-        // Business logic here - context provides correlation IDs, metadata, etc.
-        return User(email: command.email, name: command.name)
-    }
-}
-
-// 3. Configure Pipeline with Middleware
-let pipeline = StandardPipeline(handler: CreateUserHandler())
-try await pipeline.addMiddleware(ValidationMiddleware())
-try await pipeline.addMiddleware(LoggingMiddleware())
-
-// 4. Execute Command
-let user = try await pipeline.execute(
-    CreateUserCommand(email: "user@example.com", name: "Jane Doe"),
-    context: CommandContext()
-)
-```
-
-## Core Types
-
-### Command
-
-A `Command` is a simple data structure that represents an action to be performed. Commands are immutable and contain all data needed to execute the action.
-
-```swift
-protocol Command: Sendable {
-    associatedtype Result: Sendable
-}
-```
-
-**Key Points:**
-- Must be `Sendable` for thread safety
-- Contains only data, no logic
-- Immutable after creation
-- Type-safe result via associated type
-
-### CommandHandler
-
-Handlers contain the actual business logic for processing commands.
-
-```swift
-protocol CommandHandler: Sendable {
-    associatedtype CommandType: Command
-    func handle(_ command: CommandType, context: CommandContext) async throws -> CommandType.Result
-}
-```
-
-**Key Points:**
-- One handler per command type
-- Receives `CommandContext` for accessing metadata, correlation IDs, transactions
-- Stateless and `Sendable`
-- Async/await native
-- Focused single responsibility
-
-### Middleware
-
-Middleware provides cross-cutting functionality that wraps command execution.
-
-```swift
-protocol Middleware: Sendable {
-    var priority: ExecutionPriority { get }
-    func execute<T: Command>(
-        _ command: T,
-        context: CommandContext,
-        next: @escaping @Sendable (T, CommandContext) async throws -> T.Result
-    ) async throws -> T.Result
-}
-```
-
-**Built-in Priorities (lower value executes earlier):**
-- `.authentication` (100)
-- `.validation` (200)
-- `.resilience` (250)
-- `.preProcessing` (300)
-- `.monitoring` (350)
-- `.processing` (400)
-- `.postProcessing` (500)
-- `.errorHandling` (600)
-- `.observability` (700)
-- `.custom` (1000)
-
-Note: Equal priorities preserve insertion order (stable ordering).
-
-### CommandContext
-
-Thread-safe context for sharing data across middleware and handlers. CommandContext supports multiple ergonomic access patterns, from modern property-style to traditional methods.
-
-#### Modern Property Access (Recommended)
-
-```swift
-// Direct property access - clean and intuitive
-context.requestID = "req-123"
-context.userID = "user-456"
-context.startTime = Date()
-
-// Reading values
-let id = context.requestID
-let user = context.userID
-```
-
-#### Access Patterns
-
-```swift
-let context = CommandContext()
-
-// Property access for built-in keys (via @dynamicMemberLookup over ContextKeys)
-context.requestID = "req-123"
-context.userID = "user-456"
-let id = context.requestID
-
-// Subscript for custom keys
-let customKey = ContextKey<String>("custom")
-context[customKey] = "value"
-let value: String? = context[customKey]
-
-// String-keyed metadata and metrics
-context.setMetadata("client-version", value: "2.0.0")
-let clientVersion = context.metadata["client-version"]
-```
-
-Built-in keys (`requestID`, `userID`, `correlationID`, `startTime`, and more) are defined on the `ContextKeys` namespace and surfaced as properties on the context; `metadata` and `metrics` are string-keyed dictionaries with both property-style and method-style access.
-
-**All patterns are fully type-safe and work seamlessly together.** Choose the style that fits your codebase best.
-
-Event emission is provided via `PipelineKitObservability` (see that module). Core exposes the `EventEmitter` type and forwards to the configured emitter when set.
-
-### Pipeline
-
-The pipeline orchestrates command execution through middleware to handlers.
-This is an interface summary (bodyless signatures), not literal compilable
-code — see `Sources/PipelineKit/StandardPipeline.swift` for the real
-implementation.
-
-```text
-actor StandardPipeline<C: Command, H: CommandHandler>: Pipeline where H.CommandType == C {
-    init(handler: H, maxDepth: Int = 100)
-    init(handler: H, maxConcurrency: Int, maxDepth: Int = 100)
-    init(handler: H, options: PipelineOptions, maxDepth: Int = 100)
-    func execute(_ command: C, context: CommandContext) async throws -> C.Result
-    func addMiddleware(_ middleware: any Middleware) throws
-}
-```
-
-## Modules
-
-### PipelineKit (Main)
-
-The main module provides the core pipeline implementation with production-ready defaults.
-
-**Key Features:**
-- `StandardPipeline` and `AnyStandardPipeline` – production‑grade pipeline implementations
-- `DynamicPipeline` – runtime routing with handler registry
-- `PipelineBuilder` – fluent builder for assembling pipelines
-- `SimpleSemaphore` – basic concurrency control (acquire is `async throws`)
-- `NextGuard` – ensures middleware `next` is called exactly once
-- `NextGuardWarningSuppressing` – opt‑in to suppress debug‑only deinit warnings only for middleware that returns a result without calling `next()` (e.g., cache hits); since 0.6, throw‑based short‑circuits are detected automatically and don't need it
-
-SwiftLog is used for internal logging; on Apple, you can bootstrap `swift-log-oslog` for OSLog output.
+## A first pipeline
 
 ```swift
 import PipelineKit
 
-// Basic pipeline
-let pipeline = StandardPipeline(handler: MyHandler())
-
-// With concurrency limit
-let pipelineWithLimit = StandardPipeline(handler: MyHandler(), maxConcurrency: 10)
-```
-
-### PipelineKitCore
-
-Foundation types and protocols that all other modules build upon.
-
-**Components:**
-- Core protocols (`Command`, `CommandHandler`, `Middleware`, `Pipeline`)
-- `ExecutionPriority` and stable middleware ordering
-- `CommandContext` (typed storage, built‑ins, fork, cancellation)
-- `PipelineError`, `RetryPolicy`, `DelayStrategy`
-- Events: `PipelineEvent` (monotonic `sequenceID`), `EventEmitter` / `PipelineObserver`
-- Utilities: memory pressure detection and profiling
-
-```swift
-import PipelineKitCore
-
-struct MyCommand: Command {
+// A command is a value: the request, plus the type its execution returns.
+struct GreetCommand: Command {
     typealias Result = String
-    let input: String
+    let name: String
 }
 
-final class MyHandler: CommandHandler {
-    func handle(_ command: MyCommand, context: CommandContext) async throws -> String {
-        "Processed: \(command.input)"
-    }
-}
-```
-
-### PipelineKitObservability
-
-Comprehensive observability with metrics, events, and execution tracing.
-
-**Features:**
-- `ObservabilitySystem` – unified events + metrics orchestration
-- StatsD exporter (UDP) with batching and sampling
-- `EventHub` ↔ `MetricsStorage` integration (events can produce metrics)
-- `LoggingEmitter` – logs events via OSLog (Apple) or `print` elsewhere
-
-Note: The default UDP transport uses Apple’s Network framework when available; on non‑Apple platforms you can plug in a different transport.
-
-```swift
-import PipelineKitObservability
-
-// Production setup
-let observability = await ObservabilitySystem.production(
-    statsdHost: "localhost",
-    statsdPort: 8125,
-    prefix: "myapp"
-)
-
-// Automatic metrics from events
-await context.emitCommandCompleted(type: "CreateUser", duration: 0.125)
-// Generates: 
-// - counter: command.completed = 1
-// - timer: command.duration = 125ms
-
-// Direct metrics
-await observability.recordGauge(name: "queue.depth", value: 42)
-await observability.recordCounter(name: "api.requests", value: 1)
-await observability.recordTimer(name: "db.query", duration: 0.050)
-```
-
-### PipelineKitResilience
-
-Production-grade resilience patterns for handling failures and load.
-
-**Components:**
-
-#### BackPressure
-Controls system load with sophisticated queueing:
-```swift
-let semaphore = BackPressureSemaphore(
-    maxConcurrency: 100,
-    maxOutstanding: 1000,
-    maxQueueMemory: 10_485_760 // 10MB
-)
-
-let token = try await semaphore.acquire(
-    priority: .high,
-    estimatedSize: 1024
-)
-// Token auto-releases when deallocated
-```
-
-#### Circuit Breaker
-Prevents cascading failures:
-```swift
-let breaker = CircuitBreakerMiddleware(
-    failureThreshold: 5,
-    recoveryTimeout: 30.0,
-    halfOpenSuccessThreshold: 3
-)
-```
-
-#### Timeout
-Prevents hanging operations:
-```swift
-let timeout = TimeoutMiddleware(defaultTimeout: 5.0)
-
-// Or with per-command timeouts
-let timeoutWithOverrides = TimeoutMiddleware(
-    configuration: TimeoutMiddleware.Configuration(
-        defaultTimeout: 5.0,
-        commandTimeouts: ["SlowCommand": 30.0]
-    )
-)
-```
-
-#### Retry
-Automatic retry with backoff:
-```swift
-let retry = RetryMiddleware(
-    maxAttempts: 3,
-    strategy: .exponential(baseDelay: 1.0, maxDelay: 30.0)
-)
-```
-
-#### Bulkhead
-Isolates resources:
-```swift
-let bulkhead = BulkheadMiddleware(maxConcurrency: 10)
-```
-
-#### Parallel Observers
-
-`ObserverMiddleware` (from `PipelineKitCore`) is for middleware that observe commands — logging, metrics, audit — without participating in the `next` chain. Implement `observe(_:context:)`; the default `execute` observes, then forwards to `next`. Throwing from `observe` rejects the command.
-
-`ParallelMiddlewareWrapper` runs a set of observers concurrently, then executes the command once. If any observer throws, the sibling observers are cancelled and the error propagates.
-
-```swift
-struct MetricsObserver: ObserverMiddleware {
-    func observe<T: Command>(_ command: T, context: CommandContext) async throws {
-        await metrics.incrementCounter(String(describing: T.self))
+// A handler is the logic that fulfils one command type.
+struct GreetHandler: CommandHandler {
+    func handle(_ command: GreetCommand, context: CommandContext) async throws -> String {
+        "Hello, \(command.name)!"
     }
 }
 
-// Run observers concurrently, then execute the command once
-let parallel = ParallelMiddlewareWrapper(
-    observers: [LoggingObserver(), MetricsObserver(), AuditObserver()],
-    priority: .monitoring
-)
-try await pipeline.addMiddleware(parallel)
-```
+// Middleware wraps every execution. This one logs before and after.
+struct LoggingMiddleware: Middleware {
+    let priority: ExecutionPriority = .monitoring
 
-Observers used directly in a sequential chain default to `.observability` priority; the wrapper's own priority defaults to `.custom`.
-
-### PipelineKitSecurity
-
-Security middleware for authentication, authorization, and audit.
-
-**Features:**
-
-#### Authentication
-```swift
-let auth = AuthenticationMiddleware { userID in
-    guard let userID else {
-        throw PipelineError.authorization(reason: .invalidCredentials)
+    func execute<T: Command>(
+        _ command: T,
+        context: CommandContext,
+        next: @escaping MiddlewareNext<T>
+    ) async throws -> T.Result {
+        print("-> \(T.self)")
+        let result = try await next(command, context)
+        print("<- \(T.self)")
+        return result
     }
-    // Verify the user exists and is active, then return the validated ID
-    return try await userService.verify(userID)
-}
-```
-
-#### Authorization
-```swift
-let authz = AuthorizationMiddleware(
-    requiredRoles: ["orders.write"],
-    getUserRoles: { userID in
-        try await roleService.roles(for: userID)
-    }
-)
-```
-
-#### Audit Logging
-```swift
-let audit = AuditLoggingMiddleware(
-    logger: ConsoleAuditLogger(verbose: true)
-)
-// Or InMemoryAuditLogger(maxEvents: 1000) for tests
-```
-
-### PipelineKitCache
-
-Intelligent caching with automatic invalidation and compression.
-
-**Features:**
-```swift
-struct ProfileQuery: Command {
-    typealias Result = String
-    let accountID: String
-    let locale: String
 }
 
-// AuthenticationMiddleware must establish authUserId before protected caching.
-let profileKeys = ClosureCacheKeyGenerator { command, context, _ in
-    guard let query = command as? ProfileQuery,
-          let principal = context.getMetadata("authUserId") as? String else {
-        preconditionFailure("Expected an authenticated profile query")
-    }
-    return [query.accountID, query.locale, principal, "profile-format-v2"]
-        .map { "\($0.utf8.count):\($0)" }.joined()
-}
+let pipeline = StandardPipeline(handler: GreetHandler())
+try await pipeline.addMiddleware(LoggingMiddleware())
 
-let cache = CachingMiddleware(
-    cache: InMemoryCache(maxSize: 1000),
-    commandType: ProfileQuery.self,
-    keyGenerator: profileKeys,
-    ttl: 300
-)
-
-// Only ProfileQuery results use the complete caller identity.
-try await pipeline.addMiddleware(cache)
+let greeting = try await pipeline.execute(GreetCommand(name: "world"))
+print(greeting)
 ```
 
-Additional wrappers: `CachedMiddleware`, `ConditionalCachedMiddleware`, and in‑memory cache implementations for middleware or general data.
+Output:
 
-### PipelineKitPooling
-
-Object pooling for high-performance resource management.
-
-**Features:**
-```swift
-let configuration = try ObjectPoolConfiguration(
-    maxSize: 50,
-    highWaterMark: 40,
-    lowWaterMark: 10
-)
-
-let pool = ObjectPool<DatabaseConnection>(
-    configuration: configuration,
-    factory: { DatabaseConnection() },
-    reset: { conn in conn.prepareForReuse() } // synchronous reset
-)
-
-// Automatic resource management
-let connection = try await pool.acquire()
-// Use connection...
-await pool.release(connection)
+```
+-> GreetCommand
+<- GreetCommand
+Hello, world!
 ```
 
-### PipelineKitTestSupport
+`greeting` is a `String` because `GreetCommand.Result` is `String`; there is nothing to cast.
 
-Test helpers for pipelines: mock middleware, test commands/handlers, and teardown utilities. Intended for use in test targets only.
+To run something without setting up a package (macOS 15 or later, Swift 6.2):
 
-```swift
-// In Package.swift test target dependencies
-.testTarget(
-    name: "YourAppTests",
-    dependencies: ["YourApp", "PipelineKitTestSupport"]
-)
+```bash
+git clone https://github.com/gifton/PipelineKit.git
+cd PipelineKit
+swift run --package-path Examples BasicExample
 ```
 
-The package also ships a `test-unit` command plugin (`swift package test-unit`) that runs the unit test targets, excluding the performance suite and `PipelineKitTestSupportTests`.
+`BasicExample` is the same command, handler and pipeline without the middleware; it greets
+`PipelineKit` and ends with a `PASS` line. To run the version above, add the dependency from
+[Installation](#installation) to an executable package that declares
+`platforms: [.macOS(.v26)]` and paste the code into its `main.swift`.
+
+Where next:
+
+- New to the pattern: the [command-bus book](docs/guides/command-bus/README.md), six chapters
+  that build a command bus from nothing, then the [tutorials](docs/tutorials/basic-usage.md).
+- Building a high-volume pipeline: [concurrency controls](docs/guides/resilience-patterns.md#understanding-concurrency-controls),
+  the [performance guide](docs/guides/performance.md), and `BatchIngestExample` in
+  [Examples](Examples/README.md).
+- Want the API tour: [Getting Started](https://gifton.github.io/PipelineKit/documentation/pipelinekit/gettingstarted/)
+  on the documentation site.
+- Want more runnable code: the programs in [Examples](Examples/README.md).
+
+Both reading paths are laid out in order in the [documentation index](docs/README.md).
+
+## Why PipelineKit
+
+- **Results are typed.** `execute` returns the command's own `Result` type. A
+  `StandardPipeline` is generic over one command and its handler.
+- **Ordering is explicit.** Every middleware declares an `ExecutionPriority`. Lower values run
+  first, and equal priorities keep the order they were added in.
+- **It is written for Swift 6 concurrency.** The package builds in Swift 6 language mode.
+  Pipelines are actors; commands, results, handlers and middleware are `Sendable`. The
+  [concurrency model](docs/CONCURRENCY.md) lists the guarantees that have tests (a
+  single-shot `next`, concurrent `CommandContext` access, permits conserved under
+  cancellation) and names the test for each.
+- **The chain is guarded.** A middleware that calls `next` a second time gets
+  `PipelineError.nextAlreadyCalled` instead of running the handler twice. Middleware that
+  needs to call it repeatedly, such as retry, opts out explicitly with `UnsafeMiddleware`.
+- **The extras are separate products.** Resilience, security, caching, pooling and
+  observability are their own modules (see [Modules](#modules)); you list only the ones you use.
+- **Examples are checked in CI.** On every pull request the Swift examples in this README are
+  compiled and the programs in `Examples/` are built and run. See [What is checked](#what-is-checked).
+
+### When it is not a fit
+
+- **You deploy below the package's floors or build with a toolchain older than Swift 6.2.**
+  The released 0.6.0 requires OS 26 on every Apple platform. The `main` branch, to be
+  released as 0.6.1, requires macOS 15, iOS 18, tvOS 18, watchOS 11 or visionOS 2.
+  [Platform support](docs/platform-support.md) explains why. <!-- floor-pending-0.6.1 -->
+- **You need a frozen API.** PipelineKit is 0.x: a minor release may break source, and each
+  break is listed in the CHANGELOG. See [VERSIONING.md](VERSIONING.md).
+- **You need Linux as a supported platform.** Linux is built on every PR but is best-effort and
+  does not block CI.
+- **A direct function call would do.** Every execution goes through an actor and a middleware
+  chain. With no middleware at all that cost about 1.0 µs per command on the
+  [reference machine](#performance), so it is the wrong tool inside a per-element loop. If you
+  have no cross-cutting behaviour to put in middleware, that indirection buys you nothing. The
+  command-bus book has a longer
+  [when to use it, and when not](docs/guides/command-bus/README.md#when-to-use-command-bus-architecture) section.
 
 ## Installation
 
-### Requirements
+Requires Swift 6.2 or later. The released 0.6.0, which the snippet below installs until
+0.6.1 is released, requires iOS, macOS, tvOS, watchOS or visionOS 26.0 or later. The `main`
+branch, to be released as 0.6.1, lowers that to macOS 15, iOS 18, tvOS 18, watchOS 11 and
+visionOS 2 ([platform support](docs/platform-support.md)). <!-- floor-pending-0.6.1 -->
 
-- **Swift 6.2+**
-- **Platforms:**
-  - iOS 26.0+
-  - macOS 26.0+
-  - tvOS 26.0+
-  - watchOS 26.0+
-  - visionOS 26.0+
-
-Why the floors are this high, what CI verifies per platform, and the
-status of Linux: see [Platform Support](docs/platform-support.md).
-
-### Swift Package Manager
-
-These docs target 0.6.0. Review the [migration changes](docs/migrations/release-readiness.md)
-before upgrading from 0.5.4. The dependency below requires the `v0.6.0` tag;
-until it is published, evaluate this branch with a local package checkout.
-Add to your `Package.swift`:
+Add the package to your `Package.swift`:
 
 ```swift
 dependencies: [
@@ -526,431 +161,130 @@ targets: [
 ]
 ```
 
-## Example Usages
+Keep the explicit upper bound. `from: "0.6.0"` would also accept 0.7.0, and in 0.x a minor
+release may break source ([VERSIONING.md](VERSIONING.md)). For Xcode and local-checkout
+setups see the [installation guide](docs/getting-started/installation.md).
 
-### Basic Example
+## Modules
 
-```swift
-import PipelineKit
+| Module | What it provides | Read more |
+|---|---|---|
+| `PipelineKit` | `StandardPipeline`, `DynamicPipeline`, `PipelineBuilder`, pipeline registry, debugging tools. Re-exports `PipelineKitCore`. | [API](https://gifton.github.io/PipelineKit/documentation/pipelinekit/) · [architecture](docs/guides/architecture.md) |
+| `PipelineKitCore` | The protocols and core types: `Command`, `CommandHandler`, `Middleware`, `CommandContext`, `PipelineError`, `ExecutionPriority`. | [API](https://gifton.github.io/PipelineKit/documentation/pipelinekitcore/) |
+| `PipelineKitResilience` | Retry, timeout, circuit breaker, bulkhead, rate limiting and back-pressure middleware. | [API](https://gifton.github.io/PipelineKit/documentation/pipelinekitresilience/) · [guide](docs/guides/resilience-patterns.md) |
+| `PipelineKitSecurity` | Validation, sanitization, authentication, authorization, encryption and audit-logging middleware. | [API](https://gifton.github.io/PipelineKit/documentation/pipelinekitsecurity/) · [guide](docs/guides/security-best-practices.md) |
+| `PipelineKitCache` | Result-caching middleware and cache protocols. | [API](https://gifton.github.io/PipelineKit/documentation/pipelinekitcache/) · [tutorial](docs/tutorials/custom-middleware.md) |
+| `PipelineKitPooling` | Object pooling with metrics. | [API](https://gifton.github.io/PipelineKit/documentation/pipelinekitpooling/) · [guide](docs/guides/performance.md) |
+| `PipelineKitObservability` | Events and metrics, with StatsD and Prometheus-format export. | [API](https://gifton.github.io/PipelineKit/documentation/pipelinekitobservability/) · [guide](docs/guides/architecture.md#observability) |
+| `PipelineKitTestSupport` | Mock middleware, test commands and handlers, assertions. Add it to test targets only. | [guide](docs/guides/testing.md) · [source](Sources/PipelineKitTestSupport) |
 
-// 1. Define Command
-struct CalculateCommand: Command {
-    typealias Result = Double
-    let a: Double
-    let b: Double
-    let operation: String
-}
-
-enum CalculationError: Error {
-    case divisionByZero
-    case unknownOperation
-}
-
-// 2. Create Handler
-final class CalculatorHandler: CommandHandler {
-    func handle(_ command: CalculateCommand, context: CommandContext) async throws -> Double {
-        switch command.operation {
-        case "+": return command.a + command.b
-        case "-": return command.a - command.b
-        case "*": return command.a * command.b
-        case "/":
-            guard command.b != 0 else { throw CalculationError.divisionByZero }
-            return command.a / command.b
-        default:
-            throw CalculationError.unknownOperation
-        }
-    }
-}
-
-// 3. Use Pipeline
-let pipeline = StandardPipeline(handler: CalculatorHandler())
-let result = try await pipeline.execute(
-    CalculateCommand(a: 10, b: 5, operation: "+"),
-    context: CommandContext()
-)
-print(result) // 15.0
-```
-
-### Production Example with Full Stack
+Shipped middleware is added the same way as your own:
 
 ```swift
-import Foundation
 import PipelineKit
 import PipelineKitResilience
-import PipelineKitSecurity
-import PipelineKitCache
 
-struct GetOrderCommand: ValidatableCommand {
-    typealias Result = String
-    let orderID: String
-    func validate() async throws {
-        guard !orderID.isEmpty else {
-            throw PipelineError.validation(field: "orderID", reason: .custom("Required"))
-        }
-    }
-}
-
-struct GetOrderHandler: CommandHandler {
-    let loadOrder: @Sendable (String) async throws -> String
-    func handle(_ command: GetOrderCommand, context: CommandContext) async throws -> String {
-        try await loadOrder(command.orderID)
-    }
-}
-
-struct OrderAuthorization: Middleware {
-    let priority = ExecutionPriority.validation
-    let authorize: @Sendable (String, String) async throws -> Void
-    func execute<C: Command>(
-        _ command: C, context: CommandContext, next: @escaping MiddlewareNext<C>
-    ) async throws -> C.Result {
-        guard let order = command as? GetOrderCommand,
-              let principal = context.getMetadata("authUserId") as? String else {
-            throw PipelineError.authorization(reason: .invalidCredentials)
-        }
-        // Check current permission before the cache, including cache hits.
-        try await authorize(principal, order.orderID)
-        return try await next(command, context)
-    }
-}
-
-func makeOrderPipeline(
-    authenticateUser: @escaping @Sendable (String) async throws -> String,
-    authorizeOrder: @escaping @Sendable (String, String) async throws -> Void,
-    loadOrder: @escaping @Sendable (String) async throws -> String
-) async throws -> StandardPipeline<GetOrderCommand, GetOrderHandler> {
-    let builder = PipelineBuilder(handler: GetOrderHandler(loadOrder: loadOrder))
-    await builder.withAuthentication(AuthenticationMiddleware { userID in
-        guard let userID else {
-            throw PipelineError.authorization(reason: .invalidCredentials)
-        }
-        return try await authenticateUser(userID)
-    })
-    await builder.with(ValidationMiddleware())
-    await builder.withAuthorization(OrderAuthorization(authorize: authorizeOrder))
-    await builder.with(BulkheadMiddleware(configuration: .init(
-        maxConcurrency: 100, maxQueueSize: 100, queueTimeout: 5, rejectionPolicy: .queue
-    )))
-    let orderKeys = ClosureCacheKeyGenerator { command, context, _ in
-        guard let query = command as? GetOrderCommand,
-              let principal = context.getMetadata("authUserId") as? String else {
-            preconditionFailure("Expected an authenticated order query")
-        }
-        return [query.orderID, principal, "order-format-v1"]
-            .map { "\($0.utf8.count):\($0)" }.joined()
-    }
-    await builder.with(CachingMiddleware(
-        cache: InMemoryCache(), commandType: GetOrderCommand.self, keyGenerator: orderKeys
+func makeResilientPipeline<H: CommandHandler>(
+    handler: H
+) async throws -> StandardPipeline<H.CommandType, H> {
+    let builder = PipelineBuilder(handler: handler)
+    // Both run at `.resilience` priority, so insertion order decides:
+    // the timeout wraps the whole retry loop.
+    await builder.with(TimeoutMiddleware(defaultTimeout: 10.0))
+    await builder.with(RetryMiddleware(
+        maxAttempts: 3,
+        strategy: .exponentialJitter(baseDelay: 1.0, maxDelay: 10.0)
     ))
     return try await builder.build()
 }
 ```
 
-### Async Event Processing Example
+## What is checked
 
-```swift
-// Event-driven command processing
-actor EventProcessor {
-    let pipeline: StandardPipeline<ProcessEventCommand, ProcessEventHandler>
-
-    init(pipeline: StandardPipeline<ProcessEventCommand, ProcessEventHandler>) {
-        self.pipeline = pipeline
-    }
-
-    func processEvents(_ events: AsyncStream<Event>) async {
-        await withTaskGroup(of: Void.self) { group in
-            for await event in events {
-                group.addTask { [pipeline] in
-                    let context = CommandContext()
-                    context.correlationID = event.correlationId
-                    
-                    do {
-                        _ = try await pipeline.execute(
-                            ProcessEventCommand(event: event),
-                            context: context
-                        )
-                        await context.emitCommandCompleted(
-                            type: "ProcessEvent",
-                            duration: Date().timeIntervalSince(event.timestamp)
-                        )
-                    } catch {
-                        await context.emitCommandFailed(
-                            type: "ProcessEvent",
-                            error: error
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-```
-
-## Do's and Don'ts
-
-Each pair below contrasts a good and bad version of the same pattern; several
-reuse a type name across both halves or elide bodies with `...`, so the pair
-is illustrative pseudocode rather than a single compilable unit.
-
-### ✅ DO's
-
-#### DO: Keep Commands Simple and Immutable
-```text
-// ✅ GOOD - Simple data structure
-struct UpdateUserCommand: Command {
-    typealias Result = User
-    let userId: String
-    let name: String
-    let email: String
-}
-
-// ❌ BAD - Contains logic
-struct UpdateUserCommand: Command {
-    func validate() -> Bool { ... } // Don't put logic in commands!
-    var normalizedEmail: String { ... } // Don't compute in commands!
-}
-```
-
-#### DO: Use Context for Cross-Cutting Data
-```swift
-// ✅ GOOD - Using context for request metadata
-let context = CommandContext()
-context.requestID = UUID().uuidString
-context.userID = authenticatedUser.id
-context.setMetadata("client-version", value: "2.0.0")
-
-// ❌ BAD - Passing auth in every command
-struct MyCommand: Command {
-    let authToken: String // Don't duplicate auth in every command!
-    let userId: String // Use context instead!
-}
-```
-
-#### DO: Order Middleware Correctly
-```swift
-// ✅ GOOD - Correct order
-try await pipeline.addMiddleware(authenticationMiddleware)  // First: Who are you?
-try await pipeline.addMiddleware(authorizationMiddleware)   // Second: Can you do this?
-try await pipeline.addMiddleware(validationMiddleware)      // Third: Is the data valid?
-try await pipeline.addMiddleware(cachingMiddleware)         // Fourth: Check cache
-try await pipeline.addMiddleware(loggingMiddleware)         // Last: Log everything
-
-// ❌ BAD - Wrong order
-try await pipeline.addMiddleware(cachingMiddleware)         // Cache before auth? No!
-try await pipeline.addMiddleware(authenticationMiddleware)  // Too late!
-```
-
-#### DO: Handle Errors Gracefully
-```swift
-// ✅ GOOD - Specific error handling
-do {
-    let result = try await pipeline.execute(command, context: context)
-} catch PipelineError.timeout {
-    // Handle timeout specifically
-    await metrics.recordCounter(name: "command.timeout")
-} catch PipelineError.validation(let field, let reason) {
-    // Handle validation error with details
-    logger.warning("Validation failed for \(field): \(reason)")
-} catch {
-    // Generic fallback
-    logger.error("Unexpected error: \(error)")
-}
-
-// ❌ BAD - Generic catch-all
-do {
-    let result = try await pipeline.execute(command, context: context)
-} catch {
-    print("Error: \(error)") // Too generic!
-}
-```
-
-#### DO: Use Type-Safe Context Keys
-```swift
-// ✅ GOOD - Type-safe keys
-extension ContextKeys {
-    static let apiVersion = ContextKey<String>("api-version")
-    static let requestSource = ContextKey<RequestSource>("request-source")
-}
-
-context.apiVersion = "v2"
-let version = context.apiVersion
-
-// ❌ BAD - String-based keys with casting
-context.setMetadata("api-version", value: "v2")
-let version = context.metadata["api-version"] as? String // Unsafe!
-```
-
-### ❌ DON'Ts
-
-#### DON'T: Make Handlers Stateful
-```text
-// ❌ BAD - Stateful handler
-class BadHandler: CommandHandler {
-    var requestCount = 0 // Don't store state!
-
-    func handle(_ command: MyCommand, context: CommandContext) async throws -> Result {
-        requestCount += 1 // Race condition!
-        // ...
-    }
-}
-
-// ✅ GOOD - Stateless handler with external state
-class GoodHandler: CommandHandler {
-    let metrics: MetricsCollector // Injected dependency
-
-    func handle(_ command: MyCommand, context: CommandContext) async throws -> Result {
-        await metrics.recordCounter("requests", value: 1.0, tags: [:]) // MetricsCollector.recordCounter(_:value:tags:)
-        // ...
-    }
-}
-```
-
-#### DON'T: Block in Middleware
-```text
-// ❌ BAD - Blocking I/O
-struct BadMiddleware: Middleware {
-    func execute<T: Command>(_ command: T, context: CommandContext, next: MiddlewareNext<T>) async throws -> T.Result {
-        Thread.sleep(forTimeInterval: 1.0) // Never block!
-        return try await next(command, context)
-    }
-}
-
-// ✅ GOOD - Async operations
-struct GoodMiddleware: Middleware {
-    func execute<T: Command>(_ command: T, context: CommandContext, next: MiddlewareNext<T>) async throws -> T.Result {
-        try await Task.sleep(for: .seconds(1)) // Async sleep
-        return try await next(command, context)
-    }
-}
-```
-
-#### DON'T: Catch and Suppress Errors in Middleware
-```text
-// ❌ BAD - Suppressing errors
-struct BadMiddleware: Middleware {
-    func execute<T: Command>(_ command: T, context: CommandContext, next: MiddlewareNext<T>) async throws -> T.Result {
-        do {
-            return try await next(command, context)
-        } catch {
-            return someDefaultValue // Don't suppress errors!
-        }
-    }
-}
-
-// ✅ GOOD - Transform or enhance errors
-struct GoodMiddleware: Middleware {
-    func execute<T: Command>(_ command: T, context: CommandContext, next: MiddlewareNext<T>) async throws -> T.Result {
-        do {
-            return try await next(command, context)
-        } catch {
-            await context.emitCommandFailed(type: String(describing: T.self), error: error)
-            throw PipelineError.executionFailed(
-                message: String(describing: error),
-                context: PipelineError.ErrorContext(commandType: String(describing: T.self))
-            )
-        }
-    }
-}
-```
-
-#### DON'T: Create Massive Commands
-```text
-// ❌ BAD - Kitchen sink command
-struct DoEverythingCommand: Command {
-    let createUser: Bool
-    let updateProfile: Bool
-    let sendEmail: Bool
-    let generateReport: Bool
-    // 20 more fields... Too much!
-}
-
-// ✅ GOOD - Focused commands
-struct CreateUserCommand: Command { ... }
-struct UpdateProfileCommand: Command { ... }
-struct SendEmailCommand: Command { ... }
-// Compose with transactions or sagas if needed
-```
-
-#### DON'T: Mix Business Logic in Middleware
-```text
-// ❌ BAD - Business logic in middleware
-struct BadMiddleware: Middleware {
-    func execute<T: Command>(_ command: T, context: CommandContext, next: MiddlewareNext<T>) async throws -> T.Result {
-        if let cmd = command as? CreateUserCommand {
-            // Don't implement business logic here!
-            if !isValidEmail(cmd.email) { ... }
-            let user = User(email: cmd.email)
-            database.save(user)
-        }
-        return try await next(command, context)
-    }
-}
-
-// ✅ GOOD - Keep middleware focused on cross-cutting concerns
-struct GoodMiddleware: Middleware {
-    func execute<T: Command>(_ command: T, context: CommandContext, next: MiddlewareNext<T>) async throws -> T.Result {
-        let start = Date()
-        let result = try await next(command, context)
-        let duration = Date().timeIntervalSince(start)
-        await metrics.recordTimer("command.duration", duration: duration, tags: [:]) // MetricsCollector.recordTimer(_:duration:tags:)
-        return result
-    }
-}
-```
+- Pull requests and version tags run the same qualification workflow. macOS is built and tested
+  in Debug and Release; iOS is tested on a simulator; tvOS and visionOS builds are required;
+  watchOS builds are advisory. Those lanes run on macOS 26 and an iOS 26 simulator. Two
+  more required lanes run the tests on a macOS 15 runner and an iOS 18 simulator, the oldest
+  OS generation the package declares; a failure in either fails the workflow run and, on a
+  version tag, stops the release. The
+  per-platform table is in [platform support](docs/platform-support.md).
+- The CI badge at the top reports the [`CI` workflow](.github/workflows/ci.yml) for the latest
+  push to `main`: macOS Debug and Release builds, the eight test targets, a second run of the
+  resilience test target (the job named `Stress Tests`), a Trivy scan for critical and high
+  findings, the documentation build with its coverage floors, and the
+  tests of the CI scripts themselves. SwiftLint findings and performance-test results are
+  reported there but do not fail it, and neither do its Linux build jobs. The multi-platform
+  lanes above run on pull requests and release tags, so the badge does not cover them.
+- A compiler-floor job builds the package and its tests with Swift 6.2.x.
+- The programs in [Examples](Examples/README.md) are built and run in Debug and Release,
+  and each must print its verified outcome.
+- The Swift examples in this README are compiled in CI by a
+  [consumer package](Tests/Integration/Consumer/Package.swift) that uses only public imports.
+- Runtime dependencies are swift-atomics, swift-log and, for the security module, swift-crypto
+  ([DEPENDENCIES.md](DEPENDENCIES.md)).
+- Each concurrency guarantee in [docs/CONCURRENCY.md](docs/CONCURRENCY.md#guarantees-and-the-tests-that-exercise-them)
+  names the test that exercises it, and a CI check fails if a named test is removed or
+  renamed. Thread Sanitizer is not a gate: it runs only in the weekly and opt-in workflows.
 
 ## Performance
 
-PipelineKit is designed for high-throughput, low-latency dispatch: actor-based
-pipelines, lock-free atomics (swift-atomics) on hot paths, and opt-in back-pressure
-so you only pay for the control you use.
+Measured on PipelineKit 0.6.0 (`74e7fc6`), Release build, Apple M3 Max, macOS 27.0.1, Swift
+6.4.2, calling from a task off the main thread:
 
-Benchmarks are XCTest `measure` suites in the `PipelineKitPerformanceTests` target;
-methodology and how to run them are documented in [docs/benchmarks.md](docs/benchmarks.md).
-Run them on your own hardware:
+| One operation | Median | p95 |
+|---|---:|---:|
+| Execute a command through a `StandardPipeline` with no middleware | 1,000 ns | 1,060 ns |
+| Set and read one `CommandContext` metadata value | 212 ns | 229 ns |
+| Admit one request through a token-bucket `RateLimiter` | 492 ns | 524 ns |
+
+Each figure is the duration of a batch of 1,000 operations divided by 1,000, over 1,000 timed
+batches from five launches. They are batch means on one machine, not per-call latency
+percentiles. Awaiting a pipeline from the main actor adds a thread hop per call: the first row
+measured 7,550 ns when driven from the main thread.
+[docs/benchmarks.md](docs/benchmarks.md#published-results) has the method, the raw records and
+the commands to reproduce them or to measure your own hardware.
+
+The XCTest `measure` suites are also available:
 
 ```bash
 swift test -c release --filter PipelineKitPerformanceTests
 ```
 
-### Optimization tips
+For tuning advice see the [performance guide](docs/guides/performance.md).
 
-1. **Use object pools** (`PipelineKitPooling`) for expensive resources
-2. **Enable caching** (`PipelineKitCache`) for read-heavy workloads
-3. **Set concurrency limits** (`maxConcurrency` / back-pressure options) to match downstream capacity
-4. **Monitor with built-in metrics** (`PipelineKitObservability`)
+## Documentation
+
+| If you want to | Go to |
+|---|---|
+| Follow a reading path in order | [Documentation index](docs/README.md): one path for learning the pattern, one for building a high-volume pipeline |
+| Browse the API reference for the seven library modules | [gifton.github.io/PipelineKit](https://gifton.github.io/PipelineKit/documentation/) |
+| Learn the command-bus pattern from first principles | [Command-bus book](docs/guides/command-bus/README.md) |
+| Work through tutorials | [Basic usage](docs/tutorials/basic-usage.md), [custom middleware](docs/tutorials/custom-middleware.md), [advanced patterns](docs/tutorials/advanced-patterns.md) |
+| Understand how the pieces fit | [Architecture guide](docs/guides/architecture.md) |
+| Bound concurrency and queued work | [Concurrency controls](docs/guides/resilience-patterns.md#understanding-concurrency-controls), [performance guide](docs/guides/performance.md) |
+| Test code that uses a pipeline | [Testing guide](docs/guides/testing.md) |
+| Evaluate it for adoption | [Evaluating PipelineKit](docs/guides/enterprise-evaluation.md) |
+
+## Stability and versioning
+
+PipelineKit is in the 0.x series. Patch releases do not break source. Minor releases may, and
+every source-breaking change is listed under a **Breaking** heading in the
+[CHANGELOG](CHANGELOG.md). There is no deprecation window in 0.x. The full policy, including the
+criteria for 1.0, is in [VERSIONING.md](VERSIONING.md).
+
+**Upgrading from 0.5.4:** 0.6.0 changes source and behavior. The
+[upgrade guide](docs/migrations/0.5-to-0.6.md) lists every change by module, with examples that
+are compiled in CI. Read its section on stored data first: cache entries, encrypted commands,
+compressed payloads and distributed rate-limit counters written by 0.5.x need more than a recompile.
+
+To report a security vulnerability, see [SECURITY.md](SECURITY.md).
 
 ## Contributing
 
 Contributions are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) for the
 development setup, test workflow, and PR conventions. All participation is governed
-by the [Code of Conduct](CODE_OF_CONDUCT.md). To report a security vulnerability,
-see [SECURITY.md](SECURITY.md).
+by the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## License
 
 PipelineKit is released under the MIT License. See [LICENSE](LICENSE) for details.
-
----
-
-## Additional Notes
-
-- SimpleSemaphore: `acquire()` is `async throws` and returns a `SemaphoreToken` that auto‑releases on deinit; you can also `defer { token.release() }` explicitly.
-- DynamicPipeline registration APIs:
-  - `register(_:handler:)` – replace‑by‑default (non‑throwing)
-  - `registerOnce(_:handler:)` – throws if a handler already exists
-  - `replace(_:with:)` – returns whether a previous handler was replaced
-  - `unregister(_:)` – returns whether a handler was removed
-- NextGuard safety:
-  - Default: ensures `next` is called exactly once; throws on multiple/concurrent calls.
-  - `UnsafeMiddleware`: opt‑out for custom patterns (use with care).
-  - `NextGuardWarningSuppressing`: suppresses debug‑only deinit warnings only for middleware that returns a result without calling `next()` (e.g., cache hits). Since 0.6, throw‑based short‑circuits (rejections, validation failures, timeouts/cancellation) are detected automatically by the chain and don't need this.
-- AnySendable: type‑erased Sendable value container (not Equatable/Hashable by design). Extract concrete values via `get(_:)` to compare.
-- Platform support:
-  - Apple platforms fully supported per Package.swift.
-  - SwiftLog is used for internal logging; on Apple you can bootstrap OSLog backend via `swift-log-oslog` if desired.
-  - Linux builds are enabled; some transports (e.g., Network‑based UDP) may require alternative backends.
-
-## Acknowledgments
-
-Built with ❤️ using Swift 6 and modern concurrency patterns.
-
-Special thanks to the Swift community for inspiration and feedback.

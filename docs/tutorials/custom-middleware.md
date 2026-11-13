@@ -13,10 +13,12 @@ public protocol Middleware: Sendable {
     func execute<T: Command>(
         _ command: T,
         context: CommandContext,
-        next: @Sendable (T, CommandContext) async throws -> T.Result
+        next: @escaping @Sendable (T, CommandContext) async throws -> T.Result
     ) async throws -> T.Result
 }
 ```
+
+`MiddlewareNext<T>` is a typealias for that `next` closure type; the examples below use it.
 
 ## Simple Middleware Examples
 
@@ -29,7 +31,7 @@ struct TimingMiddleware: Middleware {
     func execute<T: Command>(
         _ command: T,
         context: CommandContext,
-        next: @Sendable (T, CommandContext) async throws -> T.Result
+        next: @escaping MiddlewareNext<T>
     ) async throws -> T.Result {
         let start = Date()
         defer {
@@ -51,7 +53,7 @@ struct HeaderInjectionMiddleware: Middleware {
     func execute<T: Command>(
         _ command: T,
         context: CommandContext,
-        next: @Sendable (T, CommandContext) async throws -> T.Result
+        next: @escaping MiddlewareNext<T>
     ) async throws -> T.Result {
         for (key, value) in headers {
             let headerKey = ContextKey<String>("header:\(key)")
@@ -73,10 +75,10 @@ struct MapResult<Mapped, C: Command>: Middleware {
     func execute<T: Command>(
         _ command: T,
         context: CommandContext,
-        next: @Sendable (T, CommandContext) async throws -> T.Result
+        next: @escaping MiddlewareNext<T>
     ) async throws -> T.Result {
         let result = try await next(command, context)
-        if let same = command as? C,
+        if command is C,
            let mapped = try await transform(result as! C.Result) as? T.Result {
             return mapped
         }
@@ -85,7 +87,7 @@ struct MapResult<Mapped, C: Command>: Middleware {
 }
 ```
 
-## Rate Limiting (built‑in)
+## Rate Limiting (built-in)
 
 ```swift
 import PipelineKitResilience
@@ -105,7 +107,7 @@ let rateLimit = RateLimitingMiddleware(
 try await pipeline.addMiddleware(rateLimit)
 ```
 
-## Caching (built‑in)
+## Caching (built-in)
 
 ```swift
 import PipelineKitCache
@@ -148,6 +150,33 @@ let conditional = ConditionalCachedMiddleware(
 }
 ```
 
+## Observer Middleware (built-in)
+
+`ObserverMiddleware` (from `PipelineKitCore`) is for middleware that observe commands — logging, metrics, audit — without participating in the `next` chain. Implement `observe(_:context:)`; the default `execute` observes, then forwards to `next`. Throwing from `observe` rejects the command.
+
+`ParallelMiddlewareWrapper` runs a set of observers concurrently, then executes the command once. If any observer throws, the sibling observers are cancelled and the error propagates.
+
+```swift
+struct MetricsObserver: ObserverMiddleware {
+    func observe<T: Command>(_ command: T, context: CommandContext) async throws {
+        await metrics.incrementCounter(String(describing: T.self))
+    }
+}
+
+// Run observers concurrently, then execute the command once
+let parallel = ParallelMiddlewareWrapper(
+    observers: [LoggingObserver(), MetricsObserver(), AuditObserver()],
+    priority: .monitoring
+)
+try await pipeline.addMiddleware(parallel)
+```
+
+Observers used directly in a sequential chain default to `.observability` priority; the wrapper's own priority defaults to `.custom`.
+
+`ParallelMiddlewareWrapper` is in `PipelineKitResilience`; `metrics`, `LoggingObserver` and
+`AuditObserver` stand in for your own types.
+
 ## Notes
 - Use `ExecutionPriority` to place middleware correctly; equal priorities preserve insertion order.
 - For middleware that intentionally RETURNS a result without calling `next()` on a normal path (e.g., cache hits), conform to `NextGuardWarningSuppressing` to suppress debug‑only deinit warnings. Since 0.6, throw‑based short‑circuits (rejections, validation failures, timeouts/cancellation) are detected automatically by the middleware chain and don't need this.
+- The dropped-`next` warning is debug-only and configurable through `NextGuardConfiguration`: `NextGuardConfiguration.setWarningHandler { message in ... }` routes it to your own logger, and `NextGuardConfiguration.disableWarnings()` (or setting `NextGuardConfiguration.shared.emitWarnings = false`) turns it off, for example in a test run.

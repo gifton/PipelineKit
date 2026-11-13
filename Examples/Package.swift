@@ -4,8 +4,8 @@ import PackageDescription
 let package = Package(
     name: "PipelineKitExamples",
     platforms: [
-        .macOS(.v26),
-        .iOS(.v26)
+        .macOS(.v15),
+        .iOS(.v18)
     ],
     dependencies: [
         .package(name: "PipelineKit", path: "..")
@@ -16,18 +16,22 @@ let package = Package(
             dependencies: [.product(name: "PipelineKit", package: "PipelineKit")]
         ),
         .executableTarget(
-            name: "AdvancedExample",
+            name: "MiddlewareStackExample",
             dependencies: [
                 .product(name: "PipelineKit", package: "PipelineKit"),
                 .product(name: "PipelineKitResilience", package: "PipelineKit")
             ]
         ),
         .executableTarget(
-            name: "MetricsSamplingExample",
-            dependencies: [.product(name: "PipelineKitObservability", package: "PipelineKit")]
+            name: "BatchIngestExample",
+            dependencies: [
+                .product(name: "PipelineKit", package: "PipelineKit"),
+                .product(name: "PipelineKitResilience", package: "PipelineKit"),
+                .product(name: "PipelineKitObservability", package: "PipelineKit")
+            ]
         ),
         .executableTarget(
-            name: "MetricsAggregationExample",
+            name: "StatsDExportExample",
             dependencies: [.product(name: "PipelineKitObservability", package: "PipelineKit")]
         ),
         .executableTarget(
