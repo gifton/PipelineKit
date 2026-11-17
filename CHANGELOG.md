@@ -7,13 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed
-
-- Tests whose results depended on wall-clock promptness or task scheduling (sub-second
-  elapsed-time bounds, sleep-versus-deadline races, fixed settle sleeps) no longer do.
-  Test-only; no library change.
-
-## [0.6.1] - 2026-11-12
+## [0.6.1] - 2026-11-16
 
 0.6.1 lowers the minimum Apple deployment targets from OS 26 to macOS 15, iOS 18, tvOS 18,
 watchOS 11 and visionOS 2. There is no public API change: code that builds against 0.6.0
@@ -58,8 +52,9 @@ CI work, including two CI lanes that run the tests on macOS 15 and iOS 18.
 
 - The warnings `StandardPipeline` logs for `PipelineOptions` settings it ignores named a type
   that does not exist; they now name `BackPressureSemaphore`.
-- Two tests whose results depended on task scheduling no longer do. Test-only; no library
-  change.
+- Tests whose results depended on wall-clock promptness or task scheduling (sub-second
+  elapsed-time bounds, sleep-versus-deadline races, fixed settle sleeps) no longer do.
+  Test-only; no library change.
 
 ### Documentation
 
