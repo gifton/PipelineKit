@@ -1,5 +1,6 @@
 import XCTest
 import Foundation
+import Synchronization
 @testable import PipelineKit
 @testable import PipelineKitCore
 import PipelineKitTestSupport
@@ -17,8 +18,10 @@ final class SimpleCancellationTests: XCTestCase {
             typealias CommandType = TestCommand
             
             func handle(_ command: TestCommand, context: CommandContext) async throws -> String {
-                // Simulate some work
-                try await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
+                // Simulate work that far outlasts any scheduling stall. With 1s of work,
+                // a stall past it let the handler return before the cancellation below.
+                // The sleep is cancelled, so the test does not wait for it.
+                try await Task.sleep(nanoseconds: 30_000_000_000) // 30 seconds
                 return "completed"
             }
         }
@@ -29,7 +32,8 @@ final class SimpleCancellationTests: XCTestCase {
             try await pipeline.execute(TestCommand(), context: CommandContext())
         }
         
-        // Give the task time to start
+        // Give the task time to start. The outcome does not depend on it: a task
+        // cancelled before it starts is rejected with the same error.
         try await Task.sleep(nanoseconds: 100_000_000) // 100ms
         
         // Cancel the task
@@ -49,19 +53,25 @@ final class SimpleCancellationTests: XCTestCase {
         // Create test middleware that tracks execution
         final class TrackingMiddleware: Middleware, @unchecked Sendable {
             let priority = ExecutionPriority.processing
-            var executionStarted = false
-            var executionCompleted = false
+            // Read by the test task while the pipeline task writes it.
+            private let started = Mutex(false)
+            private let completed = Mutex(false)
+            var executionStarted: Bool { started.withLock { $0 } }
+            var executionCompleted: Bool { completed.withLock { $0 } }
             
             func execute<T: Command>(
                 _ command: T,
                 context: CommandContext,
                 next: @Sendable (T, CommandContext) async throws -> T.Result
             ) async throws -> T.Result {
-                executionStarted = true
-                defer { executionCompleted = true }
+                started.withLock { $0 = true }
+                defer { completed.withLock { $0 = true } }
                 
-                // Simulate some work
-                try await Task.sleep(nanoseconds: 500_000_000) // 500ms
+                // Simulate work that far outlasts any scheduling stall. With 500ms of
+                // work, a stall past it let the middleware finish before the
+                // cancellation below. The sleep is cancelled, so the test does not
+                // wait for it.
+                try await Task.sleep(nanoseconds: 30_000_000_000) // 30 seconds
                 
                 return try await next(command, context)
             }
@@ -87,8 +97,12 @@ final class SimpleCancellationTests: XCTestCase {
             try await pipeline.execute(TestCommand(), context: CommandContext())
         }
         
-        // Give the task time to start middleware execution
-        try await Task.sleep(nanoseconds: 200_000_000) // 200ms
+        // Wait until the middleware has started, instead of assuming 200ms is enough.
+        // The deadline only bounds a hang.
+        let deadline = ContinuousClock.now.advanced(by: .seconds(10))
+        while !middleware.executionStarted && ContinuousClock.now < deadline {
+            try await Task.sleep(nanoseconds: 1_000_000)
+        }
         
         // Verify middleware started
         XCTAssertTrue(middleware.executionStarted)

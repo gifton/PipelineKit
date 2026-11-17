@@ -75,8 +75,10 @@ final class TimeoutMiddlewareTests: XCTestCase {
     func testTimeoutMiddlewareWithFastExecution() async throws {
         // Given
         let fastMiddleware = SlowMiddleware(delay: 0.01) // 10ms
+        // The deadline must be far beyond any scheduling stall: with a 100ms deadline a
+        // stall past both timers could let the timeout win the race against 10ms of work.
         let timeoutMiddleware = TimeoutMiddleware(
-            defaultTimeout: 0.1 // 100ms timeout
+            defaultTimeout: 30
         )
         
         let handler = TestHandler()
@@ -100,8 +102,11 @@ final class TimeoutMiddlewareTests: XCTestCase {
         let timeoutMiddleware = TimeoutMiddleware(
             configuration: TimeoutMiddleware.Configuration(
                 defaultTimeout: 0.1, // 100ms timeout
-                // Use a slightly larger grace period to account for CI/macOS scheduler jitter
-                gracePeriod: 0.2    // 200ms grace period
+                // The grace period must be far beyond any scheduling stall: with 200ms of
+                // grace, a stall of about 150ms after the deadline expired the grace period
+                // too. The work finishes about 50ms into the grace period, so the test does
+                // not wait for it.
+                gracePeriod: 30
             )
         )
         
@@ -148,7 +153,9 @@ final class TimeoutMiddlewareTests: XCTestCase {
             }
         }
         
-        let slowMiddleware = SlowMiddleware(delay: 0.1) // 100ms
+        // Far longer than any stall, so the 50ms command timeout cannot lose the race;
+        // cancelled at the deadline.
+        let slowMiddleware = SlowMiddleware(delay: 30)
         let timeoutMiddleware = TimeoutMiddleware(
             defaultTimeout: 1.0 // 1s default (should be overridden)
         )

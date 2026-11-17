@@ -66,22 +66,68 @@ final class ParallelMiddlewareWrapperTests: XCTestCase {
         }
     }
     
+    /// Holds every observer that has started until `parties` of them are in flight
+    /// at once. Sequential execution can never satisfy it: the first observer would
+    /// wait for a second that is not started until the first returns. That makes
+    /// "ran in parallel" an ordering fact instead of a wall-clock measurement.
+    private actor StartBarrier {
+        private let parties: Int
+        private var arrived = 0
+        private var released = false
+        private var waiters: [CheckedContinuation<Void, Never>] = []
+        /// True only when the barrier opened because all parties were in flight together.
+        private(set) var allArrivedTogether = false
+
+        init(parties: Int) { self.parties = parties }
+
+        func arrive() async {
+            arrived += 1
+            if released { return }
+            if arrived >= parties {
+                allArrivedTogether = true
+                release()
+                return
+            }
+            await withCheckedContinuation { waiters.append($0) }
+        }
+
+        /// Opens the barrier without marking success, so a regression to sequential
+        /// execution fails the assertion instead of hanging the test.
+        func releaseForFallback() { release() }
+
+        private func release() {
+            released = true
+            let pending = waiters
+            waiters.removeAll()
+            pending.forEach { $0.resume() }
+        }
+    }
+
     private final class TrackingObserver: ObserverMiddleware {
         let name: String
         let tracker: ExecutionTracker
         let delay: TimeInterval
         let priority = ExecutionPriority.processing
         let synchronizer: TestSynchronizer
+        let barrier: StartBarrier?
 
-        init(name: String, tracker: ExecutionTracker, delay: TimeInterval = 0.1, synchronizer: TestSynchronizer = TestSynchronizer()) {
+        init(
+            name: String,
+            tracker: ExecutionTracker,
+            delay: TimeInterval = 0.1,
+            synchronizer: TestSynchronizer = TestSynchronizer(),
+            barrier: StartBarrier? = nil
+        ) {
             self.name = name
             self.tracker = tracker
             self.delay = delay
             self.synchronizer = synchronizer
+            self.barrier = barrier
         }
 
         func observe<T: Command>(_ command: T, context: CommandContext) async throws {
             await tracker.recordStart(middleware: name)
+            await barrier?.arrive()
 
             // Simulate work with cancellation check
             if delay > 0 {
@@ -109,10 +155,17 @@ final class ParallelMiddlewareWrapperTests: XCTestCase {
     func testParallelExecution() async throws {
         // Given
         let tracker = ExecutionTracker()
+        // No observer proceeds until all three are in flight together; see StartBarrier.
+        let barrier = StartBarrier(parties: 3)
+        let fallback = Task {
+            try? await Task.sleep(for: .seconds(10))
+            await barrier.releaseForFallback()
+        }
+        defer { fallback.cancel() }
         let observers = [
-            TrackingObserver(name: "MW1", tracker: tracker, delay: 0.2, synchronizer: synchronizer),
-            TrackingObserver(name: "MW2", tracker: tracker, delay: 0.2, synchronizer: synchronizer),
-            TrackingObserver(name: "MW3", tracker: tracker, delay: 0.2, synchronizer: synchronizer)
+            TrackingObserver(name: "MW1", tracker: tracker, delay: 0.2, synchronizer: synchronizer, barrier: barrier),
+            TrackingObserver(name: "MW2", tracker: tracker, delay: 0.2, synchronizer: synchronizer, barrier: barrier),
+            TrackingObserver(name: "MW3", tracker: tracker, delay: 0.2, synchronizer: synchronizer, barrier: barrier)
         ]
 
         let parallelWrapper = ParallelMiddlewareWrapper(observers: observers)
@@ -127,8 +180,13 @@ final class ParallelMiddlewareWrapperTests: XCTestCase {
         let duration = Date().timeIntervalSince(startTime)
         
         // Then
-        // If executed in parallel, should take ~0.2s, not 0.6s
-        XCTAssertLessThan(duration, 0.4, "Middleware should execute in parallel")
+        // Parallelism is asserted by the barrier, not by the clock: sequential
+        // execution takes about 0.6s against 0.2s in parallel, but a wall-clock
+        // bound between the two (it was 0.4s) fails whenever a shared runner
+        // stalls for 200ms. The elapsed bound below only detects a hang.
+        let ranTogether = await barrier.allArrivedTogether
+        XCTAssertTrue(ranTogether, "All three observers should be in flight at the same time")
+        XCTAssertLessThan(duration, 10, "Parallel execution should not hang")
         
         let wasConcurrent = await tracker.wasExecutedConcurrently()
         XCTAssertTrue(wasConcurrent, "Middleware should have executed concurrently")
@@ -192,7 +250,9 @@ final class ParallelMiddlewareWrapperTests: XCTestCase {
         let observers: [any ObserverMiddleware] = [
             TrackingObserver(name: "MW1", tracker: tracker, delay: 0.1, synchronizer: synchronizer),
             ErrorThrowingObserver(error: TestError.middleware, delay: 0.05, synchronizer: synchronizer), // Fails quickly
-            TrackingObserver(name: "MW3", tracker: tracker, delay: 0.5, synchronizer: synchronizer) // Should be cancelled
+            // Should be cancelled. Its work must outlast the 50ms failure by far more
+            // than any scheduling stall, or a stalled runner lets it complete first.
+            TrackingObserver(name: "MW3", tracker: tracker, delay: 30, synchronizer: synchronizer)
         ]
 
         let parallelWrapper = ParallelMiddlewareWrapper(observers: observers)
@@ -276,8 +336,15 @@ final class ParallelMiddlewareWrapperTests: XCTestCase {
         // Given
         let middlewareCount = 100
         let tracker = ExecutionTracker()
+        // No observer proceeds until all of them are in flight together; see StartBarrier.
+        let barrier = StartBarrier(parties: middlewareCount)
+        let fallback = Task {
+            try? await Task.sleep(for: .seconds(10))
+            await barrier.releaseForFallback()
+        }
+        defer { fallback.cancel() }
         let observers = (0..<middlewareCount).map { i in
-            TrackingObserver(name: "MW\(i)", tracker: tracker, delay: 0.01, synchronizer: synchronizer)
+            TrackingObserver(name: "MW\(i)", tracker: tracker, delay: 0.01, synchronizer: synchronizer, barrier: barrier)
         }
 
         let parallelWrapper = ParallelMiddlewareWrapper(observers: observers)
@@ -292,8 +359,12 @@ final class ParallelMiddlewareWrapperTests: XCTestCase {
         let duration = Date().timeIntervalSince(startTime)
         
         // Then
-        // Should complete quickly due to parallelism
-        XCTAssertLessThan(duration, 0.5, "Large number of middleware should execute efficiently")
+        // Parallelism is asserted by the barrier (all 100 in flight at once), not by
+        // the former 0.5s wall-clock bound, which a stalled runner exceeds. The
+        // elapsed bound only detects a hang.
+        let ranTogether = await barrier.allArrivedTogether
+        XCTAssertTrue(ranTogether, "All observers should be in flight at the same time")
+        XCTAssertLessThan(duration, 10, "Large number of middleware should not hang")
         
         let executions = await tracker.getExecutions()
         XCTAssertEqual(executions.count, middlewareCount)

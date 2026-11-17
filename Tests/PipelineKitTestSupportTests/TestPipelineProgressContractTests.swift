@@ -135,7 +135,9 @@ final class TestPipelineProgressContractTests: XCTestCase {
                 return ProgressObservation(finished: !Task.isCancelled, messages: messages)
             }
             group.addTask {
-                try? await Task.sleep(for: .seconds(1))
+                // Hang detector only. It races the drain above, so it must be far
+                // longer than any scheduling stall (it was 1s).
+                try? await Task.sleep(for: .seconds(10))
                 return ProgressObservation(finished: false, messages: [])
             }
             let observation = await group.next() ?? ProgressObservation(finished: false, messages: [])

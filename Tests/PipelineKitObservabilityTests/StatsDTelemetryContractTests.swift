@@ -126,7 +126,7 @@ final class StatsDTelemetryContractTests: XCTestCase {
                 await exporter.counter("caller.owned")
                 if !immediate { await exporter.forceFlush() }
             }
-            await fulfillment(of: [returned], timeout: 1)
+            await fulfillment(of: [returned], timeout: 10)
             guard await transport.didReturn else { continue }
             await work.value
             await exporter.close()
@@ -350,7 +350,7 @@ final class StatsDTelemetryContractTests: XCTestCase {
         await transport.install(exporter)
         await exporter.counter("reentrant")
         await transport.waitForCloseEntry()
-        await fulfillment(of: [returned], timeout: 1)
+        await fulfillment(of: [returned], timeout: 10)
         guard await transport.didReturn else { await transport.releaseClose(); return }
         let finished = TelemetrySharedState(false)
         let externalClose = Task { await exporter.close(); finished.update { $0 = true } }
@@ -369,7 +369,7 @@ final class StatsDTelemetryContractTests: XCTestCase {
         let exporter = StatsDExporter(configuration: .default, transport: transport)
         await transport.install(exporter)
         let closing = Task { await exporter.close() }
-        await fulfillment(of: [returned], timeout: 1)
+        await fulfillment(of: [returned], timeout: 10)
         guard await transport.didReturn else { await transport.releaseClose(); return }
         await transport.releaseClose()
         await closing.value

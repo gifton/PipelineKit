@@ -251,7 +251,17 @@ final class BackPressureMiddlewareTests: XCTestCase {
         
         // When - Submit commands with memory estimates
         var results: [Result<String, Error>] = []
-        let synchronizer = self.synchronizer // Capture before TaskGroup
+        // Admitted handlers wait at this gate, so the queue can only grow while the
+        // ten commands arrive. With a 50ms sleep as the work, a runner that started
+        // the tasks far enough apart drained the queue before it exceeded the limit.
+        let gate = DropStrategyGate()
+        // If nothing is ever rejected, open the gate anyway so the assertions below
+        // fail instead of the test hanging.
+        let fallback = Task {
+            try? await Task.sleep(for: .seconds(10))
+            await gate.release()
+        }
+        defer { fallback.cancel() }
         
         await withTaskGroup(of: Result<String, Error>.self) { group in
             (0..<10).forEach { _ in
@@ -265,8 +275,8 @@ final class BackPressureMiddlewareTests: XCTestCase {
                             context: context,
                             estimatedSize: 200
                         ) { cmd, _ in
-                            // Slow processing to build queue
-                            await synchronizer.mediumDelay()
+                            // Hold the permit so the queue builds
+                            await gate.wait()
                             return cmd.value
                         }
                         return .success(result)
@@ -278,6 +288,8 @@ final class BackPressureMiddlewareTests: XCTestCase {
             
             for await result in group {
                 results.append(result)
+                // The first rejection is the behaviour under test; let the rest finish.
+                if case .failure = result { await gate.release() }
             }
         }
         
@@ -394,21 +406,25 @@ final class BackPressureMiddlewareTests: XCTestCase {
             maxOutstanding: 10
         )
 
-        let synchronizer = self.synchronizer // Capture before Task
-        
+        // The blocker holds the only permit until the gate opens, and the test waits
+        // for the middleware to report the queue. Fixed sleeps (10ms for the blocker
+        // to start, 50ms for the queue to build, against 100ms of blocker work) left
+        // a 40ms margin before the blocker finished and the stats changed.
+        let gate = BackPressurePolicyGate()
+
         // When - Create specific scenario
         let blocker = Task {
             let command = BPTestCommand(value: "blocker")
             let context = CommandContext()
             
             _ = try? await middleware.execute(command, context: context) { cmd, _ in
-                await synchronizer.longDelay()
+                await gate.wait()
                 return cmd.value
             }
         }
         
-        // Give blocker time to start
-        await synchronizer.shortDelay()
+        let entered = await bpPolicyEventually { await gate.entered }
+        XCTAssertTrue(entered, "The blocker should hold the permit")
         
         // Add some queued items
         let queued = (0..<5).map { i in
@@ -423,7 +439,7 @@ final class BackPressureMiddlewareTests: XCTestCase {
         }
         
         // Let queue build
-        await synchronizer.mediumDelay()
+        _ = await bpPolicyEventually { await middleware.getStats().queuedRequests == 5 }
         
         // Get stats
         let stats = await middleware.getStats()
@@ -434,6 +450,7 @@ final class BackPressureMiddlewareTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(stats.totalProcessed, 0, "Should track processed count")
         
         // Cleanup
+        await gate.release()
         blocker.cancel()
         queued.forEach { $0.cancel() }
     }

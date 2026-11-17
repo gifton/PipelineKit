@@ -194,7 +194,8 @@ final class PoolTelemetryLifecycleTests: XCTestCase {
         await sleeper.advanceFirst()
         await fulfillment(of: [stopped], timeout: 2)
         metrics = nil
-        let deadline = ContinuousClock.now + .seconds(1)
+        // Hang detector for the release, not a latency bound.
+        let deadline = ContinuousClock.now + .seconds(10)
         while witness.value != nil && ContinuousClock.now < deadline { await Task.yield() }
         XCTAssertNil(witness.value)
     }

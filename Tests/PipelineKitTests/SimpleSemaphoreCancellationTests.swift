@@ -325,8 +325,13 @@ final class SimpleSemaphoreCancellationTests: XCTestCase {
         token1.release()
         token2.release()
         
-        // Give time for releases to process
-        try await Task.sleep(nanoseconds: 10_000_000) // 10ms
+        // `release()` hands the permit back from an unstructured task, so wait for
+        // both to land instead of assuming 10ms is enough. The deadline only bounds
+        // a hang.
+        let releaseDeadline = ContinuousClock.now.advanced(by: .seconds(10))
+        while await semaphore.availablePermits != 2, ContinuousClock.now < releaseDeadline {
+            try await Task.sleep(nanoseconds: 1_000_000)
+        }
         
         // All permits should be available again
         let finalPermits = await semaphore.availablePermits
@@ -346,8 +351,12 @@ final class SimpleSemaphoreCancellationTests: XCTestCase {
             }
         }
         
-        // Give tasks time to queue
-        try await Task.sleep(nanoseconds: 10_000_000) // 10ms
+        // Wait for all three tasks to queue instead of assuming 10ms is enough. The
+        // deadline only bounds a hang.
+        let queueDeadline = ContinuousClock.now.advanced(by: .seconds(10))
+        while await semaphore.waitingCount != 3, ContinuousClock.now < queueDeadline {
+            try await Task.sleep(nanoseconds: 1_000_000)
+        }
         
         // Should have 3 waiters
         let waitingCount = await semaphore.waitingCount

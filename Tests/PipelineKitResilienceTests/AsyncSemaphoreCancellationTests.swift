@@ -1,5 +1,8 @@
 import XCTest
 @testable import PipelineKitResilience
+// Reaches the internal `AsyncSemaphore.waiterCount()` so the tests can wait for a
+// waiter to be queued instead of sleeping; same precedent as SemaphoreEvolutionTests.
+@testable import _ResilienceFoundation
 import PipelineKitTestSupport
 
 /// Tests specifically for AsyncSemaphore cancellation behavior
@@ -15,19 +18,23 @@ final class AsyncSemaphoreCancellationTests: XCTestCase {
         let task1Completed = TestCounter()
         let task2Completed = TestCounter()
         let task3Completed = TestCounter()
+        let holdGate = SemaphoreHoldGate()
 
         // Task 1: Acquire and hold the resource
         let holder = Task {
             try? await semaphore.wait()
             await task1Started.increment()
-            // Hold for a while
-            try? await Task.sleep(for: .seconds(1))
+            // Hold until the test has queued and cancelled the waiters. A 1s sleep
+            // here released the resource to the not-yet-cancelled waiter when a
+            // stall outlasted it.
+            await holdGate.wait()
             await task1Completed.increment()
             await semaphore.signal()
         }
 
-        // Wait for task 1 to acquire
-        try? await Task.sleep(for: .milliseconds(50))
+        // Wait for task 1 to acquire. A fixed 50ms sleep assumed the task had been
+        // scheduled by then.
+        _ = await semaphoreEventually { await task1Started.get() == 1 }
         let started = await task1Started.get()
         XCTAssertEqual(started, 1, "Task 1 should have acquired the resource")
 
@@ -52,11 +59,14 @@ final class AsyncSemaphoreCancellationTests: XCTestCase {
             }
         }
 
-        // Give tasks time to start waiting
-        try? await Task.sleep(for: .milliseconds(50))
+        // Both tasks must be queued behind the holder before the cancellation.
+        let bothQueued = await semaphoreEventually { await semaphore.waiterCount() == 2 }
+        XCTAssertTrue(bothQueued, "Tasks 2 and 3 should be waiting for the resource")
 
         // Cancel ONLY task 2
         cancelledTask.cancel()
+        _ = await cancelledTask.result
+        await holdGate.release()
 
         // Wait for everything to complete
         await holder.value
@@ -128,14 +138,20 @@ final class AsyncSemaphoreCancellationTests: XCTestCase {
         let executionOrder = ExecutionOrderTracker()
 
         // Task 0: Hold the resource initially
+        // The holder keeps the resource until all three tasks are queued in a known
+        // order. Fixed sleeps (50ms for the holder, 10ms between tasks, 200ms of
+        // holding) let the tasks queue out of order, or let the holder release
+        // before they had queued.
+        let holdGate = SemaphoreHoldGate()
         let holder = Task {
             try? await semaphore.wait()
-            try? await Task.sleep(for: .milliseconds(200))
+            await holdGate.wait()
             await semaphore.signal()
         }
 
         // Wait for holder to acquire
-        try? await Task.sleep(for: .milliseconds(50))
+        let held = await semaphoreEventually { await holdGate.entered }
+        XCTAssertTrue(held, "The holder should own the resource before the tasks queue")
 
         // Start tasks in order
         let task1 = Task {
@@ -144,7 +160,8 @@ final class AsyncSemaphoreCancellationTests: XCTestCase {
             await semaphore.signal()
         }
 
-        try? await Task.sleep(for: .milliseconds(10))
+        let firstQueued = await semaphoreEventually { await semaphore.waiterCount() == 1 }
+        XCTAssertTrue(firstQueued, "task1 should be queued before task2 starts")
 
         let task2 = Task {
             try await semaphore.wait()
@@ -152,7 +169,8 @@ final class AsyncSemaphoreCancellationTests: XCTestCase {
             await semaphore.signal()
         }
 
-        try? await Task.sleep(for: .milliseconds(10))
+        let secondQueued = await semaphoreEventually { await semaphore.waiterCount() == 2 }
+        XCTAssertTrue(secondQueued, "task2 should be queued before task3 starts")
 
         let task3 = Task {
             try await semaphore.wait()
@@ -160,10 +178,12 @@ final class AsyncSemaphoreCancellationTests: XCTestCase {
             await semaphore.signal()
         }
 
-        try? await Task.sleep(for: .milliseconds(10))
+        let thirdQueued = await semaphoreEventually { await semaphore.waiterCount() == 3 }
+        XCTAssertTrue(thirdQueued, "task3 should be queued before the cancellation")
 
         // Cancel task2 (middle of the queue)
         task2.cancel()
+        await holdGate.release()
 
         // Wait for all to complete
         await holder.value
@@ -333,4 +353,35 @@ final class AsyncSemaphoreCancellationTests: XCTestCase {
         let finalResources = await semaphore.availableResourcesCount()
         XCTAssertEqual(finalResources, 1, "Should have exactly 1 resource")
     }
+}
+
+/// Holds the resource owner until the test has arranged the waiters.
+private actor SemaphoreHoldGate {
+    private var open = false
+    private var waiters: [CheckedContinuation<Void, Never>] = []
+    private(set) var entered = false
+
+    func wait() async {
+        entered = true
+        if open { return }
+        await withCheckedContinuation { waiters.append($0) }
+    }
+
+    func release() {
+        open = true
+        let pending = waiters
+        waiters.removeAll()
+        pending.forEach { $0.resume() }
+    }
+}
+
+/// Polls until `condition` holds. The deadline only bounds a hang; it is not a
+/// latency expectation, so it is far longer than any scheduling stall.
+private func semaphoreEventually(_ condition: @escaping @Sendable () async -> Bool) async -> Bool {
+    let deadline = ContinuousClock.now.advanced(by: .seconds(10))
+    while ContinuousClock.now < deadline {
+        if await condition() { return true }
+        try? await Task.sleep(for: .milliseconds(1))
+    }
+    return await condition()
 }

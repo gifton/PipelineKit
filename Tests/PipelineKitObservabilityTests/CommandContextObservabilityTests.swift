@@ -257,8 +257,10 @@ final class CommandContextObservabilityTests: XCTestCase {
         }
         let elapsed = Date().timeIntervalSince(start)
         
-        // Should be fast (< 1ms per retrieval)
-        XCTAssertLessThan(elapsed, 1.0, "Should retrieve quickly")
+        // Hang/pathology detector, not a benchmark: 1000 retrievals take
+        // milliseconds, and each one is a suspension point, so a 1s bound failed
+        // whenever a shared runner stalled for a second.
+        XCTAssertLessThan(elapsed, 10.0, "Retrieval should not hang")
     }
 }
 

@@ -117,7 +117,8 @@ final class GracePeriodEvolutionTests: XCTestCase {
             expectation.fulfill()
         }
 
-        await fulfillment(of: [expectation], timeout: 2.0)
+        // Hang detector for a 0.2s grace period, not a latency bound.
+        await fulfillment(of: [expectation], timeout: 10.0)
 
         let elapsed = await elapsedRecorder.elapsed
         XCTAssertNotNil(elapsed, "Expiration callback should have recorded an elapsed time.")

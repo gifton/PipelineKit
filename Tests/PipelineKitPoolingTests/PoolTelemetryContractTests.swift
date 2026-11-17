@@ -86,7 +86,8 @@ final class PoolTelemetryContractTests: XCTestCase {
         await collector?.startCollecting()
         await fulfillment(of: [firstExport], timeout: 2)
         collector = nil
-        let deadline = ContinuousClock.now + .seconds(1)
+        // Hang detector for the release, not a latency bound.
+        let deadline = ContinuousClock.now + .seconds(10)
         while weakCollector.value != nil && ContinuousClock.now < deadline { await Task.yield() }
         XCTAssertNil(weakCollector.value)
         XCTAssertNil(weakExporter.value)

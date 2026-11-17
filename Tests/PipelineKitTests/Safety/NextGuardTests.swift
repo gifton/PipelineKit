@@ -104,7 +104,9 @@ final class NextGuardTests: XCTestCase {
     func testCancellationHandling() async throws {
         // Given
         let nextGuard = NextGuard<TestCommand>({ command, _ in
-            try await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
+            // Far longer than any scheduling stall: with 1s of work a stall past it
+            // let the closure return before the cancellation. Cancelled below.
+            try await Task.sleep(nanoseconds: 30_000_000_000) // 30 seconds
             return command.value
         })
         
@@ -156,8 +158,13 @@ final class NextGuardTests: XCTestCase {
             try await nextGuard(command, context)
         }
         
-        // Give it time to transition to executing
-        try await Task.sleep(nanoseconds: 10_000_000) // 10ms
+        // Wait for the transition to executing instead of assuming 10ms is enough.
+        // The closure is parked on the semaphore, so the state cannot move past
+        // "executing" until the signal below. The deadline only bounds a hang.
+        let deadline = ContinuousClock.now.advanced(by: .seconds(10))
+        while !nextGuard.hasBeenCalled && ContinuousClock.now < deadline {
+            try await Task.sleep(nanoseconds: 1_000_000)
+        }
         
         // Should be executing
         XCTAssertEqual(nextGuard.currentState, "executing")

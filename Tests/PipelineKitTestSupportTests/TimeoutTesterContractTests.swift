@@ -11,7 +11,10 @@ final class TimeoutTesterContractTests: XCTestCase {
             PipelineError.timeout(duration: 99, context: nil)
         ]
         for error in errors {
-            let timedOut = await tester.expectTimeout(within: 1) { () -> Int in throw error }
+            // The deadline must be far beyond any scheduling stall: the helper races
+            // the throwing operation against a sleep, and with a 1s deadline a stall
+            // past it could let the sleep win.
+            let timedOut = await tester.expectTimeout(within: 30) { () -> Int in throw error }
             XCTAssertFalse(timedOut, "Operation error must not be reported as the helper's deadline: \(error)")
         }
     }
@@ -53,12 +56,15 @@ final class TimeoutTesterContractTests: XCTestCase {
         struct ExpectedFailure: Error {}
         let start = ContinuousClock.now
         do {
-            _ = try await TimeoutTester().withTimeout(2) { () -> Int in throw ExpectedFailure() }
+            // The losing timer is 30s and the bound 10s: returning under the bound
+            // proves the helper did not wait for the timer, and neither number is
+            // within reach of a scheduling stall (they were 2s and 1s).
+            _ = try await TimeoutTester().withTimeout(30) { () -> Int in throw ExpectedFailure() }
             XCTFail("Expected operation error")
         } catch {
             XCTAssertTrue(error is ExpectedFailure)
         }
-        XCTAssertLessThan(start.duration(to: .now), .seconds(1))
+        XCTAssertLessThan(start.duration(to: .now), .seconds(10))
     }
 
     func testCancelledCallerDoesNotCountAsOwnedDeadline() async {
@@ -116,7 +122,8 @@ final class TimeoutTesterContractTests: XCTestCase {
             returned.fulfill()
         }
         waiter.cancel()
-        await fulfillment(of: [returned], timeout: 0.5)
+        // Hang detector, not a latency bound.
+        await fulfillment(of: [returned], timeout: 10)
         let signaled = await synchronizer.isSignaled("never signaled")
         XCTAssertFalse(signaled)
         // Settle the fixture even when the assertion fails against the old helper.

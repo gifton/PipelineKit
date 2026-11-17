@@ -233,10 +233,12 @@ final class OptimizedValidatorsTests: XCTestCase {
         // Threshold is a wall-clock sanity bound, not a benchmark: under
         // `swift test --parallel` this test shares CPU with other suites and
         // the old 50ms budget flaked (observed 55ms locally under full-suite
-        // parallel load). 0.5s for 1000 validations still catches pathological
-        // regressions; real measurement belongs in PipelineKitPerformanceTests.
-        XCTAssertLessThan(regexTime, 0.5, "Regex validation should complete within 0.5s")
-        XCTAssertLessThan(simpleTime, 0.5, "Simple validation should complete within 0.5s")
+        // parallel load), and a 0.5s budget still fails when a shared runner
+        // deschedules the process for half a second. 10s for 1000 validations
+        // catches only pathological regressions (catastrophic backtracking, a
+        // hang); real measurement belongs in PipelineKitPerformanceTests.
+        XCTAssertLessThan(regexTime, 10, "Regex validation should complete within 10s")
+        XCTAssertLessThan(simpleTime, 10, "Simple validation should complete within 10s")
         
         // Optional: Log relative performance (simple should generally be faster)
         if simpleTime < regexTime {

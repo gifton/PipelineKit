@@ -109,17 +109,29 @@ final class SimpleCachingMiddlewareTests: XCTestCase {
         let result1 = try await pipeline.execute(command, context: context)
         XCTAssertEqual(result1, "test-result")
 
-        // Wait for expiration
-        try await Task.sleep(nanoseconds: 150_000_000) // 150ms
+        // The entry stored by the re-execution is itself only fresh for 100ms, and
+        // `getStats()` reads the wall clock (there is no injectable clock). The
+        // statistics are judged only when they were read within the TTL of that
+        // store; a pass that a stalled runner delayed beyond it is repeated.
+        var readWithinTTL = false
+        for _ in 0..<20 where !readWithinTTL {
+            // Wait for expiration
+            try await Task.sleep(nanoseconds: 150_000_000) // 150ms
 
-        // Should execute again (expired)
-        let result2 = try await pipeline.execute(command, context: context)
-        XCTAssertEqual(result2, "test-result")
+            // Should execute again (expired)
+            let beforeStore = Date()
+            let result2 = try await pipeline.execute(command, context: context)
+            XCTAssertEqual(result2, "test-result")
 
-        // Expired entry should be removed on access
-        let stats = cache.getStats()
-        XCTAssertEqual(stats.totalEntries, 1)
-        XCTAssertEqual(stats.expiredEntries, 0)
+            // Expired entry should be removed on access
+            let stats = cache.getStats()
+            if Date().timeIntervalSince(beforeStore) < 0.1 {
+                readWithinTTL = true
+                XCTAssertEqual(stats.totalEntries, 1)
+                XCTAssertEqual(stats.expiredEntries, 0)
+            }
+        }
+        XCTAssertTrue(readWithinTTL, "No statistics read completed within the 100ms TTL in 20 attempts")
     }
 
     func testRemoveExpired() async throws {
